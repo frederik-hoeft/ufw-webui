@@ -1,0 +1,84 @@
+@page
+@model UfwWebUI.Pages.Rules.DeleteModel
+@{
+    ViewData["Title"] = "Delete Rule";
+}
+
+<h1>Delete Rule</h1>
+
+<h3>Are you sure you want to delete this rule?</h3>
+<div>
+    <h4>UFW Rule</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.Type)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.Type)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.Forward)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.Forward)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.SourceIp)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.SourceIp)
+            @if (!string.IsNullOrEmpty(Model.UfwRule.SourceSubnet))
+            {
+                <text>/</text>@Html.DisplayFor(model => model.UfwRule.SourceSubnet)
+            }
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.TargetIp)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.TargetIp)
+            @if (!string.IsNullOrEmpty(Model.UfwRule.TargetSubnet))
+            {
+                <text>/</text>@Html.DisplayFor(model => model.UfwRule.TargetSubnet)
+            }
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.Protocol)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.Protocol)
+        </dd>
+        <dt class="col-sm-3">
+            Port Range
+        </dt>
+        <dd class="col-sm-9">
+            @if (Model.UfwRule.PortRangeStart.HasValue)
+            {
+                @Model.UfwRule.PortRangeStart
+                if (Model.UfwRule.PortRangeEnd.HasValue && Model.UfwRule.PortRangeEnd != Model.UfwRule.PortRangeStart)
+                {
+                    <text>-</text>@Model.UfwRule.PortRangeEnd
+                }
+            }
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.Comment)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.Comment)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.CreatedDate)
+        </dt>
+        <dd class="col-sm-9">
+            @Model.UfwRule.CreatedDate.ToLocalTime().ToString("g")
+        </dd>
+    </dl>
+    
+    <form method="post">
+        <input type="hidden" asp-for="UfwRule.Id" />
+        <input type="submit" value="Delete" class="btn btn-danger" />
+        <a asp-page="./Index" class="btn btn-secondary">Back to List</a>
+    </form>
+</div>

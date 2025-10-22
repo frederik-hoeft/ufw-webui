@@ -1,0 +1,103 @@
+@page
+@model UfwWebUI.Pages.Rules.IndexModel
+@{
+    ViewData["Title"] = "UFW Rules";
+}
+
+<h1>UFW Rules</h1>
+
+<p>
+    <a asp-page="Create" class="btn btn-primary">Create New Rule</a>
+</p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Type)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Forward)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].SourceIp)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].TargetIp)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Protocol)
+            </th>
+            <th>
+                Port Range
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Comment)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].CreatedDate)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@if (Model.Rules.Count == 0)
+{
+        <tr>
+            <td colspan="9" class="text-center">No rules found. Create your first rule!</td>
+        </tr>
+}
+else
+{
+    foreach (var item in Model.Rules)
+    {
+        <tr>
+            <td>
+                <span class="badge @(item.Type == UfwWebUI.Models.RuleType.Allow ? "bg-success" : item.Type == UfwWebUI.Models.RuleType.Deny ? "bg-danger" : "bg-warning")">
+                    @Html.DisplayFor(modelItem => item.Type)
+                </span>
+            </td>
+            <td>
+                @(item.Forward ? "Yes" : "No")
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.SourceIp)
+                @if (!string.IsNullOrEmpty(item.SourceSubnet))
+                {
+                    <text>/</text>@Html.DisplayFor(modelItem => item.SourceSubnet)
+                }
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TargetIp)
+                @if (!string.IsNullOrEmpty(item.TargetSubnet))
+                {
+                    <text>/</text>@Html.DisplayFor(modelItem => item.TargetSubnet)
+                }
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Protocol)
+            </td>
+            <td>
+                @if (item.PortRangeStart.HasValue)
+                {
+                    @item.PortRangeStart
+                    if (item.PortRangeEnd.HasValue && item.PortRangeEnd != item.PortRangeStart)
+                    {
+                        <text>-</text>@item.PortRangeEnd
+                    }
+                }
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Comment)
+            </td>
+            <td>
+                @item.CreatedDate.ToLocalTime().ToString("g")
+            </td>
+            <td>
+                <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+            </td>
+        </tr>
+    }
+}
+    </tbody>
+</table>
