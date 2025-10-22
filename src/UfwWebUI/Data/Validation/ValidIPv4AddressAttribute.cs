@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Sockets;
 
-namespace UfwWebUI.Validation;
+namespace UfwWebUI.Data.Validation;
 
 internal sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
 {
@@ -42,7 +42,7 @@ internal sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
             }
             // Validate IP part
             ReadOnlySpan<char> ipPart = input[..cidrIndex].TrimEnd();
-            if (!IPAddress.TryParse(ipPart, out IPAddress? ipAddress) || ipAddress.AddressFamily != AddressFamily.InterNetwork)
+            if (ipPart.Count('.') != 3 || !IPAddress.TryParse(ipPart, out IPAddress? ipAddress) || ipAddress.AddressFamily != AddressFamily.InterNetwork)
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} must contain a valid IPv4 address.");
             }
@@ -58,7 +58,7 @@ internal sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
         }
 
         // Validate as plain IP address
-        if (IPAddress.TryParse(input, out IPAddress? ip) && ip.AddressFamily == AddressFamily.InterNetwork)
+        if (input.Count('.') == 3 && IPAddress.TryParse(input, out IPAddress? ip) && ip.AddressFamily == AddressFamily.InterNetwork)
         {
             return ValidationResult.Success;
         }

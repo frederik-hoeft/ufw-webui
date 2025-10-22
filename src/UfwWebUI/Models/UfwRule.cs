@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
-using UfwWebUI.Validation;
+using UfwWebUI.Data.Validation;
 
 namespace UfwWebUI.Models;
 

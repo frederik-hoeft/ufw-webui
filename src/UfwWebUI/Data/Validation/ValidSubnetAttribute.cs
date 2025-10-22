@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UfwWebUI.Validation;
+namespace UfwWebUI.Data.Validation;
 
 internal sealed class ValidPortRangeAttribute : ValidationAttribute
 {
@@ -23,9 +23,15 @@ internal sealed class ValidPortRangeAttribute : ValidationAttribute
 
         ReadOnlySpan<char> input = rawInput.AsSpan().Trim();
 
-        for (int start = 0, end = input[start..].IndexOf(','); start < input.Length && end != -1; start = end + 1)
+        // Split by comma and validate each segment
+        int start = 0;
+        while (start < input.Length)
         {
-            ReadOnlySpan<char> portOrRange = input[start..end].Trim();
+            int commaIndex = input[start..].IndexOf(',');
+            int mask = commaIndex >> 31; // -1 if commaIndex == -1, 0 otherwise
+            //int segmentEnd = commaIndex == -1 ? input.Length : start + commaIndex;
+            int segmentEnd = (input.Length & mask) | ((start + commaIndex) & ~mask);
+            ReadOnlySpan<char> portOrRange = input[start..segmentEnd].TrimEnd();
 
             // Check if it's a range (e.g., 80:82 or 60000:60100)
             int rangeIndex = portOrRange.IndexOf(':');
@@ -55,6 +61,12 @@ internal sealed class ValidPortRangeAttribute : ValidationAttribute
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} contains an invalid port: {portOrRange}");
             }
+            // Move to next segment
+            if (commaIndex == -1)
+            {
+                break;
+            }
+            start += commaIndex + 1;
         }
 
         return ValidationResult.Success;

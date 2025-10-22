@@ -1,5 +1,3 @@
-using FluentAssertions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UfwWebUI.Models;
 using UfwWebUI.Pipeline.Normalizers;
 
@@ -24,8 +22,8 @@ public sealed class AnyValueNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Source.Should().Be(expected);
-        rule.Target.Should().Be(expected);
+        Assert.AreEqual(expected, rule.Source);
+        Assert.AreEqual(expected, rule.Target);
     }
 
     [TestMethod]
@@ -38,8 +36,8 @@ public sealed class AnyValueNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Source.Should().Be("any");
-        rule.Target.Should().Be("any");
+        Assert.AreEqual("any", rule.Source);
+        Assert.AreEqual("any", rule.Target);
     }
 
     [TestMethod]
@@ -52,12 +50,12 @@ public sealed class AnyValueNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Source.Should().Be("192.168.1.1");
-        rule.Target.Should().Be("10.0.0.0/24");
+        Assert.AreEqual("192.168.1.1", rule.Source);
+        Assert.AreEqual("10.0.0.0/24", rule.Target);
     }
 
     [TestMethod]
     public void Priority_ShouldBe2() =>
         // Assert
-        _normalizer.Priority.Should().Be(2);
+        Assert.AreEqual(2, _normalizer.Priority);
 }
