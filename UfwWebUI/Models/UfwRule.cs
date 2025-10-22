@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
+using UfwWebUI.Validation;
 
 namespace UfwWebUI.Models;
 
@@ -15,15 +16,19 @@ public class UfwRule
     public bool Forward { get; set; }
 
     [Display(Name = "Source IP")]
+    [ValidIPv4Address]
     public string? SourceIp { get; set; }
 
     [Display(Name = "Source Subnet")]
+    [ValidSubnet]
     public string? SourceSubnet { get; set; }
 
     [Display(Name = "Target IP")]
+    [ValidIPv4Address]
     public string? TargetIp { get; set; }
 
     [Display(Name = "Target Subnet")]
+    [ValidSubnet]
     public string? TargetSubnet { get; set; }
 
     [Display(Name = "Protocol")]

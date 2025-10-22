@@ -57,7 +57,7 @@ else
             <td>
                 <form method="post" asp-page-handler="Toggle" style="display: inline;">
                     <input type="hidden" name="id" value="@item.Id" />
-                    <input type="hidden" name="enabled" value="@(!item.Enabled)" />
+                    <input type="hidden" name="enabled" value="@(!item.Enabled ? "true" : "false")" />
                     <button type="submit" class="btn btn-sm @(item.Enabled ? "btn-success" : "btn-outline-secondary")" title="@(item.Enabled ? "Disable" : "Enable")">
                         @if (item.Enabled)
                         {
