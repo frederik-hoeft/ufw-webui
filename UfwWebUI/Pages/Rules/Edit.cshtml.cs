@@ -1,20 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using UfwWebUI.Data;
 using UfwWebUI.Models;
+using UfwWebUI.Services;
 
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
 public class EditModel : PageModel
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUfwRuleService _ruleService;
 
-    public EditModel(ApplicationDbContext context)
+    public EditModel(IUfwRuleService ruleService)
     {
-        _context = context;
+        _ruleService = ruleService;
     }
 
     [BindProperty]
@@ -27,7 +26,7 @@ public class EditModel : PageModel
             return NotFound();
         }
 
-        var ufwRule = await _context.UfwRules.FirstOrDefaultAsync(m => m.Id == id);
+        var ufwRule = await _ruleService.GetRuleByIdAsync(id.Value);
         if (ufwRule == null)
         {
             return NotFound();
@@ -38,20 +37,22 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Remove AuthorId and CreatedDate from validation
+        ModelState.Remove("UfwRule.AuthorId");
+        ModelState.Remove("UfwRule.CreatedDate");
+
         if (!ModelState.IsValid)
         {
             return Page();
         }
 
-        _context.Attach(UfwRule).State = EntityState.Modified;
-
         try
         {
-            await _context.SaveChangesAsync();
+            await _ruleService.UpdateRuleAsync(UfwRule);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception)
         {
-            if (!UfwRuleExists(UfwRule.Id))
+            if (!await _ruleService.RuleExistsAsync(UfwRule.Id))
             {
                 return NotFound();
             }
@@ -62,10 +63,5 @@ public class EditModel : PageModel
         }
 
         return RedirectToPage("./Index");
-    }
-
-    private bool UfwRuleExists(int id)
-    {
-        return _context.UfwRules.Any(e => e.Id == id);
     }
 }

@@ -1,28 +1,31 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using UfwWebUI.Data;
 using UfwWebUI.Models;
+using UfwWebUI.Services;
 
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
 public class IndexModel : PageModel
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUfwRuleService _ruleService;
 
-    public IndexModel(ApplicationDbContext context)
+    public IndexModel(IUfwRuleService ruleService)
     {
-        _context = context;
+        _ruleService = ruleService;
     }
 
     public IList<UfwRule> Rules { get; set; } = new List<UfwRule>();
 
     public async Task OnGetAsync()
     {
-        Rules = await _context.UfwRules
-            .Include(r => r.Author)
-            .OrderByDescending(r => r.CreatedDate)
-            .ToListAsync();
+        Rules = await _ruleService.GetAllRulesAsync();
+    }
+
+    public async Task<IActionResult> OnPostToggleAsync(int id, bool enabled)
+    {
+        await _ruleService.ToggleRuleAsync(id, enabled);
+        return RedirectToPage();
     }
 }

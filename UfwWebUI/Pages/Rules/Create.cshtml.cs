@@ -2,20 +2,20 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using UfwWebUI.Data;
 using UfwWebUI.Models;
+using UfwWebUI.Services;
 
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
 public class CreateModel : PageModel
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUfwRuleService _ruleService;
     private readonly UserManager<IdentityUser> _userManager;
 
-    public CreateModel(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    public CreateModel(IUfwRuleService ruleService, UserManager<IdentityUser> userManager)
     {
-        _context = context;
+        _ruleService = ruleService;
         _userManager = userManager;
     }
 
@@ -29,6 +29,10 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Remove AuthorId and CreatedDate from validation
+        ModelState.Remove("UfwRule.AuthorId");
+        ModelState.Remove("UfwRule.CreatedDate");
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -43,8 +47,7 @@ public class CreateModel : PageModel
         UfwRule.AuthorId = user.Id;
         UfwRule.CreatedDate = DateTime.UtcNow;
 
-        _context.UfwRules.Add(UfwRule);
-        await _context.SaveChangesAsync();
+        await _ruleService.CreateRuleAsync(UfwRule);
 
         return RedirectToPage("./Index");
     }

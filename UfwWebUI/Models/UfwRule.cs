@@ -41,7 +41,9 @@ public class UfwRule
     [MaxLength(500)]
     public string? Comment { get; set; }
 
-    [Required]
+    [Display(Name = "Enabled")]
+    public bool Enabled { get; set; } = true;
+
     [Display(Name = "Author")]
     public string AuthorId { get; set; } = string.Empty;
 

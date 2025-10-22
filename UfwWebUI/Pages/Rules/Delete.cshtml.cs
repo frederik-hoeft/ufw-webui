@@ -1,20 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using UfwWebUI.Data;
 using UfwWebUI.Models;
+using UfwWebUI.Services;
 
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
 public class DeleteModel : PageModel
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUfwRuleService _ruleService;
 
-    public DeleteModel(ApplicationDbContext context)
+    public DeleteModel(IUfwRuleService ruleService)
     {
-        _context = context;
+        _ruleService = ruleService;
     }
 
     [BindProperty]
@@ -27,7 +26,7 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        var ufwRule = await _context.UfwRules.FirstOrDefaultAsync(m => m.Id == id);
+        var ufwRule = await _ruleService.GetRuleByIdAsync(id.Value);
 
         if (ufwRule == null)
         {
@@ -47,13 +46,7 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        var ufwRule = await _context.UfwRules.FindAsync(id);
-        if (ufwRule != null)
-        {
-            UfwRule = ufwRule;
-            _context.UfwRules.Remove(UfwRule);
-            await _context.SaveChangesAsync();
-        }
+        await _ruleService.DeleteRuleAsync(id.Value);
 
         return RedirectToPage("./Index");
     }
