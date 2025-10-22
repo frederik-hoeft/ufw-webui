@@ -1,44 +1,55 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Net.Sockets;
 
 namespace UfwWebUI.Validation;
 
-public sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
+internal sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        if (value == null || string.IsNullOrWhiteSpace(value.ToString()))
+        ArgumentNullException.ThrowIfNull(validationContext);
+        string? rawInput = null;
+        if (value is string s)
+        {
+            rawInput = s;
+        }
+        else if (value is not null)
+        {
+            rawInput = value.ToString();
+        }
+        if (string.IsNullOrWhiteSpace(rawInput))
         {
             return ValidationResult.Success; // Allow null/empty
         }
 
-        string input = value.ToString()!.Trim();
+        ReadOnlySpan<char> input = rawInput.AsSpan().Trim();
         
         // Check if it's "any" or "0.0.0.0/0"
-        if (input.Equals("any", StringComparison.OrdinalIgnoreCase) || 
-            input.Equals("0.0.0.0/0", StringComparison.Ordinal))
+        if (input.Equals("any", StringComparison.OrdinalIgnoreCase) || input.Equals("0.0.0.0/0", StringComparison.Ordinal))
         {
             return ValidationResult.Success;
         }
 
         // Check if it contains a CIDR notation
-        if (input.Contains('/', StringComparison.Ordinal))
+        int cidrIndex = input.IndexOf('/');
+        if (cidrIndex != -1)
         {
-            string[] parts = input.Split('/');
-            if (parts.Length != 2)
+            int lastCidrIndex = input.LastIndexOf('/');
+            if (cidrIndex != lastCidrIndex)
             {
-                return new ValidationResult($"The field {validationContext.DisplayName} must be a valid IPv4 address with CIDR notation (e.g., 192.168.1.0/24) or 'any'.");
+                return new ValidationResult($"The field {validationContext.DisplayName} must be a valid IPv4 address, optionally with CIDR notation (e.g., 192.168.1.0/24 or 'any'.");
             }
-
             // Validate IP part
-            if (!IPAddress.TryParse(parts[0], out IPAddress? ipAddress) || 
-                ipAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+            ReadOnlySpan<char> ipPart = input[..cidrIndex].TrimEnd();
+            if (!IPAddress.TryParse(ipPart, out IPAddress? ipAddress) || ipAddress.AddressFamily != AddressFamily.InterNetwork)
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} must contain a valid IPv4 address.");
             }
 
             // Validate subnet part
-            if (!int.TryParse(parts[1], out int subnet) || subnet < 0 || subnet > 32)
+            ReadOnlySpan<char> subnetPart = input[(cidrIndex + 1)..].TrimStart();
+            if (!int.TryParse(subnetPart, out int subnet) || subnet is < 0 or > 32)
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} must have a valid subnet mask (0-32).");
             }
@@ -47,8 +58,7 @@ public sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
         }
 
         // Validate as plain IP address
-        if (IPAddress.TryParse(input, out IPAddress? ip) && 
-            ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        if (IPAddress.TryParse(input, out IPAddress? ip) && ip.AddressFamily == AddressFamily.InterNetwork)
         {
             return ValidationResult.Success;
         }

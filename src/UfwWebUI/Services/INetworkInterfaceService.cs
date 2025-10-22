@@ -1,6 +1,6 @@
 namespace UfwWebUI.Services;
 
-public interface INetworkInterfaceService
+internal interface INetworkInterfaceService
 {
     Task<List<string>> GetNetworkInterfacesAsync();
 }

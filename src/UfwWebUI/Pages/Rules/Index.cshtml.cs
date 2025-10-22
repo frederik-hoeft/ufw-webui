@@ -7,29 +7,17 @@ using UfwWebUI.Services;
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
-public class IndexModel : PageModel
+internal sealed class IndexModel(IUfwRuleService ruleService, IUfwDisplayService displayService) : PageModel
 {
-    private readonly IUfwRuleService _ruleService;
-    private readonly IUfwDisplayService _displayService;
-
-    public IndexModel(IUfwRuleService ruleService, IUfwDisplayService displayService)
-    {
-        _ruleService = ruleService;
-        _displayService = displayService;
-    }
-
     public IReadOnlyList<UfwRule> Rules { get; private set; } = [];
 
-    public IUfwDisplayService DisplayService => _displayService;
+    public IUfwDisplayService DisplayService => displayService;
 
-    public async Task OnGetAsync()
-    {
-        Rules = await _ruleService.GetAllRulesAsync().ConfigureAwait(false);
-    }
+    public async Task OnGetAsync() => Rules = await ruleService.GetAllRulesAsync().ConfigureAwait(false);
 
     public async Task<IActionResult> OnPostToggleAsync(int id, bool enabled)
     {
-        await _ruleService.ToggleRuleAsync(id, enabled).ConfigureAwait(false);
+        await ruleService.ToggleRuleAsync(id, enabled).ConfigureAwait(false);
         return RedirectToPage();
     }
 }

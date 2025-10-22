@@ -2,7 +2,7 @@ using UfwWebUI.Models;
 
 namespace UfwWebUI.Services;
 
-public interface IUfwRuleService
+internal interface IUfwRuleService
 {
     Task<List<UfwRule>> GetAllRulesAsync();
     Task<UfwRule?> GetRuleByIdAsync(int id);

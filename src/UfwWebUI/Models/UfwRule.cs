@@ -4,7 +4,7 @@ using UfwWebUI.Validation;
 
 namespace UfwWebUI.Models;
 
-public class UfwRule
+internal class UfwRule
 {
     public int Id { get; set; }
 
@@ -50,25 +50,4 @@ public class UfwRule
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     public virtual IdentityUser? Author { get; set; }
-}
-
-public enum RuleType
-{
-    Allow,
-    Deny,
-    Reject,
-    Limit
-}
-
-public enum UfwProtocol
-{
-    Any,
-    TCP,
-    UDP
-}
-
-public enum Direction
-{
-    In,
-    Out
 }

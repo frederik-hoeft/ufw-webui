@@ -4,12 +4,7 @@ using UfwWebUI.Models;
 
 namespace UfwWebUI.Data;
 
-public class ApplicationDbContext : IdentityDbContext
+internal sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext(options)
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
-
     public DbSet<UfwRule> UfwRules { get; set; }
 }

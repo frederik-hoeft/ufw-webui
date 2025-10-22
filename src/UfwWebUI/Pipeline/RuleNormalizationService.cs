@@ -3,19 +3,9 @@ using UfwWebUI.Models;
 
 namespace UfwWebUI.Pipeline;
 
-public interface IRuleNormalizationService
+internal sealed class RuleNormalizationService(IEnumerable<IRuleNormalizer> normalizers) : IRuleNormalizationService
 {
-    void NormalizeRule(UfwRule rule);
-}
-
-public sealed class RuleNormalizationService : IRuleNormalizationService
-{
-    private readonly ImmutableArray<IRuleNormalizer> _normalizers;
-
-    public RuleNormalizationService(IEnumerable<IRuleNormalizer> normalizers)
-    {
-        _normalizers = normalizers.CreatePipeline();
-    }
+    private readonly ImmutableArray<IRuleNormalizer> _normalizers = normalizers.CreatePipeline();
 
     public void NormalizeRule(UfwRule rule)
     {

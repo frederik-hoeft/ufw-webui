@@ -2,7 +2,7 @@ using UfwWebUI.Models;
 
 namespace UfwWebUI.Pipeline.Normalizers;
 
-public sealed class AnyValueNormalizer : IRuleNormalizer
+internal sealed class AnyValueNormalizer : IRuleNormalizer
 {
     public int Priority => 2; // Run after trimming
 
@@ -15,21 +15,10 @@ public sealed class AnyValueNormalizer : IRuleNormalizer
 
     private static string NormalizeAny(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(value) || value.Equals("any", StringComparison.OrdinalIgnoreCase))
         {
             return "any";
         }
-
-        // Use span for efficient comparison
-        ReadOnlySpan<char> span = value.AsSpan();
-        if (span.Length == 3 &&
-            (span[0] == 'a' || span[0] == 'A') &&
-            (span[1] == 'n' || span[1] == 'N') &&
-            (span[2] == 'y' || span[2] == 'Y'))
-        {
-            return "any";
-        }
-
         return value;
     }
 }

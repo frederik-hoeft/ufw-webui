@@ -1,12 +1,6 @@
 namespace UfwWebUI.Services;
 
-public interface IUfwDisplayService
-{
-    string GetDisplayValue(string? value);
-    bool IsAnyValue(string? value);
-}
-
-public sealed class UfwDisplayService : IUfwDisplayService
+internal sealed class UfwDisplayService : IUfwDisplayService
 {
     public string GetDisplayValue(string? value)
     {
@@ -18,8 +12,5 @@ public sealed class UfwDisplayService : IUfwDisplayService
         return value;
     }
 
-    public bool IsAnyValue(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) || string.Equals(value, "any", StringComparison.OrdinalIgnoreCase);
-    }
+    public bool IsAnyValue(string? value) => string.IsNullOrWhiteSpace(value) || string.Equals(value, "any", StringComparison.OrdinalIgnoreCase);
 }

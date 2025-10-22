@@ -7,15 +7,8 @@ using UfwWebUI.Services;
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
-public class DeleteModel : PageModel
+internal sealed class DeleteModel(IUfwRuleService ruleService) : PageModel
 {
-    private readonly IUfwRuleService _ruleService;
-
-    public DeleteModel(IUfwRuleService ruleService)
-    {
-        _ruleService = ruleService;
-    }
-
     [BindProperty]
     public UfwRule UfwRule { get; set; } = default!;
 
@@ -26,16 +19,13 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        UfwRule? ufwRule = await _ruleService.GetRuleByIdAsync(id.Value).ConfigureAwait(false);
+        UfwRule? ufwRule = await ruleService.GetRuleByIdAsync(id.Value).ConfigureAwait(false);
 
         if (ufwRule == null)
         {
             return NotFound();
         }
-        else
-        {
-            UfwRule = ufwRule;
-        }
+        UfwRule = ufwRule;
         return Page();
     }
 
@@ -46,7 +36,7 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        await _ruleService.DeleteRuleAsync(id.Value).ConfigureAwait(false);
+        await ruleService.DeleteRuleAsync(id.Value).ConfigureAwait(false);
 
         return RedirectToPage("./Index");
     }

@@ -3,7 +3,7 @@ using UfwWebUI.Models;
 
 namespace UfwWebUI.Pipeline.Normalizers;
 
-public sealed class PortRangeNormalizer : IRuleNormalizer
+internal sealed class PortRangeNormalizer : IRuleNormalizer
 {
     public int Priority => 3; // Run after any normalization
 
@@ -13,7 +13,6 @@ public sealed class PortRangeNormalizer : IRuleNormalizer
         {
             return;
         }
-
         // Remove all whitespace from port ranges using span for efficiency
         rule.Ports = RemoveWhitespace(rule.Ports);
     }

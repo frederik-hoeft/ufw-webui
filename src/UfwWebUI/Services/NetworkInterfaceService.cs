@@ -2,16 +2,21 @@ using System.Net.NetworkInformation;
 
 namespace UfwWebUI.Services;
 
-public class NetworkInterfaceService : INetworkInterfaceService
+internal class NetworkInterfaceService : INetworkInterfaceService
 {
     public Task<List<string>> GetNetworkInterfacesAsync()
     {
-        List<string> interfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(ni => ni.OperationalStatus == OperationalStatus.Up && 
-                        ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-            .Select(ni => ni.Name)
-            .OrderBy(name => name)
-            .ToList();
+        List<string> interfaces = 
+        [
+            .. NetworkInterface.GetAllNetworkInterfaces()
+                .Where(static ni => ni is 
+                { 
+                    OperationalStatus: OperationalStatus.Up,
+                    NetworkInterfaceType: not NetworkInterfaceType.Loopback 
+                })
+                .Select(static ni => ni.Name)
+                .OrderBy(static name => name)
+        ];
 
         return Task.FromResult(interfaces);
     }

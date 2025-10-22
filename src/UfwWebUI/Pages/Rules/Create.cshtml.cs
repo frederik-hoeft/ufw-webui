@@ -10,23 +10,16 @@ using UfwWebUI.Services;
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
-public class CreateModel : PageModel
+internal sealed class CreateModel
+(
+    IUfwRuleService ruleService, 
+    INetworkInterfaceService networkInterfaceService, 
+    IRuleNormalizationService normalizationService, 
+    UserManager<IdentityUser> userManager
+) : PageModel
 {
-    private readonly IUfwRuleService _ruleService;
-    private readonly INetworkInterfaceService _networkInterfaceService;
-    private readonly IRuleNormalizationService _normalizationService;
-    private readonly UserManager<IdentityUser> _userManager;
-
-    public CreateModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, IRuleNormalizationService normalizationService, UserManager<IdentityUser> userManager)
-    {
-        _ruleService = ruleService;
-        _networkInterfaceService = networkInterfaceService;
-        _normalizationService = normalizationService;
-        _userManager = userManager;
-    }
-
     [BindProperty]
-    public UfwRule UfwRule { get; set; } = new UfwRule();
+    public UfwRule UfwRule { get; set; } = new();
 
     public SelectList? NetworkInterfaces { get; set; }
 
@@ -39,7 +32,7 @@ public class CreateModel : PageModel
     public async Task<IActionResult> OnPostAsync()
     {
         // Normalize inputs before validation using the pipeline
-        _normalizationService.NormalizeRule(UfwRule);
+        normalizationService.NormalizeRule(UfwRule);
 
         // Remove AuthorId and CreatedDate from validation
         ModelState.Remove("UfwRule.AuthorId");
@@ -51,7 +44,7 @@ public class CreateModel : PageModel
             return Page();
         }
 
-        IdentityUser? user = await _userManager.GetUserAsync(User).ConfigureAwait(false);
+        IdentityUser? user = await userManager.GetUserAsync(User).ConfigureAwait(false);
         if (user == null)
         {
             return RedirectToPage("/Account/Login", new { area = "Identity" });
@@ -60,14 +53,14 @@ public class CreateModel : PageModel
         UfwRule.AuthorId = user.Id;
         UfwRule.CreatedDate = DateTime.UtcNow;
 
-        await _ruleService.CreateRuleAsync(UfwRule).ConfigureAwait(false);
+        await ruleService.CreateRuleAsync(UfwRule).ConfigureAwait(false);
 
         return RedirectToPage("./Index");
     }
 
     private async Task LoadNetworkInterfacesAsync()
     {
-        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync().ConfigureAwait(false);
+        IList<string> interfaces = await networkInterfaceService.GetNetworkInterfacesAsync().ConfigureAwait(false);
         NetworkInterfaces = new SelectList(interfaces);
     }
 }

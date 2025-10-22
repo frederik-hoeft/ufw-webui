@@ -2,7 +2,7 @@ using UfwWebUI.Models;
 
 namespace UfwWebUI.Pipeline.Normalizers;
 
-public sealed class TrimWhitespaceNormalizer : IRuleNormalizer
+internal sealed class TrimWhitespaceNormalizer : IRuleNormalizer
 {
     public int Priority => 1; // Run first to trim whitespace
 

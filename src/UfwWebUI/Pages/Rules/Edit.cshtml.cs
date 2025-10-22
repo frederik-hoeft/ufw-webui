@@ -9,19 +9,8 @@ using UfwWebUI.Services;
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
-public class EditModel : PageModel
+internal sealed class EditModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, IRuleNormalizationService normalizationService) : PageModel
 {
-    private readonly IUfwRuleService _ruleService;
-    private readonly INetworkInterfaceService _networkInterfaceService;
-    private readonly IRuleNormalizationService _normalizationService;
-
-    public EditModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, IRuleNormalizationService normalizationService)
-    {
-        _ruleService = ruleService;
-        _networkInterfaceService = networkInterfaceService;
-        _normalizationService = normalizationService;
-    }
-
     [BindProperty]
     public UfwRule UfwRule { get; set; } = default!;
 
@@ -34,7 +23,7 @@ public class EditModel : PageModel
             return NotFound();
         }
 
-        UfwRule? ufwRule = await _ruleService.GetRuleByIdAsync(id.Value).ConfigureAwait(false);
+        UfwRule? ufwRule = await ruleService.GetRuleByIdAsync(id.Value).ConfigureAwait(false);
         if (ufwRule == null)
         {
             return NotFound();
@@ -47,7 +36,7 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnPostAsync()
     {
         // Normalize inputs before validation using the pipeline
-        _normalizationService.NormalizeRule(UfwRule);
+        normalizationService.NormalizeRule(UfwRule);
 
         // Remove AuthorId and CreatedDate from validation
         ModelState.Remove("UfwRule.AuthorId");
@@ -61,18 +50,15 @@ public class EditModel : PageModel
 
         try
         {
-            await _ruleService.UpdateRuleAsync(UfwRule).ConfigureAwait(false);
+            await ruleService.UpdateRuleAsync(UfwRule).ConfigureAwait(false);
         }
         catch (Exception)
         {
-            if (!await _ruleService.RuleExistsAsync(UfwRule.Id).ConfigureAwait(false))
+            if (!await ruleService.RuleExistsAsync(UfwRule.Id).ConfigureAwait(false))
             {
                 return NotFound();
             }
-            else
-            {
-                throw;
-            }
+            throw;
         }
 
         return RedirectToPage("./Index");
@@ -80,7 +66,7 @@ public class EditModel : PageModel
 
     private async Task LoadNetworkInterfacesAsync()
     {
-        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync().ConfigureAwait(false);
+        List<string> interfaces = await networkInterfaceService.GetNetworkInterfacesAsync().ConfigureAwait(false);
         NetworkInterfaces = new SelectList(interfaces);
     }
 }
