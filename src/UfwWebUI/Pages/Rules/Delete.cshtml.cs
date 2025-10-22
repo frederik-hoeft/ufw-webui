@@ -7,10 +7,12 @@ using UfwWebUI.Services;
 namespace UfwWebUI.Pages.Rules;
 
 [Authorize]
-internal sealed class DeleteModel(IUfwRuleService ruleService) : PageModel
+internal sealed class DeleteModel(IUfwRuleService ruleService, IUfwDisplayService displayService) : PageModel
 {
     [BindProperty]
     public UfwRule UfwRule { get; set; } = default!;
+
+    public IUfwDisplayService DisplayService { get; } = displayService;
 
     public async Task<IActionResult> OnGetAsync(int? id)
     {

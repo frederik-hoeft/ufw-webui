@@ -126,10 +126,24 @@ else
                 }
             </td>
             <td>
-                @item.Protocol.ToString().ToLowerInvariant()
+                @if (item.Protocol == UfwWebUI.Models.UfwProtocol.Any)
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @item.Protocol.ToString().ToLowerInvariant()
+                }
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Ports)
+                @if (Model.DisplayService.IsAnyValue(item.Ports))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @item.Ports
+                }
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.Comment)
