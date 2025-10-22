@@ -4,7 +4,7 @@ using UfwWebUI.Validation;
 
 namespace UfwWebUI.Models;
 
-internal class UfwRule
+internal sealed class UfwRule
 {
     public int Id { get; set; }
 
@@ -49,5 +49,5 @@ internal class UfwRule
     [Display(Name = "Created Date")]
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
-    public virtual IdentityUser? Author { get; set; }
+    public IdentityUser? Author { get; set; }
 }

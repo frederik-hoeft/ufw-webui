@@ -1,18 +1,20 @@
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UfwWebUI.Models;
 using UfwWebUI.Pipeline.Normalizers;
 
 namespace UfwWebUI.Tests.Pipeline.Normalizers;
 
+[TestClass]
 public sealed class AnyValueNormalizerTests
 {
     private readonly AnyValueNormalizer _normalizer = new();
 
-    [Theory]
-    [InlineData("any", "any")]
-    [InlineData("ANY", "any")]
-    [InlineData("Any", "any")]
-    [InlineData("aNy", "any")]
+    [TestMethod]
+    [DataRow("any", "any")]
+    [DataRow("ANY", "any")]
+    [DataRow("Any", "any")]
+    [DataRow("aNy", "any")]
     public void Normalize_ShouldNormalizeAnyToLowercase(string input, string expected)
     {
         // Arrange
@@ -26,7 +28,7 @@ public sealed class AnyValueNormalizerTests
         rule.Target.Should().Be(expected);
     }
 
-    [Fact]
+    [TestMethod]
     public void Normalize_ShouldFillBlankWithAny()
     {
         // Arrange
@@ -40,7 +42,7 @@ public sealed class AnyValueNormalizerTests
         rule.Target.Should().Be("any");
     }
 
-    [Fact]
+    [TestMethod]
     public void Normalize_ShouldNotChangeValidIPAddresses()
     {
         // Arrange
@@ -54,10 +56,8 @@ public sealed class AnyValueNormalizerTests
         rule.Target.Should().Be("10.0.0.0/24");
     }
 
-    [Fact]
-    public void Priority_ShouldBe2()
-    {
+    [TestMethod]
+    public void Priority_ShouldBe2() =>
         // Assert
         _normalizer.Priority.Should().Be(2);
-    }
 }

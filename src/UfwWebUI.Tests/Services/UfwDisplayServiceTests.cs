@@ -1,56 +1,57 @@
-using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UfwWebUI.Services;
 
 namespace UfwWebUI.Tests.Services;
 
+[TestClass]
 public sealed class UfwDisplayServiceTests
 {
     private readonly UfwDisplayService _service = new();
 
-    [Theory]
-    [InlineData(null, "any")]
-    [InlineData("", "any")]
-    [InlineData("  ", "any")]
-    [InlineData("any", "any")]
-    [InlineData("ANY", "any")]
-    [InlineData("Any", "any")]
+    [TestMethod]
+    [DataRow(null, "any")]
+    [DataRow("", "any")]
+    [DataRow("  ", "any")]
+    [DataRow("any", "any")]
+    [DataRow("ANY", "any")]
+    [DataRow("Any", "any")]
     public void GetDisplayValue_ShouldReturnAnyForNullOrAnyValues(string? input, string expected)
     {
         // Act
         string result = _service.GetDisplayValue(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.AreEqual(expected, result);
     }
 
-    [Theory]
-    [InlineData("192.168.1.1", "192.168.1.1")]
-    [InlineData("10.0.0.0/24", "10.0.0.0/24")]
-    [InlineData("eth0", "eth0")]
+    [TestMethod]
+    [DataRow("192.168.1.1", "192.168.1.1")]
+    [DataRow("10.0.0.0/24", "10.0.0.0/24")]
+    [DataRow("eth0", "eth0")]
     public void GetDisplayValue_ShouldReturnValueForNonAnyValues(string input, string expected)
     {
         // Act
         string result = _service.GetDisplayValue(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.AreEqual(expected, result);
     }
 
-    [Theory]
-    [InlineData(null, true)]
-    [InlineData("", true)]
-    [InlineData("  ", true)]
-    [InlineData("any", true)]
-    [InlineData("ANY", true)]
-    [InlineData("Any", true)]
-    [InlineData("192.168.1.1", false)]
-    [InlineData("eth0", false)]
+    [TestMethod]
+    [DataRow(null, true)]
+    [DataRow("", true)]
+    [DataRow("  ", true)]
+    [DataRow("any", true)]
+    [DataRow("ANY", true)]
+    [DataRow("Any", true)]
+    [DataRow("192.168.1.1", false)]
+    [DataRow("eth0", false)]
     public void IsAnyValue_ShouldCorrectlyIdentifyAnyValues(string? input, bool expected)
     {
         // Act
         bool result = _service.IsAnyValue(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.AreEqual(expected, result);
     }
 }

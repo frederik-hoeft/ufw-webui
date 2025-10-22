@@ -1,18 +1,19 @@
-using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UfwWebUI.Models;
 using UfwWebUI.Pipeline.Normalizers;
 
 namespace UfwWebUI.Tests.Pipeline.Normalizers;
 
+[TestClass]
 public sealed class PortRangeNormalizerTests
 {
     private readonly PortRangeNormalizer _normalizer = new();
 
-    [Theory]
-    [InlineData("80, 443", "80,443")]
-    [InlineData("8080: 8090", "8080:8090")]
-    [InlineData("  21 ,  60000 : 60100  ", "21,60000:60100")]
-    [InlineData("80 , 443 , 8080 : 8090", "80,443,8080:8090")]
+    [TestMethod]
+    [DataRow("80, 443", "80,443")]
+    [DataRow("8080: 8090", "8080:8090")]
+    [DataRow("  21 ,  60000 : 60100  ", "21,60000:60100")]
+    [DataRow("80 , 443 , 8080 : 8090", "80,443,8080:8090")]
     public void Normalize_ShouldRemoveAllWhitespace(string input, string expected)
     {
         // Arrange
@@ -22,10 +23,10 @@ public sealed class PortRangeNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Ports.Should().Be(expected);
+        Assert.AreEqual(expected, rule.Ports);
     }
 
-    [Fact]
+    [TestMethod]
     public void Normalize_ShouldNotChangePortsWithoutWhitespace()
     {
         // Arrange
@@ -35,10 +36,10 @@ public sealed class PortRangeNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Ports.Should().Be("80,443,8080:8090");
+        Assert.AreEqual("80,443,8080:8090", rule.Ports);
     }
 
-    [Fact]
+    [TestMethod]
     public void Normalize_ShouldHandleNullPorts()
     {
         // Arrange
@@ -48,13 +49,11 @@ public sealed class PortRangeNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Ports.Should().BeNull();
+        Assert.IsNull(rule.Ports);
     }
 
-    [Fact]
-    public void Priority_ShouldBe3()
-    {
+    [TestMethod]
+    public void Priority_ShouldBe3() =>
         // Assert
-        _normalizer.Priority.Should().Be(3);
-    }
+        Assert.AreEqual(3, _normalizer.Priority);
 }

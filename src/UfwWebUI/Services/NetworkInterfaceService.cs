@@ -2,7 +2,7 @@ using System.Net.NetworkInformation;
 
 namespace UfwWebUI.Services;
 
-internal class NetworkInterfaceService : INetworkInterfaceService
+internal sealed class NetworkInterfaceService : INetworkInterfaceService
 {
     public Task<List<string>> GetNetworkInterfacesAsync()
     {

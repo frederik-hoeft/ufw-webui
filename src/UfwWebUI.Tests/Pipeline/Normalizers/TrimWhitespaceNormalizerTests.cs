@@ -1,14 +1,15 @@
-using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UfwWebUI.Models;
 using UfwWebUI.Pipeline.Normalizers;
 
 namespace UfwWebUI.Tests.Pipeline.Normalizers;
 
+[TestClass]
 public sealed class TrimWhitespaceNormalizerTests
 {
     private readonly TrimWhitespaceNormalizer _normalizer = new();
 
-    [Fact]
+    [TestMethod]
     public void Normalize_ShouldTrimWhitespaceFromAllFields()
     {
         // Arrange
@@ -25,14 +26,14 @@ public sealed class TrimWhitespaceNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Source.Should().Be("192.168.1.0/24");
-        rule.Target.Should().Be("10.0.0.1");
-        rule.Ports.Should().Be("80,443");
-        rule.Interface.Should().Be("eth0");
-        rule.Comment.Should().Be("Test comment");
+        Assert.AreEqual("192.168.1.0/24", rule.Source);
+        Assert.AreEqual("10.0.0.1", rule.Target);
+        Assert.AreEqual("80,443", rule.Ports);
+        Assert.AreEqual("eth0", rule.Interface);
+        Assert.AreEqual("Test comment", rule.Comment);
     }
 
-    [Fact]
+    [TestMethod]
     public void Normalize_ShouldSetNullForEmptyStrings()
     {
         // Arrange
@@ -49,17 +50,15 @@ public sealed class TrimWhitespaceNormalizerTests
         _normalizer.Normalize(rule);
 
         // Assert
-        rule.Source.Should().BeNull();
-        rule.Target.Should().BeNull();
-        rule.Ports.Should().BeNull();
-        rule.Interface.Should().BeNull();
-        rule.Comment.Should().BeNull();
+        Assert.IsNull(rule.Source);
+        Assert.IsNull(rule.Target);
+        Assert.IsNull(rule.Ports);
+        Assert.IsNull(rule.Interface);
+        Assert.IsNull(rule.Comment);
     }
 
-    [Fact]
-    public void Priority_ShouldBe1()
-    {
+    [TestMethod]
+    public void Priority_ShouldBe1() =>
         // Assert
-        _normalizer.Priority.Should().Be(1);
-    }
+        Assert.AreEqual(1, _normalizer.Priority);
 }

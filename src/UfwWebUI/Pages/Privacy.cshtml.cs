@@ -2,7 +2,7 @@
 
 namespace UfwWebUI.Pages;
 
-internal sealed class PrivacyModel(ILogger<PrivacyModel> logger) : PageModel
+internal sealed class PrivacyModel() : PageModel
 {
     public void OnGet()
     {

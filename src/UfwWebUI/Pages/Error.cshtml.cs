@@ -6,7 +6,7 @@ namespace UfwWebUI.Pages;
 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [IgnoreAntiforgeryToken]
-internal sealed class ErrorModel(ILogger<ErrorModel> logger) : PageModel
+internal sealed class ErrorModel() : PageModel
 {
     public string? RequestId { get; set; }
 
