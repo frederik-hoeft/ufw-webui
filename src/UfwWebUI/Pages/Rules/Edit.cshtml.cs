@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using UfwWebUI.Helpers;
 using UfwWebUI.Models;
+using UfwWebUI.Pipeline;
 using UfwWebUI.Services;
 
 namespace UfwWebUI.Pages.Rules;
@@ -13,11 +13,13 @@ public class EditModel : PageModel
 {
     private readonly IUfwRuleService _ruleService;
     private readonly INetworkInterfaceService _networkInterfaceService;
+    private readonly IRuleNormalizationService _normalizationService;
 
-    public EditModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService)
+    public EditModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, IRuleNormalizationService normalizationService)
     {
         _ruleService = ruleService;
         _networkInterfaceService = networkInterfaceService;
+        _normalizationService = normalizationService;
     }
 
     [BindProperty]
@@ -44,12 +46,8 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        // Normalize inputs before validation
-        UfwRule.Source = UfwRuleHelper.NormalizeInput(UfwRule.Source);
-        UfwRule.Target = UfwRuleHelper.NormalizeInput(UfwRule.Target);
-        UfwRule.Ports = UfwRuleHelper.NormalizePortRange(UfwRule.Ports);
-        UfwRule.Interface = string.IsNullOrWhiteSpace(UfwRule.Interface) ? null : UfwRule.Interface.Trim();
-        UfwRule.Comment = UfwRule.Comment?.Trim();
+        // Normalize inputs before validation using the pipeline
+        _normalizationService.NormalizeRule(UfwRule);
 
         // Remove AuthorId and CreatedDate from validation
         ModelState.Remove("UfwRule.AuthorId");

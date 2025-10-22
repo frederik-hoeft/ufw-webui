@@ -1,5 +1,4 @@
 @page
-@using UfwWebUI.Helpers
 @model UfwWebUI.Pages.Rules.IndexModel
 @{
     ViewData["Title"] = "UFW Rules";
@@ -97,7 +96,7 @@ else
                 @item.Direction.ToString().ToLowerInvariant()
             </td>
             <td>
-                @if (UfwRuleHelper.IsAnyValue(item.Interface))
+                @if (Model.DisplayService.IsAnyValue(item.Interface))
                 {
                     <span class="ufw-any">any</span>
                 }
@@ -107,23 +106,23 @@ else
                 }
             </td>
             <td>
-                @if (UfwRuleHelper.IsAnyValue(item.Source))
+                @if (Model.DisplayService.IsAnyValue(item.Source))
                 {
                     <span class="ufw-any">any</span>
                 }
                 else
                 {
-                    @UfwRuleHelper.GetDisplayValue(item.Source)
+                    @Model.DisplayService.GetDisplayValue(item.Source)
                 }
             </td>
             <td>
-                @if (UfwRuleHelper.IsAnyValue(item.Target))
+                @if (Model.DisplayService.IsAnyValue(item.Target))
                 {
                     <span class="ufw-any">any</span>
                 }
                 else
                 {
-                    @UfwRuleHelper.GetDisplayValue(item.Target)
+                    @Model.DisplayService.GetDisplayValue(item.Target)
                 }
             </td>
             <td>

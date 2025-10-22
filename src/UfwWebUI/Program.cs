@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using UfwWebUI.Data;
+using UfwWebUI.Pipeline;
+using UfwWebUI.Pipeline.Normalizers;
 using UfwWebUI.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -19,6 +21,15 @@ builder.Services.AddScoped<IUfwRuleService, UfwRuleService>();
 
 // Register Network Interface Service
 builder.Services.AddScoped<INetworkInterfaceService, NetworkInterfaceService>();
+
+// Register Display Service
+builder.Services.AddScoped<IUfwDisplayService, UfwDisplayService>();
+
+// Register normalization pipeline
+builder.Services.AddScoped<IRuleNormalizer, TrimWhitespaceNormalizer>();
+builder.Services.AddScoped<IRuleNormalizer, AnyValueNormalizer>();
+builder.Services.AddScoped<IRuleNormalizer, PortRangeNormalizer>();
+builder.Services.AddScoped<IRuleNormalizationService, RuleNormalizationService>();
 
 builder.Services.AddRazorPages();
 

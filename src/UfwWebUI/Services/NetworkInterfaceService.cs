@@ -4,9 +4,9 @@ namespace UfwWebUI.Services;
 
 public class NetworkInterfaceService : INetworkInterfaceService
 {
-    public Task<IList<string>> GetNetworkInterfacesAsync()
+    public Task<List<string>> GetNetworkInterfacesAsync()
     {
-        IList<string> interfaces = NetworkInterface.GetAllNetworkInterfaces()
+        List<string> interfaces = NetworkInterface.GetAllNetworkInterfaces()
             .Where(ni => ni.OperationalStatus == OperationalStatus.Up && 
                         ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
             .Select(ni => ni.Name)

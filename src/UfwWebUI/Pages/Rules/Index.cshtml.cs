@@ -10,13 +10,17 @@ namespace UfwWebUI.Pages.Rules;
 public class IndexModel : PageModel
 {
     private readonly IUfwRuleService _ruleService;
+    private readonly IUfwDisplayService _displayService;
 
-    public IndexModel(IUfwRuleService ruleService)
+    public IndexModel(IUfwRuleService ruleService, IUfwDisplayService displayService)
     {
         _ruleService = ruleService;
+        _displayService = displayService;
     }
 
-    public IList<UfwRule> Rules { get; private set; } = new List<UfwRule>();
+    public IReadOnlyList<UfwRule> Rules { get; private set; } = [];
+
+    public IUfwDisplayService DisplayService => _displayService;
 
     public async Task OnGetAsync()
     {

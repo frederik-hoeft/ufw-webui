@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using UfwWebUI.Helpers;
 using UfwWebUI.Models;
+using UfwWebUI.Pipeline;
 using UfwWebUI.Services;
 
 namespace UfwWebUI.Pages.Rules;
@@ -14,12 +14,14 @@ public class CreateModel : PageModel
 {
     private readonly IUfwRuleService _ruleService;
     private readonly INetworkInterfaceService _networkInterfaceService;
+    private readonly IRuleNormalizationService _normalizationService;
     private readonly UserManager<IdentityUser> _userManager;
 
-    public CreateModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, UserManager<IdentityUser> userManager)
+    public CreateModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, IRuleNormalizationService normalizationService, UserManager<IdentityUser> userManager)
     {
         _ruleService = ruleService;
         _networkInterfaceService = networkInterfaceService;
+        _normalizationService = normalizationService;
         _userManager = userManager;
     }
 
@@ -36,12 +38,8 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        // Normalize inputs before validation
-        UfwRule.Source = UfwRuleHelper.NormalizeInput(UfwRule.Source);
-        UfwRule.Target = UfwRuleHelper.NormalizeInput(UfwRule.Target);
-        UfwRule.Ports = UfwRuleHelper.NormalizePortRange(UfwRule.Ports);
-        UfwRule.Interface = string.IsNullOrWhiteSpace(UfwRule.Interface) ? null : UfwRule.Interface.Trim();
-        UfwRule.Comment = UfwRule.Comment?.Trim();
+        // Normalize inputs before validation using the pipeline
+        _normalizationService.NormalizeRule(UfwRule);
 
         // Remove AuthorId and CreatedDate from validation
         ModelState.Remove("UfwRule.AuthorId");

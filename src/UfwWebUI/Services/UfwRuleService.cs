@@ -13,7 +13,7 @@ public class UfwRuleService : IUfwRuleService
         _context = context;
     }
 
-    public async Task<IList<UfwRule>> GetAllRulesAsync()
+    public async Task<List<UfwRule>> GetAllRulesAsync()
     {
         return await _context.UfwRules
             .Include(r => r.Author)
@@ -30,18 +30,16 @@ public class UfwRuleService : IUfwRuleService
             .ConfigureAwait(false);
     }
 
-    public async Task<UfwRule> CreateRuleAsync(UfwRule rule)
+    public async Task CreateRuleAsync(UfwRule rule)
     {
         _context.UfwRules.Add(rule);
         await _context.SaveChangesAsync().ConfigureAwait(false);
-        return rule;
     }
 
-    public async Task<UfwRule> UpdateRuleAsync(UfwRule rule)
+    public async Task UpdateRuleAsync(UfwRule rule)
     {
         _context.Attach(rule).State = EntityState.Modified;
         await _context.SaveChangesAsync().ConfigureAwait(false);
-        return rule;
     }
 
     public async Task DeleteRuleAsync(int id)
