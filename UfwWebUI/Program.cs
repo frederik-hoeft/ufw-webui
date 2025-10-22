@@ -17,6 +17,9 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
 // Register UFW Rule Service
 builder.Services.AddScoped<IUfwRuleService, UfwRuleService>();
 
+// Register Network Interface Service
+builder.Services.AddScoped<INetworkInterfaceService, NetworkInterfaceService>();
+
 builder.Services.AddRazorPages();
 
 var app = builder.Build();

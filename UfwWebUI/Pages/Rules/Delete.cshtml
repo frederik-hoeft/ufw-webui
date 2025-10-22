@@ -18,30 +18,34 @@
             @Html.DisplayFor(model => model.UfwRule.Type)
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.UfwRule.Forward)
+            @Html.DisplayNameFor(model => model.UfwRule.IsRoute)
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.UfwRule.Forward)
+            @Html.DisplayFor(model => model.UfwRule.IsRoute)
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.UfwRule.SourceIp)
+            @Html.DisplayNameFor(model => model.UfwRule.Direction)
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.UfwRule.SourceIp)
-            @if (!string.IsNullOrEmpty(Model.UfwRule.SourceSubnet))
-            {
-                <text>/</text>@Html.DisplayFor(model => model.UfwRule.SourceSubnet)
-            }
+            @Html.DisplayFor(model => model.UfwRule.Direction)
         </dd>
         <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.UfwRule.TargetIp)
+            @Html.DisplayNameFor(model => model.UfwRule.Interface)
         </dt>
         <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.UfwRule.TargetIp)
-            @if (!string.IsNullOrEmpty(Model.UfwRule.TargetSubnet))
-            {
-                <text>/</text>@Html.DisplayFor(model => model.UfwRule.TargetSubnet)
-            }
+            @Html.DisplayFor(model => model.UfwRule.Interface)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.Source)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.Source)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UfwRule.Target)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UfwRule.Target)
         </dd>
         <dt class="col-sm-3">
             @Html.DisplayNameFor(model => model.UfwRule.Protocol)
@@ -50,17 +54,10 @@
             @Html.DisplayFor(model => model.UfwRule.Protocol)
         </dd>
         <dt class="col-sm-3">
-            Port Range
+            @Html.DisplayNameFor(model => model.UfwRule.Ports)
         </dt>
         <dd class="col-sm-9">
-            @if (Model.UfwRule.PortRangeStart.HasValue)
-            {
-                @Model.UfwRule.PortRangeStart
-                if (Model.UfwRule.PortRangeEnd.HasValue && Model.UfwRule.PortRangeEnd != Model.UfwRule.PortRangeStart)
-                {
-                    <text>-</text>@Model.UfwRule.PortRangeEnd
-                }
-            }
+            @Html.DisplayFor(model => model.UfwRule.Ports)
         </dd>
         <dt class="col-sm-3">
             @Html.DisplayNameFor(model => model.UfwRule.Comment)

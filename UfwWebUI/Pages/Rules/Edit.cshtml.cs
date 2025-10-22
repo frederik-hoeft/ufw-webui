@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using UfwWebUI.Models;
 using UfwWebUI.Services;
 
@@ -10,14 +11,18 @@ namespace UfwWebUI.Pages.Rules;
 public class EditModel : PageModel
 {
     private readonly IUfwRuleService _ruleService;
+    private readonly INetworkInterfaceService _networkInterfaceService;
 
-    public EditModel(IUfwRuleService ruleService)
+    public EditModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService)
     {
         _ruleService = ruleService;
+        _networkInterfaceService = networkInterfaceService;
     }
 
     [BindProperty]
     public UfwRule UfwRule { get; set; } = default!;
+
+    public SelectList? NetworkInterfaces { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int? id)
     {
@@ -32,6 +37,7 @@ public class EditModel : PageModel
             return NotFound();
         }
         UfwRule = ufwRule;
+        await LoadNetworkInterfacesAsync();
         return Page();
     }
 
@@ -43,6 +49,7 @@ public class EditModel : PageModel
 
         if (!ModelState.IsValid)
         {
+            await LoadNetworkInterfacesAsync();
             return Page();
         }
 
@@ -63,5 +70,11 @@ public class EditModel : PageModel
         }
 
         return RedirectToPage("./Index");
+    }
+
+    private async Task LoadNetworkInterfacesAsync()
+    {
+        var interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
+        NetworkInterfaces = new SelectList(interfaces);
     }
 }

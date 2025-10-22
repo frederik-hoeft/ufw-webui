@@ -19,19 +19,25 @@
                 @Html.DisplayNameFor(model => model.Rules[0].Type)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Rules[0].Forward)
+                Route
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Rules[0].SourceIp)
+                @Html.DisplayNameFor(model => model.Rules[0].Direction)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Rules[0].TargetIp)
+                @Html.DisplayNameFor(model => model.Rules[0].Interface)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Source)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Target)
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.Rules[0].Protocol)
             </th>
             <th>
-                Port Range
+                @Html.DisplayNameFor(model => model.Rules[0].Ports)
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.Rules[0].Comment)
@@ -46,7 +52,7 @@
 @if (Model.Rules.Count == 0)
 {
         <tr>
-            <td colspan="10" class="text-center">No rules found. Create your first rule!</td>
+            <td colspan="12" class="text-center">No rules found. Create your first rule!</td>
         </tr>
 }
 else
@@ -71,39 +77,30 @@ else
                 </form>
             </td>
             <td>
-                <span class="badge @(item.Type == UfwWebUI.Models.RuleType.Allow ? "bg-success" : item.Type == UfwWebUI.Models.RuleType.Deny ? "bg-danger" : "bg-warning")">
+                <span class="badge @(item.Type == UfwWebUI.Models.RuleType.Allow ? "bg-success" : item.Type == UfwWebUI.Models.RuleType.Deny ? "bg-danger" : item.Type == UfwWebUI.Models.RuleType.Reject ? "bg-warning" : "bg-info")">
                     @Html.DisplayFor(modelItem => item.Type)
                 </span>
             </td>
             <td>
-                @(item.Forward ? "Yes" : "No")
+                @(item.IsRoute ? "Yes" : "No")
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.SourceIp)
-                @if (!string.IsNullOrEmpty(item.SourceSubnet))
-                {
-                    <text>/</text>@Html.DisplayFor(modelItem => item.SourceSubnet)
-                }
+                @Html.DisplayFor(modelItem => item.Direction)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.TargetIp)
-                @if (!string.IsNullOrEmpty(item.TargetSubnet))
-                {
-                    <text>/</text>@Html.DisplayFor(modelItem => item.TargetSubnet)
-                }
+                @Html.DisplayFor(modelItem => item.Interface)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Source)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Target)
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.Protocol)
             </td>
             <td>
-                @if (item.PortRangeStart.HasValue)
-                {
-                    @item.PortRangeStart
-                    if (item.PortRangeEnd.HasValue && item.PortRangeEnd != item.PortRangeStart)
-                    {
-                        <text>-</text>@item.PortRangeEnd
-                    }
-                }
+                @Html.DisplayFor(modelItem => item.Ports)
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.Comment)

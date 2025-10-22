@@ -12,35 +12,29 @@ public class UfwRule
     [Display(Name = "Rule Type")]
     public RuleType Type { get; set; }
 
-    [Display(Name = "Forward")]
-    public bool Forward { get; set; }
+    [Display(Name = "Route (Forward)")]
+    public bool IsRoute { get; set; }
 
-    [Display(Name = "Source IP")]
-    [ValidIPv4Address]
-    public string? SourceIp { get; set; }
+    [Display(Name = "Direction")]
+    public Direction Direction { get; set; } = Direction.In;
 
-    [Display(Name = "Source Subnet")]
-    [ValidSubnet]
-    public string? SourceSubnet { get; set; }
+    [Display(Name = "Interface")]
+    public string? Interface { get; set; }
 
-    [Display(Name = "Target IP")]
-    [ValidIPv4Address]
-    public string? TargetIp { get; set; }
+    [Display(Name = "Source")]
+    [ValidIPv4AddressOrAny]
+    public string? Source { get; set; }
 
-    [Display(Name = "Target Subnet")]
-    [ValidSubnet]
-    public string? TargetSubnet { get; set; }
+    [Display(Name = "Target")]
+    [ValidIPv4AddressOrAny]
+    public string? Target { get; set; }
 
     [Display(Name = "Protocol")]
-    public Protocol? Protocol { get; set; }
+    public Protocol Protocol { get; set; } = Protocol.Any;
 
-    [Display(Name = "Port Range Start")]
-    [Range(0, 65535)]
-    public int? PortRangeStart { get; set; }
-
-    [Display(Name = "Port Range End")]
-    [Range(0, 65535)]
-    public int? PortRangeEnd { get; set; }
+    [Display(Name = "Ports")]
+    [ValidPortRange]
+    public string? Ports { get; set; }
 
     [Display(Name = "Comment")]
     [MaxLength(500)]
@@ -62,12 +56,23 @@ public enum RuleType
 {
     Allow,
     Deny,
-    Reject
+    Reject,
+    Limit
 }
 
 public enum Protocol
 {
+    Any,
     TCP,
     UDP,
-    Both
+    ICMP,
+    ESP,
+    AH,
+    GRE
+}
+
+public enum Direction
+{
+    In,
+    Out
 }

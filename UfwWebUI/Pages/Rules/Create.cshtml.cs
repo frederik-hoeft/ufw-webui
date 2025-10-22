@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using UfwWebUI.Models;
 using UfwWebUI.Services;
 
@@ -11,19 +12,24 @@ namespace UfwWebUI.Pages.Rules;
 public class CreateModel : PageModel
 {
     private readonly IUfwRuleService _ruleService;
+    private readonly INetworkInterfaceService _networkInterfaceService;
     private readonly UserManager<IdentityUser> _userManager;
 
-    public CreateModel(IUfwRuleService ruleService, UserManager<IdentityUser> userManager)
+    public CreateModel(IUfwRuleService ruleService, INetworkInterfaceService networkInterfaceService, UserManager<IdentityUser> userManager)
     {
         _ruleService = ruleService;
+        _networkInterfaceService = networkInterfaceService;
         _userManager = userManager;
     }
 
     [BindProperty]
     public UfwRule UfwRule { get; set; } = new UfwRule();
 
-    public IActionResult OnGet()
+    public SelectList? NetworkInterfaces { get; set; }
+
+    public async Task<IActionResult> OnGetAsync()
     {
+        await LoadNetworkInterfacesAsync();
         return Page();
     }
 
@@ -35,6 +41,7 @@ public class CreateModel : PageModel
 
         if (!ModelState.IsValid)
         {
+            await LoadNetworkInterfacesAsync();
             return Page();
         }
 
@@ -50,5 +57,11 @@ public class CreateModel : PageModel
         await _ruleService.CreateRuleAsync(UfwRule);
 
         return RedirectToPage("./Index");
+    }
+
+    private async Task LoadNetworkInterfacesAsync()
+    {
+        var interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
+        NetworkInterfaces = new SelectList(interfaces);
     }
 }
