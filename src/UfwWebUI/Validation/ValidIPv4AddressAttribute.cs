@@ -3,7 +3,7 @@ using System.Net;
 
 namespace UfwWebUI.Validation;
 
-public class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
+public sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {

@@ -64,11 +64,7 @@ public enum Protocol
 {
     Any,
     TCP,
-    UDP,
-    ICMP,
-    ESP,
-    AH,
-    GRE
+    UDP
 }
 
 public enum Direction

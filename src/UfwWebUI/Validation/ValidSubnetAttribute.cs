@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace UfwWebUI.Validation;
 
-public class ValidPortRangeAttribute : ValidationAttribute
+public sealed class ValidPortRangeAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
