@@ -32,13 +32,13 @@ public class EditModel : PageModel
             return NotFound();
         }
 
-        UfwRule? ufwRule = await _ruleService.GetRuleByIdAsync(id.Value);
+        UfwRule? ufwRule = await _ruleService.GetRuleByIdAsync(id.Value).ConfigureAwait(false);
         if (ufwRule == null)
         {
             return NotFound();
         }
         UfwRule = ufwRule;
-        await LoadNetworkInterfacesAsync();
+        await LoadNetworkInterfacesAsync().ConfigureAwait(false);
         return Page();
     }
 
@@ -57,17 +57,17 @@ public class EditModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            await LoadNetworkInterfacesAsync();
+            await LoadNetworkInterfacesAsync().ConfigureAwait(false);
             return Page();
         }
 
         try
         {
-            await _ruleService.UpdateRuleAsync(UfwRule);
+            await _ruleService.UpdateRuleAsync(UfwRule).ConfigureAwait(false);
         }
         catch (Exception)
         {
-            if (!await _ruleService.RuleExistsAsync(UfwRule.Id))
+            if (!await _ruleService.RuleExistsAsync(UfwRule.Id).ConfigureAwait(false))
             {
                 return NotFound();
             }
@@ -82,7 +82,7 @@ public class EditModel : PageModel
 
     private async Task LoadNetworkInterfacesAsync()
     {
-        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
+        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync().ConfigureAwait(false);
         NetworkInterfaces = new SelectList(interfaces);
     }
 }

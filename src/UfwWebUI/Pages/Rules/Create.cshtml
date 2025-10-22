@@ -56,7 +56,7 @@
             
             <div class="form-group mb-3">
                 <label asp-for="UfwRule.Protocol" class="control-label"></label>
-                <select asp-for="UfwRule.Protocol" class="form-control" asp-items="Html.GetEnumSelectList<UfwWebUI.Models.Protocol>()"></select>
+                <select asp-for="UfwRule.Protocol" class="form-control" asp-items="Html.GetEnumSelectList<UfwWebUI.Models.UfwProtocol>()"></select>
                 <span asp-validation-for="UfwRule.Protocol" class="text-danger"></span>
             </div>
             

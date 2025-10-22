@@ -16,16 +16,16 @@ public class IndexModel : PageModel
         _ruleService = ruleService;
     }
 
-    public IList<UfwRule> Rules { get; set; } = new List<UfwRule>();
+    public IList<UfwRule> Rules { get; private set; } = new List<UfwRule>();
 
     public async Task OnGetAsync()
     {
-        Rules = await _ruleService.GetAllRulesAsync();
+        Rules = await _ruleService.GetAllRulesAsync().ConfigureAwait(false);
     }
 
     public async Task<IActionResult> OnPostToggleAsync(int id, bool enabled)
     {
-        await _ruleService.ToggleRuleAsync(id, enabled);
+        await _ruleService.ToggleRuleAsync(id, enabled).ConfigureAwait(false);
         return RedirectToPage();
     }
 }

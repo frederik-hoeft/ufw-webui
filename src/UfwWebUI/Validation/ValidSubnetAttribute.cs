@@ -12,30 +12,30 @@ public sealed class ValidPortRangeAttribute : ValidationAttribute
             return ValidationResult.Success; // Allow null/empty
         }
 
-        var portString = value.ToString()!.Trim();
+        string portString = value.ToString()!.Trim();
         
         // Split by comma for multiple port specifications
-        var portSpecs = portString.Split(',');
+        string[] portSpecs = portString.Split(',');
         
-        foreach (var spec in portSpecs)
+        foreach (string spec in portSpecs)
         {
-            var trimmedSpec = spec.Trim();
+            string trimmedSpec = spec.Trim();
             
             // Check if it's a range (e.g., 80:82 or 60000:60100)
-            if (trimmedSpec.Contains(':'))
+            if (trimmedSpec.Contains(':', StringComparison.Ordinal))
             {
-                var rangeParts = trimmedSpec.Split(':');
+                string[] rangeParts = trimmedSpec.Split(':');
                 if (rangeParts.Length != 2)
                 {
                     return new ValidationResult($"The field {validationContext.DisplayName} contains an invalid port range: {trimmedSpec}");
                 }
 
-                if (!int.TryParse(rangeParts[0], out var startPort) || startPort < 0 || startPort > 65535)
+                if (!int.TryParse(rangeParts[0], out int startPort) || startPort < 0 || startPort > 65535)
                 {
                     return new ValidationResult($"The field {validationContext.DisplayName} contains an invalid start port in range: {trimmedSpec}");
                 }
 
-                if (!int.TryParse(rangeParts[1], out var endPort) || endPort < 0 || endPort > 65535)
+                if (!int.TryParse(rangeParts[1], out int endPort) || endPort < 0 || endPort > 65535)
                 {
                     return new ValidationResult($"The field {validationContext.DisplayName} contains an invalid end port in range: {trimmedSpec}");
                 }
@@ -48,7 +48,7 @@ public sealed class ValidPortRangeAttribute : ValidationAttribute
             else
             {
                 // Single port
-                if (!int.TryParse(trimmedSpec, out var port) || port < 0 || port > 65535)
+                if (!int.TryParse(trimmedSpec, out int port) || port < 0 || port > 65535)
                 {
                     return new ValidationResult($"The field {validationContext.DisplayName} contains an invalid port: {trimmedSpec}");
                 }

@@ -26,7 +26,7 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        var ufwRule = await _ruleService.GetRuleByIdAsync(id.Value);
+        UfwRule? ufwRule = await _ruleService.GetRuleByIdAsync(id.Value).ConfigureAwait(false);
 
         if (ufwRule == null)
         {
@@ -46,7 +46,7 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        await _ruleService.DeleteRuleAsync(id.Value);
+        await _ruleService.DeleteRuleAsync(id.Value).ConfigureAwait(false);
 
         return RedirectToPage("./Index");
     }

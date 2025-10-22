@@ -12,7 +12,7 @@ public sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
             return ValidationResult.Success; // Allow null/empty
         }
 
-        var input = value.ToString()!.Trim();
+        string input = value.ToString()!.Trim();
         
         // Check if it's "any" or "0.0.0.0/0"
         if (input.Equals("any", StringComparison.OrdinalIgnoreCase) || 
@@ -22,23 +22,23 @@ public sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
         }
 
         // Check if it contains a CIDR notation
-        if (input.Contains('/'))
+        if (input.Contains('/', StringComparison.Ordinal))
         {
-            var parts = input.Split('/');
+            string[] parts = input.Split('/');
             if (parts.Length != 2)
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} must be a valid IPv4 address with CIDR notation (e.g., 192.168.1.0/24) or 'any'.");
             }
 
             // Validate IP part
-            if (!IPAddress.TryParse(parts[0], out var ipAddress) || 
+            if (!IPAddress.TryParse(parts[0], out IPAddress? ipAddress) || 
                 ipAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} must contain a valid IPv4 address.");
             }
 
             // Validate subnet part
-            if (!int.TryParse(parts[1], out var subnet) || subnet < 0 || subnet > 32)
+            if (!int.TryParse(parts[1], out int subnet) || subnet < 0 || subnet > 32)
             {
                 return new ValidationResult($"The field {validationContext.DisplayName} must have a valid subnet mask (0-32).");
             }
@@ -47,7 +47,7 @@ public sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
         }
 
         // Validate as plain IP address
-        if (IPAddress.TryParse(input, out var ip) && 
+        if (IPAddress.TryParse(input, out IPAddress? ip) && 
             ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
         {
             return ValidationResult.Success;

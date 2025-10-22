@@ -18,52 +18,54 @@ public class UfwRuleService : IUfwRuleService
         return await _context.UfwRules
             .Include(r => r.Author)
             .OrderByDescending(r => r.CreatedDate)
-            .ToListAsync();
+            .ToListAsync()
+            .ConfigureAwait(false);
     }
 
     public async Task<UfwRule?> GetRuleByIdAsync(int id)
     {
         return await _context.UfwRules
             .Include(r => r.Author)
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .FirstOrDefaultAsync(m => m.Id == id)
+            .ConfigureAwait(false);
     }
 
     public async Task<UfwRule> CreateRuleAsync(UfwRule rule)
     {
         _context.UfwRules.Add(rule);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
         return rule;
     }
 
     public async Task<UfwRule> UpdateRuleAsync(UfwRule rule)
     {
         _context.Attach(rule).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
         return rule;
     }
 
     public async Task DeleteRuleAsync(int id)
     {
-        var rule = await _context.UfwRules.FindAsync(id);
+        UfwRule? rule = await _context.UfwRules.FindAsync(id).ConfigureAwait(false);
         if (rule != null)
         {
             _context.UfwRules.Remove(rule);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     public async Task<bool> RuleExistsAsync(int id)
     {
-        return await _context.UfwRules.AnyAsync(e => e.Id == id);
+        return await _context.UfwRules.AnyAsync(e => e.Id == id).ConfigureAwait(false);
     }
 
     public async Task ToggleRuleAsync(int id, bool enabled)
     {
-        var rule = await _context.UfwRules.FindAsync(id);
+        UfwRule? rule = await _context.UfwRules.FindAsync(id).ConfigureAwait(false);
         if (rule != null)
         {
             rule.Enabled = enabled;
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 }

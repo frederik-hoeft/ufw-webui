@@ -30,7 +30,7 @@ public class UfwRule
     public string? Target { get; set; }
 
     [Display(Name = "Protocol")]
-    public Protocol Protocol { get; set; } = Protocol.Any;
+    public UfwProtocol Protocol { get; set; } = UfwProtocol.Any;
 
     [Display(Name = "Ports")]
     [ValidPortRange]
@@ -60,7 +60,7 @@ public enum RuleType
     Limit
 }
 
-public enum Protocol
+public enum UfwProtocol
 {
     Any,
     TCP,

@@ -48,6 +48,10 @@ public static class UfwRuleHelper
 
     public static string GetProtocolDisplay(string protocol)
     {
+        // UFW commands use lowercase protocol names, so this is intentional
+        // Suppress CA1308 as lowercase is the correct format for UFW
+#pragma warning disable CA1308 // Normalize strings to uppercase
         return protocol.ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
     }
 }

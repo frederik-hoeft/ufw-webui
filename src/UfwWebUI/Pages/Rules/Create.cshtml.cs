@@ -30,7 +30,7 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        await LoadNetworkInterfacesAsync();
+        await LoadNetworkInterfacesAsync().ConfigureAwait(false);
         return Page();
     }
 
@@ -49,11 +49,11 @@ public class CreateModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            await LoadNetworkInterfacesAsync();
+            await LoadNetworkInterfacesAsync().ConfigureAwait(false);
             return Page();
         }
 
-        IdentityUser? user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User).ConfigureAwait(false);
         if (user == null)
         {
             return RedirectToPage("/Account/Login", new { area = "Identity" });
@@ -62,14 +62,14 @@ public class CreateModel : PageModel
         UfwRule.AuthorId = user.Id;
         UfwRule.CreatedDate = DateTime.UtcNow;
 
-        await _ruleService.CreateRuleAsync(UfwRule);
+        await _ruleService.CreateRuleAsync(UfwRule).ConfigureAwait(false);
 
         return RedirectToPage("./Index");
     }
 
     private async Task LoadNetworkInterfacesAsync()
     {
-        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
+        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync().ConfigureAwait(false);
         NetworkInterfaces = new SelectList(interfaces);
     }
 }
