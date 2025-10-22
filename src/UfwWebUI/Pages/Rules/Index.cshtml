@@ -1,8 +1,17 @@
 @page
+@using UfwWebUI.Helpers
 @model UfwWebUI.Pages.Rules.IndexModel
 @{
     ViewData["Title"] = "UFW Rules";
 }
+
+<style>
+    .ufw-any {
+        font-style: italic;
+        color: #6c757d;
+        font-weight: 500;
+    }
+</style>
 
 <h1>UFW Rules</h1>
 
@@ -78,26 +87,47 @@ else
             </td>
             <td>
                 <span class="badge @(item.Type == UfwWebUI.Models.RuleType.Allow ? "bg-success" : item.Type == UfwWebUI.Models.RuleType.Deny ? "bg-danger" : item.Type == UfwWebUI.Models.RuleType.Reject ? "bg-warning" : "bg-info")">
-                    @Html.DisplayFor(modelItem => item.Type)
+                    @item.Type.ToString().ToLowerInvariant()
                 </span>
             </td>
             <td>
                 @(item.IsRoute ? "Yes" : "No")
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Direction)
+                @item.Direction.ToString().ToLowerInvariant()
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Interface)
+                @if (UfwRuleHelper.IsAnyValue(item.Interface))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @item.Interface
+                }
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Source)
+                @if (UfwRuleHelper.IsAnyValue(item.Source))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @UfwRuleHelper.GetDisplayValue(item.Source)
+                }
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Target)
+                @if (UfwRuleHelper.IsAnyValue(item.Target))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @UfwRuleHelper.GetDisplayValue(item.Target)
+                }
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Protocol)
+                @item.Protocol.ToString().ToLowerInvariant()
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.Ports)

@@ -42,16 +42,16 @@
             
             <div class="form-group mb-3">
                 <label asp-for="UfwRule.Source" class="control-label"></label>
-                <input asp-for="UfwRule.Source" class="form-control" placeholder="e.g., 192.168.1.0/24, 10.0.0.1, or 'any'" />
+                <input asp-for="UfwRule.Source" class="form-control" placeholder="e.g., 192.168.1.0/24, 10.0.0.1, or any (leave blank for any)" />
                 <span asp-validation-for="UfwRule.Source" class="text-danger"></span>
-                <small class="form-text text-muted">IP address with optional CIDR notation or 'any'</small>
+                <small class="form-text text-muted">IP address with optional CIDR notation or any (default if blank)</small>
             </div>
             
             <div class="form-group mb-3">
                 <label asp-for="UfwRule.Target" class="control-label"></label>
-                <input asp-for="UfwRule.Target" class="form-control" placeholder="e.g., 10.0.0.1/16, 192.168.1.100, or 'any'" />
+                <input asp-for="UfwRule.Target" class="form-control" placeholder="e.g., 10.0.0.1/16, 192.168.1.100, or any (leave blank for any)" />
                 <span asp-validation-for="UfwRule.Target" class="text-danger"></span>
-                <small class="form-text text-muted">IP address with optional CIDR notation or 'any'</small>
+                <small class="form-text text-muted">IP address with optional CIDR notation or any (default if blank)</small>
             </div>
             
             <div class="form-group mb-3">

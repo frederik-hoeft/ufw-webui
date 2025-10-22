@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using UfwWebUI.Helpers;
 using UfwWebUI.Models;
 using UfwWebUI.Services;
 
@@ -35,6 +36,13 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Normalize inputs before validation
+        UfwRule.Source = UfwRuleHelper.NormalizeInput(UfwRule.Source);
+        UfwRule.Target = UfwRuleHelper.NormalizeInput(UfwRule.Target);
+        UfwRule.Ports = UfwRuleHelper.NormalizePortRange(UfwRule.Ports);
+        UfwRule.Interface = string.IsNullOrWhiteSpace(UfwRule.Interface) ? null : UfwRule.Interface.Trim();
+        UfwRule.Comment = UfwRule.Comment?.Trim();
+
         // Remove AuthorId and CreatedDate from validation
         ModelState.Remove("UfwRule.AuthorId");
         ModelState.Remove("UfwRule.CreatedDate");
@@ -45,7 +53,7 @@ public class CreateModel : PageModel
             return Page();
         }
 
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
             return RedirectToPage("/Account/Login", new { area = "Identity" });
@@ -61,7 +69,7 @@ public class CreateModel : PageModel
 
     private async Task LoadNetworkInterfacesAsync()
     {
-        var interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
+        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
         NetworkInterfaces = new SelectList(interfaces);
     }
 }

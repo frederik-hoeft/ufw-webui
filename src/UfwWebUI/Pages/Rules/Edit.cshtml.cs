@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using UfwWebUI.Helpers;
 using UfwWebUI.Models;
 using UfwWebUI.Services;
 
@@ -31,7 +32,7 @@ public class EditModel : PageModel
             return NotFound();
         }
 
-        var ufwRule = await _ruleService.GetRuleByIdAsync(id.Value);
+        UfwRule? ufwRule = await _ruleService.GetRuleByIdAsync(id.Value);
         if (ufwRule == null)
         {
             return NotFound();
@@ -43,6 +44,13 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Normalize inputs before validation
+        UfwRule.Source = UfwRuleHelper.NormalizeInput(UfwRule.Source);
+        UfwRule.Target = UfwRuleHelper.NormalizeInput(UfwRule.Target);
+        UfwRule.Ports = UfwRuleHelper.NormalizePortRange(UfwRule.Ports);
+        UfwRule.Interface = string.IsNullOrWhiteSpace(UfwRule.Interface) ? null : UfwRule.Interface.Trim();
+        UfwRule.Comment = UfwRule.Comment?.Trim();
+
         // Remove AuthorId and CreatedDate from validation
         ModelState.Remove("UfwRule.AuthorId");
         ModelState.Remove("UfwRule.CreatedDate");
@@ -74,7 +82,7 @@ public class EditModel : PageModel
 
     private async Task LoadNetworkInterfacesAsync()
     {
-        var interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
+        IList<string> interfaces = await _networkInterfaceService.GetNetworkInterfacesAsync();
         NetworkInterfaces = new SelectList(interfaces);
     }
 }
