@@ -1,0 +1,156 @@
+@page
+@using Ufw.Web.Models
+@using Ufw.Web.Pages.Rules
+@model UfwWebUI.Pages.Rules.IndexModel
+@{
+    ViewData["Title"] = "UFW Rules";
+}
+
+<h1>UFW Rules</h1>
+
+<p>
+    <a asp-page="Create" class="btn btn-primary">Create New Rule</a>
+</p>
+<table class="table table-striped rules-table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Enabled)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Type)
+            </th>
+            <th>
+                Route
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Direction)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Interface)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Source)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Target)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Protocol)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Ports)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].Comment)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rules[0].CreatedDate)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@if (Model.Rules.Count == 0)
+{
+        <tr>
+            <td colspan="12" class="text-center">No rules found. Create your first rule!</td>
+        </tr>
+}
+else
+{
+    foreach (var item in Model.Rules)
+    {
+        <tr class="@(item.Enabled ? "" : "table-secondary")">
+            <td>
+                <form method="post" asp-page-handler="Toggle" style="display: inline;">
+                    <input type="hidden" name="id" value="@item.Id" />
+                    <input type="hidden" name="enabled" value="@(!item.Enabled ? "true" : "false")" />
+                    <button type="submit" class="btn btn-sm @(item.Enabled ? "btn-success" : "btn-outline-secondary")" title="@(item.Enabled ? "Disable" : "Enable")">
+                        @if (item.Enabled)
+                        {
+                            <text>✓</text>
+                        }
+                        else
+                        {
+                            <text>✗</text>
+                        }
+                    </button>
+                </form>
+            </td>
+            <td>
+                <span class="badge @(item.Type == RuleType.Allow ? "bg-success" : item.Type == RuleType.Deny ? "bg-danger" : item.Type == RuleType.Reject ? "bg-warning" : "bg-info")">
+                    @item.Type.ToString().ToLowerInvariant()
+                </span>
+            </td>
+            <td>
+                @(item.IsRoute ? "yes" : "no")
+            </td>
+            <td>
+                @item.Direction.ToString().ToLowerInvariant()
+            </td>
+            <td>
+                @if (Model.DisplayService.IsAnyValue(item.Interface))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @item.Interface
+                }
+            </td>
+            <td>
+                @if (Model.DisplayService.IsAnyValue(item.Source))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @Model.DisplayService.GetDisplayValue(item.Source)
+                }
+            </td>
+            <td>
+                @if (Model.DisplayService.IsAnyValue(item.Target))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @Model.DisplayService.GetDisplayValue(item.Target)
+                }
+            </td>
+            <td>
+                @if (item.Protocol == UfwProtocol.Any)
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @item.Protocol.ToString().ToLowerInvariant()
+                }
+            </td>
+            <td>
+                @if (Model.DisplayService.IsAnyValue(item.Ports))
+                {
+                    <span class="ufw-any">any</span>
+                }
+                else
+                {
+                    @item.Ports
+                }
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Comment)
+            </td>
+            <td>
+                @item.CreatedDate.ToLocalTime().ToString("g")
+            </td>
+            <td>
+                <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+            </td>
+        </tr>
+    }
+}
+    </tbody>
+</table>
