@@ -1,0 +1,28 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore src/UfwWebUI.sln
+      
+    - name: Build
+      run: dotnet build src/UfwWebUI.sln --configuration Release --no-restore /p:TreatWarningsAsErrors=true
+      
+    - name: Test
+      run: dotnet test src/UfwWebUI.sln --configuration Release --no-build --verbosity normal --logger "console;verbosity=detailed"

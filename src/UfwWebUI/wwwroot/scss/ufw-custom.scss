@@ -1,0 +1,169 @@
+// UFW Web UI Custom Styles with Responsive Design
+
+// Variables
+$ufw-any-color: #6c757d;
+$ufw-enabled-color: #198754;
+$ufw-disabled-color: #6c757d;
+$table-row-disabled-bg: #e9ecef;
+
+// Breakpoints
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+
+// UFW "any" value highlighting
+.ufw-any {
+    font-style: italic;
+    color: $ufw-any-color;
+}
+
+// Rules table responsive design
+.table-responsive {
+    @media (max-width: $breakpoint-md) {
+        font-size: 0.875rem;
+        
+        .btn-sm {
+            padding: 0.125rem 0.25rem;
+            font-size: 0.75rem;
+        }
+    }
+}
+
+// Rule management buttons
+.rule-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    
+    @media (max-width: $breakpoint-sm) {
+        flex-direction: column;
+        
+        .btn {
+            width: 100%;
+        }
+    }
+}
+
+// Mobile-first form layout
+.rule-form {
+    @media (max-width: $breakpoint-md) {
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            font-size: 0.875rem;
+        }
+    }
+}
+
+// Responsive table for rules
+@media (max-width: $breakpoint-lg) {
+    .rules-table {
+        th, td {
+            padding: 0.5rem 0.25rem;
+            
+            &:nth-child(n+8) {
+                display: none; // Hide less critical columns on medium screens
+            }
+        }
+    }
+}
+
+@media (max-width: $breakpoint-md) {
+    .rules-table {
+        // Stack table for mobile
+        thead {
+            display: none;
+        }
+        
+        tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
+        
+        tbody td {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+            
+            &:before {
+                content: attr(data-label);
+                font-weight: bold;
+                margin-right: 0.5rem;
+            }
+            
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+}
+
+// Toggle button styling
+.toggle-btn {
+    min-width: 2.5rem;
+    
+    &.enabled {
+        background-color: $ufw-enabled-color;
+        border-color: $ufw-enabled-color;
+    }
+    
+    &.disabled {
+        background-color: $ufw-disabled-color;
+        border-color: $ufw-disabled-color;
+    }
+}
+
+// Disabled rule row styling
+tr.disabled-rule {
+    background-color: $table-row-disabled-bg;
+    opacity: 0.7;
+}
+
+// Create/Edit form responsive layout
+.form-row {
+    @media (min-width: $breakpoint-md) {
+        display: flex;
+        gap: 1rem;
+        
+        .form-group {
+            flex: 1;
+        }
+    }
+}
+
+// Badge responsive sizing
+.badge {
+    @media (max-width: $breakpoint-sm) {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+// Navigation responsive fixes
+@media (max-width: $breakpoint-md) {
+    .navbar-nav {
+        .nav-link {
+            padding: 0.5rem 0;
+        }
+    }
+}
+
+// Print styles
+@media print {
+    .rule-actions,
+    .toggle-btn,
+    .btn {
+        display: none !important;
+    }
+    
+    .rules-table {
+        font-size: 10pt;
+    }
+}

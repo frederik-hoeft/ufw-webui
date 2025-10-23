@@ -1,0 +1,86 @@
+@page
+@model UfwWebUI.Pages.Rules.CreateModel
+@{
+    ViewData["Title"] = "Create Rule";
+}
+
+<h1>Create Rule</h1>
+
+<h4>UFW Rule</h4>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Type" class="control-label"></label>
+                <select asp-for="UfwRule.Type" class="form-control" asp-items="Html.GetEnumSelectList<UfwWebUI.Models.RuleType>()"></select>
+                <span asp-validation-for="UfwRule.Type" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group form-check mb-3">
+                <input class="form-check-input" asp-for="UfwRule.IsRoute" />
+                <label class="form-check-label" asp-for="UfwRule.IsRoute"></label>
+                <small class="form-text text-muted">Check this for route/forward rules</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Direction" class="control-label"></label>
+                <select asp-for="UfwRule.Direction" class="form-control" asp-items="Html.GetEnumSelectList<UfwWebUI.Models.Direction>()"></select>
+                <span asp-validation-for="UfwRule.Direction" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Interface" class="control-label"></label>
+                <select asp-for="UfwRule.Interface" class="form-control" asp-items="Model.NetworkInterfaces">
+                    <option value="">-- No specific interface --</option>
+                </select>
+                <span asp-validation-for="UfwRule.Interface" class="text-danger"></span>
+                <small class="form-text text-muted">Optional: Specify network interface (e.g., eno1, eth0)</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Source" class="control-label"></label>
+                <input asp-for="UfwRule.Source" class="form-control" placeholder="e.g., 192.168.1.0/24, 10.0.0.1, or any (leave blank for any)" />
+                <span asp-validation-for="UfwRule.Source" class="text-danger"></span>
+                <small class="form-text text-muted">IP address with optional CIDR notation or any (default if blank)</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Target" class="control-label"></label>
+                <input asp-for="UfwRule.Target" class="form-control" placeholder="e.g., 10.0.0.1/16, 192.168.1.100, or any (leave blank for any)" />
+                <span asp-validation-for="UfwRule.Target" class="text-danger"></span>
+                <small class="form-text text-muted">IP address with optional CIDR notation or any (default if blank)</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Protocol" class="control-label"></label>
+                <select asp-for="UfwRule.Protocol" class="form-control" asp-items="Html.GetEnumSelectList<UfwWebUI.Models.UfwProtocol>()"></select>
+                <span asp-validation-for="UfwRule.Protocol" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Ports" class="control-label"></label>
+                <input asp-for="UfwRule.Ports" class="form-control" placeholder="e.g., 80, 443, 8080:8090, 21,60000:60100" />
+                <span asp-validation-for="UfwRule.Ports" class="text-danger"></span>
+                <small class="form-text text-muted">Single port, range (80:82), or comma-separated list (80,443,8080:8090)</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="UfwRule.Comment" class="control-label"></label>
+                <input asp-for="UfwRule.Comment" class="form-control" />
+                <span asp-validation-for="UfwRule.Comment" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
