@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Ufw.Web.Services;
 
 namespace Ufw.Web.Tests.Services;

@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Ufw.Web.Models;
 using Ufw.Web.Pipeline.Normalizers;
 

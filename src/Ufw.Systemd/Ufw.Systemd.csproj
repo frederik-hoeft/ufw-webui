@@ -15,6 +15,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Jab" Version="0.12.0" />
+	<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ufw.Pipes.Shared\Ufw.Pipes.Shared.csproj" />
+    <ProjectReference Include="..\Ufw.Roslyn\Ufw.Roslyn.csproj" />
+	<ProjectReference Include="..\Ufw.Roslyn.SourceGen\Ufw.Roslyn.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
