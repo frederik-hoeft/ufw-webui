@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using UfwWebUI.Data.Validation;
+using Ufw.Web.Data.Validation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ufw.Web.Tests.Data.Validation;

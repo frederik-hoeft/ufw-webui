@@ -1,5 +1,5 @@
-using UfwWebUI.Models;
-using UfwWebUI.Pipeline.Normalizers;
+using Ufw.Web.Models;
+using Ufw.Web.Pipeline.Normalizers;
 
 namespace Ufw.Web.Tests.Pipeline.Normalizers;
 

@@ -1,5 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using UfwWebUI.Services;
+using Ufw.Web.Services;
 
 namespace Ufw.Web.Tests.Services;
 

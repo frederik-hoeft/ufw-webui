@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UfwWebUI\Ufw.Web.csproj" />
+    <ProjectReference Include="..\Ufw.Web\Ufw.Web.csproj" />
   </ItemGroup>
 
 </Project>

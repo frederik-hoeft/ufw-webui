@@ -10,4 +10,4 @@ using System.Diagnostics.CodeAnalysis;
     "CA1515:Consider making public types internal", 
     Justification = "Test project types need to be public to be discovered by the test framework",
     Scope = "namespaceanddescendants", 
-    Target = "~N:UfwWebUI.Tests")]
+    Target = "~N:Ufw.Web.Tests")]

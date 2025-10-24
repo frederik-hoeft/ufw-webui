@@ -19,5 +19,5 @@ using System.Diagnostics.CodeAnalysis;
     "Performance",
     "CA1822:Mark members as static",
     Justification = "Razor PageModel classes require instance members",
-    Scope = "namespaceanddescendants", Target = "~N:UfwWebUI.Pages"
+    Scope = "namespaceanddescendants", Target = "~N:Ufw.Web.Pages"
 )]
