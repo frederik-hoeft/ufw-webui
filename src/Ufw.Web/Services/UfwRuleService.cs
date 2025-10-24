@@ -4,6 +4,7 @@ using Ufw.Web.Models;
 
 namespace Ufw.Web.Services;
 
+// TODO: integrate with privileged systemd service (via named pipe) to apply rules to the system firewall
 internal sealed class UfwRuleService(ApplicationDbContext context) : IUfwRuleService
 {
     public Task<List<UfwRule>> GetAllRulesAsync() => context.UfwRules
