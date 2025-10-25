@@ -1,6 +1,5 @@
 ﻿using System.Security.Authentication;
 using System.Text.RegularExpressions;
-using Ufw.Pipes.Client.Configuration;
 
 namespace Ufw.Pipes.Client.Configuration;
 

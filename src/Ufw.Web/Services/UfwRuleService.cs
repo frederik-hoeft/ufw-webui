@@ -52,10 +52,11 @@ internal sealed class UfwRuleService(ApplicationDbContext context, IUfwClient uf
             await context.SaveChangesAsync().ConfigureAwait(false);
         }
         // TODO: temporary placeholder implementation to simulate concurrent requests to the UFW service
+        await ufwClient.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules/list");
         await Parallel.ForAsync(0, 1000, async (i, ct) =>
         {
             // simulate some work
-            RuleListResponse response = await ufwClient.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules/list");
+            RuleListResponse response = await ufwClient.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules/list", ct);
         }).ConfigureAwait(false);
         Console.WriteLine();
     }

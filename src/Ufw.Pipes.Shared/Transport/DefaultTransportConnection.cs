@@ -1,16 +1,13 @@
-﻿using System.IO.Pipes;
-using Ufw.Pipes.Shared.Transport;
+namespace Ufw.Pipes.Shared.Transport;
 
-namespace Ufw.Systemd.Transport.Pipes;
-
-internal sealed class NamedPipeServerTransportConnection(NamedPipeServerStream pipe) : ITransportLayerConnection, IDisposable, IAsyncDisposable
+public sealed class DefaultTransportConnection(Stream innerStream) : ITransportLayerConnection, IDisposable, IAsyncDisposable
 {
     private bool _disposedValue;
 
     public Stream GetStream(TimeSpan readTimeout, TimeSpan writeTimeout)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        return new TimedStream(pipe, readTimeout, writeTimeout);
+        return new TimedStream(innerStream, readTimeout, writeTimeout);
     }
 
     public async ValueTask DisposeAsync()
@@ -19,7 +16,8 @@ internal sealed class NamedPipeServerTransportConnection(NamedPipeServerStream p
         {
             return;
         }
-        await pipe.DisposeAsync();
+
+        await innerStream.DisposeAsync();
         _disposedValue = true;
     }
 
@@ -29,7 +27,7 @@ internal sealed class NamedPipeServerTransportConnection(NamedPipeServerStream p
         {
             return;
         }
-        pipe.Dispose();
+        innerStream.Dispose();
         _disposedValue = true;
     }
 }

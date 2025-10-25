@@ -12,6 +12,6 @@ internal sealed class NamedPipeClientTransportService(UfwClientOptions options, 
     public async Task<ITransportLayerConnection> ConnectAsync(CancellationToken cancellationToken)
     {
         NamedPipeClientStream pipeStream = await _pipeDescriptor.ConnectAsync(cancellationToken).NoCapture();
-        return new NamedPipeClientTransportConnection(pipeStream);
+        return new DefaultTransportConnection(pipeStream);
     }
 }

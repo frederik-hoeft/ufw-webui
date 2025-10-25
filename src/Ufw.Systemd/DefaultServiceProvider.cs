@@ -5,15 +5,18 @@ using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Network;
 using Ufw.Systemd.Services;
 using Ufw.Systemd.Services.Logging;
-using Ufw.Systemd.Transport;
+using Ufw.Systemd.Transport.Pipes;
+using Ufw.Systemd.Transport.Security;
 using Ufw.Systemd.Transport.Security.CertificateValidation;
+using Ufw.Systemd.Transport.Tcp;
 
 namespace Ufw.Systemd;
 
 [ServiceProvider]
 [Import<IConfigurationModule>]
 [Import<INetworkModule>]
-[Import<IPipeTransportModule>]
+[Import<ITcpTransportModule>]
+[Import<ITransportSecurityModule>]
 [Import<IApiModule>]
 [Singleton<ILogger, ConsoleLogger>]
 [Singleton<ICertificateLoader, PemCertificateLoader>]
