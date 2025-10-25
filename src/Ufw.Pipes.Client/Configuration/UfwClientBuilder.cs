@@ -8,7 +8,7 @@ public sealed partial class UfwClientBuilder : IDisposable
 {
     private bool _disposedValue;
     private string? _endpoint;
-    private SslProtocols _sslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+    private SslProtocols _sslProtocols;
 
     internal UfwClientBuilder() => Pass();
 
@@ -26,7 +26,7 @@ public sealed partial class UfwClientBuilder : IDisposable
         return this;
     }
 
-    public UfwClientBuilder UseSsl(SslProtocols sslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13)
+    public UfwClientBuilder UseSsl(SslProtocols sslProtocols)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
         _sslProtocols = sslProtocols;

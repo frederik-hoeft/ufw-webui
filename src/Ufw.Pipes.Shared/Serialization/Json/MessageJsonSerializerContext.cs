@@ -27,4 +27,4 @@ namespace Ufw.Pipes.Shared.Serialization.Json;
 [JsonSerializable(typeof(DeleteRuleRequest))]
 [JsonSerializable(typeof(RuleListResponse))]
 [JsonTypeInfoBindingsGenerator(GenerationMode = BindingsGenerationMode.Optimized)]
-internal sealed partial class MessageJsonSerializerContext : AotJsonSerializerContext;
+public sealed partial class MessageJsonSerializerContext : AotJsonSerializerContext;

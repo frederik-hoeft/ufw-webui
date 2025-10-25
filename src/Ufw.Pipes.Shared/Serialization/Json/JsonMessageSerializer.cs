@@ -5,7 +5,7 @@ using Ufw.Roslyn.Controllers;
 
 namespace Ufw.Pipes.Shared.Serialization.Json;
 
-internal sealed class JsonMessageSerializer(MessageJsonSerializerContext context) : IMessageSerializer
+public sealed class JsonMessageSerializer(MessageJsonSerializerContext context) : IMessageSerializer
 {
     private static readonly ReadOnlyMemory<byte> s_newLineBuffer = "\n"u8.ToArray();
 

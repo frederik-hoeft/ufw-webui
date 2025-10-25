@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Ufw.Pipes.Shared;
 using Ufw.Pipes.Shared.Model;
 using Ufw.Roslyn.Json;
 

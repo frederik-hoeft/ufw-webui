@@ -8,10 +8,14 @@ internal sealed class AppSettings : IRequireValidation
 
     public bool WriteToConsole { get; set; }
 
-    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public required PipeOptions Pipe { get; set; }
 
-    public void AssertIsValid() => _ = this is
+    public required NetworkOptions Network { get; set; }
+
+    public bool AssertIsValid() => _ = this is
     {
         UfwPath.Length: > 0,
-    } && File.Exists(UfwPath) ? true : throw new InvalidOperationException("invalid configuration");
+        Pipe: not null,
+    } && File.Exists(UfwPath) && Pipe.AssertIsValid() 
+        ? true : throw new InvalidOperationException("invalid configuration");
 }

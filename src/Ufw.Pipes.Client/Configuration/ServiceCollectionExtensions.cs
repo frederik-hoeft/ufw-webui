@@ -17,9 +17,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddUfwClientServices(this IServiceCollection services, Action<UfwClientBuilder> configureClient)
     {
         ArgumentNullException.ThrowIfNull(configureClient, nameof(configureClient));
-        using UfwClientBuilder orchestratorClientBuilder = new();
-        configureClient(orchestratorClientBuilder);
-        UfwClientOptions implementationInstance = orchestratorClientBuilder.Build();
+        using UfwClientBuilder ufwClientBuilder = new();
+        configureClient(ufwClientBuilder);
+        UfwClientOptions implementationInstance = ufwClientBuilder.Build();
         services.AddSingleton(implementationInstance);
         services.AddSingleton(MessageJsonSerializerContext.Default);
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();

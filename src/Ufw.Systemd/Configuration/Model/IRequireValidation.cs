@@ -1,6 +1,6 @@
 ﻿namespace Ufw.Systemd.Configuration.Model;
 
-public interface IRequireValidation
+internal interface IRequireValidation
 {
-    void AssertIsValid();
+    bool AssertIsValid();
 }

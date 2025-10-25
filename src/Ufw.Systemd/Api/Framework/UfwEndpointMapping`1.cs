@@ -15,7 +15,7 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
     {
         IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
         IConfiguration configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        bool success = await request.Payload.TryReadAsync(configuration.Settings.RequestTimeout, cancellationToken);
+        bool success = await request.Payload.TryReadAsync(configuration.Settings.Network.RequestTimeout, cancellationToken);
         if (!success)
         {
             RequestTimeoutResponse timeout = new("The request payload could not be read within the specified timeout period.");
