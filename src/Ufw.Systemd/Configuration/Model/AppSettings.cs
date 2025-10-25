@@ -16,6 +16,6 @@ internal sealed class AppSettings : IRequireValidation
     {
         UfwPath.Length: > 0,
         Pipe: not null,
-    } && File.Exists(UfwPath) && Pipe.AssertIsValid() 
+    } && File.Exists(UfwPath) && Pipe.AssertIsValid() && Network.AssertIsValid()
         ? true : throw new InvalidOperationException("invalid configuration");
 }

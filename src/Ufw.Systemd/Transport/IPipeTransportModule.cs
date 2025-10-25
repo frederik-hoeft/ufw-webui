@@ -9,5 +9,7 @@ namespace Ufw.Systemd.Transport;
 [ServiceProviderModule]
 [Singleton<INamedPipeServerStreamDescriptor, UnixNamedPipeServerStreamDescriptor>]
 [Singleton<ITransportLayerService, NamedPipeServerTransportService>]
-[Singleton<ITransportSecurityService, ServerTransportSecurityService>]
+// TODO: temporarily disable transport security until we have certificates set up
+//[Singleton<ITransportSecurityService, ServerTransportSecurityService>]
+[Singleton<ITransportSecurityService, NoTransportSecurityService>]
 internal interface IPipeTransportModule;

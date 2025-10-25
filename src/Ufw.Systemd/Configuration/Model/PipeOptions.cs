@@ -8,7 +8,7 @@ internal sealed class PipeOptions : IRequireValidation
 
     public SslProtocols SslProtocols { get; set; }
 
-    public RemoteCertificateValidationOptions? RemoteCertificateValidationOptions { get; set; }
+    public RemoteCertificateValidationOptions? RemoteCertificateValidation { get; set; }
 
     public required string ServerCertificatePath { get; set; }
 
@@ -22,6 +22,6 @@ internal sealed class PipeOptions : IRequireValidation
     } && Enum.IsDefined(SslProtocols) 
         && File.Exists(ServerCertificateKeyPath) 
         && File.Exists(ServerCertificatePath) 
-        && RemoteCertificateValidationOptions?.AssertIsValid() is not false
+        && RemoteCertificateValidation?.AssertIsValid() is not false
         ? true : throw new InvalidOperationException("invalid configuration");
 }

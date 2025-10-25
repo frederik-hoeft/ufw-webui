@@ -18,8 +18,11 @@ internal sealed class NetworkApplicationWorker
     ILogger logger
 ) : INetworkApplicationWorker
 {
+    private readonly Guid _workerId = Guid.CreateVersion7();
+
     public async Task ServeAsync(INetworkApplication manager, CancellationToken cancellationToken)
     {
+        logger.Scoped(this).LogInformation($"Worker {_workerId}: started");
         TimeSpan timeout = configuration.Settings.Network.RequestTimeout;
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -39,8 +42,9 @@ internal sealed class NetworkApplicationWorker
                 {
                     break;
                 }
-                logger.Scoped(this).LogWarning($"Request timed out: {oce.Message}");
+                logger.Scoped(this).LogWarning($"Worker {_workerId}: request timed out: {oce.Message}");
             }
         }
+        logger.Scoped(this).LogInformation($"Worker {_workerId}: stopping");
     }
 }

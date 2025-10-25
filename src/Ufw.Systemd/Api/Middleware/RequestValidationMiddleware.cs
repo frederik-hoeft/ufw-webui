@@ -45,7 +45,7 @@ internal sealed class RequestLoggingMiddleware(IConfiguration configuration, ILo
 
     private void ReleaseStopwatch(Stopwatch stopwatch)
     {
-        if (_stopwatches.Count <= configuration.Settings.Network.MaxConcurrentConnections)
+        if (_stopwatches.Count <= configuration.Settings.Network.MaxConnections)
         {
             stopwatch.Reset();
             _stopwatches.Add(stopwatch);

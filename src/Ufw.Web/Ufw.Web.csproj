@@ -26,4 +26,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ufw.Pipes.Client\Ufw.Pipes.Client.csproj" />
+  </ItemGroup>
+
 </Project>

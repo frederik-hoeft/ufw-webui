@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Ufw.Pipes.Client;
+using Ufw.Pipes.Client.Configuration;
+using Ufw.Pipes.Shared.Transport.Security;
 using Ufw.Web.Data;
 using Ufw.Web.Pipeline;
 using Ufw.Web.Pipeline.Normalizers;
@@ -30,6 +33,10 @@ builder.Services.AddScoped<IRuleNormalizer, TrimWhitespaceNormalizer>();
 builder.Services.AddScoped<IRuleNormalizer, AnyValueNormalizer>();
 builder.Services.AddScoped<IRuleNormalizer, PortRangeNormalizer>();
 builder.Services.AddScoped<IRuleNormalizationService, RuleNormalizationService>();
+
+builder.Services.AddUfwClientServices(client => client.ConnectTo("//./pipe/foo"));
+// TODO: temp for testing without TLS
+builder.Services.AddSingleton<ITransportSecurityService, NoTransportSecurityService>();
 
 builder.Services.AddRazorPages();
 

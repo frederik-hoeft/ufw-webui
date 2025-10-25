@@ -12,7 +12,7 @@ internal sealed class MutualTlsRemoteCertificateValidationHandler(IConfiguration
         {
             return false;
         }
-        if (configuration.Settings.Pipe.RemoteCertificateValidationOptions is { } remoteValidation 
+        if (configuration.Settings.Pipe.RemoteCertificateValidation is { } remoteValidation 
             && certificate is { Issuer: { } issuer, Subject: { } subject })
         {
             return remoteValidation.RequiredSubject.Equals(subject, StringComparison.OrdinalIgnoreCase)

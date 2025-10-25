@@ -47,7 +47,7 @@ internal sealed class ServerTransportSecurityService
         sslOptions = new SslServerAuthenticationOptions
         {
             EnabledSslProtocols = configuration.Settings.Pipe.SslProtocols,
-            ClientCertificateRequired = configuration.Settings.Pipe.RemoteCertificateValidationOptions is not null,
+            ClientCertificateRequired = configuration.Settings.Pipe.RemoteCertificateValidation is not null,
             ServerCertificate = certificate,
         };
         Volatile.Write(ref _sslOptions, sslOptions);

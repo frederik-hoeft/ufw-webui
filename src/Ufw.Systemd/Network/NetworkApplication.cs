@@ -1,14 +1,16 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Network;
 
-internal sealed class NetworkApplication(IConfiguration configuration, IServiceProvider serviceProvider) : INetworkApplication
+internal sealed class NetworkApplication(IConfiguration configuration, IServiceProvider serviceProvider, ILogger logger) : INetworkApplication
 {
-    private readonly int _maxWorkers = configuration.Settings.Network.MaxConcurrentConnections;
+    private readonly int _maxWorkers = configuration.Settings.Network.MaxConnections;
 
-    public Task RunAsync(CancellationToken cancellationToken)
+    public async Task RunAsync(CancellationToken cancellationToken)
     {
+        logger.Scoped(this).LogInformation($"Starting network application with {_maxWorkers} workers");
         List<Task> workerTasks = new(_maxWorkers);
         for (int i = 0; i < _maxWorkers; i++)
         {
@@ -16,6 +18,7 @@ internal sealed class NetworkApplication(IConfiguration configuration, IServiceP
             Task workerTask = worker.ServeAsync(this, cancellationToken);
             workerTasks.Add(workerTask);
         }
-        return Task.WhenAll(workerTasks);
+        await Task.WhenAll(workerTasks);
+        logger.Scoped(this).LogInformation("Network application stopped");
     }
 }

@@ -6,6 +6,6 @@ using Ufw.Systemd.Configuration.Model;
 namespace Ufw.Systemd.Configuration;
 
 [JsonTypeInfoBindingsGenerator(GenerationMode = BindingsGenerationMode.Optimized)]
-[JsonSourceGenerationOptions(ReadCommentHandling = JsonCommentHandling.Skip, UseStringEnumConverter = true)]
+[JsonSourceGenerationOptions(ReadCommentHandling = JsonCommentHandling.Skip, UseStringEnumConverter = true, PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [JsonSerializable(typeof(AppSettings))]
 internal sealed partial class AppSettingsJsonSerializerContext : AotJsonSerializerContext;
