@@ -1,5 +1,67 @@
 # UFW WebUI Architecture
 
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+  - [🌐 Ufw.Web - Web Interface](#-ufwweb---web-interface)
+  - [⚙️ Ufw.Systemd - Privileged Service Architecture](#️-ufwsystemd---privileged-service-architecture)
+    - [Service Startup & Configuration](#service-startup--configuration)
+    - [Multi-Worker Network Architecture](#multi-worker-network-architecture)
+    - [Request Processing Pipeline](#request-processing-pipeline)
+    - [API Controller System](#api-controller-system)
+    - [Endpoint Routing & Mapping](#endpoint-routing--mapping)
+    - [Adding New Domain Endpoints](#adding-new-domain-endpoints)
+    - [Dependency Injection Architecture](#dependency-injection-architecture)
+    - [Key Features](#key-features)
+  - [🔗 Ufw.Pipes.Shared - IPC Foundation](#-ufwpipesshared---ipc-foundation)
+  - [📡 Ufw.Pipes.Client - IPC Client Library](#-ufwpipesclient---ipc-client-library)
+  - [🔧 Ufw.Roslyn & Ufw.Roslyn.SourceGen - Code Generation](#-ufwroslyn--ufwroslynsourcegen---code-generation)
+- [Core Communication Pattern](#core-communication-pattern)
+  - [Named Pipe Architecture](#named-pipe-architecture)
+  - [Message Flow](#message-flow)
+- [Code Generation System](#code-generation-system)
+  - [Source Generator Architecture](#source-generator-architecture)
+- [Development Patterns](#development-patterns)
+  - [Friend Assembly Pattern](#friend-assembly-pattern)
+  - [Global Usings Convention](#global-usings-convention)
+  - [Pipeline Normalization System](#pipeline-normalization-system)
+  - [Service Registration Pattern](#service-registration-pattern)
+- [Build & Development Workflow](#build--development-workflow)
+  - [Project Dependencies](#project-dependencies)
+  - [Key Commands](#key-commands)
+  - [Development & Debugging Workflow](#development--debugging-workflow)
+    - [Systemd Service Development](#systemd-service-development)
+    - [Configuration Management](#configuration-management)
+    - [Source Generator Debugging](#source-generator-debugging)
+  - [Build Configuration](#build-configuration)
+- [Security Model](#security-model)
+  - [Privilege Separation](#privilege-separation)
+  - [Configuration Security](#configuration-security)
+- [Testing Strategy](#testing-strategy)
+  - [Test Organization](#test-organization)
+  - [Test Categories](#test-categories)
+- [Integration Points](#integration-points)
+  - [External Dependencies](#external-dependencies)
+  - [Internal Communication](#internal-communication)
+- [Extension Points](#extension-points)
+  - [Adding New Firewall Operations](#adding-new-firewall-operations)
+    - [1. Define Request/Response Models](#1-define-requestresponse-models)
+    - [2. Implement Controller Method](#2-implement-controller-method)
+    - [3. Register Controller (if new)](#3-register-controller-if-new)
+    - [4. Source Generator Automation](#4-source-generator-automation)
+    - [5. Implement Web Service Methods](#5-implement-web-service-methods)
+    - [6. Update Web UI](#6-update-web-ui)
+  - [Adding Rule Normalizers](#adding-rule-normalizers)
+
+<!-- /code_chunk_output -->
+
+
+
 ## Overview
 
 UFW WebUI is a secure web-based interface for managing UFW (Uncomplicated Firewall) rules on Linux systems. The architecture implements a **privilege separation model** where a web application runs in user space while a separate systemd service handles privileged firewall operations, communicating via named pipes.
@@ -32,16 +94,191 @@ UFW WebUI is a secure web-based interface for managing UFW (Uncomplicated Firewa
   - Rule validation and input normalization pipeline
   - Integration with systemd service via named pipes
 
-### ⚙️ Ufw.Systemd - Privileged Service
-**Purpose**: AOT-compiled console service running as systemd daemon
+### ⚙️ Ufw.Systemd - Privileged Service Architecture
+
+**Purpose**: AOT-compiled console service running as systemd daemon with sophisticated request processing pipeline
+
 - **Technology**: .NET 9 with AOT compilation (`PublishAot=true`)
 - **Framework**: ConsoleAppFramework for source-generated command-line interface, Jab for source-generated dependency injection
 - **Location**: `src/Ufw.Systemd/`
-- **Key Features**:
-  - Runs with elevated privileges to execute UFW commands
-  - HTTP-like API controllers for processing firewall operation requests on behalf of the web application
-  - Named pipe server for secure IPC
-  - Configuration loading from `/etc/ufw-manager/settings.json`
+
+#### Service Startup & Configuration
+```csharp
+// Entry point: Commands.cs
+[Command("serve")]
+public async Task ServeAsync(string config = "/etc/ufw-manager/settings.json", CancellationToken cancellationToken = default)
+{
+    await using DefaultServiceProvider serviceProvider = new();
+    IConfiguration configuration = serviceProvider.GetService<IConfiguration>();
+    bool success = await configuration.TryReloadAsync(config, cancellationToken);
+    INetworkApplication networkApp = serviceProvider.GetService<INetworkApplication>();
+    await networkApp.RunAsync(cancellationToken);
+}
+```
+
+#### Multi-Worker Network Architecture
+The service implements a **multi-worker concurrent processing model**:
+
+```csharp
+// NetworkApplication.cs - Spawns multiple workers
+public async Task RunAsync(CancellationToken cancellationToken)
+{
+    List<Task> workerTasks = new(_maxWorkers);
+    for (int i = 0; i < _maxWorkers; i++)
+    {
+        INetworkApplicationWorker worker = serviceProvider.GetRequiredService<INetworkApplicationWorker>();
+        Task workerTask = worker.ServeAsync(this, cancellationToken);
+        workerTasks.Add(workerTask);
+    }
+    await Task.WhenAll(workerTasks);
+}
+```
+
+Each worker handles the complete request lifecycle:
+1. **Transport Layer**: Accept named pipe connections
+2. **Security Layer**: Establish mutual TLS encryption  
+3. **Serialization**: Deserialize request messages
+4. **Pipeline Processing**: Route through middleware chain
+5. **Response**: Serialize and return response
+
+#### Request Processing Pipeline
+
+The service uses a **middleware pipeline pattern** for request processing:
+
+```csharp
+// Request flow: NetworkApplicationWorker.cs
+await using ITransportLayerConnection connection = await transportLayerService.ServeAsync(cancellationToken);
+await using Stream networkStream = connection.GetStream(readTimeout: timeout, writeTimeout: timeout);
+await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(networkStream, cancellationToken);
+await using IMessage requestEnvelope = await messageSerializer.ReadAsync(secureStream, cancellationToken);
+await using IMessage responseEnvelope = await requestResponsePipeline.ProcessMessageAsync(requestEnvelope, cancellationToken);
+await messageSerializer.WriteAsync(secureStream, responseEnvelope, cancellationToken);
+```
+
+**Middleware Chain** (executed in priority order):
+1. **Request Validation Middleware** - Validates message structure and required fields
+2. **Endpoint Invocation Middleware** - Routes to appropriate controller and executes handler
+
+#### API Controller System
+
+Controllers follow **ASP.NET Core-style patterns** but execute over named pipes:
+
+```csharp
+// Example: RulesController.cs
+[Route("api/v1/rules")]
+internal sealed class RulesController(IConfiguration configuration) : ControllerBase
+{
+    [Get("list")]
+    public async ValueTask<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken)
+    
+    [Delete]
+    public async ValueTask<IResponseMessage> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken)
+}
+```
+
+#### Endpoint Routing & Mapping
+
+The service uses **source-generated endpoint mappings** for routing:
+
+```csharp
+// UfwApiEndpointMap.cs - Attributes trigger source generation
+[ApiControllerRegistration<RulesController>]
+[ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IMessage, IMessage>]
+internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
+```
+
+**Generated Mapping Structure**:
+```csharp
+// Auto-generated endpoint mappings
+private static readonly ApiEndpointMapping<IMessage, IMessage>[] s_mappings = 
+[
+    UfwApiEndpointMappingFactory.Map<RuleListResponse>("GET", "/api/v1/rules/list", priority: 0,
+        static async (serviceProvider, initializeAsync, cancellationToken) => 
+        {
+            var controller = await Activator.CreateControllerAsync<RulesController>(serviceProvider, initializeAsync, cancellationToken);
+            return await controller.GetRulesAsync(cancellationToken);
+        }),
+];
+```
+
+#### Adding New Domain Endpoints
+
+**Step-by-step process for adding new firewall operations**:
+
+1. **Define Models** in `Ufw.Pipes.Shared/Model/`:
+   ```csharp
+   // Request model
+   public sealed record CreateRuleRequest(string From, string To, string Action) : IMessagePayload;
+   
+   // Response model  
+   public sealed record CreateRuleResponse(bool Success, string? ErrorMessage) : IResponseMessage;
+   ```
+
+2. **Create Controller** in `Ufw.Systemd/Api/Controllers/`:
+   ```csharp
+   [Route("api/v1/rules")]
+   internal sealed class RulesController : ControllerBase
+   {
+       [Post("create")]
+       public async ValueTask<CreateRuleResponse> CreateRuleAsync(CreateRuleRequest request, CancellationToken cancellationToken)
+       {
+           // Implementation here
+       }
+   }
+   ```
+
+3. **Register Controller** in `UfwApiEndpointMap.cs`:
+   ```csharp
+   [ApiControllerRegistration<RulesController>]  // ← Add this line
+   [ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IMessage, IMessage>]
+   internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
+   ```
+
+4. **Source Generator** automatically creates endpoint mappings at compile time
+
+5. **Add Client Methods** in `Ufw.Web/Services/`:
+   ```csharp
+   public async Task<CreateRuleResponse> CreateRuleAsync(CreateRuleRequest request)
+   {
+       return await _ufwClient.SendAsync<CreateRuleRequest, CreateRuleResponse>(
+           RequestMethod.Post, "/api/v1/rules/create", request);
+   }
+   ```
+
+#### Dependency Injection Architecture
+
+The systemd service uses **Jab** for source-generated dependency injection with modular design:
+
+```csharp
+// DefaultServiceProvider.cs - Central DI container
+[ServiceProvider]
+[Import<IConfigurationModule>]     // Configuration services
+[Import<INetworkModule>]           // Network application services  
+[Import<IPipeTransportModule>]     // Named pipe transport
+[Import<IApiModule>]               // API controllers and middleware
+[Singleton<ILogger, ConsoleLogger>]
+[Singleton<ICertificateLoader, PemCertificateLoader>]
+internal sealed partial class DefaultServiceProvider;
+```
+
+**Module Structure**:
+- **IConfigurationModule**: Settings loading and validation
+- **INetworkModule**: Multi-worker network application  
+- **IPipeTransportModule**: Named pipe server and security
+- **IApiModule**: Controllers, middleware, and endpoint mapping
+
+**Benefits**:
+- **AOT-Compatible**: No runtime reflection, fully AOT-compiled
+- **Performance**: Zero-cost abstractions with compile-time DI resolution
+- **Modularity**: Clean separation of concerns across service layers
+
+#### Key Features
+- **Concurrent Processing**: Multiple workers handle simultaneous requests
+- **Type Safety**: Strongly-typed request/response models with compile-time validation
+- **Security**: Mutual TLS authentication over named pipes (planned implementation)
+- **Configuration**: Runtime configuration loading from `/etc/ufw-manager/settings.json`
+- **Error Handling**: Structured error responses with optional debug information
+- **Source Generation**: Zero-runtime-cost endpoint mapping via Roslyn generators
 
 ### 🔗 Ufw.Pipes.Shared - IPC Foundation
 **Purpose**: Shared models and protocols for named pipe communication
@@ -204,11 +441,64 @@ dotnet build src/Ufw.sln
 # Run web interface (development)
 dotnet run --project src/Ufw.Web
 
-# Run systemd service
+# Run systemd service (development)
 dotnet run --project src/Ufw.Systemd serve
+
+# Run systemd service with custom config
+dotnet run --project src/Ufw.Systemd serve --config /path/to/settings.json
 
 # Run tests with parallelization
 dotnet test src/Ufw.Web.Tests
+
+# Publish systemd service for deployment (AOT)
+dotnet publish src/Ufw.Systemd -c Release
+```
+
+### Development & Debugging Workflow
+
+#### Systemd Service Development
+```bash
+# 1. Build and test locally
+dotnet build src/Ufw.Systemd
+
+# 2. Run with development settings
+dotnet run --project src/Ufw.Systemd serve --config appsettings.json
+
+# 3. Monitor request/response flow (when DebugMode: true)
+# Service logs detailed request processing information
+
+# 4. Test API endpoints directly (development)
+# Use integration tests or pipe communication test tools
+```
+
+#### Configuration Management
+```json
+// /etc/ufw-manager/settings.json (production)
+// src/Ufw.Systemd/appsettings.json (development)
+{
+  "DebugMode": true,
+  "WriteToConsole": true,
+  "UfwPath": "/usr/sbin/ufw",
+  "Network": {
+    "MaxConnections": 10,
+    "RequestTimeout": "00:00:30"
+  },
+  "Pipe": {
+    // Named pipe configuration
+  }
+}
+```
+
+#### Source Generator Debugging
+```bash
+# View generated source files
+find . -name "*.g.cs" -type f
+
+# Force regeneration during development
+dotnet clean && dotnet build
+
+# Debug source generator issues
+dotnet build -v diagnostic
 ```
 
 ### Build Configuration
@@ -259,10 +549,85 @@ dotnet test src/Ufw.Web.Tests
 ## Extension Points
 
 ### Adding New Firewall Operations
-1. Define request/response models in `Ufw.Pipes.Shared/Model/`
-2. Add controller methods with HTTP attributes in `Ufw.Systemd/Api/Controllers/`
-3. Source generator automatically creates endpoint mappings
-4. Implement client-side service methods in `Ufw.Web/Services/`
+
+**Complete workflow for adding new domain endpoints**:
+
+#### 1. Define Request/Response Models
+Add strongly-typed models in `Ufw.Pipes.Shared/Model/Requests/` and `Ufw.Pipes.Shared/Model/Responses/`:
+
+```csharp
+// Ufw.Pipes.Shared/Model/Requests/Domain/CreateRuleRequest.cs
+public sealed record CreateRuleRequest(
+    string From, 
+    string To, 
+    string Action,
+    int? Priority = null
+) : IMessagePayload;
+
+// Ufw.Pipes.Shared/Model/Responses/Domain/CreateRuleResponse.cs  
+public sealed record CreateRuleResponse(
+    bool Success, 
+    string? RuleId = null,
+    string? ErrorMessage = null
+) : IResponseMessage;
+```
+
+#### 2. Implement Controller Method
+Add controller methods with HTTP verb attributes in `Ufw.Systemd/Api/Controllers/`:
+
+```csharp
+[Route("api/v1/rules")]
+internal sealed class RulesController : ControllerBase
+{
+    [Post("create")]
+    public async ValueTask<CreateRuleResponse> CreateRuleAsync(
+        CreateRuleRequest request, 
+        CancellationToken cancellationToken)
+    {
+        // UFW command execution logic
+        // Validation, error handling, etc.
+        return new CreateRuleResponse(Success: true, RuleId: "rule_123");
+    }
+}
+```
+
+#### 3. Register Controller (if new)
+Add controller registration in `Ufw.Systemd/Api/UfwApiEndpointMap.cs`:
+
+```csharp
+[ApiControllerRegistration<RulesController>]     // ← Existing controllers
+[ApiControllerRegistration<NetworkController>]   // ← Add new controllers here
+[ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IMessage, IMessage>]
+internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
+```
+
+#### 4. Source Generator Automation
+- **Automatic**: Source generator (`ApiEndpointBindingGenerator`) detects controllers and HTTP attributes
+- **Generated**: Endpoint mappings are created at compile time
+- **Result**: Zero-runtime overhead routing with full type safety
+
+#### 5. Implement Web Service Methods
+Add client-side methods in `Ufw.Web/Services/`:
+
+```csharp
+internal sealed class UfwRuleService(IUfwClient ufwClient) : IUfwRuleService
+{
+    public async Task<CreateRuleResponse> CreateRuleAsync(CreateRuleRequest request)
+    {
+        return await ufwClient.SendAsync<CreateRuleRequest, CreateRuleResponse>(
+            RequestMethod.Post, "/api/v1/rules/create", request);
+    }
+}
+```
+
+#### 6. Update Web UI
+Integrate with Razor Pages and controllers in `Ufw.Web/Pages/` or `Ufw.Web/Areas/`.
+
+**Key Benefits**:
+- **Type Safety**: Compile-time validation of request/response contracts
+- **Code Generation**: Automatic endpoint mapping without manual registration
+- **Consistency**: HTTP-style semantics over secure named pipes
+- **Testability**: Interface-based design enables easy unit testing
 
 ### Adding Rule Normalizers
 1. Implement `IRuleNormalizer` with `Priority` property
