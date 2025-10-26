@@ -10,10 +10,31 @@ See `/code-style.md` for detailed C# coding conventions to be used across all pr
 
 ### Core Projects Structure
 - **`Ufw.Web`**: ASP.NET Core web interface with SQLite, Identity, and Razor Pages
-- **`Ufw.Systemd`**: AOT-compiled multi-worker service with HTTP-style API controllers over named pipes
+- **`Ufw.Systemd`**: AOT-compiled multi-worker service with HTTP-style API controllers and UFW command interop
 - **`Ufw.Ipc.Shared`**: Named pipe communication layer with serialization and transport
 - **`Ufw.Ipc.Client`**: Client-side pipe communication abstractions  
 - **`Ufw.Roslyn`** & **`Ufw.Roslyn.SourceGen`**: Source generation for automatic API endpoint mapping
+
+### UFW Command Interop System
+**New in systemd service**: `Ufw.Systemd/Interop/` provides structured UFW command execution and output parsing:
+- **Commands**: `IUfwCommand` interface for building UFW command arguments
+- **Parsers**: Custom grammar-based parsing system for UFW output (`Output/Parsers/`)
+- **Grammars**: Domain-specific language for parsing UFW command results (`Output/Grammars/`)
+- **Models**: Strongly-typed representations of UFW data (`Output/Model/`)
+
+```csharp
+// Example: UFW list command with parsed output
+internal sealed class UfwListCommand : IUfwCommand<UfwListCommandResult>
+{
+    private static readonly ImmutableArray<string> s_arguments = ["status", "numbered"];
+    
+    public ReadOnlyMemory<string> BuildArguments() => s_arguments.AsMemory();
+    public async ValueTask<UfwListCommandResult?> GetResultAsync(CancellationToken cancellationToken)
+    {
+        // Parse UFW output using grammar-based parser
+    }
+}
+```
 
 ### Key Communication Pattern
 **Named Pipe IPC with HTTP-style semantics**:
@@ -21,6 +42,12 @@ See `/code-style.md` for detailed C# coding conventions to be used across all pr
 - Controllers use `[Route]`, `[Get]`, `[Post]`, etc. attributes for API-like patterns
 - Source generator automatically creates endpoint mappings from controller attributes
 - Multi-worker concurrent processing with middleware pipeline
+
+**UFW Command Execution Pipeline**:
+1. **Command Building**: `IUfwCommand` implementations generate UFW CLI arguments
+2. **Process Execution**: Systemd service executes UFW with elevated privileges  
+3. **Output Parsing**: Grammar-based parsers convert text output to typed models
+4. **API Response**: Structured data returned through named pipe API
 
 ## Critical Development Patterns
 
@@ -42,6 +69,27 @@ internal sealed class RulesController : ControllerBase
 [ApiControllerRegistration<RulesController>]
 [ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IMessage, IMessage>]
 internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
+```
+
+### UFW Grammar-Based Parsing System
+Custom parsers for structured UFW output interpretation in `Ufw.Systemd/Interop/Output/`:
+```csharp
+// Grammar definition using functional composition
+IParser endpoint = Sequence<
+    Alternative<
+        Anywhere,
+        Sequence<Ipv4Cidr, Optional<Sequence<Whitespace, PortSegment>>>,
+        PortSegment>,
+    Optional<Protocol>,
+    Optional<Sequence<Whitespace, NetworkInterface>>>.Instance;
+
+// Parse UFW list output into typed models
+UfwRuleListGrammar = Grammar.Sequence(sequence => sequence
+    .Parser<RowNumber>()
+    .Parser<Whitespace>()
+    .Parser(endpoint.NamedCopy(DestinationGroup))
+    .Parser<Whitespace>()
+    .Parser<RoutingAction>());
 ```
 
 ### Friend Assembly Pattern
@@ -125,6 +173,20 @@ Projects reference `Ufw.Roslyn.SourceGen` as analyzer:
 4. **Add Client Method** in `Ufw.Web/Services/` using `IUfwClient`
 5. **Source generator automatically creates endpoint mappings** - no manual registration needed
 
+### Adding UFW Commands
+1. **Implement IUfwCommand** in `Interop/Commands/`:
+   ```csharp
+   internal sealed class UfwEnableCommand : IUfwCommand<bool>
+   {
+       public ReadOnlyMemory<string> BuildArguments() => ["--force", "enable"].AsMemory();
+       public async ValueTask<bool?> GetResultAsync(CancellationToken cancellationToken) { /* Parse output */ }
+   }
+   ```
+
+2. **Create Output Models** in `Interop/Output/Model/` for structured results
+3. **Build Grammar Parsers** in `Interop/Output/Grammars/` if output parsing needed
+4. **Integrate in Controllers** - use commands in API controller methods
+
 ### Adding Rule Normalizers
 1. Implement `IRuleNormalizer` with `Priority` property
 2. Register as scoped service in `Program.cs`
@@ -138,6 +200,10 @@ Projects reference `Ufw.Roslyn.SourceGen` as analyzer:
 - `Configuration/`: Service configuration and DI setup
 - `Api/Controllers/`: HTTP-style controllers for systemd service
 - `Api/Middleware/`: Request processing pipeline components
+- `Interop/Commands/`: UFW command builders implementing `IUfwCommand`
+- `Interop/Output/Parsers/`: Grammar-based text parsers for UFW command output
+- `Interop/Output/Grammars/`: Composite grammar definitions for command result parsing
+- `Interop/Output/Model/`: Strongly-typed models representing parsed UFW data
 
 ## Key Integration Points
 - **Configuration**: Service loads from `/etc/ufw-manager/settings.json` (production) or `appsettings.json` (development)
