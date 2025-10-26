@@ -3,6 +3,10 @@
 ## Project Overview
 This is a UFW (Uncomplicated Firewall) web management interface with a multi-project .NET 9 architecture that enables secure web-based firewall rule management through a systemd service backend.
 
+## Code Style Guidelines
+
+- See `/code-style.md` for detailed C# coding conventions to be used across all projects.
+
 ## Architecture Components
 
 ### Core Projects Structure

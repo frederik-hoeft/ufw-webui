@@ -7,63 +7,57 @@ namespace Ufw.Ipc.Shared.Threading;
 /// </summary>
 public static class EnumHelpers
 {
-    // C# 14 "extension everything" semantics
-#pragma warning disable CA1034 // Nested types should not be visible
-    extension<TEnum>(TEnum self) where TEnum : unmanaged, Enum
-#pragma warning restore CA1034 // Nested types should not be visible
+    /// <summary>
+    /// Performs a bitwise AND operation between two enum values of the same type.
+    /// </summary>
+    /// <param name="self">The first operand.</param>
+    /// <param name="other">The second operand.</param>
+    /// <returns><c>self & other</c></returns>
+    public static TEnum And<TEnum>(this TEnum self, TEnum other) where TEnum : unmanaged, Enum => Unsafe.SizeOf<TEnum>() switch
     {
-        /// <summary>
-        /// Performs a bitwise AND operation between two enum values of the same type.
-        /// </summary>
-        /// <param name="other">The second operand.</param>
-        /// <returns><c>self & other</c></returns>
-        public TEnum And(TEnum other) => Unsafe.SizeOf<TEnum>() switch
-        {
-            // note: switch expression will be optimized away at JIT time when TEnum is known
-            1 => Unsafe.BitCast<byte, TEnum>((byte)(Unsafe.BitCast<TEnum, byte>(self) & Unsafe.BitCast<TEnum, byte>(other))),
-            2 => Unsafe.BitCast<ushort, TEnum>((ushort)(Unsafe.BitCast<TEnum, ushort>(self) & Unsafe.BitCast<TEnum, ushort>(other))),
-            4 => Unsafe.BitCast<uint, TEnum>(Unsafe.BitCast<TEnum, uint>(self) & Unsafe.BitCast<TEnum, uint>(other)),
-            8 => Unsafe.BitCast<ulong, TEnum>(Unsafe.BitCast<TEnum, ulong>(self) & Unsafe.BitCast<TEnum, ulong>(other)),
-            _ => throw UnsupportedEnumSize<TEnum>()
-        };
+        1 => Unsafe.BitCast<byte, TEnum>((byte)(Unsafe.BitCast<TEnum, byte>(self) & Unsafe.BitCast<TEnum, byte>(other))),
+        2 => Unsafe.BitCast<ushort, TEnum>((ushort)(Unsafe.BitCast<TEnum, ushort>(self) & Unsafe.BitCast<TEnum, ushort>(other))),
+        4 => Unsafe.BitCast<uint, TEnum>(Unsafe.BitCast<TEnum, uint>(self) & Unsafe.BitCast<TEnum, uint>(other)),
+        8 => Unsafe.BitCast<ulong, TEnum>(Unsafe.BitCast<TEnum, ulong>(self) & Unsafe.BitCast<TEnum, ulong>(other)),
+        _ => throw UnsupportedEnumSize<TEnum>()
+    };
 
-        public TEnum Or(TEnum other) => Unsafe.SizeOf<TEnum>() switch
-        {
-            1 => Unsafe.BitCast<byte, TEnum>((byte)(Unsafe.BitCast<TEnum, byte>(self) | Unsafe.BitCast<TEnum, byte>(other))),
-            2 => Unsafe.BitCast<ushort, TEnum>((ushort)(Unsafe.BitCast<TEnum, ushort>(self) | Unsafe.BitCast<TEnum, ushort>(other))),
-            4 => Unsafe.BitCast<uint, TEnum>(Unsafe.BitCast<TEnum, uint>(self) | Unsafe.BitCast<TEnum, uint>(other)),
-            8 => Unsafe.BitCast<ulong, TEnum>(Unsafe.BitCast<TEnum, ulong>(self) | Unsafe.BitCast<TEnum, ulong>(other)),
-            _ => throw UnsupportedEnumSize<TEnum>()
-        };
+    public static TEnum Or<TEnum>(this TEnum self, TEnum other) where TEnum : unmanaged, Enum => Unsafe.SizeOf<TEnum>() switch
+    {
+        1 => Unsafe.BitCast<byte, TEnum>((byte)(Unsafe.BitCast<TEnum, byte>(self) | Unsafe.BitCast<TEnum, byte>(other))),
+        2 => Unsafe.BitCast<ushort, TEnum>((ushort)(Unsafe.BitCast<TEnum, ushort>(self) | Unsafe.BitCast<TEnum, ushort>(other))),
+        4 => Unsafe.BitCast<uint, TEnum>(Unsafe.BitCast<TEnum, uint>(self) | Unsafe.BitCast<TEnum, uint>(other)),
+        8 => Unsafe.BitCast<ulong, TEnum>(Unsafe.BitCast<TEnum, ulong>(self) | Unsafe.BitCast<TEnum, ulong>(other)),
+        _ => throw UnsupportedEnumSize<TEnum>()
+    };
 
-        public TEnum Xor(TEnum other) => Unsafe.SizeOf<TEnum>() switch
-        {
-            1 => Unsafe.BitCast<byte, TEnum>((byte)(Unsafe.BitCast<TEnum, byte>(self) ^ Unsafe.BitCast<TEnum, byte>(other))),
-            2 => Unsafe.BitCast<ushort, TEnum>((ushort)(Unsafe.BitCast<TEnum, ushort>(self) ^ Unsafe.BitCast<TEnum, ushort>(other))),
-            4 => Unsafe.BitCast<uint, TEnum>(Unsafe.BitCast<TEnum, uint>(self) ^ Unsafe.BitCast<TEnum, uint>(other)),
-            8 => Unsafe.BitCast<ulong, TEnum>(Unsafe.BitCast<TEnum, ulong>(self) ^ Unsafe.BitCast<TEnum, ulong>(other)),
-            _ => throw UnsupportedEnumSize<TEnum>()
-        };
+    public static TEnum Xor<TEnum>(this TEnum self, TEnum other) where TEnum : unmanaged, Enum => Unsafe.SizeOf<TEnum>() switch
+    {
+        1 => Unsafe.BitCast<byte, TEnum>((byte)(Unsafe.BitCast<TEnum, byte>(self) ^ Unsafe.BitCast<TEnum, byte>(other))),
+        2 => Unsafe.BitCast<ushort, TEnum>((ushort)(Unsafe.BitCast<TEnum, ushort>(self) ^ Unsafe.BitCast<TEnum, ushort>(other))),
+        4 => Unsafe.BitCast<uint, TEnum>(Unsafe.BitCast<TEnum, uint>(self) ^ Unsafe.BitCast<TEnum, uint>(other)),
+        8 => Unsafe.BitCast<ulong, TEnum>(Unsafe.BitCast<TEnum, ulong>(self) ^ Unsafe.BitCast<TEnum, ulong>(other)),
+        _ => throw UnsupportedEnumSize<TEnum>()
+    };
 
-        public TEnum Not() => Unsafe.SizeOf<TEnum>() switch
-        {
-            1 => Unsafe.BitCast<byte, TEnum>((byte)~Unsafe.BitCast<TEnum, byte>(self)),
-            2 => Unsafe.BitCast<ushort, TEnum>((ushort)~Unsafe.BitCast<TEnum, ushort>(self)),
-            4 => Unsafe.BitCast<uint, TEnum>(~Unsafe.BitCast<TEnum, uint>(self)),
-            8 => Unsafe.BitCast<ulong, TEnum>(~Unsafe.BitCast<TEnum, ulong>(self)),
-            _ => throw UnsupportedEnumSize<TEnum>()
-        };
+    public static TEnum Not<TEnum>(this TEnum self) where TEnum : unmanaged, Enum => Unsafe.SizeOf<TEnum>() switch
+    {
+        1 => Unsafe.BitCast<byte, TEnum>((byte)~Unsafe.BitCast<TEnum, byte>(self)),
+        2 => Unsafe.BitCast<ushort, TEnum>((ushort)~Unsafe.BitCast<TEnum, ushort>(self)),
+        4 => Unsafe.BitCast<uint, TEnum>(~Unsafe.BitCast<TEnum, uint>(self)),
+        8 => Unsafe.BitCast<ulong, TEnum>(~Unsafe.BitCast<TEnum, ulong>(self)),
+        _ => throw UnsupportedEnumSize<TEnum>()
+    };
 
-        public bool FastEquals(TEnum other) => Unsafe.SizeOf<TEnum>() switch
-        {
-            1 => Unsafe.BitCast<TEnum, byte>(self) == Unsafe.BitCast<TEnum, byte>(other),
-            2 => Unsafe.BitCast<TEnum, ushort>(self) == Unsafe.BitCast<TEnum, ushort>(other),
-            4 => Unsafe.BitCast<TEnum, uint>(self) == Unsafe.BitCast<TEnum, uint>(other),
-            8 => Unsafe.BitCast<TEnum, ulong>(self) == Unsafe.BitCast<TEnum, ulong>(other),
-            _ => throw UnsupportedEnumSize<TEnum>()
-        };
-    }
+    public static bool FastEquals<TEnum>(this TEnum self, TEnum other) where TEnum : unmanaged, Enum => Unsafe.SizeOf<TEnum>() switch
+    {
+        1 => Unsafe.BitCast<TEnum, byte>(self) == Unsafe.BitCast<TEnum, byte>(other),
+        2 => Unsafe.BitCast<TEnum, ushort>(self) == Unsafe.BitCast<TEnum, ushort>(other),
+        4 => Unsafe.BitCast<TEnum, uint>(self) == Unsafe.BitCast<TEnum, uint>(other),
+        8 => Unsafe.BitCast<TEnum, ulong>(self) == Unsafe.BitCast<TEnum, ulong>(other),
+        _ => throw UnsupportedEnumSize<TEnum>()
+    };
 
-    internal static InvalidOperationException UnsupportedEnumSize<TEnum>() where TEnum : unmanaged, Enum => 
+    internal static InvalidOperationException UnsupportedEnumSize<TEnum>() where TEnum : unmanaged, Enum =>
         new($"Unsupported enum size: {Unsafe.SizeOf<TEnum>()} bytes. Must be 1, 2, 4 or 8 bytes.");
 }
