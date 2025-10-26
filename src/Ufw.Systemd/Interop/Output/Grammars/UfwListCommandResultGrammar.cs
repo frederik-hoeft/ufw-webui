@@ -11,6 +11,7 @@ internal sealed class UfwListCommandResultGrammar
 {
     private IParser UfwRuleListGrammar { get; }
 
+    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "That would be horrible to read.")]
     public UfwListCommandResultGrammar()
     {
         // ENDPOINT = (Anywhere|IPv4CIDR[ port]|port)[proto][ interface]

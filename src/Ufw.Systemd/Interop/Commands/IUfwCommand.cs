@@ -1,8 +1,10 @@
-﻿namespace Ufw.Systemd.Interop.Commands;
+﻿using System.Collections.Immutable;
+
+namespace Ufw.Systemd.Interop.Commands;
 
 internal interface IUfwCommand
 {
-    ReadOnlyMemory<string> BuildArguments();
+    ImmutableArray<string> BuildArguments();
 
     void SetOutput(string output);
 }

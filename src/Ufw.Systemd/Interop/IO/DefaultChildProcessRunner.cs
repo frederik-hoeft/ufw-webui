@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 using Ufw.Systemd.Configuration;
 
@@ -6,21 +7,19 @@ namespace Ufw.Systemd.Interop.IO;
 
 internal sealed class DefaultChildProcessRunner(IConfiguration configuration) : IChildProcessRunner
 {
-    public async Task<int> RunAsync(string command, ReadOnlyMemory<string> arguments, Out<string> output, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(string command, ImmutableArray<string> arguments, Out<string> output, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command, nameof(command));
 
-        string args = string.Join(' ', arguments.Span!);
         if (configuration.Settings.DebugMode)
         {
+            string args = string.Join(' ', arguments);
             Console.WriteLine($"execute: '{command} {args}'");
         }
         using Process process = new()
         {
-            StartInfo = new ProcessStartInfo
+            StartInfo = new ProcessStartInfo(command, arguments)
             {
-                FileName = command,
-                Arguments = args,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
