@@ -9,7 +9,6 @@ public sealed partial class UfwClientBuilder : IDisposable
 
     private static partial PipeEndpoint ParseEndpoint(string endpoint)
     {
-        Match pipeUriMatch = PipeUriRegex.Match(endpoint);
         Match pipeNameMatch = PipeNameRegex.Match(endpoint);
         if (pipeNameMatch is not { Success: true })
         {
