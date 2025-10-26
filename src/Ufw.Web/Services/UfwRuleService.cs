@@ -1,14 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
 using Ufw.Web.Data;
 using Ufw.Web.Models;
 
 namespace Ufw.Web.Services;
 
 // TODO: integrate with privileged systemd service (via named pipe) to apply rules to the system firewall
-internal sealed class UfwRuleService(ApplicationDbContext context, IUfwClient ufwClient) : IUfwRuleService
+internal sealed class UfwRuleService(ApplicationDbContext context) : IUfwRuleService
 {
     public Task<List<UfwRule>> GetAllRulesAsync() => context.UfwRules
         .Include(static r => r.Author)
@@ -51,13 +48,5 @@ internal sealed class UfwRuleService(ApplicationDbContext context, IUfwClient uf
             rule.Enabled = enabled;
             await context.SaveChangesAsync().ConfigureAwait(false);
         }
-        // TODO: temporary placeholder implementation to simulate concurrent requests to the UFW service
-        await ufwClient.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules/list");
-        await Parallel.ForAsync(0, 1000, async (i, ct) =>
-        {
-            // simulate some work
-            RuleListResponse response = await ufwClient.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules/list", ct);
-        }).ConfigureAwait(false);
-        Console.WriteLine();
     }
 }
