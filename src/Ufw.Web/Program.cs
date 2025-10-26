@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Ufw.Pipes.Client;
-using Ufw.Pipes.Client.Configuration;
-using Ufw.Pipes.Shared.Transport.Security;
+using Ufw.Ipc.Client.Configuration;
+using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Web.Data;
 using Ufw.Web.Pipeline;
 using Ufw.Web.Pipeline.Normalizers;

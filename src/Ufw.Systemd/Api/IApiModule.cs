@@ -1,6 +1,6 @@
 ﻿using Jab;
-using Ufw.Pipes.Shared.Serialization;
-using Ufw.Pipes.Shared.Serialization.Json;
+using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Serialization.Json;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Systemd.Api.Controllers;
 using Ufw.Systemd.Api.Middleware;

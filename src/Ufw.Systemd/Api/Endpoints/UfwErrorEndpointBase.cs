@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Pipes.Shared.Model.Responses;
-using Ufw.Pipes.Shared.Serialization;
+using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Serialization;
 using Ufw.Systemd.Api.Framework;
 
 namespace Ufw.Systemd.Api.Endpoints;

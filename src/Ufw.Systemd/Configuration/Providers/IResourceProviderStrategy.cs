@@ -1,4 +1,4 @@
-﻿using Ufw.Pipes.Shared.Pipelines;
+﻿using Ufw.Ipc.Shared.Pipelines;
 
 namespace Ufw.Systemd.Configuration.Providers;
 

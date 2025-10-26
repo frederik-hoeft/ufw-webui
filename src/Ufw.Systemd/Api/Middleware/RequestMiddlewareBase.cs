@@ -1,4 +1,4 @@
-﻿using Ufw.Pipes.Shared.Serialization;
+﻿using Ufw.Ipc.Shared.Serialization;
 
 namespace Ufw.Systemd.Api.Middleware;
 

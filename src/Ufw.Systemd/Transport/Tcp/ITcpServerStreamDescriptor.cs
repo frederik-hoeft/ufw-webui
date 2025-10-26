@@ -1,4 +1,3 @@
-using System.IO.Pipes;
 using System.Net.Sockets;
 
 namespace Ufw.Systemd.Transport.Tcp;

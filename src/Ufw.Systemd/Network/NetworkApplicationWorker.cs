@@ -1,6 +1,6 @@
-﻿using Ufw.Pipes.Shared.Serialization;
-using Ufw.Pipes.Shared.Transport;
-using Ufw.Pipes.Shared.Transport.Security;
+﻿using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Transport;
+using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;

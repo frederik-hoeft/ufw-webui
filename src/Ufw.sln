@@ -15,9 +15,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Web.Tests", "Ufw.Web.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Systemd", "Ufw.Systemd\Ufw.Systemd.csproj", "{2B3104ED-F3D6-426E-A871-1FA3A6C29394}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Pipes.Shared", "Ufw.Pipes.Shared\Ufw.Pipes.Shared.csproj", "{D6D5DE46-5E6E-4CCD-8BA4-CFE459F570CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Ipc.Shared", "Ufw.Ipc.Shared\Ufw.Ipc.Shared.csproj", "{D6D5DE46-5E6E-4CCD-8BA4-CFE459F570CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Pipes.Client", "Ufw.Pipes.Client\Ufw.Pipes.Client.csproj", "{97308407-E472-4B30-8CA5-6AC7014FA4A3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Ipc.Client", "Ufw.Ipc.Client\Ufw.Ipc.Client.csproj", "{97308407-E472-4B30-8CA5-6AC7014FA4A3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ufw.Roslyn", "Ufw.Roslyn\Ufw.Roslyn.csproj", "{1E241F25-A369-4EAE-9BE5-1BE95C2E98A9}"
 EndProject

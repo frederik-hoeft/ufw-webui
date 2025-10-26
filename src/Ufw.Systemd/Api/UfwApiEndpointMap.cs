@@ -1,6 +1,6 @@
 ﻿using System.Collections.Frozen;
-using Ufw.Pipes.Shared.Model;
-using Ufw.Pipes.Shared.Serialization;
+using Ufw.Ipc.Shared.Model;
+using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Roslyn.Controllers.Mapping.Attributes;
 using Ufw.Systemd.Api.Controllers;

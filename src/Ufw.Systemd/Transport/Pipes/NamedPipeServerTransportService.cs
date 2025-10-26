@@ -1,6 +1,5 @@
 ﻿using System.IO.Pipes;
-using Ufw.Pipes.Shared.Transport;
-using Ufw.Systemd.Transport.Tcp;
+using Ufw.Ipc.Shared.Transport;
 
 namespace Ufw.Systemd.Transport.Pipes;
 

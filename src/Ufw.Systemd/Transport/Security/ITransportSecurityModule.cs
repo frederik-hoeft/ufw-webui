@@ -1,5 +1,5 @@
 ﻿using Jab;
-using Ufw.Pipes.Shared.Transport.Security;
+using Ufw.Ipc.Shared.Transport.Security;
 
 namespace Ufw.Systemd.Transport.Security;
 

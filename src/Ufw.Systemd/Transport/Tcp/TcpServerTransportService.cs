@@ -1,5 +1,5 @@
 ﻿using System.Net.Sockets;
-using Ufw.Pipes.Shared.Transport;
+using Ufw.Ipc.Shared.Transport;
 
 namespace Ufw.Systemd.Transport.Tcp;
 

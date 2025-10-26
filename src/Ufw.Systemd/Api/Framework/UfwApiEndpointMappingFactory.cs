@@ -1,4 +1,4 @@
-﻿using Ufw.Pipes.Shared.Serialization;
+﻿using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;

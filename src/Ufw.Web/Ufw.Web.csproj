@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ufw.Pipes.Client\Ufw.Pipes.Client.csproj" />
+    <ProjectReference Include="..\Ufw.Ipc.Client\Ufw.Ipc.Client.csproj" />
   </ItemGroup>
 
 </Project>

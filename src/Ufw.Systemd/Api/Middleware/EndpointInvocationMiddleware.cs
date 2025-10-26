@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Pipes.Shared.Serialization;
+using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers.Mapping;
 
 namespace Ufw.Systemd.Api.Middleware;

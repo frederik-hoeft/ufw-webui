@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Ufw.Pipes.Client;
-using Ufw.Pipes.Shared.Model;
-using Ufw.Pipes.Shared.Model.Responses.Domain;
+using Ufw.Ipc.Client;
+using Ufw.Ipc.Shared.Model;
+using Ufw.Ipc.Shared.Model.Responses.Domain;
 using Ufw.Web.Data;
 using Ufw.Web.Models;
 

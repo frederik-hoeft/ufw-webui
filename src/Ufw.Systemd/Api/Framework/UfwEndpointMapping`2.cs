@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Pipes.Shared.Model.Responses;
-using Ufw.Pipes.Shared.Serialization;
+using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
 using Ufw.Systemd.Configuration;

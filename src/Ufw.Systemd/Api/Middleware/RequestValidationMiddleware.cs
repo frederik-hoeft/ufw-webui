@@ -1,8 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using Ufw.Pipes.Shared.Model;
-using Ufw.Pipes.Shared.Model.Responses;
-using Ufw.Pipes.Shared.Serialization;
+using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Serialization;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
 

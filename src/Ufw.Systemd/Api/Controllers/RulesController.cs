@@ -1,7 +1,7 @@
-﻿using Ufw.Pipes.Shared.Model;
-using Ufw.Pipes.Shared.Model.Requests.Domain;
-using Ufw.Pipes.Shared.Model.Responses;
-using Ufw.Pipes.Shared.Model.Responses.Domain;
+﻿using Ufw.Ipc.Shared.Model;
+using Ufw.Ipc.Shared.Model.Requests.Domain;
+using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Model.Responses.Domain;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Routing;
 
