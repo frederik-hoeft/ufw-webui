@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Ufw.Ipc.Shared.Threading;
 
 namespace Ufw.Ipc.Shared.Threading;
 
