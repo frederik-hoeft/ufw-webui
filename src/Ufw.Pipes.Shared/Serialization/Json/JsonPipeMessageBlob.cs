@@ -52,19 +52,19 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
             return new JsonPipeMessageBlob(buffer, serializerContext, stream);
         }
 
-        await ReadLineAsync(stream, buffer, cancellationToken).NoCapture();
+        await ReadLineAsync(stream, buffer, cancellationToken);
         return new JsonPipeMessageBlob(buffer, serializerContext, source: null);
     }
 
     public virtual async ValueTask<Stream> CreateStreamAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        await BufferDataAsync(cancellationToken).NoCapture();
+        await BufferDataAsync(cancellationToken);
         MemoryStream result = new((int)_buffer.Length);
         if (_buffer.Length > 0)
         {
             _buffer.Seek(0, SeekOrigin.Begin);
-            await _buffer.CopyToAsync(result, cancellationToken).NoCapture();
+            await _buffer.CopyToAsync(result, cancellationToken);
             result.Seek(0, SeekOrigin.Begin);
         }
         return result;
@@ -73,7 +73,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
     public virtual async ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        await BufferDataAsync(cancellationToken).NoCapture();
+        await BufferDataAsync(cancellationToken);
         if (_buffer.Length == 0)
         {
             return default;
@@ -81,7 +81,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
         _buffer.Seek(0, SeekOrigin.Begin);
         try
         {
-            return await JsonSerializer.DeserializeAsync(_buffer, _context.GetTypeInfo<TResult>(), cancellationToken).NoCapture();
+            return await JsonSerializer.DeserializeAsync(_buffer, _context.GetTypeInfo<TResult>(), cancellationToken);
         }
         catch (JsonException)
         {
@@ -93,7 +93,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
     {
         if (timeout == Timeout.InfiniteTimeSpan)
         {
-            await BufferDataAsync(cancellationToken).NoCapture();
+            await BufferDataAsync(cancellationToken);
             return true;
         }
         ObjectDisposedException.ThrowIf(_disposedValue, this);
@@ -101,7 +101,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
         try
         {
-            await BufferDataAsync(cts.Token).NoCapture();
+            await BufferDataAsync(cts.Token);
         }
         catch (TaskCanceledException)
         {
@@ -120,7 +120,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
         {
             return;
         }
-        await ReadLineAsync(_source, _buffer, cancellationToken).NoCapture();
+        await ReadLineAsync(_source, _buffer, cancellationToken);
     }
 
     private static async ValueTask ReadLineAsync(Stream source, MemoryStream destination, CancellationToken cancellationToken)
@@ -129,7 +129,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
         Memory<byte> memory = buffer.AsMemory()[..1];
         while (true)
         {
-            int bytesRead = await source.ReadAtLeastAsync(memory, minimumBytes: 1, throwOnEndOfStream: false, cancellationToken).NoCapture();
+            int bytesRead = await source.ReadAtLeastAsync(memory, minimumBytes: 1, throwOnEndOfStream: false, cancellationToken);
             byte byteRead = buffer[0];
             if (bytesRead != 1 || byteRead == '\n')
             {
@@ -157,7 +157,7 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
             return;
         }
 
-        await _buffer.DisposeAsync().NoCapture();
+        await _buffer.DisposeAsync();
         _disposedValue = true;
     }
 

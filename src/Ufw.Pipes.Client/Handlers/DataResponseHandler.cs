@@ -21,12 +21,12 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
     {
         if (typeof(TResult) == typeof(OkResponse))
         {
-            await message.Payload.TryReadAsync(Timeout.InfiniteTimeSpan, cancellationToken).NoCapture();
+            await message.Payload.TryReadAsync(Timeout.InfiniteTimeSpan, cancellationToken);
             OkResponse okResponse = s_okResponse;
             return Unsafe.As<OkResponse, TResult>(ref okResponse);
         }
 
-        TResult? result = await message.Payload.ReadAsync<TResult>(cancellationToken).NoCapture();
+        TResult? result = await message.Payload.ReadAsync<TResult>(cancellationToken);
         return result ?? throw new SerializationException($"Unable to deserialize payload of pipe message '{message.Id}' to type {typeof(TResult)}.");
     }
 }

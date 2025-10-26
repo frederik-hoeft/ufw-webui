@@ -1,6 +1,6 @@
 namespace Ufw.Pipes.Shared;
 
-internal static class Suppressions
+public static class Suppressions
 {
     public const string CA2000_WARN_OBJECT_NOT_DISPOSED = "CA2000:Dispose objects before losing scope";
     public const string CA2000_OWNERSHIP_TRANSFER = "The ownership of the disposable object is transferred to the caller.";

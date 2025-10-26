@@ -17,7 +17,7 @@ internal sealed class ClientTransportSecurityService(IRemoteCertificateValidatio
     public async Task<Stream> OpenSecureStreamAsync(Stream innerStream, CancellationToken cancellationToken = default)
     {
         SslStream stream = new(innerStream, leaveInnerStreamOpen: true, new RemoteCertificateValidationCallback(certificateValidationHandler.ValidateCertificate));
-        await stream.AuthenticateAsClientAsync(_sslOptions, cancellationToken).NoCapture();
+        await stream.AuthenticateAsClientAsync(_sslOptions, cancellationToken);
         return stream;
     }
 }

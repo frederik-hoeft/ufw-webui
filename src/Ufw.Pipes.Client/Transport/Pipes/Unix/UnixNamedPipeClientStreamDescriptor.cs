@@ -23,7 +23,7 @@ internal sealed class UnixNamedPipeClientStreamDescriptor(string serverName, str
     public async Task<NamedPipeClientStream> ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
         NamedPipeClientStream clientStream = CreateClientStream();
-        await clientStream.ConnectAsync(timeout, cancellationToken).NoCapture();
+        await clientStream.ConnectAsync(timeout, cancellationToken);
         return clientStream;
     }
     

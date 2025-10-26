@@ -15,7 +15,7 @@ internal sealed class ErrorResponseHandler : IResponseMessageHandler, IMessageHa
     public async ValueTask<TResult> TryHandleAsync<TResult>(IMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
-        ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken).NoCapture();
+        ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
         _ = errorResponse ?? throw new InvalidDataException($"Failed to deserialize response body of message type '{message.Id}'");
         throw new InvalidOperationException($"Failed to perform request. Named pipe server returned status code {message.Id}: '{errorResponse.Message}'");
     }

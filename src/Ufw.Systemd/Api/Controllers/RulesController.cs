@@ -4,12 +4,11 @@ using Ufw.Pipes.Shared.Model.Responses;
 using Ufw.Pipes.Shared.Model.Responses.Domain;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Routing;
-using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Api.Controllers;
 
 [Route("api/v1/rules")]
-internal sealed class RulesController(IConfiguration configuration) : ControllerBase
+internal sealed class RulesController() : ControllerBase
 {
     [Get("list")]
     public async ValueTask<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken)

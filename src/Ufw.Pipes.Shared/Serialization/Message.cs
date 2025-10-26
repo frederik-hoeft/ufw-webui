@@ -39,7 +39,7 @@ internal sealed class Message(string id, string? method, IMessageBlob payload) :
 
     public async ValueTask DisposeAsync()
     {
-        await Payload.DisposeAsync().NoCapture();
+        await Payload.DisposeAsync();
         _disposedValue = true;
     }
 }

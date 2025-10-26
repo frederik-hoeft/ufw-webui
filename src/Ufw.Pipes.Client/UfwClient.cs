@@ -67,21 +67,21 @@ internal sealed class UfwClient
     {
         ArgumentException.ThrowIfNullOrEmpty(method, nameof(method));
 
-        await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(cancellationToken).NoCapture();
+        await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(cancellationToken);
         await using Stream stream = connection.GetStream(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, cancellationToken).NoCapture();
-        await using IMessage message = await messageSerializer.SerializeAsync(route, method, request, cancellationToken).NoCapture();
+        await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, cancellationToken);
+        await using IMessage message = await messageSerializer.SerializeAsync(route, method, request, cancellationToken);
 
-        await messageSerializer.WriteAsync(secureStream, message, cancellationToken).NoCapture();
-        await secureStream.FlushAsync(cancellationToken).NoCapture();
+        await messageSerializer.WriteAsync(secureStream, message, cancellationToken);
+        await secureStream.FlushAsync(cancellationToken);
 
-        await using IMessage response = await messageSerializer.ReadAsync(secureStream, cancellationToken).NoCapture();
+        await using IMessage response = await messageSerializer.ReadAsync(secureStream, cancellationToken);
 
         foreach (IResponseMessageHandler handler in _handlerPipeline)
         {
             if (handler.CanHandle(response))
             {
-                return await handler.TryHandleAsync<TResponse>(response, cancellationToken).NoCapture();
+                return await handler.TryHandleAsync<TResponse>(response, cancellationToken);
             }
         }
 

@@ -11,13 +11,13 @@ public sealed class JsonMessageSerializer(MessageJsonSerializerContext context) 
 
     public async Task<IMessage> ReadAsync(Stream stream, CancellationToken cancellationToken)
     {
-        await using JsonPipeMessageBlob headerBlob = await JsonPipeMessageBlob.CreateFromAsync(stream, context, lazy: false, cancellationToken).NoCapture();
-        MessageHeader header = await headerBlob.ReadAsync<MessageHeader>(cancellationToken).NoCapture();
+        await using JsonPipeMessageBlob headerBlob = await JsonPipeMessageBlob.CreateFromAsync(stream, context, lazy: false, cancellationToken);
+        MessageHeader header = await headerBlob.ReadAsync<MessageHeader>(cancellationToken);
         if (header == default)
         {
             throw new InvalidDataException("Malformed pipe message header!");
         }
-        JsonPipeMessageBlob payload = await JsonPipeMessageBlob.CreateFromAsync(stream, context, cancellationToken: cancellationToken).NoCapture();
+        JsonPipeMessageBlob payload = await JsonPipeMessageBlob.CreateFromAsync(stream, context, cancellationToken: cancellationToken);
         return new Message(header.Context, header.Method, payload);
     }
 
@@ -42,12 +42,14 @@ public sealed class JsonMessageSerializer(MessageJsonSerializerContext context) 
 
     public async Task WriteAsync(Stream stream, IMessage message, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(message);
         MessageHeader header = new(message.Method, message.Id);
-        await JsonSerializer.SerializeAsync(stream, header, context.GetTypeInfo<MessageHeader>(), cancellationToken).NoCapture();
-        await stream.WriteAsync(s_newLineBuffer, cancellationToken).NoCapture();
-        await using Stream payloadStream = await message.Payload.CreateStreamAsync(cancellationToken).NoCapture();
-        await payloadStream.CopyToAsync(stream, cancellationToken).NoCapture();
-        await stream.WriteAsync(s_newLineBuffer, cancellationToken).NoCapture();
-        await stream.FlushAsync(cancellationToken).NoCapture();
+        await JsonSerializer.SerializeAsync(stream, header, context.GetTypeInfo<MessageHeader>(), cancellationToken);
+        await stream.WriteAsync(s_newLineBuffer, cancellationToken);
+        await using Stream payloadStream = await message.Payload.CreateStreamAsync(cancellationToken);
+        await payloadStream.CopyToAsync(stream, cancellationToken);
+        await stream.WriteAsync(s_newLineBuffer, cancellationToken);
+        await stream.FlushAsync(cancellationToken);
     }
 }

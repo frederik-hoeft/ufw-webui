@@ -61,37 +61,37 @@ public class TimedStream : Stream
     public async override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
         using TimeoutScope timeout = TimeoutAfter(_readTimeout, cancellationToken);
-        await _innerStream.CopyToAsync(destination, bufferSize, timeout.Token).NoCapture();
+        await _innerStream.CopyToAsync(destination, bufferSize, timeout.Token);
     }
 
     public async override Task FlushAsync(CancellationToken cancellationToken)
     {
         using TimeoutScope timeout = TimeoutAfter(_writeTimeout, cancellationToken);
-        await _innerStream.FlushAsync(timeout.Token).NoCapture();
+        await _innerStream.FlushAsync(timeout.Token);
     }
 
     public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         using TimeoutScope timeout = TimeoutAfter(_readTimeout, cancellationToken);
-        return await _innerStream.ReadAsync(buffer, offset, count, cancellationToken).NoCapture();
+        return await _innerStream.ReadAsync(buffer, offset, count, cancellationToken);
     }
 
     public async override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         using TimeoutScope timeout = TimeoutAfter(_readTimeout, cancellationToken);
-        return await _innerStream.ReadAsync(buffer, timeout.Token).NoCapture();
+        return await _innerStream.ReadAsync(buffer, timeout.Token);
     }
 
     public async override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         using TimeoutScope timeout = TimeoutAfter(_writeTimeout, cancellationToken);
-        await _innerStream.WriteAsync(buffer, offset, count, cancellationToken).NoCapture();
+        await _innerStream.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
     public async override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
         using TimeoutScope timeout = TimeoutAfter(_writeTimeout, cancellationToken);
-        await _innerStream.WriteAsync(buffer, timeout.Token).NoCapture();
+        await _innerStream.WriteAsync(buffer, timeout.Token);
     }
 
     public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => 

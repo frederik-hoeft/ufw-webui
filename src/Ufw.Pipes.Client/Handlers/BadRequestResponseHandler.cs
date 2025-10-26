@@ -15,7 +15,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
     public async ValueTask<TResult> TryHandleAsync<TResult>(IMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
-        ModelValidationErrorResponse? validationErrorResponse = await message.Payload.ReadAsync<ModelValidationErrorResponse>(cancellationToken).NoCapture();
+        ModelValidationErrorResponse? validationErrorResponse = await message.Payload.ReadAsync<ModelValidationErrorResponse>(cancellationToken);
         ModelValidationError[] modelValidationErrorArray = validationErrorResponse is not null 
             ? validationErrorResponse.Errors 
             : throw new InvalidDataException($"Failed to deserialize response body of message type '{message.Id}'");
