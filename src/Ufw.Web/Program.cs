@@ -33,7 +33,10 @@ builder.Services.AddScoped<IRuleNormalizer, AnyValueNormalizer>();
 builder.Services.AddScoped<IRuleNormalizer, PortRangeNormalizer>();
 builder.Services.AddScoped<IRuleNormalizationService, RuleNormalizationService>();
 
-builder.Services.AddUfwClientServices(client => client.ConnectTo("//./pipe/foo"));
+string endpoint = builder.Configuration["IpcOptions:Endpoint"]
+    ?? throw new InvalidOperationException("IPC endpoint configuration 'IpcOptions:Endpoint' not found.");
+
+builder.Services.AddUfwClientServices(client => client.ConnectTo(endpoint));
 // TODO: temp for testing without TLS
 builder.Services.AddSingleton<ITransportSecurityService, NoTransportSecurityService>();
 

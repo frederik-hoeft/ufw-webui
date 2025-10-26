@@ -1,9 +1,9 @@
 using System.IO.Pipes;
 using System.Security.Principal;
 
-namespace Ufw.Ipc.Client.Transport.Pipes.Unix;
+namespace Ufw.Ipc.Client.Transport.Pipes;
 
-internal sealed class UnixNamedPipeClientStreamDescriptor(string serverName, string pipeName) : INamedPipeClientStreamDescriptor
+internal sealed class NamedPipeClientStreamDescriptor(string serverName, string pipeName) : INamedPipeClientStreamDescriptor
 {
     private NamedPipeClientStream CreateClientStream() => new
     (

@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Client.Transport.Pipes;
-using Ufw.Ipc.Client.Transport.Pipes.Unix;
 using Ufw.Ipc.Client.Transport.Security;
 using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
 using Ufw.Ipc.Shared.Serialization;
@@ -28,7 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IResponseMessageHandler, DataResponseHandler>();
         services.AddSingleton<IResponseMessageHandler, ResponseProtocolErrorHandler>();
         services.AddSingleton<ITransportLayerService, NamedPipeClientTransportService>();
-        services.AddSingleton<INamedPipeClientStreamFactory, UnixNamedPipeClientStreamFactory>();
+        services.AddSingleton<INamedPipeClientStreamFactory, NamedPipeClientStreamFactory>();
         services.AddSingleton<ITransportSecurityService, ClientTransportSecurityService>();
         services.TryAddSingleton<IRemoteCertificateValidationHandler, DefaultRemoteCertificateValidationHandler>();
         services.AddScoped<IUfwClient, UfwClient>();

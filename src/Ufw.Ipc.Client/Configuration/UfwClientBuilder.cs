@@ -1,27 +1,20 @@
 ﻿using System.Security.Authentication;
-using System.Text.RegularExpressions;
 
 namespace Ufw.Ipc.Client.Configuration;
 
 public sealed partial class UfwClientBuilder : IDisposable
 {
     private bool _disposedValue;
-    private string? _endpoint;
+    private string? _endpointString;
     private SslProtocols _sslProtocols;
 
     internal UfwClientBuilder() => Pass();
-
-    [GeneratedRegex("^//(?<server_name>[^/]+)/pipe/(?<pipe_name>[A-Za-z0-9\\-_]+)$")]
-    private static partial Regex PipeUriRegex();
-
-    [GeneratedRegex("^(?<pipe_name>[A-Za-z0-9\\-_]+)$")]
-    private static partial Regex PipeNameRegex();
 
     public UfwClientBuilder ConnectTo(string endpoint)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(endpoint, nameof(endpoint));
-        _endpoint = endpoint;
+        _endpointString = endpoint;
         return this;
     }
 
@@ -32,32 +25,17 @@ public sealed partial class UfwClientBuilder : IDisposable
         return this;
     }
 
+    private static partial PipeEndpoint ParseEndpoint(string endpoint);
+
     internal UfwClientOptions Build()
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        _ = _endpoint ?? throw new InvalidOperationException("Required option 'PipeName' was not provided.");
+        _ = _endpointString ?? throw new InvalidOperationException("Required option 'PipeName' was not provided.");
 
         Dispose();
-        Match pipeUriMatch = PipeUriRegex().Match(_endpoint);
-        string serverName;
-        string pipeName;
-        if (pipeUriMatch is { Success: true })
-        {
-            serverName = pipeUriMatch.Groups["server_name"].Value;
-            pipeName = pipeUriMatch.Groups["pipe_name"].Value;
-        }
-        else
-        {
-            Match pipeNameMatch = PipeNameRegex().Match(_endpoint);
-            if (pipeNameMatch is not { Success: true })
-            {
-                throw new InvalidOperationException($"Invalid endpoint format: '{_endpoint}'");
-            }
+        PipeEndpoint endpoint = ParseEndpoint(_endpointString);
 
-            serverName = ".";
-            pipeName = pipeNameMatch.Groups["pipe_name"].Value;
-        }
-        return new UfwClientOptions(serverName, pipeName, _sslProtocols);
+        return new UfwClientOptions(endpoint.ServerName, endpoint.PipeName, _sslProtocols);
     }
 
     public void Dispose()
@@ -69,4 +47,6 @@ public sealed partial class UfwClientBuilder : IDisposable
 
         _disposedValue = true;
     }
+
+    private readonly record struct PipeEndpoint(string ServerName, string PipeName);
 }
