@@ -19,10 +19,10 @@ jobs:
         dotnet-version: '9.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore src/UfwWebUI.sln
+      run: dotnet restore src/Ufw.sln
       
     - name: Build
-      run: dotnet build src/UfwWebUI.sln --configuration Release --no-restore /p:TreatWarningsAsErrors=true
+      run: dotnet build src/Ufw.sln --configuration Release --no-restore /p:TreatWarningsAsErrors=true
       
     - name: Test
-      run: dotnet test src/UfwWebUI.sln --configuration Release --no-build --verbosity normal --logger "console;verbosity=detailed"
+      run: dotnet test src/Ufw.sln --configuration Release --no-build --verbosity normal --logger "console;verbosity=detailed"

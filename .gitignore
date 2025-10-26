@@ -88,3 +88,6 @@ Sessionx.vim
 *~
 tags
 [._]*.un~
+
+# CUSTOM
+src/Ufw.Systemd/appsettings.json
