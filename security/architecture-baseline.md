@@ -1,78 +1,91 @@
-# UFW WebUI Architecture and Assets
+# Security Architecture Baseline
 
-This document provides a concise, security-focused architectural baseline of the UFW WebUI system to support threat modeling, risk assessment, and future security control design. It intentionally omits low-level implementation details and concentrates on components, trust boundaries, data flows, assets, and existing / planned security controls.
+## Security objective
 
-## 1. High-Level System Overview
+The architecture separates internet-facing account/session handling from privileged firewall execution. The central security requirement is stronger than process separation: compromise of `Ufw.Web` must not, by itself, give an attacker the ability to create arbitrary accepted UFW mutations.
 
-UFW WebUI enables secure remote management of Linux firewall (UFW) rules through a web interface. The design applies strict privilege separation: an unprivileged, dockerized web application handles UI, identity, and business logic; a separate privileged systemd service on the host performs firewall operations. Communication between the two uses structured, authenticated, serialized messages over named pipes with HTTP-style semantics. The privileged service executes UFW commands and uses grammar-based parsers to convert command outputs into strongly typed models.
+The privileged daemon therefore cannot treat any of the following as sufficient authorization for a firewall change:
 
-```
-┌─────────────────┐  CRUD operations ┌───────────────────┐ UFW Command model┌───────────────────┐  UFW Commands  ┌─────────┐
-│   Web Browser   │ ◄─────────────►  │  Ufw.Web          │ ◄─────────────►  │ systemd service   │ ◄────────────► │   UFW   │
-│   (User)        │      HTTPS       │ (dockerized/user) │    IPC Channel   │ (host/root)       │   subprocess   │ Daemon  │
-└─────────────────┘                  └───────────────────┘                  └───────────────────┘                └─────────┘
-                                             │                                                                        │
-                                             ▼                                                                        ▼
-                                      ┌──────────────┐                                                       ┌─────────────────┐
-                                      │   SQLite     │                                                       │ System Firewall │
-                                      │  Database    │                                                       │    Rules        │
-                                      └──────────────┘                                                       └─────────────────┘
-```
+- the fact that a request arrived over the local IPC socket
+- possession of the web application's JWT signing key
+- a valid browser-to-ASP JWT
+- an ASP.NET Core Identity role or authorization decision asserted only by `Ufw.Web`
+- data stored only in the web application's database
 
-## 2. Core Components
+These mechanisms remain useful for scoping the HTTP/API surface, but none is the daemon's proof of end-user approval for privileged mutation.
 
-| Component | Role | Privilege Level | Notes |
-|-----------|------|-----------------|-------|
-| Browser (User) | Initiates management actions | External | Authenticated via Web App UI |
-| Ufw.Web | Presents UI, enforces authZ, normalizes input, persists metadata | Unprivileged (container/user) | ASP.NET Core Razor Pages + EF Core + Identity |
-| SQLite DB | Stores user accounts, session data, rule metadata | Unprivileged | Local file-based persistence |
-| Named Pipe IPC Layer | Transports request/response messages | Boundary | Mutual TLS over stream |
-| Ufw.Systemd Service | Validates, routes, executes firewall commands | Privileged / root | AOT compiled CLI program |
-| UFW CLI / iptables | Enforces firewall rules | Kernel / root | Access via controlled command set |
+## Components and trust boundaries
 
-## 3. Trust Boundaries
+### Browser frontend
 
-1. External User to Web Application (HTTPS termination / session boundary)
-2. Web Application process to Named Pipe endpoint (local IPC boundary)
-3. Named Pipe endpoint to Privileged Service (privilege elevation boundary)
-4. Privileged Service to UFW CLI / underlying OS firewall (system command boundary)
-5. Persistence boundary (SQLite file permissions, potential leakage vectors)
+The browser is the user interaction boundary. A future Blazor frontend is expected to support cryptographic signing of firewall mutation intents in the browser. The frontend itself is not privileged and is not authoritative for host firewall state.
 
-## 4. Data & Asset Inventory
+Browser-side signing is outside the current implementation. No assumption is made here about key storage technology or a specific signature algorithm.
 
-Primary Assets (Confidentiality / Integrity / Availability considerations):
-* Firewall Rule State (authoritative firewall configuration executed by UFW)
-* Rule Metadata (UI-level abstractions, stored in SQLite, rule templates, deactivated rules, etc.)
-* User Credentials & Sessions (Identity tables, password hashes, tokens)
-* IPC Message Stream (Request/Response envelopes + payloads, mutual TLS)
-* Configuration Files (`/etc/ufw-manager/settings.json`, appsettings.json)
-* Certificate / Key Material (mutual TLS on pipe)
-* Internal Root CA (provisioning and signing of pipe certificates)
-* Logs & Debug Traces (may contain operational or sensitive context)
+### Ufw.Web
 
-Supporting Assets:
-* Normalization / Validation Rules in Ufw.Web (input integrity)
-* Grammars & Parsers (firewall command output interpretation)
+`Ufw.Web` is network-facing and should be treated as compromiseable relative to the privileged daemon. It authenticates users, applies application-level authorization, provides richer data to the frontend, and proxies allowed requests to local IPC.
 
-## 5. Principal Data Flows
+Its JWT and refresh-token system protects the HTTP API session boundary. It does not elevate the web process into a firewall mutation authority.
 
-Flow A: Rule Listing
-1. User requests rule list via browser (HTTPS).
-2. Web app authenticates user; invokes service layer.
-3. `IUfwClient` sends GET message over named pipe.
-4. Privileged service routes request via generated mapping; executes UFW list command.
-5. Output parsed to structured model; response serialized and returned.
-6. Web app formats data; returns HTML/JSON to browser.
+A compromise of `Ufw.Web` may expose web-session material, application metadata, and data observable by the web process. It may also suppress requests or misrepresent daemon-observed state to the browser. The security goal addressed by the privilege boundary is narrower: such compromise still cannot forge a new user-approved firewall mutation.
 
-Flow B: Rule Creation / Modification
-1. User submits rule form.
-2. Web app validates + normalizes input (normalizer pipeline).
-3. IPC POST request sent to privileged service.
-4. Service validates payload; constructs & executes UFW command.
-5. Result parsed; success or error returned.
-6. Web app persists metadata, updates UI state.
+### Local IPC boundary
 
-Flow C: Configuration Reload
-1. Operator triggers service reload (systemd or sysctl).
-2. Privileged service reads root-owned config file.
-3. New settings applied to workers / timeouts / pipe security.
+The daemon accepts requests only through the configured local named-pipe/Unix-domain endpoint. The active code path does not provide a TCP transport.
+
+Unix socket ownership and permissions should restrict which local principals can connect. This reduces attack surface but does not establish user intent: `Ufw.Web` is expected to be able to connect, and therefore a compromised `Ufw.Web` can also connect.
+
+### Ufw.Systemd
+
+`Ufw.Systemd` is the privileged security boundary and the authority for UFW state. It must independently validate any request capable of changing firewall state before executing it.
+
+The current daemon contains no mutating controller endpoint. Mutation support remains blocked on the signed-intent verification design below.
+
+## Signed mutation invariant
+
+Before a mutating IPC operation is added, the protocol must ensure that the daemon can verify that the user authorized the exact mutation being requested.
+
+At minimum, the signed material must bind the user's authorization to the complete mutation intent rather than to an ASP-generated interpretation of it. The signed representation must also have explicit protocol/domain scope so a signature cannot be reinterpreted as a different operation or replayed in an unintended deployment context. The daemon must validate the signature against an authorized public key that is available to the daemon through a trust path that a compromised `Ufw.Web` cannot unilaterally rewrite.
+
+The mutation protocol must prevent an intercepted valid signed intent from being replayed as a fresh authorization. The precise canonicalization, deployment/daemon scope, freshness/replay mechanism, key lifecycle, and signature algorithm are intentionally not fixed by this baseline; they must be designed as one protocol so that verification semantics are unambiguous on both the browser and daemon sides.
+
+`Ufw.Web` may perform ordinary application authorization before forwarding a request, but the daemon's signature verification remains mandatory. ASP authorization can reduce what a legitimate session is offered; it cannot substitute for daemon verification.
+
+## Authorized public keys
+
+The daemon needs access to the public keys that are permitted to authorize mutations. That authorization set cannot be sourced solely from a database controlled by `Ufw.Web`, because doing so would allow a compromised web process to register an attacker key and then sign arbitrary mutations.
+
+The provisioning and lifecycle mechanism for authorized keys is not implemented in the current stage. Whatever mechanism is selected must preserve daemon-side control over the effective trust set.
+
+## Firewall state authority
+
+The daemon and UFW are authoritative for the actual firewall configuration. `Ufw.Web` may store metadata associated with a stable daemon-visible rule identifier, for example an identifier encoded in a UFW comment if that proves operationally viable.
+
+Web metadata may describe authorship, presentation, or other application concerns, but it cannot override daemon-observed rule state. If web metadata and UFW disagree, reconciliation starts from the daemon/UFW state.
+
+## Web authentication state
+
+The HTTP API uses ASP.NET Core Identity and short-lived RSA-signed JWT access tokens. Refresh tokens are opaque random values stored in a `Secure`, `HttpOnly`, `SameSite=Strict` host-prefixed browser cookie; only hashes are stored in SQLite.
+
+Refresh tokens rotate on every successful refresh. Reuse of an already-revoked token invalidates the active token family. The user's Identity security stamp is captured with the token family so password/security-state changes prevent continued refresh from stale families. Account confirmation and lockout checks are enforced before issuing refreshed access tokens.
+
+Access JWTs remain valid until their short expiration even after a refresh family is revoked. This is an intentional property of stateless access tokens and should be accounted for when choosing the access-token lifetime.
+
+## Current limitations
+
+This baseline describes the security boundary that the current preparatory state preserves and the invariant required before write support is introduced.
+
+The following are intentionally not implemented yet:
+
+- browser/Blazor UI
+- browser-side signing keys and signing UX
+- canonical signed mutation format
+- daemon-side signature verification
+- daemon-managed authorized public-key lifecycle
+- cryptographic peer authentication on the local IPC stream; local endpoint permissions scope connectivity but do not authorize mutations
+- mutating HTTP controllers
+- mutating daemon IPC endpoints
+- stable UFW rule identifiers and metadata reconciliation
+
+Read-only infrastructure can evolve independently, but no firewall mutation path should bypass these missing controls.
