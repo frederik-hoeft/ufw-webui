@@ -91,3 +91,4 @@ tags
 
 # CUSTOM
 src/Ufw.Systemd/appsettings.json
+*.pem
