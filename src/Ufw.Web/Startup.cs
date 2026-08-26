@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -45,7 +46,7 @@ internal static class Startup
             .AddDefaultTokenProviders();
 
         services.AddOptions<JwtOptions>()
-            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .Bind(configuration.GetSection(JwtOptions.SECTION_NAME))
             .Validate(static options => !string.IsNullOrWhiteSpace(options.Issuer), "JWT issuer is required.")
             .Validate(static options => !string.IsNullOrWhiteSpace(options.Audience), "JWT audience is required.")
             .Validate(static options => options.AccessTokenLifetime > TimeSpan.Zero, "JWT access token lifetime must be positive.")
@@ -98,7 +99,11 @@ internal static class Startup
         services.AddAuthorization();
         services.AddProblemDetails();
         services.AddControllers();
-        services.AddApiVersioning(options => options.ReportApiVersions = true)
+        services.AddApiVersioning(options =>
+            {
+                options.ReportApiVersions = true;
+                options.ApiVersionReader = new UrlSegmentApiVersionReader();
+            })
             .AddMvc()
             .AddApiExplorer(options =>
             {

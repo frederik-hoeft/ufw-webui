@@ -2,7 +2,7 @@ namespace Ufw.Web.Configuration;
 
 internal sealed class JwtOptions
 {
-    public const string SectionName = "Auth:Jwt";
+    public const string SECTION_NAME = "Auth:Jwt";
 
     public string Issuer { get; set; } = string.Empty;
 
