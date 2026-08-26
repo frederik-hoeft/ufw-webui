@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ufw.Web.Data;
 
-
 #nullable disable
 
 namespace UfwWebUI.Data.Migrations
@@ -16,7 +15,7 @@ namespace UfwWebUI.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -214,7 +213,7 @@ namespace UfwWebUI.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("UfwWebUI.Models.UfwRule", b =>
+            modelBuilder.Entity("Ufw.Web.Models.UfwRule", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -316,7 +315,7 @@ namespace UfwWebUI.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("UfwWebUI.Models.UfwRule", b =>
+            modelBuilder.Entity("Ufw.Web.Models.UfwRule", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "Author")
                         .WithMany()
