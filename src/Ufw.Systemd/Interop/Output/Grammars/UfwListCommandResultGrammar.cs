@@ -49,8 +49,7 @@ internal sealed class UfwListCommandResultGrammar
             result = null;
             return false;
         }
-        string s = node.ToString();
-        Debug.WriteLine(s);
+        Debug.WriteLine(node.ToString());
         result = new UfwListCommandResultRow();
         UfwListCommandResultRowVisitor visitor = new(result);
         node.Accept(visitor);

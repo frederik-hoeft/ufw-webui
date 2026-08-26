@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -14,12 +14,12 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-		<Compile Remove="**\*.Unix.cs" ></Compile>
-		<None Include="**\*.Unix.cs" ></None>
+		<Compile Remove="**\*.Unix.cs"></Compile>
+		<None Include="**\*.Unix.cs"></None>
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-		<Compile Remove="**\*.Win32.cs" ></Compile>
-		<None Include="**\*.Win32.cs" ></None>
+		<Compile Remove="**\*.Win32.cs"></Compile>
+		<None Include="**\*.Win32.cs"></None>
 	</ItemGroup>
 </Project>

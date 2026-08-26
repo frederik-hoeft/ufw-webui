@@ -29,7 +29,7 @@ internal class RoutingNode(RoutingNode? parent, string routeSegment, IRoutingSeg
 
     public IRoutingSegment? FindBestMatch(string route)
     {
-        ArgumentNullException.ThrowIfNull(route, nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
         return FindBestMatch(route.AsSpan());
     }
 
