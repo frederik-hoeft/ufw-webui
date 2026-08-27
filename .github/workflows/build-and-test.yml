@@ -9,20 +9,17 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
-    
-    - name: Restore dependencies
-      run: dotnet restore src/Ufw.sln
-      
-    - name: Build
-      run: dotnet build src/Ufw.sln --configuration Release --no-restore /p:TreatWarningsAsErrors=true
-      
-    - name: Test
-      run: dotnet test src/Ufw.sln --configuration Release --no-build --verbosity normal --logger "console;verbosity=detailed"
+      - uses: actions/checkout@v7
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore dependencies
+        run: dotnet restore src/Ufw.slnx
+      - name: Build
+        run: dotnet build src/Ufw.slnx --configuration Release --no-restore /p:TreatWarningsAsErrors=true
+      - name: Test
+        run: dotnet test src/Ufw.slnx --configuration Release --no-build --verbosity normal --logger "console;verbosity=detailed"
