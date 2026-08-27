@@ -12,6 +12,11 @@ namespace Ufw.Ipc.Tests.Adapter;
 public abstract class IpcProtocolTestBase
 {
     /// <summary>
+    /// MSTest context for the currently executing test. Its cancellation token is linked into every test run.
+    /// </summary>
+    public TestContext TestContext { get; set; } = null!;
+
+    /// <summary>
     /// Class-level server DI customization. Invoked for every <see cref="RunAsync"/> call.
     /// </summary>
     protected virtual ValueTask ConfigureServerServicesAsync(IServiceCollection services, CancellationToken cancellationToken) =>
@@ -142,17 +147,19 @@ public abstract class IpcProtocolTestBase
         IpcTestRunConfiguration? configuration,
         CancellationToken cancellationToken)
     {
+        using CancellationTokenSource runCts = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.CancellationToken,
+            cancellationToken);
+        CancellationToken runToken = runCts.Token;
+
         IpcTestOptions options = new();
-        await ConfigureOptionsAsync(options, cancellationToken).ConfigureAwait(false);
+        await ConfigureOptionsAsync(options, runToken).ConfigureAwait(false);
         configuration?.ConfigureOptions?.Invoke(options);
 
-        using CancellationTokenSource runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (options.TestTimeout is { } testTimeout && testTimeout > TimeSpan.Zero && testTimeout != Timeout.InfiniteTimeSpan)
         {
             runCts.CancelAfter(testTimeout);
         }
-
-        CancellationToken runToken = runCts.Token;
 
         await using IpcTestHost host = await IpcTestHost.StartAsync(
             options,

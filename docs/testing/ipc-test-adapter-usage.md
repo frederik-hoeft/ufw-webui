@@ -1,21 +1,12 @@
 # IPC test adapter usage
 
-## Project setup
+## Basic test shape
 
-`Ufw.Ipc.Tests` already references the IPC client/shared libraries, the daemon project, Roslyn routing abstractions, and `Microsoft.AspNetCore.App` (for MEDI). Friend-assembly attributes are registered on the production projects so tests can construct internal pipeline types without widening public API surface.
+Derive an MSTest class from `IpcProtocolTestBase`. The base class creates a fresh in-process IPC host for every helper invocation and supplies the test runner's cancellation token automatically.
 
-Parallel execution is enabled at method scope in `MSTestSettings.cs`.
-
-## Basic typed test
-
-Subclass `IpcProtocolTestBase`, register endpoints once for the class, and keep the test body as pure act/assert:
+Register endpoints at class scope when they are shared by the class:
 
 ```csharp
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Tests.Adapter;
-using Ufw.Ipc.Tests.Adapter.Endpoints;
-
 [TestClass]
 public sealed class PingTests : IpcProtocolTestBase
 {
@@ -36,20 +27,21 @@ public sealed class PingTests : IpcProtocolTestBase
             RequestMethod.Get,
             "/api/v1/ping",
             cancellationToken);
+
         Assert.IsNotNull(response);
     }).AsTask();
 }
 ```
 
-`RunAsync` returns `ValueTask`. MSTest discovers `Task`-returning methods, so `.AsTask()` is the usual bridge.
+The facade returns `ValueTask`; `.AsTask()` is convenient for MSTest methods declared with a `Task` return type.
 
-## Per-test endpoints and arrange hooks
+## Per-test routing targets
 
-Use `IpcTestRunConfiguration` (or the `configureEndpoints` convenience overload) when a case needs its own route table or pre-act setup:
+A test can add its own routing targets without defining a daemon controller:
 
 ```csharp
 [TestMethod]
-public Task Echo_RoundTrip() => RunAsync(
+public Task Echo_RoundTrips() => RunAsync(
     configureEndpoints: static endpoints =>
     {
         endpoints.MapPost<EchoRequest, EchoResponse>(
@@ -63,55 +55,68 @@ public Task Echo_RoundTrip() => RunAsync(
             "/api/v1/echo",
             new EchoRequest("hi"),
             cancellationToken);
+
         Assert.AreEqual("hi", response.Text);
     }).AsTask();
 ```
 
-Class-level `ConfigureEndpointsAsync` runs first; per-run registrations append afterward on a fresh map builder.
+These mappings are routed by the normal daemon routing tree and `EndpointInvocationMiddleware`. They are test routing targets, not a separate test router.
 
-## Custom DI (server and/or client)
+## Dependency injection
 
-Replace production services with test doubles without rebuilding the whole host by hand:
+The adapter creates independent server and client MEDI containers for each run. Override the class-level hooks for defaults used by every test in a class, or use `IpcTestRunConfiguration` for a single scenario.
 
 ```csharp
 [TestMethod]
-public Task UsesMockClock() => RunAsync(
+public Task UsesTestService() => RunAsync(
     actAsync: async (context, cancellationToken) =>
     {
-        // assert against behavior that depends on the replaced service
-        await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/ping", cancellationToken);
+        OkResponse response = await context.SendAsync<OkResponse>(
+            RequestMethod.Get,
+            "/api/v1/value",
+            cancellationToken);
+        Assert.IsNotNull(response);
     },
     configuration: new IpcTestRunConfiguration
     {
         ConfigureServerServices = services =>
         {
-            // remove/replace descriptors as needed
-            services.AddSingleton<IMyService, FakeMyService>();
-        },
-        ConfigureClientServices = services =>
-        {
-            // e.g. swap ITransportSecurityService or a response handler
+            services.AddSingleton<IMyService, TestService>();
         },
         ConfigureEndpoints = endpoints =>
         {
-            endpoints.MapGet("/api/v1/ping", static _ => ValueTask.FromResult(new OkResponse()));
+            endpoints.MapGet(
+                "/api/v1/value",
+                static (services, _) =>
+                {
+                    _ = services.GetRequiredService<IMyService>();
+                    return ValueTask.FromResult(new OkResponse());
+                });
         },
     }).AsTask();
 ```
 
-Hooks available on the base class (class-wide) and on `IpcTestRunConfiguration` (per run):
+Available class-level hooks are:
 
-- `ConfigureServerServices` / `ConfigureServerServicesAsync`
-- `ConfigureClientServices` / `ConfigureClientServicesAsync`
-- `ConfigureEndpoints` / `ConfigureEndpointsAsync`
-- `ConfigureOptions` / `ConfigureOptionsAsync`
-- `ArrangeAsync` (runs after the host is up, before act)
+- `ConfigureServerServicesAsync`
+- `ConfigureClientServicesAsync`
+- `ConfigureEndpointsAsync`
+- `ConfigureOptionsAsync`
 
-Async overloads are preferred when work can await; sync actions are still applied in a defined order (class async → per-run sync → per-run async).
+`IpcTestRunConfiguration` supplies corresponding per-run service and endpoint hooks plus `ArrangeAsync`. Per-run configuration is applied after class-level configuration, so an individual test can replace a class default without changing other tests.
 
-## Low-level protocol tests
+## Typed and raw protocol access
 
-### Raw envelopes
+Use the typed helpers for ordinary protocol requests:
+
+```csharp
+RuleListResponse response = await context.SendAsync<RuleListResponse>(
+    RequestMethod.Get,
+    "/api/v1/rules",
+    cancellationToken);
+```
+
+Use `ExchangeRawAsync` when the request envelope itself is part of the scenario:
 
 ```csharp
 await using IMessage request = await context.MessageSerializer.SerializeAsync(
@@ -125,73 +130,60 @@ await using IMessage response = await context.ExchangeRawAsync(request, cancella
 Assert.AreEqual("200", response.Id);
 ```
 
-### Malformed frames
+Use `ConnectRawAsync` or `ExchangeBytesAsync` when the test needs control below the message abstraction, for example to write a frame in fragments, omit framing bytes, close a peer early, or send malformed serialized data.
+
+`ProcessPipelineAsync` bypasses transport and serialization intentionally. Use it only when the subject of the test is the daemon middleware/routing pipeline itself.
+
+## Intentionally replacing the daemon worker
+
+The default host runs the production `NetworkApplication` and `NetworkApplicationWorker`. This is important for tests that are expected to detect worker-level protocol or lifecycle regressions.
+
+A scenario that deliberately requires different worker failure behavior can replace the worker for that run. For example, the adapter includes `ResilientIpcTestServerWorker` for tests that need to send malformed input and then continue using the same host:
 
 ```csharp
-ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
-await Assert.ThrowsAsync<Exception>(async () =>
+IpcTestRunConfiguration configuration = new()
 {
-    await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
-});
-
-// Host remains usable:
-OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/ping", cancellationToken);
+    ConfigureServerServices = static services =>
+        services.Replace(
+            ServiceDescriptor.Transient<INetworkApplicationWorker, ResilientIpcTestServerWorker>()),
+};
 ```
 
-### Pipeline-only (no transport)
+Do not use the resilient worker as a general default: doing so would hide production worker failures from protocol tests.
+
+## Cancellation and timeouts
+
+Every `RunAsync` invocation links the current `TestContext.CancellationToken` with any explicit token passed to the helper. The resulting token is passed to configuration hooks, host operations, arrange code, and the test lambda.
+
+`IpcTestOptions.TestTimeout` can provide an additional adapter-level ceiling:
 
 ```csharp
-await using IMessage request = await context.MessageSerializer.SerializeAsync(
-    "PATCH",
-    "/api/v1/x",
-    payload: (object?)null,
-    typeof(object),
-    cancellationToken);
-
-await using IMessage response = await context.ProcessPipelineAsync(request, cancellationToken);
-Assert.AreEqual("501", response.Id);
-```
-
-## Endpoint mapping API
-
-`ITestEndpointMapBuilder` covers the common verbs and free-form method strings:
-
-| Method | Use |
-| --- | --- |
-| `MapGet` / `MapDelete` | No request body (or ignored body) |
-| `MapPost` / `MapPut` | Typed request body + typed response |
-| `Map(method, route, handler)` | Arbitrary method string |
-| `Map(ApiEndpointMapping<...>)` | Drop in a pre-built production mapping |
-
-Handlers may take `IServiceProvider` when they need scoped services. Responses must implement `IIdentifiable` (typically by deriving from `OkResponseBase` / `ResponseMessage`).
-
-Routes may be written with or without a leading `/`; the builder normalizes them.
-
-## JSON payloads in tests
-
-Production `MessageJsonSerializerContext` remains the source of truth for known IPC DTOs. The adapter’s hybrid context falls back to reflection for one-off test types (`EchoRequest`, etc.), so you do not need to regenerate STJ contexts for every smoke DTO.
-
-If a test DTO must match production wire shape exactly, prefer types already registered on `MessageJsonSerializerContext`.
-
-## Options
-
-```csharp
-protected override ValueTask ConfigureOptionsAsync(IpcTestOptions options, CancellationToken cancellationToken)
+protected override ValueTask ConfigureOptionsAsync(
+    IpcTestOptions options,
+    CancellationToken cancellationToken)
 {
-    options.WorkerCount = 2;
-    options.RequestTimeout = TimeSpan.FromSeconds(5);
-    options.DebugMode = true;          // 500 responses include exception detail
     options.TestTimeout = TimeSpan.FromSeconds(30);
+    options.RequestTimeout = TimeSpan.FromSeconds(5);
     return ValueTask.CompletedTask;
 }
 ```
 
-## Cleanup guarantees
+The adapter-level timeout complements MSTest cancellation; it does not replace it.
 
-Do not keep `IIpcTestContext` beyond the `RunAsync` lambda. The host disposes when the lambda completes (success or fault). Nested raw streams from `ConnectRawAsync` should be disposed inside the lambda (`await using`).
+## Lifetime rules
 
-## What not to do
+Keep `IIpcTestContext` and services resolved from it inside the `RunAsync` lambda. A host is disposed when the helper completes, including when arrange or test code throws or is canceled.
 
-- Do not open real named pipes or Unix sockets from these tests; use the in-process broker.
-- Do not share a single host across tests via static fields; isolation is the point.
-- Do not register mutating daemon endpoints here that bypass the future signed-intent security boundary—the adapter is for protocol/routing fidelity, not for weakening production authorization design.
+Raw streams returned by `ConnectRawAsync` are owned by the caller:
+
+```csharp
+await using Stream stream = await context.ConnectRawAsync(cancellationToken);
+```
+
+The host cancels and awaits the daemon network application before disposing its DI containers and transport. Cleanup failures are surfaced rather than converted into successful test completion.
+
+## Choosing payload types
+
+Known production IPC DTOs use `MessageJsonSerializerContext`, the source-generated production metadata set. The test host adds a reflection fallback for small test-only DTOs so routing tests do not need to modify production serializer metadata merely to introduce fixtures.
+
+When a test is specifically verifying an established wire contract, use the production DTO rather than an equivalent test type.

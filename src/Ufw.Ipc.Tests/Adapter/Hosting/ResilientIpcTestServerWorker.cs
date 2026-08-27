@@ -3,16 +3,17 @@ using Ufw.Ipc.Shared.Transport;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Network;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Transport;
 
 namespace Ufw.Ipc.Tests.Adapter.Hosting;
 
 /// <summary>
-/// Mirrors <c>NetworkApplicationWorker</c> request handling against the real serializer/pipeline stack,
-/// but continues serving after non-cancellation failures so one bad packet does not tear down the host.
+/// Opt-in worker for tests that need serving to continue after a connection-level protocol failure.
+/// The default test host uses <c>NetworkApplicationWorker</c> so production failure behavior remains observable.
 /// </summary>
-internal sealed class IpcTestServerWorker
+internal sealed class ResilientIpcTestServerWorker
 (
     ITransportLayerService transportLayerService,
     ITransportSecurityService transportSecurityService,
@@ -20,11 +21,11 @@ internal sealed class IpcTestServerWorker
     IRequestResponsePipeline requestResponsePipeline,
     IConfiguration configuration,
     ILogger logger
-)
+) : INetworkApplicationWorker
 {
     private readonly Guid _workerId = Guid.CreateVersion7();
 
-    public async Task ServeAsync(CancellationToken cancellationToken)
+    public async Task ServeAsync(INetworkApplication manager, CancellationToken cancellationToken)
     {
         logger.Scoped(this).LogInformation($"Test worker {_workerId}: started");
         TimeSpan timeout = configuration.Settings.Network.RequestTimeout;
@@ -53,10 +54,6 @@ internal sealed class IpcTestServerWorker
             {
                 // Malformed framing / abrupt client disconnects are expected in protocol tests.
                 logger.Scoped(this).LogWarning(ex, $"Test worker {_workerId}: connection-level failure.");
-            }
-            catch (Exception ex)
-            {
-                logger.Scoped(this).LogError(ex, $"Test worker {_workerId}: unexpected failure while serving a connection.");
             }
         }
 

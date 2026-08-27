@@ -9,7 +9,6 @@ using Ufw.Ipc.Shared.Serialization.Json;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
-using Ufw.Ipc.Tests.Adapter.Hosting;
 using Ufw.Ipc.Tests.Adapter.Serialization;
 using Ufw.Ipc.Tests.Adapter.Transport;
 using Ufw.Roslyn.Controllers.Mapping;
@@ -17,6 +16,7 @@ using Ufw.Roslyn.Json;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
+using Ufw.Systemd.Network;
 using Ufw.Systemd.Services.Logging;
 using ServerTransport = Ufw.Systemd.Transport;
 
@@ -49,7 +49,8 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton<IRequestResponsePipeline, RequestResponsePipeline>();
         services.AddSingleton<ITransportSecurityService, NoTransportSecurityService>();
         services.AddSingleton<ServerTransport.ITransportLayerService, InProcessServerTransportService>();
-        services.AddTransient<IpcTestServerWorker>();
+        services.AddSingleton<INetworkApplication, NetworkApplication>();
+        services.AddTransient<INetworkApplicationWorker, NetworkApplicationWorker>();
         return services;
     }
 

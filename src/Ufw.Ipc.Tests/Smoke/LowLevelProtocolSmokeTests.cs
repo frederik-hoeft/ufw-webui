@@ -1,9 +1,13 @@
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
+using Ufw.Ipc.Tests.Adapter.Hosting;
+using Ufw.Systemd.Network;
 
 namespace Ufw.Ipc.Tests.Smoke;
 
@@ -43,7 +47,7 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
             type: typeof(object),
             cancellationToken);
 
-        await using IMessage response = await context.ProcessPipelineAsync(request, cancellationToken);
+        await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
 
         Assert.AreEqual("400", response.Id);
         BadRequestResponse? body = await response.Payload.ReadAsync<BadRequestResponse>(cancellationToken);
@@ -52,24 +56,29 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }).AsTask();
 
     [TestMethod]
-    public Task MalformedHeaderBytes_DoesNotLeakHostResources() => RunAsync(async (context, cancellationToken) =>
-    {
-        ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
-
-        Exception exception = await Assert.ThrowsAsync<Exception>(async () =>
+    public Task MalformedHeaderBytes_CanUseResilientTestWorker() => RunAsync(
+        async (context, cancellationToken) =>
         {
-            await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
-        });
-        Assert.IsTrue(
-            exception is InvalidDataException
-                or IOException
-                or System.Text.Json.JsonException
-                or EndOfStreamException
-                or OperationCanceledException,
-            $"Unexpected exception type: {exception.GetType().FullName}: {exception.Message}");
+            ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
 
-        // Host must still serve a valid request after the bad frame.
-        OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
-        Assert.IsNotNull(response);
-    }).AsTask();
+            Exception exception = await Assert.ThrowsAsync<Exception>(async () =>
+            {
+                await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
+            });
+            Assert.IsTrue(
+                exception is InvalidDataException
+                    or IOException
+                    or System.Text.Json.JsonException
+                    or EndOfStreamException
+                    or OperationCanceledException,
+                $"Unexpected exception type: {exception.GetType().FullName}: {exception.Message}");
+
+            OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
+            Assert.IsNotNull(response);
+        },
+        configuration: new IpcTestRunConfiguration
+        {
+            ConfigureServerServices = static services =>
+                services.Replace(ServiceDescriptor.Transient<INetworkApplicationWorker, ResilientIpcTestServerWorker>()),
+        }).AsTask();
 }

@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Serialization;
@@ -5,10 +6,10 @@ using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.DependencyInjection;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
-using Ufw.Ipc.Tests.Adapter.Hosting;
 using Ufw.Ipc.Tests.Adapter.Transport;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration.Model;
+using Ufw.Systemd.Network;
 
 namespace Ufw.Ipc.Tests.Adapter;
 
@@ -22,7 +23,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
     private readonly ServiceProvider _clientProvider;
     private readonly AsyncServiceScope _clientScope;
     private readonly CancellationTokenSource _hostCts;
-    private readonly Task[] _workerTasks;
+    private readonly Task _networkApplicationTask;
     private readonly IUfwClient _client;
     private readonly IMessageSerializer _messageSerializer;
     private readonly IRequestResponsePipeline _pipeline;
@@ -35,7 +36,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
         ServiceProvider clientProvider,
         AsyncServiceScope clientScope,
         CancellationTokenSource hostCts,
-        Task[] workerTasks,
+        Task networkApplicationTask,
         IUfwClient client,
         IMessageSerializer messageSerializer,
         IRequestResponsePipeline pipeline,
@@ -46,7 +47,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
         _clientProvider = clientProvider;
         _clientScope = clientScope;
         _hostCts = hostCts;
-        _workerTasks = workerTasks;
+        _networkApplicationTask = networkApplicationTask;
         _client = client;
         _messageSerializer = messageSerializer;
         _pipeline = pipeline;
@@ -72,7 +73,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
         AsyncServiceScope clientScope = default;
         bool clientScopeCreated = false;
         CancellationTokenSource? hostCts = null;
-        Task[]? workerTasks = null;
+        Task? networkApplicationTask = null;
 
         try
         {
@@ -132,13 +133,8 @@ internal sealed class IpcTestHost : IAsyncDisposable
             clientScopeCreated = true;
 
             hostCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            int workerCount = Math.Max(1, options.WorkerCount);
-            workerTasks = new Task[workerCount];
-            for (int i = 0; i < workerCount; i++)
-            {
-                IpcTestServerWorker worker = serverProvider.GetRequiredService<IpcTestServerWorker>();
-                workerTasks[i] = worker.ServeAsync(hostCts.Token);
-            }
+            INetworkApplication networkApplication = serverProvider.GetRequiredService<INetworkApplication>();
+            networkApplicationTask = networkApplication.RunAsync(hostCts.Token);
 
             IUfwClient client = clientScope.ServiceProvider.GetRequiredService<IUfwClient>();
             IMessageSerializer messageSerializer = serverProvider.GetRequiredService<IMessageSerializer>();
@@ -151,7 +147,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
                 clientProvider,
                 clientScope,
                 hostCts,
-                workerTasks,
+                networkApplicationTask,
                 client,
                 messageSerializer,
                 pipeline,
@@ -164,11 +160,11 @@ internal sealed class IpcTestHost : IAsyncDisposable
                 await hostCts.CancelAsync().ConfigureAwait(false);
             }
 
-            if (workerTasks is not null)
+            if (networkApplicationTask is not null)
             {
                 try
                 {
-                    await Task.WhenAll(workerTasks).ConfigureAwait(false);
+                    await networkApplicationTask.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -216,32 +212,58 @@ internal sealed class IpcTestHost : IAsyncDisposable
         }
 
         _disposed = true;
+        List<Exception> cleanupExceptions = [];
 
         try
         {
             await _hostCts.CancelAsync().ConfigureAwait(false);
         }
-        catch (ObjectDisposedException)
+        catch (Exception ex)
         {
+            cleanupExceptions.Add(ex);
         }
 
         try
         {
-            await Task.WhenAll(_workerTasks).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            await _networkApplicationTask.ConfigureAwait(false);
         }
-        catch (TimeoutException)
+        catch (Exception ex)
         {
-            // Best-effort join; continue deterministic disposal of owned resources.
-        }
-        catch (Exception)
-        {
-            // Worker faults must not prevent disposal of DI containers and the broker.
+            cleanupExceptions.Add(ex);
         }
 
-        await _clientScope.DisposeAsync().ConfigureAwait(false);
-        await _clientProvider.DisposeAsync().ConfigureAwait(false);
-        await _serverProvider.DisposeAsync().ConfigureAwait(false);
-        await _broker.DisposeAsync().ConfigureAwait(false);
-        _hostCts.Dispose();
+        await TryDisposeAsync(_clientScope.DisposeAsync, cleanupExceptions).ConfigureAwait(false);
+        await TryDisposeAsync(_clientProvider.DisposeAsync, cleanupExceptions).ConfigureAwait(false);
+        await TryDisposeAsync(_serverProvider.DisposeAsync, cleanupExceptions).ConfigureAwait(false);
+        await TryDisposeAsync(_broker.DisposeAsync, cleanupExceptions).ConfigureAwait(false);
+        try
+        {
+            _hostCts.Dispose();
+        }
+        catch (Exception ex)
+        {
+            cleanupExceptions.Add(ex);
+        }
+
+        if (cleanupExceptions.Count == 1)
+        {
+            ExceptionDispatchInfo.Capture(cleanupExceptions[0]).Throw();
+        }
+        if (cleanupExceptions.Count > 1)
+        {
+            throw new AggregateException("One or more IPC test host resources failed to shut down cleanly.", cleanupExceptions);
+        }
+    }
+
+    private static async ValueTask TryDisposeAsync(Func<ValueTask> disposeAsync, List<Exception> exceptions)
+    {
+        try
+        {
+            await disposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
     }
 }

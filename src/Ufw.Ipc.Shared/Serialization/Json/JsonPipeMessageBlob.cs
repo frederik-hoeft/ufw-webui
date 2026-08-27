@@ -168,12 +168,11 @@ internal class JsonPipeMessageBlob : IMessageBlob, IDisposable, IAsyncDisposable
 
         public override ValueTask<Stream> CreateStreamAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Stream.Null);
 
-        public override ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken) where TResult : default =>
-            ValueTask.FromResult<TResult?>(default);
+        public override ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken) where TResult : default => throw NotSupportedException();
 
-        // Empty payloads have nothing to buffer; draining them is a no-op success so middleware can safely consume the body.
-        public override ValueTask<bool> TryReadAsync(TimeSpan timeout, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(true);
+        public override ValueTask<bool> TryReadAsync(TimeSpan timeout, CancellationToken cancellationToken) => throw NotSupportedException();
+
+        private static NotSupportedException NotSupportedException() => new("Cannot read from an empty message blob");
 
         public override void Dispose()
         {
