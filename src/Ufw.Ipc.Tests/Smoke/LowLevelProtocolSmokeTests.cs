@@ -1,19 +1,26 @@
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
-using Ufw.Ipc.Tests.Adapter.Hosting;
-using Ufw.Systemd.Network;
 
 namespace Ufw.Ipc.Tests.Smoke;
 
 [TestClass]
 public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
 {
+    protected override ValueTask ConfigureOptionsAsync(IpcTestOptions options, CancellationToken cancellationToken)
+    {
+        options.WorkerCount = 1;
+        return ValueTask.CompletedTask;
+    }
+
     protected override ValueTask ConfigureEndpointsAsync(ITestEndpointMapBuilder endpoints, CancellationToken cancellationToken)
     {
         endpoints.MapGet(
@@ -56,29 +63,69 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }).AsTask();
 
     [TestMethod]
-    public Task MalformedHeaderBytes_CanUseResilientTestWorker() => RunAsync(
+    public Task MalformedHeaderBytes_DoesNotTerminateProductionWorker() => RunAsync(async (context, cancellationToken) =>
+    {
+        ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
+
+        Exception exception = await Assert.ThrowsAsync<Exception>(async () =>
+        {
+            await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
+        });
+        Assert.IsTrue(
+            exception is InvalidDataException
+                or IOException
+                or System.Text.Json.JsonException
+                or EndOfStreamException
+                or OperationCanceledException,
+            $"Unexpected exception type: {exception.GetType().FullName}: {exception.Message}");
+
+        OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
+        Assert.IsNotNull(response);
+    }).AsTask();
+
+    [TestMethod]
+    public Task TransportIoFailure_DoesNotTerminateProductionWorker() =>
+        ConnectionFailureDoesNotTerminateProductionWorkerAsync(new IOException("Simulated connection I/O failure."));
+
+    [TestMethod]
+    public Task TransportSocketFailure_DoesNotTerminateProductionWorker() =>
+        ConnectionFailureDoesNotTerminateProductionWorkerAsync(new SocketException((int)SocketError.ConnectionReset));
+
+    [TestMethod]
+    public Task TransportAuthenticationFailure_DoesNotTerminateProductionWorker() =>
+        ConnectionFailureDoesNotTerminateProductionWorkerAsync(new AuthenticationException("Simulated TLS authentication failure."));
+
+    private Task ConnectionFailureDoesNotTerminateProductionWorkerAsync(Exception connectionFailure) => RunAsync(
         async (context, cancellationToken) =>
         {
-            ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
-
-            Exception exception = await Assert.ThrowsAsync<Exception>(async () =>
+            _ = await Assert.ThrowsAsync<Exception>(async () =>
             {
-                await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
+                _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
             });
-            Assert.IsTrue(
-                exception is InvalidDataException
-                    or IOException
-                    or System.Text.Json.JsonException
-                    or EndOfStreamException
-                    or OperationCanceledException,
-                $"Unexpected exception type: {exception.GetType().FullName}: {exception.Message}");
 
             OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
             Assert.IsNotNull(response);
         },
         configuration: new IpcTestRunConfiguration
         {
-            ConfigureServerServices = static services =>
-                services.Replace(ServiceDescriptor.Transient<INetworkApplicationWorker, ResilientIpcTestServerWorker>()),
+            ConfigureServerServices = services =>
+                services.Replace(ServiceDescriptor.Singleton<ITransportSecurityService>(
+                    new FailOnceTransportSecurityService(connectionFailure))),
         }).AsTask();
+
+    private sealed class FailOnceTransportSecurityService(Exception failure) : ITransportSecurityService
+    {
+        private readonly NoTransportSecurityService _inner = new();
+        private int _failNextConnection = 1;
+
+        public Task<Stream> OpenSecureStreamAsync(Stream innerStream, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Exchange(ref _failNextConnection, 0) != 0)
+            {
+                return Task.FromException<Stream>(failure);
+            }
+
+            return _inner.OpenSecureStreamAsync(innerStream, cancellationToken);
+        }
+    }
 }

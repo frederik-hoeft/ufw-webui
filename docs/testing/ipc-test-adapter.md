@@ -65,11 +65,11 @@ Server services, client services, endpoints, and host options all follow this mo
 
 `ProcessPipelineAsync` is available when a test intentionally wants to isolate middleware/routing behavior from the transport. It is not the default path for protocol tests.
 
-### Opt-in worker behavior
+### Worker failure boundary
 
-Some tests need a peer that remains available after deliberately malformed input even when production treats that failure as fatal to a worker. `ResilientIpcTestServerWorker` is an explicit test double for that purpose. A test may replace `INetworkApplicationWorker` with it through per-run DI configuration.
+`NetworkApplicationWorker` treats connection-scoped transport, TLS-authentication, and malformed-protocol failures as failures of the current peer. The connection is disposed, the failure is logged, and the worker returns to accepting requests. This keeps malformed or disconnected peers from permanently consuming daemon serving capacity.
 
-Because this worker changes failure behavior, it must only be selected by tests whose scenario requires that behavior. The default host always resolves `NetworkApplicationWorker`.
+The worker does not catch arbitrary exceptions. Endpoint/controller exceptions are converted into protocol-level error responses by the endpoint mapping layer; unexpected exceptions outside the known peer/connection boundary remain visible and fault the worker/application rather than being silently swallowed. Adapter-driven tests therefore exercise the same failure boundary as production.
 
 ## Cancellation and lifetime
 

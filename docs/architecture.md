@@ -46,6 +46,8 @@ The local IPC channel provides process separation and keeps privileged operation
 
 The current transport-security abstraction is not part of the mutation authorization model. The web and daemon presently use the no-op stream-security implementation over the local pipe. Filesystem ownership/permissions for the Unix socket remain an operational control for limiting local access, but they are defense in depth rather than proof of user intent.
 
+Daemon workers isolate expected peer/connection failures from the serving loop. Malformed protocol data, transport I/O failures, and TLS-authentication failures terminate the current connection and are logged, after which the worker accepts another request. Unexpected exceptions outside that boundary are not swallowed; they fault the worker/application and remain observable.
+
 ## Firewall state and application metadata
 
 UFW and the daemon remain authoritative for firewall rule existence and semantics. `Ufw.Web` may maintain richer application metadata that UFW itself does not represent, such as display information or authorship history.

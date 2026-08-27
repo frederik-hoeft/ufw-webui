@@ -134,22 +134,11 @@ Use `ConnectRawAsync` or `ExchangeBytesAsync` when the test needs control below 
 
 `ProcessPipelineAsync` bypasses transport and serialization intentionally. Use it only when the subject of the test is the daemon middleware/routing pipeline itself.
 
-## Intentionally replacing the daemon worker
+## Worker-level protocol failures
 
-The default host runs the production `NetworkApplication` and `NetworkApplicationWorker`. This is important for tests that are expected to detect worker-level protocol or lifecycle regressions.
+The default host runs the production `NetworkApplication` and `NetworkApplicationWorker`, including the production worker failure boundary. Malformed protocol data, connection I/O failures, and TLS-authentication failures terminate the current connection but do not terminate the worker. This makes it possible to verify recovery by sending invalid input and then issuing a normal request through the same host.
 
-A scenario that deliberately requires different worker failure behavior can replace the worker for that run. For example, the adapter includes `ResilientIpcTestServerWorker` for tests that need to send malformed input and then continue using the same host:
-
-```csharp
-IpcTestRunConfiguration configuration = new()
-{
-    ConfigureServerServices = static services =>
-        services.Replace(
-            ServiceDescriptor.Transient<INetworkApplicationWorker, ResilientIpcTestServerWorker>()),
-};
-```
-
-Do not use the resilient worker as a general default: doing so would hide production worker failures from protocol tests.
+Unexpected worker failures are not converted into successful test completion. They surface through the network application task when the host is disposed, so protocol tests continue to detect production lifecycle regressions.
 
 ## Cancellation and timeouts
 
