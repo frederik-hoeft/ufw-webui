@@ -8,6 +8,7 @@ using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Serialization.Json;
 using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Roslyn.Json;
 
 namespace Ufw.Ipc.Client.Configuration;
 
@@ -21,6 +22,7 @@ public static class ServiceCollectionExtensions
         UfwClientOptions implementationInstance = ufwClientBuilder.Build();
         services.AddSingleton(implementationInstance);
         services.AddSingleton(MessageJsonSerializerContext.Default);
+        services.AddSingleton<AotJsonSerializerContext>(static _ => MessageJsonSerializerContext.Default);
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
         services.AddSingleton<IResponseMessageHandler, BadRequestResponseHandler>();
         services.AddSingleton<IResponseMessageHandler, ErrorResponseHandler>();

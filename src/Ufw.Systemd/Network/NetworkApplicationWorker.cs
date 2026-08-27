@@ -1,4 +1,6 @@
-﻿using Ufw.Ipc.Shared.Serialization;
+﻿using System.Net.Sockets;
+using System.Security.Authentication;
+using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Transport;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Systemd.Api.Middleware;
@@ -43,6 +45,10 @@ internal sealed class NetworkApplicationWorker
                     break;
                 }
                 logger.Scoped(this).LogWarning($"Worker {_workerId}: request timed out: {oce.Message}");
+            }
+            catch (Exception ex) when (ex is IOException or SocketException or InvalidDataException or AuthenticationException)
+            {
+                logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: connection failed; continuing to serve requests.");
             }
         }
         logger.Scoped(this).LogInformation($"Worker {_workerId}: stopping");
