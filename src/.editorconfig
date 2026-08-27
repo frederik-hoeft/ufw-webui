@@ -499,6 +499,10 @@ dotnet_diagnostic.CA1513.severity = suggestion
 # CA1514: Avoid redundant length argument
 dotnet_diagnostic.CA1514.severity = warning
 
+## Naming rules
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
 ## Performance rules
 # CA1802: Use Literals Where Appropriate (make non-public static readonly fields const if possible)
 dotnet_diagnostic.CA1802.severity = warning
