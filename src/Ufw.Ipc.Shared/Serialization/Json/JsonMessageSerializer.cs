@@ -2,10 +2,11 @@
 using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Roslyn.Controllers;
+using Ufw.Roslyn.Json;
 
 namespace Ufw.Ipc.Shared.Serialization.Json;
 
-public sealed class JsonMessageSerializer(MessageJsonSerializerContext context) : IMessageSerializer
+public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IMessageSerializer
 {
     private static readonly ReadOnlyMemory<byte> s_newLineBuffer = "\n"u8.ToArray();
 

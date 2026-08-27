@@ -1,4 +1,4 @@
-﻿<Project Sdk="MSTest.Sdk/4.0.2">
+<Project Sdk="MSTest.Sdk/4.0.2">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,19 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseVSTest>true</UseVSTest>
+    <RootNamespace>Ufw.Ipc.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ufw.Ipc.Client\Ufw.Ipc.Client.csproj" />
+    <ProjectReference Include="..\Ufw.Ipc.Shared\Ufw.Ipc.Shared.csproj" />
+    <ProjectReference Include="..\Ufw.Systemd\Ufw.Systemd.csproj" />
+    <ProjectReference Include="..\Ufw.Roslyn\Ufw.Roslyn.csproj" />
+  </ItemGroup>
 
 </Project>
