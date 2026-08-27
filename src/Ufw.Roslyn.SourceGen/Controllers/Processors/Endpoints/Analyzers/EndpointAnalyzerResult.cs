@@ -1,4 +1,4 @@
-namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints.Analyzers;
+﻿namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints.Analyzers;
 
 internal sealed record EndpointAnalyzerResult(
     string GenericParams,

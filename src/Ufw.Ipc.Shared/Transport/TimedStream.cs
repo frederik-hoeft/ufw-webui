@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport;
+﻿namespace Ufw.Ipc.Shared.Transport;
 
 public class TimedStream : Stream
 {
@@ -94,10 +94,10 @@ public class TimedStream : Stream
         await _innerStream.WriteAsync(buffer, timeout.Token);
     }
 
-    public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => 
+    public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) =>
         _innerStream.BeginRead(buffer, offset, count, callback, state);
 
-    public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => 
+    public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) =>
         _innerStream.BeginWrite(buffer, offset, count, callback, state);
 
     public override void CopyTo(Stream destination, int bufferSize) => _innerStream.CopyTo(destination, bufferSize);

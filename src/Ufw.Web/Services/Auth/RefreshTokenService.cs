@@ -1,11 +1,11 @@
-using System.Data;
-using System.Security.Cryptography;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
 using RefreshTokenEntity = Ufw.Web.Data.Model.RefreshToken;

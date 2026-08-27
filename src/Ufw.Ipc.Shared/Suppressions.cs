@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared;
+﻿namespace Ufw.Ipc.Shared;
 
 public static class Suppressions
 {

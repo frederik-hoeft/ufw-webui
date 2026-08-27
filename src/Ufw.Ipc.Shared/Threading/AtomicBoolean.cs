@@ -63,7 +63,7 @@ public readonly struct AtomicBoolean : IEquatable<AtomicBoolean>, IEqualityOpera
 
     public bool Equals(AtomicBoolean other) => (bool)this == (bool)other;
 
-    public override bool Equals([NotNullWhen(true)] object? obj) => 
+    public override bool Equals([NotNullWhen(true)] object? obj) =>
         obj is AtomicBoolean other && Equals(other);
 
     public override int GetHashCode() => ((bool)this).GetHashCode();

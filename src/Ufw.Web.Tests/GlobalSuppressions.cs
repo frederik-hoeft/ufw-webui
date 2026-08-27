@@ -6,8 +6,8 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage(
-    "Maintainability", 
-    "CA1515:Consider making public types internal", 
+    "Maintainability",
+    "CA1515:Consider making public types internal",
     Justification = "Test project types need to be public to be discovered by the test framework",
-    Scope = "namespaceanddescendants", 
+    Scope = "namespaceanddescendants",
     Target = "~N:Ufw.Web.Tests")]

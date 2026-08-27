@@ -1,4 +1,4 @@
-using System.IO.Pipes;
+﻿using System.IO.Pipes;
 using System.Security.Principal;
 
 namespace Ufw.Ipc.Client.Transport.Pipes;
@@ -7,7 +7,7 @@ internal sealed class NamedPipeClientStreamDescriptor(string serverName, string 
 {
     private NamedPipeClientStream CreateClientStream() => new
     (
-        serverName, 
+        serverName,
         pipeName,
         direction: PipeDirection.InOut,
         options: PipeOptions.WriteThrough,
@@ -21,10 +21,10 @@ internal sealed class NamedPipeClientStreamDescriptor(string serverName, string 
         await clientStream.ConnectAsync(timeout, cancellationToken);
         return clientStream;
     }
-    
-    public Task<NamedPipeClientStream> ConnectAsync(CancellationToken cancellationToken) => 
+
+    public Task<NamedPipeClientStream> ConnectAsync(CancellationToken cancellationToken) =>
         ConnectAsync(Timeout.InfiniteTimeSpan, cancellationToken);
 
-    public Task<NamedPipeClientStream> ConnectAsync(int timeout, CancellationToken cancellationToken) => 
+    public Task<NamedPipeClientStream> ConnectAsync(int timeout, CancellationToken cancellationToken) =>
         ConnectAsync(TimeSpan.FromMilliseconds(timeout), cancellationToken);
 }

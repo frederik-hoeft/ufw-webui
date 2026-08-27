@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Client.Transport.Pipes;
+﻿namespace Ufw.Ipc.Client.Transport.Pipes;
 
 public interface INamedPipeClientStreamFactory
 {

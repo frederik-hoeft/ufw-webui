@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Handlers;
+﻿using Ufw.Ipc.Shared.Handlers;
 using Ufw.Ipc.Shared.Pipelines;
 using Ufw.Ipc.Shared.Serialization;
 

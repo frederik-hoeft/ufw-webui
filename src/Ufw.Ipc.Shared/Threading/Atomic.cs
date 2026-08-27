@@ -841,7 +841,7 @@ public static class Atomic
 
     /// <inheritdoc cref="Interlocked.Or(ref int, int)"/>
     [DebuggerStepThrough]
-    public static TEnum Or<TEnum>(ref TEnum location, TEnum value) where TEnum : unmanaged, Enum => 
+    public static TEnum Or<TEnum>(ref TEnum location, TEnum value) where TEnum : unmanaged, Enum =>
         ApplyBitOperation(ref location, value, EnumHelpers.Or);
 
     /// <inheritdoc cref="Interlocked.And(ref int, int)"/>

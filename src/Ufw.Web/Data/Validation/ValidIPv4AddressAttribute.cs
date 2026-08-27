@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Sockets;
 
@@ -24,7 +24,7 @@ internal sealed class ValidIPv4AddressOrAnyAttribute : ValidationAttribute
         }
 
         ReadOnlySpan<char> input = rawInput.AsSpan().Trim();
-        
+
         // Check if it's "any" or "0.0.0.0/0"
         if (input.Equals("any", StringComparison.OrdinalIgnoreCase) || input.Equals("0.0.0.0/0", StringComparison.Ordinal))
         {

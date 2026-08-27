@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport.Security;
+﻿namespace Ufw.Ipc.Shared.Transport.Security;
 
 public interface ITransportSecurityService
 {

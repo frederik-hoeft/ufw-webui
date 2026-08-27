@@ -1,4 +1,4 @@
-using System.Net.Security;
+﻿using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Systemd.Configuration;
 
@@ -12,7 +12,7 @@ internal sealed class MutualTlsRemoteCertificateValidationHandler(IConfiguration
         {
             return false;
         }
-        if (configuration.Settings.Pipe.RemoteCertificateValidation is { } remoteValidation 
+        if (configuration.Settings.Pipe.RemoteCertificateValidation is { } remoteValidation
             && certificate is { Issuer: { } issuer, Subject: { } subject })
         {
             return remoteValidation.RequiredSubject.Equals(subject, StringComparison.OrdinalIgnoreCase)

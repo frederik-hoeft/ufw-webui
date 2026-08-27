@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Transport;
+﻿using Ufw.Ipc.Shared.Transport;
 
 namespace Ufw.Ipc.Client.Transport;
 

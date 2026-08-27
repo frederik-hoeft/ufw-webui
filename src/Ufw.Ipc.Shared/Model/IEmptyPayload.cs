@@ -1,3 +1,3 @@
-namespace Ufw.Ipc.Shared.Model;
+﻿namespace Ufw.Ipc.Shared.Model;
 
 internal interface IEmptyPayload;

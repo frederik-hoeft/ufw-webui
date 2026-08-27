@@ -26,7 +26,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
                 ImmutableArray<AttributeData> attributes = targetClass.GetAttributes();
                 AttributeData jsonTypeInfoBindingsGeneratorAttribute = attributes.FirstOrDefault(static attr => attr.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)) is GENERIC_JSON_TYPE_INFO_BINDINGS_ATTRIBUTE_FULL_NAME)
                     ?? throw new InvalidOperationException($"{nameof(JsonTypeInfoBindingsGenerator)} requires JsonTypeInfoBindingsGeneratorAttribute to be applied to the class");
-                ImmutableArray<AttributeData> jsonSerializables = 
+                ImmutableArray<AttributeData> jsonSerializables =
                 [
                     .. attributes.Where(static attr => attr.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)) is JSON_SERIALIZABLE_ATTRIBUTE_FULL_NAME)
                 ];

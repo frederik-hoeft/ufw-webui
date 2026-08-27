@@ -19,8 +19,8 @@ internal sealed class PipeOptions : IRequireValidation
         PipeName.Length: > 0,
         ServerCertificateKeyPath.Length: > 0,
         ServerCertificatePath.Length: > 0,
-    } && File.Exists(ServerCertificateKeyPath) 
-        && File.Exists(ServerCertificatePath) 
+    } && File.Exists(ServerCertificateKeyPath)
+        && File.Exists(ServerCertificatePath)
         && RemoteCertificateValidation?.AssertIsValid() is not false
         ? true : throw new InvalidOperationException("invalid configuration");
 }

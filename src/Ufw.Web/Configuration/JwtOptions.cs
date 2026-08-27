@@ -1,4 +1,4 @@
-namespace Ufw.Web.Configuration;
+﻿namespace Ufw.Web.Configuration;
 
 internal sealed class JwtOptions
 {

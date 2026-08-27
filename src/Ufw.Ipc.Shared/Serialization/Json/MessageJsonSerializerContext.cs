@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
 using Ufw.Ipc.Shared.Model.Responses;
@@ -8,8 +8,8 @@ using Ufw.Roslyn.Json;
 namespace Ufw.Ipc.Shared.Serialization.Json;
 
 [JsonSourceGenerationOptions(
-    WriteIndented = false, 
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, 
+    WriteIndented = false,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     UseStringEnumConverter = true)]
 [JsonSerializable(typeof(object))]

@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Pipelines;
+﻿namespace Ufw.Ipc.Shared.Pipelines;
 
 public interface IPipelineHandler
 {

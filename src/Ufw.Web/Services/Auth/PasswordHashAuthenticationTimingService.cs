@@ -1,6 +1,6 @@
-using System.Security.Cryptography;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 
 namespace Ufw.Web.Services.Auth;
 

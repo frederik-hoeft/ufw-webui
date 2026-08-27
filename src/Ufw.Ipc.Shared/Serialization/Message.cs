@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Serialization;
+﻿namespace Ufw.Ipc.Shared.Serialization;
 
 internal sealed class Message(string id, string? method, IMessageBlob payload) : IMessage, IDisposable, IAsyncDisposable
 {

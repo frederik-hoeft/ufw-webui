@@ -20,7 +20,7 @@ internal abstract class GrammarCollectionBuilder : GrammarBuilder
 
     protected T AddAlternative<T>(T instance, Action<GrammarAlternativeBuilder> buildAlternative)
     {
-         Children.Add(CreateAlternative(buildAlternative));
+        Children.Add(CreateAlternative(buildAlternative));
         return instance;
     }
 

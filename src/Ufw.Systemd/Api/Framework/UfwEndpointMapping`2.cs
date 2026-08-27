@@ -7,7 +7,7 @@ using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Api.Framework;
 
-internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, string Route, int Priority, EndpointInvocationTask<TRequest, TResponse> InvokeEndpointAsync) 
+internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, string Route, int Priority, EndpointInvocationTask<TRequest, TResponse> InvokeEndpointAsync)
     : UfwEndpointMappingBase(Method, Route, Priority)
     where TResponse : IIdentifiable
 {

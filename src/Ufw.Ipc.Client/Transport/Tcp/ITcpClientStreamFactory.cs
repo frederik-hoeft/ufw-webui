@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Client.Transport.Tcp;
+﻿namespace Ufw.Ipc.Client.Transport.Tcp;
 
 public interface ITcpClientStreamFactory
 {

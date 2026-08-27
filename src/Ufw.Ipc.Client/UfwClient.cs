@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Shared.Model;
@@ -49,16 +49,16 @@ internal sealed class UfwClient
         return SendAsync<TRequest, TResponse>(method.ToString(), route, request, cancellationToken);
     }
 
-    public Task<TResponse> SendAsync<TRequest, TResponse>(string method, string route, TRequest request, CancellationToken cancellationToken = default) where TResponse : IEquatable<TResponse> => 
+    public Task<TResponse> SendAsync<TRequest, TResponse>(string method, string route, TRequest request, CancellationToken cancellationToken = default) where TResponse : IEquatable<TResponse> =>
         SendRequestAsync<TRequest, TResponse>(method, route, request, cancellationToken).AsTask();
 
-    public Task SendAsync<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IMessagePayload => 
+    public Task SendAsync<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IMessagePayload =>
         SendAsync<TRequest, OkResponse>(request, cancellationToken);
 
-    public Task SendAsync<TRequest>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default) where TRequest : IMessagePayload => 
+    public Task SendAsync<TRequest>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default) where TRequest : IMessagePayload =>
         SendAsync<TRequest, OkResponse>(method, route, request, cancellationToken);
 
-    public Task SendAsync(RequestMethod method, string route, CancellationToken cancellationToken = default) => 
+    public Task SendAsync(RequestMethod method, string route, CancellationToken cancellationToken = default) =>
         SendAsync<object?, OkResponse>(method, route, request: null, cancellationToken);
 
     private async ValueTask<TResponse> SendRequestAsync<TRequest, TResponse>(string? method, string route, TRequest request, CancellationToken cancellationToken = default)

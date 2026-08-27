@@ -15,11 +15,11 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
         where TResult : IEquatable<TResult>
     {
         ModelValidationErrorResponse? validationErrorResponse = await message.Payload.ReadAsync<ModelValidationErrorResponse>(cancellationToken);
-        ModelValidationError[] modelValidationErrorArray = validationErrorResponse is not null 
-            ? validationErrorResponse.Errors 
+        ModelValidationError[] modelValidationErrorArray = validationErrorResponse is not null
+            ? validationErrorResponse.Errors
             : throw new InvalidDataException($"Failed to deserialize response body of message type '{message.Id}'");
 
-        if (modelValidationErrorArray is { Length: > 0})
+        if (modelValidationErrorArray is { Length: > 0 })
         {
             throw new InvalidOperationException(
                 $"""

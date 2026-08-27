@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport;
+﻿namespace Ufw.Ipc.Shared.Transport;
 
 public interface ITransportLayerConnection : IDisposable, IAsyncDisposable
 {

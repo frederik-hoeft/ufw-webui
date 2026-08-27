@@ -1,6 +1,6 @@
-using System.Security.Cryptography;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 using Ufw.Web.Configuration;
 
 namespace Ufw.Web.Services.Auth;

@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Roslyn.Controllers;
@@ -37,7 +37,7 @@ public sealed class JsonMessageSerializer(MessageJsonSerializerContext context) 
         return ValueTask.FromResult(message);
     }
 
-    public ValueTask<IMessage> SerializeAsync<T>(T payload, CancellationToken cancellationToken) where T : IIdentifiable => 
+    public ValueTask<IMessage> SerializeAsync<T>(T payload, CancellationToken cancellationToken) where T : IIdentifiable =>
         SerializeAsync(payload.Id, payload.Method, payload, cancellationToken);
 
     public async Task WriteAsync(Stream stream, IMessage message, CancellationToken cancellationToken)

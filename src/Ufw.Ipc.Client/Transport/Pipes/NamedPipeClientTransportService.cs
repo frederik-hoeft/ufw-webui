@@ -1,4 +1,4 @@
-using System.IO.Pipes;
+﻿using System.IO.Pipes;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Shared.Transport;
 

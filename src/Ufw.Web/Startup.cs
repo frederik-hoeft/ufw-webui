@@ -1,4 +1,4 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -56,7 +56,7 @@ internal static class Startup
             .ValidateOnStart();
 
         services.AddOptions<RefreshTokenOptions>()
-            .Bind(configuration.GetSection(RefreshTokenOptions.SectionName))
+            .Bind(configuration.GetSection(RefreshTokenOptions.SECTION_NAME))
             .Validate(static options => options.Lifetime > TimeSpan.Zero, "Refresh token lifetime must be positive.")
             .Validate(static options => !string.IsNullOrWhiteSpace(options.CookieName), "Refresh token cookie name is required.")
             .Validate(static options => options.CookieName.StartsWith("__Host-", StringComparison.Ordinal), "Refresh token cookie must use the __Host- prefix.")

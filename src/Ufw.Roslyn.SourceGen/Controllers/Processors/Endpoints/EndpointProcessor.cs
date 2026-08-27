@@ -9,7 +9,7 @@ namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
 internal sealed class EndpointProcessor(SourceProductionContext context, ControllerProcessingContext controllerContext)
 {
-    private readonly ImmutableArray<IEndpointSignatureAnalyzer> _signatureAnalyzers = 
+    private readonly ImmutableArray<IEndpointSignatureAnalyzer> _signatureAnalyzers =
     [
         new EndpointReturnTypeAnalyzer(context),
         new EndpointParameterAnalyzer(context)

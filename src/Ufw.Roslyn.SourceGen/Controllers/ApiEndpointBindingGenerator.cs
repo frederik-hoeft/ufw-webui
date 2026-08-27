@@ -27,7 +27,7 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
             .Select(static (m, _) => m!);
 
         // Combine with compilation for symbol information
-        IncrementalValueProvider<(Compilation, ImmutableArray<ApiMappingClassInfo>)> compilationAndClasses = 
+        IncrementalValueProvider<(Compilation, ImmutableArray<ApiMappingClassInfo>)> compilationAndClasses =
             context.CompilationProvider.Combine(apiMappingClasses.Collect());
 
         context.RegisterSourceOutput(compilationAndClasses, (spc, source) => Execute(source.Item1, source.Item2, spc));

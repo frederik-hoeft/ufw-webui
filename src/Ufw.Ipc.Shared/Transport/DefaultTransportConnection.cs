@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport;
+﻿namespace Ufw.Ipc.Shared.Transport;
 
 public sealed class DefaultTransportConnection(Stream innerStream) : ITransportLayerConnection, IDisposable, IAsyncDisposable
 {

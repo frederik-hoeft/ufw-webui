@@ -2,7 +2,7 @@
 
 public sealed class RefreshTokenOptions
 {
-    public const string SectionName = "Auth:RefreshToken";
+    public const string SECTION_NAME = "Auth:RefreshToken";
 
     public string CookieName { get; set; } = "__Host-ufw-refresh";
 

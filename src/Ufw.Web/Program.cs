@@ -1,4 +1,4 @@
-using Ufw.Web;
+﻿using Ufw.Web;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);

@@ -1,4 +1,4 @@
-namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
+﻿namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
 internal sealed record EndpointProcessorResult(
     string HttpMethod,

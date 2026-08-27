@@ -6,7 +6,7 @@ internal sealed class NetworkOptions : IRequireValidation
 
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
-    public bool AssertIsValid() => this is 
+    public bool AssertIsValid() => this is
     {
         MaxConnections: > 0,
     } ? true : throw new InvalidOperationException("invalid configuration");

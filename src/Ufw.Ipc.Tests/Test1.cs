@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Tests;
+﻿namespace Ufw.Ipc.Tests;
 
 [TestClass]
 public sealed class Test1

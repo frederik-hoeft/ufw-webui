@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 
 namespace Ufw.Ipc.Client.Transport.Tcp;
@@ -13,10 +13,10 @@ internal sealed class TcpClientStreamDescriptor(string serverName, int port) : I
         NetworkStream networkStream = tcpClient.GetStream();
         return networkStream;
     }
-    
-    public Task<NetworkStream> ConnectAsync(CancellationToken cancellationToken) => 
+
+    public Task<NetworkStream> ConnectAsync(CancellationToken cancellationToken) =>
         ConnectAsync(Timeout.InfiniteTimeSpan, cancellationToken);
 
-    public Task<NetworkStream> ConnectAsync(int timeout, CancellationToken cancellationToken) => 
+    public Task<NetworkStream> ConnectAsync(int timeout, CancellationToken cancellationToken) =>
         ConnectAsync(TimeSpan.FromMilliseconds(timeout), cancellationToken);
 }

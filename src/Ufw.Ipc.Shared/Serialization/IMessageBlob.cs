@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Serialization;
+﻿namespace Ufw.Ipc.Shared.Serialization;
 
 public interface IMessageBlob : IDisposable, IAsyncDisposable
 {

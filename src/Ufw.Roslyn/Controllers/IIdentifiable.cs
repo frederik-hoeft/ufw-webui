@@ -1,4 +1,4 @@
-namespace Ufw.Roslyn.Controllers;
+﻿namespace Ufw.Roslyn.Controllers;
 
 public interface IIdentifiable
 {

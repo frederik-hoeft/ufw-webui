@@ -19,6 +19,6 @@ internal abstract record UfwEndpointMappingBase(string Method, string Route, int
         return new InternalServerErrorResponse("An unexpected error occurred while processing the request.");
     }
 
-    protected static ValueTask InitializeControllerAsync(IServiceProvider serviceProvider, ControllerBase controller, CancellationToken cancellationToken) => 
+    protected static ValueTask InitializeControllerAsync(IServiceProvider serviceProvider, ControllerBase controller, CancellationToken cancellationToken) =>
         ValueTask.CompletedTask;
 }

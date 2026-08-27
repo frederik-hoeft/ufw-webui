@@ -1,4 +1,4 @@
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using Ufw.Ipc.Shared.Transport;
 
 namespace Ufw.Ipc.Client.Transport.Tcp;

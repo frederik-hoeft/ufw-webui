@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Shared.Model;
 
 namespace Ufw.Ipc.Client;
 

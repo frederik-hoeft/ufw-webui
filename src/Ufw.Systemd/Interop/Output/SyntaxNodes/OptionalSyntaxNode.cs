@@ -10,10 +10,7 @@ internal sealed class OptionalSyntaxNode : SyntaxNodeBase
     public OptionalSyntaxNode(string? name, ISyntaxNode? inner) : base(name)
     {
         _inner = inner;
-        if (_inner is not null)
-        {
-            _inner.Parent = this;
-        }
+        _inner?.Parent = this;
     }
 
     public static OptionalSyntaxNode Instance { get; } = new(name: null, inner: null);

@@ -8,7 +8,7 @@ internal static class WildcardUtil
         int inputIndex = 0;
         int lastWildcardPatternIndex = -1;
         int lastWildcardInputIndex = -1;
-        
+
         while (inputIndex < input.Length)
         {
             char inputChar = input[inputIndex];
