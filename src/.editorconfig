@@ -1,8 +1,24 @@
 # Remove the line below if you want to inherit .editorconfig settings from higher directories
 root = true
 
+# All files
+[*]
+charset = utf-8
+indent_style = space
+trim_trailing_whitespace = true
+end_of_line = lf
+insert_final_newline = true
+
+#### Core EditorConfig Options ####
+
+# Indentation and spacing
+indent_size = 4
+tab_width = 4
+
 # C# files
 [*.cs]
+# Visual Studio sometimes guesses UTF-8 files with no BOM as something else
+charset = utf-8-bom
 
 #### C# Coding Conventions ####
 
@@ -37,7 +53,7 @@ csharp_style_conditional_delegate_call = true:suggestion
 
 # Modifier preferences
 csharp_prefer_static_local_function = true:suggestion
-csharp_preferred_modifier_order = public,private,internal,protected,file,static,extern,const,required,virtual,sealed,new,async,abstract,override,readonly,partial,unsafe,volatile:suggestion
+csharp_preferred_modifier_order = public,private,internal,protected,file,static,extern,const,required,virtual,sealed,new,async,abstract,override,readonly,partial,unsafe,volatile:warning
 csharp_style_prefer_readonly_struct = true:suggestion
 csharp_style_prefer_readonly_struct_member = true:suggestion
 
@@ -124,20 +140,30 @@ csharp_preserve_single_line_statements = true
 # Other preferences
 csharp_style_prefer_unbound_generic_type_in_nameof = true:suggestion
 csharp_prefer_static_anonymous_function = true:suggestion
+csharp_style_prefer_simple_property_accessors = true:warning
+
+[*.{csproj,targets,props}]
+# match Visual Studio behavior
+charset = utf-8-bom
+
+# Xml resource files
+[*.resx]
+# match Visual Studio behavior
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+# Data serialization
+[*.{json,yaml,yml}]
+indent_size = 2
+
+# Shell scripts
+[*.sh]
+end_of_line = lf
+[*.{cmd,bat}]
+end_of_line = crlf
 
 # global preferences
 [*.{cs,vb}]
-
-#### Core EditorConfig Options ####
-
-# Indentation and spacing
-indent_size = 4
-indent_style = space
-tab_width = 4
-
-# New line preferences
-end_of_line = crlf
-insert_final_newline = false
 
 #### .NET Coding Conventions ####
 
