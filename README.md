@@ -13,7 +13,7 @@ The browser UI is intentionally absent from this stage. Rule-management REST con
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for component responsibilities and data flow, and [security/architecture-baseline.md](security/architecture-baseline.md) for the security boundaries and mutation invariants.
+See [docs/architecture.md](docs/architecture.md) for component responsibilities and data flow, [docs/protocols/README.md](docs/protocols/README.md) for the IPC transport (ITP) and application protocols, and [security/architecture-baseline.md](security/architecture-baseline.md) for the security boundaries and mutation invariants.
 
 ## Development setup
 

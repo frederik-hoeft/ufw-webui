@@ -12,7 +12,7 @@ public abstract class ProtocolErrorHandler : IMessageHandler, IPipelineHandler
     protected static string ProtocolErrorMessage(IMessage message)
     {
         ArgumentNullException.ThrowIfNull(message, nameof(message));
-        return $"No handler has been registered that can interpret messages of type '{message.Id}'.";
+        return $"No handler has been registered that can interpret messages of kind '{message.Kind}', status '{message.Id}', payloadType '{message.PayloadType}'.";
     }
 
     protected static Exception ProtocolError(IMessage message) => new InvalidDataException(ProtocolErrorMessage(message));

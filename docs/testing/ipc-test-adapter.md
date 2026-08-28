@@ -14,7 +14,7 @@ The server side runs the production `NetworkApplication`. Its normal `NetworkApp
 
 1. obtain the transport stream,
 2. apply the configured transport-security service,
-3. read and deserialize the IPC message,
+3. read one ITP frame and decode the application document,
 4. execute the daemon request/response pipeline,
 5. route the request to the matched endpoint,
 6. serialize and write the response.

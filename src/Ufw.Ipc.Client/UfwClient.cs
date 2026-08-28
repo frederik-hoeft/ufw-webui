@@ -1,11 +1,14 @@
 ﻿using System.Collections.Immutable;
+using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Pipelines;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Transport;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 
 namespace Ufw.Ipc.Client;
@@ -15,7 +18,9 @@ internal sealed class UfwClient
     IMessageSerializer messageSerializer,
     ITransportLayerService transportLayerService,
     ITransportSecurityService transportSecurityService,
-    IEnumerable<IResponseMessageHandler> handlers
+    IEnumerable<IResponseMessageHandler> handlers,
+    UfwClientOptions options,
+    ItpOptions itpOptions
 ) : IUfwClient
 {
     private readonly ImmutableArray<IResponseMessageHandler> _handlerPipeline = handlers.CreatePipeline();
@@ -66,15 +71,23 @@ internal sealed class UfwClient
     {
         ArgumentException.ThrowIfNullOrEmpty(method, nameof(method));
 
+        TimeSpan ioTimeout = options.RequestTimeout <= TimeSpan.Zero ? Timeout.InfiniteTimeSpan : options.RequestTimeout;
         await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(cancellationToken);
-        await using Stream stream = connection.GetStream(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        await using Stream stream = connection.GetStream(ioTimeout, ioTimeout);
         await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, cancellationToken);
         await using IMessage message = await messageSerializer.SerializeAsync(route, method, request, cancellationToken);
 
-        await messageSerializer.WriteAsync(secureStream, message, cancellationToken);
-        await secureStream.FlushAsync(cancellationToken);
+        ItpConnection itp = new(secureStream, itpOptions);
+        await itp.WriteApplicationDataAsync(messageSerializer.Encode(message), cancellationToken);
 
-        await using IMessage response = await messageSerializer.ReadAsync(secureStream, cancellationToken);
+        ItpFrame frame = await itp.ReadAsync(cancellationToken);
+        await using IMessage response = messageSerializer.Decode(frame.Payload);
+        if (response.Kind != ApplicationMessageKind.Response)
+        {
+            throw new ApplicationProtocolException(
+                ApplicationProtocolError.InvalidKind,
+                "Peer returned an application document that is not a response.");
+        }
 
         foreach (IResponseMessageHandler handler in _handlerPipeline)
         {

@@ -40,13 +40,15 @@ The daemon currently exposes only the rule-listing placeholder. No mutating daem
 
 ## IPC layer
 
-`Ufw.Ipc.Client` and `Ufw.Ipc.Shared` provide the typed request/response protocol used between `Ufw.Web` and `Ufw.Systemd`.
+`Ufw.Ipc.Client` and `Ufw.Ipc.Shared` provide the typed request/response protocol used between `Ufw.Web` and `Ufw.Systemd`. The on-wire stack is two independently versioned layers: the binary [ITP](protocols/itp.md) transport and the JSON [application protocol](protocols/application-protocol.md). Routing and controller shape are unchanged.
 
 The local IPC channel provides process separation and keeps privileged operations off the HTTP listener. It does not make `Ufw.Web` trusted to authorize firewall mutations. Any process that gains the web application's effective capabilities must still be unable to manufacture an accepted firewall change without a valid user signature.
 
 The current transport-security abstraction is not part of the mutation authorization model. The web and daemon presently use the no-op stream-security implementation over the local pipe. Filesystem ownership/permissions for the Unix socket remain an operational control for limiting local access, but they are defense in depth rather than proof of user intent.
 
-Daemon workers isolate expected peer/connection failures from the serving loop. Malformed protocol data, transport I/O failures, and TLS-authentication failures terminate the current connection and are logged, after which the worker accepts another request. Unexpected exceptions outside that boundary are not swallowed; they fault the worker/application and remain observable.
+Daemon workers isolate expected peer/connection failures from the serving loop. ITP framing failures (bad magic, truncated frames, checksum mismatch, version mismatch, unknown packet type), application-document errors, transport I/O failures, I/O timeouts, and TLS-authentication failures terminate the current connection and are logged, after which the worker accepts another request. ITP-invalid frames are never passed to the application decoder. Unexpected exceptions outside that boundary are not swallowed; they fault the worker/application and remain observable.
+
+Both sides apply a read/write timeout on the connection so a silent peer cannot block a worker or client forever. The client and daemon each use a single request/response exchange per connection; there is no ITP session.
 
 ## Firewall state and application metadata
 

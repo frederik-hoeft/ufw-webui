@@ -6,6 +6,7 @@ using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
@@ -41,6 +42,7 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton(MessageJsonSerializerContext.Default);
         services.AddSingleton(HybridMessageJsonSerializerContext.CreateDefault());
         services.AddSingleton<AotJsonSerializerContext>(static sp => sp.GetRequiredService<HybridMessageJsonSerializerContext>());
+        services.AddSingleton(ItpOptions.Default);
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
         services.AddSingleton<IApiEndpointMap<IMessage, IMessage>>(endpointMap);
         services.AddSingleton<IRequestMiddleware, RequestValidationMiddleware>();
@@ -67,6 +69,7 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton(MessageJsonSerializerContext.Default);
         services.AddSingleton(HybridMessageJsonSerializerContext.CreateDefault());
         services.AddSingleton<AotJsonSerializerContext>(static sp => sp.GetRequiredService<HybridMessageJsonSerializerContext>());
+        services.AddSingleton(ItpOptions.Default);
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
         services.AddSingleton<IResponseMessageHandler, BadRequestResponseHandler>();
         services.AddSingleton<IResponseMessageHandler, ErrorResponseHandler>();

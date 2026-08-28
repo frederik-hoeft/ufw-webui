@@ -1,23 +1,22 @@
-﻿namespace Ufw.Ipc.Shared.Transport;
+namespace Ufw.Ipc.Shared.Transport;
 
+/// <summary>
+/// Applies independent read/write timeouts to an inner stream without requiring
+/// the inner stream to implement <see cref="Stream.CanTimeout"/>.
+/// Does not own the inner stream.
+/// </summary>
 public class TimedStream : Stream
 {
-    private CancellationTokenSource? _timeoutCts;
     private readonly Stream _innerStream;
     private TimeSpan _readTimeout;
     private TimeSpan _writeTimeout;
 
     public TimedStream(Stream innerStream, TimeSpan readTimeout, TimeSpan writeTimeout)
     {
+        ArgumentNullException.ThrowIfNull(innerStream);
         _innerStream = innerStream;
         _readTimeout = readTimeout;
         _writeTimeout = writeTimeout;
-        if (readTimeout != Timeout.InfiniteTimeSpan && writeTimeout != Timeout.InfiniteTimeSpan)
-        {
-            return;
-        }
-
-        _timeoutCts = new CancellationTokenSource();
     }
 
     public override bool CanTimeout => true;
@@ -58,40 +57,82 @@ public class TimedStream : Stream
 
     public override void Write(byte[] buffer, int offset, int count) => _innerStream.Write(buffer, offset, count);
 
-    public async override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
-        using TimeoutScope timeout = TimeoutAfter(_readTimeout, cancellationToken);
-        await _innerStream.CopyToAsync(destination, bufferSize, timeout.Token);
+        using CancellationTokenSource? timeout = LinkTimeout(_readTimeout, cancellationToken);
+        try
+        {
+            await _innerStream.CopyToAsync(destination, bufferSize, timeout?.Token ?? cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The read operation timed out.");
+        }
     }
 
-    public async override Task FlushAsync(CancellationToken cancellationToken)
+    public override async Task FlushAsync(CancellationToken cancellationToken)
     {
-        using TimeoutScope timeout = TimeoutAfter(_writeTimeout, cancellationToken);
-        await _innerStream.FlushAsync(timeout.Token);
+        using CancellationTokenSource? timeout = LinkTimeout(_writeTimeout, cancellationToken);
+        try
+        {
+            await _innerStream.FlushAsync(timeout?.Token ?? cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The write operation timed out.");
+        }
     }
 
-    public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        using TimeoutScope timeout = TimeoutAfter(_readTimeout, cancellationToken);
-        return await _innerStream.ReadAsync(buffer.AsMemory(offset, count), timeout.Token);
+        using CancellationTokenSource? timeout = LinkTimeout(_readTimeout, cancellationToken);
+        try
+        {
+            return await _innerStream.ReadAsync(buffer.AsMemory(offset, count), timeout?.Token ?? cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The read operation timed out.");
+        }
     }
 
-    public async override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
-        using TimeoutScope timeout = TimeoutAfter(_readTimeout, cancellationToken);
-        return await _innerStream.ReadAsync(buffer, timeout.Token);
+        using CancellationTokenSource? timeout = LinkTimeout(_readTimeout, cancellationToken);
+        try
+        {
+            return await _innerStream.ReadAsync(buffer, timeout?.Token ?? cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The read operation timed out.");
+        }
     }
 
-    public async override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        using TimeoutScope timeout = TimeoutAfter(_writeTimeout, cancellationToken);
-        await _innerStream.WriteAsync(buffer.AsMemory(offset, count), timeout.Token);
+        using CancellationTokenSource? timeout = LinkTimeout(_writeTimeout, cancellationToken);
+        try
+        {
+            await _innerStream.WriteAsync(buffer.AsMemory(offset, count), timeout?.Token ?? cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The write operation timed out.");
+        }
     }
 
-    public async override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
-        using TimeoutScope timeout = TimeoutAfter(_writeTimeout, cancellationToken);
-        await _innerStream.WriteAsync(buffer, timeout.Token);
+        using CancellationTokenSource? timeout = LinkTimeout(_writeTimeout, cancellationToken);
+        try
+        {
+            await _innerStream.WriteAsync(buffer, timeout?.Token ?? cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("The write operation timed out.");
+        }
     }
 
     public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) =>
@@ -114,54 +155,15 @@ public class TimedStream : Stream
 
     public override void WriteByte(byte value) => _innerStream.WriteByte(value);
 
-    private TimeoutScope TimeoutAfter(TimeSpan timeSpan, CancellationToken cancellationToken) => new(this, timeSpan, cancellationToken);
-
-    private sealed class TimeoutScope : IDisposable
+    private static CancellationTokenSource? LinkTimeout(TimeSpan ioTimeout, CancellationToken cancellationToken)
     {
-        private readonly TimedStream _stream;
-        private readonly CancellationTokenSource? _combinedCts;
-        private readonly CancellationToken _innerToken;
-        private bool _disposedValue;
-
-        public TimeoutScope(TimedStream stream, TimeSpan ioTimeout, CancellationToken cancellationToken)
+        if (ioTimeout <= TimeSpan.Zero || ioTimeout == Timeout.InfiniteTimeSpan)
         {
-            _stream = stream;
-            _innerToken = cancellationToken;
-            if (_stream._timeoutCts == null && ioTimeout != Timeout.InfiniteTimeSpan)
-            {
-                return;
-            }
-
-            bool? canReuse = _stream._timeoutCts?.TryReset();
-            if (canReuse is not true)
-            {
-                _stream._timeoutCts?.Dispose();
-                _stream._timeoutCts = new CancellationTokenSource();
-            }
-            _combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stream._timeoutCts!.Token);
-            _stream._timeoutCts.CancelAfter(ioTimeout);
+            return null;
         }
 
-        public CancellationToken Token
-        {
-            get
-            {
-                ObjectDisposedException.ThrowIf(_disposedValue, this);
-                CancellationTokenSource? combinedCts = _combinedCts;
-                return combinedCts?.Token ?? _innerToken;
-            }
-        }
-
-        public void Dispose()
-        {
-            if (_disposedValue)
-            {
-                return;
-            }
-
-            _combinedCts?.Dispose();
-            _stream._timeoutCts?.TryReset();
-            _disposedValue = true;
-        }
+        CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        linked.CancelAfter(ioTimeout);
+        return linked;
     }
 }

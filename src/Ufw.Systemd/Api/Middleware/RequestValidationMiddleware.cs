@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
@@ -13,12 +14,13 @@ internal sealed class RequestValidationMiddleware(IMessageSerializer messageSeri
 
     public async override ValueTask<IMessage> InvokeAsync(IMessage request, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrEmpty(request.Id) && !string.IsNullOrEmpty(request.Method))
+        if (request.Kind == ApplicationMessageKind.Request
+            && !string.IsNullOrEmpty(request.Route ?? request.Id)
+            && !string.IsNullOrEmpty(request.Method))
         {
-            // normal case, method and route are present, continue processing
             return await Next.InvokeAsync(request, cancellationToken);
         }
-        // malformed request, must consume request body before responding
+
         _ = await request.Payload.TryReadAsync(Timeout.InfiniteTimeSpan, cancellationToken);
         BadRequestResponse badRequest = new($"Malformed request: Missing required fields '{nameof(request.Id)}' or '{nameof(request.Method)}'.");
         IMessage responseMessage = await messageSerializer.SerializeAsync(badRequest, cancellationToken);

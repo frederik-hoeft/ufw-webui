@@ -1,6 +1,7 @@
 ﻿using Jab;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Roslyn.Json;
 using Ufw.Systemd.Api.Controllers;
@@ -12,6 +13,7 @@ namespace Ufw.Systemd.Api;
 [Scoped<RulesController>]
 [Singleton<MessageJsonSerializerContext>(Factory = nameof(GetMessageJsonSerializerContext))]
 [Singleton<AotJsonSerializerContext>(Factory = nameof(GetAotJsonSerializerContext))]
+[Singleton<ItpOptions>(Factory = nameof(GetItpOptions))]
 [Singleton<IMessageSerializer, JsonMessageSerializer>]
 [Singleton<IRequestMiddleware, RequestValidationMiddleware>]
 [Singleton<IRequestMiddleware, RequestLoggingMiddleware>]
@@ -23,4 +25,6 @@ internal interface IApiModule
     internal static MessageJsonSerializerContext GetMessageJsonSerializerContext() => MessageJsonSerializerContext.Default;
 
     internal static AotJsonSerializerContext GetAotJsonSerializerContext() => MessageJsonSerializerContext.Default;
+
+    internal static ItpOptions GetItpOptions() => ItpOptions.Default;
 }

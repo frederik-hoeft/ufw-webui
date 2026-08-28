@@ -130,7 +130,7 @@ await using IMessage response = await context.ExchangeRawAsync(request, cancella
 Assert.AreEqual("200", response.Id);
 ```
 
-Use `ConnectRawAsync` or `ExchangeBytesAsync` when the test needs control below the message abstraction, for example to write a frame in fragments, omit framing bytes, close a peer early, or send malformed serialized data.
+Use `ConnectRawAsync` or `ExchangeBytesAsync` when the test needs control below the application message abstraction, for example to write an ITP frame in fragments, send a wrong transport version, close a peer early, or send malformed application JSON inside an otherwise valid frame.
 
 `ProcessPipelineAsync` bypasses transport and serialization intentionally. Use it only when the subject of the test is the daemon middleware/routing pipeline itself.
 

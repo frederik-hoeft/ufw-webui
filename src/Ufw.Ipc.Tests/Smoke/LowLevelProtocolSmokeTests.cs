@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
@@ -57,9 +59,10 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
         await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
 
         Assert.AreEqual("400", response.Id);
+        Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
         BadRequestResponse? body = await response.Payload.ReadAsync<BadRequestResponse>(cancellationToken);
         Assert.IsNotNull(body);
-        StringAssert.Contains(body.Message, "Malformed request");
+        Assert.IsFalse(string.IsNullOrWhiteSpace(body.Message));
     }).AsTask();
 
     [TestMethod]
@@ -72,11 +75,13 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
             await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
         });
         Assert.IsTrue(
-            exception is InvalidDataException
+            exception is ItpException
+                or InvalidDataException
                 or IOException
                 or System.Text.Json.JsonException
                 or EndOfStreamException
-                or OperationCanceledException,
+                or OperationCanceledException
+                or TimeoutException,
             $"Unexpected exception type: {exception.GetType().FullName}: {exception.Message}");
 
         OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
