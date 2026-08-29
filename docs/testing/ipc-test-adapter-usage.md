@@ -119,18 +119,20 @@ RuleListResponse response = await context.SendAsync<RuleListResponse>(
 Use `ExchangeRawAsync` when the request envelope itself is part of the scenario:
 
 ```csharp
-await using IMessage request = await context.MessageSerializer.SerializeAsync(
-    id: "/api/v1/ping",
+await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
+    route: "/api/v1/ping",
     method: RequestMethod.Get.ToString(),
     payload: (object?)null,
     type: typeof(object),
     cancellationToken);
 
-await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
-Assert.AreEqual("200", response.Id);
+await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+Assert.AreEqual(200, response.StatusCode);
 ```
 
-Use `ConnectRawAsync` or `ExchangeBytesAsync` when the test needs control below the application message abstraction, for example to write an ITP frame in fragments, send a wrong transport version, close a peer early, or send malformed application JSON inside an otherwise valid frame.
+Use `ExchangeApplicationBytesAsync` when the test needs a valid ITP frame containing an application document that cannot be represented by the runtime message contracts, such as a request missing `method` or a response document sent in the request direction.
+
+Use `ConnectRawAsync` or `ExchangeBytesAsync` when the test needs control below the application protocol, for example to write an ITP frame in fragments, send a wrong transport version, close a peer early, or send malformed framing.
 
 `ProcessPipelineAsync` bypasses transport and serialization intentionally. Use it only when the subject of the test is the daemon middleware/routing pipeline itself.
 

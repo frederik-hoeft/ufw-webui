@@ -15,11 +15,10 @@ namespace Ufw.Systemd.Api;
 [Singleton<AotJsonSerializerContext>(Factory = nameof(GetAotJsonSerializerContext))]
 [Singleton<ItpOptions>(Factory = nameof(GetItpOptions))]
 [Singleton<IMessageSerializer, JsonMessageSerializer>]
-[Singleton<IRequestMiddleware, RequestValidationMiddleware>]
 [Singleton<IRequestMiddleware, RequestLoggingMiddleware>]
 [Singleton<IRequestMiddleware, EndpointInvocationMiddleware>]
 [Singleton<IRequestResponsePipeline, RequestResponsePipeline>]
-[Singleton<IApiEndpointMap<IMessage, IMessage>, UfwApiEndpointMap>]
+[Singleton<IApiEndpointMap<IRequestMessage, IResponseMessage>, UfwApiEndpointMap>]
 internal interface IApiModule
 {
     internal static MessageJsonSerializerContext GetMessageJsonSerializerContext() => MessageJsonSerializerContext.Default;

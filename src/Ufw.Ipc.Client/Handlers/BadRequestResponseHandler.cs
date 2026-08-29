@@ -10,10 +10,10 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
 {
     public int Priority => -2;
 
-    public bool CanHandle(IMessage message) =>
-        message.Kind == ApplicationMessageKind.Response && message.StatusCode == 400;
+    public bool CanHandle(IResponseMessage message) =>
+        message.StatusCode == 400;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IMessage message, CancellationToken cancellationToken)
+    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
         if (message.PayloadType == ApplicationPayloadTypes.ValidationError)
@@ -23,12 +23,12 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
             if (validationErrorResponse?.Errors is not { Length: > 0 })
             {
                 throw new InvalidDataException(
-                    $"Response '{message.Id}' declared payloadType '{message.PayloadType}' but did not contain validation errors.");
+                    $"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but did not contain validation errors.");
             }
 
             throw new InvalidOperationException(
                 $"""
-                Failed to perform request. Server returned status code {message.Id} '{validationErrorResponse.Message}':
+                Failed to perform request. Server returned status code {message.StatusCode} '{validationErrorResponse.Message}':
                     {string.Join("\n    ", validationErrorResponse.Errors.Select(static e => $"{e.PropertyName}: {e.ErrorMessage}"))}
                 """);
         }
@@ -37,12 +37,12 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
         {
             ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
             _ = errorResponse ?? throw new InvalidDataException(
-                $"Response '{message.Id}' declared payloadType '{message.PayloadType}' but the body was empty.");
+                $"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but the body was empty.");
             throw new InvalidOperationException(
-                $"Failed to perform request. Server returned status code {message.Id}: '{errorResponse.Message}'");
+                $"Failed to perform request. Server returned status code {message.StatusCode}: '{errorResponse.Message}'");
         }
 
         throw new InvalidDataException(
-            $"Response '{message.Id}' has unsupported payloadType '{message.PayloadType}' for a 400 response.");
+            $"Response '{message.StatusCode}' has unsupported payloadType '{message.PayloadType}' for a 400 response.");
     }
 }

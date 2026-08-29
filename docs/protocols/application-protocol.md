@@ -121,13 +121,16 @@ body by attempting several DTO types.
 
 | `payloadType` | `payload` | Used for |
 | --- | --- | --- |
-| `empty` | must be omitted, `null`, or absent | Requests with no body; `200` with no body (`OkResponse`) |
-| `data` | required JSON value (normally an object) | Typed request bodies and typed `200` bodies |
-| `error` | required object `{ "message": string? }` | Generic failures that share a status with a more specific type (`400`, `404`, `500`, …) |
+| `empty` | must be omitted, `null`, or absent | Requests with no body; responses with no representation (`OkResponse`) |
+| `data` | required JSON value (normally an object) | Typed request bodies and typed success-response bodies |
+| `error` | required object `{ "message": string? }` | Generic failure responses |
 | `validation-error` | required object `{ "message": string?, "errors": [ { "propertyName", "errorMessage" } ] }` | `400` caused by model validation |
 
-`error` and `validation-error` can both appear with `status: 400`. The
-`payloadType` is what distinguishes them.
+Requests may use only `empty` or `data`. Responses below status `400` use
+`empty` or `data`; failure responses (`400..599`) use `error` or
+`validation-error`. `validation-error` is valid only with `status: 400`.
+This keeps generic and validation `400` responses unambiguous without probing
+multiple DTO types.
 
 An unknown `payloadType` is not a valid request or response. The decoder
 rejects the document; it does not produce a default object.
@@ -148,6 +151,9 @@ that into a `400` / `payloadType=error` response):
 - request missing `method` or `route`, or either is empty/whitespace
 - response missing `status`, or `status` outside `100..599`
 - request that includes `status`, or response that includes `method`/`route`
+- request using response-only `payloadType=error` or `payloadType=validation-error`
+- response whose success/error status class does not match its representation (`data`/`empty` vs. `error`/`validation-error`)
+- response using `payloadType=validation-error` with a status other than `400`
 - `payloadType=empty` with a present non-null payload
 - `payloadType` other than `empty` with a missing or `null` payload
 - `payloadType=validation-error` whose `errors` array is missing
@@ -173,16 +179,21 @@ Reflection-based JSON is not used on the production path.
 
 ## Mapping onto in-process types
 
-Routing, controllers, and endpoint mappings keep their existing shape:
+The decoded runtime model preserves the wire direction explicitly:
 
-- a request still has a method string and a route string
-- a response still has an HTTP-like status
-- controllers still return `IIdentifiable` response DTOs
+- `IRequestMessage` carries a non-null method and route;
+- `IResponseMessage` carries an integer status code;
+- both share application protocol version, representation identifier, and payload through `IMessage`.
 
-The envelope is no longer implied by those DTOs. `IMessage` now carries
-`Kind`, `ProtocolVersion`, `PayloadType`, `Route`, and `StatusCode`
-explicitly. `IMessage.Id` remains as a convenience (`Route` for requests,
-decimal status for responses) so the existing routing tree does not change.
+There is no context-dependent runtime message identifier. Routing consumes
+`IRequestMessage.Method` and `IRequestMessage.Route` directly, while client
+response dispatch consumes `IResponseMessage.StatusCode` and `PayloadType`.
+This prevents request-only and response-only metadata from becoming nullable
+alternate states on one generic message object.
+
+Controller response DTOs retain their existing `IIdentifiable` contract for
+source-generated endpoint mapping. That DTO-level identifier is separate from
+the decoded application-envelope runtime model.
 
 ## Timeouts and cancellation
 

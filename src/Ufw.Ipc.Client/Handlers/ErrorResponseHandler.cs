@@ -10,20 +10,20 @@ internal sealed class ErrorResponseHandler : IResponseMessageHandler, IMessageHa
 {
     public int Priority => -1;
 
-    public bool CanHandle(IMessage message) =>
-        message.Kind == ApplicationMessageKind.Response && message.StatusCode is not 200;
+    public bool CanHandle(IResponseMessage message) =>
+        message.StatusCode is not 200;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IMessage message, CancellationToken cancellationToken)
+    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
         if (message.PayloadType != ApplicationPayloadTypes.Error)
         {
             throw new InvalidDataException(
-                $"Response '{message.Id}' has unsupported payloadType '{message.PayloadType}' for status {message.StatusCode}.");
+                $"Response '{message.StatusCode}' has unsupported payloadType '{message.PayloadType}' for status {message.StatusCode}.");
         }
 
         ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
-        _ = errorResponse ?? throw new InvalidDataException($"Failed to deserialize response body of message type '{message.Id}'");
-        throw new InvalidOperationException($"Failed to perform request. Server returned status code {message.Id}: '{errorResponse.Message}'");
+        _ = errorResponse ?? throw new InvalidDataException($"Failed to deserialize response body of message type '{message.StatusCode}'");
+        throw new InvalidOperationException($"Failed to perform request. Server returned status code {message.StatusCode}: '{errorResponse.Message}'");
     }
 }

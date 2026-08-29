@@ -28,7 +28,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     [TestMethod]
     public Task FragmentedApplicationFrame_IsAccepted() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer.SerializeAsync(
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
             "/api/v1/raw-ok",
             RequestMethod.Get.ToString(),
             payload: (object?)null,
@@ -45,7 +45,9 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         ItpFrame responseFrame = await new ItpConnection(stream).ReadAsync(cancellationToken);
         Assert.AreEqual(ItpPayloadFormat.IpcJson, responseFrame.PayloadFormat);
-        await using IMessage response = context.MessageSerializer.Decode(responseFrame.Payload);
+        await using IMessage decodedResponse = context.MessageSerializer.Decode(responseFrame.Payload);
+        Assert.IsTrue(decodedResponse is IResponseMessage);
+        IResponseMessage response = (IResponseMessage)decodedResponse;
         Assert.AreEqual(ApplicationMessageKind.Response, response.Kind);
         Assert.AreEqual(200, response.StatusCode);
     }).AsTask();
@@ -103,8 +105,8 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     public Task InvalidApplicationJson_ReturnsBadRequestAndKeepsWorker() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] frame = BuildFrame(ItpPacketType.ApplicationData, "{}"u8.ToArray());
-        await using IMessage response = await context.ExchangeBytesAsync(frame, cancellationToken);
-        Assert.AreEqual("400", response.Id);
+        await using IResponseMessage response = await context.ExchangeBytesAsync(frame, cancellationToken);
+        Assert.AreEqual(400, response.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
@@ -114,11 +116,13 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     [TestMethod]
     public Task ResponseDocumentSentAsRequest_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage responseDocument = await context.MessageSerializer.SerializeAsync(
+        await using IResponseMessage responseDocument = await context.MessageSerializer.SerializeResponseAsync(
             new OkResponse(),
             cancellationToken);
-        await using IMessage response = await context.ExchangeRawAsync(responseDocument, cancellationToken);
-        Assert.AreEqual("400", response.Id);
+        await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(
+            context.MessageSerializer.Encode(responseDocument),
+            cancellationToken);
+        Assert.AreEqual(400, response.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
     }).AsTask();
 

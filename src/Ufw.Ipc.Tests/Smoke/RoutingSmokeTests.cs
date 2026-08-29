@@ -47,11 +47,11 @@ public sealed class RoutingSmokeTests : IpcProtocolTestBase
     [TestMethod]
     public Task PipelineOnly_MatchUnsupportedMethod() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer
-            .SerializeAsync(id: "/api/v1/anything", method: "PATCH", payload: (object?)null, typeof(object), cancellationToken);
+        await using IRequestMessage request = await context.MessageSerializer
+            .SerializeRequestAsync(route: "/api/v1/anything", method: "PATCH", payload: (object?)null, typeof(object), cancellationToken);
 
-        await using IMessage response = await context.ProcessPipelineAsync(request, cancellationToken);
+        await using IResponseMessage response = await context.ProcessPipelineAsync(request, cancellationToken);
 
-        Assert.AreEqual("501", response.Id);
+        Assert.AreEqual(501, response.StatusCode);
     }).AsTask();
 }

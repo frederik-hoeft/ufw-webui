@@ -7,5 +7,5 @@ internal sealed record NotFoundEndpoint : UfwErrorEndpointBase
 {
     private static readonly NotFoundResponse s_notFoundResponse = new("The requested resource was not found.");
 
-    protected override ErrorResponse GetErrorResponse(IServiceProvider serviceProvider, IMessage request) => s_notFoundResponse;
+    protected override ErrorResponse GetErrorResponse(IServiceProvider serviceProvider, IRequestMessage request) => s_notFoundResponse;
 }

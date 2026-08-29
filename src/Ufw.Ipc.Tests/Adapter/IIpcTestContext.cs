@@ -39,18 +39,24 @@ public interface IIpcTestContext
     /// <summary>
     /// Sends a fully formed request envelope and returns the response envelope.
     /// </summary>
-    ValueTask<IMessage> ExchangeRawAsync(IMessage request, CancellationToken cancellationToken = default);
+    ValueTask<IResponseMessage> ExchangeRawAsync(IRequestMessage request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends arbitrary application bytes inside a valid ITP ApplicationData frame.
+    /// Useful for malformed or directionally invalid application envelopes that cannot be represented by runtime message types.
+    /// </summary>
+    ValueTask<IResponseMessage> ExchangeApplicationBytesAsync(ReadOnlyMemory<byte> applicationBytes, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes arbitrary request bytes (including malformed frames) and attempts to read one response envelope.
     /// </summary>
-    ValueTask<IMessage> ExchangeBytesAsync(ReadOnlyMemory<byte> requestBytes, CancellationToken cancellationToken = default);
+    ValueTask<IResponseMessage> ExchangeBytesAsync(ReadOnlyMemory<byte> requestBytes, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Invokes the server request/response pipeline without touching the transport.
     /// Useful for routing-only tests.
     /// </summary>
-    ValueTask<IMessage> ProcessPipelineAsync(IMessage request, CancellationToken cancellationToken = default);
+    ValueTask<IResponseMessage> ProcessPipelineAsync(IRequestMessage request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Convenience typed send via <see cref="Client"/>.

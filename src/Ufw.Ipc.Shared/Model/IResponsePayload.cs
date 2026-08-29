@@ -3,7 +3,7 @@ using Ufw.Roslyn.Controllers;
 
 namespace Ufw.Ipc.Shared.Model;
 
-public interface IResponseMessage : IMessagePayload, IIdentifiable
+public interface IResponsePayload : IMessagePayload, IIdentifiable
 {
     internal HttpStatusCode StatusCode { get; }
 }

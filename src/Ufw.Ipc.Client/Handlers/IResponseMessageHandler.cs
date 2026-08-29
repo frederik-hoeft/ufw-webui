@@ -6,5 +6,5 @@ namespace Ufw.Ipc.Client.Handlers;
 
 internal interface IResponseMessageHandler : IMessageHandler, IPipelineHandler
 {
-    ValueTask<TResult> TryHandleAsync<TResult>(IMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>;
+    ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>;
 }

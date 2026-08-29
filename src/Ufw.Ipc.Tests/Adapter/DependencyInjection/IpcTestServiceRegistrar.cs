@@ -44,8 +44,7 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton<AotJsonSerializerContext>(static sp => sp.GetRequiredService<HybridMessageJsonSerializerContext>());
         services.AddSingleton(ItpOptions.Default);
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
-        services.AddSingleton<IApiEndpointMap<IMessage, IMessage>>(endpointMap);
-        services.AddSingleton<IRequestMiddleware, RequestValidationMiddleware>();
+        services.AddSingleton<IApiEndpointMap<IRequestMessage, IResponseMessage>>(endpointMap);
         services.AddSingleton<IRequestMiddleware, RequestLoggingMiddleware>();
         services.AddSingleton<IRequestMiddleware, EndpointInvocationMiddleware>();
         services.AddSingleton<IRequestResponsePipeline, RequestResponsePipeline>();

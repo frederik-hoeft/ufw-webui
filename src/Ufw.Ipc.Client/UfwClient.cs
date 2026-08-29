@@ -75,14 +75,14 @@ internal sealed class UfwClient
         await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(cancellationToken);
         await using Stream stream = connection.GetStream(ioTimeout, ioTimeout);
         await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, cancellationToken);
-        await using IMessage message = await messageSerializer.SerializeAsync(route, method, request, cancellationToken);
+        await using IRequestMessage message = await messageSerializer.SerializeRequestAsync(route, method, request, cancellationToken);
 
         ItpConnection itp = new(secureStream, itpOptions);
         await itp.WriteApplicationDataAsync(messageSerializer.Encode(message), cancellationToken);
 
         ItpFrame frame = await itp.ReadAsync(cancellationToken);
-        await using IMessage response = messageSerializer.Decode(frame.Payload);
-        if (response.Kind != ApplicationMessageKind.Response)
+        await using IMessage decoded = messageSerializer.Decode(frame.Payload);
+        if (decoded is not IResponseMessage response)
         {
             throw new ApplicationProtocolException(
                 ApplicationProtocolError.InvalidKind,
@@ -97,6 +97,6 @@ internal sealed class UfwClient
             }
         }
 
-        throw new InvalidDataException($"Unable to handle unknown message type with ID '{response.Id}'. No handler has been configured for this kind of message.");
+        throw new InvalidDataException($"Unable to handle response status '{response.StatusCode}' with payloadType '{response.PayloadType}'. No handler has been configured for this response.");
     }
 }

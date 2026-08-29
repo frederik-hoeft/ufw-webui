@@ -78,34 +78,34 @@ internal sealed class NetworkApplicationWorker
             return;
         }
 
-        IMessage requestEnvelope;
+        IMessage decoded;
         try
         {
-            requestEnvelope = messageSerializer.Decode(frame.Payload);
+            decoded = messageSerializer.Decode(frame.Payload);
         }
         catch (ApplicationProtocolException ex)
         {
             logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: application protocol error {ex.Error}.");
-            await using IMessage badRequest = await messageSerializer.SerializeAsync(
+            await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(
                 new BadRequestResponse(ex.Message),
                 cancellationToken);
             await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
             return;
         }
 
-        await using (requestEnvelope)
+        await using (decoded)
         {
-            if (requestEnvelope.Kind != ApplicationMessageKind.Request)
+            if (decoded is not IRequestMessage request)
             {
-                await using IMessage badRequest = await messageSerializer.SerializeAsync(
+                await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(
                     new BadRequestResponse("Expected an application request document."),
                     cancellationToken);
                 await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
                 return;
             }
 
-            await using IMessage responseEnvelope = await requestResponsePipeline.ProcessMessageAsync(requestEnvelope, cancellationToken);
-            await itp.WriteApplicationDataAsync(messageSerializer.Encode(responseEnvelope), cancellationToken);
+            await using IResponseMessage response = await requestResponsePipeline.ProcessMessageAsync(request, cancellationToken);
+            await itp.WriteApplicationDataAsync(messageSerializer.Encode(response), cancellationToken);
         }
     }
 }

@@ -1,16 +1,12 @@
-﻿using System.Globalization;
-using Ufw.Ipc.Shared.Protocol;
+﻿using Ufw.Ipc.Shared.Protocol;
 
 namespace Ufw.Ipc.Shared.Serialization;
 
-internal sealed class Message(
+internal abstract class MessageBase(
     ApplicationMessageKind kind,
     int protocolVersion,
-    string? method,
-    string? route,
-    int? statusCode,
     string payloadType,
-    IMessageBlob payload) : IMessage, IDisposable, IAsyncDisposable
+    IMessageBlob payload) : IMessage
 {
     private bool _disposedValue;
 
@@ -32,44 +28,6 @@ internal sealed class Message(
         }
     }
 
-    public string Id
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_disposedValue, this);
-            return kind == ApplicationMessageKind.Request
-                ? route ?? string.Empty
-                : (statusCode?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
-        }
-    }
-
-    public string? Method
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_disposedValue, this);
-            return method;
-        }
-    }
-
-    public string? Route
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_disposedValue, this);
-            return route;
-        }
-    }
-
-    public int? StatusCode
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_disposedValue, this);
-            return statusCode;
-        }
-    }
-
     public string PayloadType
     {
         get
@@ -88,15 +46,71 @@ internal sealed class Message(
         }
     }
 
+    protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposedValue, this);
+
     public void Dispose()
     {
-        Payload.Dispose();
+        if (_disposedValue)
+        {
+            return;
+        }
+
+        payload.Dispose();
         _disposedValue = true;
     }
 
     public async ValueTask DisposeAsync()
     {
-        await Payload.DisposeAsync();
+        if (_disposedValue)
+        {
+            return;
+        }
+
+        await payload.DisposeAsync();
         _disposedValue = true;
+    }
+}
+
+internal sealed class RequestMessage(
+    int protocolVersion,
+    string method,
+    string route,
+    string payloadType,
+    IMessageBlob payload)
+    : MessageBase(ApplicationMessageKind.Request, protocolVersion, payloadType, payload), IRequestMessage
+{
+    public string Method
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return method;
+        }
+    }
+
+    public string Route
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return route;
+        }
+    }
+}
+
+internal sealed class ResponseMessage(
+    int protocolVersion,
+    int statusCode,
+    string payloadType,
+    IMessageBlob payload)
+    : MessageBase(ApplicationMessageKind.Response, protocolVersion, payloadType, payload), IResponseMessage
+{
+    public int StatusCode
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return statusCode;
+        }
     }
 }

@@ -4,7 +4,7 @@ using Ufw.Roslyn.Controllers;
 
 namespace Ufw.Ipc.Shared.Model.Responses;
 
-public abstract record ResponseMessage : IResponseMessage, IMessagePayload, IIdentifiable
+public abstract record ResponseMessage : IResponsePayload, IMessagePayload, IIdentifiable
 {
     private readonly HttpStatusCode _statusCode;
 
@@ -19,5 +19,5 @@ public abstract record ResponseMessage : IResponseMessage, IMessagePayload, IIde
 
     public string? Method => null;
 
-    HttpStatusCode IResponseMessage.StatusCode => _statusCode;
+    HttpStatusCode IResponsePayload.StatusCode => _statusCode;
 }

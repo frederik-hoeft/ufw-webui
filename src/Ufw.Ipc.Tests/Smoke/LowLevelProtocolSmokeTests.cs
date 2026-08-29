@@ -34,31 +34,27 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     [TestMethod]
     public Task ExchangeRaw_UsesProductionFraming() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer.SerializeAsync(
-            id: "/api/v1/raw-ok",
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
+            route: "/api/v1/raw-ok",
             method: RequestMethod.Get.ToString(),
             payload: (object?)null,
             type: typeof(object),
             cancellationToken);
 
-        await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+        await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
 
-        Assert.AreEqual("200", response.Id);
+        Assert.AreEqual(200, response.StatusCode);
     }).AsTask();
 
     [TestMethod]
-    public Task MissingMethod_ValidationMiddleware_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
+    public Task MissingMethod_ApplicationDecoder_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer.SerializeAsync(
-            id: "/api/v1/raw-ok",
-            method: null,
-            payload: (object?)null,
-            type: typeof(object),
-            cancellationToken);
+        ReadOnlyMemory<byte> request =
+            """{"protocolVersion":1,"kind":"request","route":"/api/v1/raw-ok","payloadType":"empty"}"""u8.ToArray();
 
-        await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+        await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(request, cancellationToken);
 
-        Assert.AreEqual("400", response.Id);
+        Assert.AreEqual(400, response.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
         BadRequestResponse? body = await response.Payload.ReadAsync<BadRequestResponse>(cancellationToken);
         Assert.IsNotNull(body);

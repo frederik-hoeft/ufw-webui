@@ -10,15 +10,15 @@ using Ufw.Systemd.Api.Framework;
 namespace Ufw.Systemd.Api;
 
 [ApiControllerRegistration<RulesController>]
-[ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IMessage, IMessage>]
-internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
+[ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IRequestMessage, IResponseMessage>]
+internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IRequestMessage, IResponseMessage>
 {
     private static readonly NotFoundEndpoint s_notFound = new();
     private static readonly UnsupportedMethodEndpoint s_unsupportedMethod = new();
 
     protected override FrozenSet<string> SupportedMethods { get; } = RequestMethod.GetNames().ToFrozenSet();
 
-    public override IApiEndpoint<IMessage, IMessage> GetNotFoundEndpoint() => s_notFound;
+    public override IApiEndpoint<IRequestMessage, IResponseMessage> GetNotFoundEndpoint() => s_notFound;
 
-    public override IApiEndpoint<IMessage, IMessage> GetUnsupportedMethodEndpoint() => s_unsupportedMethod;
+    public override IApiEndpoint<IRequestMessage, IResponseMessage> GetUnsupportedMethodEndpoint() => s_unsupportedMethod;
 }

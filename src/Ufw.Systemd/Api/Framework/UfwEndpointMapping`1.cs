@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
@@ -9,7 +10,7 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
     : UfwEndpointMappingBase(Method, Route, Priority)
     where TResponse : IIdentifiable
 {
-    public async override ValueTask<IMessage> InvokeAsync(IServiceProvider serviceProvider, IMessage request, CancellationToken cancellationToken)
+    public async override ValueTask<IResponseMessage> InvokeAsync(IServiceProvider serviceProvider, IRequestMessage request, CancellationToken cancellationToken)
     {
         IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
         TResponse responsePayload;
@@ -19,8 +20,8 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
         }
         catch (Exception e)
         {
-            return await messageSerializer.SerializeAsync(InternalServerError(e, serviceProvider), cancellationToken);
+            return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);
         }
-        return await messageSerializer.SerializeAsync(responsePayload, cancellationToken);
+        return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
     }
 }

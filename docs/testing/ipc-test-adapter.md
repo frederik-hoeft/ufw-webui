@@ -34,7 +34,7 @@ A broker belongs to exactly one test host, so parallel tests cannot consume each
 
 ## Routing and test endpoints
 
-Tests can register routing targets programmatically without defining a daemon controller. `ITestEndpointMapBuilder` creates normal `ApiEndpointMapping<IMessage, IMessage>` mappings through the same endpoint-mapping factory used by daemon routing. `TestApiEndpointMap` supplies those mappings to the production routing tree consumed by `EndpointInvocationMiddleware`.
+Tests can register routing targets programmatically without defining a daemon controller. `ITestEndpointMapBuilder` creates normal `ApiEndpointMapping<IRequestMessage, IResponseMessage>` mappings through the same endpoint-mapping factory used by daemon routing. `TestApiEndpointMap` supplies those mappings to the production routing tree consumed by `EndpointInvocationMiddleware`.
 
 The test endpoint map changes the set of available endpoints, not the routing algorithm. Method matching, route matching, middleware ordering, request deserialization, endpoint scoping, and response serialization therefore remain production behavior.
 

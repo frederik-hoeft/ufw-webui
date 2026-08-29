@@ -18,19 +18,18 @@ public sealed class ApplicationCodecTests
     public async Task EncodeDecode_GetRequest_RoundTrips()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        await using IMessage original = await serializer.SerializeAsync(
+        await using IRequestMessage original = await serializer.SerializeRequestAsync(
             "/api/v1/ping",
             "GET",
             payload: (object?)null,
             typeof(object),
             CancellationToken.None);
 
-        IMessage decoded = serializer.Decode(serializer.Encode(original));
+        IRequestMessage decoded = RequireRequest(serializer.Decode(serializer.Encode(original)));
         Assert.AreEqual(ApplicationMessageKind.Request, decoded.Kind);
         Assert.AreEqual("GET", decoded.Method);
         Assert.AreEqual("/api/v1/ping", decoded.Route);
         Assert.AreEqual(ApplicationPayloadTypes.Empty, decoded.PayloadType);
-        Assert.IsNull(decoded.StatusCode);
     }
 
     [TestMethod]
@@ -41,9 +40,9 @@ public sealed class ApplicationCodecTests
         [
             new ModelValidationError("port", "out of range"),
         ]);
-        await using IMessage original = await serializer.SerializeAsync(payload, CancellationToken.None);
+        await using IResponseMessage original = await serializer.SerializeResponseAsync(payload, CancellationToken.None);
 
-        IMessage decoded = serializer.Decode(serializer.Encode(original));
+        IResponseMessage decoded = RequireResponse(serializer.Decode(serializer.Encode(original)));
         Assert.AreEqual(ApplicationMessageKind.Response, decoded.Kind);
         Assert.AreEqual(400, decoded.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.ValidationError, decoded.PayloadType);
@@ -58,8 +57,8 @@ public sealed class ApplicationCodecTests
     public async Task EncodeDecode_GenericBadRequest_IsErrorPayloadType()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        await using IMessage original = await serializer.SerializeAsync(new BadRequestResponse("nope"), CancellationToken.None);
-        IMessage decoded = serializer.Decode(serializer.Encode(original));
+        await using IResponseMessage original = await serializer.SerializeResponseAsync(new BadRequestResponse("nope"), CancellationToken.None);
+        IResponseMessage decoded = RequireResponse(serializer.Decode(serializer.Encode(original)));
 
         Assert.AreEqual(400, decoded.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Error, decoded.PayloadType);
@@ -125,6 +124,40 @@ public sealed class ApplicationCodecTests
         Assert.AreEqual(ApplicationProtocolError.UnknownPayloadType, exception.Error);
     }
 
+
+    [TestMethod]
+    public void Decode_RequestWithErrorRepresentation_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"request","method":"POST","route":"/x","payloadType":"error","payload":{"message":"x"}}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public void Decode_RequestWithValidationErrorRepresentation_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"request","method":"POST","route":"/x","payloadType":"validation-error","payload":{"errors":[]}}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public void Decode_ValidationErrorRepresentationWithNon400Status_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","status":422,"payloadType":"validation-error","payload":{"errors":[]}}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
     [TestMethod]
     public void Decode_RequestMissingRoute_IsRejected()
     {
@@ -181,6 +214,50 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
+    public void Decode_SuccessResponseWithErrorRepresentation_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","status":200,"payloadType":"error","payload":{"message":"x"}}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public void Decode_ErrorResponseWithDataRepresentation_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","status":404,"payloadType":"data","payload":{"message":"x"}}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public void Decode_ErrorRepresentationWithNonObjectPayload_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","status":400,"payloadType":"error","payload":["x"]}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public void Decode_ValidationErrorWithoutErrorsArray_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","status":400,"payloadType":"validation-error","payload":{"message":"bad"}}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
     public void Decode_InvalidStatus_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
@@ -216,7 +293,7 @@ public sealed class ApplicationCodecTests
     public async Task Encode_ProducesCamelCaseKindAndPayloadType()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        await using IMessage message = await serializer.SerializeAsync(new OkResponse(), CancellationToken.None);
+        await using IResponseMessage message = await serializer.SerializeResponseAsync(new OkResponse(), CancellationToken.None);
         string json = Encoding.UTF8.GetString(serializer.Encode(message));
         using JsonDocument document = JsonDocument.Parse(json);
         Assert.AreEqual(1, document.RootElement.GetProperty("protocolVersion").GetInt32());
@@ -226,5 +303,17 @@ public sealed class ApplicationCodecTests
         Assert.IsFalse(document.RootElement.TryGetProperty("payload", out _));
         Assert.IsFalse(document.RootElement.TryGetProperty("method", out _));
         Assert.IsFalse(document.RootElement.TryGetProperty("route", out _));
+    }
+
+    private static IRequestMessage RequireRequest(IMessage message)
+    {
+        Assert.IsTrue(message is IRequestMessage);
+        return (IRequestMessage)message;
+    }
+
+    private static IResponseMessage RequireResponse(IMessage message)
+    {
+        Assert.IsTrue(message is IResponseMessage);
+        return (IResponseMessage)message;
     }
 }

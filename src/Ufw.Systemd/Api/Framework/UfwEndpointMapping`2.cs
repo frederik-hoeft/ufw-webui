@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
@@ -11,7 +12,7 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
     : UfwEndpointMappingBase(Method, Route, Priority)
     where TResponse : IIdentifiable
 {
-    public async override ValueTask<IMessage> InvokeAsync(IServiceProvider serviceProvider, IMessage request, CancellationToken cancellationToken)
+    public async override ValueTask<IResponseMessage> InvokeAsync(IServiceProvider serviceProvider, IRequestMessage request, CancellationToken cancellationToken)
     {
         IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
         IConfiguration configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -19,7 +20,7 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
         if (requestPayload is null)
         {
             BadRequestResponse badRequest = new("Request payload was null or did not match the expected type.");
-            return await messageSerializer.SerializeAsync(badRequest, cancellationToken);
+            return await messageSerializer.SerializeResponseAsync(badRequest, cancellationToken);
         }
         TResponse responsePayload;
         try
@@ -28,8 +29,8 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
         }
         catch (Exception e)
         {
-            return await messageSerializer.SerializeAsync(InternalServerError(e, serviceProvider), cancellationToken);
+            return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);
         }
-        return await messageSerializer.SerializeAsync(responsePayload, cancellationToken);
+        return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
     }
 }

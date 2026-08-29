@@ -61,17 +61,13 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     [TestMethod]
     public Task Generic400AndValidation400_AreDistinctOnTheWire() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage missingMethod = await context.MessageSerializer.SerializeAsync(
-            id: "/api/v1/ping",
-            method: null,
-            payload: (object?)null,
-            type: typeof(object),
-            cancellationToken);
-        await using IMessage generic = await context.ExchangeRawAsync(missingMethod, cancellationToken);
+        ReadOnlyMemory<byte> missingMethod =
+            """{"protocolVersion":1,"kind":"request","route":"/api/v1/ping","payloadType":"empty"}"""u8.ToArray();
+        await using IResponseMessage generic = await context.ExchangeApplicationBytesAsync(missingMethod, cancellationToken);
         Assert.AreEqual(400, generic.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Error, generic.PayloadType);
 
-        await using IMessage validation = await context.MessageSerializer.SerializeAsync(
+        await using IResponseMessage validation = await context.MessageSerializer.SerializeResponseAsync(
             new ModelValidationErrorResponse([new ModelValidationError("message", "required")]),
             cancellationToken);
         Assert.AreEqual(ApplicationPayloadTypes.ValidationError, validation.PayloadType);
@@ -79,15 +75,26 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }).AsTask();
 
     [TestMethod]
+    public Task ResponseOnlyRepresentationOnRequest_IsRejectedBeforeRouting() => RunAsync(async (context, cancellationToken) =>
+    {
+        ReadOnlyMemory<byte> invalidRequest =
+            """{"protocolVersion":1,"kind":"request","method":"GET","route":"/api/v1/ping","payloadType":"error","payload":{"message":"x"}}"""u8.ToArray();
+
+        await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(invalidRequest, cancellationToken);
+        Assert.AreEqual(400, response.StatusCode);
+        Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
+    }).AsTask();
+
+    [TestMethod]
     public Task RawExchange_OkHasEmptyPayloadType() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer.SerializeAsync(
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
             "/api/v1/ping",
             RequestMethod.Get.ToString(),
             payload: (object?)null,
             typeof(object),
             cancellationToken);
-        await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+        await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
         Assert.AreEqual(ApplicationMessageKind.Response, response.Kind);
         Assert.AreEqual(200, response.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Empty, response.PayloadType);

@@ -42,7 +42,7 @@ internal sealed class IpcTestContext
         return new TransportOwnedStream(secureStream, connection);
     }
 
-    public async ValueTask<IMessage> ExchangeRawAsync(IMessage request, CancellationToken cancellationToken = default)
+    public async ValueTask<IResponseMessage> ExchangeRawAsync(IRequestMessage request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -50,20 +50,35 @@ internal sealed class IpcTestContext
         ItpConnection itp = new(stream, itpOptions);
         await itp.WriteApplicationDataAsync(MessageSerializer.Encode(request), cancellationToken).ConfigureAwait(false);
         ItpFrame responseFrame = await itp.ReadAsync(cancellationToken).ConfigureAwait(false);
-        return MessageSerializer.Decode(responseFrame.Payload);
+        IMessage decoded = MessageSerializer.Decode(responseFrame.Payload);
+        return decoded as IResponseMessage
+            ?? throw new InvalidDataException("Server returned an application document that is not a response.");
     }
 
-    public async ValueTask<IMessage> ExchangeBytesAsync(ReadOnlyMemory<byte> requestBytes, CancellationToken cancellationToken = default)
+    public async ValueTask<IResponseMessage> ExchangeApplicationBytesAsync(ReadOnlyMemory<byte> applicationBytes, CancellationToken cancellationToken = default)
+    {
+        await using Stream stream = await ConnectRawAsync(cancellationToken).ConfigureAwait(false);
+        ItpConnection itp = new(stream, itpOptions);
+        await itp.WriteApplicationDataAsync(applicationBytes, cancellationToken).ConfigureAwait(false);
+        ItpFrame responseFrame = await itp.ReadAsync(cancellationToken).ConfigureAwait(false);
+        IMessage decoded = MessageSerializer.Decode(responseFrame.Payload);
+        return decoded as IResponseMessage
+            ?? throw new InvalidDataException("Server returned an application document that is not a response.");
+    }
+
+    public async ValueTask<IResponseMessage> ExchangeBytesAsync(ReadOnlyMemory<byte> requestBytes, CancellationToken cancellationToken = default)
     {
         await using Stream stream = await ConnectRawAsync(cancellationToken).ConfigureAwait(false);
         await stream.WriteAsync(requestBytes, cancellationToken).ConfigureAwait(false);
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
         ItpConnection itp = new(stream, itpOptions);
         ItpFrame responseFrame = await itp.ReadAsync(cancellationToken).ConfigureAwait(false);
-        return MessageSerializer.Decode(responseFrame.Payload);
+        IMessage decoded = MessageSerializer.Decode(responseFrame.Payload);
+        return decoded as IResponseMessage
+            ?? throw new InvalidDataException("Server returned an application document that is not a response.");
     }
 
-    public ValueTask<IMessage> ProcessPipelineAsync(IMessage request, CancellationToken cancellationToken = default)
+    public ValueTask<IResponseMessage> ProcessPipelineAsync(IRequestMessage request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         return pipeline.ProcessMessageAsync(request, cancellationToken);
