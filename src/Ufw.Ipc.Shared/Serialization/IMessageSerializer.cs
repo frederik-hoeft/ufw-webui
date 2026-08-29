@@ -20,14 +20,4 @@ public interface IMessageSerializer
     /// integrity-checked by ITP; garbled packets must not reach this method.
     /// </summary>
     IMessage Decode(ReadOnlyMemory<byte> buffer);
-
-    /// <summary>
-    /// Reads one ITP frame and decodes it as an application message.
-    /// </summary>
-    Task<IMessage> ReadAsync(Stream stream, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Encodes an application message and writes it as one ITP <c>ApplicationData</c> frame.
-    /// </summary>
-    Task WriteAsync(Stream stream, IMessage message, CancellationToken cancellationToken);
 }

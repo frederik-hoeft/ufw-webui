@@ -2,6 +2,7 @@ using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.DependencyInjection;
@@ -28,6 +29,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
     private readonly IMessageSerializer _messageSerializer;
     private readonly IRequestResponsePipeline _pipeline;
     private readonly ITransportSecurityService _clientTransportSecurity;
+    private readonly ItpOptions _clientItpOptions;
     private bool _disposed;
 
     private IpcTestHost(
@@ -40,7 +42,8 @@ internal sealed class IpcTestHost : IAsyncDisposable
         IUfwClient client,
         IMessageSerializer messageSerializer,
         IRequestResponsePipeline pipeline,
-        ITransportSecurityService clientTransportSecurity)
+        ITransportSecurityService clientTransportSecurity,
+        ItpOptions clientItpOptions)
     {
         _broker = broker;
         _serverProvider = serverProvider;
@@ -52,6 +55,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
         _messageSerializer = messageSerializer;
         _pipeline = pipeline;
         _clientTransportSecurity = clientTransportSecurity;
+        _clientItpOptions = clientItpOptions;
     }
 
     public static async ValueTask<IpcTestHost> StartAsync(
@@ -140,6 +144,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
             IMessageSerializer messageSerializer = serverProvider.GetRequiredService<IMessageSerializer>();
             IRequestResponsePipeline pipeline = serverProvider.GetRequiredService<IRequestResponsePipeline>();
             ITransportSecurityService clientTransportSecurity = clientProvider.GetRequiredService<ITransportSecurityService>();
+            ItpOptions clientItpOptions = clientProvider.GetRequiredService<ItpOptions>();
 
             return new IpcTestHost(
                 broker,
@@ -151,7 +156,8 @@ internal sealed class IpcTestHost : IAsyncDisposable
                 client,
                 messageSerializer,
                 pipeline,
-                clientTransportSecurity);
+                clientTransportSecurity,
+                clientItpOptions);
         }
         catch
         {
@@ -202,7 +208,8 @@ internal sealed class IpcTestHost : IAsyncDisposable
             _messageSerializer,
             _broker,
             _pipeline,
-            _clientTransportSecurity);
+            _clientTransportSecurity,
+            _clientItpOptions);
 
     public async ValueTask DisposeAsync()
     {

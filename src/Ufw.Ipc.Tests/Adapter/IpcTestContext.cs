@@ -3,6 +3,7 @@ using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Transport;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Transport;
 using Ufw.Systemd.Api.Middleware;
@@ -17,7 +18,8 @@ internal sealed class IpcTestContext
     IMessageSerializer messageSerializer,
     InProcessTransportBroker broker,
     IRequestResponsePipeline pipeline,
-    ITransportSecurityService transportSecurityService
+    ITransportSecurityService transportSecurityService,
+    ItpOptions itpOptions
 ) : IIpcTestContext
 {
     public IUfwClient Client { get; } = client;
@@ -45,9 +47,10 @@ internal sealed class IpcTestContext
         ArgumentNullException.ThrowIfNull(request);
 
         await using Stream stream = await ConnectRawAsync(cancellationToken).ConfigureAwait(false);
-        await MessageSerializer.WriteAsync(stream, request, cancellationToken).ConfigureAwait(false);
-        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        return await MessageSerializer.ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+        ItpConnection itp = new(stream, itpOptions);
+        await itp.WriteApplicationDataAsync(MessageSerializer.Encode(request), cancellationToken).ConfigureAwait(false);
+        ItpFrame responseFrame = await itp.ReadAsync(cancellationToken).ConfigureAwait(false);
+        return MessageSerializer.Decode(responseFrame.Payload);
     }
 
     public async ValueTask<IMessage> ExchangeBytesAsync(ReadOnlyMemory<byte> requestBytes, CancellationToken cancellationToken = default)
@@ -55,7 +58,9 @@ internal sealed class IpcTestContext
         await using Stream stream = await ConnectRawAsync(cancellationToken).ConfigureAwait(false);
         await stream.WriteAsync(requestBytes, cancellationToken).ConfigureAwait(false);
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        return await MessageSerializer.ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+        ItpConnection itp = new(stream, itpOptions);
+        ItpFrame responseFrame = await itp.ReadAsync(cancellationToken).ConfigureAwait(false);
+        return MessageSerializer.Decode(responseFrame.Payload);
     }
 
     public ValueTask<IMessage> ProcessPipelineAsync(IMessage request, CancellationToken cancellationToken = default)

@@ -25,7 +25,8 @@ public interface IIpcTestContext
     IServiceProvider ClientServices { get; }
 
     /// <summary>
-    /// Serializer used by the server host (production framing + hybrid type metadata).
+    /// Application serializer used by the server host. ITP framing is composed separately
+    /// by the raw exchange helpers.
     /// </summary>
     IMessageSerializer MessageSerializer { get; }
 

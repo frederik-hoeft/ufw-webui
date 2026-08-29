@@ -12,19 +12,17 @@ internal sealed class RequestValidationMiddleware(IMessageSerializer messageSeri
 {
     public override int Priority => short.MinValue;
 
-    public async override ValueTask<IMessage> InvokeAsync(IMessage request, CancellationToken cancellationToken)
+    public override ValueTask<IMessage> InvokeAsync(IMessage request, CancellationToken cancellationToken)
     {
         if (request.Kind == ApplicationMessageKind.Request
             && !string.IsNullOrEmpty(request.Route ?? request.Id)
             && !string.IsNullOrEmpty(request.Method))
         {
-            return await Next.InvokeAsync(request, cancellationToken);
+            return Next.InvokeAsync(request, cancellationToken);
         }
 
-        _ = await request.Payload.TryReadAsync(Timeout.InfiniteTimeSpan, cancellationToken);
         BadRequestResponse badRequest = new($"Malformed request: Missing required fields '{nameof(request.Id)}' or '{nameof(request.Method)}'.");
-        IMessage responseMessage = await messageSerializer.SerializeAsync(badRequest, cancellationToken);
-        return responseMessage;
+        return messageSerializer.SerializeAsync(badRequest, cancellationToken);
     }
 }
 

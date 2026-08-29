@@ -54,13 +54,6 @@ internal class BufferedJsonMessageBlob : IMessageBlob
         return new BufferedJsonMessageBlob(utf8.ToArray(), serializerContext);
     }
 
-    public virtual ValueTask<Stream> CreateStreamAsync(CancellationToken cancellationToken)
-    {
-        ObjectDisposedException.ThrowIf(_disposedValue, this);
-        MemoryStream stream = new(_utf8, writable: false);
-        return ValueTask.FromResult<Stream>(stream);
-    }
-
     public virtual ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
@@ -83,12 +76,6 @@ internal class BufferedJsonMessageBlob : IMessageBlob
         }
     }
 
-    public virtual ValueTask<bool> TryReadAsync(TimeSpan timeout, CancellationToken cancellationToken)
-    {
-        ObjectDisposedException.ThrowIf(_disposedValue, this);
-        return ValueTask.FromResult(true);
-    }
-
     public virtual void Dispose() => _disposedValue = true;
 
     public virtual ValueTask DisposeAsync()
@@ -102,14 +89,8 @@ internal class BufferedJsonMessageBlob : IMessageBlob
     {
         public static EmptyBufferedJsonMessageBlob Instance { get; } = new();
 
-        public override ValueTask<Stream> CreateStreamAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult(Stream.Null);
-
         public override ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken) where TResult : default =>
             ValueTask.FromResult<TResult?>(default);
-
-        public override ValueTask<bool> TryReadAsync(TimeSpan timeout, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(true);
 
         public override void Dispose()
         {

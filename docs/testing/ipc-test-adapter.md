@@ -4,7 +4,7 @@
 
 `Ufw.Ipc.Tests` provides an in-process test environment for the IPC client, daemon request pipeline, and daemon routing stack. It lets protocol tests exercise the production path down to byte-stream framing without starting separate `Ufw.Web` and `Ufw.Systemd` processes or binding a platform-specific IPC endpoint.
 
-The adapter replaces environment-specific hosting concerns, not protocol behavior. The default host uses the production client, serializer, daemon network application and worker, request middleware, routing tree, and response handlers. Test-specific components can be substituted through dependency injection when a scenario intentionally needs different behavior or fault injection.
+The adapter replaces environment-specific hosting concerns, not protocol behavior. The default host uses the production client, application serializer, ITP implementation, daemon network application and worker, request middleware, routing tree, and response handlers. Test-specific components can be substituted through dependency injection when a scenario intentionally needs different behavior or fault injection.
 
 ## Per-test host
 
@@ -14,12 +14,13 @@ The server side runs the production `NetworkApplication`. Its normal `NetworkApp
 
 1. obtain the transport stream,
 2. apply the configured transport-security service,
-3. read one ITP frame and decode the application document,
-4. execute the daemon request/response pipeline,
-5. route the request to the matched endpoint,
-6. serialize and write the response.
+3. read one ITP frame,
+4. decode the application document from the frame payload,
+5. execute the daemon request/response pipeline,
+6. route the request to the matched endpoint,
+7. encode the response document and write it as an ITP frame.
 
-The client side uses the production `UfwClient`, response handlers, serializer, and transport-security abstractions. Its transport service connects to the same per-host broker.
+The client side uses the production `UfwClient`, response handlers, application serializer, ITP implementation, and transport-security abstractions. Its transport service connects to the same per-host broker.
 
 This composition means protocol, middleware, or routing regressions remain visible to adapter-driven tests. A test-specific server worker is not part of the default path.
 
@@ -41,7 +42,7 @@ Endpoint handlers receive the endpoint's scoped `IServiceProvider`, so test serv
 
 ## Serialization
 
-`JsonMessageSerializer` is used on both sides of the in-process connection. It depends on the shared `AotJsonSerializerContext` abstraction so production can use `MessageJsonSerializerContext` while tests use `HybridMessageJsonSerializerContext`.
+`JsonMessageSerializer` is used on both sides of the in-process connection. It operates only on complete application-document bytes and depends on the shared `AotJsonSerializerContext` abstraction so production can use `MessageJsonSerializerContext` while tests use `HybridMessageJsonSerializerContext`. ITP stream framing is composed separately by the production client/daemon and by the adapter's raw exchange helpers.
 
 The hybrid context resolves known IPC contracts from the production source-generated context first. A reflection-based fallback allows tests to define small request and response DTOs without extending the production source-generation set merely for test data. Tests that verify an established production wire contract should use the production DTOs registered by `MessageJsonSerializerContext`.
 

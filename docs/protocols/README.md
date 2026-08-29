@@ -13,6 +13,9 @@ That connection is stacked as two independently versioned protocols:
 
 ITP does not interpret application JSON. The application protocol does not
 frame bytes, check transport versions, or recover from truncated frames.
+Client and daemon orchestration compose the layers explicitly: ITP reads or
+writes framed opaque bytes, while the application codec only decodes or encodes
+the complete application document carried by those bytes.
 
 Backwards compatibility with the previous newline-delimited JSON proof of
 concept is **not** provided. Both peers must speak ITP v1 and application

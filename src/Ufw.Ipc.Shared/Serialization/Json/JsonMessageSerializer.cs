@@ -5,21 +5,17 @@ using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Json;
 
 namespace Ufw.Ipc.Shared.Serialization.Json;
 
 /// <summary>
-/// Application-level codec. Stream <see cref="ReadAsync"/> / <see cref="WriteAsync"/>
-/// compose ITP framing so callers can still treat a connection as message-oriented,
-/// but encode/decode themselves never inspect ITP bytes.
+/// Application-level JSON codec. It encodes and decodes complete application
+/// documents and has no responsibility for stream framing or ITP transport semantics.
 /// </summary>
-public sealed class JsonMessageSerializer(AotJsonSerializerContext context, ItpOptions? itpOptions = null) : IMessageSerializer
+public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IMessageSerializer
 {
-    private readonly ItpOptions _itpOptions = itpOptions ?? ItpOptions.Default;
-
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
     public ValueTask<IMessage> SerializeAsync<T>(string id, string? method, T payload, CancellationToken cancellationToken)
     {
@@ -83,23 +79,6 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context, ItpO
         }
 
         return FromEnvelope(envelope);
-    }
-
-    public async Task<IMessage> ReadAsync(Stream stream, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-        ItpConnection itp = new(stream, _itpOptions);
-        ItpFrame frame = await itp.ReadAsync(cancellationToken).ConfigureAwait(false);
-        return Decode(frame.Payload);
-    }
-
-    public async Task WriteAsync(Stream stream, IMessage message, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(message);
-        byte[] payload = Encode(message);
-        ItpConnection itp = new(stream, _itpOptions);
-        await itp.WriteApplicationDataAsync(payload, cancellationToken).ConfigureAwait(false);
     }
 
     private static IMessage CreateMessage(string id, string? method, object? payload, IMessageBlob payloadBlob)
