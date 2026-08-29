@@ -66,7 +66,7 @@ internal sealed class NetworkApplicationWorker
         catch (ItpException ex) when (!ex.IsPeerReported)
         {
             logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: ITP framing failure {ex.ErrorCode}.");
-            if (ex.ErrorCode != ItpErrorCode.InvalidMagic)
+            if (ex.ErrorCode is not ItpErrorCode.InvalidMagic and not ItpErrorCode.VersionMismatch)
             {
                 await ItpConnection.TryWriteTransportErrorAsync(
                     secureStream,

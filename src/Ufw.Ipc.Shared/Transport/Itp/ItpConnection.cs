@@ -4,7 +4,7 @@ using System.Buffers.Binary;
 namespace Ufw.Ipc.Shared.Transport.Itp;
 
 /// <summary>
-/// Reads and writes ITP v1 frames on an already-opened stream. Does not own the stream.
+/// Reads and writes ITP frames on an already-opened stream. Does not own the stream.
 /// </summary>
 public sealed class ItpConnection
 {
@@ -24,18 +24,24 @@ public sealed class ItpConnection
 
     public async ValueTask<ItpFrame> ReadAsync(CancellationToken cancellationToken = default)
     {
-        byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.HeaderSize);
+        byte[] preambleBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.PreambleSize);
         try
         {
-            await ReadExactAsync(
-                _stream,
-                headerBuffer.AsMemory(0, ItpConstants.HeaderSize),
-                cancellationToken).ConfigureAwait(false);
-            return await ReadBodyAsync(headerBuffer.AsMemory(0, ItpConstants.HeaderSize), cancellationToken).ConfigureAwait(false);
+            Memory<byte> preamble = preambleBuffer.AsMemory(0, ItpConstants.PreambleSize);
+            await ReadExactAsync(_stream, preamble, cancellationToken).ConfigureAwait(false);
+            byte version = ParsePreamble(preamble.Span);
+
+            return version switch
+            {
+                ItpConstants.Version => await ReadVersion1Async(cancellationToken).ConfigureAwait(false),
+                _ => throw ItpException.Local(
+                    ItpErrorCode.VersionMismatch,
+                    $"Unsupported ITP version {version}; this peer speaks version {ItpConstants.Version}."),
+            };
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(headerBuffer);
+            ArrayPool<byte>.Shared.Return(preambleBuffer);
         }
     }
 
@@ -48,7 +54,11 @@ public sealed class ItpConnection
                 "Refusing to write an ApplicationData frame with an empty payload.");
         }
 
-        return WriteFrameAsync(ItpPacketType.ApplicationData, payload, cancellationToken);
+        return WriteVersion1FrameAsync(
+            ItpPacketType.ApplicationData,
+            ItpPayloadFormat.IpcJson,
+            payload,
+            cancellationToken);
     }
 
     public ValueTask WriteTransportErrorAsync(
@@ -57,7 +67,11 @@ public sealed class ItpConnection
         CancellationToken cancellationToken = default)
     {
         byte[] payload = ItpTransportErrorPayload.Encode(errorCode, message);
-        return WriteFrameAsync(ItpPacketType.TransportError, payload, cancellationToken);
+        return WriteVersion1FrameAsync(
+            ItpPacketType.TransportError,
+            ItpPayloadFormat.None,
+            payload,
+            cancellationToken);
     }
 
     public static async ValueTask TryWriteTransportErrorAsync(
@@ -79,83 +93,43 @@ public sealed class ItpConnection
         }
     }
 
-    private async ValueTask<ItpFrame> ReadBodyAsync(ReadOnlyMemory<byte> headerMemory, CancellationToken cancellationToken)
+    private async ValueTask<ItpFrame> ReadVersion1Async(CancellationToken cancellationToken)
     {
-        ParseHeader(headerMemory.Span, out byte version, out byte rawType, out byte flags, out uint declaredLength);
-
-        if (declaredLength > (uint)_options.MaxPayloadLength)
-        {
-            throw ItpException.Local(
-                ItpErrorCode.PayloadTooLarge,
-                $"Declared payload length {declaredLength} exceeds the maximum of {_options.MaxPayloadLength}.");
-        }
-
-        int payloadLength = (int)declaredLength;
-        int tailLength = payloadLength + ItpConstants.TrailerSize;
-        byte[] tail = ArrayPool<byte>.Shared.Rent(tailLength);
+        byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.Version1HeaderRemainderSize);
         try
         {
-            await ReadExactAsync(_stream, tail.AsMemory(0, tailLength), cancellationToken).ConfigureAwait(false);
+            Memory<byte> header = headerBuffer.AsMemory(0, ItpConstants.Version1HeaderRemainderSize);
+            await ReadExactAsync(_stream, header, cancellationToken).ConfigureAwait(false);
 
-            uint expectedCrc = BinaryPrimitives.ReadUInt32BigEndian(tail.AsSpan(payloadLength, ItpConstants.TrailerSize));
-            uint actualCrc = ItpCrc32.Append(ItpCrc32.Compute(headerMemory.Span), tail.AsSpan(0, payloadLength));
-            if (expectedCrc != actualCrc)
-            {
-                throw ItpException.Local(
-                    ItpErrorCode.InvalidChecksum,
-                    "Frame CRC-32 does not match the header and payload.");
-            }
+            ParseVersion1Header(
+                header.Span,
+                out ItpPacketType packetType,
+                out ItpPayloadFormat payloadFormat,
+                out int payloadLength);
 
-            if (version != ItpConstants.Version)
-            {
-                throw ItpException.Local(
-                    ItpErrorCode.VersionMismatch,
-                    $"Unsupported ITP version {version}; this peer speaks version {ItpConstants.Version}.");
-            }
-
-            if (flags != 0)
-            {
-                throw ItpException.Local(
-                    ItpErrorCode.UnsupportedFlags,
-                    $"Unsupported ITP flags 0x{flags:X2}; v1 requires flags to be 0.");
-            }
-
-            if (rawType is not ((byte)ItpPacketType.ApplicationData) and not ((byte)ItpPacketType.TransportError))
-            {
-                throw ItpException.Local(
-                    ItpErrorCode.UnsupportedPacketType,
-                    $"Unsupported ITP packet type 0x{rawType:X2}.");
-            }
-
-            ItpPacketType packetType = (ItpPacketType)rawType;
-            byte[] payloadCopy = payloadLength == 0 ? [] : tail.AsSpan(0, payloadLength).ToArray();
-
-            if (packetType == ItpPacketType.ApplicationData && payloadCopy.Length == 0)
-            {
-                throw ItpException.Local(
-                    ItpErrorCode.EmptyApplicationPayload,
-                    "ApplicationData frame has an empty payload.");
-            }
+            byte[] payload = new byte[payloadLength];
+            await ReadExactAsync(_stream, payload, cancellationToken).ConfigureAwait(false);
 
             if (packetType == ItpPacketType.TransportError)
             {
-                (ItpErrorCode peerCode, string peerMessage) = ItpTransportErrorPayload.Decode(payloadCopy);
+                (ItpErrorCode peerCode, string peerMessage) = ItpTransportErrorPayload.Decode(payload);
                 string detail = string.IsNullOrEmpty(peerMessage)
                     ? $"Peer reported ITP error {peerCode}."
                     : $"Peer reported ITP error {peerCode}: {peerMessage}";
                 throw ItpException.PeerReported(peerCode, detail);
             }
 
-            return new ItpFrame(packetType, payloadCopy);
+            return new ItpFrame(packetType, payloadFormat, payload);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(tail);
+            ArrayPool<byte>.Shared.Return(headerBuffer);
         }
     }
 
-    private async ValueTask WriteFrameAsync(
+    private async ValueTask WriteVersion1FrameAsync(
         ItpPacketType packetType,
+        ItpPayloadFormat payloadFormat,
         ReadOnlyMemory<byte> payload,
         CancellationToken cancellationToken)
     {
@@ -166,7 +140,9 @@ public sealed class ItpConnection
                 $"Refusing to write a payload of {payload.Length} bytes; maximum is {_options.MaxPayloadLength}.");
         }
 
-        int frameLength = ItpConstants.HeaderSize + payload.Length + ItpConstants.TrailerSize;
+        ValidateVersion1Packet(packetType, payloadFormat, payload.Length);
+
+        int frameLength = ItpConstants.Version1HeaderSize + payload.Length;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(frameLength);
         try
         {
@@ -174,11 +150,9 @@ public sealed class ItpConnection
             ItpConstants.Magic.CopyTo(frame);
             frame[3] = ItpConstants.Version;
             frame[4] = (byte)packetType;
-            frame[5] = 0;
+            frame[5] = (byte)payloadFormat;
             BinaryPrimitives.WriteUInt32BigEndian(frame.Slice(6, 4), (uint)payload.Length);
-            payload.Span.CopyTo(frame[ItpConstants.HeaderSize..]);
-            uint crc = ItpCrc32.Compute(frame[..^ItpConstants.TrailerSize]);
-            BinaryPrimitives.WriteUInt32BigEndian(frame[^ItpConstants.TrailerSize..], crc);
+            payload.Span.CopyTo(frame[ItpConstants.Version1HeaderSize..]);
 
             await _stream.WriteAsync(buffer.AsMemory(0, frameLength), cancellationToken).ConfigureAwait(false);
             await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -189,17 +163,77 @@ public sealed class ItpConnection
         }
     }
 
-    private static void ParseHeader(ReadOnlySpan<byte> header, out byte version, out byte rawType, out byte flags, out uint declaredLength)
+    private static byte ParsePreamble(ReadOnlySpan<byte> preamble)
     {
-        if (!header[..ItpConstants.MagicSize].SequenceEqual(ItpConstants.Magic))
+        if (!preamble[..ItpConstants.MagicSize].SequenceEqual(ItpConstants.Magic))
         {
             throw ItpException.Local(ItpErrorCode.InvalidMagic, "Frame magic is not 'ITP'.");
         }
 
-        version = header[3];
-        rawType = header[4];
-        flags = header[5];
-        declaredLength = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(6, 4));
+        return preamble[ItpConstants.MagicSize];
+    }
+
+    private void ParseVersion1Header(
+        ReadOnlySpan<byte> header,
+        out ItpPacketType packetType,
+        out ItpPayloadFormat payloadFormat,
+        out int payloadLength)
+    {
+        byte rawType = header[0];
+        byte rawPayloadFormat = header[1];
+        uint declaredLength = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(2, 4));
+
+        if (declaredLength > (uint)_options.MaxPayloadLength)
+        {
+            throw ItpException.Local(
+                ItpErrorCode.PayloadTooLarge,
+                $"Declared payload length {declaredLength} exceeds the maximum of {_options.MaxPayloadLength}.");
+        }
+
+        packetType = rawType switch
+        {
+            (byte)ItpPacketType.ApplicationData => ItpPacketType.ApplicationData,
+            (byte)ItpPacketType.TransportError => ItpPacketType.TransportError,
+            _ => throw ItpException.Local(
+                ItpErrorCode.UnsupportedPacketType,
+                $"Unsupported ITP packet type 0x{rawType:X2}."),
+        };
+
+        payloadFormat = (ItpPayloadFormat)rawPayloadFormat;
+        payloadLength = (int)declaredLength;
+        ValidateVersion1Packet(packetType, payloadFormat, payloadLength);
+    }
+
+    private static void ValidateVersion1Packet(
+        ItpPacketType packetType,
+        ItpPayloadFormat payloadFormat,
+        int payloadLength)
+    {
+        if (packetType == ItpPacketType.ApplicationData)
+        {
+            if (payloadFormat != ItpPayloadFormat.IpcJson)
+            {
+                throw ItpException.Local(
+                    ItpErrorCode.UnsupportedPayloadFormat,
+                    $"Unsupported application payload format 0x{(byte)payloadFormat:X2}.");
+            }
+
+            if (payloadLength == 0)
+            {
+                throw ItpException.Local(
+                    ItpErrorCode.EmptyApplicationPayload,
+                    "ApplicationData frame has an empty payload.");
+            }
+
+            return;
+        }
+
+        if (payloadFormat != ItpPayloadFormat.None)
+        {
+            throw ItpException.Local(
+                ItpErrorCode.InvalidFrame,
+                "TransportError frames must use the None payload format.");
+        }
     }
 
     internal static async ValueTask ReadExactAsync(

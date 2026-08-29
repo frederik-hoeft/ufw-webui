@@ -195,7 +195,7 @@ not a hang.
 
 | Symptom | Layer | On-wire result |
 | --- | --- | --- |
-| Bad magic, short frame, bad CRC, wrong ITP version, unknown ITP packet type | ITP | `TransportError` packet, connection closed |
+| Bad magic, short frame, wrong ITP version, unknown ITP packet type or application payload format | ITP | Connection-scoped ITP failure; recognized v1 failures may return `TransportError` |
 | Valid ITP frame whose JSON is not a v1 request/response | Application | Daemon: `400` + `error`. Client: `ApplicationProtocolException` |
 | Valid request, unknown route | Application | `404` + `error` |
 | Valid request, unknown method | Application | `501` + `error` |

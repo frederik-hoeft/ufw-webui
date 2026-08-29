@@ -8,7 +8,7 @@ That connection is stacked as two independently versioned protocols:
 | Layer | Document | Responsibility |
 | --- | --- | --- |
 | Stream | (OS pipe / Unix socket / in-process duplex) | Bytes, including fragmentation |
-| **ITP** | [itp.md](itp.md) | Framing, transport version, packet type, structured transport errors |
+| **ITP** | [itp.md](itp.md) | Version bootstrap, framing, packet type, application payload format, structured transport errors |
 | **Application protocol** | [application-protocol.md](application-protocol.md) | Request vs response, payload type, JSON bodies |
 
 ITP does not interpret application JSON. The application protocol does not
@@ -29,11 +29,13 @@ protocol v1.
 - **Two packet types only.** `ApplicationData` and `TransportError`. Keepalive,
   multiplexing, and session types are out of scope for a single
   request/response connection.
-- **Length and CRC are untrusted until checked.** Declared payload length is
-  compared to a maximum before any allocation. CRC-32 is verified before the
-  payload is handed to the application decoder.
-- **Header layout is frozen.** Bytes 0–9 stay put so a v1 peer can skip an
-  unknown-version frame and reply `VersionMismatch`.
+- **Bootstrap before parsing.** Only the `ITP` magic and wire-version byte are
+  stable across versions. A receiver selects a version-specific parser before
+  interpreting any later bytes.
+- **Classify the upper layer explicitly.** `ApplicationData` carries an ITP
+  payload-format identifier. Unknown formats fail before application decoding.
+- **Lengths are untrusted.** Declared payload length is compared to a maximum
+  before payload allocation or body reads.
 - **`payloadType` is the discriminator.** Generic `400` and validation `400`
   share a status and are distinguished by `error` vs `validation-error`, not
   by probing DTOs.
