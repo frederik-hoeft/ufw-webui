@@ -112,8 +112,10 @@ The v1 `TransportError` payload is also big-endian:
 ```
 
 `Message` is diagnostic only. Receivers do not parse it as a protocol token.
-`MessageLength` must exactly match the remaining payload length. A malformed
-transport-error payload is `InvalidFrame`.
+Its encoded UTF-8 form is limited to 1024 bytes; senders truncate longer
+diagnostics at a valid character boundary. `MessageLength` must exactly match
+the remaining payload length, remain within that bound, and name valid UTF-8.
+A violation is `InvalidFrame`.
 
 ### Error codes
 
@@ -128,13 +130,17 @@ transport-error payload is `InvalidFrame`.
 | `0x0007` | `InvalidFrame` | Another v1 framing constraint is violated |
 | `0x0008` | `EmptyApplicationPayload` | `ApplicationData` declares zero payload bytes |
 
-For a recognized v1 frame, locally detected v1 errors are written back as a
-`TransportError` when the stream remains usable. `InvalidMagic` and
-`VersionMismatch` are not written back because the receiver has not established
-that the peer understands the v1 error representation.
+A locally detected v1 failure is written back as `TransportError` only after
+the receiver has enough valid context to know that the peer speaks v1 and that
+the incoming packet is not itself a `TransportError`. Preamble failures and an
+incomplete v1 header therefore close the connection without a protocol reply.
+Failures in a recognized `ApplicationData` frame may return a structured error
+when the stream remains usable.
 
-A received `TransportError` is surfaced to the local caller as an
-`ItpException` with `IsPeerReported = true`. It is never passed to the
+A received `TransportError`, including one with a malformed transport-error
+payload, never triggers another `TransportError`. A valid peer error is surfaced
+to the local caller as an `ItpException` with `IsPeerReported = true`; malformed
+peer-error payloads are local `InvalidFrame` failures. Neither reaches the
 application decoder.
 
 ## Receiver algorithm

@@ -236,7 +236,7 @@ not a hang.
 
 | Symptom | Layer | On-wire result |
 | --- | --- | --- |
-| Bad magic, short frame, wrong ITP version, unknown ITP packet type or application payload format | ITP | Connection-scoped ITP failure; recognized v1 failures may return `TransportError` |
+| Bad magic, short frame, wrong ITP version, unknown ITP packet type or application payload format | ITP | Connection-scoped ITP failure; malformed v1 frames may return `TransportError` only after reply-safe context is established |
 | Valid ITP frame whose JSON is not a v1 request/response | Application | Daemon: `400` + `error`. Client: `ApplicationProtocolException` |
 | Valid request, unknown route | Application | `404` + `error` |
 | Valid request, unknown method | Application | `501` + `error` |

@@ -1,22 +1,31 @@
 namespace Ufw.Ipc.Shared.Transport.Itp;
 
 /// <summary>
-/// Transport-layer failure. The application protocol decoder is not invoked for the offending frame.
+/// ITP protocol failure. The application protocol decoder is not invoked for the offending frame.
 /// </summary>
-public sealed class ItpException : IOException
+public sealed class ItpException : Exception
 {
     public ItpException(ItpErrorCode errorCode, string message, bool isPeerReported = false)
-        : base(message)
+        : this(errorCode, message, innerException: null, isPeerReported, canReplyWithTransportError: false)
     {
-        ErrorCode = errorCode;
-        IsPeerReported = isPeerReported;
     }
 
     public ItpException(ItpErrorCode errorCode, string message, Exception innerException, bool isPeerReported = false)
+        : this(errorCode, message, innerException, isPeerReported, canReplyWithTransportError: false)
+    {
+    }
+
+    private ItpException(
+        ItpErrorCode errorCode,
+        string message,
+        Exception? innerException,
+        bool isPeerReported,
+        bool canReplyWithTransportError)
         : base(message, innerException)
     {
         ErrorCode = errorCode;
         IsPeerReported = isPeerReported;
+        CanReplyWithTransportError = canReplyWithTransportError;
     }
 
     public ItpErrorCode ErrorCode { get; }
@@ -27,9 +36,21 @@ public sealed class ItpException : IOException
     /// </summary>
     public bool IsPeerReported { get; }
 
+    /// <summary>
+    /// <see langword="true"/> when the receiver has established enough v1 context to safely report this
+    /// locally detected failure as a <see cref="ItpPacketType.TransportError"/>.
+    /// </summary>
+    public bool CanReplyWithTransportError { get; }
+
     public static ItpException Local(ItpErrorCode errorCode, string message) =>
-        new(errorCode, message, isPeerReported: false);
+        new(errorCode, message, innerException: null, isPeerReported: false, canReplyWithTransportError: false);
+
+    internal static ItpException Local(
+        ItpErrorCode errorCode,
+        string message,
+        bool canReplyWithTransportError) =>
+        new(errorCode, message, innerException: null, isPeerReported: false, canReplyWithTransportError);
 
     public static ItpException PeerReported(ItpErrorCode errorCode, string message) =>
-        new(errorCode, message, isPeerReported: true);
+        new(errorCode, message, innerException: null, isPeerReported: true, canReplyWithTransportError: false);
 }

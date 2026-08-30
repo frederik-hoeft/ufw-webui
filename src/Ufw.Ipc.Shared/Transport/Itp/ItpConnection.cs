@@ -87,9 +87,21 @@ public sealed class ItpConnection
             ItpConnection connection = new(stream, options);
             await connection.WriteTransportErrorAsync(errorCode, message, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException or NotSupportedException or ItpException)
+        catch (IOException)
         {
             // The stream is already unusable; the caller is about to close it.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The stream is already unusable; the caller is about to close it.
+        }
+        catch (NotSupportedException)
+        {
+            // The stream cannot carry a reply; the caller is about to close it.
+        }
+        catch (ItpException)
+        {
+            // The generated error frame itself could not satisfy the local ITP constraints.
         }
     }
 
@@ -108,7 +120,11 @@ public sealed class ItpConnection
                 out int payloadLength);
 
             byte[] payload = new byte[payloadLength];
-            await ReadExactAsync(_stream, payload, cancellationToken).ConfigureAwait(false);
+            await ReadExactAsync(
+                _stream,
+                payload,
+                cancellationToken,
+                canReplyWithTransportError: packetType == ItpPacketType.ApplicationData).ConfigureAwait(false);
 
             if (packetType == ItpPacketType.TransportError)
             {
@@ -183,11 +199,13 @@ public sealed class ItpConnection
         byte rawPayloadFormat = header[1];
         uint declaredLength = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(2, 4));
 
+        bool canReplyWithTransportError = rawType != (byte)ItpPacketType.TransportError;
         if (declaredLength > (uint)_options.MaxPayloadLength)
         {
             throw ItpException.Local(
                 ItpErrorCode.PayloadTooLarge,
-                $"Declared payload length {declaredLength} exceeds the maximum of {_options.MaxPayloadLength}.");
+                $"Declared payload length {declaredLength} exceeds the maximum of {_options.MaxPayloadLength}.",
+                canReplyWithTransportError);
         }
 
         packetType = rawType switch
@@ -196,18 +214,20 @@ public sealed class ItpConnection
             (byte)ItpPacketType.TransportError => ItpPacketType.TransportError,
             _ => throw ItpException.Local(
                 ItpErrorCode.UnsupportedPacketType,
-                $"Unsupported ITP packet type 0x{rawType:X2}."),
+                $"Unsupported ITP packet type 0x{rawType:X2}.",
+                canReplyWithTransportError: true),
         };
 
         payloadFormat = (ItpPayloadFormat)rawPayloadFormat;
         payloadLength = (int)declaredLength;
-        ValidateVersion1Packet(packetType, payloadFormat, payloadLength);
+        ValidateVersion1Packet(packetType, payloadFormat, payloadLength, canReplyWithTransportError);
     }
 
     private static void ValidateVersion1Packet(
         ItpPacketType packetType,
         ItpPayloadFormat payloadFormat,
-        int payloadLength)
+        int payloadLength,
+        bool canReplyWithTransportError = false)
     {
         if (packetType == ItpPacketType.ApplicationData)
         {
@@ -215,14 +235,16 @@ public sealed class ItpConnection
             {
                 throw ItpException.Local(
                     ItpErrorCode.UnsupportedPayloadFormat,
-                    $"Unsupported application payload format 0x{(byte)payloadFormat:X2}.");
+                    $"Unsupported application payload format 0x{(byte)payloadFormat:X2}.",
+                    canReplyWithTransportError);
             }
 
             if (payloadLength == 0)
             {
                 throw ItpException.Local(
                     ItpErrorCode.EmptyApplicationPayload,
-                    "ApplicationData frame has an empty payload.");
+                    "ApplicationData frame has an empty payload.",
+                    canReplyWithTransportError);
             }
 
             return;
@@ -232,14 +254,16 @@ public sealed class ItpConnection
         {
             throw ItpException.Local(
                 ItpErrorCode.InvalidFrame,
-                "TransportError frames must use the None payload format.");
+                "TransportError frames must use the None payload format.",
+                canReplyWithTransportError);
         }
     }
 
     internal static async ValueTask ReadExactAsync(
         Stream stream,
         Memory<byte> destination,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool canReplyWithTransportError = false)
     {
         int offset = 0;
         while (offset < destination.Length)
@@ -252,7 +276,8 @@ public sealed class ItpConnection
                     : $"after {offset} of {destination.Length} expected bytes";
                 throw ItpException.Local(
                     ItpErrorCode.IncompleteFrame,
-                    $"Connection closed {where} while reading an ITP frame.");
+                    $"Connection closed {where} while reading an ITP frame.",
+                    canReplyWithTransportError);
             }
 
             offset += read;

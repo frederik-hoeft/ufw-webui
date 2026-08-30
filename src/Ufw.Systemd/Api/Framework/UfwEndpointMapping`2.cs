@@ -24,7 +24,7 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
         {
             requestPayload = await request.Payload.ReadAsync<TRequest>(cancellationToken);
         }
-        catch (ApplicationProtocolException ex) when (ex.Error == ApplicationProtocolError.PayloadDeserializeFailed)
+        catch (ApplicationProtocolException ex)
         {
             return await BadRequestAsync(messageSerializer, ex.Message, cancellationToken);
         }

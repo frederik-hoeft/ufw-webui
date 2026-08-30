@@ -100,6 +100,44 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }).AsTask();
 
     [TestMethod]
+    public Task PeerTransportError_DoesNotTriggerTransportErrorResponseLoop() => RunAsync(async (context, cancellationToken) =>
+    {
+        byte[] peerErrorPayload =
+        [
+            0x00, (byte)ItpErrorCode.UnsupportedPacketType,
+            0x00, 0x04,
+            (byte)'n', (byte)'o', (byte)'p', (byte)'e',
+        ];
+        byte[] frame = BuildFrame(ItpPacketType.TransportError, peerErrorPayload);
+
+        ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
+        {
+            await using IMessage _ = await context.ExchangeBytesAsync(frame, cancellationToken);
+        });
+        Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
+        Assert.IsFalse(exception.IsPeerReported);
+
+        OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
+        Assert.IsNotNull(ok);
+    }).AsTask();
+
+    [TestMethod]
+    public Task MalformedPeerTransportError_DoesNotTriggerTransportErrorResponseLoop() => RunAsync(async (context, cancellationToken) =>
+    {
+        byte[] frame = BuildFrame(ItpPacketType.TransportError, [0x00, 0x03]);
+
+        ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
+        {
+            await using IMessage _ = await context.ExchangeBytesAsync(frame, cancellationToken);
+        });
+        Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
+        Assert.IsFalse(exception.IsPeerReported);
+
+        OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
+        Assert.IsNotNull(ok);
+    }).AsTask();
+
+    [TestMethod]
     public Task InvalidApplicationJson_ReturnsBadRequestAndKeepsWorker() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] frame = BuildFrame(ItpPacketType.ApplicationData, "{}"u8.ToArray());

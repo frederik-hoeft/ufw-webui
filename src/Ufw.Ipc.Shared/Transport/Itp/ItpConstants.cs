@@ -14,6 +14,7 @@ public static class ItpConstants
     public const int Version1HeaderSize = PreambleSize + Version1HeaderRemainderSize;
 
     public const int DefaultMaxPayloadLength = 16 * 1024 * 1024;
+    public const int MaxTransportErrorMessageUtf8Length = 1024;
 
     public static ReadOnlySpan<byte> Magic => "ITP"u8;
 }

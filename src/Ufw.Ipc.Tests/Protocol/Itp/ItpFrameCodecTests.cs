@@ -40,7 +40,31 @@ public sealed class ItpFrameCodecTests
 
         Assert.AreEqual(ItpErrorCode.VersionMismatch, exception.ErrorCode);
         Assert.IsTrue(exception.IsPeerReported);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
         StringAssert.Contains(exception.Message, "peer is v2");
+    }
+
+    [TestMethod]
+    public async Task WriteTransportError_LongDiagnostic_IsBoundedAndValidUtf8()
+    {
+        using MemoryStream stream = new();
+        await new ItpConnection(stream).WriteTransportErrorAsync(
+            ItpErrorCode.InvalidFrame,
+            new string('€', ItpConstants.MaxTransportErrorMessageUtf8Length));
+
+        byte[] frame = stream.ToArray();
+        uint payloadLength = BinaryPrimitives.ReadUInt32BigEndian(frame.AsSpan(6, 4));
+        ushort messageLength = BinaryPrimitives.ReadUInt16BigEndian(
+            frame.AsSpan(ItpConstants.Version1HeaderSize + 2, 2));
+
+        Assert.AreEqual((uint)(4 + messageLength), payloadLength);
+        Assert.IsTrue(messageLength <= ItpConstants.MaxTransportErrorMessageUtf8Length);
+
+        stream.Position = 0;
+        ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
+            await new ItpConnection(stream).ReadAsync());
+        Assert.IsTrue(exception.IsPeerReported);
+        Assert.IsFalse(exception.Message.Contains('�'));
     }
 
     [TestMethod]
@@ -75,6 +99,7 @@ public sealed class ItpFrameCodecTests
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
@@ -85,6 +110,7 @@ public sealed class ItpFrameCodecTests
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
@@ -95,6 +121,7 @@ public sealed class ItpFrameCodecTests
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
+        Assert.IsTrue(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
@@ -105,6 +132,7 @@ public sealed class ItpFrameCodecTests
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.InvalidMagic, exception.ErrorCode);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
@@ -116,6 +144,7 @@ public sealed class ItpFrameCodecTests
             await new ItpConnection(stream).ReadAsync());
 
         Assert.AreEqual(ItpErrorCode.VersionMismatch, exception.ErrorCode);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
         Assert.AreEqual(ItpConstants.PreambleSize, stream.Position);
     }
 
@@ -127,6 +156,7 @@ public sealed class ItpFrameCodecTests
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.UnsupportedPacketType, exception.ErrorCode);
+        Assert.IsTrue(exception.CanReplyWithTransportError);
         Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
     }
 
@@ -142,6 +172,7 @@ public sealed class ItpFrameCodecTests
             await new ItpConnection(stream).ReadAsync());
 
         Assert.AreEqual(ItpErrorCode.UnsupportedPayloadFormat, exception.ErrorCode);
+        Assert.IsTrue(exception.CanReplyWithTransportError);
         Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
     }
 
@@ -157,6 +188,7 @@ public sealed class ItpFrameCodecTests
             await new ItpConnection(stream).ReadAsync());
 
         Assert.AreEqual(ItpErrorCode.InvalidFrame, exception.ErrorCode);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
         Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
     }
 
@@ -175,6 +207,7 @@ public sealed class ItpFrameCodecTests
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream, options).ReadAsync());
         Assert.AreEqual(ItpErrorCode.PayloadTooLarge, exception.ErrorCode);
+        Assert.IsTrue(exception.CanReplyWithTransportError);
         Assert.AreEqual(header.Length, stream.Position);
     }
 
@@ -186,6 +219,7 @@ public sealed class ItpFrameCodecTests
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.EmptyApplicationPayload, exception.ErrorCode);
+        Assert.IsTrue(exception.CanReplyWithTransportError);
         Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
     }
 
@@ -201,6 +235,24 @@ public sealed class ItpFrameCodecTests
             await new ItpConnection(stream).ReadAsync());
         Assert.AreEqual(ItpErrorCode.InvalidFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
+    }
+
+    [TestMethod]
+    public async Task Read_TransportErrorWithInvalidUtf8_IsInvalidFrame()
+    {
+        byte[] frame = ItpTestFrame.Build(
+            ItpPacketType.TransportError,
+            [0x00, 0x07, 0x00, 0x01, 0xFF],
+            payloadFormat: ItpPayloadFormat.None);
+        using MemoryStream stream = new(frame);
+
+        ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
+            await new ItpConnection(stream).ReadAsync());
+
+        Assert.AreEqual(ItpErrorCode.InvalidFrame, exception.ErrorCode);
+        Assert.IsFalse(exception.IsPeerReported);
+        Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]

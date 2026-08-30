@@ -3,7 +3,7 @@ namespace Ufw.Ipc.Shared.Protocol;
 /// <summary>
 /// The ITP frame was valid, but the application document is not a v1 request or response.
 /// </summary>
-public sealed class ApplicationProtocolException : IOException
+public sealed class ApplicationProtocolException : Exception
 {
     public ApplicationProtocolException(ApplicationProtocolError error, string message)
         : base(message)

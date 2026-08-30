@@ -36,6 +36,10 @@ protocol v1.
   payload-format identifier. Unknown formats fail before application decoding.
 - **Lengths are untrusted.** Declared payload length is compared to a maximum
   before payload allocation or body reads.
+- **Transport errors are one-way failures.** A daemon reports a malformed v1
+  frame only after the complete v1 header leaves enough context for a safe
+  error response and identifies the incoming packet as something other than
+  `TransportError`. Incoming transport errors are never answered in kind.
 - **`payloadType` is the discriminator.** Generic `400` and validation `400`
   share a status and are distinguished by `error` vs `validation-error`, not
   by probing DTOs.

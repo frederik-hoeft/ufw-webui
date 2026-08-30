@@ -7,10 +7,12 @@ using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Transport;
 using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
+using Ufw.Systemd.Transport;
 
 namespace Ufw.Ipc.Tests.Smoke;
 
@@ -83,6 +85,21 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }).AsTask();
 
     [TestMethod]
+    public async Task UnexpectedServerFailure_IsObservable()
+    {
+        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await RunAsync(
+                static (_, _) => ValueTask.CompletedTask,
+                configuration: new IpcTestRunConfiguration
+                {
+                    ConfigureServerServices = services =>
+                        services.Replace(ServiceDescriptor.Singleton<ITransportLayerService>(new FailingTransportLayerService())),
+                }));
+
+        StringAssert.Contains(exception.Message, "unexpected worker failure");
+    }
+
+    [TestMethod]
     public Task TransportIoFailure_DoesNotTerminateProductionWorker() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new IOException("Simulated connection I/O failure."));
 
@@ -111,6 +128,12 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
                 services.Replace(ServiceDescriptor.Singleton<ITransportSecurityService>(
                     new FailOnceTransportSecurityService(connectionFailure))),
         }).AsTask();
+
+    private sealed class FailingTransportLayerService : ITransportLayerService
+    {
+        public Task<ITransportLayerConnection> ServeAsync(CancellationToken cancellationToken) =>
+            Task.FromException<ITransportLayerConnection>(new InvalidOperationException("unexpected worker failure"));
+    }
 
     private sealed class FailOnceTransportSecurityService(Exception failure) : ITransportSecurityService
     {

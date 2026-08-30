@@ -39,17 +39,33 @@ internal sealed class NetworkApplicationWorker
                 await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(networkStream, cancellationToken);
                 await ProcessConnectionAsync(secureStream, cancellationToken);
             }
-            catch (OperationCanceledException oce)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-                logger.Scoped(this).LogWarning($"Worker {_workerId}: request timed out: {oce.Message}");
+                break;
             }
-            catch (Exception ex) when (ex is IOException or SocketException or InvalidDataException or AuthenticationException or TimeoutException)
+            catch (OperationCanceledException ex)
             {
-                logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: connection failed; continuing to serve requests.");
+                LogConnectionFailure(ex);
+            }
+            catch (SocketException ex)
+            {
+                LogConnectionFailure(ex);
+            }
+            catch (InvalidDataException ex)
+            {
+                LogConnectionFailure(ex);
+            }
+            catch (AuthenticationException ex)
+            {
+                LogConnectionFailure(ex);
+            }
+            catch (TimeoutException ex)
+            {
+                LogConnectionFailure(ex);
+            }
+            catch (IOException ex)
+            {
+                LogConnectionFailure(ex);
             }
         }
         logger.Scoped(this).LogInformation($"Worker {_workerId}: stopping");
@@ -63,10 +79,15 @@ internal sealed class NetworkApplicationWorker
         {
             frame = await itp.ReadAsync(cancellationToken);
         }
-        catch (ItpException ex) when (!ex.IsPeerReported)
+        catch (ItpException ex) when (ex.IsPeerReported)
+        {
+            logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: peer reported ITP failure {ex.ErrorCode}.");
+            return;
+        }
+        catch (ItpException ex)
         {
             logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: ITP framing failure {ex.ErrorCode}.");
-            if (ex.ErrorCode is not ItpErrorCode.InvalidMagic and not ItpErrorCode.VersionMismatch)
+            if (ex.CanReplyWithTransportError)
             {
                 await ItpConnection.TryWriteTransportErrorAsync(
                     secureStream,
@@ -108,4 +129,7 @@ internal sealed class NetworkApplicationWorker
             await itp.WriteApplicationDataAsync(messageSerializer.Encode(response), cancellationToken);
         }
     }
+
+    private void LogConnectionFailure(Exception exception) =>
+        logger.Scoped(this).LogWarning(exception, $"Worker {_workerId}: connection failed; continuing to serve requests.");
 }
