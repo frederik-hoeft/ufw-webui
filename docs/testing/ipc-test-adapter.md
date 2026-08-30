@@ -80,7 +80,7 @@ The base facade links three possible cancellation sources into each run:
 - an explicit token supplied by the caller,
 - the optional adapter-level `IpcTestOptions.TestTimeout`.
 
-The linked token flows through host startup, transport accepts/connects, stream operations, serialization, routing, endpoint execution, arrange hooks, and the test lambda.
+The linked token flows through host startup, transport accepts/connects, stream operations, serialization, routing, endpoint execution, arrange hooks, and the test lambda. Protocol tests can separately configure the production-style per-I/O idle timeout and overall transaction deadline through `IpcTestOptions`; optional client overrides support asymmetric timeout scenarios. Explicit infinite timeout values leave cancellation as the only bound.
 
 Host disposal cancels the daemon application and awaits its completion before disposing the client scope, client and server service providers, and transport broker. Cleanup does not silently abandon daemon tasks after a timeout. Worker or disposal failures are surfaced after all owned cleanup operations have been attempted.
 

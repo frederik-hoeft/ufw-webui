@@ -227,10 +227,13 @@ matched endpoint determines which request type that value must satisfy.
 
 ## Timeouts and cancellation
 
-The application protocol has no timeout field of its own. A peer that stops
-writing is unblocked by the ITP/stream timeout and by `CancellationToken`.
-A request whose body cannot be materialized as the endpoint's DTO is a `400`,
-not a hang.
+The application protocol has no timeout field of its own. Connection owners
+enforce both a per-I/O idle timeout and an overall request/response deadline.
+The overall deadline continues through application processing, so a connection
+is bounded even when transport I/O continues to make incremental progress.
+Caller/shutdown cancellation remains cancellation and is not translated into
+an internal timeout. A request whose body cannot be materialized as the
+endpoint's DTO is a `400`, not a hang.
 
 ## Failure split
 

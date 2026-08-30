@@ -154,10 +154,19 @@ protected override ValueTask ConfigureOptionsAsync(
     CancellationToken cancellationToken)
 {
     options.TestTimeout = TimeSpan.FromSeconds(30);
+    options.IoTimeout = TimeSpan.FromSeconds(2);
     options.RequestTimeout = TimeSpan.FromSeconds(5);
     return ValueTask.CompletedTask;
 }
 ```
+
+`IoTimeout` is the production per-operation idle timeout. `RequestTimeout` is
+the overall transaction deadline and is not reset by successful partial I/O.
+The test client uses the same values by default; `ClientIoTimeout` and
+`ClientRequestTimeout` can override them when a test needs the two peers to
+expire at different times. `Timeout.InfiniteTimeSpan` intentionally disables a
+given bound. These protocol timeouts are separate from `TestTimeout`, which is
+only an adapter/test-run ceiling.
 
 The adapter-level timeout complements MSTest cancellation; it does not replace it.
 

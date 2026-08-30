@@ -92,31 +92,52 @@ internal sealed class UfwClient
     private async ValueTask<TResponse> SendMessageAsync<TResponse>(IRequestMessage message, CancellationToken cancellationToken)
         where TResponse : IEquatable<TResponse>
     {
-        TimeSpan ioTimeout = options.RequestTimeout <= TimeSpan.Zero ? Timeout.InfiniteTimeSpan : options.RequestTimeout;
-        await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(cancellationToken);
-        await using Stream stream = connection.GetStream(ioTimeout, ioTimeout);
-        await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, cancellationToken);
+        using CancellationTokenSource? requestTimeoutSource = CreateRequestTimeoutSource(options.RequestTimeout, cancellationToken);
+        CancellationToken requestToken = requestTimeoutSource?.Token ?? cancellationToken;
 
-        ItpConnection itp = new(secureStream, itpOptions);
-        await itp.WriteApplicationDataAsync(messageSerializer.Encode(message), cancellationToken);
-
-        ItpFrame frame = await itp.ReadAsync(cancellationToken);
-        await using IMessage decoded = messageSerializer.Decode(frame.Payload);
-        if (decoded is not IResponseMessage response)
+        try
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.InvalidKind,
-                "Peer returned an application document that is not a response.");
-        }
+            await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(requestToken);
+            await using Stream stream = connection.GetStream(options.IoTimeout, options.IoTimeout);
+            await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, requestToken);
 
-        foreach (IResponseMessageHandler handler in _handlerPipeline)
-        {
-            if (handler.CanHandle(response))
+            ItpConnection itp = new(secureStream, itpOptions);
+            await itp.WriteApplicationDataAsync(messageSerializer.Encode(message), requestToken);
+
+            ItpFrame frame = await itp.ReadAsync(requestToken);
+            await using IMessage decoded = messageSerializer.Decode(frame.Payload);
+            if (decoded is not IResponseMessage response)
             {
-                return await handler.TryHandleAsync<TResponse>(response, cancellationToken);
+                throw new ApplicationProtocolException(
+                    ApplicationProtocolError.InvalidKind,
+                    "Peer returned an application document that is not a response.");
             }
+
+            foreach (IResponseMessageHandler handler in _handlerPipeline)
+            {
+                if (handler.CanHandle(response))
+                {
+                    return await handler.TryHandleAsync<TResponse>(response, requestToken);
+                }
+            }
+
+            throw new InvalidDataException($"Unable to handle response status '{response.StatusCode}' with payloadType '{response.PayloadType}'. No handler has been configured for this response.");
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && requestTimeoutSource?.IsCancellationRequested == true)
+        {
+            throw new TimeoutException("The IPC request exceeded the configured request timeout.", ex);
+        }
+    }
+
+    private static CancellationTokenSource? CreateRequestTimeoutSource(TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        if (timeout == Timeout.InfiniteTimeSpan)
+        {
+            return null;
         }
 
-        throw new InvalidDataException($"Unable to handle response status '{response.StatusCode}' with payloadType '{response.PayloadType}'. No handler has been configured for this response.");
+        CancellationTokenSource source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        source.CancelAfter(timeout);
+        return source;
     }
 }

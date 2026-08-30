@@ -29,15 +29,12 @@ internal sealed class NetworkApplicationWorker
     public async Task ServeAsync(INetworkApplication manager, CancellationToken cancellationToken)
     {
         logger.Scoped(this).LogInformation($"Worker {_workerId}: started");
-        TimeSpan timeout = configuration.Settings.Network.RequestTimeout;
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 await using ITransportLayerConnection connection = await transportLayerService.ServeAsync(cancellationToken);
-                await using Stream networkStream = connection.GetStream(readTimeout: timeout, writeTimeout: timeout);
-                await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(networkStream, cancellationToken);
-                await ProcessConnectionAsync(secureStream, cancellationToken);
+                await ProcessAcceptedConnectionAsync(connection, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -69,6 +66,25 @@ internal sealed class NetworkApplicationWorker
             }
         }
         logger.Scoped(this).LogInformation($"Worker {_workerId}: stopping");
+    }
+
+    private async Task ProcessAcceptedConnectionAsync(ITransportLayerConnection connection, CancellationToken cancellationToken)
+    {
+        TimeSpan requestTimeout = configuration.Settings.Network.RequestTimeout;
+        using CancellationTokenSource? requestTimeoutSource = CreateRequestTimeoutSource(requestTimeout, cancellationToken);
+        CancellationToken requestToken = requestTimeoutSource?.Token ?? cancellationToken;
+
+        try
+        {
+            TimeSpan ioTimeout = configuration.Settings.Network.IoTimeout;
+            await using Stream networkStream = connection.GetStream(readTimeout: ioTimeout, writeTimeout: ioTimeout);
+            await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(networkStream, requestToken);
+            await ProcessConnectionAsync(secureStream, requestToken);
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && requestTimeoutSource?.IsCancellationRequested == true)
+        {
+            throw new TimeoutException("The IPC transaction exceeded the configured request timeout.", ex);
+        }
     }
 
     private async Task ProcessConnectionAsync(Stream secureStream, CancellationToken cancellationToken)
@@ -128,6 +144,18 @@ internal sealed class NetworkApplicationWorker
             await using IResponseMessage response = await requestResponsePipeline.ProcessMessageAsync(request, cancellationToken);
             await itp.WriteApplicationDataAsync(messageSerializer.Encode(response), cancellationToken);
         }
+    }
+
+    private static CancellationTokenSource? CreateRequestTimeoutSource(TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        if (timeout == Timeout.InfiniteTimeSpan)
+        {
+            return null;
+        }
+
+        CancellationTokenSource source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        source.CancelAfter(timeout);
+        return source;
     }
 
     private void LogConnectionFailure(Exception exception) =>

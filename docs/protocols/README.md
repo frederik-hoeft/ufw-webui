@@ -49,6 +49,8 @@ protocol v1.
   `default(T)` request objects.
 - **Invalid JSON is never a valid request or response.** Required fields, kind,
   and payload-type consistency are enforced after deserialize.
-- **Timeouts live on the stream, not in the frame.** `TimedStream` plus
-  `CancellationToken` prevent waiting on a dead peer. The protocols themselves
-  have no timeout field.
+- **Timeouts are connection policy, not wire fields.** `TimedStream` applies a
+  per-I/O idle timeout, while the connection owner applies an overall
+  request/response deadline that is not reset by slow progress. External
+  cancellation remains distinct, and either configured timeout can be
+  explicitly infinite.

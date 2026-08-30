@@ -11,9 +11,24 @@ public sealed class IpcTestOptions
     public int WorkerCount { get; set; } = 2;
 
     /// <summary>
-    /// Per-connection read/write timeout observed by the daemon-side worker.
+    /// Per-I/O idle timeout used by both sides of the in-process connection.
+    /// </summary>
+    public TimeSpan IoTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Overall request/response transaction deadline used by both sides of the in-process connection.
     /// </summary>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Optional client-side I/O timeout override. Defaults to <see cref="IoTimeout"/>.
+    /// </summary>
+    public TimeSpan? ClientIoTimeout { get; set; }
+
+    /// <summary>
+    /// Optional client-side transaction deadline override. Defaults to <see cref="RequestTimeout"/>.
+    /// </summary>
+    public TimeSpan? ClientRequestTimeout { get; set; }
 
     /// <summary>
     /// When true, endpoint exception messages are propagated in <c>500</c> responses (matches daemon debug mode).

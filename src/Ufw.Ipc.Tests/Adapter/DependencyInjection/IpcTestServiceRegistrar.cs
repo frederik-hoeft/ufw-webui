@@ -57,13 +57,20 @@ internal static class IpcTestServiceRegistrar
 
     public static IServiceCollection AddIpcTestClientDefaults(
         this IServiceCollection services,
-        InProcessTransportBroker broker)
+        InProcessTransportBroker broker,
+        IpcTestOptions options)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(broker);
+        ArgumentNullException.ThrowIfNull(options);
 
         // Satisfy types that still take UfwClientOptions even when transport is replaced.
-        services.TryAddSingleton(new UfwClientOptions(ServerName: ".", PipeName: "/tmp/ufw-ipc-tests.inprocess", SslProtocols: System.Security.Authentication.SslProtocols.None));
+        services.TryAddSingleton(new UfwClientOptions(
+            ServerName: ".",
+            PipeName: "/tmp/ufw-ipc-tests.inprocess",
+            SslProtocols: System.Security.Authentication.SslProtocols.None,
+            IoTimeout: options.ClientIoTimeout ?? options.IoTimeout,
+            RequestTimeout: options.ClientRequestTimeout ?? options.RequestTimeout));
         services.AddSingleton(broker);
         services.AddSingleton(MessageJsonSerializerContext.Default);
         services.AddSingleton(HybridMessageJsonSerializerContext.CreateDefault());

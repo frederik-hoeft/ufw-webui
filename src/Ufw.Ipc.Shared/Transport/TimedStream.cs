@@ -14,6 +14,8 @@ public class TimedStream : Stream
     public TimedStream(Stream innerStream, TimeSpan readTimeout, TimeSpan writeTimeout)
     {
         ArgumentNullException.ThrowIfNull(innerStream);
+        ValidateTimeout(readTimeout, nameof(readTimeout));
+        ValidateTimeout(writeTimeout, nameof(writeTimeout));
         _innerStream = innerStream;
         _readTimeout = readTimeout;
         _writeTimeout = writeTimeout;
@@ -24,13 +26,23 @@ public class TimedStream : Stream
     public override int ReadTimeout
     {
         get => (int)_readTimeout.TotalMilliseconds;
-        set => _readTimeout = TimeSpan.FromMilliseconds(value);
+        set
+        {
+            TimeSpan timeout = TimeSpan.FromMilliseconds(value);
+            ValidateTimeout(timeout, nameof(value));
+            _readTimeout = timeout;
+        }
     }
 
     public override int WriteTimeout
     {
         get => (int)_writeTimeout.TotalMilliseconds;
-        set => _writeTimeout = TimeSpan.FromMilliseconds(value);
+        set
+        {
+            TimeSpan timeout = TimeSpan.FromMilliseconds(value);
+            ValidateTimeout(timeout, nameof(value));
+            _writeTimeout = timeout;
+        }
     }
 
     public override bool CanRead => _innerStream.CanRead;
@@ -155,9 +167,17 @@ public class TimedStream : Stream
 
     public override void WriteByte(byte value) => _innerStream.WriteByte(value);
 
+    private static void ValidateTimeout(TimeSpan timeout, string parameterName)
+    {
+        if (timeout != Timeout.InfiniteTimeSpan && timeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(parameterName, timeout, "Timeout must be positive or Timeout.InfiniteTimeSpan.");
+        }
+    }
+
     private static CancellationTokenSource? LinkTimeout(TimeSpan ioTimeout, CancellationToken cancellationToken)
     {
-        if (ioTimeout <= TimeSpan.Zero || ioTimeout == Timeout.InfiniteTimeSpan)
+        if (ioTimeout == Timeout.InfiniteTimeSpan)
         {
             return null;
         }

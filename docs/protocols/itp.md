@@ -163,10 +163,19 @@ succeeded.
 
 ## Timeouts and cancellation
 
-ITP has no timeout field. Read and write loops honor the caller
-`CancellationToken` and the connection I/O timeout applied by `TimedStream`.
-A timed-out, cancelled, or truncated read is not a valid frame and the
-connection is abandoned.
+ITP has no timeout field. `TimedStream` applies an idle timeout independently
+to each asynchronous read and write operation. Successful I/O starts the next
+operation with a fresh idle window, so this bound detects a peer that stops
+making progress rather than measuring the total frame duration.
+
+The connection owner also applies an overall request/response deadline around
+the transaction. That deadline is not reset by partial reads or writes, so a
+peer cannot keep a connection alive indefinitely by trickling bytes within the
+I/O timeout. Client cancellation and daemon shutdown cancellation are kept
+distinct from expiration of this internal deadline. Either configured timeout
+may be explicitly disabled with `Timeout.InfiniteTimeSpan`. A timed-out,
+cancelled, or truncated read is not a valid frame and the connection is
+abandoned.
 
 ## Connection model
 

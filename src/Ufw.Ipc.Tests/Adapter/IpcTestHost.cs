@@ -94,6 +94,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
 
             TestApiEndpointMap endpointMap = endpointBuilder.Build();
             AppSettings appSettings = TestAppSettingsFactory.Create(
+                ioTimeout: options.IoTimeout,
                 requestTimeout: options.RequestTimeout,
                 maxConnections: Math.Max(1, options.WorkerCount),
                 debugMode: options.DebugMode);
@@ -111,7 +112,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
             }
 
             ServiceCollection clientServices = new();
-            clientServices.AddIpcTestClientDefaults(broker);
+            clientServices.AddIpcTestClientDefaults(broker, options);
             if (configureClientServices is not null)
             {
                 configureClientServices(clientServices);
