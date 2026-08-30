@@ -50,7 +50,7 @@ public sealed class ItpFrameCodecTests
         using MemoryStream stream = new();
         await new ItpConnection(stream).WriteTransportErrorAsync(
             ItpErrorCode.InvalidFrame,
-            new string('€', ItpConstants.MaxTransportErrorMessageUtf8Length));
+            new string('\u20AC', ItpConstants.MaxTransportErrorMessageUtf8Length));
 
         byte[] frame = stream.ToArray();
         uint payloadLength = BinaryPrimitives.ReadUInt32BigEndian(frame.AsSpan(6, 4));
@@ -64,7 +64,7 @@ public sealed class ItpFrameCodecTests
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync());
         Assert.IsTrue(exception.IsPeerReported);
-        Assert.IsFalse(exception.Message.Contains('�'));
+        Assert.IsFalse(exception.Message.Contains('\uFFFD'));
     }
 
     [TestMethod]
