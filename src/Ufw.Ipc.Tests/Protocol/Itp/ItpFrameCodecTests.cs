@@ -193,6 +193,21 @@ public sealed class ItpFrameCodecTests
     }
 
     [TestMethod]
+    public async Task RoundTrip_PayloadAtConfiguredMaximum_IsAccepted()
+    {
+        ItpOptions options = new() { MaxPayloadLength = 16 };
+        byte[] payload = Enumerable.Range(0, options.MaxPayloadLength).Select(static value => (byte)value).ToArray();
+        using MemoryStream stream = new();
+
+        await new ItpConnection(stream, options).WriteApplicationDataAsync(payload);
+
+        stream.Position = 0;
+        ItpFrame frame = await new ItpConnection(stream, options).ReadAsync();
+
+        CollectionAssert.AreEqual(payload, frame.Payload.ToArray());
+    }
+
+    [TestMethod]
     public async Task Read_DeclaredLengthExceedsLimit_IsPayloadTooLarge_AndDoesNotReadBody()
     {
         byte[] header = new byte[ItpConstants.Version1HeaderSize];

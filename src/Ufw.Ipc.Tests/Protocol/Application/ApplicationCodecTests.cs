@@ -157,6 +157,17 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
+    public void Decode_RequestMissingMethod_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"request","route":"/x","payloadType":"empty"}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.MissingRequiredField, exception.Error);
+    }
+
+    [TestMethod]
     public void Decode_RequestMissingRoute_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
@@ -324,6 +335,17 @@ public sealed class ApplicationCodecTests
             """u8.ToArray();
         ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
         Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public void Decode_ResponseMissingStatus_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","payloadType":"empty"}
+            """u8.ToArray();
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.InvalidStatus, exception.Error);
     }
 
     [TestMethod]

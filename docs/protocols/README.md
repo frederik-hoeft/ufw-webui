@@ -1,56 +1,108 @@
-# IPC protocols
+# IPC protocol architecture
 
-The web application and the privileged daemon communicate over a single local
-connection that carries **one request and one response**, then closes.
+`Ufw.Web` communicates with the privileged `Ufw.Systemd` daemon through a local,
+connection-oriented IPC channel. Each connection carries exactly one application
+request and, when the request can be processed far enough to produce one, one
+response. The connection is then closed.
 
-That connection is stacked as two independently versioned protocols:
+The IPC stack deliberately separates stream transport, wire framing, application
+message semantics, and daemon routing. Each layer validates only the contract it
+owns and passes a fully validated unit to the layer above it.
 
-| Layer | Document | Responsibility |
+## Protocol stack
+
+| Layer | Unit | Responsibility |
 | --- | --- | --- |
-| Stream | (OS pipe / Unix socket / in-process duplex) | Bytes, including fragmentation |
-| **ITP** | [itp.md](itp.md) | Version bootstrap, framing, packet type, application payload format, structured transport errors |
-| **Application protocol** | [application-protocol.md](application-protocol.md) | Request vs response, payload type, JSON bodies |
+| Local stream / stream security | bytes | Connection establishment, ordered byte delivery, optional stream-security wrapping, I/O cancellation |
+| [ITP](itp.md) | frame | Wire-version bootstrap, framing, packet kind, application payload format, size limits, structured transport errors |
+| [Application protocol](application-protocol.md) | UTF-8 JSON document | Request/response direction, method/route or status, representation identifier, payload presence |
+| Daemon routing and binding | typed request | Route selection, request DTO binding, controller invocation, response DTO production |
 
-ITP does not interpret application JSON. The application protocol does not
-frame bytes, check transport versions, or recover from truncated frames.
-Client and daemon orchestration compose the layers explicitly: ITP reads or
-writes framed opaque bytes, while the application codec only decodes or encodes
-the complete application document carried by those bytes.
+ITP treats application data as opaque bytes after classifying its payload format.
+The JSON application codec works only with complete application-document bytes and
+has no stream or ITP dependency. Routing sees only a valid application request;
+malformed framing and malformed application envelopes never reach controller code.
 
-Backwards compatibility with the previous newline-delimited JSON proof of
-concept is **not** provided. Both peers must speak ITP v1 and application
-protocol v1.
+## Independent version domains
 
-## Design decisions
+Three different version identifiers exist because they answer different
+compatibility questions:
 
-- **Two versions, no negotiation.** ITP and the application protocol each
-  carry their own version. A mismatch is a hard failure. There is no
-  handshake that could paper over an incompatible peer.
-- **Two packet types only.** `ApplicationData` and `TransportError`. Keepalive,
-  multiplexing, and session types are out of scope for a single
-  request/response connection.
-- **Bootstrap before parsing.** Only the `ITP` magic and wire-version byte are
-  stable across versions. A receiver selects a version-specific parser before
-  interpreting any later bytes.
-- **Classify the upper layer explicitly.** `ApplicationData` carries an ITP
-  payload-format identifier. Unknown formats fail before application decoding.
-- **Lengths are untrusted.** Declared payload length is compared to a maximum
-  before payload allocation or body reads.
-- **Transport errors are one-way failures.** A daemon reports a malformed v1
-  frame only after the complete v1 header leaves enough context for a safe
-  error response and identifies the incoming packet as something other than
-  `TransportError`. Incoming transport errors are never answered in kind.
-- **`payloadType` is the discriminator.** Generic `400` and validation `400`
-  share a status and are distinguished by `error` vs `validation-error`, not
-  by probing DTOs.
-- **Payload absence is explicit.** `payloadType=empty` omits `payload`; a
-  `data` document always carries the property, and JSON `null` remains a
-  present value. Missing payloads and binding failures never become
-  `default(T)` request objects.
-- **Invalid JSON is never a valid request or response.** Required fields, kind,
-  and payload-type consistency are enforced after deserialize.
-- **Timeouts are connection policy, not wire fields.** `TimedStream` applies a
-  per-I/O idle timeout, while the connection owner applies an overall
-  request/response deadline that is not reset by slow progress. External
-  cancellation remains distinct, and either configured timeout can be
-  explicitly infinite.
+| Version domain | Example | Governs |
+| --- | --- | --- |
+| ITP wire version | ITP `1` | How bytes after the stable ITP preamble are framed and interpreted |
+| Application IPC protocol version | `protocolVersion: 1` | Request/response envelope and representation semantics |
+| API route version | `/api/v1/rules` | Daemon endpoint/controller contract |
+
+These versions are intentionally independent. ITP does not negotiate application
+versions, and an API route version is not a substitute for either protocol
+version. A peer must understand the ITP wire version before it can obtain an
+application document, and it must understand the application protocol version
+before routing the request.
+
+There is no protocol negotiation or fallback. An unsupported version fails at
+the layer that owns it.
+
+## Exchange lifecycle
+
+A normal request follows one ownership path:
+
+1. The client application codec creates a request document from the method,
+   route, and optional typed payload.
+2. ITP writes that document as one `ApplicationData` frame over the secured
+   local stream.
+3. The daemon validates and fully buffers the ITP frame before passing its
+   application bytes upward.
+4. The application codec validates the JSON envelope and produces an
+   `IRequestMessage` with explicit payload presence.
+5. Routing selects an endpoint. Body-taking endpoints bind the buffered payload
+   to the routed request type before controller code is invoked.
+6. The endpoint response is encoded as an application response document and
+   written as one ITP `ApplicationData` frame.
+7. The client fully reads and decodes the response before releasing the
+   transport connection. Response payloads remain readable from their buffered
+   application bytes after the stream is closed.
+
+A connection carries no reusable ITP session state and no request correlation
+identifier because only one exchange is allowed per connection.
+
+## Failure boundaries
+
+Failures remain scoped to the layer that can classify them:
+
+- ITP rejects invalid magic, unsupported wire versions, truncated frames,
+  unknown packet kinds or application payload formats, and unsafe lengths before
+  application decoding.
+- A recognized v1 framing failure may be returned as `TransportError` only when
+  enough framing context exists to know that a v1 reply is safe. Incoming
+  `TransportError` frames are terminal notifications and are never answered with
+  another transport error.
+- The application codec rejects malformed JSON, incompatible application
+  versions, illegal request/response field combinations, and invalid
+  representation semantics.
+- Route-specific binding failures are application `400` responses and do not
+  invoke the endpoint.
+- Expected peer, transport, timeout, and protocol failures terminate only the
+  current daemon connection. Unexpected daemon/framework failures remain
+  observable by faulting the worker/application rather than being absorbed as
+  connection errors.
+
+## Time bounds and cancellation
+
+Timeouts are connection policy rather than wire fields. Both peers distinguish a
+per-I/O idle timeout from an overall request deadline. The idle timeout releases a
+connection whose current read or write stops making progress; the request deadline
+bounds the complete exchange even if a peer continuously trickles data within the
+idle window.
+
+External client cancellation and daemon shutdown remain cancellation. Internal
+deadline expiry is reported as a timeout. Either configured timeout can be
+explicitly disabled with `Timeout.InfiniteTimeSpan`.
+
+## Detailed protocol references
+
+- [ITP v1](itp.md) defines the stable bootstrap, v1 frame layout, packet kinds,
+  payload-format registry, transport-error format, and framing failure rules.
+- [Application IPC protocol v1](application-protocol.md) defines the JSON
+  envelope, representation identifiers, payload-presence contract, typed binding,
+  response semantics, and application-level failures.

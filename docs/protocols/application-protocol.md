@@ -1,33 +1,39 @@
-# Application-level IPC protocol v1
+# Application IPC protocol v1
 
-This protocol sits **on top of ITP**. Its unit of exchange is the payload of
-a single ITP `ApplicationData` packet: one UTF-8 JSON document.
+The application IPC protocol defines the request and response documents exchanged
+between `Ufw.Web` and `Ufw.Systemd`. Its unit is one UTF-8 JSON document carried
+inside an ITP `ApplicationData` frame.
 
-The application protocol is versioned independently of ITP. A future
-application v2 can travel in ITP v1 frames, and a future ITP v2 can carry
-application v1 documents, as long as each layer validates its own version.
+The protocol owns application-message semantics only. ITP establishes framing
+compatibility and delivers complete bytes; daemon routing interprets the method
+and route only after the application envelope is valid.
 
-## Purpose
+## Versioning and boundaries
 
-The previous POC used one implicit envelope for both directions:
+The application protocol carries its own `protocolVersion`, currently `1`. This
+version is independent of both the ITP wire version and route versions such as
+`/api/v1`:
 
-- `MessageHeader.Context` was a route on the way in and an HTTP status
-  string on the way out
-- `400` validation failures and `400` generic failures were distinguished by
-  *trying* to deserialize one DTO and falling back to the other
-- `JsonException` was swallowed and became `default(T)`, so empty or
-  invalid bytes could surface as a "valid" request or response
+- the ITP version defines how bytes are framed;
+- the application protocol version defines the JSON envelope and representation
+  rules;
+- the route version defines an endpoint/controller contract.
 
-v1 makes those distinctions explicit and rejects anything that is not a
-complete, well-typed document.
+A different application protocol version can in principle travel inside the same
+ITP version, provided both peers implement that application version. There is no
+version negotiation: a document whose `protocolVersion` is not supported is an
+application-protocol failure.
 
-## Document shape
+## Envelope model
 
-A single JSON object. Property names are camelCase. Unknown properties are
-ignored (source-generated `System.Text.Json` defaults). Missing **required**
-properties make the document invalid.
+Every application message is a single JSON object using camelCase property names.
+The envelope carries direction explicitly through `kind`; request and response
+metadata are not inferred from which optional fields happen to be present.
 
 ### Request
+
+A no-body request contains method and route metadata and uses the `empty`
+representation:
 
 ```json
 {
@@ -38,6 +44,8 @@ properties make the document invalid.
   "payloadType": "empty"
 }
 ```
+
+A request with a body uses `data` and includes `payload`:
 
 ```json
 {
@@ -52,14 +60,7 @@ properties make the document invalid.
 
 ### Response
 
-```json
-{
-  "protocolVersion": 1,
-  "kind": "response",
-  "status": 200,
-  "payloadType": "empty"
-}
-```
+Responses carry an HTTP-like integer status rather than method/route metadata:
 
 ```json
 {
@@ -71,13 +72,137 @@ properties make the document invalid.
 }
 ```
 
+A response with no representation uses `empty` and omits `payload`:
+
+```json
+{
+  "protocolVersion": 1,
+  "kind": "response",
+  "status": 200,
+  "payloadType": "empty"
+}
+```
+
+### Envelope fields
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `protocolVersion` | always | Application protocol version; v1 requires `1` |
+| `kind` | always | `request` or `response` |
+| `method` | request only | Non-empty method token; unsupported methods are rejected by routing with `501` |
+| `route` | request only | Non-empty daemon route, including its API route version |
+| `status` | response only | Integer status in `100..599` |
+| `payloadType` | always | Representation identifier described below |
+| `payload` | representation-dependent | JSON value; omitted only for `empty` |
+
+A request must not carry `status`. A response must not carry `method` or `route`.
+Unknown JSON properties are ignored by the source-generated `System.Text.Json`
+configuration, but all required protocol fields and cross-field invariants are
+validated explicitly.
+
+## Representations and payload presence
+
+`payloadType` is the representation discriminator. Receivers never determine the
+body type by trying several DTOs until one happens to deserialize.
+
+| `payloadType` | Payload contract | Direction / status |
+| --- | --- | --- |
+| `empty` | `payload` must be absent | Request without a body; successful response without a representation |
+| `data` | `payload` must be present; any JSON value, including `null` | Request body; successful response body |
+| `error` | Object payload with optional `message` | Failure response (`400..599`) |
+| `validation-error` | Object payload with `errors` array and optional `message` | Validation failure response with status `400` |
+
+Requests may use only `empty` and `data`. Successful responses use `empty` or
+`data`; failure responses use `error` or `validation-error`.
+`validation-error` is valid only with status `400`.
+
+Payload presence and JSON value are separate states. Under `data`, an explicit
+`payload: null` is a present payload. Under `empty`, the `payload` property must
+not exist, including as `payload: null`. This distinction prevents an absent body
+from being materialized as `default(T)`.
+
+## Decode and validation lifecycle
+
+Application decoding establishes a valid runtime envelope before routing:
+
+1. Parse one complete JSON document as an object.
+2. Require application protocol version `1` and a recognized `kind` and
+   `payloadType`.
+3. Validate direction-specific metadata: requests require non-empty method and
+   route; responses require a status in `100..599`; fields from the opposite
+   direction are rejected.
+4. Validate representation legality and payload presence.
+5. Validate the structural shape of well-known error representations.
+6. Create either an `IRequestMessage` or `IResponseMessage` whose payload is
+   backed by buffered application bytes.
+
+The following classes of input are protocol errors rather than partially valid
+messages:
+
+- zero-length application data, non-object JSON, an empty object, or invalid JSON;
+- missing or unsupported application protocol version, message kind, or
+  representation identifier;
+- missing request method/route or response status;
+- request/response metadata from the wrong direction;
+- response-only representations on requests;
+- success/error status classes paired with the wrong representation;
+- `validation-error` with a status other than `400` or without an `errors` array;
+- `empty` with a `payload` property, or a non-empty representation without one.
+
+Malformed application documents received by the daemon become a `400` `error`
+response when the request reached the application layer. The client treats a
+malformed response as `ApplicationProtocolException`.
+
+## Runtime messages and routing
+
+The decoded runtime model keeps direction structurally explicit:
+
+- `IRequestMessage` has non-null `Method` and `Route`;
+- `IResponseMessage` has an integer `StatusCode`;
+- both expose protocol version, representation identifier, and buffered payload
+  through `IMessage`.
+
+Routing therefore never receives a generic envelope with nullable alternate
+request/response fields. It consumes `IRequestMessage.Method` and
+`IRequestMessage.Route` directly. Client response dispatch consumes
+`IResponseMessage.StatusCode` and `PayloadType` directly.
+
+Controller response DTOs retain their `IIdentifiable` contract for generated
+endpoint mapping. That DTO identity is separate from the application envelope
+and is not an on-wire message identifier.
+
+## Typed request binding
+
+Envelope validity and route-specific DTO validity are separate stages. The
+application codec preserves the payload bytes and presence state; the selected
+endpoint decides which CLR request type those bytes must satisfy.
+
+- A body-taking endpoint requires `payloadType=data`. Absence is a `400` before
+  deserialization and the endpoint is not invoked.
+- A no-body endpoint requires `payloadType=empty`. A present body is rejected
+  rather than silently discarded.
+- JSON `null` is a present value, but body-taking daemon endpoints require a
+  materialized non-null request object, so `null` produces `400` without endpoint
+  invocation.
+- Valid default-like JSON values such as `{}`, `0`, and `false` remain present
+  values. They are accepted when normal JSON binding to the routed request type
+  accepts them.
+- Invalid JSON shape or a deserialization failure produces `400`; it never falls
+  back to `default(T)` and never invokes controller/domain code.
+
+## Response semantics
+
+The daemon uses the same application envelope for normal results and
+application-level failures. `payloadType` distinguishes response representations
+that share a status code.
+
 ```json
 {
   "protocolVersion": 1,
   "kind": "response",
   "status": 400,
   "payloadType": "error",
-  "payload": { "message": "Malformed request: Missing required fields." }
+  "payload": { "message": "Malformed request." }
 }
 ```
 
@@ -96,153 +221,43 @@ properties make the document invalid.
 }
 ```
 
-## Fields
+The encoder maps production response DTOs as follows:
 
-| Field | Required | Meaning |
+- `OkResponse` / `IEmptyPayload` -> `empty` with no `payload`;
+- other `OkResponseBase` values -> `data`;
+- `ModelValidationErrorResponse` -> status `400`, `validation-error`;
+- other `ErrorResponse` values -> `error` using the DTO status.
+
+A no-body request uses the dedicated `empty` request path. Any typed request
+value, including CLR `null`, is encoded as `data`; CLR `null` becomes JSON
+`null`.
+
+## Serialization and ownership
+
+Production application serialization uses the source-generated
+`MessageJsonSerializerContext`. The daemon and production client do not rely on a
+reflection fallback for protocol-envelope or production request/response DTO
+metadata. Test infrastructure may extend metadata resolution for test-only DTOs,
+but that resolver is not part of production DI.
+
+Application payloads are fully buffered. Decoded messages do not retain the ITP
+stream, so a caller may read a response payload after the one-exchange transport
+connection has been released.
+
+## Timeouts, cancellation, and failures
+
+The application protocol contains no timeout field. Connection owners impose the
+per-I/O idle timeout and overall request deadline described in the
+[protocol overview](README.md). The overall deadline includes application
+processing. External caller or daemon-shutdown cancellation remains cancellation
+rather than being translated into an internal timeout.
+
+| Condition | Owning layer | Result |
 | --- | --- | --- |
-| `protocolVersion` | yes | Application protocol version. Must be `1`. |
-| `kind` | yes | `"request"` or `"response"`. No other value is valid. |
-| `method` | request only | Non-empty method token (`GET`, `POST`, `PUT`, `DELETE`, or another token that routing will reject with `501`) |
-| `route` | request only | Non-empty route, including the leading `/` |
-| `status` | response only | Integer HTTP-like status in `100..599` |
-| `payloadType` | yes | One of the well-known types below |
-| `payload` | depends | JSON value; omitted when `payloadType` is `empty` |
-
-A request document must not carry `status`. A response document must not
-carry `method` or `route`. Extra direction-specific fields make the document
-invalid.
-
-`kind` is never inferred from which fields happen to be present.
-
-## Well-known payload types
-
-`payloadType` is an explicit discriminator. Receivers must **not** guess the
-body by attempting several DTO types.
-
-| `payloadType` | `payload` | Used for |
-| --- | --- | --- |
-| `empty` | must be omitted | Requests with no body; responses with no representation (`OkResponse`) |
-| `data` | required JSON value, including explicit JSON `null` | Typed request bodies and typed success-response bodies |
-| `error` | required object `{ "message": string? }` | Generic failure responses |
-| `validation-error` | required object `{ "message": string?, "errors": [ { "propertyName", "errorMessage" } ] }` | `400` caused by model validation |
-
-Requests may use only `empty` or `data`. Responses below status `400` use
-`empty` or `data`; failure responses (`400..599`) use `error` or
-`validation-error`. `validation-error` is valid only with `status: 400`.
-This keeps generic and validation `400` responses unambiguous without probing
-multiple DTO types.
-
-An unknown `payloadType` is not a valid request or response. The decoder
-rejects the document; it does not produce a default object.
-
-## Decoder rules
-
-The following inputs are **not** a valid request or response object. The
-decoder throws `ApplicationProtocolException` (or, on the daemon, converts
-that into a `400` / `payloadType=error` response):
-
-- zero-length ITP payload (also rejected by ITP as `EmptyApplicationPayload`)
-- non-object JSON (`null`, array, string, number, `true`/`false`)
-- empty object `{}`
-- JSON that fails to parse
-- `protocolVersion` missing or not `1`
-- `kind` missing or not `"request"` / `"response"`
-- `payloadType` missing or not in the well-known set
-- request missing `method` or `route`, or either is empty/whitespace
-- response missing `status`, or `status` outside `100..599`
-- request that includes `status`, or response that includes `method`/`route`
-- request using response-only `payloadType=error` or `payloadType=validation-error`
-- response whose success/error status class does not match its representation (`data`/`empty` vs. `error`/`validation-error`)
-- response using `payloadType=validation-error` with a status other than `400`
-- `payloadType=empty` with a `payload` property, including `payload: null`
-- `payloadType` other than `empty` with a missing `payload` property
-- `payloadType=validation-error` whose `errors` array is missing
-
-Payload-property absence is preserved independently from its JSON value. In
-particular, `payload: null` is a present `data` payload, while omitting
-`payload` under `payloadType=empty` means that no payload exists. A missing
-payload is never materialized as `default(T)`.
-
-`JsonException` is never converted into `default(T)`. A typed payload
-deserialize that fails is a binding/protocol error, not an empty DTO. JSON
-`null` cannot bind to a non-nullable value type as its CLR default value.
-
-On the client, a decoded document whose `kind` is not `response` is a
-protocol error. On the daemon, a decoded document whose `kind` is not
-`request` is answered with `400`.
-
-## Encoder rules
-
-- `OkResponse` / `IEmptyPayload` → `payloadType=empty`, no `payload`
-- any other `OkResponseBase` → `payloadType=data`
-- `ModelValidationErrorResponse` → `status=400`, `payloadType=validation-error`
-- any other `ErrorResponse` → `payloadType=error` (status taken from the DTO)
-- the dedicated no-body request path → `payloadType=empty`, no `payload`
-- any typed request value, including CLR `null` → `payloadType=data`; CLR `null` is encoded as JSON `null`
-
-Serialization uses the source-generated `MessageJsonSerializerContext`.
-Reflection-based JSON is not used on the production path.
-
-## Mapping onto in-process types
-
-The decoded runtime model preserves the wire direction explicitly:
-
-- `IRequestMessage` carries a non-null method and route;
-- `IResponseMessage` carries an integer status code;
-- both share application protocol version, representation identifier, and payload through `IMessage`.
-
-There is no context-dependent runtime message identifier. Routing consumes
-`IRequestMessage.Method` and `IRequestMessage.Route` directly, while client
-response dispatch consumes `IResponseMessage.StatusCode` and `PayloadType`.
-This prevents request-only and response-only metadata from becoming nullable
-alternate states on one generic message object.
-
-Controller response DTOs retain their existing `IIdentifiable` contract for
-source-generated endpoint mapping. That DTO-level identifier is separate from
-the decoded application-envelope runtime model.
-
-## Payload presence and endpoint binding
-
-Payload presence is part of the decoded application-message state, not an
-inference from `default(T)`. A body-taking endpoint is invoked only after a
-present payload has been successfully bound to its routed request type.
-
-- `payloadType=empty` is accepted by endpoints that declare no request body. A
-  body-taking endpoint returns `400` before deserialization.
-- `payloadType=data` requires the `payload` property to exist. A no-body
-  endpoint returns `400` rather than discarding it.
-- Explicit JSON `null` is a present `data` value. Daemon endpoints with a typed
-  request parameter require a materialized non-null request value, so JSON
-  `null` yields `400` and the endpoint is not invoked.
-- Syntactically valid values such as `{}`, `0`, and `false` are not absence.
-  They are passed through normal JSON binding and are accepted when the routed
-  request type accepts them, even when the resulting CLR value contains only
-  defaults.
-- A JSON value whose shape cannot be deserialized as the routed request type
-  yields `400`. Controller/domain code is not invoked for binding failures.
-
-This keeps wire-envelope validity separate from route-specific DTO binding. The
-application decoder validates the envelope and preserves its payload value; the
-matched endpoint determines which request type that value must satisfy.
-
-## Timeouts and cancellation
-
-The application protocol has no timeout field of its own. Connection owners
-enforce both a per-I/O idle timeout and an overall request/response deadline.
-The overall deadline continues through application processing, so a connection
-is bounded even when transport I/O continues to make incremental progress.
-Caller/shutdown cancellation remains cancellation and is not translated into
-an internal timeout. A request whose body cannot be materialized as the
-endpoint's DTO is a `400`, not a hang.
-
-## Failure split
-
-| Symptom | Layer | On-wire result |
-| --- | --- | --- |
-| Bad magic, short frame, wrong ITP version, unknown ITP packet type or application payload format | ITP | Connection-scoped ITP failure; malformed v1 frames may return `TransportError` only after reply-safe context is established |
-| Valid ITP frame whose JSON is not a v1 request/response | Application | Daemon: `400` + `error`. Client: `ApplicationProtocolException` |
-| Valid request, unknown route | Application | `404` + `error` |
-| Valid request, unknown method | Application | `501` + `error` |
-| Valid request whose payload is absent, JSON `null`, or incompatible with a body-taking endpoint | Application binding | `400` + `error`; endpoint not invoked |
-| Valid request, validation failure | Application | `400` + `validation-error` |
-| Controller exception | Application | `500` + `error` |
+| Invalid/truncated ITP frame or unsupported ITP metadata | ITP | Connection-scoped ITP failure; application codec is not invoked |
+| Invalid application v1 document | Application protocol | Daemon returns `400` `error`; client raises `ApplicationProtocolException` |
+| Unknown route | Routing | `404` `error` |
+| Unsupported method | Routing | `501` `error` |
+| Payload cannot bind to routed request type | Application binding | `400` `error`; endpoint not invoked |
+| Model validation failure | Application | `400` `validation-error` |
+| Controller exception | Application | `500` `error` |

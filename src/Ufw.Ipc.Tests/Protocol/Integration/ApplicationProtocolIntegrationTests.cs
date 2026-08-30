@@ -100,6 +100,21 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }).AsTask();
 
     [TestMethod]
+    public Task RawExchange_ResponsePayloadRemainsReadableAfterTransportIsReleased() => RunAsync(async (context, cancellationToken) =>
+    {
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
+            "/api/v1/echo",
+            RequestMethod.Post.ToString(),
+            new EchoRequest("buffered"),
+            cancellationToken);
+
+        await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+
+        EchoResponse? body = await response.Payload.ReadAsync<EchoResponse>(cancellationToken);
+        Assert.AreEqual(new EchoResponse("buffered"), body);
+    }).AsTask();
+
+    [TestMethod]
     public Task Cancellation_UnblocksClient() => RunAsync(async (context, cancellationToken) =>
     {
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

@@ -10,9 +10,9 @@ reject unsafe lengths and unsupported packet metadata before application
 decoding, and report recognized v1 framing failures as structured transport
 errors.
 
-ITP does not implement protocol negotiation, sessions, multiplexing, request
-correlation, or application routing. A connection carries at most one
-application exchange.
+ITP owns only wire framing and transport-level classification. It does not
+implement protocol negotiation, sessions, multiplexing, request correlation, or
+application routing. A connection carries at most one application exchange.
 
 ## Layering
 
@@ -186,9 +186,10 @@ new connection.
 
 ITP stores no session state between connections.
 
-## What ITP is not
+## Layer boundary
 
-ITP is not TLS; stream security wraps the stream below ITP. It is not the
-application protocol; methods, routes, statuses, DTO representations, and JSON
-semantics live above ITP. It is not a compatibility layer for the old
-newline-delimited JSON proof of concept.
+Stream security, when configured, wraps the stream below ITP. Methods, routes,
+statuses, DTO representations, and JSON semantics belong to the application
+protocol and routing layers above it. Keeping those responsibilities separate
+allows ITP to reject framing incompatibility without invoking application JSON
+decoding.

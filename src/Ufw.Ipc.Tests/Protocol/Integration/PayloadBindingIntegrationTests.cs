@@ -30,6 +30,30 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
         AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.Data, "null");
 
     [TestMethod]
+    public Task MalformedJson_DoesNotInvokeEndpoint()
+    {
+        int invocationCount = 0;
+        return RunAsync(
+            configureEndpoints: endpoints => endpoints.MapPost<ClassBody, OkResponse>(
+                Route,
+                (request, _) =>
+                {
+                    Interlocked.Increment(ref invocationCount);
+                    return ValueTask.FromResult(new OkResponse());
+                }),
+            actAsync: async (context, cancellationToken) =>
+            {
+                ReadOnlyMemory<byte> malformed = Encoding.UTF8.GetBytes(
+                    $"{{\"protocolVersion\":1,\"kind\":\"request\",\"method\":\"POST\",\"route\":\"{Route}\",\"payloadType\":\"data\",\"payload\":{{");
+                await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(malformed, cancellationToken);
+
+                Assert.AreEqual(400, response.StatusCode);
+                Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
+                Assert.AreEqual(0, Volatile.Read(ref invocationCount));
+            }).AsTask();
+    }
+
+    [TestMethod]
     public Task RequiredClassBody_WrongShape_DoesNotInvokeEndpoint() =>
         AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.Data, "17");
 
