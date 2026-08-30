@@ -91,14 +91,12 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
         await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
             "/api/v1/ping",
             RequestMethod.Get.ToString(),
-            payload: (object?)null,
-            typeof(object),
             cancellationToken);
         await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
         Assert.AreEqual(ApplicationMessageKind.Response, response.Kind);
         Assert.AreEqual(200, response.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.Empty, response.PayloadType);
-        Assert.IsTrue(response.Payload.IsEmpty);
+        Assert.IsFalse(response.Payload.HasPayload);
     }).AsTask();
 
     [TestMethod]

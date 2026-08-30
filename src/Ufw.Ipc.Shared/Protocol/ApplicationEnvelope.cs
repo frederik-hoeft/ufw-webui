@@ -5,7 +5,8 @@ namespace Ufw.Ipc.Shared.Protocol;
 
 /// <summary>
 /// On-wire application document. Required fields are annotated so an empty object
-/// cannot deserialize into a valid envelope.
+/// cannot deserialize into a valid envelope. An undefined <see cref="JsonElement"/>
+/// means that the payload property was absent; JSON null remains a distinct present value.
 /// </summary>
 public sealed class ApplicationEnvelope
 {
@@ -24,5 +25,6 @@ public sealed class ApplicationEnvelope
     [JsonRequired]
     public string PayloadType { get; init; } = null!;
 
-    public JsonElement? Payload { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public JsonElement Payload { get; init; }
 }

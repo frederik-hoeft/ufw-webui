@@ -4,6 +4,8 @@ namespace Ufw.Ipc.Shared.Serialization;
 
 public interface IMessageSerializer
 {
+    ValueTask<IRequestMessage> SerializeRequestAsync(string route, string method, CancellationToken cancellationToken);
+
     ValueTask<IRequestMessage> SerializeRequestAsync<T>(string route, string method, T payload, CancellationToken cancellationToken);
 
     ValueTask<IRequestMessage> SerializeRequestAsync(string route, string method, object? payload, Type type, CancellationToken cancellationToken);

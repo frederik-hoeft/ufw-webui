@@ -2,7 +2,7 @@
 
 public interface IMessageBlob : IDisposable, IAsyncDisposable
 {
-    bool IsEmpty { get; }
+    bool HasPayload { get; }
 
     ReadOnlyMemory<byte> Utf8 { get; }
 

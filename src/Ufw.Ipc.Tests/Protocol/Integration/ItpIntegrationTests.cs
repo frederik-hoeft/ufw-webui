@@ -31,8 +31,6 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
         await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
             "/api/v1/raw-ok",
             RequestMethod.Get.ToString(),
-            payload: (object?)null,
-            typeof(object),
             cancellationToken);
         byte[] frame = BuildFrame(ItpPacketType.ApplicationData, context.MessageSerializer.Encode(request));
 

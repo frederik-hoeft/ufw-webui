@@ -21,8 +21,6 @@ public sealed class ApplicationCodecTests
         await using IRequestMessage original = await serializer.SerializeRequestAsync(
             "/api/v1/ping",
             "GET",
-            payload: (object?)null,
-            typeof(object),
             CancellationToken.None);
 
         IRequestMessage decoded = RequireRequest(serializer.Decode(serializer.Encode(original)));
@@ -189,6 +187,77 @@ public sealed class ApplicationCodecTests
             """u8.ToArray();
         ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
         Assert.AreEqual(ApplicationProtocolError.UnexpectedField, exception.Error);
+    }
+
+    [TestMethod]
+    public async Task EncodeDecode_ExplicitJsonNull_IsPresentDataPayload()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        await using IRequestMessage original = await serializer.SerializeRequestAsync<object?>(
+            "/api/v1/null",
+            "POST",
+            payload: null,
+            CancellationToken.None);
+
+        Assert.AreEqual(ApplicationPayloadTypes.Data, original.PayloadType);
+        Assert.IsTrue(original.Payload.HasPayload);
+
+        byte[] encoded = serializer.Encode(original);
+        using (JsonDocument document = JsonDocument.Parse(encoded))
+        {
+            Assert.AreEqual(JsonValueKind.Null, document.RootElement.GetProperty("payload").ValueKind);
+        }
+
+        await using IRequestMessage decoded = RequireRequest(serializer.Decode(encoded));
+        Assert.AreEqual(ApplicationPayloadTypes.Data, decoded.PayloadType);
+        Assert.IsTrue(decoded.Payload.HasPayload);
+        object? value = await decoded.Payload.ReadAsync<object?>(CancellationToken.None);
+        Assert.IsNull(value);
+    }
+
+    [TestMethod]
+    public void Decode_EmptyPayloadTypeWithJsonNull_IsRejected()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"request","method":"GET","route":"/x","payloadType":"empty","payload":null}
+            """u8.ToArray();
+
+        ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode(json));
+        Assert.AreEqual(ApplicationProtocolError.PayloadTypeMismatch, exception.Error);
+    }
+
+    [TestMethod]
+    public async Task Decode_DataPayloadTypeWithJsonNull_IsPresent()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"request","method":"POST","route":"/x","payloadType":"data","payload":null}
+            """u8.ToArray();
+
+        await using IRequestMessage decoded = RequireRequest(serializer.Decode(json));
+        Assert.IsTrue(decoded.Payload.HasPayload);
+        string? value = await decoded.Payload.ReadAsync<string?>(CancellationToken.None);
+        Assert.IsNull(value);
+
+        ApplicationProtocolException exception = await Assert.ThrowsExactlyAsync<ApplicationProtocolException>(async () =>
+            await decoded.Payload.ReadAsync<int>(CancellationToken.None));
+        Assert.AreEqual(ApplicationProtocolError.PayloadDeserializeFailed, exception.Error);
+    }
+
+    [TestMethod]
+    public async Task PayloadRead_Absent_ThrowsInsteadOfReturningDefaultValue()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        await using IRequestMessage request = await serializer.SerializeRequestAsync(
+            "/api/v1/empty",
+            "GET",
+            CancellationToken.None);
+
+        Assert.IsFalse(request.Payload.HasPayload);
+        ApplicationProtocolException exception = await Assert.ThrowsExactlyAsync<ApplicationProtocolException>(async () =>
+            await request.Payload.ReadAsync<int>(CancellationToken.None));
+        Assert.AreEqual(ApplicationProtocolError.MissingPayload, exception.Error);
     }
 
     [TestMethod]

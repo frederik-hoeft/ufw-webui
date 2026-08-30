@@ -121,8 +121,8 @@ body by attempting several DTO types.
 
 | `payloadType` | `payload` | Used for |
 | --- | --- | --- |
-| `empty` | must be omitted, `null`, or absent | Requests with no body; responses with no representation (`OkResponse`) |
-| `data` | required JSON value (normally an object) | Typed request bodies and typed success-response bodies |
+| `empty` | must be omitted | Requests with no body; responses with no representation (`OkResponse`) |
+| `data` | required JSON value, including explicit JSON `null` | Typed request bodies and typed success-response bodies |
 | `error` | required object `{ "message": string? }` | Generic failure responses |
 | `validation-error` | required object `{ "message": string?, "errors": [ { "propertyName", "errorMessage" } ] }` | `400` caused by model validation |
 
@@ -154,12 +154,18 @@ that into a `400` / `payloadType=error` response):
 - request using response-only `payloadType=error` or `payloadType=validation-error`
 - response whose success/error status class does not match its representation (`data`/`empty` vs. `error`/`validation-error`)
 - response using `payloadType=validation-error` with a status other than `400`
-- `payloadType=empty` with a present non-null payload
-- `payloadType` other than `empty` with a missing or `null` payload
+- `payloadType=empty` with a `payload` property, including `payload: null`
+- `payloadType` other than `empty` with a missing `payload` property
 - `payloadType=validation-error` whose `errors` array is missing
 
+Payload-property absence is preserved independently from its JSON value. In
+particular, `payload: null` is a present `data` payload, while omitting
+`payload` under `payloadType=empty` means that no payload exists. A missing
+payload is never materialized as `default(T)`.
+
 `JsonException` is never converted into `default(T)`. A typed payload
-deserialize that fails is a protocol error, not an empty DTO.
+deserialize that fails is a binding/protocol error, not an empty DTO. JSON
+`null` cannot bind to a non-nullable value type as its CLR default value.
 
 On the client, a decoded document whose `kind` is not `response` is a
 protocol error. On the daemon, a decoded document whose `kind` is not
@@ -171,8 +177,8 @@ protocol error. On the daemon, a decoded document whose `kind` is not
 - any other `OkResponseBase` → `payloadType=data`
 - `ModelValidationErrorResponse` → `status=400`, `payloadType=validation-error`
 - any other `ErrorResponse` → `payloadType=error` (status taken from the DTO)
-- request DTO that is `IEmptyPayload` or `null` → `payloadType=empty`
-- any other request DTO → `payloadType=data`
+- the dedicated no-body request path → `payloadType=empty`, no `payload`
+- any typed request value, including CLR `null` → `payloadType=data`; CLR `null` is encoded as JSON `null`
 
 Serialization uses the source-generated `MessageJsonSerializerContext`.
 Reflection-based JSON is not used on the production path.
@@ -195,6 +201,30 @@ Controller response DTOs retain their existing `IIdentifiable` contract for
 source-generated endpoint mapping. That DTO-level identifier is separate from
 the decoded application-envelope runtime model.
 
+## Payload presence and endpoint binding
+
+Payload presence is part of the decoded application-message state, not an
+inference from `default(T)`. A body-taking endpoint is invoked only after a
+present payload has been successfully bound to its routed request type.
+
+- `payloadType=empty` is accepted by endpoints that declare no request body. A
+  body-taking endpoint returns `400` before deserialization.
+- `payloadType=data` requires the `payload` property to exist. A no-body
+  endpoint returns `400` rather than discarding it.
+- Explicit JSON `null` is a present `data` value. Daemon endpoints with a typed
+  request parameter require a materialized non-null request value, so JSON
+  `null` yields `400` and the endpoint is not invoked.
+- Syntactically valid values such as `{}`, `0`, and `false` are not absence.
+  They are passed through normal JSON binding and are accepted when the routed
+  request type accepts them, even when the resulting CLR value contains only
+  defaults.
+- A JSON value whose shape cannot be deserialized as the routed request type
+  yields `400`. Controller/domain code is not invoked for binding failures.
+
+This keeps wire-envelope validity separate from route-specific DTO binding. The
+application decoder validates the envelope and preserves its payload value; the
+matched endpoint determines which request type that value must satisfy.
+
 ## Timeouts and cancellation
 
 The application protocol has no timeout field of its own. A peer that stops
@@ -210,5 +240,6 @@ not a hang.
 | Valid ITP frame whose JSON is not a v1 request/response | Application | Daemon: `400` + `error`. Client: `ApplicationProtocolException` |
 | Valid request, unknown route | Application | `404` + `error` |
 | Valid request, unknown method | Application | `501` + `error` |
+| Valid request whose payload is absent, JSON `null`, or incompatible with a body-taking endpoint | Application binding | `400` + `error`; endpoint not invoked |
 | Valid request, validation failure | Application | `400` + `validation-error` |
 | Controller exception | Application | `500` + `error` |

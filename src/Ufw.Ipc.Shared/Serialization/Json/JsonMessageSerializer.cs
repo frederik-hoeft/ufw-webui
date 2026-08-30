@@ -15,6 +15,19 @@ namespace Ufw.Ipc.Shared.Serialization.Json;
 public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IMessageSerializer
 {
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    public ValueTask<IRequestMessage> SerializeRequestAsync(string route, string method, CancellationToken cancellationToken)
+    {
+        ValidateRequestMetadata(route, method, payload: null);
+        IRequestMessage message = new RequestMessage(
+            ApplicationProtocolVersion.Current,
+            method,
+            route,
+            ApplicationPayloadTypes.Empty,
+            BufferedJsonMessageBlob.Empty(context));
+        return ValueTask.FromResult(message);
+    }
+
+    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
     public ValueTask<IRequestMessage> SerializeRequestAsync<T>(string route, string method, T payload, CancellationToken cancellationToken)
     {
         ValidateRequestMetadata(route, method, payload);
@@ -89,7 +102,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         return FromEnvelope(envelope);
     }
 
-    private static void ValidateRequestMetadata<T>(string route, string method, T payload)
+    private static void ValidateRequestMetadata(string route, string method, object? payload)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
         ArgumentException.ThrowIfNullOrWhiteSpace(method);
@@ -109,8 +122,8 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
     private ApplicationEnvelope ToEnvelope(IMessage message)
     {
-        JsonElement? payloadElement = null;
-        if (!message.Payload.IsEmpty)
+        JsonElement payloadElement = default;
+        if (message.Payload.HasPayload)
         {
             payloadElement = JsonSerializer.Deserialize(message.Payload.Utf8.Span, context.GetTypeInfo<JsonElement>());
         }
@@ -155,8 +168,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
                 $"Unknown application payload type '{envelope.PayloadType}'.");
         }
 
-        bool hasPayload = envelope.Payload is { } element
-            && element.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null;
+        bool hasPayload = envelope.Payload.ValueKind != JsonValueKind.Undefined;
 
         ValidatePayloadPresence(envelope.PayloadType, hasPayload);
 
@@ -254,7 +266,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
             return;
         }
 
-        if (envelope.Payload is not { ValueKind: JsonValueKind.Object } payload)
+        if (envelope.Payload.ValueKind != JsonValueKind.Object)
         {
             throw new ApplicationProtocolException(
                 ApplicationProtocolError.PayloadTypeMismatch,
@@ -262,7 +274,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         }
 
         if (envelope.PayloadType == ApplicationPayloadTypes.ValidationError
-            && (!payload.TryGetProperty("errors", out JsonElement errors) || errors.ValueKind != JsonValueKind.Array))
+            && (!envelope.Payload.TryGetProperty("errors", out JsonElement errors) || errors.ValueKind != JsonValueKind.Array))
         {
             throw new ApplicationProtocolException(
                 ApplicationProtocolError.PayloadTypeMismatch,
@@ -293,20 +305,13 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     }
 
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
-    private IMessageBlob CreatePayloadBlob(ApplicationEnvelope envelope, bool hasPayload)
-    {
-        if (!hasPayload)
-        {
-            return BufferedJsonMessageBlob.FromUtf8(ReadOnlyMemory<byte>.Empty, context);
-        }
-
-        return BufferedJsonMessageBlob.FromUtf8(
-            JsonSerializer.SerializeToUtf8Bytes(envelope.Payload!.Value, context.GetTypeInfo<JsonElement>()),
-            context);
-    }
+    private IMessageBlob CreatePayloadBlob(ApplicationEnvelope envelope, bool hasPayload) =>
+        hasPayload
+            ? BufferedJsonMessageBlob.FromJsonElement(envelope.Payload, context)
+            : BufferedJsonMessageBlob.Empty(context);
 
     private static string ResolveRequestPayloadType(object? payload) =>
-        payload is null or IEmptyPayload ? ApplicationPayloadTypes.Empty : ApplicationPayloadTypes.Data;
+        payload is IEmptyPayload ? ApplicationPayloadTypes.Empty : ApplicationPayloadTypes.Data;
 
     private static string ResolveResponsePayloadType(IResponsePayload payload) => payload switch
     {

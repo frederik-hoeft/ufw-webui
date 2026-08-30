@@ -39,9 +39,12 @@ protocol v1.
 - **`payloadType` is the discriminator.** Generic `400` and validation `400`
   share a status and are distinguished by `error` vs `validation-error`, not
   by probing DTOs.
-- **Empty or invalid JSON is never a valid request or response.** Required
-  fields, kind, and payload-type consistency are enforced after deserialize.
-  `JsonException` is not converted into `default(T)`.
+- **Payload absence is explicit.** `payloadType=empty` omits `payload`; a
+  `data` document always carries the property, and JSON `null` remains a
+  present value. Missing payloads and binding failures never become
+  `default(T)` request objects.
+- **Invalid JSON is never a valid request or response.** Required fields, kind,
+  and payload-type consistency are enforced after deserialize.
 - **Timeouts live on the stream, not in the frame.** `TimedStream` plus
   `CancellationToken` prevent waiting on a dead peer. The protocols themselves
   have no timeout field.

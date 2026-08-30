@@ -40,7 +40,7 @@ internal sealed class UfwClient
             throw new ArgumentOutOfRangeException(nameof(method), method, "The specified request method is not supported.");
         }
 
-        return SendAsync<object?, TResponse>(method.ToString(), route, request: null, cancellationToken);
+        return SendRequestAsync<TResponse>(method.ToString(), route, cancellationToken).AsTask();
     }
 
     public Task<TResponse> SendAsync<TRequest, TResponse>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default)
@@ -63,19 +63,39 @@ internal sealed class UfwClient
     public Task SendAsync<TRequest>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default) where TRequest : IMessagePayload =>
         SendAsync<TRequest, OkResponse>(method, route, request, cancellationToken);
 
-    public Task SendAsync(RequestMethod method, string route, CancellationToken cancellationToken = default) =>
-        SendAsync<object?, OkResponse>(method, route, request: null, cancellationToken);
+    public Task SendAsync(RequestMethod method, string route, CancellationToken cancellationToken = default)
+    {
+        if (!RequestMethod.IsDefined(method))
+        {
+            throw new ArgumentOutOfRangeException(nameof(method), method, "The specified request method is not supported.");
+        }
+
+        return SendRequestAsync<OkResponse>(method.ToString(), route, cancellationToken).AsTask();
+    }
+
+    private async ValueTask<TResponse> SendRequestAsync<TResponse>(string? method, string route, CancellationToken cancellationToken = default)
+        where TResponse : IEquatable<TResponse>
+    {
+        ArgumentException.ThrowIfNullOrEmpty(method, nameof(method));
+        await using IRequestMessage message = await messageSerializer.SerializeRequestAsync(route, method, cancellationToken);
+        return await SendMessageAsync<TResponse>(message, cancellationToken);
+    }
 
     private async ValueTask<TResponse> SendRequestAsync<TRequest, TResponse>(string? method, string route, TRequest request, CancellationToken cancellationToken = default)
         where TResponse : IEquatable<TResponse>
     {
         ArgumentException.ThrowIfNullOrEmpty(method, nameof(method));
+        await using IRequestMessage message = await messageSerializer.SerializeRequestAsync(route, method, request, cancellationToken);
+        return await SendMessageAsync<TResponse>(message, cancellationToken);
+    }
 
+    private async ValueTask<TResponse> SendMessageAsync<TResponse>(IRequestMessage message, CancellationToken cancellationToken)
+        where TResponse : IEquatable<TResponse>
+    {
         TimeSpan ioTimeout = options.RequestTimeout <= TimeSpan.Zero ? Timeout.InfiniteTimeSpan : options.RequestTimeout;
         await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(cancellationToken);
         await using Stream stream = connection.GetStream(ioTimeout, ioTimeout);
         await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, cancellationToken);
-        await using IRequestMessage message = await messageSerializer.SerializeRequestAsync(route, method, request, cancellationToken);
 
         ItpConnection itp = new(secureStream, itpOptions);
         await itp.WriteApplicationDataAsync(messageSerializer.Encode(message), cancellationToken);

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Protocol;
@@ -6,60 +5,89 @@ using Ufw.Roslyn.Json;
 
 namespace Ufw.Ipc.Shared.Serialization;
 
-internal class BufferedJsonMessageBlob : IMessageBlob
+internal sealed class BufferedJsonMessageBlob : IMessageBlob
 {
     private readonly byte[] _utf8;
     private readonly AotJsonSerializerContext _context;
+    private readonly bool _isJsonNull;
     private bool _disposedValue;
 
-    private BufferedJsonMessageBlob(byte[] utf8, AotJsonSerializerContext context)
+    private BufferedJsonMessageBlob(byte[] utf8, AotJsonSerializerContext context, bool hasPayload, bool isJsonNull)
     {
         _utf8 = utf8;
         _context = context;
+        HasPayload = hasPayload;
+        _isJsonNull = isJsonNull;
     }
 
-    public bool IsEmpty => _utf8.Length == 0;
+    public bool HasPayload { get; }
 
-    public ReadOnlyMemory<byte> Utf8 => _utf8;
+    public ReadOnlyMemory<byte> Utf8
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_disposedValue, this);
+            return _utf8;
+        }
+    }
+
+    public static BufferedJsonMessageBlob Empty(AotJsonSerializerContext serializerContext) =>
+        new([], serializerContext, hasPayload: false, isJsonNull: false);
 
     public static BufferedJsonMessageBlob CreateFrom<T>(T value, AotJsonSerializerContext serializerContext)
     {
-        if (value is null or IEmptyPayload)
+        if (value is IEmptyPayload)
         {
-            return EmptyBufferedJsonMessageBlob.Instance;
+            return Empty(serializerContext);
         }
 
         byte[] utf8 = JsonSerializer.SerializeToUtf8Bytes(value, serializerContext.GetTypeInfo<T>());
-        return new BufferedJsonMessageBlob(utf8, serializerContext);
+        return new BufferedJsonMessageBlob(utf8, serializerContext, hasPayload: true, isJsonNull: value is null);
     }
 
     public static BufferedJsonMessageBlob CreateFrom(object? value, Type type, AotJsonSerializerContext serializerContext)
     {
-        if (value is null or IEmptyPayload)
+        if (value is IEmptyPayload)
         {
-            return EmptyBufferedJsonMessageBlob.Instance;
+            return Empty(serializerContext);
         }
 
         byte[] utf8 = JsonSerializer.SerializeToUtf8Bytes(value, type, serializerContext);
-        return new BufferedJsonMessageBlob(utf8, serializerContext);
+        return new BufferedJsonMessageBlob(utf8, serializerContext, hasPayload: true, isJsonNull: value is null);
     }
 
-    public static BufferedJsonMessageBlob FromUtf8(ReadOnlyMemory<byte> utf8, AotJsonSerializerContext serializerContext)
+    public static BufferedJsonMessageBlob FromJsonElement(JsonElement payload, AotJsonSerializerContext serializerContext)
     {
-        if (utf8.IsEmpty)
+        if (payload.ValueKind == JsonValueKind.Undefined)
         {
-            return EmptyBufferedJsonMessageBlob.Instance;
+            return Empty(serializerContext);
         }
 
-        return new BufferedJsonMessageBlob(utf8.ToArray(), serializerContext);
+        byte[] utf8 = JsonSerializer.SerializeToUtf8Bytes(payload, serializerContext.GetTypeInfo<JsonElement>());
+        return new BufferedJsonMessageBlob(
+            utf8,
+            serializerContext,
+            hasPayload: true,
+            isJsonNull: payload.ValueKind == JsonValueKind.Null);
     }
 
-    public virtual ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken)
+    public ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        if (_utf8.Length == 0)
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!HasPayload)
         {
-            return ValueTask.FromResult<TResult?>(default);
+            throw new ApplicationProtocolException(
+                ApplicationProtocolError.MissingPayload,
+                "Application message does not contain a payload.");
+        }
+
+        if (_isJsonNull && default(TResult) is not null)
+        {
+            throw new ApplicationProtocolException(
+                ApplicationProtocolError.PayloadDeserializeFailed,
+                $"Application payload JSON null cannot be bound to non-nullable value type {typeof(TResult).Name}.");
         }
 
         try
@@ -76,26 +104,11 @@ internal class BufferedJsonMessageBlob : IMessageBlob
         }
     }
 
-    public virtual void Dispose() => _disposedValue = true;
+    public void Dispose() => _disposedValue = true;
 
-    public virtual ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _disposedValue = true;
         return ValueTask.CompletedTask;
-    }
-
-    [SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "Singleton empty blob owns no resources.")]
-    private sealed class EmptyBufferedJsonMessageBlob() : BufferedJsonMessageBlob([], context: null!)
-    {
-        public static EmptyBufferedJsonMessageBlob Instance { get; } = new();
-
-        public override ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken) where TResult : default =>
-            ValueTask.FromResult<TResult?>(default);
-
-        public override void Dispose()
-        {
-        }
-
-        public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

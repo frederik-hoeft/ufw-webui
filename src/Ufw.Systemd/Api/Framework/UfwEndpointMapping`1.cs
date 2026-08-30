@@ -13,6 +13,11 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
     public async override ValueTask<IResponseMessage> InvokeAsync(IServiceProvider serviceProvider, IRequestMessage request, CancellationToken cancellationToken)
     {
         IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
+        if (request.Payload.HasPayload)
+        {
+            return await BadRequestAsync(messageSerializer, "This endpoint does not accept a request payload.", cancellationToken);
+        }
+
         TResponse responsePayload;
         try
         {

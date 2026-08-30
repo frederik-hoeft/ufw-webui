@@ -26,8 +26,6 @@ public sealed class DiagnosticTransportTests
             await using IRequestMessage outbound = await serializer.SerializeRequestAsync(
                 route: "/api/v1/ping",
                 method: "GET",
-                payload: (object?)null,
-                type: typeof(object),
                 CancellationToken.None);
 
             Task serverTask = Task.Run(async () =>

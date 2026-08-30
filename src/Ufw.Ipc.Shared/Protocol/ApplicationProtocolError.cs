@@ -13,4 +13,5 @@ public enum ApplicationProtocolError
     InvalidStatus,
     UnexpectedField,
     PayloadDeserializeFailed,
+    MissingPayload,
 }

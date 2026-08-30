@@ -37,8 +37,6 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
         await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
             route: "/api/v1/raw-ok",
             method: RequestMethod.Get.ToString(),
-            payload: (object?)null,
-            type: typeof(object),
             cancellationToken);
 
         await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
