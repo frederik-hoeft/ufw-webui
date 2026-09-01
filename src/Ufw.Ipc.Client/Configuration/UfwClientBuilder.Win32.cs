@@ -4,33 +4,43 @@ namespace Ufw.Ipc.Client.Configuration;
 
 public sealed partial class UfwClientBuilder : IDisposable
 {
-    [GeneratedRegex("^//(?<server_name>[^/]+)/pipe/(?<pipe_name>[A-Za-z0-9\\-_]+)$")]
-    private static partial Regex PipeUriRegex { get; }
+    [GeneratedRegex(
+        "^\\\\\\\\(?<server_name>[^\\\\/]+)\\\\pipe\\\\(?<pipe_name>[^\\\\/]+)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex PipePathRegex { get; }
 
-    [GeneratedRegex("^(?<pipe_name>[A-Za-z0-9\\-_]+)$")]
+    [GeneratedRegex(
+        "^//(?<server_name>[^/\\\\]+)/pipe/(?<pipe_name>[^/\\\\]+)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex LegacyPipePathRegex { get; }
+
+    [GeneratedRegex("^(?<pipe_name>[^/\\\\]+)$")]
     private static partial Regex PipeNameRegex { get; }
 
     private static partial PipeEndpoint ParseEndpoint(string endpoint)
     {
-        Match pipeUriMatch = PipeUriRegex.Match(endpoint);
-        string serverName;
-        string pipeName;
-        if (pipeUriMatch is { Success: true })
+        Match pipePathMatch = PipePathRegex.Match(endpoint);
+        if (pipePathMatch is { Success: true })
         {
-            serverName = pipeUriMatch.Groups["server_name"].Value;
-            pipeName = pipeUriMatch.Groups["pipe_name"].Value;
+            return new PipeEndpoint(
+                pipePathMatch.Groups["server_name"].Value,
+                pipePathMatch.Groups["pipe_name"].Value);
         }
-        else
-        {
-            Match pipeNameMatch = PipeNameRegex.Match(endpoint);
-            if (pipeNameMatch is not { Success: true })
-            {
-                throw new InvalidOperationException($"Invalid endpoint format: '{endpoint}'");
-            }
 
-            serverName = ".";
-            pipeName = pipeNameMatch.Groups["pipe_name"].Value;
+        Match legacyPipePathMatch = LegacyPipePathRegex.Match(endpoint);
+        if (legacyPipePathMatch is { Success: true })
+        {
+            return new PipeEndpoint(
+                legacyPipePathMatch.Groups["server_name"].Value,
+                legacyPipePathMatch.Groups["pipe_name"].Value);
         }
-        return new PipeEndpoint(serverName, pipeName);
+
+        Match pipeNameMatch = PipeNameRegex.Match(endpoint);
+        if (pipeNameMatch is not { Success: true })
+        {
+            throw new InvalidOperationException($"Invalid endpoint format: '{endpoint}'");
+        }
+
+        return new PipeEndpoint(".", pipeNameMatch.Groups["pipe_name"].Value);
     }
 }

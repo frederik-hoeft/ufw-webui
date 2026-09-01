@@ -5,12 +5,28 @@ namespace Ufw.Ipc.Tests.Configuration;
 [TestClass]
 public sealed class UfwClientBuilderTests
 {
+    private static string TestEndpoint => OperatingSystem.IsWindows()
+        ? @"\\.\pipe\ufw-client-builder-tests.pipe"
+        : "/tmp/ufw-client-builder-tests.pipe";
+
+    [TestMethod]
+    public void TestBuild_ParsesPlatformEndpoint()
+    {
+        using UfwClientBuilder builder = new();
+        UfwClientOptions options = builder.ConnectTo(TestEndpoint).Build();
+
+        Assert.AreEqual(".", options.ServerName);
+        Assert.AreEqual(
+            OperatingSystem.IsWindows() ? "ufw-client-builder-tests.pipe" : TestEndpoint,
+            options.PipeName);
+    }
+
     [TestMethod]
     public void TestBuild_UsesConfiguredTimeouts()
     {
         using UfwClientBuilder builder = new();
         UfwClientOptions options = builder
-            .ConnectTo("/tmp/ufw-client-builder-tests.pipe")
+            .ConnectTo(TestEndpoint)
             .UseIoTimeout(TimeSpan.FromSeconds(3))
             .UseRequestTimeout(TimeSpan.FromSeconds(9))
             .Build();
@@ -24,7 +40,7 @@ public sealed class UfwClientBuilderTests
     {
         using UfwClientBuilder builder = new();
         UfwClientOptions options = builder
-            .ConnectTo("/tmp/ufw-client-builder-tests.pipe")
+            .ConnectTo(TestEndpoint)
             .UseIoTimeout(Timeout.InfiniteTimeSpan)
             .UseRequestTimeout(Timeout.InfiniteTimeSpan)
             .Build();
