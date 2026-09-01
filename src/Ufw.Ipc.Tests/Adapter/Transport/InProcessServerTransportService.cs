@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Transport;
+﻿using Ufw.Ipc.Shared.Transport;
 using Ufw.Systemd.Transport;
 
 namespace Ufw.Ipc.Tests.Adapter.Transport;

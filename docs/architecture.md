@@ -40,13 +40,40 @@ The daemon currently exposes only the rule-listing placeholder. No mutating daem
 
 ## IPC layer
 
-`Ufw.Ipc.Client` and `Ufw.Ipc.Shared` provide the typed request/response protocol used between `Ufw.Web` and `Ufw.Systemd`.
+`Ufw.Ipc.Client` and `Ufw.Ipc.Shared` define the typed request/response channel
+between `Ufw.Web` and `Ufw.Systemd`. The channel has four distinct stages: the
+local byte stream, ITP wire framing, the JSON application envelope, and daemon
+routing/binding. The detailed protocol contracts live under
+[docs/protocols](protocols/README.md).
 
-The local IPC channel provides process separation and keeps privileged operations off the HTTP listener. It does not make `Ufw.Web` trusted to authorize firewall mutations. Any process that gains the web application's effective capabilities must still be unable to manufacture an accepted firewall change without a valid user signature.
+ITP validates wire compatibility, framing, packet metadata, and bounded payload
+lengths before any application JSON is decoded. The application codec then
+validates request/response direction, representation semantics, and payload
+presence. Only a valid `IRequestMessage` reaches daemon routing, where a matched
+endpoint binds the buffered payload to its request DTO before controller code is
+invoked. Responses follow the same layers in reverse. Each connection carries one
+request/response exchange and holds no reusable protocol session state.
 
-The current transport-security abstraction is not part of the mutation authorization model. The web and daemon presently use the no-op stream-security implementation over the local pipe. Filesystem ownership/permissions for the Unix socket remain an operational control for limiting local access, but they are defense in depth rather than proof of user intent.
+This layering also defines failure containment. Expected peer-originated framing,
+application-protocol, transport I/O, timeout, and stream-security failures are
+scoped to the current connection so a daemon worker can continue serving later
+peers. Transport errors are returned only when enough valid v1 framing context
+exists to make a reply safe, and an incoming transport error never triggers a
+transport-error loop. Unexpected daemon/framework failures are not classified as
+peer failures; they remain observable by faulting the worker/application.
 
-Daemon workers isolate expected peer/connection failures from the serving loop. Malformed protocol data, transport I/O failures, and TLS-authentication failures terminate the current connection and are logged, after which the worker accepts another request. Unexpected exceptions outside that boundary are not swallowed; they fault the worker/application and remain observable.
+Connection policy applies both a per-I/O idle timeout and an overall transaction
+deadline. The idle timeout bounds a read or write that stops making progress; the
+transaction deadline bounds the complete exchange even when bytes continue to
+arrive slowly. External client cancellation and daemon shutdown remain
+cancellation rather than internal timeout failures.
+
+The local IPC channel provides process separation and keeps privileged operations
+off the HTTP listener, but reachability is not authorization to mutate firewall
+state. The web process must not be able to manufacture an accepted firewall
+change without the daemon-side signed-intent verification boundary described in
+the security documentation. Filesystem ownership and permissions on the Unix
+socket remain defense-in-depth controls for local exposure.
 
 ## Firewall state and application metadata
 

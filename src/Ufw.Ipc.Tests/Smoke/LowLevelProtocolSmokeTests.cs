@@ -1,14 +1,18 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
+using Ufw.Ipc.Shared.Transport;
+using Ufw.Ipc.Shared.Transport.Itp;
 using Ufw.Ipc.Shared.Transport.Security;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
+using Ufw.Systemd.Transport;
 
 namespace Ufw.Ipc.Tests.Smoke;
 
@@ -30,40 +34,35 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task ExchangeRaw_UsesProductionFraming() => RunAsync(async (context, cancellationToken) =>
+    public Task TestExchangeRaw_UsesProductionFraming() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer.SerializeAsync(
-            id: "/api/v1/raw-ok",
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
+            route: "/api/v1/raw-ok",
             method: RequestMethod.Get.ToString(),
-            payload: (object?)null,
-            type: typeof(object),
             cancellationToken);
 
-        await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+        await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
 
-        Assert.AreEqual("200", response.Id);
-    }).AsTask();
+        Assert.AreEqual(200, response.StatusCode);
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task MissingMethod_ValidationMiddleware_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
+    public Task TestMissingMethod_ApplicationDecoder_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IMessage request = await context.MessageSerializer.SerializeAsync(
-            id: "/api/v1/raw-ok",
-            method: null,
-            payload: (object?)null,
-            type: typeof(object),
-            cancellationToken);
+        ReadOnlyMemory<byte> request =
+            """{"protocolVersion":1,"kind":"request","route":"/api/v1/raw-ok","payloadType":"empty"}"""u8.ToArray();
 
-        await using IMessage response = await context.ExchangeRawAsync(request, cancellationToken);
+        await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(request, cancellationToken);
 
-        Assert.AreEqual("400", response.Id);
+        Assert.AreEqual(400, response.StatusCode);
+        Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
         BadRequestResponse? body = await response.Payload.ReadAsync<BadRequestResponse>(cancellationToken);
         Assert.IsNotNull(body);
-        StringAssert.Contains(body.Message, "Malformed request");
-    }).AsTask();
+        Assert.IsFalse(string.IsNullOrWhiteSpace(body.Message));
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task MalformedHeaderBytes_DoesNotTerminateProductionWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task TestMalformedHeaderBytes_DoesNotTerminateProductionWorker() => RunAsync(async (context, cancellationToken) =>
     {
         ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
 
@@ -72,36 +71,50 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
             await using IMessage _ = await context.ExchangeBytesAsync(garbage, cancellationToken);
         });
         Assert.IsTrue(
-            exception is InvalidDataException
+            exception is ItpException
+                or InvalidDataException
                 or IOException
                 or System.Text.Json.JsonException
                 or EndOfStreamException
-                or OperationCanceledException,
+                or OperationCanceledException
+                or TimeoutException,
             $"Unexpected exception type: {exception.GetType().FullName}: {exception.Message}");
 
         OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(response);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TransportIoFailure_DoesNotTerminateProductionWorker() =>
+    public async Task TestUnexpectedServerFailure_IsObservableAsync()
+    {
+        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await RunAsync(
+                static (_, _) => ValueTask.CompletedTask,
+                configuration: new IpcTestRunConfiguration
+                {
+                    ConfigureServerServices = services =>
+                        services.Replace(ServiceDescriptor.Singleton<ITransportLayerService>(new FailingTransportLayerService())),
+                }, TestContext.CancellationToken));
+
+        Assert.Contains("unexpected worker failure", exception.Message);
+    }
+
+    [TestMethod]
+    public Task TestTransportIoFailure_DoesNotTerminateProductionWorker() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new IOException("Simulated connection I/O failure."));
 
     [TestMethod]
-    public Task TransportSocketFailure_DoesNotTerminateProductionWorker() =>
+    public Task TestTransportSocketFailure_DoesNotTerminateProductionWorker() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new SocketException((int)SocketError.ConnectionReset));
 
     [TestMethod]
-    public Task TransportAuthenticationFailure_DoesNotTerminateProductionWorker() =>
+    public Task TestTransportAuthenticationFailure_DoesNotTerminateProductionWorker() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new AuthenticationException("Simulated TLS authentication failure."));
 
     private Task ConnectionFailureDoesNotTerminateProductionWorkerAsync(Exception connectionFailure) => RunAsync(
         async (context, cancellationToken) =>
         {
-            _ = await Assert.ThrowsAsync<Exception>(async () =>
-            {
-                _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
-            });
+            _ = await Assert.ThrowsAsync<Exception>(async () => _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken));
 
             OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
             Assert.IsNotNull(response);
@@ -112,6 +125,12 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
                 services.Replace(ServiceDescriptor.Singleton<ITransportSecurityService>(
                     new FailOnceTransportSecurityService(connectionFailure))),
         }).AsTask();
+
+    private sealed class FailingTransportLayerService : ITransportLayerService
+    {
+        public Task<ITransportLayerConnection> ServeAsync(CancellationToken cancellationToken) =>
+            Task.FromException<ITransportLayerConnection>(new InvalidOperationException("unexpected worker failure"));
+    }
 
     private sealed class FailOnceTransportSecurityService(Exception failure) : ITransportSecurityService
     {

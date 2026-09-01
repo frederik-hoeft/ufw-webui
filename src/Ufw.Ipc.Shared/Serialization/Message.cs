@@ -1,15 +1,39 @@
-﻿namespace Ufw.Ipc.Shared.Serialization;
+﻿using Ufw.Ipc.Shared.Protocol;
 
-internal sealed class Message(string id, string? method, IMessageBlob payload) : IMessage, IDisposable, IAsyncDisposable
+namespace Ufw.Ipc.Shared.Serialization;
+
+internal abstract class MessageBase(
+    ApplicationMessageKind kind,
+    int protocolVersion,
+    string payloadType,
+    IMessageBlob payload) : IMessage
 {
     private bool _disposedValue;
 
-    public string Id
+    public ApplicationMessageKind Kind
     {
         get
         {
             ObjectDisposedException.ThrowIf(_disposedValue, this);
-            return id;
+            return kind;
+        }
+    }
+
+    public int ProtocolVersion
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_disposedValue, this);
+            return protocolVersion;
+        }
+    }
+
+    public string PayloadType
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_disposedValue, this);
+            return payloadType;
         }
     }
 
@@ -22,24 +46,71 @@ internal sealed class Message(string id, string? method, IMessageBlob payload) :
         }
     }
 
-    public string? Method
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_disposedValue, this);
-            return method;
-        }
-    }
+    protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposedValue, this);
 
     public void Dispose()
     {
-        Payload.Dispose();
+        if (_disposedValue)
+        {
+            return;
+        }
+
+        payload.Dispose();
         _disposedValue = true;
     }
 
     public async ValueTask DisposeAsync()
     {
-        await Payload.DisposeAsync();
+        if (_disposedValue)
+        {
+            return;
+        }
+
+        await payload.DisposeAsync();
         _disposedValue = true;
+    }
+}
+
+internal sealed class RequestMessage(
+    int protocolVersion,
+    string method,
+    string route,
+    string payloadType,
+    IMessageBlob payload)
+    : MessageBase(ApplicationMessageKind.Request, protocolVersion, payloadType, payload), IRequestMessage
+{
+    public string Method
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return method;
+        }
+    }
+
+    public string Route
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return route;
+        }
+    }
+}
+
+internal sealed class ResponseMessage(
+    int protocolVersion,
+    int statusCode,
+    string payloadType,
+    IMessageBlob payload)
+    : MessageBase(ApplicationMessageKind.Response, protocolVersion, payloadType, payload), IResponseMessage
+{
+    public int StatusCode
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return statusCode;
+        }
     }
 }

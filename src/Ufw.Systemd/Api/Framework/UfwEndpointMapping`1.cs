@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
-using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Api.Framework;
 
@@ -11,16 +9,14 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
     : UfwEndpointMappingBase(Method, Route, Priority)
     where TResponse : IIdentifiable
 {
-    public async override ValueTask<IMessage> InvokeAsync(IServiceProvider serviceProvider, IMessage request, CancellationToken cancellationToken)
+    public async override ValueTask<IResponseMessage> InvokeAsync(IServiceProvider serviceProvider, IRequestMessage request, CancellationToken cancellationToken)
     {
         IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
-        IConfiguration configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        bool success = await request.Payload.TryReadAsync(configuration.Settings.Network.RequestTimeout, cancellationToken);
-        if (!success)
+        if (request.Payload.HasPayload)
         {
-            RequestTimeoutResponse timeout = new("The request payload could not be read within the specified timeout period.");
-            return await messageSerializer.SerializeAsync(timeout, cancellationToken);
+            return await BadRequestAsync(messageSerializer, "This endpoint does not accept a request payload.", cancellationToken);
         }
+
         TResponse responsePayload;
         try
         {
@@ -28,8 +24,8 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
         }
         catch (Exception e)
         {
-            return await messageSerializer.SerializeAsync(InternalServerError(e, serviceProvider), cancellationToken);
+            return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);
         }
-        return await messageSerializer.SerializeAsync(responsePayload, cancellationToken);
+        return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
     }
 }

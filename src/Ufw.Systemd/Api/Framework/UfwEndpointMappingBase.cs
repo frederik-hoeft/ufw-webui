@@ -7,8 +7,11 @@ using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Api.Framework;
 
-internal abstract record UfwEndpointMappingBase(string Method, string Route, int Priority) : ApiEndpointMapping<IMessage, IMessage>(Method, Route, Priority)
+internal abstract record UfwEndpointMappingBase(string Method, string Route, int Priority) : ApiEndpointMapping<IRequestMessage, IResponseMessage>(Method, Route, Priority)
 {
+    protected static ValueTask<IResponseMessage> BadRequestAsync(IMessageSerializer messageSerializer, string message, CancellationToken cancellationToken) =>
+        messageSerializer.SerializeResponseAsync(new BadRequestResponse(message), cancellationToken);
+
     protected static InternalServerErrorResponse InternalServerError(Exception exception, IServiceProvider serviceProvider)
     {
         IConfiguration configuration = serviceProvider.GetRequiredService<IConfiguration>();

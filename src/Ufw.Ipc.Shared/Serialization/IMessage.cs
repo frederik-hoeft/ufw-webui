@@ -1,10 +1,26 @@
-﻿namespace Ufw.Ipc.Shared.Serialization;
+﻿using Ufw.Ipc.Shared.Protocol;
+
+namespace Ufw.Ipc.Shared.Serialization;
 
 public interface IMessage : IDisposable, IAsyncDisposable
 {
-    string Id { get; }
+    ApplicationMessageKind Kind { get; }
 
-    string? Method { get; }
+    int ProtocolVersion { get; }
+
+    string PayloadType { get; }
 
     IMessageBlob Payload { get; }
+}
+
+public interface IRequestMessage : IMessage
+{
+    string Method { get; }
+
+    string Route { get; }
+}
+
+public interface IResponseMessage : IMessage
+{
+    int StatusCode { get; }
 }

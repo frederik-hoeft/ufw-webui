@@ -1,9 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
-using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Api.Framework;
 
@@ -11,16 +10,29 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
     : UfwEndpointMappingBase(Method, Route, Priority)
     where TResponse : IIdentifiable
 {
-    public async override ValueTask<IMessage> InvokeAsync(IServiceProvider serviceProvider, IMessage request, CancellationToken cancellationToken)
+    public async override ValueTask<IResponseMessage> InvokeAsync(IServiceProvider serviceProvider, IRequestMessage request, CancellationToken cancellationToken)
     {
         IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
-        IConfiguration configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        TRequest? requestPayload = await request.Payload.ReadAsync<TRequest>(cancellationToken);
+        if (!request.Payload.HasPayload)
+        {
+            return await BadRequestAsync(messageSerializer, "This endpoint requires a request payload.", cancellationToken);
+        }
+
+        TRequest? requestPayload;
+        try
+        {
+            requestPayload = await request.Payload.ReadAsync<TRequest>(cancellationToken);
+        }
+        catch (ApplicationProtocolException ex)
+        {
+            return await BadRequestAsync(messageSerializer, ex.Message, cancellationToken);
+        }
+
         if (requestPayload is null)
         {
-            BadRequestResponse badRequest = new("Request payload was null or did not match the expected type.");
-            return await messageSerializer.SerializeAsync(badRequest, cancellationToken);
+            return await BadRequestAsync(messageSerializer, "Request payload JSON null cannot be bound to this endpoint.", cancellationToken);
         }
+
         TResponse responsePayload;
         try
         {
@@ -28,8 +40,8 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
         }
         catch (Exception e)
         {
-            return await messageSerializer.SerializeAsync(InternalServerError(e, serviceProvider), cancellationToken);
+            return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);
         }
-        return await messageSerializer.SerializeAsync(responsePayload, cancellationToken);
+        return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
     }
 }

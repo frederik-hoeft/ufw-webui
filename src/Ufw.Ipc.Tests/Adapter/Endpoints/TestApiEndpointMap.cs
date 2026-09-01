@@ -1,4 +1,4 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers.Mapping;
@@ -9,14 +9,14 @@ namespace Ufw.Ipc.Tests.Adapter.Endpoints;
 /// <summary>
 /// Programmatic endpoint map for tests. Uses the production routing tree without source-generated controllers.
 /// </summary>
-internal sealed class TestApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
+internal sealed class TestApiEndpointMap : ApiEndpointMap<IRequestMessage, IResponseMessage>
 {
     private static readonly NotFoundEndpoint s_notFound = new();
     private static readonly UnsupportedMethodEndpoint s_unsupportedMethod = new();
 
-    private readonly ApiEndpointMapping<IMessage, IMessage>[] _mappings;
+    private readonly ApiEndpointMapping<IRequestMessage, IResponseMessage>[] _mappings;
 
-    public TestApiEndpointMap(IEnumerable<ApiEndpointMapping<IMessage, IMessage>> mappings)
+    public TestApiEndpointMap(IEnumerable<ApiEndpointMapping<IRequestMessage, IResponseMessage>> mappings)
     {
         ArgumentNullException.ThrowIfNull(mappings);
         _mappings = [.. mappings];
@@ -24,9 +24,9 @@ internal sealed class TestApiEndpointMap : ApiEndpointMap<IMessage, IMessage>
 
     protected override FrozenSet<string> SupportedMethods { get; } = RequestMethod.GetNames().ToFrozenSet();
 
-    protected override ApiEndpointMapping<IMessage, IMessage>[] GetMappings() => _mappings;
+    protected override ApiEndpointMapping<IRequestMessage, IResponseMessage>[] GetMappings() => _mappings;
 
-    public override IApiEndpoint<IMessage, IMessage> GetNotFoundEndpoint() => s_notFound;
+    public override IApiEndpoint<IRequestMessage, IResponseMessage> GetNotFoundEndpoint() => s_notFound;
 
-    public override IApiEndpoint<IMessage, IMessage> GetUnsupportedMethodEndpoint() => s_unsupportedMethod;
+    public override IApiEndpoint<IRequestMessage, IResponseMessage> GetUnsupportedMethodEndpoint() => s_unsupportedMethod;
 }

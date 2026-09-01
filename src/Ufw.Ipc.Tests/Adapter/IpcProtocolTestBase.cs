@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 

@@ -1,4 +1,4 @@
-using Ufw.Systemd.Services.Logging;
+﻿using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Ipc.Tests.Adapter.Configuration;
 

@@ -5,12 +5,12 @@ namespace Ufw.Systemd.Api.Middleware;
 
 internal interface IRequestResponsePipeline
 {
-    ValueTask<IMessage> ProcessMessageAsync(IMessage request, CancellationToken cancellationToken);
+    ValueTask<IResponseMessage> ProcessMessageAsync(IRequestMessage request, CancellationToken cancellationToken);
 }
 
 internal interface IRequestMiddleware : IPipelineHandler
 {
     void Initialize(IRequestMiddleware next);
 
-    ValueTask<IMessage> InvokeAsync(IMessage request, CancellationToken cancellationToken);
+    ValueTask<IResponseMessage> InvokeAsync(IRequestMessage request, CancellationToken cancellationToken);
 }

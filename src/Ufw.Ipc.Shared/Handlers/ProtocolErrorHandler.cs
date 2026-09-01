@@ -7,13 +7,13 @@ public abstract class ProtocolErrorHandler : IMessageHandler, IPipelineHandler
 {
     public int Priority => int.MaxValue;
 
-    public bool CanHandle(IMessage message) => true;
+    public bool CanHandle(IResponseMessage message) => true;
 
-    protected static string ProtocolErrorMessage(IMessage message)
+    protected static string ProtocolErrorMessage(IResponseMessage message)
     {
         ArgumentNullException.ThrowIfNull(message, nameof(message));
-        return $"No handler has been registered that can interpret messages of type '{message.Id}'.";
+        return $"No handler has been registered that can interpret response status '{message.StatusCode}', payloadType '{message.PayloadType}'.";
     }
 
-    protected static Exception ProtocolError(IMessage message) => new InvalidDataException(ProtocolErrorMessage(message));
+    protected static Exception ProtocolError(IResponseMessage message) => new InvalidDataException(ProtocolErrorMessage(message));
 }

@@ -1,4 +1,4 @@
-using Ufw.Systemd.Configuration.Model;
+﻿using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Ipc.Tests.Adapter.Configuration;
 
@@ -7,7 +7,7 @@ namespace Ufw.Ipc.Tests.Adapter.Configuration;
 /// </summary>
 internal static class TestAppSettingsFactory
 {
-    public static AppSettings Create(TimeSpan? requestTimeout = null, int maxConnections = 2, bool debugMode = true) =>
+    public static AppSettings Create(TimeSpan? ioTimeout = null, TimeSpan? requestTimeout = null, int maxConnections = 2, bool debugMode = true) =>
         new()
         {
             DebugMode = debugMode,
@@ -23,6 +23,7 @@ internal static class TestAppSettingsFactory
             Network = new NetworkOptions
             {
                 MaxConnections = maxConnections,
+                IoTimeout = ioTimeout ?? TimeSpan.FromSeconds(15),
                 RequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(15),
             },
         };

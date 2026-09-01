@@ -1,8 +1,9 @@
-﻿using System.Text.Json.Serialization;
-using Ufw.Ipc.Shared.Model;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Model.Responses.Domain;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Roslyn.Json;
 
 namespace Ufw.Ipc.Shared.Serialization.Json;
@@ -13,7 +14,8 @@ namespace Ufw.Ipc.Shared.Serialization.Json;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     UseStringEnumConverter = true)]
 [JsonSerializable(typeof(object))]
-[JsonSerializable(typeof(MessageHeader))]
+[JsonSerializable(typeof(JsonElement))]
+[JsonSerializable(typeof(ApplicationEnvelope))]
 [JsonSerializable(typeof(OkResponse))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(BadRequestResponse))]

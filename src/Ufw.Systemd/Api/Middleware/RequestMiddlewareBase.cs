@@ -25,5 +25,5 @@ internal abstract class RequestMiddlewareBase : IRequestMiddleware
         Next = next;
     }
 
-    public abstract ValueTask<IMessage> InvokeAsync(IMessage request, CancellationToken cancellationToken);
+    public abstract ValueTask<IResponseMessage> InvokeAsync(IRequestMessage request, CancellationToken cancellationToken);
 }

@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.IO.Pipelines;
 
 namespace Ufw.Ipc.Tests.Adapter.Transport;
@@ -38,7 +38,7 @@ internal sealed class DuplexPipeStream : Stream
     public override void Flush() =>
         _writer.FlushAsync().AsTask().GetAwaiter().GetResult();
 
-    public override async Task FlushAsync(CancellationToken cancellationToken)
+    public async override Task FlushAsync(CancellationToken cancellationToken)
     {
         FlushResult result = await _writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
@@ -54,7 +54,7 @@ internal sealed class DuplexPipeStream : Stream
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
         ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
 
-    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    public async override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (buffer.Length == 0)
@@ -102,7 +102,7 @@ internal sealed class DuplexPipeStream : Stream
     public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
         WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
 
-    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    public async override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (buffer.IsEmpty)
@@ -143,7 +143,7 @@ internal sealed class DuplexPipeStream : Stream
         base.Dispose(disposing);
     }
 
-    public override async ValueTask DisposeAsync()
+    public async override ValueTask DisposeAsync()
     {
         if (_disposed)
         {

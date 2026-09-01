@@ -5,5 +5,5 @@ namespace Ufw.Ipc.Shared.Handlers;
 
 public interface IMessageHandler : IPipelineHandler
 {
-    bool CanHandle(IMessage message);
+    bool CanHandle(IResponseMessage message);
 }

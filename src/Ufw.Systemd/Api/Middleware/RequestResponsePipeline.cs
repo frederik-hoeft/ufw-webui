@@ -24,6 +24,6 @@ internal sealed class RequestResponsePipeline : IRequestResponsePipeline
         }
     }
 
-    public ValueTask<IMessage> ProcessMessageAsync(IMessage request, CancellationToken cancellationToken) =>
+    public ValueTask<IResponseMessage> ProcessMessageAsync(IRequestMessage request, CancellationToken cancellationToken) =>
         _middlewarePipeline.InvokeAsync(request, cancellationToken);
 }

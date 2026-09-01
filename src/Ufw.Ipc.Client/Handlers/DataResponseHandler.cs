@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 using Ufw.Ipc.Shared.Handlers;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Pipelines;
+using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
 
 namespace Ufw.Ipc.Client.Handlers;
@@ -13,19 +14,31 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
 
     public int Priority => 0;
 
-    public bool CanHandle(IMessage message) => message.Id == "200";
+    public bool CanHandle(IResponseMessage message) =>
+        message.StatusCode == 200;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IMessage message, CancellationToken cancellationToken)
+    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
-        if (typeof(TResult) == typeof(OkResponse))
+        if (message.PayloadType == ApplicationPayloadTypes.EMPTY)
         {
-            await message.Payload.TryReadAsync(Timeout.InfiniteTimeSpan, cancellationToken);
+            if (typeof(TResult) != typeof(OkResponse))
+            {
+                throw new SerializationException(
+                    $"Response '{message.StatusCode}' has payloadType '{message.PayloadType}' but {typeof(TResult).Name} was requested.");
+            }
+
             OkResponse okResponse = s_okResponse;
             return Unsafe.As<OkResponse, TResult>(ref okResponse);
         }
 
+        if (message.PayloadType != ApplicationPayloadTypes.DATA)
+        {
+            throw new SerializationException(
+                $"Response '{message.StatusCode}' has unexpected payloadType '{message.PayloadType}' for a 200 response.");
+        }
+
         TResult? result = await message.Payload.ReadAsync<TResult>(cancellationToken);
-        return result ?? throw new SerializationException($"Unable to deserialize payload of pipe message '{message.Id}' to type {typeof(TResult)}.");
+        return result ?? throw new SerializationException($"Unable to deserialize payload of response '{message.StatusCode}' to type {typeof(TResult)}.");
     }
 }
