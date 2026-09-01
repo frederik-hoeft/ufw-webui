@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;

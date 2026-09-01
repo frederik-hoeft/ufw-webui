@@ -1,5 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Client;
+﻿using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Transport;
@@ -160,7 +159,7 @@ internal sealed class IpcTestContext
             base.Dispose(disposing);
         }
 
-        public override async ValueTask DisposeAsync()
+        public async override ValueTask DisposeAsync()
         {
             if (_disposed)
             {

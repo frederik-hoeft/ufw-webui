@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.IO.Pipelines;
 using System.Text;
 using Ufw.Ipc.Shared.Transport;
@@ -9,18 +9,20 @@ namespace Ufw.Ipc.Tests.Protocol.Itp;
 [TestClass]
 public sealed class ItpFrameCodecTests
 {
+    public required TestContext TestContext { get; set; }
+
     [TestMethod]
-    public async Task RoundTrip_ApplicationData_PreservesPayloadAndFormat()
+    public async Task TestRoundTrip_ApplicationData_PreservesPayloadAndFormatAsync()
     {
         byte[] payload = "application-bytes"u8.ToArray();
         using MemoryStream stream = new();
         ItpConnection writer = new(stream);
 
-        await writer.WriteApplicationDataAsync(payload);
+        await writer.WriteApplicationDataAsync(payload, TestContext.CancellationToken);
 
         stream.Position = 0;
         ItpConnection reader = new(stream);
-        ItpFrame frame = await reader.ReadAsync();
+        ItpFrame frame = await reader.ReadAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(ItpPacketType.ApplicationData, frame.PacketType);
         Assert.AreEqual(ItpPayloadFormat.IpcJson, frame.PayloadFormat);
@@ -28,140 +30,140 @@ public sealed class ItpFrameCodecTests
     }
 
     [TestMethod]
-    public async Task RoundTrip_TransportError_SurfacesPeerError()
+    public async Task TestRoundTrip_TransportError_SurfacesPeerErrorAsync()
     {
         using MemoryStream stream = new();
         ItpConnection writer = new(stream);
-        await writer.WriteTransportErrorAsync(ItpErrorCode.VersionMismatch, "peer is v2");
+        await writer.WriteTransportErrorAsync(ItpErrorCode.VersionMismatch, "peer is v2", TestContext.CancellationToken);
 
         stream.Position = 0;
         ItpConnection reader = new(stream);
-        ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () => await reader.ReadAsync());
+        ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () => await reader.ReadAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(ItpErrorCode.VersionMismatch, exception.ErrorCode);
         Assert.IsTrue(exception.IsPeerReported);
         Assert.IsFalse(exception.CanReplyWithTransportError);
-        StringAssert.Contains(exception.Message, "peer is v2");
+        Assert.Contains("peer is v2", exception.Message);
     }
 
     [TestMethod]
-    public async Task WriteTransportError_LongDiagnostic_IsBoundedAndValidUtf8()
+    public async Task TestWriteTransportError_LongDiagnostic_IsBoundedAndValidUtf8Async()
     {
         using MemoryStream stream = new();
         await new ItpConnection(stream).WriteTransportErrorAsync(
             ItpErrorCode.InvalidFrame,
-            new string('\u20AC', ItpConstants.MaxTransportErrorMessageUtf8Length));
+            new string('\u20AC', ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH), TestContext.CancellationToken);
 
         byte[] frame = stream.ToArray();
         uint payloadLength = BinaryPrimitives.ReadUInt32BigEndian(frame.AsSpan(6, 4));
         ushort messageLength = BinaryPrimitives.ReadUInt16BigEndian(
-            frame.AsSpan(ItpConstants.Version1HeaderSize + 2, 2));
+            frame.AsSpan(ItpConstants.VERSION_1_HEADER_SIZE + 2, 2));
 
         Assert.AreEqual((uint)(4 + messageLength), payloadLength);
-        Assert.IsTrue(messageLength <= ItpConstants.MaxTransportErrorMessageUtf8Length);
+        Assert.IsLessThanOrEqualTo(ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH, messageLength);
 
         stream.Position = 0;
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.IsTrue(exception.IsPeerReported);
-        Assert.IsFalse(exception.Message.Contains('\uFFFD'));
+        Assert.DoesNotContain('\uFFFD', exception.Message);
     }
 
     [TestMethod]
-    public async Task WriteApplicationData_EmptyPayload_IsRejected()
+    public async Task TestWriteApplicationData_EmptyPayload_IsRejectedAsync()
     {
         using MemoryStream stream = new();
         ItpConnection writer = new(stream);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await writer.WriteApplicationDataAsync(ReadOnlyMemory<byte>.Empty));
+            await writer.WriteApplicationDataAsync(ReadOnlyMemory<byte>.Empty, TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.EmptyApplicationPayload, exception.ErrorCode);
         Assert.AreEqual(0, stream.Length);
     }
 
     [TestMethod]
-    public async Task Read_FragmentedBytes_ReassemblesFrame()
+    public async Task TestRead_FragmentedBytes_ReassemblesFrameAsync()
     {
         byte[] payload = Encoding.UTF8.GetBytes(new string('x', 64));
         using MemoryStream raw = new();
-        await new ItpConnection(raw).WriteApplicationDataAsync(payload);
+        await new ItpConnection(raw).WriteApplicationDataAsync(payload, TestContext.CancellationToken);
         byte[] frameBytes = raw.ToArray();
 
         await using OneByteReadStream fragmented = new(frameBytes);
-        ItpFrame frame = await new ItpConnection(fragmented).ReadAsync();
+        ItpFrame frame = await new ItpConnection(fragmented).ReadAsync(TestContext.CancellationToken);
         CollectionAssert.AreEqual(payload, frame.Payload.ToArray());
     }
 
     [TestMethod]
-    public async Task Read_TruncatedPreamble_IsIncompleteFrame()
+    public async Task TestRead_TruncatedPreamble_IsIncompleteFrameAsync()
     {
         using MemoryStream stream = new("ITP"u8.ToArray());
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
         Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
-    public async Task Read_TruncatedVersion1Header_IsIncompleteFrame()
+    public async Task TestRead_TruncatedVersion1Header_IsIncompleteFrameAsync()
     {
         using MemoryStream stream = new([0x49, 0x54, 0x50, 0x01, 0x01]);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
         Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
-    public async Task Read_TruncatedPayload_IsIncompleteFrame()
+    public async Task TestRead_TruncatedPayload_IsIncompleteFrameAsync()
     {
         byte[] frame = ItpTestFrame.Build(ItpPacketType.ApplicationData, "hello"u8);
         using MemoryStream stream = new(frame[..^2]);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.IncompleteFrame, exception.ErrorCode);
         Assert.IsTrue(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
-    public async Task Read_BadMagic_IsInvalidMagic()
+    public async Task TestRead_BadMagic_IsInvalidMagicAsync()
     {
-        byte[] preamble = [(byte)'X', (byte)'T', (byte)'P', ItpConstants.Version];
+        byte[] preamble = [(byte)'X', (byte)'T', (byte)'P', ItpConstants.VERSION];
         using MemoryStream stream = new(preamble);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.InvalidMagic, exception.ErrorCode);
         Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
-    public async Task Read_UnsupportedVersion_RequiresOnlyStablePreamble()
+    public async Task TestRead_UnsupportedVersion_RequiresOnlyStablePreambleAsync()
     {
         byte[] preamble = [(byte)'I', (byte)'T', (byte)'P', 0x7F];
         using MemoryStream stream = new(preamble);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(ItpErrorCode.VersionMismatch, exception.ErrorCode);
         Assert.IsFalse(exception.CanReplyWithTransportError);
-        Assert.AreEqual(ItpConstants.PreambleSize, stream.Position);
+        Assert.AreEqual(ItpConstants.PREAMBLE_SIZE, stream.Position);
     }
 
     [TestMethod]
-    public async Task Read_UnknownPacketType_IsUnsupportedPacketType()
+    public async Task TestRead_UnknownPacketType_IsUnsupportedPacketTypeAsync()
     {
         byte[] frame = ItpTestFrame.Build((ItpPacketType)0x7F, "hello"u8);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.UnsupportedPacketType, exception.ErrorCode);
         Assert.IsTrue(exception.CanReplyWithTransportError);
-        Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
+        Assert.AreEqual(ItpConstants.VERSION_1_HEADER_SIZE, stream.Position);
     }
 
     [TestMethod]
-    public async Task Read_UnsupportedApplicationPayloadFormat_IsRejectedBeforeBodyRead()
+    public async Task TestRead_UnsupportedApplicationPayloadFormat_IsRejectedBeforeBodyReadAsync()
     {
         byte[] frame = ItpTestFrame.Build(
             ItpPacketType.ApplicationData,
@@ -169,15 +171,15 @@ public sealed class ItpFrameCodecTests
             payloadFormat: (ItpPayloadFormat)0x7F);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(ItpErrorCode.UnsupportedPayloadFormat, exception.ErrorCode);
         Assert.IsTrue(exception.CanReplyWithTransportError);
-        Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
+        Assert.AreEqual(ItpConstants.VERSION_1_HEADER_SIZE, stream.Position);
     }
 
     [TestMethod]
-    public async Task Read_TransportErrorWithApplicationFormat_IsInvalidFrame()
+    public async Task TestRead_TransportErrorWithApplicationFormat_IsInvalidFrameAsync()
     {
         byte[] frame = ItpTestFrame.Build(
             ItpPacketType.TransportError,
@@ -185,34 +187,34 @@ public sealed class ItpFrameCodecTests
             payloadFormat: ItpPayloadFormat.IpcJson);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(ItpErrorCode.InvalidFrame, exception.ErrorCode);
         Assert.IsFalse(exception.CanReplyWithTransportError);
-        Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
+        Assert.AreEqual(ItpConstants.VERSION_1_HEADER_SIZE, stream.Position);
     }
 
     [TestMethod]
-    public async Task RoundTrip_PayloadAtConfiguredMaximum_IsAccepted()
+    public async Task TestRoundTrip_PayloadAtConfiguredMaximum_IsAcceptedAsync()
     {
         ItpOptions options = new() { MaxPayloadLength = 16 };
-        byte[] payload = Enumerable.Range(0, options.MaxPayloadLength).Select(static value => (byte)value).ToArray();
+        byte[] payload = [.. Enumerable.Range(0, options.MaxPayloadLength).Select(static value => (byte)value)];
         using MemoryStream stream = new();
 
-        await new ItpConnection(stream, options).WriteApplicationDataAsync(payload);
+        await new ItpConnection(stream, options).WriteApplicationDataAsync(payload, TestContext.CancellationToken);
 
         stream.Position = 0;
-        ItpFrame frame = await new ItpConnection(stream, options).ReadAsync();
+        ItpFrame frame = await new ItpConnection(stream, options).ReadAsync(TestContext.CancellationToken);
 
         CollectionAssert.AreEqual(payload, frame.Payload.ToArray());
     }
 
     [TestMethod]
-    public async Task Read_DeclaredLengthExceedsLimit_IsPayloadTooLarge_AndDoesNotReadBody()
+    public async Task TestRead_DeclaredLengthExceedsLimit_IsPayloadTooLarge_AndDoesNotReadBodyAsync()
     {
-        byte[] header = new byte[ItpConstants.Version1HeaderSize];
+        byte[] header = new byte[ItpConstants.VERSION_1_HEADER_SIZE];
         "ITP"u8.CopyTo(header);
-        header[3] = ItpConstants.Version;
+        header[3] = ItpConstants.VERSION;
         header[4] = (byte)ItpPacketType.ApplicationData;
         header[5] = (byte)ItpPayloadFormat.IpcJson;
         BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(6, 4), 1024);
@@ -220,26 +222,26 @@ public sealed class ItpFrameCodecTests
         using MemoryStream stream = new(header);
         ItpOptions options = new() { MaxPayloadLength = 16 };
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream, options).ReadAsync());
+            await new ItpConnection(stream, options).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.PayloadTooLarge, exception.ErrorCode);
         Assert.IsTrue(exception.CanReplyWithTransportError);
         Assert.AreEqual(header.Length, stream.Position);
     }
 
     [TestMethod]
-    public async Task Read_EmptyApplicationData_IsEmptyApplicationPayload()
+    public async Task TestRead_EmptyApplicationData_IsEmptyApplicationPayloadAsync()
     {
         byte[] frame = ItpTestFrame.Build(ItpPacketType.ApplicationData, []);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.EmptyApplicationPayload, exception.ErrorCode);
         Assert.IsTrue(exception.CanReplyWithTransportError);
-        Assert.AreEqual(ItpConstants.Version1HeaderSize, stream.Position);
+        Assert.AreEqual(ItpConstants.VERSION_1_HEADER_SIZE, stream.Position);
     }
 
     [TestMethod]
-    public async Task Read_MalformedTransportErrorPayload_IsInvalidFrame()
+    public async Task TestRead_MalformedTransportErrorPayload_IsInvalidFrameAsync()
     {
         byte[] frame = ItpTestFrame.Build(
             ItpPacketType.TransportError,
@@ -247,14 +249,14 @@ public sealed class ItpFrameCodecTests
             payloadFormat: ItpPayloadFormat.None);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
         Assert.AreEqual(ItpErrorCode.InvalidFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
         Assert.IsFalse(exception.CanReplyWithTransportError);
     }
 
     [TestMethod]
-    public async Task Read_TransportErrorWithInvalidUtf8_IsInvalidFrame()
+    public async Task TestRead_TransportErrorWithInvalidUtf8_IsInvalidFrameAsync()
     {
         byte[] frame = ItpTestFrame.Build(
             ItpPacketType.TransportError,
@@ -263,7 +265,7 @@ public sealed class ItpFrameCodecTests
         using MemoryStream stream = new(frame);
 
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
-            await new ItpConnection(stream).ReadAsync());
+            await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(ItpErrorCode.InvalidFrame, exception.ErrorCode);
         Assert.IsFalse(exception.IsPeerReported);
@@ -271,7 +273,7 @@ public sealed class ItpFrameCodecTests
     }
 
     [TestMethod]
-    public async Task Cancellation_AbortsRead()
+    public async Task TestCancellation_AbortsReadAsync()
     {
         Pipe pipe = new();
         await using Stream stream = pipe.Reader.AsStream();
@@ -282,13 +284,13 @@ public sealed class ItpFrameCodecTests
     }
 
     [TestMethod]
-    public async Task TimedStream_ReadTimeout_DoesNotWaitForever()
+    public async Task TestTimedStream_ReadTimeout_DoesNotWaitForeverAsync()
     {
         Pipe pipe = new();
         await using Stream inner = pipe.Reader.AsStream();
         await using TimedStream timed = new(inner, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(50));
         await Assert.ThrowsExactlyAsync<TimeoutException>(async () =>
-            await new ItpConnection(timed).ReadAsync());
+            await new ItpConnection(timed).ReadAsync(TestContext.CancellationToken));
     }
 }
 
@@ -351,19 +353,19 @@ file static class ItpTestFrame
     public static byte[] Build(
         ItpPacketType packetType,
         ReadOnlySpan<byte> payload,
-        byte version = ItpConstants.Version,
+        byte version = ItpConstants.VERSION,
         ItpPayloadFormat? payloadFormat = null)
     {
         ItpPayloadFormat effectivePayloadFormat = payloadFormat ?? (packetType == ItpPacketType.ApplicationData
             ? ItpPayloadFormat.IpcJson
             : ItpPayloadFormat.None);
-        byte[] frame = new byte[ItpConstants.Version1HeaderSize + payload.Length];
+        byte[] frame = new byte[ItpConstants.VERSION_1_HEADER_SIZE + payload.Length];
         "ITP"u8.CopyTo(frame);
         frame[3] = version;
         frame[4] = (byte)packetType;
         frame[5] = (byte)effectivePayloadFormat;
         BinaryPrimitives.WriteUInt32BigEndian(frame.AsSpan(6, 4), (uint)payload.Length);
-        payload.CopyTo(frame.AsSpan(ItpConstants.Version1HeaderSize));
+        payload.CopyTo(frame.AsSpan(ItpConstants.VERSION_1_HEADER_SIZE));
         return frame;
     }
 }

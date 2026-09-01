@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Tests.Adapter;
+﻿namespace Ufw.Ipc.Tests.Adapter;
 
 /// <summary>
 /// Tunables for a single in-process IPC test host.

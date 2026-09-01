@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport;
+﻿namespace Ufw.Ipc.Shared.Transport;
 
 /// <summary>
 /// Applies independent read/write timeouts to an inner stream without requiring
@@ -69,7 +69,7 @@ public class TimedStream : Stream
 
     public override void Write(byte[] buffer, int offset, int count) => _innerStream.Write(buffer, offset, count);
 
-    public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    public async override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
         using CancellationTokenSource? timeout = LinkTimeout(_readTimeout, cancellationToken);
         try
@@ -82,7 +82,7 @@ public class TimedStream : Stream
         }
     }
 
-    public override async Task FlushAsync(CancellationToken cancellationToken)
+    public async override Task FlushAsync(CancellationToken cancellationToken)
     {
         using CancellationTokenSource? timeout = LinkTimeout(_writeTimeout, cancellationToken);
         try
@@ -95,7 +95,7 @@ public class TimedStream : Stream
         }
     }
 
-    public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    public async override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         using CancellationTokenSource? timeout = LinkTimeout(_readTimeout, cancellationToken);
         try
@@ -108,7 +108,7 @@ public class TimedStream : Stream
         }
     }
 
-    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    public async override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         using CancellationTokenSource? timeout = LinkTimeout(_readTimeout, cancellationToken);
         try
@@ -121,7 +121,7 @@ public class TimedStream : Stream
         }
     }
 
-    public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    public async override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         using CancellationTokenSource? timeout = LinkTimeout(_writeTimeout, cancellationToken);
         try
@@ -134,7 +134,7 @@ public class TimedStream : Stream
         }
     }
 
-    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    public async override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
         using CancellationTokenSource? timeout = LinkTimeout(_writeTimeout, cancellationToken);
         try

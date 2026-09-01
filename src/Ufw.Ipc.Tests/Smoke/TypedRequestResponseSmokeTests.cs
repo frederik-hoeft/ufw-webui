@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Tests.Adapter;
@@ -28,7 +28,7 @@ public sealed class TypedRequestResponseSmokeTests : IpcProtocolTestBase
     {
         OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/ping", cancellationToken);
         Assert.IsNotNull(response);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task DefaultHost_UsesProductionNetworkApplication() => RunAsync((context, _) =>
@@ -39,7 +39,7 @@ public sealed class TypedRequestResponseSmokeTests : IpcProtocolTestBase
         Assert.IsInstanceOfType<NetworkApplication>(application);
         Assert.IsInstanceOfType<NetworkApplicationWorker>(worker);
         return ValueTask.CompletedTask;
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task Post_Echo_RoundTripsPayload() => RunAsync(async (context, cancellationToken) =>
@@ -51,7 +51,7 @@ public sealed class TypedRequestResponseSmokeTests : IpcProtocolTestBase
             cancellationToken);
 
         Assert.AreEqual("hello-ipc", response.Message);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 }
 
 file sealed record EchoRequest(string Message);

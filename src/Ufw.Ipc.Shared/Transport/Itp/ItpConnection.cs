@@ -24,19 +24,19 @@ public sealed class ItpConnection
 
     public async ValueTask<ItpFrame> ReadAsync(CancellationToken cancellationToken = default)
     {
-        byte[] preambleBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.PreambleSize);
+        byte[] preambleBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.PREAMBLE_SIZE);
         try
         {
-            Memory<byte> preamble = preambleBuffer.AsMemory(0, ItpConstants.PreambleSize);
+            Memory<byte> preamble = preambleBuffer.AsMemory(0, ItpConstants.PREAMBLE_SIZE);
             await ReadExactAsync(_stream, preamble, cancellationToken).ConfigureAwait(false);
             byte version = ParsePreamble(preamble.Span);
 
             return version switch
             {
-                ItpConstants.Version => await ReadVersion1Async(cancellationToken).ConfigureAwait(false),
+                ItpConstants.VERSION => await ReadVersion1Async(cancellationToken).ConfigureAwait(false),
                 _ => throw ItpException.Local(
                     ItpErrorCode.VersionMismatch,
-                    $"Unsupported ITP version {version}; this peer speaks version {ItpConstants.Version}."),
+                    $"Unsupported ITP version {version}; this peer speaks version {ItpConstants.VERSION}."),
             };
         }
         finally
@@ -107,10 +107,10 @@ public sealed class ItpConnection
 
     private async ValueTask<ItpFrame> ReadVersion1Async(CancellationToken cancellationToken)
     {
-        byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.Version1HeaderRemainderSize);
+        byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(ItpConstants.VERSION_1_HEADER_REMAINDER_SIZE);
         try
         {
-            Memory<byte> header = headerBuffer.AsMemory(0, ItpConstants.Version1HeaderRemainderSize);
+            Memory<byte> header = headerBuffer.AsMemory(0, ItpConstants.VERSION_1_HEADER_REMAINDER_SIZE);
             await ReadExactAsync(_stream, header, cancellationToken).ConfigureAwait(false);
 
             ParseVersion1Header(
@@ -158,17 +158,17 @@ public sealed class ItpConnection
 
         ValidateVersion1Packet(packetType, payloadFormat, payload.Length);
 
-        int frameLength = ItpConstants.Version1HeaderSize + payload.Length;
+        int frameLength = ItpConstants.VERSION_1_HEADER_SIZE + payload.Length;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(frameLength);
         try
         {
             Span<byte> frame = buffer.AsSpan(0, frameLength);
             ItpConstants.Magic.CopyTo(frame);
-            frame[3] = ItpConstants.Version;
+            frame[3] = ItpConstants.VERSION;
             frame[4] = (byte)packetType;
             frame[5] = (byte)payloadFormat;
             BinaryPrimitives.WriteUInt32BigEndian(frame.Slice(6, 4), (uint)payload.Length);
-            payload.Span.CopyTo(frame[ItpConstants.Version1HeaderSize..]);
+            payload.Span.CopyTo(frame[ItpConstants.VERSION_1_HEADER_SIZE..]);
 
             await _stream.WriteAsync(buffer.AsMemory(0, frameLength), cancellationToken).ConfigureAwait(false);
             await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -181,12 +181,12 @@ public sealed class ItpConnection
 
     private static byte ParsePreamble(ReadOnlySpan<byte> preamble)
     {
-        if (!preamble[..ItpConstants.MagicSize].SequenceEqual(ItpConstants.Magic))
+        if (!preamble[..ItpConstants.MAGIC_SIZE].SequenceEqual(ItpConstants.Magic))
         {
             throw ItpException.Local(ItpErrorCode.InvalidMagic, "Frame magic is not 'ITP'.");
         }
 
-        return preamble[ItpConstants.MagicSize];
+        return preamble[ItpConstants.MAGIC_SIZE];
     }
 
     private void ParseVersion1Header(

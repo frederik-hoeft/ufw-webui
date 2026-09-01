@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model.Responses;
+﻿using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Serialization.Json;
 using Ufw.Ipc.Shared.Transport.Itp;
@@ -13,8 +13,10 @@ namespace Ufw.Ipc.Tests.Smoke;
 [TestClass]
 public sealed class DiagnosticTransportTests
 {
+    public required TestContext TestContext { get; set; }
+
     [TestMethod]
-    public async Task DuplexPair_CanExchangeSerializerFrames()
+    public async Task TestDuplexPair_CanExchangeSerializerFramesAsync()
     {
         (Stream client, Stream server) = DuplexStreamPair.Create();
         await using (client)
@@ -41,20 +43,20 @@ public sealed class DiagnosticTransportTests
                     new DiagnosticResponse(true),
                     CancellationToken.None);
                 await serverItp.WriteApplicationDataAsync(serializer.Encode(response), CancellationToken.None);
-            });
+            }, TestContext.CancellationToken);
 
             ItpConnection clientItp = new(client);
             await clientItp.WriteApplicationDataAsync(serializer.Encode(outbound), CancellationToken.None);
             ItpFrame responseFrame = await clientItp.ReadAsync(CancellationToken.None)
                 .AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(5));
+                .WaitAsync(TimeSpan.FromSeconds(5), TestContext.CancellationToken);
             await using IMessage decodedResponse = serializer.Decode(responseFrame.Payload);
             Assert.IsTrue(decodedResponse is IResponseMessage);
             IResponseMessage inbound = (IResponseMessage)decodedResponse;
             Assert.AreEqual(200, inbound.StatusCode);
             DiagnosticResponse? body = await inbound.Payload.ReadAsync<DiagnosticResponse>(CancellationToken.None);
             Assert.AreEqual(new DiagnosticResponse(true), body);
-            await serverTask.WaitAsync(TimeSpan.FromSeconds(5));
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.CancellationToken);
         }
     }
 }

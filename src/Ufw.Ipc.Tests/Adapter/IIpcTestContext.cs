@@ -1,4 +1,4 @@
-using Ufw.Ipc.Client;
+﻿using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
 

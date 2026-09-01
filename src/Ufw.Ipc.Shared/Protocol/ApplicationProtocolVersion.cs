@@ -1,6 +1,6 @@
-namespace Ufw.Ipc.Shared.Protocol;
+﻿namespace Ufw.Ipc.Shared.Protocol;
 
 public static class ApplicationProtocolVersion
 {
-    public const int Current = 1;
+    public const int CURRENT = 1;
 }

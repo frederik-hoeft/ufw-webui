@@ -16,7 +16,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
     public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
-        if (message.PayloadType == ApplicationPayloadTypes.ValidationError)
+        if (message.PayloadType == ApplicationPayloadTypes.VALIDATION_ERROR)
         {
             ModelValidationErrorResponse? validationErrorResponse =
                 await message.Payload.ReadAsync<ModelValidationErrorResponse>(cancellationToken);
@@ -33,7 +33,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
                 """);
         }
 
-        if (message.PayloadType == ApplicationPayloadTypes.Error)
+        if (message.PayloadType == ApplicationPayloadTypes.ERROR)
         {
             ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
             _ = errorResponse ?? throw new InvalidDataException(

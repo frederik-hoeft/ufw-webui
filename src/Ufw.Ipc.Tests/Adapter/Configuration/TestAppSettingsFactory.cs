@@ -1,4 +1,4 @@
-using Ufw.Systemd.Configuration.Model;
+﻿using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Ipc.Tests.Adapter.Configuration;
 

@@ -1,33 +1,32 @@
-using System.Text;
+﻿using System.Text;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Tests.Adapter;
-using Ufw.Ipc.Tests.Adapter.Endpoints;
 
 namespace Ufw.Ipc.Tests.Protocol.Integration;
 
 [TestClass]
 public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
 {
-    private const string Route = "/api/v1/bind";
+    private const string ROUTE = "/api/v1/bind";
 
     [TestMethod]
     public Task RequiredClassBody_Absent_DoesNotInvokeEndpoint() =>
-        AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.Empty);
+        AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.EMPTY);
 
     [TestMethod]
     public Task RequiredStructBody_Absent_DoesNotInvokeEndpoint() =>
-        AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.Empty);
+        AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.EMPTY);
 
     [TestMethod]
     public Task RequiredClassBody_JsonNull_DoesNotInvokeEndpoint() =>
-        AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.Data, "null");
+        AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.DATA, "null");
 
     [TestMethod]
     public Task RequiredStructBody_JsonNull_DoesNotInvokeEndpoint() =>
-        AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.Data, "null");
+        AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.DATA, "null");
 
     [TestMethod]
     public Task MalformedJson_DoesNotInvokeEndpoint()
@@ -35,7 +34,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
         int invocationCount = 0;
         return RunAsync(
             configureEndpoints: endpoints => endpoints.MapPost<ClassBody, OkResponse>(
-                Route,
+                ROUTE,
                 (request, _) =>
                 {
                     Interlocked.Increment(ref invocationCount);
@@ -44,22 +43,22 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
             actAsync: async (context, cancellationToken) =>
             {
                 ReadOnlyMemory<byte> malformed = Encoding.UTF8.GetBytes(
-                    $"{{\"protocolVersion\":1,\"kind\":\"request\",\"method\":\"POST\",\"route\":\"{Route}\",\"payloadType\":\"data\",\"payload\":{{");
+                    $"{{\"protocolVersion\":1,\"kind\":\"request\",\"method\":\"POST\",\"route\":\"{ROUTE}\",\"payloadType\":\"data\",\"payload\":{{");
                 await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(malformed, cancellationToken);
 
                 Assert.AreEqual(400, response.StatusCode);
-                Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
+                Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
                 Assert.AreEqual(0, Volatile.Read(ref invocationCount));
-            }).AsTask();
+            }, cancellationToken: TestContext.CancellationToken).AsTask();
     }
 
     [TestMethod]
     public Task RequiredClassBody_WrongShape_DoesNotInvokeEndpoint() =>
-        AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.Data, "17");
+        AssertRejectedBeforeInvocationAsync<ClassBody>(ApplicationPayloadTypes.DATA, "17");
 
     [TestMethod]
     public Task RequiredStructBody_WrongShape_DoesNotInvokeEndpoint() =>
-        AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.Data, "\"wrong-shape\"");
+        AssertRejectedBeforeInvocationAsync<StructBody>(ApplicationPayloadTypes.DATA, "\"wrong-shape\"");
 
     [TestMethod]
     public Task EmptyObject_ClassBody_IsBoundAccordingToDtoSemantics() =>
@@ -83,7 +82,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
         int invocationCount = 0;
         return RunAsync(
             configureEndpoints: endpoints => endpoints.MapGet(
-                Route,
+                ROUTE,
                 _ =>
                 {
                     Interlocked.Increment(ref invocationCount);
@@ -91,10 +90,10 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
                 }),
             actAsync: async (context, cancellationToken) =>
             {
-                OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, Route, cancellationToken);
+                OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, ROUTE, cancellationToken);
                 Assert.IsNotNull(response);
                 Assert.AreEqual(1, Volatile.Read(ref invocationCount));
-            }).AsTask();
+            }, cancellationToken: TestContext.CancellationToken).AsTask();
     }
 
     [TestMethod]
@@ -103,7 +102,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
         int invocationCount = 0;
         return RunAsync(
             configureEndpoints: endpoints => endpoints.MapGet(
-                Route,
+                ROUTE,
                 _ =>
                 {
                     Interlocked.Increment(ref invocationCount);
@@ -112,13 +111,13 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
             actAsync: async (context, cancellationToken) =>
             {
                 await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(
-                    BuildRequest("GET", ApplicationPayloadTypes.Data, "{}"),
+                    BuildRequest("GET", ApplicationPayloadTypes.DATA, "{}"),
                     cancellationToken);
 
                 Assert.AreEqual(400, response.StatusCode);
-                Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
+                Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
                 Assert.AreEqual(0, Volatile.Read(ref invocationCount));
-            }).AsTask();
+            }, cancellationToken: TestContext.CancellationToken).AsTask();
     }
 
     private Task AssertRejectedBeforeInvocationAsync<TRequest>(string payloadType, string? payloadJson = null)
@@ -126,7 +125,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
         int invocationCount = 0;
         return RunAsync(
             configureEndpoints: endpoints => endpoints.MapPost<TRequest, OkResponse>(
-                Route,
+                ROUTE,
                 (request, _) =>
                 {
                     Interlocked.Increment(ref invocationCount);
@@ -139,7 +138,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
                     cancellationToken);
 
                 Assert.AreEqual(400, response.StatusCode);
-                Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
+                Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
                 Assert.AreEqual(0, Volatile.Read(ref invocationCount));
             }).AsTask();
     }
@@ -150,7 +149,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
         TRequest? received = default;
         return RunAsync(
             configureEndpoints: endpoints => endpoints.MapPost<TRequest, OkResponse>(
-                Route,
+                ROUTE,
                 (request, _) =>
                 {
                     received = request;
@@ -160,7 +159,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
             actAsync: async (context, cancellationToken) =>
             {
                 await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(
-                    BuildRequest("POST", ApplicationPayloadTypes.Data, payloadJson),
+                    BuildRequest("POST", ApplicationPayloadTypes.DATA, payloadJson),
                     cancellationToken);
 
                 Assert.AreEqual(200, response.StatusCode);
@@ -173,7 +172,7 @@ public sealed class PayloadBindingIntegrationTests : IpcProtocolTestBase
     {
         string payload = payloadJson is null ? string.Empty : $",\"payload\":{payloadJson}";
         return Encoding.UTF8.GetBytes(
-            $"{{\"protocolVersion\":1,\"kind\":\"request\",\"method\":\"{method}\",\"route\":\"{Route}\",\"payloadType\":\"{payloadType}\"{payload}}}");
+            $"{{\"protocolVersion\":1,\"kind\":\"request\",\"method\":\"{method}\",\"route\":\"{ROUTE}\",\"payloadType\":\"{payloadType}\"{payload}}}");
     }
 }
 

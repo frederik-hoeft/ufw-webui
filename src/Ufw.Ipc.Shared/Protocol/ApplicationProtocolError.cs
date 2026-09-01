@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Protocol;
+﻿namespace Ufw.Ipc.Shared.Protocol;
 
 public enum ApplicationProtocolError
 {

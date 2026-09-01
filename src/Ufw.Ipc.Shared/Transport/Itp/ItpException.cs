@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport.Itp;
+﻿namespace Ufw.Ipc.Shared.Transport.Itp;
 
 /// <summary>
 /// ITP protocol failure. The application protocol decoder is not invoked for the offending frame.

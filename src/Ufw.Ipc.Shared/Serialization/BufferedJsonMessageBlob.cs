@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Protocol;
 using Ufw.Roslyn.Json;

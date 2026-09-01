@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Text;
 
 namespace Ufw.Ipc.Shared.Transport.Itp;
@@ -11,7 +11,7 @@ internal static class ItpTransportErrorPayload
 
     public static byte[] Encode(ItpErrorCode errorCode, string? message)
     {
-        byte[] messageBuffer = new byte[ItpConstants.MaxTransportErrorMessageUtf8Length];
+        byte[] messageBuffer = new byte[ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH];
         int bytesUsed = 0;
         if (!string.IsNullOrEmpty(message))
         {
@@ -41,11 +41,11 @@ internal static class ItpTransportErrorPayload
 
         ushort code = BinaryPrimitives.ReadUInt16BigEndian(payload[..2]);
         ushort messageLength = BinaryPrimitives.ReadUInt16BigEndian(payload.Slice(2, 2));
-        if (messageLength > ItpConstants.MaxTransportErrorMessageUtf8Length)
+        if (messageLength > ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH)
         {
             throw ItpException.Local(
                 ItpErrorCode.InvalidFrame,
-                $"Transport error diagnostic length {messageLength} exceeds the v1 maximum of {ItpConstants.MaxTransportErrorMessageUtf8Length} bytes.");
+                $"Transport error diagnostic length {messageLength} exceeds the v1 maximum of {ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH} bytes.");
         }
 
         if (payload.Length != HEADER_SIZE + messageLength)

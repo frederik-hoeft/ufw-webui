@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Systemd.Api.Framework;

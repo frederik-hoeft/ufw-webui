@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Protocol;
@@ -15,7 +15,7 @@ public sealed class ApplicationCodecTests
         new(HybridMessageJsonSerializerContext.CreateDefault());
 
     [TestMethod]
-    public async Task EncodeDecode_GetRequest_RoundTrips()
+    public async Task TestEncodeDecode_GetRequest_RoundTripsAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         await using IRequestMessage original = await serializer.SerializeRequestAsync(
@@ -27,11 +27,11 @@ public sealed class ApplicationCodecTests
         Assert.AreEqual(ApplicationMessageKind.Request, decoded.Kind);
         Assert.AreEqual("GET", decoded.Method);
         Assert.AreEqual("/api/v1/ping", decoded.Route);
-        Assert.AreEqual(ApplicationPayloadTypes.Empty, decoded.PayloadType);
+        Assert.AreEqual(ApplicationPayloadTypes.EMPTY, decoded.PayloadType);
     }
 
     [TestMethod]
-    public async Task EncodeDecode_ValidationError_KeepsDiscriminator()
+    public async Task TestEncodeDecode_ValidationError_KeepsDiscriminatorAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         ModelValidationErrorResponse payload = new(
@@ -43,7 +43,7 @@ public sealed class ApplicationCodecTests
         IResponseMessage decoded = RequireResponse(serializer.Decode(serializer.Encode(original)));
         Assert.AreEqual(ApplicationMessageKind.Response, decoded.Kind);
         Assert.AreEqual(400, decoded.StatusCode);
-        Assert.AreEqual(ApplicationPayloadTypes.ValidationError, decoded.PayloadType);
+        Assert.AreEqual(ApplicationPayloadTypes.VALIDATION_ERROR, decoded.PayloadType);
 
         ModelValidationErrorResponse? body = await decoded.Payload.ReadAsync<ModelValidationErrorResponse>(CancellationToken.None);
         Assert.IsNotNull(body);
@@ -52,19 +52,19 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task EncodeDecode_GenericBadRequest_IsErrorPayloadType()
+    public async Task TestEncodeDecode_GenericBadRequest_IsErrorPayloadTypeAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         await using IResponseMessage original = await serializer.SerializeResponseAsync(new BadRequestResponse("nope"), CancellationToken.None);
         IResponseMessage decoded = RequireResponse(serializer.Decode(serializer.Encode(original)));
 
         Assert.AreEqual(400, decoded.StatusCode);
-        Assert.AreEqual(ApplicationPayloadTypes.Error, decoded.PayloadType);
-        Assert.AreNotEqual(ApplicationPayloadTypes.ValidationError, decoded.PayloadType);
+        Assert.AreEqual(ApplicationPayloadTypes.ERROR, decoded.PayloadType);
+        Assert.AreNotEqual(ApplicationPayloadTypes.VALIDATION_ERROR, decoded.PayloadType);
     }
 
     [TestMethod]
-    public void Decode_EmptyBuffer_IsRejected()
+    public void TestDecode_EmptyBuffer_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(
@@ -73,7 +73,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_EmptyObject_IsRejected()
+    public void TestDecode_EmptyObject_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(
@@ -83,14 +83,14 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_JsonNull_IsRejected()
+    public void TestDecode_JsonNull_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         Assert.ThrowsExactly<ApplicationProtocolException>(() => serializer.Decode("null"u8.ToArray()));
     }
 
     [TestMethod]
-    public void Decode_WrongVersion_IsRejected()
+    public void TestDecode_WrongVersion_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -101,7 +101,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_UnknownKind_IsRejected()
+    public void TestDecode_UnknownKind_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -112,7 +112,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_UnknownPayloadType_IsRejected()
+    public void TestDecode_UnknownPayloadType_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -122,9 +122,8 @@ public sealed class ApplicationCodecTests
         Assert.AreEqual(ApplicationProtocolError.UnknownPayloadType, exception.Error);
     }
 
-
     [TestMethod]
-    public void Decode_RequestWithErrorRepresentation_IsRejected()
+    public void TestDecode_RequestWithErrorRepresentation_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -135,7 +134,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_RequestWithValidationErrorRepresentation_IsRejected()
+    public void TestDecode_RequestWithValidationErrorRepresentation_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -146,7 +145,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_ValidationErrorRepresentationWithNon400Status_IsRejected()
+    public void TestDecode_ValidationErrorRepresentationWithNon400Status_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -157,7 +156,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_RequestMissingMethod_IsRejected()
+    public void TestDecode_RequestMissingMethod_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -168,7 +167,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_RequestMissingRoute_IsRejected()
+    public void TestDecode_RequestMissingRoute_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -179,7 +178,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_RequestWithStatus_IsRejected()
+    public void TestDecode_RequestWithStatus_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -190,7 +189,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_ResponseWithMethod_IsRejected()
+    public void TestDecode_ResponseWithMethod_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -201,7 +200,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task EncodeDecode_ExplicitJsonNull_IsPresentDataPayload()
+    public async Task TestEncodeDecode_ExplicitJsonNull_IsPresentDataPayloadAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         await using IRequestMessage original = await serializer.SerializeRequestAsync<object?>(
@@ -210,7 +209,7 @@ public sealed class ApplicationCodecTests
             payload: null,
             CancellationToken.None);
 
-        Assert.AreEqual(ApplicationPayloadTypes.Data, original.PayloadType);
+        Assert.AreEqual(ApplicationPayloadTypes.DATA, original.PayloadType);
         Assert.IsTrue(original.Payload.HasPayload);
 
         byte[] encoded = serializer.Encode(original);
@@ -220,14 +219,14 @@ public sealed class ApplicationCodecTests
         }
 
         await using IRequestMessage decoded = RequireRequest(serializer.Decode(encoded));
-        Assert.AreEqual(ApplicationPayloadTypes.Data, decoded.PayloadType);
+        Assert.AreEqual(ApplicationPayloadTypes.DATA, decoded.PayloadType);
         Assert.IsTrue(decoded.Payload.HasPayload);
         object? value = await decoded.Payload.ReadAsync<object?>(CancellationToken.None);
         Assert.IsNull(value);
     }
 
     [TestMethod]
-    public void Decode_EmptyPayloadTypeWithJsonNull_IsRejected()
+    public void TestDecode_EmptyPayloadTypeWithJsonNull_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -239,7 +238,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task Decode_DataPayloadTypeWithJsonNull_IsPresent()
+    public async Task TestDecode_DataPayloadTypeWithJsonNull_IsPresentAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -257,7 +256,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task PayloadRead_Absent_ThrowsInsteadOfReturningDefaultValue()
+    public async Task TestPayloadRead_Absent_ThrowsInsteadOfReturningDefaultValueAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         await using IRequestMessage request = await serializer.SerializeRequestAsync(
@@ -272,7 +271,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_EmptyPayloadTypeWithBody_IsRejected()
+    public void TestDecode_EmptyPayloadTypeWithBody_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -283,7 +282,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_DataPayloadTypeWithoutBody_IsRejected()
+    public void TestDecode_DataPayloadTypeWithoutBody_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -294,7 +293,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_SuccessResponseWithErrorRepresentation_IsRejected()
+    public void TestDecode_SuccessResponseWithErrorRepresentation_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -305,7 +304,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_ErrorResponseWithDataRepresentation_IsRejected()
+    public void TestDecode_ErrorResponseWithDataRepresentation_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -316,7 +315,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_ErrorRepresentationWithNonObjectPayload_IsRejected()
+    public void TestDecode_ErrorRepresentationWithNonObjectPayload_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -327,7 +326,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_ValidationErrorWithoutErrorsArray_IsRejected()
+    public void TestDecode_ValidationErrorWithoutErrorsArray_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -338,7 +337,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_ResponseMissingStatus_IsRejected()
+    public void TestDecode_ResponseMissingStatus_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -349,7 +348,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_InvalidStatus_IsRejected()
+    public void TestDecode_InvalidStatus_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -360,7 +359,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public void Decode_NotJson_IsRejected()
+    public void TestDecode_NotJson_IsRejected()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(
@@ -369,7 +368,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task PayloadRead_InvalidDto_DoesNotReturnDefaultObject()
+    public async Task TestPayloadRead_InvalidDto_DoesNotReturnDefaultObjectAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         byte[] json = """
@@ -381,7 +380,7 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task Encode_ProducesCamelCaseKindAndPayloadType()
+    public async Task TestEncode_ProducesCamelCaseKindAndPayloadTypeAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
         await using IResponseMessage message = await serializer.SerializeResponseAsync(new OkResponse(), CancellationToken.None);

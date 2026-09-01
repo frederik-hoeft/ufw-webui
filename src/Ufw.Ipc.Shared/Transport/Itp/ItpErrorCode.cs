@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport.Itp;
+﻿namespace Ufw.Ipc.Shared.Transport.Itp;
 
 /// <summary>
 /// Structured ITP-level failures. These are never an application request or response.

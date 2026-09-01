@@ -1,5 +1,5 @@
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.ExceptionServices;
-using Microsoft.Extensions.DependencyInjection;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Transport.Itp;

@@ -1,4 +1,4 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 
 namespace Ufw.Ipc.Shared.Protocol;
 
@@ -8,20 +8,20 @@ namespace Ufw.Ipc.Shared.Protocol;
 /// </summary>
 public static class ApplicationPayloadTypes
 {
-    public const string Empty = "empty";
-    public const string Data = "data";
-    public const string Error = "error";
-    public const string ValidationError = "validation-error";
+    public const string EMPTY = "empty";
+    public const string DATA = "data";
+    public const string ERROR = "error";
+    public const string VALIDATION_ERROR = "validation-error";
 
-    private static readonly FrozenSet<string> s_known = new[] { Empty, Data, Error, ValidationError }.ToFrozenSet(StringComparer.Ordinal);
+    private static readonly FrozenSet<string> s_known = new[] { EMPTY, DATA, ERROR, VALIDATION_ERROR }.ToFrozenSet(StringComparer.Ordinal);
 
     public static bool IsKnown(string? payloadType) => payloadType is not null && s_known.Contains(payloadType);
 
     public static bool IsRequestPayloadType(string? payloadType) =>
-        payloadType is Empty or Data;
+        payloadType is EMPTY or DATA;
 
     public static bool IsResponsePayloadType(int statusCode, string? payloadType) =>
         statusCode >= 400
-            ? payloadType is Error or ValidationError
-            : payloadType is Empty or Data;
+            ? payloadType is ERROR or VALIDATION_ERROR
+            : payloadType is EMPTY or DATA;
 }

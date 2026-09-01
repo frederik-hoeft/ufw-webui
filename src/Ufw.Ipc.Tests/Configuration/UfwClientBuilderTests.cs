@@ -1,4 +1,4 @@
-using Ufw.Ipc.Client.Configuration;
+﻿using Ufw.Ipc.Client.Configuration;
 
 namespace Ufw.Ipc.Tests.Configuration;
 
@@ -6,7 +6,7 @@ namespace Ufw.Ipc.Tests.Configuration;
 public sealed class UfwClientBuilderTests
 {
     [TestMethod]
-    public void Build_UsesConfiguredTimeouts()
+    public void TestBuild_UsesConfiguredTimeouts()
     {
         using UfwClientBuilder builder = new();
         UfwClientOptions options = builder
@@ -20,7 +20,7 @@ public sealed class UfwClientBuilderTests
     }
 
     [TestMethod]
-    public void TimeoutConfiguration_AcceptsExplicitInfiniteTimeout()
+    public void TestTimeoutConfiguration_AcceptsExplicitInfiniteTimeout()
     {
         using UfwClientBuilder builder = new();
         UfwClientOptions options = builder
@@ -34,7 +34,7 @@ public sealed class UfwClientBuilderTests
     }
 
     [TestMethod]
-    public void TimeoutConfiguration_RejectsNonPositiveFiniteTimeout()
+    public void TestTimeoutConfiguration_RejectsNonPositiveFiniteTimeout()
     {
         using UfwClientBuilder builder = new();
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => builder.UseIoTimeout(TimeSpan.Zero));

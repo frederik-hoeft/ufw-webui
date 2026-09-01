@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Transport.Itp;
+﻿namespace Ufw.Ipc.Shared.Transport.Itp;
 
 public enum ItpPayloadFormat : byte
 {

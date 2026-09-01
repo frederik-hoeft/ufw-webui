@@ -1,5 +1,5 @@
+﻿using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Model;
 using Ufw.Roslyn.Controllers.Mapping;
 
 namespace Ufw.Ipc.Tests.Adapter.Endpoints;

@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Protocol;
+﻿namespace Ufw.Ipc.Shared.Protocol;
 
 /// <summary>
 /// The ITP frame was valid, but the application document is not a v1 request or response.

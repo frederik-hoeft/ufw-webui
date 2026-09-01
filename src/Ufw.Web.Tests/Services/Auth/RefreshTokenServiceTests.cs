@@ -12,17 +12,19 @@ namespace Ufw.Web.Tests.Services.Auth;
 [TestClass]
 public sealed class RefreshTokenServiceTests
 {
+    public required TestContext TestContext { get; set; }
+
     [TestMethod]
     public async Task RotateAsync_ReusedToken_RevokesActiveFamilyAsync()
     {
         await using SqliteConnection connection = new("Data Source=:memory:");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.CancellationToken);
 
         DbContextOptions<ApplicationDbContext> databaseOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(connection)
             .Options;
         await using ApplicationDbContext context = new(databaseOptions);
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
 
         IdentityUser user = new()
         {
@@ -34,26 +36,26 @@ public sealed class RefreshTokenServiceTests
             SecurityStamp = Guid.NewGuid().ToString(),
         };
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.CancellationToken);
 
         RefreshTokenOptions refreshTokenOptions = new() { Lifetime = TimeSpan.FromDays(1) };
         RefreshTokenService service = new(context, Options.Create(refreshTokenOptions), TimeProvider.System);
 
-        RefreshTokenIssueResult issued = await service.IssueAsync(user);
-        RefreshToken persistedToken = await context.RefreshTokens.SingleAsync();
+        RefreshTokenIssueResult issued = await service.IssueAsync(user, TestContext.CancellationToken);
+        RefreshToken persistedToken = await context.RefreshTokens.SingleAsync(TestContext.CancellationToken);
         Assert.AreNotEqual(issued.Token, persistedToken.TokenHash);
         Assert.AreEqual(64, persistedToken.TokenHash.Length);
 
-        RefreshTokenRotationResult? rotation = await service.RotateAsync(issued.Token);
+        RefreshTokenRotationResult? rotation = await service.RotateAsync(issued.Token, TestContext.CancellationToken);
         Assert.IsNotNull(rotation);
         Assert.AreNotEqual(issued.Token, rotation.Token);
 
-        RefreshTokenRotationResult? replay = await service.RotateAsync(issued.Token);
+        RefreshTokenRotationResult? replay = await service.RotateAsync(issued.Token, TestContext.CancellationToken);
         Assert.IsNull(replay);
 
         context.ChangeTracker.Clear();
         int activeFamilyTokenCount = await context.RefreshTokens
-            .CountAsync(token => token.FamilyId == persistedToken.FamilyId && token.RevokedAt == null);
+            .CountAsync(token => token.FamilyId == persistedToken.FamilyId && token.RevokedAt == null, TestContext.CancellationToken);
         Assert.AreEqual(0, activeFamilyTokenCount);
     }
 }

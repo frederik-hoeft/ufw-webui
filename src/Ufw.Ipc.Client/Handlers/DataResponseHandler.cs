@@ -20,7 +20,7 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
     public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
         where TResult : IEquatable<TResult>
     {
-        if (message.PayloadType == ApplicationPayloadTypes.Empty)
+        if (message.PayloadType == ApplicationPayloadTypes.EMPTY)
         {
             if (typeof(TResult) != typeof(OkResponse))
             {
@@ -32,7 +32,7 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
             return Unsafe.As<OkResponse, TResult>(ref okResponse);
         }
 
-        if (message.PayloadType != ApplicationPayloadTypes.Data)
+        if (message.PayloadType != ApplicationPayloadTypes.DATA)
         {
             throw new SerializationException(
                 $"Response '{message.StatusCode}' has unexpected payloadType '{message.PayloadType}' for a 200 response.");

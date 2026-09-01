@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Diagnostics;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
@@ -32,7 +32,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task SilentPeer_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
+    public Task TestSilentPeer_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -41,10 +41,10 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
             OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/timeout-ok", cancellationToken);
             Assert.IsNotNull(response);
         },
-        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2))).AsTask();
+        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task PartialPreamble_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
+    public Task TestPartialPreamble_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -55,10 +55,10 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
             OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/timeout-ok", cancellationToken);
             Assert.IsNotNull(response);
         },
-        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2))).AsTask();
+        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task PartialPayload_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
+    public Task TestPartialPayload_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -70,10 +70,10 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
             OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/timeout-ok", cancellationToken);
             Assert.IsNotNull(response);
         },
-        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2))).AsTask();
+        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task SlowTrickle_ExceedsOverallRequestDeadline() => RunAsync(
+    public Task TestSlowTrickle_ExceedsOverallRequestDeadline() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -105,30 +105,26 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
             OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/timeout-ok", cancellationToken);
             Assert.IsNotNull(response);
         },
-        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(400), requestTimeout: TimeSpan.FromMilliseconds(700))).AsTask();
+        TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(400), requestTimeout: TimeSpan.FromMilliseconds(700)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task CallerCancellation_RemainsOperationCanceledException() => RunAsync(
+    public Task TestCallerCancellation_RemainsOperationCanceledException() => RunAsync(
         static async (context, cancellationToken) =>
         {
             using CancellationTokenSource callerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             callerCts.CancelAfter(TimeSpan.FromMilliseconds(150));
 
             await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            {
-                _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/block", callerCts.Token);
-            });
+                _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/block", callerCts.Token));
         },
-        TimeoutConfiguration(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan)).AsTask();
+        TimeoutConfiguration(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task ClientRequestDeadline_SurfacesTimeoutException() => RunAsync(
+    public Task TestClientRequestDeadline_SurfacesTimeoutException() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await Assert.ThrowsExactlyAsync<TimeoutException>(async () =>
-            {
-                _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/block", cancellationToken);
-            });
+                _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/block", cancellationToken));
         },
         new IpcTestRunConfiguration
         {
@@ -139,10 +135,10 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
                 options.ClientIoTimeout = Timeout.InfiniteTimeSpan;
                 options.ClientRequestTimeout = TimeSpan.FromMilliseconds(150);
             },
-        }).AsTask();
+        }, TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public async Task DaemonShutdownCancellation_InterruptsBlockedRead()
+    public async Task DaemonShutdownCancellation_InterruptsBlockedReadAsync()
     {
         using CancellationTokenSource shutdownCts = new();
         await RunAsync(
@@ -162,7 +158,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task InfiniteTimeouts_DoNotCreateInternalTimeout() => RunAsync(
+    public Task TestInfiniteTimeouts_DoNotCreateInternalTimeout() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -176,7 +172,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
             await readCts.CancelAsync();
             await Assert.ThrowsAsync<OperationCanceledException>(async () => await read);
         },
-        TimeoutConfiguration(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan)).AsTask();
+        TimeoutConfiguration(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan), TestContext.CancellationToken).AsTask();
 
     private static IpcTestRunConfiguration TimeoutConfiguration(TimeSpan ioTimeout, TimeSpan requestTimeout) =>
         new()
@@ -197,13 +193,13 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
 
     private static byte[] BuildPartialApplicationFrame(int declaredPayloadLength, ReadOnlySpan<byte> payload)
     {
-        byte[] frame = new byte[ItpConstants.Version1HeaderSize + payload.Length];
+        byte[] frame = new byte[ItpConstants.VERSION_1_HEADER_SIZE + payload.Length];
         "ITP"u8.CopyTo(frame);
-        frame[3] = ItpConstants.Version;
+        frame[3] = ItpConstants.VERSION;
         frame[4] = (byte)ItpPacketType.ApplicationData;
         frame[5] = (byte)ItpPayloadFormat.IpcJson;
         BinaryPrimitives.WriteUInt32BigEndian(frame.AsSpan(6, sizeof(uint)), (uint)declaredPayloadLength);
-        payload.CopyTo(frame.AsSpan(ItpConstants.Version1HeaderSize));
+        payload.CopyTo(frame.AsSpan(ItpConstants.VERSION_1_HEADER_SIZE));
         return frame;
     }
 }

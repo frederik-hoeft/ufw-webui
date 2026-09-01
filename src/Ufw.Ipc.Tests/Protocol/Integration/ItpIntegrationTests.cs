@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Protocol;
@@ -48,7 +48,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
         IResponseMessage response = (IResponseMessage)decodedResponse;
         Assert.AreEqual(ApplicationMessageKind.Response, response.Kind);
         Assert.AreEqual(200, response.StatusCode);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task WrongItpVersionPreamble_DoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
@@ -63,7 +63,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task UnsupportedPayloadFormat_DoesNotReachApplicationAndDoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
@@ -82,7 +82,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task UnknownPacketType_DoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
@@ -97,7 +97,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task PeerTransportError_DoesNotTriggerTransportErrorResponseLoop() => RunAsync(async (context, cancellationToken) =>
@@ -119,7 +119,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task MalformedPeerTransportError_DoesNotTriggerTransportErrorResponseLoop() => RunAsync(async (context, cancellationToken) =>
@@ -135,7 +135,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task InvalidApplicationJson_ReturnsBadRequestAndKeepsWorker() => RunAsync(async (context, cancellationToken) =>
@@ -143,11 +143,11 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
         byte[] frame = BuildFrame(ItpPacketType.ApplicationData, "{}"u8.ToArray());
         await using IResponseMessage response = await context.ExchangeBytesAsync(frame, cancellationToken);
         Assert.AreEqual(400, response.StatusCode);
-        Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
+        Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task ResponseDocumentSentAsRequest_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
@@ -159,8 +159,8 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
             context.MessageSerializer.Encode(responseDocument),
             cancellationToken);
         Assert.AreEqual(400, response.StatusCode);
-        Assert.AreEqual(ApplicationPayloadTypes.Error, response.PayloadType);
-    }).AsTask();
+        Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
     public Task PeerCloseWithoutFrame_DoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
@@ -170,24 +170,24 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
 
         OkResponse ok = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/raw-ok", cancellationToken);
         Assert.IsNotNull(ok);
-    }).AsTask();
+    }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     private static byte[] BuildFrame(
         ItpPacketType packetType,
         ReadOnlySpan<byte> payload,
-        byte version = ItpConstants.Version,
+        byte version = ItpConstants.VERSION,
         ItpPayloadFormat? payloadFormat = null)
     {
         ItpPayloadFormat effectivePayloadFormat = payloadFormat ?? (packetType == ItpPacketType.ApplicationData
             ? ItpPayloadFormat.IpcJson
             : ItpPayloadFormat.None);
-        byte[] frame = new byte[ItpConstants.Version1HeaderSize + payload.Length];
+        byte[] frame = new byte[ItpConstants.VERSION_1_HEADER_SIZE + payload.Length];
         "ITP"u8.CopyTo(frame);
         frame[3] = version;
         frame[4] = (byte)packetType;
         frame[5] = (byte)effectivePayloadFormat;
         BinaryPrimitives.WriteUInt32BigEndian(frame.AsSpan(6, 4), (uint)payload.Length);
-        payload.CopyTo(frame.AsSpan(ItpConstants.Version1HeaderSize));
+        payload.CopyTo(frame.AsSpan(ItpConstants.VERSION_1_HEADER_SIZE));
         return frame;
     }
 }

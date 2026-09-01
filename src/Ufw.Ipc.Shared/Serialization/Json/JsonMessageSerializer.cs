@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
@@ -19,10 +19,10 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     {
         ValidateRequestMetadata(route, method, payload: null);
         IRequestMessage message = new RequestMessage(
-            ApplicationProtocolVersion.Current,
+            ApplicationProtocolVersion.CURRENT,
             method,
             route,
-            ApplicationPayloadTypes.Empty,
+            ApplicationPayloadTypes.EMPTY,
             BufferedJsonMessageBlob.Empty(context));
         return ValueTask.FromResult(message);
     }
@@ -56,7 +56,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
         BufferedJsonMessageBlob payloadBlob = BufferedJsonMessageBlob.CreateFrom(payload, context);
         IResponseMessage message = new ResponseMessage(
-            ApplicationProtocolVersion.Current,
+            ApplicationProtocolVersion.CURRENT,
             (int)responsePayload.StatusCode,
             ResolveResponsePayloadType(responsePayload),
             payloadBlob);
@@ -114,7 +114,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
     private static IRequestMessage CreateRequestMessage(string route, string method, object? payload, IMessageBlob payloadBlob) =>
         new RequestMessage(
-            ApplicationProtocolVersion.Current,
+            ApplicationProtocolVersion.CURRENT,
             method,
             route,
             ResolveRequestPayloadType(payload),
@@ -154,11 +154,11 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
     private IMessage FromEnvelope(ApplicationEnvelope envelope)
     {
-        if (envelope.ProtocolVersion != ApplicationProtocolVersion.Current)
+        if (envelope.ProtocolVersion != ApplicationProtocolVersion.CURRENT)
         {
             throw new ApplicationProtocolException(
                 ApplicationProtocolError.VersionMismatch,
-                $"Unsupported application protocol version {envelope.ProtocolVersion}; this peer speaks version {ApplicationProtocolVersion.Current}.");
+                $"Unsupported application protocol version {envelope.ProtocolVersion}; this peer speaks version {ApplicationProtocolVersion.CURRENT}.");
         }
 
         if (!ApplicationPayloadTypes.IsKnown(envelope.PayloadType))
@@ -243,11 +243,11 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
                 $"Response status {status} cannot use payload type '{envelope.PayloadType}'.");
         }
 
-        if (envelope.PayloadType == ApplicationPayloadTypes.ValidationError && status != 400)
+        if (envelope.PayloadType == ApplicationPayloadTypes.VALIDATION_ERROR && status != 400)
         {
             throw new ApplicationProtocolException(
                 ApplicationProtocolError.PayloadTypeMismatch,
-                $"Response payload type '{ApplicationPayloadTypes.ValidationError}' requires status 400.");
+                $"Response payload type '{ApplicationPayloadTypes.VALIDATION_ERROR}' requires status 400.");
         }
 
         ValidateWellKnownResponseRepresentation(envelope);
@@ -261,7 +261,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
     private static void ValidateWellKnownResponseRepresentation(ApplicationEnvelope envelope)
     {
-        if (envelope.PayloadType is not (ApplicationPayloadTypes.Error or ApplicationPayloadTypes.ValidationError))
+        if (envelope.PayloadType is not (ApplicationPayloadTypes.ERROR or ApplicationPayloadTypes.VALIDATION_ERROR))
         {
             return;
         }
@@ -273,18 +273,18 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
                 $"Response payload type '{envelope.PayloadType}' requires an object payload.");
         }
 
-        if (envelope.PayloadType == ApplicationPayloadTypes.ValidationError
+        if (envelope.PayloadType == ApplicationPayloadTypes.VALIDATION_ERROR
             && (!envelope.Payload.TryGetProperty("errors", out JsonElement errors) || errors.ValueKind != JsonValueKind.Array))
         {
             throw new ApplicationProtocolException(
                 ApplicationProtocolError.PayloadTypeMismatch,
-                $"Response payload type '{ApplicationPayloadTypes.ValidationError}' requires an 'errors' array.");
+                $"Response payload type '{ApplicationPayloadTypes.VALIDATION_ERROR}' requires an 'errors' array.");
         }
     }
 
     private static void ValidatePayloadPresence(string payloadType, bool hasPayload)
     {
-        if (payloadType == ApplicationPayloadTypes.Empty)
+        if (payloadType == ApplicationPayloadTypes.EMPTY)
         {
             if (hasPayload)
             {
@@ -311,13 +311,13 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
             : BufferedJsonMessageBlob.Empty(context);
 
     private static string ResolveRequestPayloadType(object? payload) =>
-        payload is IEmptyPayload ? ApplicationPayloadTypes.Empty : ApplicationPayloadTypes.Data;
+        payload is IEmptyPayload ? ApplicationPayloadTypes.EMPTY : ApplicationPayloadTypes.DATA;
 
     private static string ResolveResponsePayloadType(IResponsePayload payload) => payload switch
     {
-        IEmptyPayload => ApplicationPayloadTypes.Empty,
-        ModelValidationErrorResponse => ApplicationPayloadTypes.ValidationError,
-        ErrorResponse => ApplicationPayloadTypes.Error,
-        _ => ApplicationPayloadTypes.Data,
+        IEmptyPayload => ApplicationPayloadTypes.EMPTY,
+        ModelValidationErrorResponse => ApplicationPayloadTypes.VALIDATION_ERROR,
+        ErrorResponse => ApplicationPayloadTypes.ERROR,
+        _ => ApplicationPayloadTypes.DATA,
     };
 }
