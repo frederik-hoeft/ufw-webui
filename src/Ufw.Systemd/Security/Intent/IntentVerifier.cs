@@ -11,6 +11,7 @@ namespace Ufw.Systemd.Security.Intent;
 
 internal sealed class IntentVerifier(
     IAuthorizedKeyStore authorizedKeys,
+    IDeploymentIdentityProvider deploymentIdentity,
     IConfiguration configuration,
     TimeProvider timeProvider,
     MessageJsonSerializerContext jsonContext) : IIntentVerifier
@@ -56,13 +57,19 @@ internal sealed class IntentVerifier(
             return Reject(new BadRequestResponse($"Unsupported intent version '{intent.Version}'."));
         }
 
-        if (string.IsNullOrWhiteSpace(intent.KeyId)
+        if (string.IsNullOrWhiteSpace(intent.DeploymentId)
+            || string.IsNullOrWhiteSpace(intent.KeyId)
             || string.IsNullOrWhiteSpace(intent.Nonce)
             || string.IsNullOrWhiteSpace(intent.Operation)
             || string.IsNullOrWhiteSpace(intent.Signature)
             || intent.Payload.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
         {
             return Reject(new BadRequestResponse("Signed intent is missing required fields."));
+        }
+
+        if (!string.Equals(intent.DeploymentId, deploymentIdentity.GetDeploymentId(), StringComparison.Ordinal))
+        {
+            return Reject(new ForbiddenResponse("Intent is not valid for this daemon deployment."));
         }
 
         if (!string.Equals(intent.Operation, expectedOperation, StringComparison.Ordinal))
@@ -76,7 +83,21 @@ internal sealed class IntentVerifier(
             return Reject(new BadRequestResponse("Intent nonce is not a valid base64url value of sufficient length."));
         }
 
-        (FirewallRuleSpecification? rule, string? ruleId, IResponsePayload? payloadError) = payloadFactory(intent, jsonContext);
+        FirewallRuleSpecification? rule;
+        string? ruleId;
+        IResponsePayload? payloadError;
+        try
+        {
+            (rule, ruleId, payloadError) = payloadFactory(intent, jsonContext);
+        }
+        catch (JsonException)
+        {
+            return Reject(new BadRequestResponse("Signed intent payload is malformed."));
+        }
+        catch (NotSupportedException)
+        {
+            return Reject(new BadRequestResponse("Signed intent payload has an unsupported shape."));
+        }
         if (payloadError is not null)
         {
             return Reject(payloadError);
@@ -121,20 +142,34 @@ internal sealed class IntentVerifier(
             return Reject(new InternalServerErrorResponse("Daemon security configuration is not available."));
         }
 
-        long now = timeProvider.GetUtcNow().ToUnixTimeSeconds();
         long maxAgeSeconds = (long)Math.Ceiling(security.MaxIntentAge.TotalSeconds);
         long skewSeconds = (long)Math.Ceiling(security.ClockSkew.TotalSeconds);
-        if (intent.IssuedAtUnix > now + skewSeconds)
+        long now = timeProvider.GetUtcNow().ToUnixTimeSeconds();
+        long expiresAtUnix;
+        long latestAcceptedIssueTime;
+        try
+        {
+            expiresAtUnix = checked(intent.IssuedAtUnix + maxAgeSeconds + skewSeconds);
+            latestAcceptedIssueTime = checked(now + skewSeconds);
+        }
+        catch (OverflowException)
+        {
+            return Reject(new BadRequestResponse("Intent timestamp is outside the supported range."));
+        }
+
+        if (intent.IssuedAtUnix > latestAcceptedIssueTime)
         {
             return Reject(new ForbiddenResponse("Intent timestamp is in the future."));
         }
 
-        if (intent.IssuedAtUnix + maxAgeSeconds < now - skewSeconds)
+        // Intent validity is the half-open interval ending at expiresAtUnix.
+        // The replay store retains the nonce until the same boundary, so there
+        // is no instant at which an intent is still valid after its nonce expires.
+        if (now >= expiresAtUnix)
         {
             return Reject(new ForbiddenResponse("Intent has expired."));
         }
 
-        long expiresAtUnix = intent.IssuedAtUnix + maxAgeSeconds + skewSeconds;
         return new IntentVerificationResult.Accepted(intent.KeyId, intent.Nonce, expiresAtUnix, normalized, ruleId);
     }
 

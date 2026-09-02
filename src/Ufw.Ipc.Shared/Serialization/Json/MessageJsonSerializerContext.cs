@@ -39,6 +39,7 @@ namespace Ufw.Ipc.Shared.Serialization.Json;
 [JsonSerializable(typeof(DeleteRulePayload))]
 [JsonSerializable(typeof(AddRuleRequest))]
 [JsonSerializable(typeof(DeleteRuleRequest))]
+[JsonSerializable(typeof(IntentContextResponse))]
 [JsonSerializable(typeof(RuleListResponse))]
 [JsonSerializable(typeof(RuleMutationResponse))]
 [JsonTypeInfoBindingsGenerator(GenerationMode = BindingsGenerationMode.Optimized)]

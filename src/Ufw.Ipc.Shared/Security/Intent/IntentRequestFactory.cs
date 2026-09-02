@@ -13,11 +13,13 @@ public static class IntentRequestFactory
 {
     public static AddRuleRequest CreateAddRequest(
         ECDsa privateKey,
+        string deploymentId,
         AddRulePayload payload,
         JsonTypeInfo<AddRulePayload> payloadTypeInfo,
         TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(payloadTypeInfo);
         ArgumentNullException.ThrowIfNull(timeProvider);
@@ -25,6 +27,7 @@ public static class IntentRequestFactory
         AddRuleRequest unsigned = new()
         {
             Version = IntentProtocol.VERSION,
+            DeploymentId = deploymentId,
             KeyId = IntentSigner.ComputeKeyId(privateKey),
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             Nonce = IntentSigner.CreateNonce(),
@@ -38,11 +41,13 @@ public static class IntentRequestFactory
 
     public static DeleteRuleRequest CreateDeleteRequest(
         ECDsa privateKey,
+        string deploymentId,
         DeleteRulePayload payload,
         JsonTypeInfo<DeleteRulePayload> payloadTypeInfo,
         TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(payloadTypeInfo);
         ArgumentNullException.ThrowIfNull(timeProvider);
@@ -50,6 +55,7 @@ public static class IntentRequestFactory
         DeleteRuleRequest unsigned = new()
         {
             Version = IntentProtocol.VERSION,
+            DeploymentId = deploymentId,
             KeyId = IntentSigner.ComputeKeyId(privateKey),
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             Nonce = IntentSigner.CreateNonce(),

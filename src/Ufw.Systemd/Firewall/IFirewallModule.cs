@@ -10,6 +10,7 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IUfwRunner, UfwRunner>]
 [Singleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>]
 [Singleton<INonceStore, FileNonceStore>]
+[Singleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>]
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
 [Singleton<IFirewallMutationService, FirewallMutationService>]

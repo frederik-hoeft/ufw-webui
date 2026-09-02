@@ -11,6 +11,8 @@ public sealed record DeleteRuleRequest : RequestMessage, ISignedIntent
 
     public int Version { get; init; } = IntentProtocol.VERSION;
 
+    public required string DeploymentId { get; init; }
+
     public required string KeyId { get; init; }
 
     public long IssuedAtUnix { get; init; }

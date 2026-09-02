@@ -13,8 +13,7 @@ public sealed class FileAuthorizedKeyStoreTests
     public void TryGetKey_LoadsPemBlocksAndComputesKeyId()
     {
         using ECDsa key = IntentSigner.CreateP256();
-        string directory = Path.Combine(Path.GetTempPath(), "ufw-keys-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "authorized_keys");
         File.WriteAllText(path, "# comment\n" + key.ExportSubjectPublicKeyInfoPem() + "\n");
 
@@ -26,6 +25,66 @@ public sealed class FileAuthorizedKeyStoreTests
             Assert.IsTrue(store.TryGetKey(keyId, out ECDsa? loaded));
             Assert.IsNotNull(loaded);
             Assert.IsFalse(store.TryGetKey("sha256:missing", out _));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void TryGetKey_RejectsPrivateKeyPem()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        string directory = CreateTemporaryDirectory();
+        string path = Path.Combine(directory, "authorized_keys");
+        File.WriteAllText(path, key.ExportECPrivateKeyPem());
+
+        try
+        {
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(authorizedKeysPath: path));
+            using FileAuthorizedKeyStore store = new(configuration, new ConsoleLogger());
+            Assert.ThrowsExactly<InvalidDataException>(() => store.TryGetKey(IntentSigner.ComputeKeyId(key), out _));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void TryGetKey_RejectsUnsupportedEcCurve()
+    {
+        using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP384);
+        string directory = CreateTemporaryDirectory();
+        string path = Path.Combine(directory, "authorized_keys");
+        File.WriteAllText(path, key.ExportSubjectPublicKeyInfoPem());
+
+        try
+        {
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(authorizedKeysPath: path));
+            using FileAuthorizedKeyStore store = new(configuration, new ConsoleLogger());
+            Assert.ThrowsExactly<InvalidDataException>(() => store.TryGetKey(IntentSigner.ComputeKeyId(key), out _));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void TryGetKey_FailsClosedWhenAnyConfiguredKeyIsMalformed()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        string directory = CreateTemporaryDirectory();
+        string path = Path.Combine(directory, "authorized_keys");
+        File.WriteAllText(path, key.ExportSubjectPublicKeyInfoPem() + "\nnot-a-pem-record\n");
+
+        try
+        {
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(authorizedKeysPath: path));
+            using FileAuthorizedKeyStore store = new(configuration, new ConsoleLogger());
+            Assert.ThrowsExactly<InvalidDataException>(() => store.TryGetKey(IntentSigner.ComputeKeyId(key), out _));
         }
         finally
         {
@@ -52,5 +111,23 @@ public sealed class FileAuthorizedKeyStoreTests
         Assert.AreEqual(2, blocks.Count);
         StringAssert.Contains(blocks[0], "ABC");
         StringAssert.Contains(blocks[1], "DEF");
+    }
+
+    [TestMethod]
+    public void ExtractPemBlocks_RejectsUnterminatedBlock()
+    {
+        const string file = """
+            -----BEGIN PUBLIC KEY-----
+            ABC
+            """;
+
+        Assert.ThrowsExactly<InvalidDataException>(() => FileAuthorizedKeyStore.ExtractPemBlocks(file));
+    }
+
+    private static string CreateTemporaryDirectory()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "ufw-keys-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        return directory;
     }
 }

@@ -7,6 +7,8 @@ namespace Ufw.Systemd.Security.Intent;
 
 internal sealed class FileNonceStore : INonceStore, IDisposable
 {
+    private const string HEADER = "# ufw-intent-nonces v1";
+
     private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
     private readonly AsyncLock _lock = new();
@@ -38,7 +40,7 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
         }
 
         _expirations[nonce] = expiresAtUnix;
-        await AppendAsync(nonce, expiresAtUnix, cancellationToken);
+        await AppendAsync(nonce, expiresAtUnix, CancellationToken.None);
         return true;
     }
 
@@ -49,32 +51,61 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
             return;
         }
 
-        string? path = _configuration.Settings.Security?.NonceStorePath;
-        if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+        string path = GetStorePath();
+        if (File.Exists(path))
         {
             string[] lines = await File.ReadAllLinesAsync(path, cancellationToken);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
-                {
-                    continue;
-                }
-
-                string[] parts = line.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length != 2
-                    || !long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long expiresAt))
-                {
-                    continue;
-                }
-
-                _consumed.Add(parts[0]);
-                _expirations[parts[0]] = expiresAt;
-            }
+            Parse(lines);
         }
 
         PruneExpired();
-        await RewriteAsync(cancellationToken);
+        await RewriteAsync(CancellationToken.None);
         _loaded = true;
+    }
+
+    private void Parse(string[] lines)
+    {
+        bool headerSeen = false;
+        foreach (string rawLine in lines)
+        {
+            string line = rawLine.Trim();
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            if (!headerSeen)
+            {
+                if (!string.Equals(line, HEADER, StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("Intent replay store has an invalid or unsupported header.");
+                }
+
+                headerSeen = true;
+                continue;
+            }
+
+            if (line.StartsWith('#'))
+            {
+                throw new InvalidDataException("Intent replay store contains unexpected metadata.");
+            }
+
+            string[] parts = line.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2
+                || string.IsNullOrWhiteSpace(parts[0])
+                || !long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long expiresAt))
+            {
+                throw new InvalidDataException("Intent replay store contains a malformed nonce record.");
+            }
+
+            _consumed.Add(parts[0]);
+            _expirations[parts[0]] = expiresAt;
+        }
+
+        if (!headerSeen)
+        {
+            throw new InvalidDataException("Intent replay store is missing its header.");
+        }
     }
 
     private void PruneExpired()
@@ -98,17 +129,8 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
 
     private async Task AppendAsync(string nonce, long expiresAtUnix, CancellationToken cancellationToken)
     {
-        string? path = _configuration.Settings.Security?.NonceStorePath;
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return;
-        }
-
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+        string path = GetStorePath();
+        EnsureParentDirectory(path);
 
         string line = nonce + " " + expiresAtUnix.ToString(CultureInfo.InvariantCulture) + Environment.NewLine;
         byte[] bytes = Encoding.UTF8.GetBytes(line);
@@ -120,26 +142,20 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
             bufferSize: 4096,
             FileOptions.Asynchronous | FileOptions.WriteThrough);
         await stream.WriteAsync(bytes, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
+        stream.Flush(flushToDisk: true);
     }
 
     private async Task RewriteAsync(CancellationToken cancellationToken)
     {
-        string? path = _configuration.Settings.Security?.NonceStorePath;
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return;
-        }
-
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+        string path = GetStorePath();
+        EnsureParentDirectory(path);
 
         StringBuilder builder = new();
-        builder.AppendLine("# ufw-intent-nonces v1");
-        foreach ((string nonce, long expiresAt) in _expirations.OrderBy(static pair => pair.Value))
+        builder.AppendLine(HEADER);
+        IEnumerable<KeyValuePair<string, long>> ordered = _expirations
+            .OrderBy(static pair => pair.Value)
+            .ThenBy(static pair => pair.Key, StringComparer.Ordinal);
+        foreach ((string nonce, long expiresAt) in ordered)
         {
             builder.Append(nonce);
             builder.Append(' ');
@@ -148,8 +164,37 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
         }
 
         string temporaryPath = path + ".tmp";
-        await File.WriteAllTextAsync(temporaryPath, builder.ToString(), cancellationToken);
+        byte[] bytes = Encoding.UTF8.GetBytes(builder.ToString());
+        await using (FileStream stream = new(
+            temporaryPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.Asynchronous | FileOptions.WriteThrough))
+        {
+            await stream.WriteAsync(bytes, cancellationToken);
+            stream.Flush(flushToDisk: true);
+        }
+
         File.Move(temporaryPath, path, overwrite: true);
+    }
+
+    private string GetStorePath()
+    {
+        string? path = _configuration.Settings.Security?.NonceStorePath;
+        return !string.IsNullOrWhiteSpace(path)
+            ? path
+            : throw new InvalidOperationException("Intent replay store path is not configured.");
+    }
+
+    private static void EnsureParentDirectory(string path)
+    {
+        string? directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
     }
 
     public void Dispose()

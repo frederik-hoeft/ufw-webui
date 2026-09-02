@@ -10,6 +10,9 @@ namespace Ufw.Systemd.Security.Intent;
 
 internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore, IDisposable
 {
+    private const string BEGIN_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----";
+    private const string END_PUBLIC_KEY = "-----END PUBLIC KEY-----";
+
     private readonly IConfiguration _configuration;
     private readonly ILogger<FileAuthorizedKeyStore> _logger;
     private readonly object _sync = new();
@@ -61,36 +64,53 @@ internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore, IDisposable
         }
 
         string contents = File.ReadAllText(path);
+        List<string> pemBlocks = ExtractPemBlocks(contents);
         Dictionary<string, ECDsa> loaded = new(StringComparer.Ordinal);
-        foreach (string pem in ExtractPemBlocks(contents))
+        try
         {
-            ECDsa key = ECDsa.Create();
-            try
+            foreach (string pem in pemBlocks)
             {
-                key.ImportFromPem(pem);
-                if (!IntentSigner.IsP256(key))
+                ECDsa? key = ECDsa.Create();
+                try
                 {
-                    _logger.LogWarning("Ignoring authorized key that is not ECDSA P-256.");
-                    key.Dispose();
-                    continue;
-                }
+                    try
+                    {
+                        key.ImportFromPem(pem);
+                    }
+                    catch (Exception exception) when (exception is CryptographicException or ArgumentException or FormatException)
+                    {
+                        throw new InvalidDataException("Authorized keys file contains an unreadable public key.", exception);
+                    }
 
-                string keyId = IntentSigner.ComputeKeyId(key);
-                if (!loaded.TryAdd(keyId, key))
+                    if (!IntentSigner.IsP256(key))
+                    {
+                        throw new InvalidDataException("Authorized intent keys must be ECDSA P-256 public keys.");
+                    }
+
+                    string keyId = IntentSigner.ComputeKeyId(key);
+                    if (loaded.TryAdd(keyId, key))
+                    {
+                        key = null;
+                    }
+                }
+                finally
                 {
-                    _logger.LogWarning($"Ignoring duplicate authorized key '{keyId}'.");
-                    key.Dispose();
+                    key?.Dispose();
                 }
             }
-            catch (Exception exception) when (exception is CryptographicException or ArgumentException or FormatException)
+
+            _logger.LogInformation($"Loaded {loaded.Count} authorized intent public key(s).");
+            return loaded.ToFrozenDictionary(StringComparer.Ordinal);
+        }
+        catch
+        {
+            foreach (ECDsa key in loaded.Values)
             {
                 key.Dispose();
-                _logger.LogWarning(exception, "Ignoring unreadable authorized public key.");
             }
-        }
 
-        _logger.LogInformation($"Loaded {loaded.Count} authorized intent public key(s).");
-        return loaded.ToFrozenDictionary(StringComparer.Ordinal);
+            throw;
+        }
     }
 
     internal static List<string> ExtractPemBlocks(string contents)
@@ -103,21 +123,42 @@ internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore, IDisposable
             string trimmed = line.Trim();
             if (current is null)
             {
-                if (trimmed.StartsWith("-----BEGIN ", StringComparison.Ordinal) && trimmed.EndsWith("-----", StringComparison.Ordinal))
+                if (trimmed.Length == 0 || trimmed.StartsWith('#'))
                 {
-                    current = new StringBuilder();
-                    current.AppendLine(trimmed);
+                    continue;
                 }
 
+                if (!string.Equals(trimmed, BEGIN_PUBLIC_KEY, StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("Authorized keys file may contain only PUBLIC KEY PEM blocks and comments.");
+                }
+
+                current = new StringBuilder();
+                current.AppendLine(trimmed);
                 continue;
             }
 
-            current.AppendLine(trimmed);
-            if (trimmed.StartsWith("-----END ", StringComparison.Ordinal) && trimmed.EndsWith("-----", StringComparison.Ordinal))
+            if (trimmed.StartsWith("-----BEGIN ", StringComparison.Ordinal))
             {
+                throw new InvalidDataException("Authorized keys file contains a nested PEM block.");
+            }
+
+            current.AppendLine(trimmed);
+            if (trimmed.StartsWith("-----END ", StringComparison.Ordinal))
+            {
+                if (!string.Equals(trimmed, END_PUBLIC_KEY, StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("Authorized keys file contains a mismatched PEM block.");
+                }
+
                 blocks.Add(current.ToString());
                 current = null;
             }
+        }
+
+        if (current is not null)
+        {
+            throw new InvalidDataException("Authorized keys file contains an unterminated PEM block.");
         }
 
         return blocks;

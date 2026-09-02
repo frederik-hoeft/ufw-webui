@@ -10,6 +10,8 @@ public interface ISignedIntent
 {
     int Version { get; }
 
+    string DeploymentId { get; }
+
     string KeyId { get; }
 
     long IssuedAtUnix { get; }

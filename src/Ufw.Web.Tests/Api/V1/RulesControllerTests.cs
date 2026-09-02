@@ -66,7 +66,9 @@ public sealed class RulesControllerTests
         Assert.AreSame(expected, ok.Value);
         client.Verify(
             c => c.SendAsync<AddRuleRequest, RuleMutationResponse>(
-                It.Is<AddRuleRequest>(sent => sent.Nonce == request.Nonce && sent.Signature == request.Signature),
+                It.Is<AddRuleRequest>(sent => sent.DeploymentId == request.DeploymentId
+                    && sent.Nonce == request.Nonce
+                    && sent.Signature == request.Signature),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -116,6 +118,7 @@ public sealed class RulesControllerTests
     private static AddRuleRequest CreateSignedAdd() => new()
     {
         Version = 1,
+        DeploymentId = "deployment-test",
         KeyId = "sha256:test",
         IssuedAtUnix = 1,
         Nonce = "nonce",
@@ -127,6 +130,7 @@ public sealed class RulesControllerTests
     private static DeleteRuleRequest CreateSignedDelete() => new()
     {
         Version = 1,
+        DeploymentId = "deployment-test",
         KeyId = "sha256:test",
         IssuedAtUnix = 1,
         Nonce = "nonce",

@@ -68,13 +68,46 @@ public sealed class FirewallMutationServiceTests
         IResponsePayload response = await harness.Service.AddAsync(request, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<ForbiddenResponse>(response);
-        harness.ProcessRunner.Verify(
-            static runner => runner.RunAsync(
-                It.IsAny<string>(),
-                It.IsAny<ImmutableArray<string>>(),
-                It.IsAny<Out<string>>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        VerifyNoUfwCalls(harness);
+    }
+
+    [TestMethod]
+    public async Task AddAsync_RejectsWrongDeploymentWithoutCallingUfwAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        AddRuleRequest request = harness.SignAdd(CreateSshRule(), deploymentId: "another-deployment");
+
+        IResponsePayload response = await harness.Service.AddAsync(request, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<ForbiddenResponse>(response);
+        VerifyNoUfwCalls(harness);
+    }
+
+    [TestMethod]
+    public async Task AddAsync_RejectsMalformedPayloadWithoutCallingUfwAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        AddRuleRequest request = harness.SignAdd(CreateSshRule()) with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(new { rule = "malformed" })
+        };
+
+        IResponsePayload response = await harness.Service.AddAsync(request, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<BadRequestResponse>(response);
+        VerifyNoUfwCalls(harness);
+    }
+
+    [TestMethod]
+    public async Task AddAsync_ReplayPersistenceFailureDoesNotCallUfwAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        harness.BreakNoncePersistence();
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            _ = await harness.Service.AddAsync(harness.SignAdd(CreateSshRule()), TestContext.CancellationToken));
+
+        VerifyNoUfwCalls(harness);
     }
 
     [TestMethod]
@@ -156,16 +189,48 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_ReplayIsRejectedAfterRestartOfNonceStoreAsync()
+    public async Task AddAsync_ConcurrentReplayCrossesMutationBoundaryAtMostOnceAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        AddRuleRequest request = harness.SignAdd(CreateSshRule());
+
+        IResponsePayload[] results = await Task.WhenAll(
+            harness.Service.AddAsync(request, TestContext.CancellationToken).AsTask(),
+            harness.Service.AddAsync(request, TestContext.CancellationToken).AsTask());
+
+        Assert.AreEqual(1, results.Count(static result => result is RuleMutationResponse));
+        Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                "/usr/sbin/ufw",
+                It.Is<ImmutableArray<string>>(args => !args.Contains("status")),
+                It.IsAny<Out<string>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task AddAsync_ReplayIsRejectedAfterNonceStoreRestartAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         AddRuleRequest request = harness.SignAdd(CreateSshRule());
         IResponsePayload first = await harness.Service.AddAsync(request, TestContext.CancellationToken);
         Assert.IsInstanceOfType<RuleMutationResponse>(first);
 
+        harness.RestartNonceStore();
+
         IResponsePayload replay = await harness.Service.AddAsync(request, TestContext.CancellationToken);
         Assert.IsInstanceOfType<ConflictResponse>(replay);
     }
+
+    private static void VerifyNoUfwCalls(FirewallHarness harness) =>
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                It.IsAny<string>(),
+                It.IsAny<ImmutableArray<string>>(),
+                It.IsAny<Out<string>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
 
     private static FirewallRuleSpecification CreateSshRule() => new()
     {
@@ -190,11 +255,12 @@ public sealed class FirewallMutationServiceTests
         Directory.CreateDirectory(directory);
         string keysPath = Path.Combine(directory, "authorized_keys");
         string noncePath = Path.Combine(directory, "nonces");
+        string deploymentPath = Path.Combine(directory, "deployment-id");
         ECDsa key = IntentSigner.CreateP256();
         File.WriteAllText(keysPath, key.ExportSubjectPublicKeyInfoPem());
 
         TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
-        TestConfiguration configuration = new(TestAppSettingsFactory.Create(keysPath, noncePath));
+        TestConfiguration configuration = new(TestAppSettingsFactory.Create(keysPath, noncePath, deploymentPath));
         Mock<IChildProcessRunner> processRunner = new();
         string status = initialStatus;
         processRunner
@@ -223,10 +289,13 @@ public sealed class FirewallMutationServiceTests
         private readonly string _directory;
         private readonly ECDsa _key;
         private readonly TestTimeProvider _clock;
+        private readonly IConfiguration _configuration;
         private readonly FileAuthorizedKeyStore _keys;
-        private readonly FileNonceStore _nonces;
+        private readonly FileDeploymentIdentityProvider _deploymentIdentity;
         private readonly UfwExecutionGate _gate;
         private readonly Action<string> _setStatus;
+        private readonly string _noncePath;
+        private FileNonceStore _nonces;
 
         public FirewallHarness(
             string directory,
@@ -240,26 +309,28 @@ public sealed class FirewallMutationServiceTests
             _directory = directory;
             _key = key;
             _clock = clock;
+            _configuration = configuration;
+            _noncePath = configuration.Settings.Security!.NonceStorePath;
             ProcessRunner = processRunner;
             _setStatus = setStatus;
             _keys = new FileAuthorizedKeyStore(configuration, new ConsoleLogger());
+            _deploymentIdentity = new FileDeploymentIdentityProvider(configuration);
             _nonces = new FileNonceStore(configuration, clock);
             _gate = new UfwExecutionGate();
-            IntentVerifier verifier = new(_keys, configuration, clock, MessageJsonSerializerContext.Default);
-            UfwRunner runner = new(configuration, processRunner.Object);
-            Service = new FirewallMutationService(runner, verifier, _nonces, _gate, new ConsoleLogger());
+            Service = CreateService();
             _ = getStatus;
         }
 
         public Mock<IChildProcessRunner> ProcessRunner { get; }
 
-        public FirewallMutationService Service { get; }
+        public FirewallMutationService Service { get; private set; }
 
         public void SetStatus(string status) => _setStatus(status);
 
-        public AddRuleRequest SignAdd(FirewallRuleSpecification rule) =>
+        public AddRuleRequest SignAdd(FirewallRuleSpecification rule, string? deploymentId = null) =>
             IntentRequestFactory.CreateAddRequest(
                 _key,
+                deploymentId ?? _deploymentIdentity.GetDeploymentId(),
                 new AddRulePayload { Rule = rule },
                 MessageJsonSerializerContext.Default.AddRulePayload,
                 _clock);
@@ -267,9 +338,39 @@ public sealed class FirewallMutationServiceTests
         public DeleteRuleRequest SignDelete(FirewallRuleSpecification rule) =>
             IntentRequestFactory.CreateDeleteRequest(
                 _key,
+                _deploymentIdentity.GetDeploymentId(),
                 new DeleteRulePayload { RuleId = RuleIdentity.Compute(rule), Rule = rule },
                 MessageJsonSerializerContext.Default.DeleteRulePayload,
                 _clock);
+
+        public void RestartNonceStore()
+        {
+            _nonces.Dispose();
+            _nonces = new FileNonceStore(_configuration, _clock);
+            Service = CreateService();
+        }
+
+        public void BreakNoncePersistence()
+        {
+            if (File.Exists(_noncePath))
+            {
+                File.Delete(_noncePath);
+            }
+
+            Directory.CreateDirectory(_noncePath);
+        }
+
+        private FirewallMutationService CreateService()
+        {
+            IntentVerifier verifier = new(
+                _keys,
+                _deploymentIdentity,
+                _configuration,
+                _clock,
+                MessageJsonSerializerContext.Default);
+            UfwRunner runner = new(_configuration, ProcessRunner.Object);
+            return new FirewallMutationService(runner, verifier, _nonces, _gate, new ConsoleLogger());
+        }
 
         public ValueTask DisposeAsync()
         {

@@ -19,6 +19,7 @@ public static class IntentCanonicalizer
         StringBuilder builder = new();
         builder.Append(IntentProtocol.CONTEXT);
         builder.Append('\n');
+        AppendField(builder, "deploymentId", intent.DeploymentId);
         AppendField(builder, "keyId", intent.KeyId);
         AppendField(builder, "issuedAtUnix", intent.IssuedAtUnix.ToString(CultureInfo.InvariantCulture));
         AppendField(builder, "nonce", intent.Nonce);

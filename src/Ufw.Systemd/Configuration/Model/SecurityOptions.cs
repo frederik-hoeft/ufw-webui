@@ -6,6 +6,8 @@ internal sealed class SecurityOptions : IRequireValidation
 
     public string NonceStorePath { get; set; } = "/var/lib/ufw-manager/intent-nonces";
 
+    public string DeploymentIdPath { get; set; } = "/var/lib/ufw-manager/deployment-id";
+
     public TimeSpan MaxIntentAge { get; set; } = TimeSpan.FromMinutes(5);
 
     public TimeSpan ClockSkew { get; set; } = TimeSpan.FromSeconds(30);
@@ -14,6 +16,7 @@ internal sealed class SecurityOptions : IRequireValidation
     {
         if (string.IsNullOrWhiteSpace(AuthorizedKeysPath)
             || string.IsNullOrWhiteSpace(NonceStorePath)
+            || string.IsNullOrWhiteSpace(DeploymentIdPath)
             || MaxIntentAge <= TimeSpan.Zero
             || ClockSkew < TimeSpan.Zero)
         {
