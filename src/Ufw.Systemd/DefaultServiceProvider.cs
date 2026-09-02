@@ -2,6 +2,7 @@
 using Ufw.Ipc.Shared.Security.Certificates;
 using Ufw.Systemd.Api;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Network;
 using Ufw.Systemd.Services;
 using Ufw.Systemd.Services.Logging;
@@ -17,6 +18,7 @@ namespace Ufw.Systemd;
 [Import<IPipeTransportModule>]
 [Import<ITransportSecurityModule>]
 [Import<IApiModule>]
+[Import<IFirewallModule>]
 [Singleton<ILogger, ConsoleLogger>]
 [Singleton<ICertificateLoader, PemCertificateLoader>]
 [Singleton<IRemoteCertificateValidationHandler, MutualTlsRemoteCertificateValidationHandler>]

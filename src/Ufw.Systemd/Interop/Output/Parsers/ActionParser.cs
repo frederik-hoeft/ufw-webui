@@ -9,7 +9,7 @@ internal sealed partial class RoutingAction(string? name = null) : RegexParserBa
 {
     public static RoutingAction Instance { get; } = new();
 
-    [GeneratedRegex(@"\G(?<action>ALLOW|DENY|REJECT|LIMIT) (?<forward>IN|FWD)")]
+    [GeneratedRegex(@"\G(?<action>ALLOW|DENY|REJECT|LIMIT) (?<forward>IN|OUT|FWD)")]
     public static partial Regex ParserRegex { get; }
 
     public override IParser NamedCopy(string name) => new RoutingAction(name);

@@ -54,7 +54,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
             throw new ArgumentException("The payload does not define application response semantics.", nameof(payload));
         }
 
-        BufferedJsonMessageBlob payloadBlob = BufferedJsonMessageBlob.CreateFrom(payload, context);
+        BufferedJsonMessageBlob payloadBlob = BufferedJsonMessageBlob.CreateFrom(payload, payload.GetType(), context);
         IResponseMessage message = new ResponseMessage(
             ApplicationProtocolVersion.CURRENT,
             (int)responsePayload.StatusCode,

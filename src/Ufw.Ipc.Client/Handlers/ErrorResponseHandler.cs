@@ -24,6 +24,6 @@ internal sealed class ErrorResponseHandler : IResponseMessageHandler, IMessageHa
 
         ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
         _ = errorResponse ?? throw new InvalidDataException($"Failed to deserialize response body of message type '{message.StatusCode}'");
-        throw new InvalidOperationException($"Failed to perform request. Server returned status code {message.StatusCode}: '{errorResponse.Message}'");
+        throw new UfwIpcException(message.StatusCode, errorResponse.Message);
     }
 }

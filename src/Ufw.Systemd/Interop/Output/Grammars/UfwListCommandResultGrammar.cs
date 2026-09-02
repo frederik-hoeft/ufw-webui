@@ -31,7 +31,7 @@ internal sealed class UfwListCommandResultGrammar
             .Parser<RoutingAction>()
             .Parser<Whitespace>()
             .Parser(endpoint.NamedCopy(SourceGroup))
-            .Parser<Whitespace>()
+            .Parser<Optional<Whitespace>>()
             .Parser<Optional<Sequence<OutHint, Whitespace>>>()
             .Parser<Optional<Sequence<CommentStart, Alternative<JsonComment, Comment>>>>());
     }

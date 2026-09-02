@@ -28,7 +28,7 @@ The web database stores Identity data and refresh-token state. Refresh tokens ar
 
 Access tokens are short-lived RSA-signed JWTs. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved by a user for daemon execution.
 
-There is no rule CRUD controller or firewall-state entity in `Ufw.Web`. SQLite is not used as a second source of firewall truth.
+`Ufw.Web` exposes versioned rule endpoints (`GET/POST/DELETE /api/v1/rules`) as a JWT-authorized proxy. It does not store firewall state. SQLite is not used as a second source of firewall truth. Mutation bodies are user-signed intents and are forwarded to the daemon without being re-signed or reinterpreted.
 
 ## Ufw.Systemd
 
@@ -36,7 +36,7 @@ There is no rule CRUD controller or firewall-state entity in `Ufw.Web`. SQLite i
 
 The transport graph uses the named-pipe transport. On Linux, the configured absolute pipe path is the local Unix-domain IPC endpoint. No TCP transport is present for the daemon.
 
-The daemon currently exposes only the rule-listing placeholder. No mutating daemon endpoint is present. This is intentional: a mutation path must not be introduced until daemon-side verification of user-signed mutation intents is available.
+The daemon exposes unsigned rule listing plus signed `AddRule` and `DeleteRule` mutations. UFW remains the sole source of truth. All UFW process invocations are serialized in-process. Mutations are accepted only after the daemon independently verifies an ECDSA P-256 intent signature against a locally configured authorized-keys file and consumes a persistent nonce.
 
 ## IPC layer
 
@@ -79,7 +79,9 @@ socket remain defense-in-depth controls for local exposure.
 
 UFW and the daemon remain authoritative for firewall rule existence and semantics. `Ufw.Web` may maintain richer application metadata that UFW itself does not represent, such as display information or authorship history.
 
-If stable rule identifiers can be embedded in UFW comments, the web database may use those identifiers to associate metadata with daemon-owned rules. Such metadata must not be interpreted as authoritative evidence that a rule exists, is enabled, or has particular firewall semantics. Reconciliation must start from daemon-observed UFW state.
+Rules are addressed by a content hash of their semantic match/action fields, not by `ufw status numbered` indexes. Display numbers are returned for presentation only. Comments are not part of semantic identity. Unparsed rows (for example IPv6) are still returned so the client can see them, but they cannot be mutated until they can be identified safely.
+
+If richer identifiers are later embedded in UFW comments, the web database may associate metadata with daemon-observed rules. Such metadata must not be treated as evidence that a rule exists. Reconciliation must start from daemon-observed UFW state.
 
 ## Request flow
 
@@ -91,7 +93,15 @@ A read-only operation follows this shape:
 4. `Ufw.Systemd` routes the request and reads the authoritative host state.
 5. The result returns through IPC and is projected into the HTTP response model.
 
-A firewall mutation is not implemented in the current system. Its required security contract is documented in [the security baseline](../security/architecture-baseline.md).
+A firewall mutation follows this shape:
+
+1. A future Blazor client constructs the exact rule specification, canonicalizes it, and signs the intent with the user's ECDSA P-256 private key.
+2. The browser calls `POST /api/v1/rules` or `DELETE /api/v1/rules` with a JWT and the signed envelope.
+3. `Ufw.Web` authenticates the session and forwards the envelope unchanged over IPC.
+4. `Ufw.Systemd` verifies the signature, freshness, nonce, and domain constraints, then executes a validated `ufw` argv array.
+5. The result returns through IPC and is projected into the HTTP response.
+
+The security contract is documented in [the security baseline](../security/architecture-baseline.md).
 
 ## Extension boundaries
 

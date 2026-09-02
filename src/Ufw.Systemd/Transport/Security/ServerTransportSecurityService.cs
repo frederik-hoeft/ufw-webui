@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Ipc.Shared.Security.Certificates;
 using Ufw.Ipc.Shared.Threading;
@@ -23,6 +24,11 @@ internal sealed class ServerTransportSecurityService
 
     public async Task<Stream> OpenSecureStreamAsync(Stream innerStream, CancellationToken cancellationToken = default)
     {
+        if (configuration.Settings.Pipe.SslProtocols == SslProtocols.None)
+        {
+            return innerStream;
+        }
+
         SslServerAuthenticationOptions? sslOptions = Volatile.Read(in _sslOptions);
         sslOptions ??= await _lock.RunTaskAsync(CreateSslOptionsUnsynchronizedAsync, cancellationToken);
 

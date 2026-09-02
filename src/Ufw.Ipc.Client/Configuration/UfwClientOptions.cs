@@ -7,7 +7,9 @@ internal sealed record UfwClientOptions(
     string PipeName,
     SslProtocols SslProtocols,
     TimeSpan IoTimeout,
-    TimeSpan RequestTimeout)
+    TimeSpan RequestTimeout,
+    string? ClientCertificatePath = null,
+    string? ClientCertificateKeyPath = null)
 {
     public UfwClientOptions(string ServerName, string PipeName, SslProtocols SslProtocols)
         : this(

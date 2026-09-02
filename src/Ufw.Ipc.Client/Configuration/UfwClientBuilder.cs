@@ -9,6 +9,8 @@ public sealed partial class UfwClientBuilder : IDisposable
     private SslProtocols _sslProtocols;
     private TimeSpan _ioTimeout = TimeSpan.FromSeconds(15);
     private TimeSpan _requestTimeout = TimeSpan.FromSeconds(15);
+    private string? _clientCertificatePath;
+    private string? _clientCertificateKeyPath;
 
     internal UfwClientBuilder() => Pass();
 
@@ -43,6 +45,16 @@ public sealed partial class UfwClientBuilder : IDisposable
         return this;
     }
 
+    public UfwClientBuilder UseClientCertificate(string certificatePath, string keyPath)
+    {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(certificatePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyPath);
+        _clientCertificatePath = certificatePath;
+        _clientCertificateKeyPath = keyPath;
+        return this;
+    }
+
     private static partial PipeEndpoint ParseEndpoint(string endpoint);
 
     internal UfwClientOptions Build()
@@ -53,7 +65,14 @@ public sealed partial class UfwClientBuilder : IDisposable
         Dispose();
         PipeEndpoint endpoint = ParseEndpoint(_endpointString);
 
-        return new UfwClientOptions(endpoint.ServerName, endpoint.PipeName, _sslProtocols, _ioTimeout, _requestTimeout);
+        return new UfwClientOptions(
+            endpoint.ServerName,
+            endpoint.PipeName,
+            _sslProtocols,
+            _ioTimeout,
+            _requestTimeout,
+            _clientCertificatePath,
+            _clientCertificateKeyPath);
     }
 
     private static void ValidateTimeout(TimeSpan timeout, string parameterName)

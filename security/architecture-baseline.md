@@ -20,7 +20,7 @@ These mechanisms remain useful for scoping the HTTP/API surface, but none is the
 
 The browser is the user interaction boundary. A future Blazor frontend is expected to support cryptographic signing of firewall mutation intents in the browser. The frontend itself is not privileged and is not authoritative for host firewall state.
 
-Browser-side signing is outside the current implementation. No assumption is made here about key storage technology or a specific signature algorithm.
+Browser-side key storage and UX remain outside the current implementation. The signed-intent protocol is specified and verified on the daemon: ECDSA P-256, SHA-256, IEEE P1363 signatures, field-oriented canonicalization, and `sha256:` key IDs derived from SubjectPublicKeyInfo. A first client prototype may prompt for the private key on each signature.
 
 ### Ufw.Web
 
@@ -40,7 +40,7 @@ Unix socket ownership and permissions should restrict which local principals can
 
 `Ufw.Systemd` is the privileged security boundary and the authority for UFW state. It must independently validate any request capable of changing firewall state before executing it.
 
-The current daemon contains no mutating controller endpoint. Mutation support remains blocked on the signed-intent verification design below.
+The daemon independently verifies every mutating request before executing UFW. Compromise of `Ufw.Web` is not sufficient to produce an accepted mutation.
 
 ## Signed mutation invariant
 
@@ -48,7 +48,7 @@ Before a mutating IPC operation is added, the protocol must ensure that the daem
 
 At minimum, the signed material must bind the user's authorization to the complete mutation intent rather than to an ASP-generated interpretation of it. The signed representation must also have explicit protocol/domain scope so a signature cannot be reinterpreted as a different operation or replayed in an unintended deployment context. The daemon must validate the signature against an authorized public key that is available to the daemon through a trust path that a compromised `Ufw.Web` cannot unilaterally rewrite.
 
-The mutation protocol must prevent an intercepted valid signed intent from being replayed as a fresh authorization. The precise canonicalization, deployment/daemon scope, freshness/replay mechanism, key lifecycle, and signature algorithm are intentionally not fixed by this baseline; they must be designed as one protocol so that verification semantics are unambiguous on both the browser and daemon sides.
+The mutation protocol prevents an intercepted valid signed intent from being replayed as a fresh authorization. Replay protection uses a unique nonce persisted on disk so it survives daemon restarts, combined with an issued-at window (`max_intent_age` plus `clock_skew`). Nonce consumption is serialized with UFW execution. The signed material is a field-oriented canonical encoding of version, key id, timestamp, nonce, operation (`rules.add` / `rules.delete`), and the normalized rule fields. JSON key order and whitespace are not part of the signed encoding.
 
 `Ufw.Web` may perform ordinary application authorization before forwarding a request, but the daemon's signature verification remains mandatory. ASP authorization can reduce what a legitimate session is offered; it cannot substitute for daemon verification.
 
@@ -56,7 +56,7 @@ The mutation protocol must prevent an intercepted valid signed intent from being
 
 The daemon needs access to the public keys that are permitted to authorize mutations. That authorization set cannot be sourced solely from a database controlled by `Ufw.Web`, because doing so would allow a compromised web process to register an attacker key and then sign arbitrary mutations.
 
-The provisioning and lifecycle mechanism for authorized keys is not implemented in the current stage. Whatever mechanism is selected must preserve daemon-side control over the effective trust set.
+Authorized public keys are loaded from a daemon-local PEM file (`security.authorized_keys_path`), analogous to `authorized_keys`. The file is operator-managed. A compromised `Ufw.Web` cannot register a new trusted key. Only ECDSA P-256 keys are accepted.
 
 ## Firewall state authority
 
@@ -76,16 +76,12 @@ Access JWTs remain valid until their short expiration even after a refresh famil
 
 This baseline describes the security boundary that the current preparatory state preserves and the invariant required before write support is introduced.
 
-The following are intentionally not implemented yet:
+The following remain out of scope:
 
-- browser/Blazor UI
-- browser-side signing keys and signing UX
-- canonical signed mutation format
-- daemon-side signature verification
-- daemon-managed authorized public-key lifecycle
-- cryptographic peer authentication on the local IPC stream; local endpoint permissions scope connectivity but do not authorize mutations
-- mutating HTTP controllers
-- mutating daemon IPC endpoints
-- stable UFW rule identifiers and metadata reconciliation
+- browser/Blazor UI and in-browser key storage
+- dynamic authorized-key lifecycle / user provisioning
+- ASP-side firewall state reconciliation and audit logging
+- EditRule and other future mutation types (the intent verifier is reusable for them)
+- mandatory mTLS; TLS/mTLS is configurable defense-in-depth and is skipped when `SslProtocols` is `None`
 
-Read-only infrastructure can evolve independently, but no firewall mutation path should bypass these missing controls.
+Delete requests carry the content-addressed rule id plus the full specification. The daemon recomputes the identity, re-lists UFW under the execution lock, and refuses the delete if the rule is missing or no longer unique. `ufw status numbered` indexes are never accepted from the client.

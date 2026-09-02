@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Interop.Commands;
 
@@ -6,21 +6,23 @@ namespace Ufw.Systemd.Interop.IO;
 
 internal sealed class UfwRunner(IConfiguration configuration, IChildProcessRunner processRunner) : IUfwRunner
 {
-    public async Task<bool> RunAsync(IUfwCommand command, CancellationToken cancellationToken)
+    public async Task<UfwProcessResult> ExecuteAsync(IUfwCommand command, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(command);
         ImmutableArray<string> args = command.BuildArguments();
+        foreach (string argument in args)
+        {
+            if (argument.IndexOfAny(['\0', '\n', '\r']) >= 0)
+            {
+                throw new InvalidOperationException("Refusing to execute a UFW argument that contains a control character.");
+            }
+        }
+
         string ufw = configuration.Settings.UfwPath;
         Out<string> output = new();
         int exitCode = await processRunner.RunAsync(ufw, args, output, cancellationToken);
-        if (exitCode != 0)
-        {
-            throw new InvalidOperationException($"ufw failed unexpectedly with exit code {exitCode} while running '{ufw} {string.Join(' ', args)}': {output.Value}");
-        }
-        if (!output.TryGetValue(out string? outputValue))
-        {
-            throw new InvalidOperationException("ufw output is empty");
-        }
+        string outputValue = output.TryGetValue(out string? value) ? value : string.Empty;
         command.SetOutput(outputValue);
-        return true;
+        return new UfwProcessResult(exitCode, outputValue, args);
     }
 }

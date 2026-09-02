@@ -26,11 +26,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
                     $"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but did not contain validation errors.");
             }
 
-            throw new InvalidOperationException(
-                $"""
-                Failed to perform request. Server returned status code {message.StatusCode} '{validationErrorResponse.Message}':
-                    {string.Join("\n    ", validationErrorResponse.Errors.Select(static e => $"{e.PropertyName}: {e.ErrorMessage}"))}
-                """);
+            throw new UfwIpcException(message.StatusCode, validationErrorResponse.Message, validationErrorResponse.Errors);
         }
 
         if (message.PayloadType == ApplicationPayloadTypes.ERROR)
@@ -38,8 +34,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
             ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
             _ = errorResponse ?? throw new InvalidDataException(
                 $"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but the body was empty.");
-            throw new InvalidOperationException(
-                $"Failed to perform request. Server returned status code {message.StatusCode}: '{errorResponse.Message}'");
+            throw new UfwIpcException(message.StatusCode, errorResponse.Message);
         }
 
         throw new InvalidDataException(

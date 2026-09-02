@@ -35,7 +35,11 @@ public sealed class ProductionSerializationTests
         Assert.IsNotNull(context.GetTypeInfoOrDefault<InternalServerErrorResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<NotFoundResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<NotImplementedResponse>());
+        Assert.IsNotNull(context.GetTypeInfoOrDefault<AddRuleRequest>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<DeleteRuleRequest>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<RuleListResponse>());
+        Assert.IsNotNull(context.GetTypeInfoOrDefault<RuleMutationResponse>());
+        Assert.IsNotNull(context.GetTypeInfoOrDefault<ConflictResponse>());
+        Assert.IsNotNull(context.GetTypeInfoOrDefault<ForbiddenResponse>());
     }
 }

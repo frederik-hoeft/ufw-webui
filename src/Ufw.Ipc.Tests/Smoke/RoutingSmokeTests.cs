@@ -1,4 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Client;
+using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Tests.Adapter;
@@ -14,9 +15,10 @@ public sealed class RoutingSmokeTests : IpcProtocolTestBase
             .MapGet("/api/v1/known", static _ => ValueTask.FromResult(new OkResponse())),
         actAsync: async (context, cancellationToken) =>
         {
-            InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            UfwIpcException exception = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
                 _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/missing", cancellationToken));
 
+            Assert.AreEqual(404, exception.StatusCode);
             Assert.Contains("404", exception.Message);
         }, cancellationToken: TestContext.CancellationToken).AsTask();
 

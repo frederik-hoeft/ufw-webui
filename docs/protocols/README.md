@@ -106,3 +106,5 @@ explicitly disabled with `Timeout.InfiniteTimeSpan`.
 - [Application IPC protocol v1](application-protocol.md) defines the JSON
   envelope, representation identifiers, payload-presence contract, typed binding,
   response semantics, and application-level failures.
+- [Signed mutation intent v1](signed-intent.md) defines the user-signed AddRule
+  and DeleteRule envelope, canonicalization, replay protection, and rule identity.

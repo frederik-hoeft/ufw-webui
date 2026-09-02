@@ -9,7 +9,7 @@ The solution currently contains:
 - `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, and transport abstractions shared with the daemon.
 - `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API.
 
-The browser UI is intentionally absent from this stage. Rule-management REST controllers are also out of scope until the signed mutation protocol is implemented end to end.
+The browser UI is intentionally absent from this stage. Signed `AddRule` / `DeleteRule` flows and unsigned rule listing are implemented through `Ufw.Web` and `Ufw.Systemd`. A future Blazor client is expected to create the in-browser signatures.
 
 ## Architecture
 
@@ -34,3 +34,14 @@ dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/t
 The default web database is SQLite. The web API applies EF Core migrations at startup. The default IPC endpoint is `/run/ufw-systemd.pipe`; development configuration uses `/tmp/ufw-systemd.pipe`.
 
 No public user-registration endpoint is provided. User provisioning and administrative user-management APIs are separate work from the authentication foundation in this stage.
+
+## Firewall mutations
+
+Rule listing is unsigned and JWT-protected. Add and delete require a user-signed intent that the daemon verifies against `/etc/ufw-manager/authorized_keys` (configurable). Generate a P-256 test key with:
+
+```bash
+openssl ecparam -name prime256v1 -genkey -noout -out intent-key.pem
+openssl ec -in intent-key.pem -pubout -out intent-key.pub.pem
+```
+
+Place the public key PEM in the daemon authorized-keys file. Optional mTLS between `Ufw.Web` and `Ufw.Systemd` is configured through `IpcOptions:SslProtocols` plus client certificate paths on the web side, and `pipe.ssl_protocols` plus `remote_certificate_validation` on the daemon.

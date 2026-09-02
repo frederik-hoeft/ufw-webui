@@ -11,8 +11,4 @@
 	<ProjectReference Include="..\Ufw.Roslyn.SourceGen\Ufw.Roslyn.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Model\Domain\Rules\" />
-  </ItemGroup>
-
 </Project>
