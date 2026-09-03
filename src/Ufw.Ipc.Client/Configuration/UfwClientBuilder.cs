@@ -6,7 +6,9 @@ public sealed partial class UfwClientBuilder : IDisposable
 {
     private bool _disposedValue;
     private string? _endpointString;
-    private SslProtocols _sslProtocols;
+    private bool _tlsEnabled;
+    private string? _tlsServerName;
+    private SslProtocols _sslProtocols = SslProtocols.None;
     private TimeSpan _ioTimeout = TimeSpan.FromSeconds(15);
     private TimeSpan _requestTimeout = TimeSpan.FromSeconds(15);
     private string? _clientCertificatePath;
@@ -22,9 +24,20 @@ public sealed partial class UfwClientBuilder : IDisposable
         return this;
     }
 
-    public UfwClientBuilder UseSsl(SslProtocols sslProtocols)
+    public UfwClientBuilder UseSsl(SslProtocols sslProtocols = SslProtocols.None)
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
+        _tlsEnabled = true;
+        _sslProtocols = sslProtocols;
+        return this;
+    }
+
+    public UfwClientBuilder UseSsl(string serverName, SslProtocols sslProtocols = SslProtocols.None)
+    {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(serverName);
+        _tlsEnabled = true;
+        _tlsServerName = serverName;
         _sslProtocols = sslProtocols;
         return this;
     }
@@ -62,17 +75,60 @@ public sealed partial class UfwClientBuilder : IDisposable
         ObjectDisposedException.ThrowIf(_disposedValue, this);
         _ = _endpointString ?? throw new InvalidOperationException("Required option 'PipeName' was not provided.");
 
-        Dispose();
+        ValidateCertificateConfiguration();
         PipeEndpoint endpoint = ParseEndpoint(_endpointString);
-
-        return new UfwClientOptions(
+        string? tlsServerName = ResolveTlsServerName(endpoint);
+        UfwClientOptions options = new(
             endpoint.ServerName,
             endpoint.PipeName,
+            _tlsEnabled,
+            tlsServerName,
             _sslProtocols,
             _ioTimeout,
             _requestTimeout,
             _clientCertificatePath,
             _clientCertificateKeyPath);
+        Dispose();
+        return options;
+    }
+
+    private string? ResolveTlsServerName(PipeEndpoint endpoint)
+    {
+        if (!_tlsEnabled)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_tlsServerName))
+        {
+            return _tlsServerName;
+        }
+
+        if (!string.Equals(endpoint.ServerName, ".", StringComparison.Ordinal))
+        {
+            return endpoint.ServerName;
+        }
+
+        throw new InvalidOperationException("TLS on a local pipe requires an explicit server certificate name.");
+    }
+
+    private void ValidateCertificateConfiguration()
+    {
+        bool clientCertificateConfigured = _clientCertificatePath is not null || _clientCertificateKeyPath is not null;
+        if (clientCertificateConfigured && !_tlsEnabled)
+        {
+            throw new InvalidOperationException("A client certificate can only be configured when TLS is enabled.");
+        }
+
+        if (!clientCertificateConfigured)
+        {
+            return;
+        }
+
+        if (!File.Exists(_clientCertificatePath) || !File.Exists(_clientCertificateKeyPath))
+        {
+            throw new InvalidOperationException("Configured client certificate and private-key files must exist.");
+        }
     }
 
     private static void ValidateTimeout(TimeSpan timeout, string parameterName)

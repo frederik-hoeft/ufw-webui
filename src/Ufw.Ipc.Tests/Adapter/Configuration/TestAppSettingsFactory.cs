@@ -17,8 +17,6 @@ internal static class TestAppSettingsFactory
             Pipe = new PipeOptions
             {
                 PipeName = "/tmp/ufw-ipc-tests.inprocess",
-                ServerCertificatePath = "/nonexistent/cert.pem",
-                ServerCertificateKeyPath = "/nonexistent/key.pem",
             },
             Network = new NetworkOptions
             {

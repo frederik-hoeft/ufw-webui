@@ -1,32 +1,39 @@
 using System.Net.Security;
-using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
+using Ufw.Ipc.Shared.Security.Certificates;
+using Ufw.Ipc.Shared.Threading;
 using Ufw.Ipc.Shared.Transport.Security;
 
 namespace Ufw.Ipc.Client.Transport.Security;
 
-internal sealed class ClientTransportSecurityService(IRemoteCertificateValidationHandler certificateValidationHandler, UfwClientOptions options)
+internal sealed class ClientTransportSecurityService(
+    IRemoteCertificateValidationHandler certificateValidationHandler,
+    ICertificateLoader certificateLoader,
+    UfwClientOptions options)
     : ITransportSecurityService, IDisposable
 {
+    private readonly AsyncLock _certificateLock = new();
     private X509Certificate2? _clientCertificate;
     private bool _disposed;
 
     public async Task<Stream> OpenSecureStreamAsync(Stream innerStream, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (options.SslProtocols == SslProtocols.None)
+        if (!options.TlsEnabled)
         {
             return innerStream;
         }
 
         SslClientAuthenticationOptions sslOptions = new()
         {
-            TargetHost = options.ServerName,
+            TargetHost = options.TlsServerName ?? throw new InvalidOperationException("TLS server name is not configured."),
+            // SslProtocols.None intentionally preserves the .NET/OS automatic-selection semantics.
             EnabledSslProtocols = options.SslProtocols,
         };
-        X509Certificate2? certificate = GetOrLoadClientCertificate();
+        X509Certificate2? certificate = await GetOrLoadClientCertificateAsync(cancellationToken);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (certificate is not null)
         {
             sslOptions.ClientCertificates = [certificate];
@@ -37,24 +44,34 @@ internal sealed class ClientTransportSecurityService(IRemoteCertificateValidatio
         return stream;
     }
 
-    private X509Certificate2? GetOrLoadClientCertificate()
+    private async ValueTask<X509Certificate2?> GetOrLoadClientCertificateAsync(CancellationToken cancellationToken)
     {
-        if (_clientCertificate is not null)
-        {
-            return _clientCertificate;
-        }
-
-        if (string.IsNullOrWhiteSpace(options.ClientCertificatePath)
-            || string.IsNullOrWhiteSpace(options.ClientCertificateKeyPath))
+        if (options.ClientCertificatePath is null || options.ClientCertificateKeyPath is null)
         {
             return null;
         }
 
-        string certificatePem = File.ReadAllText(options.ClientCertificatePath);
-        string keyPem = File.ReadAllText(options.ClientCertificateKeyPath);
-        X509Certificate2 loaded = X509Certificate2.CreateFromPem(certificatePem, keyPem);
-        _clientCertificate = loaded;
-        return loaded;
+        X509Certificate2? certificate = Volatile.Read(ref _clientCertificate);
+        if (certificate is not null)
+        {
+            return certificate;
+        }
+
+        return await _certificateLock.RunTaskAsync(async ct =>
+        {
+            certificate = Volatile.Read(ref _clientCertificate);
+            if (certificate is not null)
+            {
+                return certificate;
+            }
+
+            X509Certificate2 loaded = await certificateLoader.LoadCertificateAsync(
+                options.ClientCertificatePath,
+                options.ClientCertificateKeyPath,
+                ct);
+            Volatile.Write(ref _clientCertificate, loaded);
+            return loaded;
+        }, cancellationToken);
     }
 
     public void Dispose()
@@ -65,6 +82,7 @@ internal sealed class ClientTransportSecurityService(IRemoteCertificateValidatio
         }
 
         _disposed = true;
+        _certificateLock.Dispose();
         _clientCertificate?.Dispose();
     }
 }

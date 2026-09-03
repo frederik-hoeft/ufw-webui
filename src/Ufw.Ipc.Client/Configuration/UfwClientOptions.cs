@@ -5,19 +5,10 @@ namespace Ufw.Ipc.Client.Configuration;
 internal sealed record UfwClientOptions(
     string ServerName,
     string PipeName,
+    bool TlsEnabled,
+    string? TlsServerName,
     SslProtocols SslProtocols,
     TimeSpan IoTimeout,
     TimeSpan RequestTimeout,
     string? ClientCertificatePath = null,
-    string? ClientCertificateKeyPath = null)
-{
-    public UfwClientOptions(string ServerName, string PipeName, SslProtocols SslProtocols)
-        : this(
-            ServerName,
-            PipeName,
-            SslProtocols,
-            TimeSpan.FromSeconds(15),
-            TimeSpan.FromSeconds(15))
-    {
-    }
-}
+    string? ClientCertificateKeyPath = null);

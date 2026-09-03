@@ -130,22 +130,22 @@ internal static class Startup
 
         services.AddOptions<IpcClientOptions>()
             .Bind(configuration.GetSection(IpcClientOptions.SECTION_NAME))
-            .Validate(static options => !string.IsNullOrWhiteSpace(options.Endpoint), "IPC endpoint is required.")
+            .Validate(static options => options.IsValid(), "IPC endpoint/TLS configuration is invalid.")
             .ValidateOnStart();
 
         IpcClientOptions ipcOptions = configuration.GetSection(IpcClientOptions.SECTION_NAME).Get<IpcClientOptions>()
             ?? throw new InvalidOperationException("IPC endpoint configuration 'IpcOptions' was not found.");
-        if (string.IsNullOrWhiteSpace(ipcOptions.Endpoint))
+        if (!ipcOptions.IsValid())
         {
-            throw new InvalidOperationException("IPC endpoint configuration 'IpcOptions:Endpoint' not found.");
+            throw new InvalidOperationException("IPC endpoint/TLS configuration is invalid.");
         }
 
         services.AddUfwClientServices(client =>
         {
             client.ConnectTo(ipcOptions.Endpoint);
-            if (ipcOptions.SslProtocols != System.Security.Authentication.SslProtocols.None)
+            if (ipcOptions.TlsEnabled)
             {
-                client.UseSsl(ipcOptions.SslProtocols);
+                client.UseSsl(ipcOptions.TlsServerName!, ipcOptions.SslProtocols);
             }
 
             if (!string.IsNullOrWhiteSpace(ipcOptions.ClientCertificatePath)

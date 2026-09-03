@@ -68,6 +68,8 @@ internal static class IpcTestServiceRegistrar
         services.TryAddSingleton(new UfwClientOptions(
             ServerName: ".",
             PipeName: "/tmp/ufw-ipc-tests.inprocess",
+            TlsEnabled: false,
+            TlsServerName: null,
             SslProtocols: System.Security.Authentication.SslProtocols.None,
             IoTimeout: options.ClientIoTimeout ?? options.IoTimeout,
             RequestTimeout: options.ClientRequestTimeout ?? options.RequestTimeout));
