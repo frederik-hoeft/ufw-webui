@@ -1,4 +1,4 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,7 +15,7 @@ internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore, IDisposable
 
     private readonly IConfiguration _configuration;
     private readonly ILogger<FileAuthorizedKeyStore> _logger;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private FrozenDictionary<string, ECDsa>? _keys;
     private bool _disposed;
 

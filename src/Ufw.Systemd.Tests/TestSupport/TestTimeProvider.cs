@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Tests.TestSupport;
+﻿namespace Ufw.Systemd.Tests.TestSupport;
 
 internal sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider
 {

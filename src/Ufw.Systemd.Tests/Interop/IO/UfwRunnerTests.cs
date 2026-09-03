@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Interop.Output;

@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
 
 namespace Ufw.Systemd.Interop.Output.Parsers;

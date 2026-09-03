@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
@@ -270,13 +270,13 @@ public sealed class IntentSignatureTests
 
     private static FirewallRuleSpecification CreateSshRule(
         FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()
-    {
-        Action = FirewallAction.Allow,
-        AddressFamily = addressFamily,
-        Direction = FirewallDirection.In,
-        Protocol = FirewallProtocol.Tcp,
-        DestinationPorts = "22",
-    };
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = addressFamily,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "22",
+        };
 
     private static AddRuleRequest SignAdd(ECDsa key, TimeProvider clock, string deploymentId = DEPLOYMENT_ID) =>
         IntentRequestFactory.CreateAddRequest(

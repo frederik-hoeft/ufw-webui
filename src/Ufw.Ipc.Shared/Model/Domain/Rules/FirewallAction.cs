@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿namespace Ufw.Ipc.Shared.Model.Domain.Rules;
 
 public enum FirewallAction
 {

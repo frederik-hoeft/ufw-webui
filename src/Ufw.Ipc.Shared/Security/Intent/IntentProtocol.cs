@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Security.Intent;
+﻿namespace Ufw.Ipc.Shared.Security.Intent;
 
 public static class IntentProtocol
 {

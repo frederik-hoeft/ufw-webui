@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Ufw.Ipc.Shared.Security.Intent;
 
 namespace Ufw.Ipc.Shared.Model.Requests.Domain;

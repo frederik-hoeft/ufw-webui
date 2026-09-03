@@ -1,4 +1,4 @@
-using Ufw.Systemd.Security.Intent;
+﻿using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 
 namespace Ufw.Systemd.Tests.Security.Intent;

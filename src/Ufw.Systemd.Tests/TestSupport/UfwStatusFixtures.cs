@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Tests.TestSupport;
+﻿namespace Ufw.Systemd.Tests.TestSupport;
 
 internal static class UfwStatusFixtures
 {
@@ -21,7 +21,6 @@ internal static class UfwStatusFixtures
         [ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh
         [ 2] 80/tcp                     ALLOW IN    192.168.1.0/24
         """;
-
 
     public const string IPV6_RULE = """
         Status: active

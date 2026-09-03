@@ -1,6 +1,6 @@
-﻿using System.Collections.Immutable;
+﻿using Moq;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
-using Moq;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Model.Requests.Domain;

@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Interop.IO;
+﻿namespace Ufw.Systemd.Interop.IO;
 
 internal sealed record ChildProcessResult(
     int ExitCode,

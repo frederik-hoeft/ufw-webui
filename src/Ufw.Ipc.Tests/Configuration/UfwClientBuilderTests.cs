@@ -122,5 +122,4 @@ public sealed class UfwClientBuilderTests
 
         Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
     }
-
 }

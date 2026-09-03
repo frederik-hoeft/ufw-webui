@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Model.Responses;

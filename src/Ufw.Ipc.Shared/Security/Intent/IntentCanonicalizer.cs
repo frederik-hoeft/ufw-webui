@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 

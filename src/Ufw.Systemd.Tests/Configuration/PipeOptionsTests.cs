@@ -1,4 +1,4 @@
-using System.Security.Authentication;
+﻿using System.Security.Authentication;
 using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Systemd.Tests.Configuration;

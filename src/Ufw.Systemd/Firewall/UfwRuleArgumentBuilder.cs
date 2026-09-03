@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 
 namespace Ufw.Systemd.Firewall;

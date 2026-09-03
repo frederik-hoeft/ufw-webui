@@ -1,4 +1,4 @@
-using System.Buffers.Text;
+﻿using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using Ufw.Systemd.Configuration;
@@ -8,7 +8,7 @@ namespace Ufw.Systemd.Security.Intent;
 internal sealed class FileDeploymentIdentityProvider(IConfiguration configuration) : IDeploymentIdentityProvider
 {
     private const int DEPLOYMENT_ID_SIZE_BYTES = 32;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private string? _deploymentId;
 
     public string GetDeploymentId()

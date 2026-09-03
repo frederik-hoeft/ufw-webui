@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Ufw.Systemd.Interop.Output.Grammars;
 using Ufw.Systemd.Interop.Output.Model;
 

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.Parsers;

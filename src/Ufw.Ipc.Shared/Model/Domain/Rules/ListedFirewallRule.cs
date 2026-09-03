@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿namespace Ufw.Ipc.Shared.Model.Domain.Rules;
 
 /// <summary>
 /// A rule as observed from UFW. <see cref="DisplayNumber"/> is the current

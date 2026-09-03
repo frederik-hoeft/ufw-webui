@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Ufw.Systemd.Firewall;
 
 namespace Ufw.Systemd.Interop.Commands;

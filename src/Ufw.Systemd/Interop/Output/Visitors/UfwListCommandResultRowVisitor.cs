@@ -1,8 +1,8 @@
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using ParsedFirewallAction = Ufw.Systemd.Interop.Output.Model.FirewallAction;
+﻿using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Systemd.Interop.Output.Grammars;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using ParsedFirewallAction = Ufw.Systemd.Interop.Output.Model.FirewallAction;
 
 namespace Ufw.Systemd.Interop.Output.Visitors;
 

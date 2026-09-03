@@ -1,4 +1,4 @@
-using Ufw.Systemd.Configuration;
+﻿using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Systemd.Tests.TestSupport;

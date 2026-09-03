@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Configuration.Model;
+﻿namespace Ufw.Systemd.Configuration.Model;
 
 internal sealed class SecurityOptions : IRequireValidation
 {

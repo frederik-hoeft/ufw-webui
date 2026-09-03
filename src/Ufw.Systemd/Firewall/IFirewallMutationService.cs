@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
 
 namespace Ufw.Systemd.Firewall;

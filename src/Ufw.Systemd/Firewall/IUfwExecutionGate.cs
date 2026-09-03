@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Firewall;
+﻿namespace Ufw.Systemd.Firewall;
 
 /// <summary>
 /// Serializes all UFW process invocations so concurrent daemon requests cannot

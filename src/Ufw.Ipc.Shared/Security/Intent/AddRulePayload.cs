@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿using Ufw.Ipc.Shared.Model.Domain.Rules;
 
 namespace Ufw.Ipc.Shared.Security.Intent;
 

@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
 using Ufw.Ipc.Shared.Model.Responses;
@@ -344,17 +344,17 @@ internal sealed class FirewallMutationService(
     private static FirewallRuleSpecification CloneWithAddressFamily(
         FirewallRuleSpecification source,
         FirewallAddressFamily addressFamily) => new()
-    {
-        Action = source.Action,
-        AddressFamily = addressFamily,
-        Direction = source.Direction,
-        Protocol = source.Protocol,
-        Source = source.Source,
-        SourcePorts = source.SourcePorts,
-        SourceInterface = source.SourceInterface,
-        Destination = source.Destination,
-        DestinationPorts = source.DestinationPorts,
-        DestinationInterface = source.DestinationInterface,
-        Comment = source.Comment,
-    };
+        {
+            Action = source.Action,
+            AddressFamily = addressFamily,
+            Direction = source.Direction,
+            Protocol = source.Protocol,
+            Source = source.Source,
+            SourcePorts = source.SourcePorts,
+            SourceInterface = source.SourceInterface,
+            Destination = source.Destination,
+            DestinationPorts = source.DestinationPorts,
+            DestinationInterface = source.DestinationInterface,
+            Comment = source.Comment,
+        };
 }

@@ -1,4 +1,4 @@
-using System.Buffers.Text;
+﻿using System.Buffers.Text;
 using System.Security.Cryptography;
 
 namespace Ufw.Ipc.Shared.Security.Intent;

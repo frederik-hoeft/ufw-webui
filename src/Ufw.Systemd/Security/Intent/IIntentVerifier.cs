@@ -1,4 +1,4 @@
-using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Security.Intent;
 

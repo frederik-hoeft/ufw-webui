@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Security.Intent;
+﻿namespace Ufw.Systemd.Security.Intent;
 
 internal interface IDeploymentIdentityProvider
 {
