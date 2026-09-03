@@ -25,7 +25,7 @@ malformed framing and malformed application envelopes never reach controller cod
 
 ## Independent version domains
 
-Three different version identifiers exist because they answer different
+Four different version identifiers exist because they answer different
 compatibility questions:
 
 | Version domain | Example | Governs |
@@ -33,12 +33,14 @@ compatibility questions:
 | ITP wire version | ITP `1` | How bytes after the stable ITP preamble are framed and interpreted |
 | Application IPC protocol version | `protocolVersion: 1` | Request/response envelope and representation semantics |
 | API route version | `/api/v1/rules` | Daemon endpoint/controller contract |
+| Signed-intent version | intent `version: 2` | Canonical mutation authorization and rule-signing semantics |
 
 These versions are intentionally independent. ITP does not negotiate application
-versions, and an API route version is not a substitute for either protocol
-version. A peer must understand the ITP wire version before it can obtain an
-application document, and it must understand the application protocol version
-before routing the request.
+versions, and an API route version is not a substitute for a wire or signing
+protocol version. A peer must understand the ITP wire version before it can obtain
+an application document, and it must understand the application protocol version
+before routing the request. Signed-intent versioning applies only to mutation
+authorization carried inside otherwise valid application requests.
 
 There is no protocol negotiation or fallback. An unsupported version fails at
 the layer that owns it.
@@ -106,5 +108,6 @@ explicitly disabled with `Timeout.InfiniteTimeSpan`.
 - [Application IPC protocol v1](application-protocol.md) defines the JSON
   envelope, representation identifiers, payload-presence contract, typed binding,
   response semantics, and application-level failures.
-- [Signed mutation intent v1](signed-intent.md) defines the user-signed AddRule
-  and DeleteRule envelope, canonicalization, replay protection, and rule identity.
+- [Signed mutation intent v2](signed-intent.md) defines deployment-scoped user
+  authorization for AddRule and DeleteRule, canonicalization, replay protection,
+  and semantic rule identity.

@@ -13,9 +13,9 @@ Read [docs/architecture.md](../docs/architecture.md) before changing subsystem b
 
 ## Security constraints
 
-Treat `Ufw.Web` as semi-trusted relative to the daemon. HTTP authentication and authorization are not sufficient proof for privileged firewall changes.
+Treat `Ufw.Web` as untrusted relative to the daemon for privileged mutation authority. HTTP authentication, IPC reachability, and optional mTLS peer authentication are not sufficient proof for a firewall change.
 
-Do not add a mutating daemon endpoint until the request carries a user-signed mutation intent and `Ufw.Systemd` verifies it against an authorized public key through a trust path that `Ufw.Web` cannot unilaterally modify. Signed requests must also have replay protection as part of the eventual protocol.
+Mutating daemon endpoints must use the existing deployment-scoped signed-intent boundary: `Ufw.Systemd` verifies an authorized ECDSA P-256 signature, freshness, durable replay state, and the complete normalized mutation semantics before UFW execution. Reuse the shared intent protocol rather than creating endpoint-specific authorization conventions. See [docs/protocols/signed-intent.md](../docs/protocols/signed-intent.md).
 
 The daemon-facing transport is local named-pipe/Unix-domain IPC. Do not add a network transport for the privileged daemon.
 
@@ -25,14 +25,14 @@ UFW/daemon state is authoritative. The web database may store richer metadata ke
 
 Use controller-based, versioned APIs under `Ufw.Web/Api/V{N}`. Keep request/response contracts near the versioned API surface and place reusable application logic behind services.
 
-Authentication infrastructure currently consists of:
+Authentication infrastructure consists of:
 
 - ASP.NET Core Identity with EF Core/SQLite
 - RSA-signed JWT bearer access tokens
 - opaque rotating refresh tokens stored as hashes in the database and delivered through a secure `HttpOnly` cookie
 - CORS configuration intended for a future Blazor frontend
 
-Do not reintroduce Razor Pages or UI assets into `Ufw.Web`; UI implementation is outside the current project stage.
+Do not reintroduce Razor Pages or UI assets into `Ufw.Web`; UI implementation is outside this repository.
 
 ## Daemon conventions
 
