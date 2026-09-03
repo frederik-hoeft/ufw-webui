@@ -116,6 +116,12 @@ internal sealed class IntentVerifier(
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(rule);
         if (ruleId is not null)
         {
+            if (normalized.AddressFamily == FirewallAddressFamily.Any)
+            {
+                return Reject(new BadRequestResponse(
+                    "Delete-rule specifications must use a concrete address family from the current rule listing."));
+            }
+
             string computed = RuleIdentity.Compute(normalized);
             if (!string.Equals(computed, ruleId, StringComparison.Ordinal))
             {

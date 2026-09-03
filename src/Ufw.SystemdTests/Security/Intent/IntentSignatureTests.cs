@@ -147,7 +147,7 @@ public sealed class IntentSignatureTests
     {
         using ECDsa key = IntentSigner.CreateP256();
         TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
-        FirewallRuleSpecification rule = CreateSshRule();
+        FirewallRuleSpecification rule = CreateSshRule(FirewallAddressFamily.IPv4);
         DeleteRuleRequest request = IntentRequestFactory.CreateDeleteRequest(
             key,
             DEPLOYMENT_ID,
@@ -164,7 +164,7 @@ public sealed class IntentSignatureTests
     {
         using ECDsa key = IntentSigner.CreateP256();
         TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
-        FirewallRuleSpecification rule = CreateSshRule();
+        FirewallRuleSpecification rule = CreateSshRule(FirewallAddressFamily.IPv4);
         DeleteRuleRequest request = IntentRequestFactory.CreateDeleteRequest(
             key,
             DEPLOYMENT_ID,
@@ -174,6 +174,23 @@ public sealed class IntentSignatureTests
         IntentVerifier verifier = CreateVerifier(key, clock);
 
         Assert.IsInstanceOfType<IntentVerificationResult.Accepted>(verifier.VerifyDelete(request));
+    }
+
+    [TestMethod]
+    public void VerifyDelete_RejectsFamilyNeutralRule()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        FirewallRuleSpecification rule = CreateSshRule();
+        DeleteRuleRequest request = IntentRequestFactory.CreateDeleteRequest(
+            key,
+            DEPLOYMENT_ID,
+            new DeleteRulePayload { RuleId = RuleIdentity.Compute(rule), Rule = rule },
+            MessageJsonSerializerContext.Default.DeleteRulePayload,
+            clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        AssertRejected<BadRequestResponse>(verifier.VerifyDelete(request));
     }
 
     [TestMethod]
@@ -251,9 +268,11 @@ public sealed class IntentSignatureTests
             .SequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, ipv6)));
     }
 
-    private static FirewallRuleSpecification CreateSshRule() => new()
+    private static FirewallRuleSpecification CreateSshRule(
+        FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()
     {
         Action = FirewallAction.Allow,
+        AddressFamily = addressFamily,
         Direction = FirewallDirection.In,
         Protocol = FirewallProtocol.Tcp,
         DestinationPorts = "22",

@@ -27,7 +27,14 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(nonce);
-        return await _lock.RunTaskAsync(ct => ConsumeUnsynchronizedAsync(nonce, expiresAtUnix, ct), cancellationToken);
+        try
+        {
+            return await _lock.RunTaskAsync(ct => ConsumeUnsynchronizedAsync(nonce, expiresAtUnix, ct), cancellationToken);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new IOException("Intent replay state could not be persisted.", ex);
+        }
     }
 
     private async Task<bool> ConsumeUnsynchronizedAsync(string nonce, long expiresAtUnix, CancellationToken cancellationToken)
@@ -142,7 +149,9 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
             bufferSize: 4096,
             FileOptions.Asynchronous | FileOptions.WriteThrough);
         await stream.WriteAsync(bytes, cancellationToken);
+#pragma warning disable CA1849 // Flush(bool) is intentionally synchronous to guarantee durable replay-state persistence.
         stream.Flush(flushToDisk: true);
+#pragma warning restore CA1849
     }
 
     private async Task RewriteAsync(CancellationToken cancellationToken)
@@ -174,7 +183,9 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
             FileOptions.Asynchronous | FileOptions.WriteThrough))
         {
             await stream.WriteAsync(bytes, cancellationToken);
+#pragma warning disable CA1849 // Flush(bool) is intentionally synchronous to guarantee durable replay-state persistence.
             stream.Flush(flushToDisk: true);
+#pragma warning restore CA1849
         }
 
         File.Move(temporaryPath, path, overwrite: true);
