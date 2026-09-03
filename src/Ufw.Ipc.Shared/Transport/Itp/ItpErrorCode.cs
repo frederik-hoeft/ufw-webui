@@ -1,8 +1,11 @@
-﻿namespace Ufw.Ipc.Shared.Transport.Itp;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Ufw.Ipc.Shared.Transport.Itp;
 
 /// <summary>
 /// Structured ITP-level failures. These are never an application request or response.
 /// </summary>
+[SuppressMessage("Design", "CA1028:Enum Storage should be Int32", Justification = "ITP error codes are defined as 16-bit unsigned integers.")]
 public enum ItpErrorCode : ushort
 {
     None = 0,

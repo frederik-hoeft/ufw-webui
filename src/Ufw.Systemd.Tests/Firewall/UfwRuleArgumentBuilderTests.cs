@@ -1,0 +1,127 @@
+﻿using System.Collections.Immutable;
+using Ufw.Ipc.Shared.Model.Domain.Rules;
+using Ufw.Systemd.Firewall;
+
+namespace Ufw.Systemd.Tests.Firewall;
+
+[TestClass]
+public sealed class UfwRuleArgumentBuilderTests
+{
+    private static readonly string[] s_expectedForceAndLongFormTokens =
+    [
+        "--force", "allow", "in", "on", "eth0", "from", "any", "to", "any", "port", "22", "proto", "tcp", "comment", "ssh"
+    ];
+    private static readonly string[] s_expectedRouteUsesInOnAndOutOn =
+    [
+        "--force", "route", "allow", "in", "on", "br0", "out", "on", "eth0", "from", "10.0.0.0/8", "to", "192.168.0.0/16"
+    ];
+    private static readonly string[] s_expectedDeleteByNumber = ["--force", "delete", "12"];
+
+    [TestMethod]
+    public void TestBuildAdd_UsesForceAndLongFormTokens()
+    {
+        ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "22",
+            DestinationInterface = "eth0",
+            Comment = "ssh",
+        });
+
+        CollectionAssert.AreEqual(s_expectedForceAndLongFormTokens, arguments.ToArray());
+    }
+
+    [TestMethod]
+    public void TestBuildAdd_RejectsAmbiguousNonForwardInterfaces()
+    {
+        Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            SourceInterface = "eth1",
+            DestinationInterface = "eth0",
+        }));
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.Out,
+            DestinationInterface = "eth1",
+        }));
+    }
+
+    [TestMethod]
+    public void TestBuildAdd_UsesAddressFamilySpecificAnywhereForConcreteFamilies()
+    {
+        ImmutableArray<string> ipv4 = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            DestinationPorts = "22",
+        });
+        CollectionAssert.Contains(ipv4.ToArray(), "0.0.0.0/0");
+
+        ImmutableArray<string> ipv6 = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv6,
+            Direction = FirewallDirection.In,
+            DestinationPorts = "22",
+        });
+        CollectionAssert.Contains(ipv6.ToArray(), "::/0");
+    }
+
+    [TestMethod]
+    public void TestBuildAdd_RouteUsesInOnAndOutOn()
+    {
+        ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.Forward,
+            Protocol = FirewallProtocol.Any,
+            Source = "10.0.0.0/8",
+            SourceInterface = "br0",
+            Destination = "192.168.0.0/16",
+            DestinationInterface = "eth0",
+        });
+
+        CollectionAssert.AreEqual(
+            s_expectedRouteUsesInOnAndOutOn,
+            arguments.ToArray());
+    }
+
+    [TestMethod]
+    public void TestBuildAdd_RejectsUnsafeComment()
+    {
+        Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            Comment = "ok; rm -rf /",
+        }));
+    }
+
+    [TestMethod]
+    public void TestBuildAdd_RejectsNewlinesInInterface()
+    {
+        Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            DestinationInterface = "eth0\n--dry-run",
+        }));
+    }
+
+    [TestMethod]
+    public void TestBuildDeleteByNumber_FormatsDecimalNumber()
+    {
+        ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildDeleteByNumber(12);
+        CollectionAssert.AreEqual(s_expectedDeleteByNumber, arguments.ToArray());
+    }
+
+    [TestMethod]
+    public void TestBuildDeleteByNumber_RejectsNonPositive() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => UfwRuleArgumentBuilder.BuildDeleteByNumber(0));
+}

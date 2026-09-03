@@ -1,19 +1,12 @@
 ﻿namespace Ufw.Ipc.Shared.Transport.Itp;
 
-public readonly struct ItpFrame
+public readonly struct ItpFrame(ItpPacketType packetType, ItpPayloadFormat payloadFormat, ReadOnlyMemory<byte> payload)
 {
-    public ItpFrame(ItpPacketType packetType, ItpPayloadFormat payloadFormat, ReadOnlyMemory<byte> payload)
-    {
-        PacketType = packetType;
-        PayloadFormat = payloadFormat;
-        Payload = payload;
-    }
+    public ItpPacketType PacketType { get; } = packetType;
 
-    public ItpPacketType PacketType { get; }
+    public ItpPayloadFormat PayloadFormat { get; } = payloadFormat;
 
-    public ItpPayloadFormat PayloadFormat { get; }
-
-    public ReadOnlyMemory<byte> Payload { get; }
+    public ReadOnlyMemory<byte> Payload { get; } = payload;
 
     public bool IsApplicationData => PacketType == ItpPacketType.ApplicationData;
 

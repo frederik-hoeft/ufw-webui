@@ -54,32 +54,16 @@ public sealed class ItpConnection
                 "Refusing to write an ApplicationData frame with an empty payload.");
         }
 
-        return WriteVersion1FrameAsync(
-            ItpPacketType.ApplicationData,
-            ItpPayloadFormat.IpcJson,
-            payload,
-            cancellationToken);
+        return WriteVersion1FrameAsync(ItpPacketType.ApplicationData, ItpPayloadFormat.IpcJson, payload, cancellationToken);
     }
 
-    public ValueTask WriteTransportErrorAsync(
-        ItpErrorCode errorCode,
-        string? message,
-        CancellationToken cancellationToken = default)
+    public ValueTask WriteTransportErrorAsync(ItpErrorCode errorCode, string? message, CancellationToken cancellationToken = default)
     {
         byte[] payload = ItpTransportErrorPayload.Encode(errorCode, message);
-        return WriteVersion1FrameAsync(
-            ItpPacketType.TransportError,
-            ItpPayloadFormat.None,
-            payload,
-            cancellationToken);
+        return WriteVersion1FrameAsync(ItpPacketType.TransportError, ItpPayloadFormat.None, payload, cancellationToken);
     }
 
-    public static async ValueTask TryWriteTransportErrorAsync(
-        Stream stream,
-        ItpOptions options,
-        ItpErrorCode errorCode,
-        string? message,
-        CancellationToken cancellationToken = default)
+    public static async ValueTask TryWriteTransportErrorAsync(Stream stream, ItpOptions options, ItpErrorCode errorCode, string? message, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         try
@@ -113,18 +97,10 @@ public sealed class ItpConnection
             Memory<byte> header = headerBuffer.AsMemory(0, ItpConstants.VERSION_1_HEADER_REMAINDER_SIZE);
             await ReadExactAsync(_stream, header, cancellationToken).ConfigureAwait(false);
 
-            ParseVersion1Header(
-                header.Span,
-                out ItpPacketType packetType,
-                out ItpPayloadFormat payloadFormat,
-                out int payloadLength);
+            ParseVersion1Header(header.Span, out ItpPacketType packetType, out ItpPayloadFormat payloadFormat, out int payloadLength);
 
             byte[] payload = new byte[payloadLength];
-            await ReadExactAsync(
-                _stream,
-                payload,
-                cancellationToken,
-                canReplyWithTransportError: packetType == ItpPacketType.ApplicationData).ConfigureAwait(false);
+            await ReadExactAsync(_stream, payload, cancellationToken, canReplyWithTransportError: packetType == ItpPacketType.ApplicationData).ConfigureAwait(false);
 
             if (packetType == ItpPacketType.TransportError)
             {
@@ -143,17 +119,11 @@ public sealed class ItpConnection
         }
     }
 
-    private async ValueTask WriteVersion1FrameAsync(
-        ItpPacketType packetType,
-        ItpPayloadFormat payloadFormat,
-        ReadOnlyMemory<byte> payload,
-        CancellationToken cancellationToken)
+    private async ValueTask WriteVersion1FrameAsync(ItpPacketType packetType, ItpPayloadFormat payloadFormat, ReadOnlyMemory<byte> payload, CancellationToken cancellationToken)
     {
         if (payload.Length > _options.MaxPayloadLength)
         {
-            throw ItpException.Local(
-                ItpErrorCode.PayloadTooLarge,
-                $"Refusing to write a payload of {payload.Length} bytes; maximum is {_options.MaxPayloadLength}.");
+            throw ItpException.Local(ItpErrorCode.PayloadTooLarge, $"Refusing to write a payload of {payload.Length} bytes; maximum is {_options.MaxPayloadLength}.");
         }
 
         ValidateVersion1Packet(packetType, payloadFormat, payload.Length);
@@ -189,11 +159,7 @@ public sealed class ItpConnection
         return preamble[ItpConstants.MAGIC_SIZE];
     }
 
-    private void ParseVersion1Header(
-        ReadOnlySpan<byte> header,
-        out ItpPacketType packetType,
-        out ItpPayloadFormat payloadFormat,
-        out int payloadLength)
+    private void ParseVersion1Header(ReadOnlySpan<byte> header, out ItpPacketType packetType, out ItpPayloadFormat payloadFormat, out int payloadLength)
     {
         byte rawType = header[0];
         byte rawPayloadFormat = header[1];
@@ -202,8 +168,7 @@ public sealed class ItpConnection
         bool canReplyWithTransportError = rawType != (byte)ItpPacketType.TransportError;
         if (declaredLength > (uint)_options.MaxPayloadLength)
         {
-            throw ItpException.Local(
-                ItpErrorCode.PayloadTooLarge,
+            throw ItpException.Local(ItpErrorCode.PayloadTooLarge,
                 $"Declared payload length {declaredLength} exceeds the maximum of {_options.MaxPayloadLength}.",
                 canReplyWithTransportError);
         }
@@ -212,8 +177,7 @@ public sealed class ItpConnection
         {
             (byte)ItpPacketType.ApplicationData => ItpPacketType.ApplicationData,
             (byte)ItpPacketType.TransportError => ItpPacketType.TransportError,
-            _ => throw ItpException.Local(
-                ItpErrorCode.UnsupportedPacketType,
+            _ => throw ItpException.Local(ItpErrorCode.UnsupportedPacketType,
                 $"Unsupported ITP packet type 0x{rawType:X2}.",
                 canReplyWithTransportError: true),
         };
@@ -223,26 +187,20 @@ public sealed class ItpConnection
         ValidateVersion1Packet(packetType, payloadFormat, payloadLength, canReplyWithTransportError);
     }
 
-    private static void ValidateVersion1Packet(
-        ItpPacketType packetType,
-        ItpPayloadFormat payloadFormat,
-        int payloadLength,
-        bool canReplyWithTransportError = false)
+    private static void ValidateVersion1Packet(ItpPacketType packetType, ItpPayloadFormat payloadFormat, int payloadLength, bool canReplyWithTransportError = false)
     {
         if (packetType == ItpPacketType.ApplicationData)
         {
             if (payloadFormat != ItpPayloadFormat.IpcJson)
             {
-                throw ItpException.Local(
-                    ItpErrorCode.UnsupportedPayloadFormat,
+                throw ItpException.Local(ItpErrorCode.UnsupportedPayloadFormat,
                     $"Unsupported application payload format 0x{(byte)payloadFormat:X2}.",
                     canReplyWithTransportError);
             }
 
             if (payloadLength == 0)
             {
-                throw ItpException.Local(
-                    ItpErrorCode.EmptyApplicationPayload,
+                throw ItpException.Local(ItpErrorCode.EmptyApplicationPayload,
                     "ApplicationData frame has an empty payload.",
                     canReplyWithTransportError);
             }
@@ -252,18 +210,13 @@ public sealed class ItpConnection
 
         if (payloadFormat != ItpPayloadFormat.None)
         {
-            throw ItpException.Local(
-                ItpErrorCode.InvalidFrame,
+            throw ItpException.Local(ItpErrorCode.InvalidFrame,
                 "TransportError frames must use the None payload format.",
                 canReplyWithTransportError);
         }
     }
 
-    internal static async ValueTask ReadExactAsync(
-        Stream stream,
-        Memory<byte> destination,
-        CancellationToken cancellationToken,
-        bool canReplyWithTransportError = false)
+    internal static async ValueTask ReadExactAsync(Stream stream, Memory<byte> destination, CancellationToken cancellationToken, bool canReplyWithTransportError = false)
     {
         int offset = 0;
         while (offset < destination.Length)
@@ -274,8 +227,7 @@ public sealed class ItpConnection
                 string where = offset == 0
                     ? "before any of the expected bytes arrived"
                     : $"after {offset} of {destination.Length} expected bytes";
-                throw ItpException.Local(
-                    ItpErrorCode.IncompleteFrame,
+                throw ItpException.Local(ItpErrorCode.IncompleteFrame,
                     $"Connection closed {where} while reading an ITP frame.",
                     canReplyWithTransportError);
             }

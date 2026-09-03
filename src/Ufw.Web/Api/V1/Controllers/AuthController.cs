@@ -14,13 +14,15 @@ namespace Ufw.Web.Api.V1.Controllers;
 [ApiVersion(1.0)]
 [Route("api/v{version:apiVersion}/auth")]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
-public sealed class AuthController(
+public sealed class AuthController
+(
     UserManager<IdentityUser> userManager,
     SignInManager<IdentityUser> signInManager,
     IJwtTokenService jwtTokenService,
     IRefreshTokenService refreshTokenService,
     IAuthenticationTimingService authenticationTimingService,
-    IOptions<RefreshTokenOptions> refreshTokenOptions) : ControllerBase
+    IOptions<RefreshTokenOptions> refreshTokenOptions
+) : ControllerBase
 {
     private readonly RefreshTokenOptions _refreshTokenOptions = refreshTokenOptions.Value;
 

@@ -8,7 +8,7 @@ internal sealed partial class NetworkInterface(string? name = null) : RegexParse
 {
     public static NetworkInterface Instance { get; } = new();
 
-    [GeneratedRegex(@"\Gon (?<interface>[A-Za-z][A-Za-z0-9]*)")]
+    [GeneratedRegex(@"\Gon (?<interface>[A-Za-z][A-Za-z0-9._-]*)")]
     public static partial Regex ParserRegex { get; }
 
     public override IParser NamedCopy(string name) => new NetworkInterface(name);

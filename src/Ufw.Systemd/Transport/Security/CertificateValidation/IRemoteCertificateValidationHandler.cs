@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Ufw.Systemd.Transport.Security.CertificateValidation;
 
-public interface IRemoteCertificateValidationHandler
+internal interface IRemoteCertificateValidationHandler
 {
     bool ValidateCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors);
 }

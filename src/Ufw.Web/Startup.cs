@@ -128,10 +128,32 @@ internal static class Startup
                 .AllowCredentials();
         }));
 
-        string endpoint = configuration["IpcOptions:Endpoint"]
-            ?? throw new InvalidOperationException("IPC endpoint configuration 'IpcOptions:Endpoint' not found.");
-        services.AddUfwClientServices(client => client.ConnectTo(endpoint));
+        services.AddOptions<IpcClientOptions>()
+            .Bind(configuration.GetSection(IpcClientOptions.SECTION_NAME))
+            .Validate(static options => options.IsValid(), "IPC endpoint/TLS configuration is invalid.")
+            .ValidateOnStart();
 
+        IpcClientOptions ipcOptions = configuration.GetSection(IpcClientOptions.SECTION_NAME).Get<IpcClientOptions>()
+            ?? throw new InvalidOperationException("IPC endpoint configuration 'IpcOptions' was not found.");
+        if (!ipcOptions.IsValid())
+        {
+            throw new InvalidOperationException("IPC endpoint/TLS configuration is invalid.");
+        }
+
+        services.AddUfwClientServices(client =>
+        {
+            client.ConnectTo(ipcOptions.Endpoint);
+            if (ipcOptions.TlsEnabled)
+            {
+                client.UseSsl(ipcOptions.TlsServerName!, ipcOptions.SslProtocols);
+            }
+
+            if (!string.IsNullOrWhiteSpace(ipcOptions.ClientCertificatePath)
+                && !string.IsNullOrWhiteSpace(ipcOptions.ClientCertificateKeyPath))
+            {
+                client.UseClientCertificate(ipcOptions.ClientCertificatePath, ipcOptions.ClientCertificateKeyPath);
+            }
+        });
     }
 
     public static async Task ConfigureAsync(WebApplication app)

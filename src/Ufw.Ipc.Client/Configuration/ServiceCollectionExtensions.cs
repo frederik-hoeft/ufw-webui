@@ -5,6 +5,7 @@ using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Client.Transport.Pipes;
 using Ufw.Ipc.Client.Transport.Security;
 using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
+using Ufw.Ipc.Shared.Security.Certificates;
 using Ufw.Ipc.Shared.Serialization;
 using Ufw.Ipc.Shared.Serialization.Json;
 using Ufw.Ipc.Shared.Transport.Itp;
@@ -33,6 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITransportLayerService, NamedPipeClientTransportService>();
         services.AddSingleton<INamedPipeClientStreamFactory, NamedPipeClientStreamFactory>();
         services.AddSingleton<ITransportSecurityService, ClientTransportSecurityService>();
+        services.TryAddSingleton<ICertificateLoader, PemCertificateLoader>();
         services.TryAddSingleton<IRemoteCertificateValidationHandler, DefaultRemoteCertificateValidationHandler>();
         services.AddScoped<IUfwClient, UfwClient>();
         return services;

@@ -14,18 +14,15 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
 
     public int Priority => 0;
 
-    public bool CanHandle(IResponseMessage message) =>
-        message.StatusCode == 200;
+    public bool CanHandle(IResponseMessage message) => message.StatusCode == 200;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
-        where TResult : IEquatable<TResult>
+    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>
     {
         if (message.PayloadType == ApplicationPayloadTypes.EMPTY)
         {
             if (typeof(TResult) != typeof(OkResponse))
             {
-                throw new SerializationException(
-                    $"Response '{message.StatusCode}' has payloadType '{message.PayloadType}' but {typeof(TResult).Name} was requested.");
+                throw new SerializationException($"Response '{message.StatusCode}' has payloadType '{message.PayloadType}' but {typeof(TResult).Name} was requested.");
             }
 
             OkResponse okResponse = s_okResponse;
@@ -34,8 +31,7 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
 
         if (message.PayloadType != ApplicationPayloadTypes.DATA)
         {
-            throw new SerializationException(
-                $"Response '{message.StatusCode}' has unexpected payloadType '{message.PayloadType}' for a 200 response.");
+            throw new SerializationException($"Response '{message.StatusCode}' has unexpected payloadType '{message.PayloadType}' for a 200 response.");
         }
 
         TResult? result = await message.Payload.ReadAsync<TResult>(cancellationToken);

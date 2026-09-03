@@ -2,99 +2,120 @@
 
 ## System model
 
-UFW WebUI is split into a network-facing application and a privileged host daemon. The split limits the code that can directly affect the host firewall and keeps the privileged daemon off the network-facing HTTP surface.
+UFW WebUI separates network-facing application concerns from privileged host firewall execution. The split limits the code that can directly affect the firewall while still allowing an HTTP-facing application to expose management workflows.
 
-The three principal participants are:
+The system has three principal participants:
 
-1. The browser frontend presents management state and obtains user authorization for actions. A Blazor frontend is planned, but frontend implementation is outside the current codebase scope.
-2. `Ufw.Web` exposes the HTTP API, manages users and web sessions, stores application metadata, and mediates access to the daemon through local IPC.
-3. `Ufw.Systemd` owns the host-facing firewall integration. It is the authoritative source for UFW state and is the only component that may execute privileged UFW operations.
+1. A browser or other API client presents firewall state and obtains user authorization for mutations. A Blazor WebAssembly frontend is planned but is not part of this repository yet.
+2. `Ufw.Web` exposes the REST API, manages users and web sessions, and proxies daemon-backed operations over local IPC.
+3. `Ufw.Systemd` owns the host-facing UFW integration. It is authoritative for firewall state and is the only component that executes privileged UFW commands.
 
-The web application is not an authority for firewall state merely because it can reach the daemon. Its database is application state, not a second firewall database.
+`Ufw.Web` is deliberately not part of the privileged trust boundary. Its database contains application and authentication state, not a second copy of firewall state, and the ability to reach the daemon is not sufficient authority to mutate UFW.
 
 ## Ufw.Web
 
-`Ufw.Web` is an ASP.NET Core controller application. Its current responsibilities are infrastructure rather than firewall feature endpoints:
+`Ufw.Web` is an ASP.NET Core controller application. Its responsibilities include:
 
-- ASP.NET Core Identity backed by EF Core and SQLite
-- JWT bearer authentication for API requests
-- opaque refresh-token issuance, rotation, and revocation
-- API versioning and controller discovery
-- CORS configuration for a browser frontend
-- development Swagger UI and a health endpoint
-- local IPC client registration for future daemon-backed controllers
+- ASP.NET Core Identity backed by EF Core and SQLite;
+- JWT bearer authentication for API requests;
+- opaque refresh-token issuance, rotation, and revocation;
+- API versioning, controller discovery, CORS, and development Swagger support;
+- JWT-protected rule and intent-context REST endpoints;
+- local IPC client registration and daemon-response projection.
 
-The web database stores Identity data and refresh-token state. Refresh tokens are random opaque values delivered in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Only SHA-256 token hashes are persisted. Refresh tokens rotate on use, belong to a token family, and family reuse invalidates remaining active tokens. A stored Identity security stamp ties a refresh-token family to the user's current security state.
+Refresh tokens are random opaque values delivered in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Only SHA-256 token hashes are persisted. Refresh tokens rotate on use, belong to a token family, and family reuse invalidates remaining active tokens. A stored Identity security stamp ties a refresh-token family to the user's current security state.
 
-Access tokens are short-lived RSA-signed JWTs. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved by a user for daemon execution.
+Access tokens are short-lived RSA-signed JWTs. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved for daemon execution.
 
-There is no rule CRUD controller or firewall-state entity in `Ufw.Web`. SQLite is not used as a second source of firewall truth.
+The current daemon-backed REST surface includes:
+
+- `GET /api/v1/intent/context`, which returns the signed-intent protocol version and daemon deployment identifier;
+- `GET /api/v1/rules`, which returns authoritative rule state without requiring a mutation signature;
+- `POST /api/v1/rules`, which forwards a signed `rules.add` intent;
+- `DELETE /api/v1/rules`, which forwards a signed `rules.delete` intent.
+
+Mutation envelopes are forwarded without being re-signed or replaced by ASP-owned firewall state. Application-level authorization can restrict which HTTP requests a legitimate session may submit, but the daemon independently establishes mutation authority.
 
 ## Ufw.Systemd
 
-`Ufw.Systemd` is the privileged daemon. It hosts the IPC request pipeline, routes typed request messages to daemon controllers, and contains the UFW command/interoperability layer.
+`Ufw.Systemd` is the privileged daemon. It hosts the IPC request pipeline, source-generated daemon routing, signed-intent authorization, rule parsing and normalization, and the UFW subprocess boundary.
 
-The transport graph uses the named-pipe transport. On Linux, the configured absolute pipe path is the local Unix-domain IPC endpoint. No TCP transport is present for the daemon.
+The daemon exposes read-only rule and intent-context operations plus signed AddRule and DeleteRule mutations. UFW remains the sole source of truth for rule existence and semantics, including rules created or modified outside this application.
 
-The daemon currently exposes only the rule-listing placeholder. No mutating daemon endpoint is present. This is intentional: a mutation path must not be introduced until daemon-side verification of user-signed mutation intents is available.
+All UFW subprocess activity is serialized through one in-process execution gate. A mutation keeps that gate through authorization replay consumption, current-state checks, subprocess completion, and post-mutation reconciliation. Once a mutating child process starts, cancellation does not release ownership of that child: it is terminated and reaped if required, authoritative state is reconciled, and only then is cancellation propagated to the caller.
+
+UFW is invoked directly with validated argv elements rather than through a shell. The process environment forces a deterministic locale, stdout is reserved for parseable UFW output, and stderr is retained as diagnostics. A successful mutation response is returned only after the expected authoritative post-operation state has been observed.
 
 ## IPC layer
 
-`Ufw.Ipc.Client` and `Ufw.Ipc.Shared` define the typed request/response channel
-between `Ufw.Web` and `Ufw.Systemd`. The channel has four distinct stages: the
-local byte stream, ITP wire framing, the JSON application envelope, and daemon
-routing/binding. The detailed protocol contracts live under
-[docs/protocols](protocols/README.md).
+`Ufw.Ipc.Client` and `Ufw.Ipc.Shared` define the typed request/response channel between `Ufw.Web` and `Ufw.Systemd`. The channel has four distinct stages: the local byte stream, ITP wire framing, the JSON application envelope, and daemon routing/binding. The detailed protocol contracts live under [docs/protocols](protocols/README.md).
 
-ITP validates wire compatibility, framing, packet metadata, and bounded payload
-lengths before any application JSON is decoded. The application codec then
-validates request/response direction, representation semantics, and payload
-presence. Only a valid `IRequestMessage` reaches daemon routing, where a matched
-endpoint binds the buffered payload to its request DTO before controller code is
-invoked. Responses follow the same layers in reverse. Each connection carries one
-request/response exchange and holds no reusable protocol session state.
+ITP validates wire compatibility, framing, packet metadata, and bounded payload lengths before any application JSON is decoded. The application codec then validates request/response direction, representation semantics, and payload presence. Only a valid `IRequestMessage` reaches daemon routing, where a matched endpoint binds the buffered payload to its request DTO before controller code is invoked. Responses follow the same layers in reverse. Each connection carries one request/response exchange and holds no reusable protocol session state.
 
-This layering also defines failure containment. Expected peer-originated framing,
-application-protocol, transport I/O, timeout, and stream-security failures are
-scoped to the current connection so a daemon worker can continue serving later
-peers. Transport errors are returned only when enough valid v1 framing context
-exists to make a reply safe, and an incoming transport error never triggers a
-transport-error loop. Unexpected daemon/framework failures are not classified as
-peer failures; they remain observable by faulting the worker/application.
+This layering also defines failure containment. Expected peer-originated framing, application-protocol, transport I/O, timeout, and stream-security failures are scoped to the current connection so a daemon worker can continue serving later peers. Transport errors are returned only when enough valid v1 framing context exists to make a reply safe, and an incoming transport error never triggers a transport-error loop. Unexpected daemon/framework failures are not classified as peer failures; they remain observable by faulting the worker/application.
 
-Connection policy applies both a per-I/O idle timeout and an overall transaction
-deadline. The idle timeout bounds a read or write that stops making progress; the
-transaction deadline bounds the complete exchange even when bytes continue to
-arrive slowly. External client cancellation and daemon shutdown remain
-cancellation rather than internal timeout failures.
+Connection policy applies both a per-I/O idle timeout and an overall transaction deadline. The idle timeout bounds a read or write that stops making progress; the transaction deadline bounds the complete exchange even when bytes continue to arrive slowly. External client cancellation and daemon shutdown remain cancellation rather than internal timeout failures.
 
-The local IPC channel provides process separation and keeps privileged operations
-off the HTTP listener, but reachability is not authorization to mutate firewall
-state. The web process must not be able to manufacture an accepted firewall
-change without the daemon-side signed-intent verification boundary described in
-the security documentation. Filesystem ownership and permissions on the Unix
-socket remain defense-in-depth controls for local exposure.
+The local IPC endpoint is a named pipe on Windows and a Unix-domain socket path on Linux. TLS is optional and configured independently from protocol selection. When TLS is enabled, `SslProtocols.None` keeps its standard .NET meaning and lets the runtime/OS negotiate the supported protocol set; deployments may instead select explicit protocols. The server is authenticated whenever TLS is enabled. Client-certificate validation can additionally enable mTLS. TLS and socket permissions are defense in depth and do not replace signed-intent authorization.
+
+## Firewall rule model and identity
+
+Rule listing translates supported `ufw status numbered` rows into a normalized semantic model. That model is shared by display, identity, signed mutation payloads, duplicate detection, and UFW argument construction so the meaning that is signed is the meaning the daemon executes.
+
+The semantic model covers:
+
+- action (`allow`, `deny`, `reject`, or `limit`);
+- address family (`IPv4`, `IPv6`, or family-neutral for AddRule input);
+- direction (`in`, `out`, or `forward`);
+- protocol;
+- source and destination addresses/CIDRs and ports;
+- interfaces whose meaning depends on direction;
+- an optional comment.
+
+Normalization is semantic rather than textual. IPv4 and IPv6 CIDRs are reduced to their canonical network address, equivalent all-addresses forms normalize to `any`, and port sets are sorted, deduplicated, and merged where ranges overlap or are adjacent. For non-forward rules, only the interface meaningful for that direction is accepted; forward rules may carry both ingress and egress interfaces.
+
+Rule identity is a SHA-256 content hash of normalized match/action semantics. Comments and current UFW row numbers are deliberately excluded. IPv4 and IPv6 are distinct semantic identities. A family-neutral AddRule can correspond to the concrete IPv4 and IPv6 rows that UFW materializes, whereas DeleteRule always targets a concrete family-specific identity returned by listing.
+
+The current number from `ufw status numbered` is returned only as display/current-execution information. DeleteRule carries the semantic identity plus its complete rule specification. The daemon re-reads UFW while holding the execution gate and resolves that semantic identity to the current row immediately before deletion. Missing or ambiguous identities are rejected instead of deleting whatever happens to occupy an older row number.
+
+Only rows that are completely parsed and pass the same semantic validation used for mutations receive a `ruleId`. Unsupported or malformed rows remain visible in the read model as raw, unaddressable state. This preserves visibility without turning a partial parser interpretation into mutation authority.
+
+## Request flows
+
+### Rule listing
+
+A read-only rule operation follows this path:
+
+1. The client calls the versioned REST API using a JWT access token.
+2. `Ufw.Web` authenticates and authorizes the HTTP request and issues a typed IPC request.
+3. `Ufw.Systemd` serializes access to UFW, executes `ufw status numbered` under a deterministic locale, and parses stdout.
+4. Supported rows are normalized and assigned semantic identities; unsupported rows remain visible without mutable identities.
+5. The authoritative result returns through IPC and is projected into the HTTP response.
+
+### Firewall mutation
+
+A signed mutation follows this path:
+
+1. The client obtains `GET /api/v1/intent/context` and uses its protocol version and deployment identifier when constructing the intent.
+2. The client normalizes the exact rule specification, creates the AddRule or DeleteRule payload, and signs the canonical intent with an authorized ECDSA P-256 private key.
+3. `Ufw.Web` authenticates the HTTP session and forwards the signed envelope over IPC.
+4. `Ufw.Systemd` validates deployment scope, operation, payload semantics, rule identity where applicable, signature, and freshness against daemon-owned trust/configuration.
+5. Under the UFW execution gate, the daemon durably consumes the nonce before any mutation can execute, reads current authoritative state, and applies duplicate/target-resolution checks.
+6. The daemon constructs validated UFW argv, executes the child process, and retains process ownership through exit or cancellation cleanup.
+7. The daemon re-reads UFW and returns success only if the expected authoritative state is confirmed.
+
+The cryptographic and replay invariants are described in [the security baseline](../security/architecture-baseline.md). The exact signed representation is defined in [the signed-intent protocol](protocols/signed-intent.md).
 
 ## Firewall state and application metadata
 
-UFW and the daemon remain authoritative for firewall rule existence and semantics. `Ufw.Web` may maintain richer application metadata that UFW itself does not represent, such as display information or authorship history.
+UFW and `Ufw.Systemd` are authoritative for firewall rule existence and semantics. `Ufw.Web` may later maintain richer application metadata such as presentation information, authorship, semantic analysis, or reachability analysis, but that state cannot establish that a firewall rule exists or authorize a mutation.
 
-If stable rule identifiers can be embedded in UFW comments, the web database may use those identifiers to associate metadata with daemon-owned rules. Such metadata must not be interpreted as authoritative evidence that a rule exists, is enabled, or has particular firewall semantics. Reconciliation must start from daemon-observed UFW state.
-
-## Request flow
-
-A read-only operation follows this shape:
-
-1. The browser calls the versioned REST API using a JWT access token.
-2. `Ufw.Web` authenticates and authorizes the HTTP request.
-3. A controller uses `IUfwClient` to issue a typed request over the local Unix IPC endpoint.
-4. `Ufw.Systemd` routes the request and reads the authoritative host state.
-5. The result returns through IPC and is projected into the HTTP response model.
-
-A firewall mutation is not implemented in the current system. Its required security contract is documented in [the security baseline](../security/architecture-baseline.md).
+Out-of-band UFW changes are expected. Rule listing observes them directly, semantic identity allows manually created supported rules to be addressed, and DeleteRule resolves against fresh daemon-observed state. If future web metadata and UFW disagree, reconciliation starts from UFW.
 
 ## Extension boundaries
 
-New HTTP controllers belong under versioned API namespaces such as `Api/V1/Controllers`, with public request/response models under the corresponding `Api/V1/Models` area. Application services should remain independent of controller transport concerns.
+New HTTP controllers belong under versioned API namespaces such as `Api/V1/Controllers`, with public request/response models under the corresponding API model area. Application services should remain independent of controller transport concerns.
 
-New daemon operations use the existing typed IPC request/response model and daemon routing infrastructure. Read-only operations may be added independently. Mutating operations require the signed-intent verification boundary described in the security documentation before they can be considered safe to expose.
+New daemon operations use the typed IPC request/response and source-generated routing infrastructure. Read-only operations may remain unsigned when their data sensitivity permits. Mutating operations must reuse the signed-intent authorization boundary rather than treating IPC peer identity or ASP authorization as mutation authority.
+
+New rule syntax is safe to expose for mutation only when parsing, normalization, validation, semantic identity, signed canonicalization, and UFW argument construction agree on its meaning. Unsupported UFW output should remain visible but unaddressable until that complete semantic path exists.

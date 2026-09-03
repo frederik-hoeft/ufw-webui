@@ -16,13 +16,7 @@ internal static class ItpTransportErrorPayload
         if (!string.IsNullOrEmpty(message))
         {
             Encoder encoder = Encoding.UTF8.GetEncoder();
-            encoder.Convert(
-                message.AsSpan(),
-                messageBuffer.AsSpan(),
-                flush: true,
-                out _,
-                out bytesUsed,
-                out _);
+            encoder.Convert(message.AsSpan(), messageBuffer.AsSpan(), flush: true, out _, out bytesUsed, out _);
         }
 
         byte[] buffer = new byte[HEADER_SIZE + bytesUsed];
@@ -43,15 +37,13 @@ internal static class ItpTransportErrorPayload
         ushort messageLength = BinaryPrimitives.ReadUInt16BigEndian(payload.Slice(2, 2));
         if (messageLength > ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH)
         {
-            throw ItpException.Local(
-                ItpErrorCode.InvalidFrame,
+            throw ItpException.Local(ItpErrorCode.InvalidFrame,
                 $"Transport error diagnostic length {messageLength} exceeds the v1 maximum of {ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH} bytes.");
         }
 
         if (payload.Length != HEADER_SIZE + messageLength)
         {
-            throw ItpException.Local(
-                ItpErrorCode.InvalidFrame,
+            throw ItpException.Local(ItpErrorCode.InvalidFrame,
                 $"Transport error message length {messageLength} does not match remaining payload {payload.Length - HEADER_SIZE}.");
         }
 
@@ -64,10 +56,7 @@ internal static class ItpTransportErrorPayload
         }
         catch (DecoderFallbackException ex)
         {
-            throw new ItpException(
-                ItpErrorCode.InvalidFrame,
-                "Transport error diagnostic is not valid UTF-8.",
-                ex);
+            throw new ItpException(ItpErrorCode.InvalidFrame, "Transport error diagnostic is not valid UTF-8.", ex);
         }
 
         return ((ItpErrorCode)code, message);

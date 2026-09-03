@@ -75,6 +75,9 @@ public sealed class UfwListCommandResultRowParserTests
     [DataRow("[65] Anywhere/tcp on eth0       ALLOW FWD   Anywhere/tcp on br2000     # Network management protocol")]
     [DataRow("[66] Anywhere                   ALLOW FWD   203.0.113.0/24/tcp on br2000   # Test traffic")]
     [DataRow("[67] 203.0.113.1 14566/tcp on eth0  ALLOW FWD   Anywhere                   (out) # Test egress")]
+    [DataRow("[68] 53/udp                     ALLOW OUT   Anywhere                   # DNS egress")]
+    [DataRow("[69] 22/tcp (v6)                ALLOW IN    Anywhere (v6)              # IPv6 SSH")]
+    [DataRow("[70] 2001:db8:1::/64 443/tcp (v6) ALLOW IN    2001:db8:2::/64 (v6)")]
     public void TryParseTest(string row)
     {
         bool success = UfwListCommandResultGrammar.Instance.TryParse(row, out UfwListCommandResultRow? result);

@@ -9,6 +9,7 @@ using Ufw.Systemd.Api.Framework;
 
 namespace Ufw.Systemd.Api;
 
+[ApiControllerRegistration<IntentController>]
 [ApiControllerRegistration<RulesController>]
 [ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IRequestMessage, IResponseMessage>]
 internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IRequestMessage, IResponseMessage>

@@ -17,12 +17,9 @@ internal sealed class JsonComment(string? name = null) : IParser<JsonComment>
     {
         try
         {
-            // TODO: AOT compatibility / JSON context
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-            UfwRuleContext? context = JsonSerializer.Deserialize<UfwRuleContext>(input.AsSpan(offset));
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+            UfwRuleContext? context = JsonSerializer.Deserialize(
+                input.AsSpan(offset),
+                global::Ufw.Systemd.Interop.Output.UfwJsonSerializerContext.Default.UfwRuleContext);
             if (context is not null)
             {
                 charsConsumed = input.Length - offset;

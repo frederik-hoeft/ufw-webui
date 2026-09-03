@@ -23,11 +23,20 @@ internal sealed class ServerTransportSecurityService
 
     public async Task<Stream> OpenSecureStreamAsync(Stream innerStream, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+        if (!configuration.Settings.Pipe.TlsEnabled)
+        {
+            return innerStream;
+        }
+
         SslServerAuthenticationOptions? sslOptions = Volatile.Read(in _sslOptions);
         sslOptions ??= await _lock.RunTaskAsync(CreateSslOptionsUnsynchronizedAsync, cancellationToken);
 
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        SslStream stream = new(innerStream, leaveInnerStreamOpen: true, new RemoteCertificateValidationCallback(certificateValidationHandler.ValidateCertificate));
+        RemoteCertificateValidationCallback? validationCallback = configuration.Settings.Pipe.RemoteCertificateValidation is null
+            ? null
+            : new RemoteCertificateValidationCallback(certificateValidationHandler.ValidateCertificate);
+        SslStream stream = new(innerStream, leaveInnerStreamOpen: true, validationCallback);
         await stream.AuthenticateAsServerAsync(sslOptions, cancellationToken);
         return stream;
     }
@@ -40,14 +49,19 @@ internal sealed class ServerTransportSecurityService
         {
             return sslOptions;
         }
+
         PipeOptions pipeOptions = configuration.Settings.Pipe;
         pipeOptions.AssertIsValid();
-        X509Certificate2 certificate = await certificateLoader.LoadCertificateAsync(pipeOptions.ServerCertificatePath, pipeOptions.ServerCertificateKeyPath, cancellationToken);
+        X509Certificate2 certificate = await certificateLoader.LoadCertificateAsync(
+            pipeOptions.ServerCertificatePath!,
+            pipeOptions.ServerCertificateKeyPath!,
+            cancellationToken);
 
         sslOptions = new SslServerAuthenticationOptions
         {
-            EnabledSslProtocols = configuration.Settings.Pipe.SslProtocols,
-            ClientCertificateRequired = configuration.Settings.Pipe.RemoteCertificateValidation is not null,
+            // SslProtocols.None intentionally preserves the .NET/OS automatic-selection semantics.
+            EnabledSslProtocols = pipeOptions.SslProtocols,
+            ClientCertificateRequired = pipeOptions.RemoteCertificateValidation is not null,
             ServerCertificate = certificate,
         };
         Volatile.Write(ref _sslOptions, sslOptions);

@@ -78,15 +78,13 @@ internal sealed class BufferedJsonMessageBlob : IMessageBlob
 
         if (!HasPayload)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.MissingPayload,
+            throw new ApplicationProtocolException(ApplicationProtocolError.MissingPayload,
                 "Application message does not contain a payload.");
         }
 
         if (_isJsonNull && default(TResult) is not null)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadDeserializeFailed,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadDeserializeFailed,
                 $"Application payload JSON null cannot be bound to non-nullable value type {typeof(TResult).Name}.");
         }
 
@@ -97,8 +95,7 @@ internal sealed class BufferedJsonMessageBlob : IMessageBlob
         }
         catch (JsonException ex)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadDeserializeFailed,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadDeserializeFailed,
                 $"Application payload is not a valid {typeof(TResult).Name}.",
                 ex);
         }

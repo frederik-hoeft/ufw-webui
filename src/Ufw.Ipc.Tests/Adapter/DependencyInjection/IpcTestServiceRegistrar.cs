@@ -25,11 +25,7 @@ namespace Ufw.Ipc.Tests.Adapter.DependencyInjection;
 
 internal static class IpcTestServiceRegistrar
 {
-    public static IServiceCollection AddIpcTestServerDefaults(
-        this IServiceCollection services,
-        InProcessTransportBroker broker,
-        TestApiEndpointMap endpointMap,
-        AppSettings appSettings)
+    public static IServiceCollection AddIpcTestServerDefaults(this IServiceCollection services, InProcessTransportBroker broker, TestApiEndpointMap endpointMap, AppSettings appSettings)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(broker);
@@ -55,10 +51,7 @@ internal static class IpcTestServiceRegistrar
         return services;
     }
 
-    public static IServiceCollection AddIpcTestClientDefaults(
-        this IServiceCollection services,
-        InProcessTransportBroker broker,
-        IpcTestOptions options)
+    public static IServiceCollection AddIpcTestClientDefaults(this IServiceCollection services, InProcessTransportBroker broker, IpcTestOptions options)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(broker);
@@ -68,6 +61,8 @@ internal static class IpcTestServiceRegistrar
         services.TryAddSingleton(new UfwClientOptions(
             ServerName: ".",
             PipeName: "/tmp/ufw-ipc-tests.inprocess",
+            TlsEnabled: false,
+            TlsServerName: null,
             SslProtocols: System.Security.Authentication.SslProtocols.None,
             IoTimeout: options.ClientIoTimeout ?? options.IoTimeout,
             RequestTimeout: options.ClientRequestTimeout ?? options.RequestTimeout));

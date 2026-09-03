@@ -56,4 +56,70 @@ public sealed class UfwClientBuilderTests
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => builder.UseIoTimeout(TimeSpan.Zero));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => builder.UseRequestTimeout(TimeSpan.FromMilliseconds(-2)));
     }
+    [TestMethod]
+    public void TestBuild_DefaultsToPlaintextTransport()
+    {
+        using UfwClientBuilder builder = new();
+        UfwClientOptions options = builder.ConnectTo(TestEndpoint).Build();
+
+        Assert.IsFalse(options.TlsEnabled);
+        Assert.IsNull(options.TlsServerName);
+        Assert.AreEqual(System.Security.Authentication.SslProtocols.None, options.SslProtocols);
+    }
+
+    [TestMethod]
+    public void TestBuild_UseSslNoneEnablesAutomaticTlsSelection()
+    {
+        using UfwClientBuilder builder = new();
+        UfwClientOptions options = builder
+            .ConnectTo(TestEndpoint)
+            .UseSsl("daemon.test", System.Security.Authentication.SslProtocols.None)
+            .Build();
+
+        Assert.IsTrue(options.TlsEnabled);
+        Assert.AreEqual("daemon.test", options.TlsServerName);
+        Assert.AreEqual(System.Security.Authentication.SslProtocols.None, options.SslProtocols);
+    }
+
+    [TestMethod]
+    public void TestBuild_LocalTlsRequiresExplicitServerCertificateName()
+    {
+        using UfwClientBuilder builder = new();
+        _ = builder.ConnectTo(TestEndpoint).UseSsl();
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+    }
+
+    [TestMethod]
+    public void TestBuild_ClientCertificateRequiresTls()
+    {
+        string certificatePath = Path.GetTempFileName();
+        string keyPath = Path.GetTempFileName();
+        try
+        {
+            using UfwClientBuilder builder = new();
+            _ = builder
+                .ConnectTo(TestEndpoint)
+                .UseClientCertificate(certificatePath, keyPath);
+
+            Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+        }
+        finally
+        {
+            File.Delete(certificatePath);
+            File.Delete(keyPath);
+        }
+    }
+
+    [TestMethod]
+    public void TestBuild_ClientCertificateFilesMustExist()
+    {
+        using UfwClientBuilder builder = new();
+        _ = builder
+            .ConnectTo(TestEndpoint)
+            .UseSsl("daemon.test")
+            .UseClientCertificate("/nonexistent/client-cert.pem", "/nonexistent/client-key.pem");
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+    }
 }

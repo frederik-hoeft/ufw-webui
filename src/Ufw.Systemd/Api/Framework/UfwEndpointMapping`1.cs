@@ -22,6 +22,10 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
         {
             responsePayload = await InvokeEndpointAsync(serviceProvider, InitializeControllerAsync, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);

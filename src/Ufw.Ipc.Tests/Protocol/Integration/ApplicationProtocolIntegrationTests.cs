@@ -1,4 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Ipc.Client;
+using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Protocol;
 using Ufw.Ipc.Shared.Serialization;
@@ -51,8 +52,9 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     [TestMethod]
     public Task TestUnknownRoute_StillReturns404ErrorPayload() => RunAsync(async (context, cancellationToken) =>
     {
-        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        UfwIpcException exception = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
             _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/missing", cancellationToken));
+        Assert.AreEqual(404, exception.StatusCode);
         Assert.Contains("404", exception.Message);
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
@@ -128,12 +130,13 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
                 ValueTask.FromResult(new ModelValidationErrorResponse([new ModelValidationError("message", "required")]))),
         actAsync: async (context, cancellationToken) =>
         {
-            InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            UfwIpcException exception = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
                 _ = await context.SendAsync<EchoRequest, OkResponse>(
                     RequestMethod.Post,
                     "/api/v1/reject",
                     new EchoRequest("x"),
                     cancellationToken));
+            Assert.AreEqual(400, exception.StatusCode);
             Assert.Contains("message: required", exception.Message);
         }, cancellationToken: TestContext.CancellationToken).AsTask();
 }

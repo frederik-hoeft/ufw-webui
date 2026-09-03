@@ -18,74 +18,46 @@ internal sealed class TestEndpointMapBuilder : ITestEndpointMapBuilder
         return this;
     }
 
-    public ITestEndpointMapBuilder MapGet<TResponse>(
-        string route,
-        Func<IServiceProvider, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapGet<TResponse>(string route, Func<IServiceProvider, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         Map(RequestMethod.Get.ToString(), route, handler, priority);
 
-    public ITestEndpointMapBuilder MapGet<TResponse>(
-        string route,
-        Func<CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapGet<TResponse>(string route, Func<CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         MapGet(route, (_, cancellationToken) => handler(cancellationToken), priority);
 
-    public ITestEndpointMapBuilder MapPost<TRequest, TResponse>(
-        string route,
-        Func<IServiceProvider, TRequest, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapPost<TRequest, TResponse>(string route, Func<IServiceProvider, TRequest, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         Map(RequestMethod.Post.ToString(), route, handler, priority);
 
-    public ITestEndpointMapBuilder MapPost<TRequest, TResponse>(
-        string route,
-        Func<TRequest, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapPost<TRequest, TResponse>(string route, Func<TRequest, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         MapPost<TRequest, TResponse>(route, (_, request, cancellationToken) => handler(request, cancellationToken), priority);
 
-    public ITestEndpointMapBuilder MapPut<TRequest, TResponse>(
-        string route,
-        Func<IServiceProvider, TRequest, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapPut<TRequest, TResponse>(string route, Func<IServiceProvider, TRequest, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         Map(RequestMethod.Put.ToString(), route, handler, priority);
 
-    public ITestEndpointMapBuilder MapPut<TRequest, TResponse>(
-        string route,
-        Func<TRequest, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapPut<TRequest, TResponse>(string route, Func<TRequest, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         MapPut<TRequest, TResponse>(route, (_, request, cancellationToken) => handler(request, cancellationToken), priority);
 
-    public ITestEndpointMapBuilder MapDelete<TResponse>(
-        string route,
-        Func<IServiceProvider, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapDelete<TResponse>(string route, Func<IServiceProvider, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         Map(RequestMethod.Delete.ToString(), route, handler, priority);
 
-    public ITestEndpointMapBuilder MapDelete<TResponse>(
-        string route,
-        Func<CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder MapDelete<TResponse>(string route, Func<CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload =>
         MapDelete(route, (_, cancellationToken) => handler(cancellationToken), priority);
 
-    public ITestEndpointMapBuilder Map<TResponse>(
-        string method,
-        string route,
-        Func<IServiceProvider, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder Map<TResponse>(string method, string route, Func<IServiceProvider, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
         ArgumentNullException.ThrowIfNull(handler);
 
-        ApiEndpointMapping<IRequestMessage, IResponseMessage> mapping = UfwApiEndpointMappingFactory.Map<TResponse>(
+        ApiEndpointMapping<IRequestMessage, IResponseMessage> mapping = UfwApiEndpointMappingFactory.Map(
             method,
             NormalizeRoute(route),
             priority,
@@ -94,11 +66,7 @@ internal sealed class TestEndpointMapBuilder : ITestEndpointMapBuilder
         return Map(mapping);
     }
 
-    public ITestEndpointMapBuilder Map<TRequest, TResponse>(
-        string method,
-        string route,
-        Func<IServiceProvider, TRequest, CancellationToken, ValueTask<TResponse>> handler,
-        int priority = 0)
+    public ITestEndpointMapBuilder Map<TRequest, TResponse>(string method, string route, Func<IServiceProvider, TRequest, CancellationToken, ValueTask<TResponse>> handler, int priority = 0)
         where TResponse : IResponsePayload
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(method);

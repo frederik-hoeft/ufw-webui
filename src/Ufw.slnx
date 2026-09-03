@@ -15,6 +15,6 @@
   <Project Path="Ufw.Ipc.Client/Ufw.Ipc.Client.csproj" />
   <Project Path="Ufw.Roslyn/Ufw.Roslyn.csproj" />
   <Project Path="Ufw.Roslyn.SourceGen/Ufw.Roslyn.SourceGen.csproj" />
-  <Project Path="Ufw.SystemdTests/Ufw.Systemd.Tests.csproj" />
+  <Project Path="Ufw.Systemd.Tests/Ufw.Systemd.Tests.csproj" />
   <Project Path="Ufw.Ipc.Tests/Ufw.Ipc.Tests.csproj" />
 </Solution>
