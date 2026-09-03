@@ -6,18 +6,29 @@ namespace Ufw.Systemd.Interop.Output;
 
 internal sealed partial class UfwStatusParser
 {
-    public static UfwStatusSnapshot Parse(string output)
+    public static UfwStatusSnapshot? Parse(string output)
     {
         ArgumentNullException.ThrowIfNull(output);
-        bool active = false;
+        bool? active = null;
         List<ObservedUfwRule> rules = [];
         foreach (string rawLine in output.Split(["\r\n", "\n"], StringSplitOptions.None))
         {
             string line = rawLine.TrimEnd();
             if (line.StartsWith("Status:", StringComparison.OrdinalIgnoreCase))
             {
-                active = line.Contains("active", StringComparison.OrdinalIgnoreCase)
-                    && !line.Contains("inactive", StringComparison.OrdinalIgnoreCase);
+                string status = line["Status:".Length..].Trim();
+                if (status.Equals("active", StringComparison.OrdinalIgnoreCase))
+                {
+                    active = true;
+                }
+                else if (status.Equals("inactive", StringComparison.OrdinalIgnoreCase))
+                {
+                    active = false;
+                }
+                else
+                {
+                    return null;
+                }
                 continue;
             }
 
@@ -37,7 +48,7 @@ internal sealed partial class UfwStatusParser
             });
         }
 
-        return new UfwStatusSnapshot(active, rules);
+        return active.HasValue ? new UfwStatusSnapshot(active.Value, rules) : null;
     }
 
     [GeneratedRegex(@"^\s*\[\s*(?<number>\d+)\]\s+", RegexOptions.CultureInvariant)]

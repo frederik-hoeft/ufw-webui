@@ -6,6 +6,11 @@ namespace Ufw.Systemd.Interop.IO;
 
 internal sealed class UfwRunner(IConfiguration configuration, IChildProcessRunner processRunner) : IUfwRunner
 {
+    private static readonly ImmutableDictionary<string, string> s_environment =
+        ImmutableDictionary<string, string>.Empty
+            .Add("LC_ALL", "C")
+            .Add("LANG", "C");
+
     public async Task<UfwProcessResult> ExecuteAsync(IUfwCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -18,11 +23,14 @@ internal sealed class UfwRunner(IConfiguration configuration, IChildProcessRunne
             }
         }
 
-        string ufw = configuration.Settings.UfwPath;
-        Out<string> output = new();
-        int exitCode = await processRunner.RunAsync(ufw, args, output, cancellationToken);
-        string outputValue = output.TryGetValue(out string? value) ? value : string.Empty;
-        command.SetOutput(outputValue);
-        return new UfwProcessResult(exitCode, outputValue, args);
+        ChildProcessRequest request = new(configuration.Settings.UfwPath, args, s_environment);
+        ChildProcessResult result = await processRunner.RunAsync(request, cancellationToken);
+        command.SetOutput(result.StandardOutput);
+        return new UfwProcessResult(
+            result.ExitCode,
+            result.StandardOutput,
+            result.StandardError,
+            args,
+            result.CancellationRequested);
     }
 }

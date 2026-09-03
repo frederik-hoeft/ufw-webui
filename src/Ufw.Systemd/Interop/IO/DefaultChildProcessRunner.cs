@@ -1,58 +1,133 @@
-﻿using System.Collections.Immutable;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
 using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Interop.IO;
 
 internal sealed class DefaultChildProcessRunner(IConfiguration configuration) : IChildProcessRunner
 {
-    public async Task<int> RunAsync(string command, ImmutableArray<string> arguments, Out<string> output, CancellationToken cancellationToken)
+    public async Task<ChildProcessResult> RunAsync(ChildProcessRequest request, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(command, nameof(command));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Command, nameof(request.Command));
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (configuration.Settings.DebugMode)
-        {
-            string args = string.Join(' ', arguments);
-            Console.WriteLine($"execute: '{command} {args}'");
-        }
         using Process process = new()
         {
-            StartInfo = new ProcessStartInfo(command, arguments)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
+            StartInfo = CreateStartInfo(request)
         };
-        StringBuilder outputBuilder = new();
-        DataReceivedHandler stdoutHandler = new(outputBuilder);
-        DataReceivedHandler stderrHandler = new(outputBuilder);
-        process.OutputDataReceived += stdoutHandler.OnDataReceived;
-        process.ErrorDataReceived += stderrHandler.OnDataReceived;
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        await process.WaitForExitAsync(cancellationToken);
-        process.OutputDataReceived -= stdoutHandler.OnDataReceived;
-        process.ErrorDataReceived -= stderrHandler.OnDataReceived;
-        output.SetValue(outputBuilder.ToString());
+
         if (configuration.Settings.DebugMode)
         {
-            Console.WriteLine(output.Value);
+            string args = string.Join(' ', request.Arguments);
+            Console.WriteLine($"execute: '{request.Command} {args}'");
         }
-        return process.ExitCode;
+
+        try
+        {
+            if (!process.Start())
+            {
+                throw new InvalidOperationException($"Failed to start child process '{request.Command}'.");
+            }
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException)
+        {
+            throw new ChildProcessException($"Failed to start child process '{request.Command}'.", ex);
+        }
+
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        bool cancellationRequested = false;
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            cancellationRequested = true;
+            TryTerminate(process);
+            await process.WaitForExitAsync(CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            TryTerminate(process);
+            await ReapBestEffortAsync(process);
+            throw new ChildProcessException($"Failed while waiting for child process '{request.Command}'.", ex);
+        }
+
+        try
+        {
+            string standardOutput = await standardOutputTask;
+            string standardError = await standardErrorTask;
+
+            if (configuration.Settings.DebugMode)
+            {
+                if (!string.IsNullOrEmpty(standardOutput))
+                {
+                    await Console.Out.WriteLineAsync(standardOutput);
+                }
+                if (!string.IsNullOrEmpty(standardError))
+                {
+                    await Console.Error.WriteLineAsync(standardError);
+                }
+            }
+
+            return new ChildProcessResult(process.ExitCode, standardOutput, standardError, cancellationRequested);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException)
+        {
+            throw new ChildProcessException($"Failed to read child process output for '{request.Command}'.", ex);
+        }
     }
 
-    private sealed class DataReceivedHandler(StringBuilder builder)
+    private static ProcessStartInfo CreateStartInfo(ChildProcessRequest request)
     {
-        public void OnDataReceived(object sender, DataReceivedEventArgs e)
+        ProcessStartInfo startInfo = new(request.Command, request.Arguments)
         {
-            if (e.Data is not null)
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        foreach ((string name, string value) in request.Environment)
+        {
+            startInfo.Environment[name] = value;
+        }
+
+        return startInfo;
+    }
+
+    private static void TryTerminate(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
             {
-                builder.AppendLine(e.Data);
+                process.Kill(entireProcessTree: true);
             }
+        }
+        catch (InvalidOperationException)
+        {
+            // The process exited between the state check and termination attempt.
+        }
+        catch (Exception ex) when (ex is Win32Exception or NotSupportedException or AggregateException)
+        {
+            // Keep ownership and wait for natural exit below if termination is unavailable or incomplete.
+        }
+    }
+
+    private static async Task ReapBestEffortAsync(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                await process.WaitForExitAsync(CancellationToken.None);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // No process remains to reap.
         }
     }
 }

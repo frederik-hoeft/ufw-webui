@@ -9,10 +9,11 @@ public sealed class UfwRuleMapperTests
     [TestMethod]
     public void ToListedRule_MapsInputAndOutputInterfacesWithoutFallbackSemantics()
     {
-        UfwStatusSnapshot snapshot = UfwStatusParser.Parse(
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(
             "Status: active\n"
             + "[ 1] Anywhere on eth0 ALLOW IN 192.168.0.0/16\n"
             + "[ 2] 10.0.0.0/8 ALLOW OUT Anywhere on eth1\n");
+        Assert.IsNotNull(snapshot);
 
         Ufw.Ipc.Shared.Model.Domain.Rules.ListedFirewallRule inbound = UfwRuleMapper.ToListedRule(snapshot.Rules[0]);
         Assert.IsTrue(inbound.Parsed);
@@ -28,8 +29,9 @@ public sealed class UfwRuleMapperTests
     [TestMethod]
     public void ToListedRule_SemanticallyInconsistentParsedRowRemainsUnaddressable()
     {
-        UfwStatusSnapshot snapshot = UfwStatusParser.Parse(
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(
             "Status: active\n[ 1] 192.168.1.0/24 (v6) ALLOW IN Anywhere (v6)\n");
+        Assert.IsNotNull(snapshot);
         Assert.AreEqual(1, snapshot.Rules.Count);
         Assert.IsNotNull(snapshot.Rules[0].Parsed);
 
