@@ -22,6 +22,15 @@ internal static class UfwStatusFixtures
         [ 2] 80/tcp                     ALLOW IN    192.168.1.0/24
         """;
 
+
+    public const string IPV6_RULE = """
+        Status: active
+
+             To                         Action      From
+             --                         ------      ----
+        [ 4] 22/tcp (v6)                ALLOW IN    Anywhere (v6)              # ssh
+        """;
+
     public const string DUPLICATE_RULES = """
         Status: active
 

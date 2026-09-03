@@ -31,6 +31,47 @@ public sealed class UfwRuleArgumentBuilderTests
     }
 
     [TestMethod]
+    public void BuildAdd_RejectsAmbiguousNonForwardInterfaces()
+    {
+        Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            SourceInterface = "eth1",
+            DestinationInterface = "eth0",
+        }));
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.Out,
+            DestinationInterface = "eth1",
+        }));
+    }
+
+    [TestMethod]
+    public void BuildAdd_UsesAddressFamilySpecificAnywhereForConcreteFamilies()
+    {
+        ImmutableArray<string> ipv4 = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            DestinationPorts = "22",
+        });
+        CollectionAssert.Contains(ipv4.ToArray(), "0.0.0.0/0");
+
+        ImmutableArray<string> ipv6 = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv6,
+            Direction = FirewallDirection.In,
+            DestinationPorts = "22",
+        });
+        CollectionAssert.Contains(ipv6.ToArray(), "::/0");
+    }
+
+    [TestMethod]
     public void BuildAdd_RouteUsesInOnAndOutOn()
     {
         ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification

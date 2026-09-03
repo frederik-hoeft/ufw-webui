@@ -60,6 +60,49 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
+    public async Task ListAndDeleteAsync_SupportConcreteIpv6RulesAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
+
+        RuleListResponse listed = (RuleListResponse)await harness.Service.ListAsync(TestContext.CancellationToken);
+        Assert.AreEqual(1, listed.Rules.Count);
+        Assert.IsTrue(listed.Rules[0].Parsed);
+        FirewallRuleSpecification listedRule = listed.Rules[0].Rule!;
+        Assert.AreEqual(FirewallAddressFamily.IPv6, listedRule.AddressFamily);
+
+        RuleMutationResponse deleted = (RuleMutationResponse)await harness.Service.DeleteAsync(
+            harness.SignDelete(listedRule),
+            TestContext.CancellationToken);
+        Assert.AreEqual(IntentOperations.DELETE_RULE, deleted.Operation);
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                "/usr/sbin/ufw",
+                It.Is<ImmutableArray<string>>(args => args.SequenceEqual(new[] { "--force", "delete", "4" })),
+                It.IsAny<Out<string>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task AddAsync_FamilyNeutralRuleRejectsExistingConcreteIpv6DuplicateAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
+
+        IResponsePayload response = await harness.Service.AddAsync(
+            harness.SignAdd(CreateSshRule()),
+            TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<ConflictResponse>(response);
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                "/usr/sbin/ufw",
+                It.Is<ImmutableArray<string>>(args => !args.Contains("status")),
+                It.IsAny<Out<string>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
     public async Task AddAsync_RejectsInvalidSignatureWithoutCallingUfwAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);

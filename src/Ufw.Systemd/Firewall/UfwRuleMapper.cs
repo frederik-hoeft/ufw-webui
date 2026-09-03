@@ -12,17 +12,24 @@ internal static class UfwRuleMapper
         ArgumentNullException.ThrowIfNull(observed);
         if (observed.Parsed is null)
         {
-            return new ListedFirewallRule
-            {
-                RuleId = null,
-                DisplayNumber = observed.DisplayNumber,
-                Parsed = false,
-                RawLine = observed.RawLine,
-                Rule = null,
-            };
+            return Unparsed(observed);
         }
 
-        FirewallRuleSpecification specification = ToSpecification(observed.Parsed);
+        FirewallRuleSpecification specification;
+        try
+        {
+            specification = ToSpecification(observed.Parsed);
+        }
+        catch (InvalidOperationException)
+        {
+            return Unparsed(observed);
+        }
+
+        if (!RuleSpecificationValidator.TryValidate(specification, out _))
+        {
+            return Unparsed(observed);
+        }
+
         return new ListedFirewallRule
         {
             RuleId = RuleIdentity.Compute(specification),
@@ -46,6 +53,7 @@ internal static class UfwRuleMapper
                 RuleType.Limit => SharedFirewallAction.Limit,
                 _ => throw new InvalidOperationException($"Unsupported UFW rule type '{row.Type}'.")
             },
+            AddressFamily = row.AddressFamily,
             Direction = row.Direction switch
             {
                 Direction.In => FirewallDirection.In,
@@ -68,4 +76,13 @@ internal static class UfwRuleMapper
             Comment = row.Comment ?? row.Context?.Comment,
         });
     }
+
+    private static ListedFirewallRule Unparsed(ObservedUfwRule observed) => new()
+    {
+        RuleId = null,
+        DisplayNumber = observed.DisplayNumber,
+        Parsed = false,
+        RawLine = observed.RawLine,
+        Rule = null,
+    };
 }

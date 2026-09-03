@@ -80,8 +80,8 @@ internal sealed class FirewallMutationService(
             return listError;
         }
 
-        string identity = RuleIdentity.Compute(accepted.Rule);
-        if (FindMatches(snapshot!, identity).Count > 0)
+        IReadOnlyList<string> identities = GetObservableIdentities(accepted.Rule);
+        if (FindMatches(snapshot!, identities).Count > 0)
         {
             return new ConflictResponse("A semantically identical rule already exists.");
         }
@@ -99,7 +99,8 @@ internal sealed class FirewallMutationService(
             return confirmError;
         }
 
-        ListedFirewallRule? created = FindMatches(confirmed!, identity).FirstOrDefault();
+        ListedFirewallRule? created = FindMatches(confirmed!, identities).FirstOrDefault();
+        string identity = RuleIdentity.Compute(accepted.Rule);
         _logger.LogInformation($"Added firewall rule '{identity}'.");
         return new RuleMutationResponse(IntentOperations.ADD_RULE, created);
     }
@@ -178,13 +179,17 @@ internal sealed class FirewallMutationService(
         return new RuleListResponse(snapshot.Active, rules);
     }
 
-    private static List<ListedFirewallRule> FindMatches(UfwStatusSnapshot snapshot, string identity)
+    private static List<ListedFirewallRule> FindMatches(UfwStatusSnapshot snapshot, string identity) =>
+        FindMatches(snapshot, [identity]);
+
+    private static List<ListedFirewallRule> FindMatches(UfwStatusSnapshot snapshot, IReadOnlyList<string> identities)
     {
+        HashSet<string> identitySet = new(identities, StringComparer.Ordinal);
         List<ListedFirewallRule> matches = [];
         foreach (ObservedUfwRule observed in snapshot.Rules)
         {
             ListedFirewallRule listed = UfwRuleMapper.ToListedRule(observed);
-            if (listed.Parsed && string.Equals(listed.RuleId, identity, StringComparison.Ordinal))
+            if (listed.Parsed && listed.RuleId is not null && identitySet.Contains(listed.RuleId))
             {
                 matches.Add(listed);
             }
@@ -192,4 +197,34 @@ internal sealed class FirewallMutationService(
 
         return matches;
     }
+
+    private static IReadOnlyList<string> GetObservableIdentities(FirewallRuleSpecification specification)
+    {
+        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(specification);
+        if (normalized.AddressFamily != FirewallAddressFamily.Any)
+        {
+            return [RuleIdentity.Compute(normalized)];
+        }
+
+        FirewallRuleSpecification ipv4 = CloneWithAddressFamily(normalized, FirewallAddressFamily.IPv4);
+        FirewallRuleSpecification ipv6 = CloneWithAddressFamily(normalized, FirewallAddressFamily.IPv6);
+        return [RuleIdentity.Compute(ipv4), RuleIdentity.Compute(ipv6)];
+    }
+
+    private static FirewallRuleSpecification CloneWithAddressFamily(
+        FirewallRuleSpecification source,
+        FirewallAddressFamily addressFamily) => new()
+    {
+        Action = source.Action,
+        AddressFamily = addressFamily,
+        Direction = source.Direction,
+        Protocol = source.Protocol,
+        Source = source.Source,
+        SourcePorts = source.SourcePorts,
+        SourceInterface = source.SourceInterface,
+        Destination = source.Destination,
+        DestinationPorts = source.DestinationPorts,
+        DestinationInterface = source.DestinationInterface,
+        Comment = source.Comment,
+    };
 }

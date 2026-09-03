@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.Parsers;
@@ -14,14 +14,16 @@ internal sealed class UfwListCommandResultGrammar
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "That would be horrible to read.")]
     public UfwListCommandResultGrammar()
     {
-        // ENDPOINT = (Anywhere|IPv4CIDR[ port]|port)[proto][ interface]
-        IParser endpoint = Sequence<
-            Alternative<
-                Anywhere,
-                Sequence<Ipv4Cidr, Optional<Sequence<Whitespace, PortSegment>>>,
-                PortSegment>,
-            Optional<Protocol>,
-            Optional<Sequence<Whitespace, NetworkInterface>>>.Instance;
+        IParser address = Alternative<Ipv4Cidr, Ipv6Cidr>.Instance;
+        IParser endpoint = Grammar.Sequence(
+            Grammar.Alternative(
+                Anywhere.Instance,
+                Grammar.Sequence(address, Grammar.Optional(Grammar.Sequence(Whitespace.Instance, PortSegment.Instance))),
+                PortSegment.Instance),
+            Grammar.Optional(Protocol.Instance),
+            Grammar.Optional(Grammar.Sequence(Whitespace.Instance, V6Hint.Instance)),
+            Grammar.Optional(Grammar.Sequence(Whitespace.Instance, NetworkInterface.Instance)),
+            Grammar.Optional(Grammar.Sequence(Whitespace.Instance, V6Hint.Instance)));
 
         UfwRuleListGrammar = Grammar.Sequence(sequence => sequence
             .Parser<RowNumber>()
@@ -32,7 +34,7 @@ internal sealed class UfwListCommandResultGrammar
             .Parser<Whitespace>()
             .Parser(endpoint.NamedCopy(SourceGroup))
             .Parser<Optional<Whitespace>>()
-            .Parser<Optional<Sequence<OutHint, Whitespace>>>()
+            .Parser<Optional<Sequence<OutHint, Optional<Whitespace>>>>()
             .Parser<Optional<Sequence<CommentStart, Alternative<JsonComment, Comment>>>>());
     }
 
@@ -44,7 +46,8 @@ internal sealed class UfwListCommandResultGrammar
 
     public bool TryParse(string input, [NotNullWhen(true)] out UfwListCommandResultRow? result)
     {
-        if (!UfwRuleListGrammar.TryParse(input, 0, out ISyntaxNode? node, out _))
+        if (!UfwRuleListGrammar.TryParse(input, 0, out ISyntaxNode? node, out int charsConsumed)
+            || charsConsumed != input.Length)
         {
             result = null;
             return false;

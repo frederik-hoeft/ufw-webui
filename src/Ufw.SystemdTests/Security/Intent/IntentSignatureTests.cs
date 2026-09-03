@@ -215,6 +215,42 @@ public sealed class IntentSignatureTests
             IntentCanonicalizer.CanonicalizeAdd(request, right));
     }
 
+    [TestMethod]
+    public void Canonicalize_BindsAddressFamily()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        AddRulePayload ipv4 = new()
+        {
+            Rule = new FirewallRuleSpecification
+            {
+                Action = FirewallAction.Allow,
+                AddressFamily = FirewallAddressFamily.IPv4,
+                Direction = FirewallDirection.In,
+                DestinationPorts = "22",
+            }
+        };
+        AddRulePayload ipv6 = new()
+        {
+            Rule = new FirewallRuleSpecification
+            {
+                Action = FirewallAction.Allow,
+                AddressFamily = FirewallAddressFamily.IPv6,
+                Direction = FirewallDirection.In,
+                DestinationPorts = "22",
+            }
+        };
+        AddRuleRequest request = IntentRequestFactory.CreateAddRequest(
+            key,
+            DEPLOYMENT_ID,
+            ipv4,
+            MessageJsonSerializerContext.Default.AddRulePayload,
+            clock);
+
+        Assert.IsFalse(IntentCanonicalizer.CanonicalizeAdd(request, ipv4)
+            .SequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, ipv6)));
+    }
+
     private static FirewallRuleSpecification CreateSshRule() => new()
     {
         Action = FirewallAction.Allow,

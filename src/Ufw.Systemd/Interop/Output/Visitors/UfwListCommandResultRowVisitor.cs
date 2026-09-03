@@ -1,4 +1,6 @@
-﻿using Ufw.Systemd.Interop.Output.Grammars;
+using Ufw.Ipc.Shared.Model.Domain.Rules;
+using ParsedFirewallAction = Ufw.Systemd.Interop.Output.Model.FirewallAction;
+using Ufw.Systemd.Interop.Output.Grammars;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
 
@@ -42,32 +44,25 @@ internal sealed class UfwListCommandResultRowVisitor(UfwListCommandResultRow res
 
     public void Visit(ProtocolSyntaxNode syntaxNode) => result.Protocol = syntaxNode.Evaluate();
 
-    public void Visit(Ipv4CidrSyntaxNode syntaxNode)
+    public void Visit(Ipv4CidrSyntaxNode syntaxNode) => AssignAddress(syntaxNode, syntaxNode.Evaluate());
+
+    public void Visit(Ipv6CidrSyntaxNode syntaxNode)
     {
-        if (syntaxNode.HasParent(UfwListCommandResultGrammar.SourceGroup))
-        {
-            result.Source = syntaxNode.Evaluate();
-        }
-        else if (syntaxNode.HasParent(UfwListCommandResultGrammar.DestinationGroup))
-        {
-            result.Destination = syntaxNode.Evaluate();
-        }
-        else
-        {
-            throw new InvalidOperationException("IPv4 node has unknown parent.");
-        }
+        result.AddressFamily = FirewallAddressFamily.IPv6;
+        AssignAddress(syntaxNode, syntaxNode.Evaluate());
     }
+
+    public void Visit(V6HintSyntaxNode syntaxNode) => result.AddressFamily = FirewallAddressFamily.IPv6;
 
     public void Visit(ActionSyntaxNode syntaxNode)
     {
-        FirewallAction action = syntaxNode.Evaluate();
+        ParsedFirewallAction action = syntaxNode.Evaluate();
         result.Type = action.RuleType;
         result.Direction = action.Direction;
     }
 
     public void Visit(OutSyntaxNode syntaxNode)
     {
-        // at this time, a destination interface must have been set
         if (string.IsNullOrEmpty(result.DestinationInterface))
         {
             throw new InvalidOperationException("Out node found but destination interface is not set.");
@@ -78,5 +73,21 @@ internal sealed class UfwListCommandResultRowVisitor(UfwListCommandResultRow res
 
     public void Visit(CommentSyntaxNode syntaxNode) => result.Comment = syntaxNode.Evaluate();
 
-    public void Visit(AnywhereSyntaxNode anywhereSyntaxNode) { /* No action needed, anywhere is implicit */ }
+    public void Visit(AnywhereSyntaxNode anywhereSyntaxNode) { }
+
+    private void AssignAddress(ISyntaxNode syntaxNode, string address)
+    {
+        if (syntaxNode.HasParent(UfwListCommandResultGrammar.SourceGroup))
+        {
+            result.Source = address;
+        }
+        else if (syntaxNode.HasParent(UfwListCommandResultGrammar.DestinationGroup))
+        {
+            result.Destination = address;
+        }
+        else
+        {
+            throw new InvalidOperationException("Address node has unknown parent.");
+        }
+    }
 }

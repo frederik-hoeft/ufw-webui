@@ -12,15 +12,18 @@ public static class RuleSpecificationNormalizer
     public static FirewallRuleSpecification Normalize(FirewallRuleSpecification specification)
     {
         ArgumentNullException.ThrowIfNull(specification);
+        string source = NormalizeAddress(specification.Source);
+        string destination = NormalizeAddress(specification.Destination);
         return new FirewallRuleSpecification
         {
             Action = specification.Action,
+            AddressFamily = ResolveAddressFamily(specification.AddressFamily, source, destination),
             Direction = specification.Direction,
             Protocol = specification.Protocol,
-            Source = NormalizeAddress(specification.Source),
+            Source = source,
             SourcePorts = NormalizePorts(specification.SourcePorts),
             SourceInterface = NormalizeInterface(specification.SourceInterface),
-            Destination = NormalizeAddress(specification.Destination),
+            Destination = destination,
             DestinationPorts = NormalizePorts(specification.DestinationPorts),
             DestinationInterface = NormalizeInterface(specification.DestinationInterface),
             Comment = NormalizeComment(specification.Comment),
@@ -32,8 +35,9 @@ public static class RuleSpecificationNormalizer
         ArgumentNullException.ThrowIfNull(specification);
         FirewallRuleSpecification normalized = Normalize(specification);
         StringBuilder builder = new();
-        builder.Append("rule-identity/1\n");
+        builder.Append("rule-identity/2\n");
         AppendField(builder, "action", FormatAction(normalized.Action));
+        AppendField(builder, "addressFamily", FormatAddressFamily(normalized.AddressFamily));
         AppendField(builder, "destination", normalized.Destination ?? ANY);
         AppendField(builder, "destinationInterface", normalized.DestinationInterface ?? string.Empty);
         AppendField(builder, "destinationPorts", normalized.DestinationPorts ?? string.Empty);
@@ -52,6 +56,14 @@ public static class RuleSpecificationNormalizer
         FirewallAction.Reject => "reject",
         FirewallAction.Limit => "limit",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported firewall action.")
+    };
+
+    public static string FormatAddressFamily(FirewallAddressFamily addressFamily) => addressFamily switch
+    {
+        FirewallAddressFamily.Any => "any",
+        FirewallAddressFamily.IPv4 => "ipv4",
+        FirewallAddressFamily.IPv6 => "ipv6",
+        _ => throw new ArgumentOutOfRangeException(nameof(addressFamily), addressFamily, "Unsupported firewall address family.")
     };
 
     public static string FormatDirection(FirewallDirection direction) => direction switch
@@ -79,34 +91,56 @@ public static class RuleSpecificationNormalizer
 
         string trimmed = address.Trim();
         if (trimmed.Equals(ANY, StringComparison.OrdinalIgnoreCase)
-            || trimmed.Equals("Anywhere", StringComparison.OrdinalIgnoreCase)
-            || trimmed.Equals("0.0.0.0/0", StringComparison.Ordinal)
-            || trimmed.Equals("0.0.0.0", StringComparison.Ordinal))
+            || trimmed.Equals("Anywhere", StringComparison.OrdinalIgnoreCase))
+        {
+            return ANY;
+        }
+
+        if (trimmed.Equals("0.0.0.0", StringComparison.Ordinal))
         {
             return ANY;
         }
 
         int slash = trimmed.IndexOf('/');
-        if (slash < 0)
+        string host = slash < 0 ? trimmed : trimmed[..slash];
+        if (!IPAddress.TryParse(host, out IPAddress? parsed))
         {
-            return TryRewriteIPv4(trimmed, out string? rewritten) ? rewritten : trimmed;
+            return trimmed;
         }
 
-        string host = trimmed[..slash];
-        string prefix = trimmed[(slash + 1)..];
-        if (TryRewriteIPv4(host, out string? rewrittenHost)
-            && int.TryParse(prefix, NumberStyles.None, CultureInfo.InvariantCulture, out int bits)
-            && bits is >= 0 and <= 32)
+        if (parsed.AddressFamily == AddressFamily.InterNetworkV6 && parsed.ScopeId != 0)
         {
-            if (bits == 0)
-            {
-                return ANY;
-            }
-
-            return rewrittenHost + "/" + bits.ToString(CultureInfo.InvariantCulture);
+            return trimmed;
         }
 
-        return trimmed;
+        int maxPrefix = parsed.AddressFamily switch
+        {
+            AddressFamily.InterNetwork => 32,
+            AddressFamily.InterNetworkV6 => 128,
+            _ => -1,
+        };
+        if (maxPrefix < 0)
+        {
+            return trimmed;
+        }
+
+        int prefix = maxPrefix;
+        if (slash >= 0
+            && (!int.TryParse(trimmed[(slash + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out prefix)
+                || prefix < 0
+                || prefix > maxPrefix))
+        {
+            return trimmed;
+        }
+
+        if (prefix == 0)
+        {
+            return ANY;
+        }
+
+        IPAddress network = ApplyPrefix(parsed, prefix);
+        string canonicalHost = network.ToString();
+        return prefix == maxPrefix ? canonicalHost : $"{canonicalHost}/{prefix.ToString(CultureInfo.InvariantCulture)}";
     }
 
     public static string? NormalizePorts(string? ports)
@@ -116,14 +150,68 @@ public static class RuleSpecificationNormalizer
             return null;
         }
 
-        string[] parts = ports.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0)
+        List<(int Start, int End)> ranges = [];
+        foreach (string part in ports.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            int colon = part.IndexOf(':');
+            if (colon < 0)
+            {
+                if (!int.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out int port))
+                {
+                    return ports.Trim();
+                }
+                if (port is < 1 or > 65535)
+                {
+                    return ports.Trim();
+                }
+                ranges.Add((port, port));
+                continue;
+            }
+
+            if (!int.TryParse(part.AsSpan(0, colon), NumberStyles.None, CultureInfo.InvariantCulture, out int start)
+                || !int.TryParse(part.AsSpan(colon + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int end))
+            {
+                return ports.Trim();
+            }
+            if (start is < 1 or > 65535 || end is < 1 or > 65535 || start > end)
+            {
+                return ports.Trim();
+            }
+            ranges.Add((start, end));
+        }
+
+        if (ranges.Count == 0)
         {
             return null;
         }
 
-        Array.Sort(parts, StringComparer.Ordinal);
-        return string.Join(',', parts);
+        ranges.Sort(static (left, right) => left.Start != right.Start
+            ? left.Start.CompareTo(right.Start)
+            : left.End.CompareTo(right.End));
+
+        List<(int Start, int End)> merged = [];
+        foreach ((int Start, int End) current in ranges)
+        {
+            if (merged.Count == 0)
+            {
+                merged.Add(current);
+                continue;
+            }
+
+            (int Start, int End) previous = merged[^1];
+            if (current.Start <= previous.End + 1)
+            {
+                merged[^1] = (previous.Start, Math.Max(previous.End, current.End));
+            }
+            else
+            {
+                merged.Add(current);
+            }
+        }
+
+        return string.Join(',', merged.Select(static range => range.Start == range.End
+            ? range.Start.ToString(CultureInfo.InvariantCulture)
+            : $"{range.Start.ToString(CultureInfo.InvariantCulture)}:{range.End.ToString(CultureInfo.InvariantCulture)}"));
     }
 
     public static string? NormalizeInterface(string? networkInterface)
@@ -146,23 +234,75 @@ public static class RuleSpecificationNormalizer
         return comment.Trim();
     }
 
+    public static FirewallAddressFamily GetAddressFamily(string? address)
+    {
+        string normalized = NormalizeAddress(address);
+        if (normalized == ANY)
+        {
+            return FirewallAddressFamily.Any;
+        }
+
+        int slash = normalized.IndexOf('/');
+        string host = slash < 0 ? normalized : normalized[..slash];
+        if (!IPAddress.TryParse(host, out IPAddress? parsed))
+        {
+            return FirewallAddressFamily.Any;
+        }
+
+        return parsed.AddressFamily switch
+        {
+            AddressFamily.InterNetwork => FirewallAddressFamily.IPv4,
+            AddressFamily.InterNetworkV6 => FirewallAddressFamily.IPv6,
+            _ => FirewallAddressFamily.Any,
+        };
+    }
+
+    private static FirewallAddressFamily ResolveAddressFamily(
+        FirewallAddressFamily declared,
+        string source,
+        string destination)
+    {
+        if (declared != FirewallAddressFamily.Any)
+        {
+            return declared;
+        }
+
+        FirewallAddressFamily sourceFamily = GetAddressFamily(source);
+        FirewallAddressFamily destinationFamily = GetAddressFamily(destination);
+        if (sourceFamily == FirewallAddressFamily.Any)
+        {
+            return destinationFamily;
+        }
+        if (destinationFamily == FirewallAddressFamily.Any || sourceFamily == destinationFamily)
+        {
+            return sourceFamily;
+        }
+
+        return FirewallAddressFamily.Any;
+    }
+
+    private static IPAddress ApplyPrefix(IPAddress address, int prefix)
+    {
+        byte[] bytes = address.GetAddressBytes();
+        int fullBytes = prefix / 8;
+        int remainingBits = prefix % 8;
+        if (remainingBits != 0 && fullBytes < bytes.Length)
+        {
+            bytes[fullBytes] &= (byte)(0xff << (8 - remainingBits));
+            fullBytes++;
+        }
+        for (int index = fullBytes; index < bytes.Length; index++)
+        {
+            bytes[index] = 0;
+        }
+        return new IPAddress(bytes);
+    }
+
     private static void AppendField(StringBuilder builder, string name, string value)
     {
         builder.Append(name);
         builder.Append('=');
         builder.Append(value);
         builder.Append('\n');
-    }
-
-    private static bool TryRewriteIPv4(string host, out string rewritten)
-    {
-        if (IPAddress.TryParse(host, out IPAddress? address) && address.AddressFamily == AddressFamily.InterNetwork)
-        {
-            rewritten = address.ToString();
-            return true;
-        }
-
-        rewritten = host;
-        return false;
     }
 }

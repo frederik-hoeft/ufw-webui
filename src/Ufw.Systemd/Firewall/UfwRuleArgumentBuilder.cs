@@ -55,37 +55,45 @@ internal static class UfwRuleArgumentBuilder
         }
 
         arguments.Add(RuleSpecificationNormalizer.FormatAction(specification.Action));
-        if (specification.Direction == FirewallDirection.Forward)
+        switch (specification.Direction)
         {
-            if (!string.IsNullOrEmpty(specification.SourceInterface))
-            {
-                arguments.Add("in");
-                arguments.Add("on");
-                arguments.Add(specification.SourceInterface);
-            }
+            case FirewallDirection.Forward:
+                if (!string.IsNullOrEmpty(specification.SourceInterface))
+                {
+                    arguments.Add("in");
+                    arguments.Add("on");
+                    arguments.Add(specification.SourceInterface);
+                }
 
-            if (!string.IsNullOrEmpty(specification.DestinationInterface))
-            {
+                if (!string.IsNullOrEmpty(specification.DestinationInterface))
+                {
+                    arguments.Add("out");
+                    arguments.Add("on");
+                    arguments.Add(specification.DestinationInterface);
+                }
+                break;
+            case FirewallDirection.In:
+                arguments.Add("in");
+                if (!string.IsNullOrEmpty(specification.DestinationInterface))
+                {
+                    arguments.Add("on");
+                    arguments.Add(specification.DestinationInterface);
+                }
+                break;
+            case FirewallDirection.Out:
                 arguments.Add("out");
-                arguments.Add("on");
-                arguments.Add(specification.DestinationInterface);
-            }
-        }
-        else
-        {
-            arguments.Add(specification.Direction == FirewallDirection.Out ? "out" : "in");
-            string? networkInterface = specification.Direction == FirewallDirection.Out
-                ? specification.SourceInterface ?? specification.DestinationInterface
-                : specification.DestinationInterface ?? specification.SourceInterface;
-            if (!string.IsNullOrEmpty(networkInterface))
-            {
-                arguments.Add("on");
-                arguments.Add(networkInterface);
-            }
+                if (!string.IsNullOrEmpty(specification.SourceInterface))
+                {
+                    arguments.Add("on");
+                    arguments.Add(specification.SourceInterface);
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(specification), specification.Direction, "Unsupported firewall direction.");
         }
 
         arguments.Add("from");
-        arguments.Add(specification.Source ?? RuleSpecificationNormalizer.ANY);
+        arguments.Add(FormatAddressForUfw(specification.Source, specification.AddressFamily));
         if (!string.IsNullOrEmpty(specification.SourcePorts))
         {
             arguments.Add("port");
@@ -93,7 +101,7 @@ internal static class UfwRuleArgumentBuilder
         }
 
         arguments.Add("to");
-        arguments.Add(specification.Destination ?? RuleSpecificationNormalizer.ANY);
+        arguments.Add(FormatAddressForUfw(specification.Destination, specification.AddressFamily));
         if (!string.IsNullOrEmpty(specification.DestinationPorts))
         {
             arguments.Add("port");
@@ -111,5 +119,21 @@ internal static class UfwRuleArgumentBuilder
             arguments.Add("comment");
             arguments.Add(specification.Comment);
         }
+    }
+
+    private static string FormatAddressForUfw(string? address, FirewallAddressFamily family)
+    {
+        string normalized = string.IsNullOrWhiteSpace(address) ? RuleSpecificationNormalizer.ANY : address;
+        if (!string.Equals(normalized, RuleSpecificationNormalizer.ANY, StringComparison.Ordinal))
+        {
+            return normalized;
+        }
+
+        return family switch
+        {
+            FirewallAddressFamily.IPv4 => "0.0.0.0/0",
+            FirewallAddressFamily.IPv6 => "::/0",
+            _ => RuleSpecificationNormalizer.ANY,
+        };
     }
 }

@@ -37,13 +37,23 @@ public sealed class UfwStatusParserTests
     }
 
     [TestMethod]
-    public void Parse_UnparsedRow_IsPreserved()
+    public void Parse_Ipv6Row_IsParsedWithConcreteFamily()
     {
         string output = UfwStatusFixtures.WithRules("[ 1] 22/tcp (v6)                 ALLOW IN    Anywhere (v6)");
         UfwStatusSnapshot snapshot = UfwStatusParser.Parse(output);
         Assert.AreEqual(1, snapshot.Rules.Count);
         Assert.AreEqual(1, snapshot.Rules[0].DisplayNumber);
+        Assert.IsNotNull(snapshot.Rules[0].Parsed);
+        Assert.AreEqual(Ufw.Ipc.Shared.Model.Domain.Rules.FirewallAddressFamily.IPv6, snapshot.Rules[0].Parsed!.AddressFamily);
+    }
+
+    [TestMethod]
+    public void Parse_PartiallySupportedRow_IsPreservedButUnparsed()
+    {
+        string output = UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere unexpected");
+        UfwStatusSnapshot snapshot = UfwStatusParser.Parse(output);
+        Assert.AreEqual(1, snapshot.Rules.Count);
         Assert.IsNull(snapshot.Rules[0].Parsed);
-        StringAssert.Contains(snapshot.Rules[0].RawLine, "(v6)");
+        StringAssert.Contains(snapshot.Rules[0].RawLine, "unexpected");
     }
 }

@@ -8,6 +8,8 @@ public sealed class FirewallRuleSpecification
 {
     public FirewallAction Action { get; set; }
 
+    public FirewallAddressFamily AddressFamily { get; set; }
+
     public FirewallDirection Direction { get; set; }
 
     public FirewallProtocol Protocol { get; set; }

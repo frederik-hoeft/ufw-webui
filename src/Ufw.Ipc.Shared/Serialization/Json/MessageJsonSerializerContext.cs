@@ -31,6 +31,7 @@ namespace Ufw.Ipc.Shared.Serialization.Json;
 [JsonSerializable(typeof(ForbiddenResponse))]
 // domain
 [JsonSerializable(typeof(FirewallAction))]
+[JsonSerializable(typeof(FirewallAddressFamily))]
 [JsonSerializable(typeof(FirewallDirection))]
 [JsonSerializable(typeof(FirewallProtocol))]
 [JsonSerializable(typeof(FirewallRuleSpecification))]

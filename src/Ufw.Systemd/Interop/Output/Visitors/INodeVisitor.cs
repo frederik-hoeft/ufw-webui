@@ -9,6 +9,8 @@ internal interface INodeVisitor
     void Visit(PortSyntaxNode syntaxNode);
     void Visit(ProtocolSyntaxNode syntaxNode);
     void Visit(Ipv4CidrSyntaxNode syntaxNode);
+    void Visit(Ipv6CidrSyntaxNode syntaxNode);
+    void Visit(V6HintSyntaxNode syntaxNode);
     void Visit(ActionSyntaxNode syntaxNode);
     void Visit(OutSyntaxNode syntaxNode);
     void Visit(JsonCommentSyntaxNode syntaxNode);

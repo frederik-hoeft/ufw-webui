@@ -31,6 +31,7 @@ public static class IntentCanonicalizer
         }
 
         AppendField(builder, "action", RuleSpecificationNormalizer.FormatAction(normalized.Action));
+        AppendField(builder, "addressFamily", RuleSpecificationNormalizer.FormatAddressFamily(normalized.AddressFamily));
         AppendField(builder, "comment", normalized.Comment ?? string.Empty);
         AppendField(builder, "destination", normalized.Destination ?? RuleSpecificationNormalizer.ANY);
         AppendField(builder, "destinationInterface", normalized.DestinationInterface ?? string.Empty);
