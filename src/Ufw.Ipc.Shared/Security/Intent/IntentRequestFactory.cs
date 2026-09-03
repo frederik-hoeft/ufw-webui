@@ -11,12 +11,7 @@ namespace Ufw.Ipc.Shared.Security.Intent;
 /// </summary>
 public static class IntentRequestFactory
 {
-    public static AddRuleRequest CreateAddRequest(
-        ECDsa privateKey,
-        string deploymentId,
-        AddRulePayload payload,
-        JsonTypeInfo<AddRulePayload> payloadTypeInfo,
-        TimeProvider timeProvider)
+    public static AddRuleRequest CreateAddRequest(ECDsa privateKey, string deploymentId, AddRulePayload payload, JsonTypeInfo<AddRulePayload> payloadTypeInfo, TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
@@ -39,12 +34,7 @@ public static class IntentRequestFactory
         return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
     }
 
-    public static DeleteRuleRequest CreateDeleteRequest(
-        ECDsa privateKey,
-        string deploymentId,
-        DeleteRulePayload payload,
-        JsonTypeInfo<DeleteRulePayload> payloadTypeInfo,
-        TimeProvider timeProvider)
+    public static DeleteRuleRequest CreateDeleteRequest(ECDsa privateKey, string deploymentId, DeleteRulePayload payload, JsonTypeInfo<DeleteRulePayload> payloadTypeInfo, TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);

@@ -198,10 +198,10 @@ public static class RuleSpecificationNormalizer
                 continue;
             }
 
-            (int Start, int End) previous = merged[^1];
-            if (current.Start <= previous.End + 1)
+            (int start, int end) = merged[^1];
+            if (current.Start <= end + 1)
             {
-                merged[^1] = (previous.Start, Math.Max(previous.End, current.End));
+                merged[^1] = (start, Math.Max(end, current.End));
             }
             else
             {
@@ -257,10 +257,7 @@ public static class RuleSpecificationNormalizer
         };
     }
 
-    private static FirewallAddressFamily ResolveAddressFamily(
-        FirewallAddressFamily declared,
-        string source,
-        string destination)
+    private static FirewallAddressFamily ResolveAddressFamily(FirewallAddressFamily declared, string source, string destination)
     {
         if (declared != FirewallAddressFamily.Any)
         {

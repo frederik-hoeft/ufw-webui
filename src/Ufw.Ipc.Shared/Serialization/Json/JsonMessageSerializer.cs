@@ -112,13 +112,14 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         }
     }
 
-    private static IRequestMessage CreateRequestMessage(string route, string method, object? payload, IMessageBlob payloadBlob) =>
-        new RequestMessage(
-            ApplicationProtocolVersion.CURRENT,
-            method,
-            route,
-            ResolveRequestPayloadType(payload),
-            payloadBlob);
+    private static RequestMessage CreateRequestMessage(string route, string method, object? payload, IMessageBlob payloadBlob) => new
+    (
+        ApplicationProtocolVersion.CURRENT,
+        method,
+        route,
+        ResolveRequestPayloadType(payload),
+        payloadBlob
+    );
 
     private ApplicationEnvelope ToEnvelope(IMessage message)
     {
@@ -156,15 +157,13 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     {
         if (envelope.ProtocolVersion != ApplicationProtocolVersion.CURRENT)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.VersionMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.VersionMismatch,
                 $"Unsupported application protocol version {envelope.ProtocolVersion}; this peer speaks version {ApplicationProtocolVersion.CURRENT}.");
         }
 
         if (!ApplicationPayloadTypes.IsKnown(envelope.PayloadType))
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.UnknownPayloadType,
+            throw new ApplicationProtocolException(ApplicationProtocolError.UnknownPayloadType,
                 $"Unknown application payload type '{envelope.PayloadType}'.");
         }
 
@@ -182,32 +181,28 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
             return FromResponseEnvelope(envelope, hasPayload);
         }
 
-        throw new ApplicationProtocolException(
-            ApplicationProtocolError.InvalidKind,
+        throw new ApplicationProtocolException(ApplicationProtocolError.InvalidKind,
             $"Application document kind '{envelope.Kind}' is not 'request' or 'response'.");
     }
 
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
-    private IRequestMessage FromRequestEnvelope(ApplicationEnvelope envelope, bool hasPayload)
+    private RequestMessage FromRequestEnvelope(ApplicationEnvelope envelope, bool hasPayload)
     {
         if (envelope.Status is not null)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.UnexpectedField,
+            throw new ApplicationProtocolException(ApplicationProtocolError.UnexpectedField,
                 "A request document must not include 'status'.");
         }
 
         if (string.IsNullOrWhiteSpace(envelope.Method) || string.IsNullOrWhiteSpace(envelope.Route))
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.MissingRequiredField,
+            throw new ApplicationProtocolException(ApplicationProtocolError.MissingRequiredField,
                 "A request document requires non-empty 'method' and 'route'.");
         }
 
         if (!ApplicationPayloadTypes.IsRequestPayloadType(envelope.PayloadType))
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadTypeMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                 $"Request documents cannot use response payload type '{envelope.PayloadType}'.");
         }
 
@@ -220,33 +215,29 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     }
 
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
-    private IResponseMessage FromResponseEnvelope(ApplicationEnvelope envelope, bool hasPayload)
+    private ResponseMessage FromResponseEnvelope(ApplicationEnvelope envelope, bool hasPayload)
     {
         if (envelope.Method is not null || envelope.Route is not null)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.UnexpectedField,
+            throw new ApplicationProtocolException(ApplicationProtocolError.UnexpectedField,
                 "A response document must not include 'method' or 'route'.");
         }
 
-        if (envelope.Status is not int status || status < 100 || status > 599)
+        if (envelope.Status is not int status || status is < 100 or > 599)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.InvalidStatus,
+            throw new ApplicationProtocolException(ApplicationProtocolError.InvalidStatus,
                 "A response document requires 'status' in the range 100..599.");
         }
 
         if (!ApplicationPayloadTypes.IsResponsePayloadType(status, envelope.PayloadType))
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadTypeMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                 $"Response status {status} cannot use payload type '{envelope.PayloadType}'.");
         }
 
         if (envelope.PayloadType == ApplicationPayloadTypes.VALIDATION_ERROR && status != 400)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadTypeMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                 $"Response payload type '{ApplicationPayloadTypes.VALIDATION_ERROR}' requires status 400.");
         }
 
@@ -268,16 +259,14 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
         if (envelope.Payload.ValueKind != JsonValueKind.Object)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadTypeMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                 $"Response payload type '{envelope.PayloadType}' requires an object payload.");
         }
 
         if (envelope.PayloadType == ApplicationPayloadTypes.VALIDATION_ERROR
             && (!envelope.Payload.TryGetProperty("errors", out JsonElement errors) || errors.ValueKind != JsonValueKind.Array))
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadTypeMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                 $"Response payload type '{ApplicationPayloadTypes.VALIDATION_ERROR}' requires an 'errors' array.");
         }
     }
@@ -288,8 +277,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         {
             if (hasPayload)
             {
-                throw new ApplicationProtocolException(
-                    ApplicationProtocolError.PayloadTypeMismatch,
+                throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                     "payloadType 'empty' must not include a payload.");
             }
 
@@ -298,17 +286,15 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
         if (!hasPayload)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.PayloadTypeMismatch,
+            throw new ApplicationProtocolException(ApplicationProtocolError.PayloadTypeMismatch,
                 $"payloadType '{payloadType}' requires a payload.");
         }
     }
 
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
-    private IMessageBlob CreatePayloadBlob(ApplicationEnvelope envelope, bool hasPayload) =>
-        hasPayload
-            ? BufferedJsonMessageBlob.FromJsonElement(envelope.Payload, context)
-            : BufferedJsonMessageBlob.Empty(context);
+    private BufferedJsonMessageBlob CreatePayloadBlob(ApplicationEnvelope envelope, bool hasPayload) => hasPayload
+        ? BufferedJsonMessageBlob.FromJsonElement(envelope.Payload, context)
+        : BufferedJsonMessageBlob.Empty(context);
 
     private static string ResolveRequestPayloadType(object? payload) =>
         payload is IEmptyPayload ? ApplicationPayloadTypes.EMPTY : ApplicationPayloadTypes.DATA;

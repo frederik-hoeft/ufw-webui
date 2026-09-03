@@ -10,16 +10,13 @@ internal sealed class ErrorResponseHandler : IResponseMessageHandler, IMessageHa
 {
     public int Priority => -1;
 
-    public bool CanHandle(IResponseMessage message) =>
-        message.StatusCode is not 200;
+    public bool CanHandle(IResponseMessage message) => message.StatusCode is not 200;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken)
-        where TResult : IEquatable<TResult>
+    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>
     {
         if (message.PayloadType != ApplicationPayloadTypes.ERROR)
         {
-            throw new InvalidDataException(
-                $"Response '{message.StatusCode}' has unsupported payloadType '{message.PayloadType}' for status {message.StatusCode}.");
+            throw new InvalidDataException($"Response '{message.StatusCode}' has unsupported payloadType '{message.PayloadType}' for status {message.StatusCode}.");
         }
 
         ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);

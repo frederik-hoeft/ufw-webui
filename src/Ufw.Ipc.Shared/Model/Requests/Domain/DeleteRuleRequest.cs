@@ -3,12 +3,8 @@ using Ufw.Ipc.Shared.Security.Intent;
 
 namespace Ufw.Ipc.Shared.Model.Requests.Domain;
 
-public sealed record DeleteRuleRequest : RequestMessage, ISignedIntent
+public sealed record DeleteRuleRequest() : RequestMessage(RequestMethod.Delete, "/api/v1/rules"), ISignedIntent
 {
-    public DeleteRuleRequest() : base(RequestMethod.Delete, "/api/v1/rules")
-    {
-    }
-
     public int Version { get; init; } = IntentProtocol.VERSION;
 
     public required string DeploymentId { get; init; }

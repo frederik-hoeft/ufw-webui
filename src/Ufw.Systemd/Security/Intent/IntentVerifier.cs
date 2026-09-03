@@ -9,42 +9,42 @@ using Ufw.Systemd.Firewall;
 
 namespace Ufw.Systemd.Security.Intent;
 
-internal sealed class IntentVerifier(
+internal sealed class IntentVerifier
+(
     IAuthorizedKeyStore authorizedKeys,
     IDeploymentIdentityProvider deploymentIdentity,
     IConfiguration configuration,
     TimeProvider timeProvider,
-    MessageJsonSerializerContext jsonContext) : IIntentVerifier
+    MessageJsonSerializerContext jsonContext
+) : IIntentVerifier
 {
-    public IntentVerificationResult VerifyAdd(ISignedIntent intent) =>
-        Verify(
-            intent,
-            expectedOperation: IntentOperations.ADD_RULE,
-            payloadFactory: static (signed, context) =>
+    public IntentVerificationResult VerifyAdd(ISignedIntent intent) => Verify(
+        intent,
+        expectedOperation: IntentOperations.ADD_RULE,
+        payloadFactory: static (signed, context) =>
+        {
+            AddRulePayload? payload = signed.Payload.Deserialize(context.AddRulePayload);
+            if (payload?.Rule is null)
             {
-                AddRulePayload? payload = signed.Payload.Deserialize(context.AddRulePayload);
-                if (payload?.Rule is null)
-                {
-                    return (null, null, new BadRequestResponse("Add-rule payload is missing a rule specification."));
-                }
+                return (null, null, new BadRequestResponse("Add-rule payload is missing a rule specification."));
+            }
 
-                return (payload.Rule, null, null);
-            });
+            return (payload.Rule, null, null);
+        });
 
-    public IntentVerificationResult VerifyDelete(ISignedIntent intent) =>
-        Verify(
-            intent,
-            expectedOperation: IntentOperations.DELETE_RULE,
-            payloadFactory: static (signed, context) =>
+    public IntentVerificationResult VerifyDelete(ISignedIntent intent) => Verify(
+        intent,
+        expectedOperation: IntentOperations.DELETE_RULE,
+        payloadFactory: static (signed, context) =>
+        {
+            DeleteRulePayload? payload = signed.Payload.Deserialize(context.DeleteRulePayload);
+            if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.RuleId))
             {
-                DeleteRulePayload? payload = signed.Payload.Deserialize(context.DeleteRulePayload);
-                if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.RuleId))
-                {
-                    return (null, null, new BadRequestResponse("Delete-rule payload must include ruleId and a rule specification."));
-                }
+                return (null, null, new BadRequestResponse("Delete-rule payload must include ruleId and a rule specification."));
+            }
 
-                return (payload.Rule, payload.RuleId, null);
-            });
+            return (payload.Rule, payload.RuleId, null);
+        });
 
     private IntentVerificationResult Verify(
         ISignedIntent intent,

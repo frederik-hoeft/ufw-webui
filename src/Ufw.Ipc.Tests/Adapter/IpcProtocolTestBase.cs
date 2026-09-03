@@ -43,14 +43,10 @@ public abstract class IpcProtocolTestBase
     /// <summary>
     /// Runs <paramref name="actAsync"/> inside a freshly built, isolated IPC host.
     /// </summary>
-    protected async ValueTask RunAsync(
-        Func<IIpcTestContext, CancellationToken, ValueTask> actAsync,
-        IpcTestRunConfiguration? configuration = null,
-        CancellationToken cancellationToken = default)
+    protected async ValueTask RunAsync(Func<IIpcTestContext, CancellationToken, ValueTask> actAsync, IpcTestRunConfiguration? configuration = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(actAsync);
-        _ = await RunCoreAsync(
-            async (context, ct) =>
+        _ = await RunCoreAsync(async (context, ct) =>
             {
                 await actAsync(context, ct).ConfigureAwait(false);
                 return true;
@@ -62,10 +58,7 @@ public abstract class IpcProtocolTestBase
     /// <summary>
     /// Runs <paramref name="actAsync"/> inside a freshly built, isolated IPC host and returns its result.
     /// </summary>
-    protected ValueTask<T> RunAsync<T>(
-        Func<IIpcTestContext, CancellationToken, ValueTask<T>> actAsync,
-        IpcTestRunConfiguration? configuration = null,
-        CancellationToken cancellationToken = default)
+    protected ValueTask<T> RunAsync<T>(Func<IIpcTestContext, CancellationToken, ValueTask<T>> actAsync, IpcTestRunConfiguration? configuration = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(actAsync);
         return RunCoreAsync(actAsync, configuration, cancellationToken);

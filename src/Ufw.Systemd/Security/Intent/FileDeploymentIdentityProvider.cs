@@ -56,13 +56,7 @@ internal sealed class FileDeploymentIdentityProvider(IConfiguration configuratio
         byte[] contents = Encoding.ASCII.GetBytes(generated + "\n");
         try
         {
-            using FileStream stream = new(
-                path,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.Read,
-                bufferSize: 4096,
-                FileOptions.WriteThrough);
+            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read, bufferSize: 4096, FileOptions.WriteThrough);
             stream.Write(contents);
             stream.Flush(flushToDisk: true);
             return generated;

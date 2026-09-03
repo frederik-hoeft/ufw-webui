@@ -174,13 +174,7 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
 
         string temporaryPath = path + ".tmp";
         byte[] bytes = Encoding.UTF8.GetBytes(builder.ToString());
-        await using (FileStream stream = new(
-            temporaryPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            bufferSize: 4096,
-            FileOptions.Asynchronous | FileOptions.WriteThrough))
+        await using (FileStream stream = new(temporaryPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, FileOptions.Asynchronous | FileOptions.WriteThrough))
         {
             await stream.WriteAsync(bytes, cancellationToken);
 #pragma warning disable CA1849 // Flush(bool) is intentionally synchronous to guarantee durable replay-state persistence.

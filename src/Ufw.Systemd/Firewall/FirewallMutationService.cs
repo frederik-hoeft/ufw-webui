@@ -12,12 +12,14 @@ using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall;
 
-internal sealed class FirewallMutationService(
+internal sealed class FirewallMutationService
+(
     IUfwRunner ufwRunner,
     IIntentVerifier intentVerifier,
     INonceStore nonceStore,
     IUfwExecutionGate executionGate,
-    ILogger logger) : IFirewallMutationService
+    ILogger logger
+) : IFirewallMutationService
 {
     private readonly ILogger<FirewallMutationService> _logger = logger.Scoped<FirewallMutationService>();
 
@@ -34,9 +36,7 @@ internal sealed class FirewallMutationService(
         }
 
         IntentVerificationResult.Accepted accepted = (IntentVerificationResult.Accepted)verification;
-        return await executionGate.RunAsync(
-            ct => MutateAddUnsynchronizedAsync(accepted, ct),
-            cancellationToken);
+        return await executionGate.RunAsync(ct => MutateAddUnsynchronizedAsync(accepted, ct), cancellationToken);
     }
 
     public async ValueTask<IResponsePayload> DeleteAsync(DeleteRuleRequest request, CancellationToken cancellationToken)
@@ -49,9 +49,7 @@ internal sealed class FirewallMutationService(
         }
 
         IntentVerificationResult.Accepted accepted = (IntentVerificationResult.Accepted)verification;
-        return await executionGate.RunAsync(
-            ct => MutateDeleteUnsynchronizedAsync(accepted, ct),
-            cancellationToken);
+        return await executionGate.RunAsync(ct => MutateDeleteUnsynchronizedAsync(accepted, ct), cancellationToken);
     }
 
     private async Task<IResponsePayload> ListUnsynchronizedAsync(CancellationToken cancellationToken)
@@ -65,9 +63,7 @@ internal sealed class FirewallMutationService(
         return ToListResponse(snapshot!);
     }
 
-    private async Task<IResponsePayload> MutateAddUnsynchronizedAsync(
-        IntentVerificationResult.Accepted accepted,
-        CancellationToken cancellationToken)
+    private async Task<IResponsePayload> MutateAddUnsynchronizedAsync(IntentVerificationResult.Accepted accepted, CancellationToken cancellationToken)
     {
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {
@@ -129,9 +125,7 @@ internal sealed class FirewallMutationService(
         return new RuleMutationResponse(IntentOperations.ADD_RULE, responseRule);
     }
 
-    private async Task<IResponsePayload> MutateDeleteUnsynchronizedAsync(
-        IntentVerificationResult.Accepted accepted,
-        CancellationToken cancellationToken)
+    private async Task<IResponsePayload> MutateDeleteUnsynchronizedAsync(IntentVerificationResult.Accepted accepted, CancellationToken cancellationToken)
     {
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {
@@ -205,9 +199,7 @@ internal sealed class FirewallMutationService(
     private async Task<(IResponsePayload? Error, UfwStatusSnapshot? Snapshot)> ReadStatusAsync(CancellationToken cancellationToken)
     {
         UfwListCommand command = new();
-        (IResponsePayload? executionError, UfwProcessResult? result) = await ExecuteProcessAsync(
-            command,
-            "Failed to start UFW while reading the current rule set.",
+        (IResponsePayload? executionError, UfwProcessResult? result) = await ExecuteProcessAsync(command, "Failed to start UFW while reading the current rule set.",
             cancellationToken);
         if (executionError is not null)
         {
@@ -235,10 +227,7 @@ internal sealed class FirewallMutationService(
         return (null, snapshot);
     }
 
-    private async Task<(IResponsePayload? Error, UfwProcessResult? Result)> ExecuteProcessAsync(
-        IUfwCommand command,
-        string failureMessage,
-        CancellationToken cancellationToken)
+    private async Task<(IResponsePayload? Error, UfwProcessResult? Result)> ExecuteProcessAsync(IUfwCommand command, string failureMessage, CancellationToken cancellationToken)
     {
         try
         {
@@ -252,9 +241,7 @@ internal sealed class FirewallMutationService(
         }
     }
 
-    private async Task ReconcileInterruptedMutationAsync(
-        string operation,
-        IReadOnlyList<string> identities)
+    private async Task ReconcileInterruptedMutationAsync(string operation, IReadOnlyList<string> identities)
     {
         (IResponsePayload? error, UfwStatusSnapshot? snapshot) = await ReadStatusAsync(CancellationToken.None);
         if (error is not null)
@@ -341,20 +328,18 @@ internal sealed class FirewallMutationService(
         return [RuleIdentity.Compute(ipv4), RuleIdentity.Compute(ipv6)];
     }
 
-    private static FirewallRuleSpecification CloneWithAddressFamily(
-        FirewallRuleSpecification source,
-        FirewallAddressFamily addressFamily) => new()
-        {
-            Action = source.Action,
-            AddressFamily = addressFamily,
-            Direction = source.Direction,
-            Protocol = source.Protocol,
-            Source = source.Source,
-            SourcePorts = source.SourcePorts,
-            SourceInterface = source.SourceInterface,
-            Destination = source.Destination,
-            DestinationPorts = source.DestinationPorts,
-            DestinationInterface = source.DestinationInterface,
-            Comment = source.Comment,
-        };
+    private static FirewallRuleSpecification CloneWithAddressFamily(FirewallRuleSpecification source, FirewallAddressFamily addressFamily) => new()
+    {
+        Action = source.Action,
+        AddressFamily = addressFamily,
+        Direction = source.Direction,
+        Protocol = source.Protocol,
+        Source = source.Source,
+        SourcePorts = source.SourcePorts,
+        SourceInterface = source.SourceInterface,
+        Destination = source.Destination,
+        DestinationPorts = source.DestinationPorts,
+        DestinationInterface = source.DestinationInterface,
+        Comment = source.Comment,
+    };
 }

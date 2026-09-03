@@ -2,7 +2,8 @@
 
 namespace Ufw.Ipc.Client.Configuration;
 
-internal sealed record UfwClientOptions(
+internal sealed record UfwClientOptions
+(
     string ServerName,
     string PipeName,
     bool TlsEnabled,
@@ -11,4 +12,5 @@ internal sealed record UfwClientOptions(
     TimeSpan IoTimeout,
     TimeSpan RequestTimeout,
     string? ClientCertificatePath = null,
-    string? ClientCertificateKeyPath = null);
+    string? ClientCertificateKeyPath = null
+);

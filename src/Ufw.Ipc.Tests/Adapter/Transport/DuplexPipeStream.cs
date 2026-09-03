@@ -7,19 +7,9 @@ namespace Ufw.Ipc.Tests.Adapter.Transport;
 /// One half of an in-process full-duplex link backed by <see cref="Pipe"/>.
 /// Portable: no OS IPC primitives are required.
 /// </summary>
-internal sealed class DuplexPipeStream : Stream
+internal sealed class DuplexPipeStream(PipeReader reader, PipeWriter writer, Action completeLocalHalf) : Stream
 {
-    private readonly PipeReader _reader;
-    private readonly PipeWriter _writer;
-    private readonly Action _completeLocalHalf;
     private bool _disposed;
-
-    public DuplexPipeStream(PipeReader reader, PipeWriter writer, Action completeLocalHalf)
-    {
-        _reader = reader;
-        _writer = writer;
-        _completeLocalHalf = completeLocalHalf;
-    }
 
     public override bool CanRead => !_disposed;
 
@@ -35,12 +25,11 @@ internal sealed class DuplexPipeStream : Stream
         set => throw new NotSupportedException();
     }
 
-    public override void Flush() =>
-        _writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+    public override void Flush() => writer.FlushAsync().AsTask().GetAwaiter().GetResult();
 
     public async override Task FlushAsync(CancellationToken cancellationToken)
     {
-        FlushResult result = await _writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        FlushResult result = await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -64,12 +53,12 @@ internal sealed class DuplexPipeStream : Stream
 
         while (true)
         {
-            ReadResult result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            ReadResult result = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             ReadOnlySequence<byte> sequence = result.Buffer;
 
             if (sequence.IsEmpty)
             {
-                _reader.AdvanceTo(sequence.Start);
+                reader.AdvanceTo(sequence.Start);
                 if (result.IsCompleted)
                 {
                     return 0;
@@ -91,7 +80,7 @@ internal sealed class DuplexPipeStream : Stream
             ReadOnlySequence<byte> slice = sequence.Slice(0, toCopy);
             slice.CopyTo(buffer.Span);
             SequencePosition consumed = sequence.GetPosition(toCopy);
-            _reader.AdvanceTo(consumed, consumed);
+            reader.AdvanceTo(consumed, consumed);
             return toCopy;
         }
     }
@@ -110,7 +99,7 @@ internal sealed class DuplexPipeStream : Stream
             return;
         }
 
-        FlushResult result = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+        FlushResult result = await writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -136,7 +125,7 @@ internal sealed class DuplexPipeStream : Stream
 
         if (disposing)
         {
-            _completeLocalHalf();
+            completeLocalHalf();
         }
 
         _disposed = true;
@@ -150,7 +139,7 @@ internal sealed class DuplexPipeStream : Stream
             return;
         }
 
-        _completeLocalHalf();
+        completeLocalHalf();
         _disposed = true;
         await base.DisposeAsync().ConfigureAwait(false);
     }

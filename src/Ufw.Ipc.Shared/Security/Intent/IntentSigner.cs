@@ -20,10 +20,7 @@ public static class IntentSigner
     public static string Sign(ECDsa privateKey, ReadOnlySpan<byte> data)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
-        byte[] signature = privateKey.SignData(
-            data,
-            HashAlgorithmName.SHA256,
-            DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        byte[] signature = privateKey.SignData(data, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         return Base64Url.EncodeToString(signature);
     }
 
@@ -36,11 +33,7 @@ public static class IntentSigner
             return false;
         }
 
-        return publicKey.VerifyData(
-            data,
-            signatureBytes,
-            HashAlgorithmName.SHA256,
-            DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        return publicKey.VerifyData(data, signatureBytes, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
     }
 
     public static string CreateNonce()

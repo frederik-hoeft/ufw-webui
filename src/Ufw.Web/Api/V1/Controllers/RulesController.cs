@@ -5,6 +5,7 @@ using Ufw.Ipc.Client;
 using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
 using Ufw.Ipc.Shared.Model.Responses.Domain;
+using Ufw.Ipc.Shared.Security.Intent;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -41,20 +42,17 @@ public sealed class RulesController(IUfwClient ufwClient) : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<RuleMutationResponse>> AddRuleAsync(
-        [FromBody] AddRuleRequest request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<RuleMutationResponse>> AddRuleAsync([FromBody] AddRuleRequest request, CancellationToken cancellationToken)
     {
-        if (!string.Equals(request.Operation, Ufw.Ipc.Shared.Security.Intent.IntentOperations.ADD_RULE, StringComparison.Ordinal))
+        ArgumentNullException.ThrowIfNull(request);
+        if (!string.Equals(request.Operation, IntentOperations.ADD_RULE, StringComparison.Ordinal))
         {
             return BadRequest(new { message = "Request operation must be 'rules.add'." });
         }
 
         try
         {
-            RuleMutationResponse response = await ufwClient.SendAsync<AddRuleRequest, RuleMutationResponse>(
-                request,
-                cancellationToken);
+            RuleMutationResponse response = await ufwClient.SendAsync<AddRuleRequest, RuleMutationResponse>(request, cancellationToken);
             return Ok(response);
         }
         catch (UfwIpcException exception)
@@ -70,20 +68,17 @@ public sealed class RulesController(IUfwClient ufwClient) : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync(
-        [FromBody] DeleteRuleRequest request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync([FromBody] DeleteRuleRequest request, CancellationToken cancellationToken)
     {
-        if (!string.Equals(request.Operation, Ufw.Ipc.Shared.Security.Intent.IntentOperations.DELETE_RULE, StringComparison.Ordinal))
+        ArgumentNullException.ThrowIfNull(request);
+        if (!string.Equals(request.Operation, IntentOperations.DELETE_RULE, StringComparison.Ordinal))
         {
             return BadRequest(new { message = "Request operation must be 'rules.delete'." });
         }
 
         try
         {
-            RuleMutationResponse response = await ufwClient.SendAsync<DeleteRuleRequest, RuleMutationResponse>(
-                request,
-                cancellationToken);
+            RuleMutationResponse response = await ufwClient.SendAsync<DeleteRuleRequest, RuleMutationResponse>(request, cancellationToken);
             return Ok(response);
         }
         catch (UfwIpcException exception)

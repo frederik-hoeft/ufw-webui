@@ -18,12 +18,9 @@ internal sealed class HybridMessageJsonSerializerContext : AotJsonSerializerCont
 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Test-only reflection fallback; production AOT path remains source-generated.")]
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Test-only reflection fallback; tests do not publish Native AOT.")]
-    public HybridMessageJsonSerializerContext()
-        : base(options: null!)
+    public HybridMessageJsonSerializerContext() : base(options: null!)
     {
-        _resolver = JsonTypeInfoResolver.Combine(
-            MessageJsonSerializerContext.Default,
-            new DefaultJsonTypeInfoResolver());
+        _resolver = JsonTypeInfoResolver.Combine(MessageJsonSerializerContext.Default, new DefaultJsonTypeInfoResolver());
 
         // Keep resolver ownership on this field. Do not route GetTypeInfo through Options.GetTypeInfo,
         // because JsonSerializerContext associates itself with Options and that path recurses.

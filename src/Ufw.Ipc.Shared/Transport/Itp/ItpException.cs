@@ -1,8 +1,11 @@
-﻿namespace Ufw.Ipc.Shared.Transport.Itp;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Ufw.Ipc.Shared.Transport.Itp;
 
 /// <summary>
 /// ITP protocol failure. The application protocol decoder is not invoked for the offending frame.
 /// </summary>
+[SuppressMessage("Design", "CA1032:Implement standard exception constructors", Justification = "Designed to be thrown with a specific error code and message.")]
 public sealed class ItpException : Exception
 {
     public ItpException(ItpErrorCode errorCode, string message, bool isPeerReported = false)
@@ -15,12 +18,7 @@ public sealed class ItpException : Exception
     {
     }
 
-    private ItpException(
-        ItpErrorCode errorCode,
-        string message,
-        Exception? innerException,
-        bool isPeerReported,
-        bool canReplyWithTransportError)
+    private ItpException(ItpErrorCode errorCode, string message, Exception? innerException, bool isPeerReported, bool canReplyWithTransportError)
         : base(message, innerException)
     {
         ErrorCode = errorCode;
@@ -45,10 +43,7 @@ public sealed class ItpException : Exception
     public static ItpException Local(ItpErrorCode errorCode, string message) =>
         new(errorCode, message, innerException: null, isPeerReported: false, canReplyWithTransportError: false);
 
-    internal static ItpException Local(
-        ItpErrorCode errorCode,
-        string message,
-        bool canReplyWithTransportError) =>
+    internal static ItpException Local(ItpErrorCode errorCode, string message, bool canReplyWithTransportError) =>
         new(errorCode, message, innerException: null, isPeerReported: false, canReplyWithTransportError);
 
     public static ItpException PeerReported(ItpErrorCode errorCode, string message) =>

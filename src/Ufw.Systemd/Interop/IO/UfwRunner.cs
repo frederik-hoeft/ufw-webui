@@ -6,10 +6,9 @@ namespace Ufw.Systemd.Interop.IO;
 
 internal sealed class UfwRunner(IConfiguration configuration, IChildProcessRunner processRunner) : IUfwRunner
 {
-    private static readonly ImmutableDictionary<string, string> s_environment =
-        ImmutableDictionary<string, string>.Empty
-            .Add("LC_ALL", "C")
-            .Add("LANG", "C");
+    private static readonly ImmutableDictionary<string, string> s_environment = ImmutableDictionary<string, string>.Empty
+        .Add("LC_ALL", "C")
+        .Add("LANG", "C");
 
     public async Task<UfwProcessResult> ExecuteAsync(IUfwCommand command, CancellationToken cancellationToken)
     {

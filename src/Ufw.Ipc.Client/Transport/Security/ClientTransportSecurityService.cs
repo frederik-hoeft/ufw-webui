@@ -8,11 +8,12 @@ using Ufw.Ipc.Shared.Transport.Security;
 
 namespace Ufw.Ipc.Client.Transport.Security;
 
-internal sealed class ClientTransportSecurityService(
+internal sealed class ClientTransportSecurityService
+(
     IRemoteCertificateValidationHandler certificateValidationHandler,
     ICertificateLoader certificateLoader,
-    UfwClientOptions options)
-    : ITransportSecurityService, IDisposable
+    UfwClientOptions options
+) : ITransportSecurityService, IDisposable
 {
     private readonly AsyncLock _certificateLock = new();
     private X509Certificate2? _clientCertificate;
