@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Moq;
 using Ufw.Ipc.Shared.Model;
@@ -26,7 +26,7 @@ public sealed class FirewallMutationServiceTests
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
-    public async Task ListAsync_ReturnsParsedRulesWithStableIdsAsync()
+    public async Task TestListAsync_ReturnsParsedRulesWithStableIdsAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.TWO_RULES);
 
@@ -41,7 +41,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_ExecutesValidatedArgumentsAndRejectsDuplicatesAsync()
+    public async Task TestAddAsync_ExecutesValidatedArgumentsAndRejectsDuplicatesAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.SetStatusAfterNextMutation(
@@ -67,7 +67,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task ListAndDeleteAsync_SupportConcreteIpv6RulesAsync()
+    public async Task TestListAndDeleteAsync_SupportConcreteIpv6RulesAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
 
@@ -90,7 +90,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_FamilyNeutralRuleRejectsExistingConcreteIpv6DuplicateAsync()
+    public async Task TestAddAsync_FamilyNeutralRuleRejectsExistingConcreteIpv6DuplicateAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
 
@@ -107,7 +107,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_RejectsInvalidSignatureWithoutCallingUfwAsync()
+    public async Task TestAddAsync_RejectsInvalidSignatureWithoutCallingUfwAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         AddRuleRequest request = harness.SignAdd(CreateSshRule()) with { Signature = "AAAA" };
@@ -119,7 +119,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_RejectsWrongDeploymentWithoutCallingUfwAsync()
+    public async Task TestAddAsync_RejectsWrongDeploymentWithoutCallingUfwAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         AddRuleRequest request = harness.SignAdd(CreateSshRule(), deploymentId: "another-deployment");
@@ -131,7 +131,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_RejectsMalformedPayloadWithoutCallingUfwAsync()
+    public async Task TestAddAsync_RejectsMalformedPayloadWithoutCallingUfwAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         AddRuleRequest request = harness.SignAdd(CreateSshRule()) with
@@ -146,7 +146,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_ReplayPersistenceFailureDoesNotCallUfwAsync()
+    public async Task TestAddAsync_ReplayPersistenceFailureDoesNotCallUfwAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.BreakNoncePersistence();
@@ -158,7 +158,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task DeleteAsync_UsesFreshNumberFromCurrentListAsync()
+    public async Task TestDeleteAsync_UsesFreshNumberFromCurrentListAsync()
     {
         await using FirewallHarness harness = CreateHarness(
             UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
@@ -181,7 +181,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task DeleteAsync_RejectsMissingAndAmbiguousMatchesAsync()
+    public async Task TestDeleteAsync_RejectsMissingAndAmbiguousMatchesAsync()
     {
         await using FirewallHarness harness = CreateHarness(
             UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere"));
@@ -198,7 +198,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_SerializesConcurrentMutationsAsync()
+    public async Task TestAddAsync_SerializesConcurrentMutationsAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         int inFlight = 0;
@@ -237,7 +237,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_ConcurrentReplayCrossesMutationBoundaryAtMostOnceAsync()
+    public async Task TestAddAsync_ConcurrentReplayCrossesMutationBoundaryAtMostOnceAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.SetStatusAfterNextMutation(
@@ -258,7 +258,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_ReplayIsRejectedAfterNonceStoreRestartAsync()
+    public async Task TestAddAsync_ReplayIsRejectedAfterNonceStoreRestartAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.SetStatusAfterNextMutation(
@@ -274,7 +274,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_SuccessfulExitWithoutObservedRuleFailsReconciliationAsync()
+    public async Task TestAddAsync_SuccessfulExitWithoutObservedRuleFailsReconciliationAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
 
@@ -286,7 +286,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task DeleteAsync_SuccessfulExitWhileRuleRemainsFailsReconciliationAsync()
+    public async Task TestDeleteAsync_SuccessfulExitWhileRuleRemainsFailsReconciliationAsync()
     {
         await using FirewallHarness harness = CreateHarness(
             UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere"));
@@ -300,7 +300,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_ProcessStartFailureReturnsInternalErrorAsync()
+    public async Task TestAddAsync_ProcessStartFailureReturnsInternalErrorAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.ProcessRunner
@@ -317,7 +317,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_NonzeroExitReturnsUnprocessableWithoutClaimingSuccessAsync()
+    public async Task TestAddAsync_NonzeroExitReturnsUnprocessableWithoutClaimingSuccessAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.ProcessRunner
@@ -334,7 +334,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task ListAsync_ParsesStdoutAndDoesNotTreatStderrAsRuleDataAsync()
+    public async Task TestListAsync_ParsesStdoutAndDoesNotTreatStderrAsRuleDataAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.ProcessRunner.Reset();
@@ -348,7 +348,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task ListAsync_UnexpectedSuccessfulStdoutFailsSafelyAsync()
+    public async Task TestListAsync_UnexpectedSuccessfulStdoutFailsSafelyAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.ProcessRunner.Reset();
@@ -362,7 +362,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_CancellationAfterSuccessfulChildExitStillReconcilesBeforeReturningAsync()
+    public async Task TestAddAsync_CancellationAfterSuccessfulChildExitStillReconcilesBeforeReturningAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         using CancellationTokenSource mutationCancellation = new();
@@ -389,7 +389,7 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task AddAsync_CancellationAfterProcessStartKeepsGateUntilReapedAndReconciledAsync()
+    public async Task TestAddAsync_CancellationAfterProcessStartKeepsGateUntilReapedAndReconciledAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         TaskCompletionSource mutationStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -423,7 +423,7 @@ public sealed class FirewallMutationServiceTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () => await mutation);
         RuleListResponse listed = (RuleListResponse)await queuedRead;
         Assert.IsTrue(listed.Active);
-        Assert.IsTrue(Volatile.Read(ref statusCalls) >= 3, "Cancellation reconciliation must occur before the queued request runs.");
+        Assert.IsGreaterThanOrEqualTo(3, Volatile.Read(ref statusCalls), "Cancellation reconciliation must occur before the queued request runs.");
     }
 
     private static void VerifyNoUfwCalls(FirewallHarness harness) =>
@@ -479,7 +479,7 @@ public sealed class FirewallMutationServiceTests
         return UfwStatusFixtures.WithRules([.. rows]);
     }
 
-    private FirewallHarness CreateHarness(string initialStatus)
+    private static FirewallHarness CreateHarness(string initialStatus)
     {
         string directory = Path.Combine(Path.GetTempPath(), "ufw-fw-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -506,16 +506,9 @@ public sealed class FirewallMutationServiceTests
         private readonly UfwExecutionGate _gate;
         private readonly string _noncePath;
         private FileNonceStore _nonces;
-        private string _status;
         private string? _statusAfterNextMutation;
 
-        public FirewallHarness(
-            string directory,
-            ECDsa key,
-            TestTimeProvider clock,
-            IConfiguration configuration,
-            Mock<IChildProcessRunner> processRunner,
-            string initialStatus)
+        public FirewallHarness(string directory, ECDsa key, TestTimeProvider clock, IConfiguration configuration, Mock<IChildProcessRunner> processRunner, string initialStatus)
         {
             _directory = directory;
             _key = key;
@@ -523,7 +516,7 @@ public sealed class FirewallMutationServiceTests
             _configuration = configuration;
             _noncePath = configuration.Settings.Security!.NonceStorePath;
             ProcessRunner = processRunner;
-            _status = initialStatus;
+            CurrentStatus = initialStatus;
             ConfigureDefaultProcessRunner();
             _keys = new FileAuthorizedKeyStore(configuration, new ConsoleLogger());
             _deploymentIdentity = new FileDeploymentIdentityProvider(configuration);
@@ -536,9 +529,9 @@ public sealed class FirewallMutationServiceTests
 
         public FirewallMutationService Service { get; private set; }
 
-        public string CurrentStatus => _status;
+        public string CurrentStatus { get; private set; }
 
-        public void SetStatus(string status) => _status = status;
+        public void SetStatus(string status) => CurrentStatus = status;
 
         public void SetStatusAfterNextMutation(string status) => _statusAfterNextMutation = status;
 
@@ -591,12 +584,12 @@ public sealed class FirewallMutationServiceTests
                 {
                     if (request.Arguments.Contains("status"))
                     {
-                        return new ChildProcessResult(0, _status, string.Empty, CancellationRequested: false);
+                        return new ChildProcessResult(0, CurrentStatus, string.Empty, CancellationRequested: false);
                     }
 
                     if (_statusAfterNextMutation is not null)
                     {
-                        _status = _statusAfterNextMutation;
+                        CurrentStatus = _statusAfterNextMutation;
                         _statusAfterNextMutation = null;
                     }
 

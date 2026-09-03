@@ -1,4 +1,6 @@
-using System.Net.Security;
+﻿using System.Net.Security;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -19,6 +21,8 @@ namespace Ufw.Ipc.Tests.Transport.Security;
 [TestClass]
 public sealed class TransportSecurityTests
 {
+    public required TestContext TestContext { get; set; }
+
     [TestMethod]
     public async Task DisabledTls_ReturnsUnderlyingStreamsUnchangedAsync()
     {
@@ -52,7 +56,7 @@ public sealed class TransportSecurityTests
             serverCertificate,
             clientCertificate: null,
             protocols: SslProtocols.None,
-            requireClientCertificate: false);
+            requireClientCertificate: false, cancellationToken: TestContext.CancellationToken);
         Assert.AreNotEqual(SslProtocols.None, connection.Client.SslProtocol);
         Assert.AreEqual(connection.Client.SslProtocol, connection.Server.SslProtocol);
     }
@@ -66,7 +70,7 @@ public sealed class TransportSecurityTests
             serverCertificate,
             clientCertificate: null,
             protocols: SslProtocols.Tls12,
-            requireClientCertificate: false);
+            requireClientCertificate: false, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(SslProtocols.Tls12, connection.Client.SslProtocol);
         Assert.AreEqual(SslProtocols.Tls12, connection.Server.SslProtocol);
     }
@@ -81,7 +85,7 @@ public sealed class TransportSecurityTests
             serverCertificate,
             clientCertificate,
             protocols: SslProtocols.None,
-            requireClientCertificate: true);
+            requireClientCertificate: true, cancellationToken: TestContext.CancellationToken);
         Assert.IsTrue(connection.Client.IsMutuallyAuthenticated);
         Assert.IsTrue(connection.Server.IsMutuallyAuthenticated);
     }
@@ -91,31 +95,26 @@ public sealed class TransportSecurityTests
     {
         await using CertificateFiles serverCertificate = await CertificateFiles.CreateAsync("daemon.test", serverAuthentication: true, TestContext.CancellationToken);
         await AssertHandshakeFailsAsync(async cancellationToken =>
-        {
             _ = await OpenTlsPairAsync(
                 serverCertificate,
                 clientCertificate: null,
                 protocols: SslProtocols.None,
                 requireClientCertificate: true,
-                cancellationToken);
-        });
+                cancellationToken: cancellationToken));
     }
-
 
     [TestMethod]
     public async Task Tls_UntrustedServerCertificate_IsRejectedByDefaultClientValidationAsync()
     {
         await using CertificateFiles serverCertificate = await CertificateFiles.CreateAsync("daemon.test", serverAuthentication: true, TestContext.CancellationToken);
         await AssertHandshakeFailsAsync(async cancellationToken =>
-        {
             _ = await OpenTlsPairAsync(
                 serverCertificate,
                 clientCertificate: null,
                 protocols: SslProtocols.None,
                 requireClientCertificate: false,
-                cancellationToken,
-                clientValidationHandler: new ClientDefaultCertificateValidationHandler());
-        });
+                clientValidationHandler: new ClientDefaultCertificateValidationHandler(),
+                cancellationToken: cancellationToken));
     }
 
     [TestMethod]
@@ -133,15 +132,13 @@ public sealed class TransportSecurityTests
         ServerMutualTlsCertificateValidationHandler productionValidation = new(new TestConfiguration(validationSettings));
 
         await AssertHandshakeFailsAsync(async cancellationToken =>
-        {
             _ = await OpenTlsPairAsync(
                 serverCertificate,
                 clientCertificate,
                 protocols: SslProtocols.None,
                 requireClientCertificate: true,
-                cancellationToken,
-                serverValidationHandler: productionValidation);
-        });
+                serverValidationHandler: productionValidation,
+                cancellationToken: cancellationToken));
     }
 
     [TestMethod]
@@ -182,9 +179,9 @@ public sealed class TransportSecurityTests
         CertificateFiles? clientCertificate,
         SslProtocols protocols,
         bool requireClientCertificate,
-        CancellationToken cancellationToken = default,
         ClientCertificateValidationHandler? clientValidationHandler = null,
-        ServerCertificateValidationHandler? serverValidationHandler = null)
+        ServerCertificateValidationHandler? serverValidationHandler = null,
+        CancellationToken cancellationToken = default)
     {
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(10));
@@ -308,10 +305,10 @@ public sealed class TransportSecurityTests
                 RSASignaturePadding.Pkcs1);
             request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
             request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-            OidCollection usages = new()
-            {
+            OidCollection usages =
+            [
                 new Oid(serverAuthentication ? "1.3.6.1.5.5.7.3.1" : "1.3.6.1.5.5.7.3.2"),
-            };
+            ];
             request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(usages, true));
             if (serverAuthentication)
             {
@@ -333,13 +330,7 @@ public sealed class TransportSecurityTests
         }
     }
 
-    private sealed class TlsConnection(
-        SslStream client,
-        SslStream server,
-        ClientTransportSecurityService clientSecurity,
-        ServerTransportSecurityService serverSecurity,
-        Stream clientInner,
-        Stream serverInner) : IAsyncDisposable
+    private sealed class TlsConnection(SslStream client, SslStream server, ClientTransportSecurityService clientSecurity, ServerTransportSecurityService serverSecurity, Stream clientInner, Stream serverInner) : IAsyncDisposable
     {
         public SslStream Client { get; } = client;
 
@@ -355,6 +346,4 @@ public sealed class TransportSecurityTests
             await serverInner.DisposeAsync();
         }
     }
-
-    public TestContext TestContext { get; set; } = null!;
 }

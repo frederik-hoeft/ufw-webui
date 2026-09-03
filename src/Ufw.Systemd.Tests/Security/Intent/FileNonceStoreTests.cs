@@ -1,4 +1,4 @@
-using Ufw.Systemd.Security.Intent;
+﻿using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 
 namespace Ufw.Systemd.Tests.Security.Intent;
@@ -9,7 +9,7 @@ public sealed class FileNonceStoreTests
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
-    public async Task TryConsumeAsync_RejectsReplayAndSurvivesReloadAsync()
+    public async Task TestTryConsumeAsync_RejectsReplayAndSurvivesReloadAsync()
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "intent-nonces");
@@ -35,7 +35,7 @@ public sealed class FileNonceStoreTests
     }
 
     [TestMethod]
-    public async Task TryConsumeAsync_IsAtomicForConcurrentReplayAsync()
+    public async Task TestTryConsumeAsync_IsAtomicForConcurrentReplayAsync()
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "intent-nonces");
@@ -59,7 +59,7 @@ public sealed class FileNonceStoreTests
     }
 
     [TestMethod]
-    public async Task TryConsumeAsync_AllowsReuseAtExpiryBoundaryAsync()
+    public async Task TestTryConsumeAsync_AllowsReuseAtExpiryBoundaryAsync()
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "intent-nonces");
@@ -81,11 +81,11 @@ public sealed class FileNonceStoreTests
     }
 
     [TestMethod]
-    public async Task TryConsumeAsync_RejectsCorruptPersistedStateAsync()
+    public async Task TestTryConsumeAsync_RejectsCorruptPersistedStateAsync()
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "intent-nonces");
-        File.WriteAllText(path, "# ufw-intent-nonces v1\nmalformed-record\n");
+        await File.WriteAllTextAsync(path, "# ufw-intent-nonces v1\nmalformed-record\n", TestContext.CancellationToken);
         TestConfiguration configuration = new(TestAppSettingsFactory.Create(nonceStorePath: path));
 
         try
@@ -101,7 +101,7 @@ public sealed class FileNonceStoreTests
     }
 
     [TestMethod]
-    public async Task TryConsumeAsync_ThrowsWhenPersistenceFailsAsync()
+    public async Task TestTryConsumeAsync_ThrowsWhenPersistenceFailsAsync()
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "intent-nonces");

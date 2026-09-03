@@ -1,4 +1,4 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
@@ -105,7 +105,7 @@ public sealed class RulesController(IUfwClient ufwClient) : ControllerBase
                 Status = StatusCodes.Status400BadRequest,
                 Title = exception.ResponseMessage ?? "One or more validation errors occurred.",
             };
-            foreach (Ufw.Ipc.Shared.Model.Responses.ModelValidationError error in exception.ValidationErrors)
+            foreach (Ipc.Shared.Model.Responses.ModelValidationError error in exception.ValidationErrors)
             {
                 details.Errors[error.PropertyName] = [error.ErrorMessage];
             }

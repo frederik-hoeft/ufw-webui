@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Systemd.Firewall;
 
@@ -7,8 +7,18 @@ namespace Ufw.Systemd.Tests.Firewall;
 [TestClass]
 public sealed class UfwRuleArgumentBuilderTests
 {
+    private static readonly string[] s_expectedForceAndLongFormTokens =
+    [
+        "--force", "allow", "in", "on", "eth0", "from", "any", "to", "any", "port", "22", "proto", "tcp", "comment", "ssh"
+    ];
+    private static readonly string[] s_expectedRouteUsesInOnAndOutOn =
+    [
+        "--force", "route", "allow", "in", "on", "br0", "out", "on", "eth0", "from", "10.0.0.0/8", "to", "192.168.0.0/16"
+    ];
+    private static readonly string[] s_expectedDeleteByNumber = ["--force", "delete", "12"];
+
     [TestMethod]
-    public void BuildAdd_UsesForceAndLongFormTokens()
+    public void TestBuildAdd_UsesForceAndLongFormTokens()
     {
         ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
         {
@@ -20,18 +30,11 @@ public sealed class UfwRuleArgumentBuilderTests
             Comment = "ssh",
         });
 
-        CollectionAssert.AreEqual(
-            new[]
-            {
-                "--force", "allow", "in", "on", "eth0",
-                "from", "any", "to", "any", "port", "22",
-                "proto", "tcp", "comment", "ssh"
-            },
-            arguments.ToArray());
+        CollectionAssert.AreEqual(s_expectedForceAndLongFormTokens, arguments.ToArray());
     }
 
     [TestMethod]
-    public void BuildAdd_RejectsAmbiguousNonForwardInterfaces()
+    public void TestBuildAdd_RejectsAmbiguousNonForwardInterfaces()
     {
         Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
         {
@@ -50,7 +53,7 @@ public sealed class UfwRuleArgumentBuilderTests
     }
 
     [TestMethod]
-    public void BuildAdd_UsesAddressFamilySpecificAnywhereForConcreteFamilies()
+    public void TestBuildAdd_UsesAddressFamilySpecificAnywhereForConcreteFamilies()
     {
         ImmutableArray<string> ipv4 = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
         {
@@ -72,7 +75,7 @@ public sealed class UfwRuleArgumentBuilderTests
     }
 
     [TestMethod]
-    public void BuildAdd_RouteUsesInOnAndOutOn()
+    public void TestBuildAdd_RouteUsesInOnAndOutOn()
     {
         ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
         {
@@ -86,19 +89,12 @@ public sealed class UfwRuleArgumentBuilderTests
         });
 
         CollectionAssert.AreEqual(
-            new[]
-            {
-                "--force", "route", "allow",
-                "in", "on", "br0",
-                "out", "on", "eth0",
-                "from", "10.0.0.0/8",
-                "to", "192.168.0.0/16"
-            },
+            s_expectedRouteUsesInOnAndOutOn,
             arguments.ToArray());
     }
 
     [TestMethod]
-    public void BuildAdd_RejectsUnsafeComment()
+    public void TestBuildAdd_RejectsUnsafeComment()
     {
         Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
         {
@@ -109,7 +105,7 @@ public sealed class UfwRuleArgumentBuilderTests
     }
 
     [TestMethod]
-    public void BuildAdd_RejectsNewlinesInInterface()
+    public void TestBuildAdd_RejectsNewlinesInInterface()
     {
         Assert.ThrowsExactly<InvalidOperationException>(() => UfwRuleArgumentBuilder.BuildAdd(new FirewallRuleSpecification
         {
@@ -120,15 +116,12 @@ public sealed class UfwRuleArgumentBuilderTests
     }
 
     [TestMethod]
-    public void BuildDeleteByNumber_FormatsDecimalNumber()
+    public void TestBuildDeleteByNumber_FormatsDecimalNumber()
     {
         ImmutableArray<string> arguments = UfwRuleArgumentBuilder.BuildDeleteByNumber(12);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "12" }, arguments.ToArray());
+        CollectionAssert.AreEqual(s_expectedDeleteByNumber, arguments.ToArray());
     }
 
     [TestMethod]
-    public void BuildDeleteByNumber_RejectsNonPositive()
-    {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => UfwRuleArgumentBuilder.BuildDeleteByNumber(0));
-    }
+    public void TestBuildDeleteByNumber_RejectsNonPositive() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => UfwRuleArgumentBuilder.BuildDeleteByNumber(0));
 }

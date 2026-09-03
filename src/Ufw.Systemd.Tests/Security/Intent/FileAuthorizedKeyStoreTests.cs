@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Ufw.Ipc.Shared.Security.Intent;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
@@ -10,7 +10,7 @@ namespace Ufw.Systemd.Tests.Security.Intent;
 public sealed class FileAuthorizedKeyStoreTests
 {
     [TestMethod]
-    public void TryGetKey_LoadsPemBlocksAndComputesKeyId()
+    public void TestTryGetKey_LoadsPemBlocksAndComputesKeyId()
     {
         using ECDsa key = IntentSigner.CreateP256();
         string directory = CreateTemporaryDirectory();
@@ -33,7 +33,7 @@ public sealed class FileAuthorizedKeyStoreTests
     }
 
     [TestMethod]
-    public void TryGetKey_RejectsPrivateKeyPem()
+    public void TestTryGetKey_RejectsPrivateKeyPem()
     {
         using ECDsa key = IntentSigner.CreateP256();
         string directory = CreateTemporaryDirectory();
@@ -53,7 +53,7 @@ public sealed class FileAuthorizedKeyStoreTests
     }
 
     [TestMethod]
-    public void TryGetKey_RejectsUnsupportedEcCurve()
+    public void TestTryGetKey_RejectsUnsupportedEcCurve()
     {
         using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP384);
         string directory = CreateTemporaryDirectory();
@@ -73,7 +73,7 @@ public sealed class FileAuthorizedKeyStoreTests
     }
 
     [TestMethod]
-    public void TryGetKey_FailsClosedWhenAnyConfiguredKeyIsMalformed()
+    public void TestTryGetKey_FailsClosedWhenAnyConfiguredKeyIsMalformed()
     {
         using ECDsa key = IntentSigner.CreateP256();
         string directory = CreateTemporaryDirectory();
@@ -93,9 +93,9 @@ public sealed class FileAuthorizedKeyStoreTests
     }
 
     [TestMethod]
-    public void ExtractPemBlocks_IgnoresComments()
+    public void TestExtractPemBlocks_IgnoresComments()
     {
-        const string file = """
+        const string FILE = """
             # alice
             -----BEGIN PUBLIC KEY-----
             ABC
@@ -107,21 +107,21 @@ public sealed class FileAuthorizedKeyStoreTests
             -----END PUBLIC KEY-----
             """;
 
-        List<string> blocks = FileAuthorizedKeyStore.ExtractPemBlocks(file);
-        Assert.AreEqual(2, blocks.Count);
-        StringAssert.Contains(blocks[0], "ABC");
-        StringAssert.Contains(blocks[1], "DEF");
+        List<string> blocks = FileAuthorizedKeyStore.ExtractPemBlocks(FILE);
+        Assert.HasCount(2, blocks);
+        Assert.Contains("ABC", blocks[0]);
+        Assert.Contains("DEF", blocks[1]);
     }
 
     [TestMethod]
-    public void ExtractPemBlocks_RejectsUnterminatedBlock()
+    public void TestExtractPemBlocks_RejectsUnterminatedBlock()
     {
-        const string file = """
+        const string FILE = """
             -----BEGIN PUBLIC KEY-----
             ABC
             """;
 
-        Assert.ThrowsExactly<InvalidDataException>(() => FileAuthorizedKeyStore.ExtractPemBlocks(file));
+        Assert.ThrowsExactly<InvalidDataException>(() => FileAuthorizedKeyStore.ExtractPemBlocks(FILE));
     }
 
     private static string CreateTemporaryDirectory()

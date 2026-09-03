@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -13,9 +13,7 @@ internal static partial class RuleSpecificationValidator
     public const int MAX_COMMENT_LENGTH = 200;
     public const int MAX_INTERFACE_LENGTH = 32;
 
-    public static bool TryValidate(
-        FirewallRuleSpecification specification,
-        [NotNullWhen(false)] out ModelValidationErrorResponse? error)
+    public static bool TryValidate(FirewallRuleSpecification specification, [NotNullWhen(false)] out ModelValidationErrorResponse? error)
     {
         ArgumentNullException.ThrowIfNull(specification);
         List<ModelValidationError> errors = [];
@@ -60,10 +58,7 @@ internal static partial class RuleSpecificationValidator
         return true;
     }
 
-    private static FirewallAddressFamily ValidateAddress(
-        string propertyName,
-        string? address,
-        List<ModelValidationError> errors)
+    private static FirewallAddressFamily ValidateAddress(string propertyName, string? address, List<ModelValidationError> errors)
     {
         if (string.IsNullOrWhiteSpace(address)
             || address.Equals(RuleSpecificationNormalizer.ANY, StringComparison.OrdinalIgnoreCase)
@@ -75,8 +70,7 @@ internal static partial class RuleSpecificationValidator
         string trimmed = address.Trim();
         int slash = trimmed.IndexOf('/');
         string host = slash < 0 ? trimmed : trimmed[..slash];
-        if (!IPAddress.TryParse(host, out IPAddress? parsed)
-            || parsed.AddressFamily is not (AddressFamily.InterNetwork or AddressFamily.InterNetworkV6))
+        if (!IPAddress.TryParse(host, out IPAddress? parsed) || parsed.AddressFamily is not (AddressFamily.InterNetwork or AddressFamily.InterNetworkV6))
         {
             errors.Add(new ModelValidationError(propertyName, "Address must be IPv4, IPv6, CIDR, or 'any'."));
             return FirewallAddressFamily.Any;
@@ -107,30 +101,18 @@ internal static partial class RuleSpecificationValidator
         return family;
     }
 
-    private static void ValidateAddressFamily(
-        FirewallAddressFamily declared,
-        FirewallAddressFamily source,
-        FirewallAddressFamily destination,
-        List<ModelValidationError> errors)
+    private static void ValidateAddressFamily(FirewallAddressFamily declared, FirewallAddressFamily source, FirewallAddressFamily destination, List<ModelValidationError> errors)
     {
-        if (source != FirewallAddressFamily.Any
-            && destination != FirewallAddressFamily.Any
-            && source != destination)
+        if (source != FirewallAddressFamily.Any && destination != FirewallAddressFamily.Any && source != destination)
         {
-            errors.Add(new ModelValidationError(
-                nameof(FirewallRuleSpecification.AddressFamily),
-                "Source and destination addresses must use the same address family."));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), "Source and destination addresses must use the same address family."));
             return;
         }
 
         FirewallAddressFamily effective = source != FirewallAddressFamily.Any ? source : destination;
-        if (declared != FirewallAddressFamily.Any
-            && effective != FirewallAddressFamily.Any
-            && declared != effective)
+        if (declared != FirewallAddressFamily.Any && effective != FirewallAddressFamily.Any && declared != effective)
         {
-            errors.Add(new ModelValidationError(
-                nameof(FirewallRuleSpecification.AddressFamily),
-                "Address family does not match the rule addresses."));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), "Address family does not match the rule addresses."));
         }
     }
 
@@ -142,7 +124,7 @@ internal static partial class RuleSpecificationValidator
         }
 
         string trimmed = ports.Trim();
-        if (!PortsRegex().IsMatch(trimmed))
+        if (!PortsRegex.IsMatch(trimmed))
         {
             errors.Add(new ModelValidationError(propertyName, "Ports must be a comma-separated list of ports or port ranges."));
             return;
@@ -188,7 +170,7 @@ internal static partial class RuleSpecificationValidator
         }
 
         string trimmed = networkInterface.Trim();
-        if (trimmed.Length > MAX_INTERFACE_LENGTH || !InterfaceRegex().IsMatch(trimmed))
+        if (trimmed.Length > MAX_INTERFACE_LENGTH || !InterfaceRegex.IsMatch(trimmed))
         {
             errors.Add(new ModelValidationError(propertyName, "Interface name contains unsupported characters."));
         }
@@ -204,13 +186,11 @@ internal static partial class RuleSpecificationValidator
         switch (specification.Direction)
         {
             case FirewallDirection.In when !string.IsNullOrWhiteSpace(specification.SourceInterface):
-                errors.Add(new ModelValidationError(
-                    nameof(specification.SourceInterface),
+                errors.Add(new ModelValidationError(nameof(specification.SourceInterface),
                     "Inbound rules cannot specify a source interface; use DestinationInterface for the ingress interface."));
                 break;
             case FirewallDirection.Out when !string.IsNullOrWhiteSpace(specification.DestinationInterface):
-                errors.Add(new ModelValidationError(
-                    nameof(specification.DestinationInterface),
+                errors.Add(new ModelValidationError(nameof(specification.DestinationInterface),
                     "Outbound rules cannot specify a destination interface; use SourceInterface for the egress interface."));
                 break;
         }
@@ -224,23 +204,22 @@ internal static partial class RuleSpecificationValidator
         }
 
         string trimmed = comment.Trim();
-        if (trimmed.Length > MAX_COMMENT_LENGTH || !CommentRegex().IsMatch(trimmed))
+        if (trimmed.Length > MAX_COMMENT_LENGTH || !CommentRegex.IsMatch(trimmed))
         {
-            errors.Add(new ModelValidationError(
-                nameof(FirewallRuleSpecification.Comment),
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Comment),
                 "Comment must be 1-200 characters of a restricted safe alphabet."));
         }
     }
 
-    private static bool IsPort(string value) =>
-        int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int port) && port is >= 1 and <= 65535;
+    private static bool IsPort(string value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int port)
+        && port is >= 1 and <= 65535;
 
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9._-]*$", RegexOptions.CultureInvariant)]
-    private static partial Regex InterfaceRegex();
+    private static partial Regex InterfaceRegex { get; }
 
     [GeneratedRegex(@"^[1-9][0-9]{0,4}(:[1-9][0-9]{0,4})?(,[1-9][0-9]{0,4}(:[1-9][0-9]{0,4})?)*$", RegexOptions.CultureInvariant)]
-    private static partial Regex PortsRegex();
+    private static partial Regex PortsRegex { get; }
 
     [GeneratedRegex(@"^[A-Za-z0-9 ._@:+/=-]+$", RegexOptions.CultureInvariant)]
-    private static partial Regex CommentRegex();
+    private static partial Regex CommentRegex { get; }
 }

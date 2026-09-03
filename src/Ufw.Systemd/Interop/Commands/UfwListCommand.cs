@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.Output;
 
@@ -21,6 +21,6 @@ internal sealed class UfwListCommand : IUfwCommand<UfwStatusSnapshot>
             return ValueTask.FromResult<UfwStatusSnapshot?>(null);
         }
 
-        return ValueTask.FromResult<UfwStatusSnapshot?>(UfwStatusParser.Parse(_output));
+        return ValueTask.FromResult(UfwStatusParser.Parse(_output));
     }
 }

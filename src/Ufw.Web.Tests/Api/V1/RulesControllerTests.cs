@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
@@ -17,11 +17,11 @@ public sealed class RulesControllerTests
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
-    public async Task GetRulesAsync_ReturnsDaemonSnapshotAsync()
+    public async Task TestGetRulesAsync_ReturnsDaemonSnapshotAsync()
     {
         Mock<IUfwClient> client = new();
         RuleListResponse expected = new(
-            true,
+            Active: true,
             [
                 new ListedFirewallRule
                 {
@@ -50,13 +50,12 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
-    public async Task AddRuleAsync_ForwardsSignedEnvelopeAsync()
+    public async Task TestAddRuleAsync_ForwardsSignedEnvelopeAsync()
     {
         Mock<IUfwClient> client = new();
         AddRuleRequest request = CreateSignedAdd();
-        RuleMutationResponse expected = new(IntentOperations.ADD_RULE, null);
-        client
-            .Setup(static c => c.SendAsync<AddRuleRequest, RuleMutationResponse>(It.IsAny<AddRuleRequest>(), It.IsAny<CancellationToken>()))
+        RuleMutationResponse expected = new(IntentOperations.ADD_RULE, null!);
+        client.Setup(static c => c.SendAsync<AddRuleRequest, RuleMutationResponse>(It.IsAny<AddRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         RulesController controller = CreateController(client.Object);
@@ -74,7 +73,7 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
-    public async Task AddRuleAsync_RejectsWrongOperationAsync()
+    public async Task TestAddRuleAsync_RejectsWrongOperationAsync()
     {
         Mock<IUfwClient> client = new();
         AddRuleRequest request = CreateSignedAdd() with { Operation = IntentOperations.DELETE_RULE };
@@ -89,7 +88,7 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
-    public async Task DeleteRuleAsync_MapsDaemonConflictAsync()
+    public async Task TestDeleteRuleAsync_MapsDaemonConflictAsync()
     {
         Mock<IUfwClient> client = new();
         client

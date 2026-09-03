@@ -14,7 +14,7 @@ public sealed class TypedRequestResponseSmokeTests : IpcProtocolTestBase
     {
         endpoints.MapGet(
             "/api/v1/ping",
-            static _ => ValueTask.FromResult<OkResponse>(new OkResponse()));
+            static _ => ValueTask.FromResult(new OkResponse()));
 
         endpoints.MapPost<EchoRequest, EchoResponse>(
             "/api/v1/echo",

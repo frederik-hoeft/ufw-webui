@@ -85,7 +85,7 @@ internal sealed class TestEndpointMapBuilder : ITestEndpointMapBuilder
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
         ArgumentNullException.ThrowIfNull(handler);
 
-        ApiEndpointMapping<IRequestMessage, IResponseMessage> mapping = UfwApiEndpointMappingFactory.Map<TResponse>(
+        ApiEndpointMapping<IRequestMessage, IResponseMessage> mapping = UfwApiEndpointMappingFactory.Map(
             method,
             NormalizeRoute(route),
             priority,

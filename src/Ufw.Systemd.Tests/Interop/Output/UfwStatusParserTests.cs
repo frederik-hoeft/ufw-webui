@@ -1,4 +1,4 @@
-using Ufw.Systemd.Interop.Output;
+﻿using Ufw.Systemd.Interop.Output;
 using Ufw.Systemd.Tests.TestSupport;
 
 namespace Ufw.Systemd.Tests.Interop.Output;
@@ -7,30 +7,30 @@ namespace Ufw.Systemd.Tests.Interop.Output;
 public sealed class UfwStatusParserTests
 {
     [TestMethod]
-    public void Parse_EmptyActive_HasNoRules()
+    public void TestParse_EmptyActive_HasNoRules()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(UfwStatusFixtures.EMPTY_ACTIVE);
         Assert.IsNotNull(snapshot);
         Assert.IsTrue(snapshot.Active);
-        Assert.AreEqual(0, snapshot.Rules.Count);
+        Assert.IsEmpty(snapshot.Rules);
     }
 
     [TestMethod]
-    public void Parse_Inactive_HasNoRules()
+    public void TestParse_Inactive_HasNoRules()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(UfwStatusFixtures.INACTIVE);
         Assert.IsNotNull(snapshot);
         Assert.IsFalse(snapshot.Active);
-        Assert.AreEqual(0, snapshot.Rules.Count);
+        Assert.IsEmpty(snapshot.Rules);
     }
 
     [TestMethod]
-    public void Parse_NumberedRules_ExposesDisplayNumbersAndFields()
+    public void TestParse_NumberedRules_ExposesDisplayNumbersAndFields()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(UfwStatusFixtures.TWO_RULES);
         Assert.IsNotNull(snapshot);
         Assert.IsTrue(snapshot.Active);
-        Assert.AreEqual(2, snapshot.Rules.Count);
+        Assert.HasCount(2, snapshot.Rules);
         Assert.AreEqual(1, snapshot.Rules[0].DisplayNumber);
         Assert.IsNotNull(snapshot.Rules[0].Parsed);
         Assert.AreEqual("22", snapshot.Rules[0].Parsed!.DestinationPorts);
@@ -40,30 +40,30 @@ public sealed class UfwStatusParserTests
     }
 
     [TestMethod]
-    public void Parse_Ipv6Row_IsParsedWithConcreteFamily()
+    public void TestParse_Ipv6Row_IsParsedWithConcreteFamily()
     {
         string output = UfwStatusFixtures.WithRules("[ 1] 22/tcp (v6)                 ALLOW IN    Anywhere (v6)");
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(output);
         Assert.IsNotNull(snapshot);
-        Assert.AreEqual(1, snapshot.Rules.Count);
+        Assert.HasCount(1, snapshot.Rules);
         Assert.AreEqual(1, snapshot.Rules[0].DisplayNumber);
         Assert.IsNotNull(snapshot.Rules[0].Parsed);
         Assert.AreEqual(Ufw.Ipc.Shared.Model.Domain.Rules.FirewallAddressFamily.IPv6, snapshot.Rules[0].Parsed!.AddressFamily);
     }
 
     [TestMethod]
-    public void Parse_PartiallySupportedRow_IsPreservedButUnparsed()
+    public void TestParse_PartiallySupportedRow_IsPreservedButUnparsed()
     {
         string output = UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere unexpected");
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(output);
         Assert.IsNotNull(snapshot);
-        Assert.AreEqual(1, snapshot.Rules.Count);
+        Assert.HasCount(1, snapshot.Rules);
         Assert.IsNull(snapshot.Rules[0].Parsed);
-        StringAssert.Contains(snapshot.Rules[0].RawLine, "unexpected");
+        Assert.Contains("unexpected", snapshot.Rules[0].RawLine);
     }
 
     [TestMethod]
-    public void Parse_MissingStatusLine_IsRejected()
+    public void TestParse_MissingStatusLine_IsRejected()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse("[ 1] 22/tcp ALLOW IN Anywhere");
 
@@ -71,7 +71,7 @@ public sealed class UfwStatusParserTests
     }
 
     [TestMethod]
-    public void Parse_UnknownStatusValue_IsRejected()
+    public void TestParse_UnknownStatusValue_IsRejected()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse("Status: confused\n");
 
