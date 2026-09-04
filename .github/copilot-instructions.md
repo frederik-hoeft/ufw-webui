@@ -33,7 +33,7 @@ Authentication infrastructure consists of:
 - opaque rotating refresh tokens stored as hashes in the database and delivered through a secure `HttpOnly` cookie
 - CORS configuration for the separate `Ufw.Client` frontend
 
-Keep browser UI code in `Ufw.Client`. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser. Access tokens stay in memory; refresh-token cookies remain `HttpOnly`. Mutation private keys must not be persisted by the client unless a later design explicitly introduces a secure key-storage boundary.
+Keep browser UI code in `Ufw.Client`. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser. Access tokens stay in memory; refresh-token cookies remain `HttpOnly`. Client operations that mutate the rotating refresh-token cookie must use the shared authentication-operation coordinator so concurrent tabs cannot consume the same token family member. Mutation private keys must not be persisted by the client unless a later design explicitly introduces a secure key-storage boundary.
 
 ## Daemon conventions
 

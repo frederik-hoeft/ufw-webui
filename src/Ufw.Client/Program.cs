@@ -22,10 +22,12 @@ public static class Program
 
         builder.Services.AddMudServices();
         builder.Services.AddAuthorizationCore();
+        builder.Services.AddSingleton(TimeProvider.System);
 
         builder.Services.AddScoped<AuthenticationSession>();
         builder.Services.AddScoped<IAuthenticationSession>(static services => services.GetRequiredService<AuthenticationSession>());
         builder.Services.AddScoped<AuthenticationStateProvider>(static services => services.GetRequiredService<AuthenticationSession>());
+        builder.Services.AddScoped<IAuthenticationOperationCoordinator, BrowserAuthenticationOperationCoordinator>();
         builder.Services.AddScoped<BrowserCredentialsHandler>();
         builder.Services.AddScoped<BearerTokenHandler>();
         builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -33,9 +35,10 @@ public static class Program
 
         builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        // Keep browser credentials inside the bearer handler so a one-time 401 replay reapplies cookie credentials.
         builder.Services.AddHttpClient<IUfwApiClient, UfwApiClient>(client => client.BaseAddress = apiBaseAddress)
-            .AddHttpMessageHandler<BrowserCredentialsHandler>()
-            .AddHttpMessageHandler<BearerTokenHandler>();
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
 
         await builder.Build().RunAsync();
     }

@@ -9,4 +9,10 @@ public interface IAuthenticationService
     Task LogoutAsync(CancellationToken cancellationToken = default);
 
     Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default);
+
+    Task<string?> RefreshAfterUnauthorizedAsync(
+        string rejectedAccessToken,
+        CancellationToken cancellationToken = default);
+
+    void InvalidateAccessToken(string rejectedAccessToken);
 }

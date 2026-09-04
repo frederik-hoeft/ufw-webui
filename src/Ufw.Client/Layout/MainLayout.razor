@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject IAuthenticationService AuthenticationService
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <MudLayout>
     <MudAppBar Elevation="1">
@@ -14,7 +15,12 @@
         <AuthorizeView>
             <Authorized>
                 <MudText Typo="Typo.body2" Class="mr-4 appbar-identity">@context.User.Identity?.Name</MudText>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="LogoutAsync">Sign out</MudButton>
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Inherit"
+                           Disabled="_logoutBusy"
+                           OnClick="LogoutAsync">
+                    @(_logoutBusy ? "Signing out..." : "Sign out")
+                </MudButton>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
@@ -37,18 +43,32 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _logoutBusy;
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
     private async Task LogoutAsync()
     {
+        if (_logoutBusy)
+        {
+            return;
+        }
+
+        _logoutBusy = true;
         try
         {
             await AuthenticationService.LogoutAsync();
+            Navigation.NavigateTo("login", replace: true);
+        }
+        catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
+        {
+            Snackbar.Add(
+                "Could not revoke the server session. You are still signed in; try again when the API is reachable.",
+                Severity.Error);
         }
         finally
         {
-            Navigation.NavigateTo("login", replace: true);
+            _logoutBusy = false;
         }
     }
 }

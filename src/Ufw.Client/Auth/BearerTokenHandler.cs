@@ -3,24 +3,52 @@ using System.Net.Http.Headers;
 
 namespace Ufw.Client.Auth;
 
-internal sealed class BearerTokenHandler(
-    IAuthenticationService authenticationService,
-    IAuthenticationSession session) : DelegatingHandler
+internal sealed class BearerTokenHandler(IAuthenticationService authenticationService) : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         string? accessToken = await authenticationService.GetAccessTokenAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(accessToken))
+        HttpRequestReplaySnapshot? replay = accessToken is null
+            ? null
+            : await HttpRequestReplaySnapshot.CaptureAsync(request, cancellationToken);
+
+        if (accessToken is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         }
 
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-        if (accessToken is not null && response.StatusCode == HttpStatusCode.Unauthorized)
+        if (accessToken is null || response.StatusCode != HttpStatusCode.Unauthorized || replay is null)
         {
-            session.Clear();
+            return response;
         }
 
-        return response;
+        string? replacementToken;
+        try
+        {
+            replacementToken = await authenticationService.RefreshAfterUnauthorizedAsync(accessToken, cancellationToken);
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
+
+        if (replacementToken is null)
+        {
+            return response;
+        }
+
+        response.Dispose();
+        using HttpRequestMessage retry = replay.CreateRequest();
+        retry.Headers.Authorization = new AuthenticationHeaderValue("Bearer", replacementToken);
+
+        HttpResponseMessage retryResponse = await base.SendAsync(retry, cancellationToken);
+        if (retryResponse.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            authenticationService.InvalidateAccessToken(replacementToken);
+        }
+
+        return retryResponse;
     }
 }

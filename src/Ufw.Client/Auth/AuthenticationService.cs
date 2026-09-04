@@ -6,16 +6,17 @@ namespace Ufw.Client.Auth;
 internal sealed class AuthenticationService(
     IAuthApiClient authApiClient,
     IAuthenticationSession session,
+    IAuthenticationOperationCoordinator operationCoordinator,
+    TimeProvider timeProvider,
     ILogger<AuthenticationService> logger) : IAuthenticationService
 {
     private static readonly TimeSpan s_refreshLeadTime = TimeSpan.FromSeconds(30);
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await RefreshAsync(cancellationToken);
+            await RefreshAsync(rejectedAccessToken: null, cancellationToken);
         }
         catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
         {
@@ -26,59 +27,90 @@ internal sealed class AuthenticationService(
 
     public async Task LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
-        AuthTokenResponse token = await authApiClient.LoginAsync(new LoginRequest(email, password), cancellationToken);
-        session.SetToken(token.AccessToken, token.ExpiresAt);
+        await operationCoordinator.RunExclusiveAsync(
+            async operationCancellationToken =>
+            {
+                AuthTokenResponse token = await authApiClient.LoginAsync(
+                    new LoginRequest(email, password),
+                    operationCancellationToken);
+                session.SetToken(token.AccessToken, token.ExpiresAt);
+            },
+            cancellationToken);
     }
 
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await authApiClient.LogoutAsync(cancellationToken);
-        }
-        finally
-        {
-            session.Clear();
-        }
+        await operationCoordinator.RunExclusiveAsync(
+            async operationCancellationToken =>
+            {
+                await authApiClient.LogoutAsync(operationCancellationToken);
+                session.Clear();
+            },
+            cancellationToken);
     }
 
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
-        if (session.AccessToken is not null
-            && session.ExpiresAt is DateTimeOffset expiresAt
-            && expiresAt > DateTimeOffset.UtcNow.Add(s_refreshLeadTime))
+        (string AccessToken, DateTimeOffset ExpiresAt)? token = session.Token;
+        if (token is { } current && IsFresh(current, s_refreshLeadTime))
         {
-            return session.AccessToken;
+            return current.AccessToken;
         }
 
-        return await RefreshAsync(cancellationToken);
+        return await RefreshAsync(rejectedAccessToken: null, cancellationToken);
     }
 
-    private async Task<string?> RefreshAsync(CancellationToken cancellationToken)
+    public Task<string?> RefreshAfterUnauthorizedAsync(
+        string rejectedAccessToken,
+        CancellationToken cancellationToken = default)
     {
-        await _refreshLock.WaitAsync(cancellationToken);
-        try
-        {
-            if (session.AccessToken is not null
-                && session.ExpiresAt is DateTimeOffset expiresAt
-                && expiresAt > DateTimeOffset.UtcNow.Add(s_refreshLeadTime))
-            {
-                return session.AccessToken;
-            }
+        ArgumentException.ThrowIfNullOrWhiteSpace(rejectedAccessToken);
+        return RefreshAsync(rejectedAccessToken, cancellationToken);
+    }
 
-            AuthTokenResponse? token = await authApiClient.TryRefreshAsync(cancellationToken);
-            if (token is null)
-            {
-                session.Clear();
-                return null;
-            }
+    public void InvalidateAccessToken(string rejectedAccessToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rejectedAccessToken);
+        session.ClearIfCurrent(rejectedAccessToken);
+    }
 
-            session.SetToken(token.AccessToken, token.ExpiresAt);
-            return token.AccessToken;
-        }
-        finally
-        {
-            _refreshLock.Release();
-        }
+    private async Task<string?> RefreshAsync(string? rejectedAccessToken, CancellationToken cancellationToken)
+    {
+        return await operationCoordinator.RunExclusiveAsync(
+            async operationCancellationToken =>
+            {
+                (string AccessToken, DateTimeOffset ExpiresAt)? current = session.Token;
+                if (rejectedAccessToken is null)
+                {
+                    if (current is { } currentToken && IsFresh(currentToken, s_refreshLeadTime))
+                    {
+                        return currentToken.AccessToken;
+                    }
+                }
+                else if (current is { } currentToken
+                    && !string.Equals(currentToken.AccessToken, rejectedAccessToken, StringComparison.Ordinal)
+                    && IsFresh(currentToken, TimeSpan.Zero))
+                {
+                    return currentToken.AccessToken;
+                }
+
+                AuthTokenResponse? token = await authApiClient.TryRefreshAsync(operationCancellationToken);
+                if (token is null)
+                {
+                    session.Clear();
+                    return null;
+                }
+
+                session.SetToken(token.AccessToken, token.ExpiresAt);
+                return token.AccessToken;
+            },
+            cancellationToken);
+    }
+
+    private bool IsFresh(
+        (string AccessToken, DateTimeOffset ExpiresAt) token,
+        TimeSpan requiredRemainingLifetime)
+    {
+        return token.ExpiresAt > timeProvider.GetUtcNow().Add(requiredRemainingLifetime);
     }
 }

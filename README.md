@@ -10,7 +10,7 @@ The solution contains:
 - `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, transport security, and shared signed-intent/rule semantics;
 - `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API.
 
-`Ufw.Client` consumes the versioned REST API. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it.
+`Ufw.Client` consumes the versioned REST API. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. Refresh-cookie mutations are serialized across same-origin tabs with the browser Web Locks API, so the client must run in a secure browser context. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it.
 
 ## Architecture
 
