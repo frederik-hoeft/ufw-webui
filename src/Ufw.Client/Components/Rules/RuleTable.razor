@@ -1,0 +1,68 @@
+<MudPaper Elevation="1">
+    <MudTable T="ListedFirewallRule" Items="@Rules" Loading="@Loading" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>#</MudTh>
+            <MudTh>Action</MudTh>
+            <MudTh>Direction</MudTh>
+            <MudTh>Protocol</MudTh>
+            <MudTh>Family</MudTh>
+            <MudTh>Source</MudTh>
+            <MudTh>Destination</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            @if (context.Parsed && context.Rule is not null)
+            {
+                <MudTd DataLabel="#">@(context.DisplayNumber?.ToString() ?? "-")</MudTd>
+                <MudTd DataLabel="Action">@FirewallRulePresentation.FormatEnum(context.Rule.Action)</MudTd>
+                <MudTd DataLabel="Direction">@FirewallRulePresentation.FormatEnum(context.Rule.Direction)</MudTd>
+                <MudTd DataLabel="Protocol">@FirewallRulePresentation.FormatEnum(context.Rule.Protocol)</MudTd>
+                <MudTd DataLabel="Family">@FirewallRulePresentation.FormatEnum(context.Rule.AddressFamily)</MudTd>
+                <MudTd DataLabel="Source">
+                    @FirewallRulePresentation.DescribeEndpoint(context.Rule.Source, context.Rule.SourcePorts, context.Rule.SourceInterface)
+                </MudTd>
+                <MudTd DataLabel="Destination">
+                    @FirewallRulePresentation.DescribeEndpoint(context.Rule.Destination, context.Rule.DestinationPorts, context.Rule.DestinationInterface)
+                    @if (!string.IsNullOrWhiteSpace(context.Rule.Comment))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Rule.Comment</MudText>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
+                                   Disabled="@(Disabled || string.IsNullOrWhiteSpace(context.RuleId))"
+                                   OnClick="@(() => DeleteRequested.InvokeAsync(context))"
+                                   aria-label="Delete rule" />
+                </MudTd>
+            }
+            else
+            {
+                <MudTd DataLabel="#">@(context.DisplayNumber?.ToString() ?? "-")</MudTd>
+                <MudTd colspan="6"><span class="rule-raw-line">@context.RawLine</span></MudTd>
+                <MudTd>
+                    <MudTooltip Text="This UFW line could not be parsed safely and cannot be mutated through the API.">
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                    </MudTooltip>
+                </MudTd>
+            }
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No firewall rules were returned.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<ListedFirewallRule> Rules { get; set; } = [];
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }
+}

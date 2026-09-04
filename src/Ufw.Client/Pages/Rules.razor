@@ -1,5 +1,6 @@
 @page "/"
 @attribute [Authorize]
+@implements IDisposable
 @inject IUfwApiClient UfwApiClient
 @inject ISnackbar Snackbar
 
@@ -9,11 +10,14 @@
     <div>
         <MudText Typo="Typo.h4">Firewall rules</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Rules reported by the privileged UFW daemon.
+            Authoritative rules reported by the privileged UFW daemon.
         </MudText>
     </div>
     <MudSpacer />
-    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" Disabled="_loading" OnClick="LoadAsync">
+    <MudButton Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               Disabled="@IsBusy"
+               OnClick="LoadAsync">
         Refresh
     </MudButton>
 </div>
@@ -23,169 +27,29 @@
     <MudAlert Severity="Severity.Error" Class="mb-4">@_loadError</MudAlert>
 }
 
-<MudPaper Class="pa-5 mb-6" Elevation="1">
-    <div class="d-flex flex-wrap align-center gap-3 mb-4">
-        <MudText Typo="Typo.h6">Add rule</MudText>
-        <MudSpacer />
-        <MudChip T="string" Color="@(_active ? Color.Success : Color.Warning)" Variant="Variant.Outlined">
-            @(_active ? "Firewall active" : "Firewall inactive")
-        </MudChip>
-    </div>
-
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="FirewallAction" Label="Action" @bind-Value="_draft.Action" Disabled="_mutating">
-                @foreach (FirewallAction value in Enum.GetValues<FirewallAction>())
-                {
-                    <MudSelectItem T="FirewallAction" Value="@value">@FormatEnum(value)</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="FirewallDirection" Label="Direction" @bind-Value="_draft.Direction" Disabled="_mutating">
-                @foreach (FirewallDirection value in Enum.GetValues<FirewallDirection>())
-                {
-                    <MudSelectItem T="FirewallDirection" Value="@value">@FormatEnum(value)</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="FirewallProtocol" Label="Protocol" @bind-Value="_draft.Protocol" Disabled="_mutating">
-                @foreach (FirewallProtocol value in Enum.GetValues<FirewallProtocol>())
-                {
-                    <MudSelectItem T="FirewallProtocol" Value="@value">@FormatEnum(value)</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="FirewallAddressFamily" Label="Address family" @bind-Value="_draft.AddressFamily" Disabled="_mutating">
-                @foreach (FirewallAddressFamily value in Enum.GetValues<FirewallAddressFamily>())
-                {
-                    <MudSelectItem T="FirewallAddressFamily" Value="@value">@FormatEnum(value)</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6">
-            <MudTextField T="string" Label="Source" Placeholder="any or CIDR" @bind-Value="_draft.Source" Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12" sm="6">
-            <MudTextField T="string" Label="Destination" Placeholder="any or CIDR" @bind-Value="_draft.Destination" Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField T="string" Label="Source ports" Placeholder="22,80:90" @bind-Value="_draft.SourcePorts" Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField T="string"
-                          Label="Destination ports"
-                          Placeholder="443"
-                          @bind-Value="_draft.DestinationPorts"
-                          Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField T="string" Label="Source interface" @bind-Value="_draft.SourceInterface" Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField T="string" Label="Destination interface" @bind-Value="_draft.DestinationInterface" Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudTextField T="string" Label="Comment" @bind-Value="_draft.Comment" Disabled="_mutating" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudTextField T="string"
-                          Label="ECDSA P-256 private key (PKCS#8)"
-                          InputType="InputType.Password"
-                          @bind-Value="_addPrivateKey"
-                          Disabled="_mutating"
-                          HelperText="Used only to sign this add request. The key is not stored by the client."
-                          Placeholder="PKCS#8 PEM or base64 DER"
-                          Immediate="true" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       Disabled="@(_mutating || string.IsNullOrWhiteSpace(_addPrivateKey))"
-                       OnClick="AddRuleAsync">
-                Add signed rule
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+<RuleEditor @key="_draft"
+            Rule="@_draft"
+            FirewallActive="@_active"
+            Disabled="@IsBusy"
+            @bind-PrivateKey="_addPrivateKey"
+            OnSubmit="AddRuleAsync" />
 
 @if (_pendingDelete is not null)
 {
-    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">Confirm rule deletion</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">@DescribeRule(_pendingDelete)</MudText>
-        <MudTextField T="string"
-                      Label="ECDSA P-256 private key (PKCS#8)"
-                      InputType="InputType.Password"
-                      @bind-Value="_deletePrivateKey"
-                      Disabled="_mutating"
-                      HelperText="Used only to sign this delete request. The key is not stored by the client."
-                      Immediate="true"
-                      Class="mb-3" />
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Error"
-                   Disabled="@(_mutating || string.IsNullOrWhiteSpace(_deletePrivateKey))"
-                   OnClick="DeleteRuleAsync"
-                   Class="mr-2">
-            Delete signed rule
-        </MudButton>
-        <MudButton Variant="Variant.Text" Disabled="_mutating" OnClick="CancelDelete">Cancel</MudButton>
-    </MudAlert>
+    <DeleteRuleConfirmation Rule="@_pendingDelete"
+                            Disabled="@IsBusy"
+                            @bind-PrivateKey="_deletePrivateKey"
+                            OnConfirm="DeleteRuleAsync"
+                            OnCancel="CancelDelete" />
 }
 
-<MudPaper Elevation="1">
-    <MudTable T="ListedFirewallRule" Items="_rules" Loading="_loading" Hover="true" Breakpoint="Breakpoint.Sm">
-        <HeaderContent>
-            <MudTh>#</MudTh>
-            <MudTh>Action</MudTh>
-            <MudTh>Direction</MudTh>
-            <MudTh>Protocol</MudTh>
-            <MudTh>Source</MudTh>
-            <MudTh>Destination</MudTh>
-            <MudTh></MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            @if (context.Parsed && context.Rule is not null)
-            {
-                <MudTd DataLabel="#">@(context.DisplayNumber?.ToString() ?? "-")</MudTd>
-                <MudTd DataLabel="Action">@FormatEnum(context.Rule.Action)</MudTd>
-                <MudTd DataLabel="Direction">@FormatEnum(context.Rule.Direction)</MudTd>
-                <MudTd DataLabel="Protocol">@FormatEnum(context.Rule.Protocol)</MudTd>
-                <MudTd DataLabel="Source">
-                    @DescribeEndpoint(context.Rule.Source, context.Rule.SourcePorts, context.Rule.SourceInterface)
-                </MudTd>
-                <MudTd DataLabel="Destination">
-                    @DescribeEndpoint(context.Rule.Destination, context.Rule.DestinationPorts, context.Rule.DestinationInterface)
-                </MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Color="Color.Error"
-                                   Disabled="@(_mutating || string.IsNullOrWhiteSpace(context.RuleId))"
-                                   OnClick="@(() => BeginDelete(context))"
-                                   aria-label="Delete rule" />
-                </MudTd>
-            }
-            else
-            {
-                <MudTd DataLabel="#">@(context.DisplayNumber?.ToString() ?? "-")</MudTd>
-                <MudTd colspan="5"><span class="rule-raw-line">@context.RawLine</span></MudTd>
-                <MudTd>
-                    <MudTooltip Text="This UFW line could not be parsed safely and cannot be mutated through the API.">
-                        <MudIcon Icon="@Icons.Material.Filled.Lock" />
-                    </MudTooltip>
-                </MudTd>
-            }
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText Class="pa-4">No firewall rules were returned.</MudText>
-        </NoRecordsContent>
-    </MudTable>
-</MudPaper>
+<RuleTable Rules="@_rules"
+           Loading="@_loading"
+           Disabled="@IsBusy"
+           DeleteRequested="BeginDelete" />
 
 @code {
+    private readonly CancellationTokenSource _lifetime = new();
     private IReadOnlyList<ListedFirewallRule> _rules = [];
     private FirewallRuleSpecification _draft = CreateDefaultRule();
     private ListedFirewallRule? _pendingDelete;
@@ -196,17 +60,34 @@
     private bool _loading;
     private bool _mutating;
 
+    private bool IsBusy => _loading || _mutating;
+
     protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
 
     private async Task LoadAsync()
     {
+        if (_loading)
+        {
+            return;
+        }
+
         _loading = true;
         _loadError = null;
         try
         {
-            Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync();
+            Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
             _active = response.Active;
             _rules = response.Rules;
+            ReconcilePendingDelete(response.Rules);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
         }
         catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
         {
@@ -220,7 +101,7 @@
 
     private async Task AddRuleAsync()
     {
-        if (string.IsNullOrWhiteSpace(_addPrivateKey))
+        if (IsBusy || string.IsNullOrWhiteSpace(_addPrivateKey))
         {
             return;
         }
@@ -228,10 +109,14 @@
         _mutating = true;
         try
         {
-            await UfwApiClient.AddRuleAsync(_draft, _addPrivateKey);
+            FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
+            await UfwApiClient.AddRuleAsync(normalized, _addPrivateKey, _lifetime.Token);
             Snackbar.Add("Firewall rule added.", Severity.Success);
             _draft = CreateDefaultRule();
             await LoadAsync();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
         }
         catch (Exception exception) when (IsMutationException(exception))
         {
@@ -246,6 +131,11 @@
 
     private void BeginDelete(ListedFirewallRule rule)
     {
+        if (IsBusy || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
+        {
+            return;
+        }
+
         _deletePrivateKey = string.Empty;
         _pendingDelete = rule;
     }
@@ -258,7 +148,7 @@
 
     private async Task DeleteRuleAsync()
     {
-        if (_pendingDelete is null || string.IsNullOrWhiteSpace(_deletePrivateKey))
+        if (IsBusy || _pendingDelete is null || string.IsNullOrWhiteSpace(_deletePrivateKey))
         {
             return;
         }
@@ -266,10 +156,13 @@
         _mutating = true;
         try
         {
-            await UfwApiClient.DeleteRuleAsync(_pendingDelete, _deletePrivateKey);
+            await UfwApiClient.DeleteRuleAsync(_pendingDelete, _deletePrivateKey, _lifetime.Token);
             Snackbar.Add("Firewall rule deleted.", Severity.Success);
             _pendingDelete = null;
             await LoadAsync();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
         }
         catch (Exception exception) when (IsMutationException(exception))
         {
@@ -282,6 +175,23 @@
         }
     }
 
+    private void ReconcilePendingDelete(IReadOnlyList<ListedFirewallRule> rules)
+    {
+        if (_pendingDelete?.RuleId is not { Length: > 0 } ruleId)
+        {
+            return;
+        }
+
+        ListedFirewallRule? current = rules.FirstOrDefault(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal));
+        if (current is null || !current.Parsed || current.Rule is null)
+        {
+            CancelDelete();
+            return;
+        }
+
+        _pendingDelete = current;
+    }
+
     private static FirewallRuleSpecification CreateDefaultRule() => new()
     {
         Action = FirewallAction.Allow,
@@ -292,39 +202,10 @@
         Destination = RuleSpecificationNormalizer.ANY,
     };
 
-    private static string DescribeRule(ListedFirewallRule listedRule)
-    {
-        if (listedRule.Rule is null)
-        {
-            return listedRule.RawLine;
-        }
-
-        FirewallRuleSpecification rule = listedRule.Rule;
-        string source = DescribeEndpoint(rule.Source, rule.SourcePorts, rule.SourceInterface);
-        string destination = DescribeEndpoint(rule.Destination, rule.DestinationPorts, rule.DestinationInterface);
-        return $"{FormatEnum(rule.Action)} {FormatEnum(rule.Direction)} {FormatEnum(rule.Protocol)} from {source} to {destination}";
-    }
-
-    private static string DescribeEndpoint(string? address, string? ports, string? networkInterface)
-    {
-        string value = string.IsNullOrWhiteSpace(address) ? RuleSpecificationNormalizer.ANY : address;
-        if (!string.IsNullOrWhiteSpace(ports))
-        {
-            value += $":{ports}";
-        }
-        if (!string.IsNullOrWhiteSpace(networkInterface))
-        {
-            value += $" via {networkInterface}";
-        }
-        return value;
-    }
-
     private static bool IsMutationException(Exception exception) =>
         exception is ApiRequestException
             or HttpRequestException
             or InvalidOperationException
             or ArgumentException
             or Microsoft.JSInterop.JSException;
-
-    private static string FormatEnum<T>(T value) where T : struct, Enum => value.ToString();
 }

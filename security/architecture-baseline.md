@@ -23,6 +23,8 @@ The client is the user-authorization boundary for firewall mutations. `Ufw.Clien
 
 The client obtains the daemon's current intent context before signing. The context supplies the signed-intent protocol version and stable daemon deployment identifier. The private signing key remains client-side; only corresponding public keys are configured as trusted mutation authorities on the daemon.
 
+The browser reuses the shared rule validator to provide immediate field-level feedback before signing. That validation is a usability aid, not a trust decision: `Ufw.Systemd` independently validates the signed rule specification before accepting the intent.
+
 ### Ufw.Web
 
 `Ufw.Web` is network-facing and should be treated as compromiseable relative to the privileged daemon. It authenticates users, applies application-level authorization, and proxies daemon-backed requests over local IPC.
