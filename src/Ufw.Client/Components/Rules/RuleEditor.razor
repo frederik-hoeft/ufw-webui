@@ -3,7 +3,7 @@
 <MudPaper Class="pa-5 mb-6" Elevation="1">
     <div class="d-flex flex-wrap align-center gap-3 mb-4">
         <div>
-            <MudText Typo="Typo.h6">Add rule</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2">Add rule</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Define the complete UFW rule, then authorize this request with an authorized private key.
             </MudText>
@@ -126,6 +126,9 @@
                               Label="ECDSA P-256 private key (PKCS#8)"
                               InputType="InputType.Password"
                               Value="@PrivateKey"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               ValueChanged="PrivateKeyChangedAsync"
                               Required="true"
                               RequiredError="A private key is required to authorize this mutation."

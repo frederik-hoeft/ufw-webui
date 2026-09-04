@@ -7,7 +7,7 @@
 <PageTitle>Sign in - UFW Management</PageTitle>
 
 <MudPaper Class="login-card pa-8" Elevation="4">
-    <MudText Typo="Typo.h4" GutterBottom="true">UFW Management</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">UFW Management</MudText>
     <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
         Sign in to manage firewall rules.
     </MudText>
@@ -17,12 +17,17 @@
         <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
     }
 
-    <MudForm @ref="_form" @bind-IsValid="_isValid">
+    <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync">
         <MudTextField T="string"
                       Label="Email"
                       InputType="InputType.Email"
+                      InputMode="InputMode.email"
                       @bind-Value="_email"
+                      Validation="@s_emailValidation"
                       Required="true"
+                      autocomplete="username"
+                      autocapitalize="off"
+                      spellcheck="false"
                       RequiredError="Email is required."
                       Disabled="_busy"
                       Immediate="true"
@@ -32,6 +37,9 @@
                       InputType="InputType.Password"
                       @bind-Value="_password"
                       Required="true"
+                      autocomplete="current-password"
+                      autocapitalize="off"
+                      spellcheck="false"
                       RequiredError="Password is required."
                       Disabled="_busy"
                       Immediate="true" />
@@ -51,6 +59,11 @@
 </MudPaper>
 
 @code {
+    private static readonly EmailAddressAttribute s_emailValidation = new()
+    {
+        ErrorMessage = "Enter a valid email address."
+    };
+
     private MudForm? _form;
     private bool _isValid;
     private bool _busy;
@@ -72,12 +85,12 @@
 
     private async Task LoginAsync()
     {
-        if (_form is null)
+        if (_busy || _form is null)
         {
             return;
         }
 
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid)
         {
             return;

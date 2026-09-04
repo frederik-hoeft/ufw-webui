@@ -8,7 +8,7 @@
 @if (_initialized)
 {
     <CascadingAuthenticationState>
-        <Router AppAssembly="@typeof(App).Assembly">
+        <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="@typeof(Ufw.Client.Pages.NotFound)">
             <Found Context="routeData">
                 <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                     <NotAuthorized>
@@ -17,14 +17,6 @@
                 </AuthorizeRouteView>
                 <FocusOnNavigate RouteData="@routeData" Selector="h1" />
             </Found>
-            <NotFound>
-                <LayoutView Layout="@typeof(MainLayout)">
-                    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-16 text-center">
-                        <MudText Typo="Typo.h4" GutterBottom="true">Page not found</MudText>
-                        <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary">Go to firewall rules</MudButton>
-                    </MudContainer>
-                </LayoutView>
-            </NotFound>
         </Router>
     </CascadingAuthenticationState>
 }
