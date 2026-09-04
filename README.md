@@ -4,12 +4,13 @@ UFW WebUI separates network-facing firewall-management concerns from privileged 
 
 The solution contains:
 
+- `Ufw.Client`: Blazor WebAssembly frontend using MudBlazor, with in-memory access-token state and browser-side signed-intent creation;
 - `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/SQLite, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
 - `Ufw.Systemd`: privileged host daemon responsible for authoritative UFW state, signed mutation authorization, semantic rule handling, and UFW subprocess execution;
 - `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, transport security, and shared signed-intent/rule semantics;
 - `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API.
 
-The browser UI is not part of this repository yet. The backend implements unsigned rule/context reads plus signed AddRule and DeleteRule flows. A future Blazor WebAssembly client can use the shared intent contract to create signatures in-browser.
+`Ufw.Client` consumes the versioned REST API. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it.
 
 ## Architecture
 
@@ -31,7 +32,7 @@ dotnet test src/Ufw.slnx
 dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/to/jwt-signing-key.pem"
 ```
 
-The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory.
+The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory. `Ufw.Client/wwwroot/appsettings.json` configures the REST API base URL. Development CORS is configured for the HTTPS client profile at `https://localhost:7298`.
 
 No public user-registration endpoint is provided. User provisioning and administrative user-management APIs are separate from the authentication foundation.
 
@@ -42,8 +43,8 @@ No public user-registration endpoint is provided. User provisioning and administ
 Generate a P-256 signing keypair for development with:
 
 ```bash
-openssl ecparam -name prime256v1 -genkey -noout -out intent-key.pem
-openssl ec -in intent-key.pem -pubout -out intent-key.pub.pem
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out intent-key.pem
+openssl pkey -in intent-key.pem -pubout -out intent-key.pub.pem
 ```
 
 Keep the private key with the signing client and place only the public-key PEM in the daemon's `security.authorized_keys_path` file. The daemon also persists replay state and a stable deployment identifier under its configured `security` paths. See [the signed-intent protocol](docs/protocols/signed-intent.md) for the exact v2 contract.

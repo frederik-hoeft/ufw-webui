@@ -6,11 +6,19 @@ UFW WebUI separates network-facing application concerns from privileged host fir
 
 The system has three principal participants:
 
-1. A browser or other API client presents firewall state and obtains user authorization for mutations. A Blazor WebAssembly frontend is planned but is not part of this repository yet.
+1. `Ufw.Client` is the Blazor WebAssembly browser frontend. It presents firewall state, manages browser-local authentication state, and obtains user authorization for signed mutations. Other API clients may use the same REST and signed-intent contracts.
 2. `Ufw.Web` exposes the REST API, manages users and web sessions, and proxies daemon-backed operations over local IPC.
 3. `Ufw.Systemd` owns the host-facing UFW integration. It is authoritative for firewall state and is the only component that executes privileged UFW commands.
 
 `Ufw.Web` is deliberately not part of the privileged trust boundary. Its database contains application and authentication state, not a second copy of firewall state, and the ability to reach the daemon is not sufficient authority to mutate UFW.
+
+## Ufw.Client
+
+`Ufw.Client` is a standalone Blazor WebAssembly application using MudBlazor. It depends on the versioned HTTP API rather than on daemon transport details. UI components delegate authentication, REST access, and intent signing to scoped services so presentation code does not construct authorization headers or security envelopes directly.
+
+Short-lived access JWTs are held only in memory. On application startup, and shortly before an access token expires, the client asks `Ufw.Web` to rotate the secure `HttpOnly` refresh cookie and issue a new access token. Cross-origin API calls include browser credentials so the cookie participates in refresh/logout without becoming visible to application JavaScript.
+
+For firewall mutations the client reuses the rule normalization and canonical intent implementation from `Ufw.Ipc.Shared`, then performs P-256 SHA-256 signing through the browser Web Crypto API. The initial UX accepts an unencrypted PKCS#8 private key in a masked input for each individual AddRule or DeleteRule request. The input is cleared after the attempt and is never placed in browser storage or application-wide state. This is an intentionally temporary key-entry model; persistent or hardware-backed key handling requires a separate security design.
 
 ## Ufw.Web
 

@@ -1,0 +1,54 @@
+@inherits LayoutComponentBase
+@inject IAuthenticationService AuthenticationService
+@inject NavigationManager Navigation
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="ToggleDrawer"
+                       aria-label="Toggle navigation" />
+        <MudText Typo="Typo.h6">UFW Management</MudText>
+        <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.body2" Class="mr-4 appbar-identity">@context.User.Identity?.Name</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="LogoutAsync">Sign out</MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" Elevation="1">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.subtitle1">Firewall</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Rule">Rules</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task LogoutAsync()
+    {
+        try
+        {
+            await AuthenticationService.LogoutAsync();
+        }
+        finally
+        {
+            Navigation.NavigateTo("login", replace: true);
+        }
+    }
+}

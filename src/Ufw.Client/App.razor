@@ -1,0 +1,46 @@
+@inject IAuthenticationService AuthenticationService
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+@if (_initialized)
+{
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        <RedirectToLogin />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-16 text-center">
+                        <MudText Typo="Typo.h4" GutterBottom="true">Page not found</MudText>
+                        <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary">Go to firewall rules</MudButton>
+                    </MudContainer>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
+}
+else
+{
+    <div class="startup-progress" role="status" aria-label="Restoring session">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </div>
+}
+
+@code {
+    private bool _initialized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthenticationService.InitializeAsync();
+        _initialized = true;
+    }
+}

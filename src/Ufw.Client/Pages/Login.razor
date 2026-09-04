@@ -1,0 +1,120 @@
+@page "/login"
+@layout LoginLayout
+@inject IAuthenticationService AuthenticationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Sign in - UFW Management</PageTitle>
+
+<MudPaper Class="login-card pa-8" Elevation="4">
+    <MudText Typo="Typo.h4" GutterBottom="true">UFW Management</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+        Sign in to manage firewall rules.
+    </MudText>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+    }
+
+    <MudForm @ref="_form" @bind-IsValid="_isValid">
+        <MudTextField T="string"
+                      Label="Email"
+                      InputType="InputType.Email"
+                      @bind-Value="_email"
+                      Required="true"
+                      RequiredError="Email is required."
+                      Disabled="_busy"
+                      Immediate="true"
+                      Class="mb-3" />
+        <MudTextField T="string"
+                      Label="Password"
+                      InputType="InputType.Password"
+                      @bind-Value="_password"
+                      Required="true"
+                      RequiredError="Password is required."
+                      Disabled="_busy"
+                      Immediate="true" />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Disabled="@(_busy || !_isValid)"
+                   OnClick="LoginAsync"
+                   Class="mt-6">
+            @if (_busy)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            Sign in
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _busy;
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string? _error;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            NavigateAfterLogin();
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        if (_form is null)
+        {
+            return;
+        }
+
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            await AuthenticationService.LoginAsync(_email, _password);
+            _password = string.Empty;
+            NavigateAfterLogin();
+        }
+        catch (ApiRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            _error = "Invalid email or password, or the account is not permitted to sign in.";
+        }
+        catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void NavigateAfterLogin()
+    {
+        string target = IsLocalReturnUrl(ReturnUrl) ? ReturnUrl! : "/";
+        Navigation.NavigateTo(target, replace: true);
+    }
+
+    private static bool IsLocalReturnUrl(string? returnUrl)
+    {
+        return returnUrl is { Length: > 0 }
+            && returnUrl[0] == '/'
+            && (returnUrl.Length == 1 || (returnUrl[1] != '/' && returnUrl[1] != '\\'));
+    }
+}

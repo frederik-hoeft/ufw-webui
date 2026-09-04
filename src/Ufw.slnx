@@ -9,6 +9,7 @@
     <File Path="Directory.Build.props" />
   </Folder>
   <Project Path="Ufw.Web/Ufw.Web.csproj" />
+  <Project Path="Ufw.Client/Ufw.Client.csproj" />
   <Project Path="Ufw.Web.Tests/Ufw.Web.Tests.csproj" />
   <Project Path="Ufw.Systemd/Ufw.Systemd.csproj" />
   <Project Path="Ufw.Ipc.Shared/Ufw.Ipc.Shared.csproj" />

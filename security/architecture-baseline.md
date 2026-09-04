@@ -19,7 +19,7 @@ These mechanisms reduce exposure and scope the HTTP/API surface, but the daemon'
 
 ### Browser or API client
 
-The client is the user-authorization boundary for firewall mutations. A future Blazor WebAssembly frontend is expected to create signed intents in the browser, but client-side key storage and signing UX are outside the current repository.
+The client is the user-authorization boundary for firewall mutations. `Ufw.Client` creates signed intents in the browser. Its first signing UX accepts an unencrypted PKCS#8 P-256 private key for one mutation at a time, uses Web Crypto for signing, and clears the request-local input afterward. The private key is not persisted in browser storage.
 
 The client obtains the daemon's current intent context before signing. The context supplies the signed-intent protocol version and stable daemon deployment identifier. The private signing key remains client-side; only corresponding public keys are configured as trusted mutation authorities on the daemon.
 
@@ -118,7 +118,7 @@ Access JWTs remain valid until their short expiration even after a refresh famil
 
 The current boundary intentionally does not implement:
 
-- browser/Blazor key storage or signing UX;
+- persistent, hardware-backed, or otherwise managed browser key storage and key-enrollment UX;
 - dynamic authorized-key enrollment, revocation, or user/key lifecycle APIs;
 - ASP-side firewall state reconciliation or firewall metadata authority;
 - security audit logging/accountability infrastructure;

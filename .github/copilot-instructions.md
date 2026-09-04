@@ -2,8 +2,9 @@
 
 ## Project model
 
-UFW WebUI is a .NET 10 solution with a network-facing ASP.NET Core API and a privileged host daemon.
+UFW WebUI is a .NET 10 solution with a Blazor WebAssembly client, a network-facing ASP.NET Core API, and a privileged host daemon.
 
+- `Ufw.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, and browser-side signed-intent creation.
 - `Ufw.Web` is the REST API. It owns ASP.NET Core Identity, EF Core application state, JWT/refresh-token handling, application authorization, browser-facing data models, and the local IPC client.
 - `Ufw.Systemd` is the privileged daemon and the authority for actual UFW state.
 - `Ufw.Ipc.Client` and `Ufw.Ipc.Shared` implement the typed local IPC protocol.
@@ -30,9 +31,9 @@ Authentication infrastructure consists of:
 - ASP.NET Core Identity with EF Core/SQLite
 - RSA-signed JWT bearer access tokens
 - opaque rotating refresh tokens stored as hashes in the database and delivered through a secure `HttpOnly` cookie
-- CORS configuration intended for a future Blazor frontend
+- CORS configuration for the separate `Ufw.Client` frontend
 
-Do not reintroduce Razor Pages or UI assets into `Ufw.Web`; UI implementation is outside this repository.
+Keep browser UI code in `Ufw.Client`. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser. Access tokens stay in memory; refresh-token cookies remain `HttpOnly`. Mutation private keys must not be persisted by the client unless a later design explicitly introduces a secure key-storage boundary.
 
 ## Daemon conventions
 
