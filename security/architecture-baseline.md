@@ -19,7 +19,7 @@ These mechanisms reduce exposure and scope the HTTP/API surface, but the daemon'
 
 ### Browser or API client
 
-The client is the user-authorization boundary for firewall mutations. `Ufw.Client` creates signed intents in the browser. Its first signing UX accepts an unencrypted PKCS#8 P-256 private key for one mutation at a time, uses Web Crypto for signing, and clears the request-local input afterward. The private key is not persisted in browser storage.
+The client is the user-authorization boundary for firewall mutations. `Ufw.Client` creates signed intents in the browser. Its first signing UX accepts an unencrypted PKCS#8 P-256 private key for one mutation at a time, preferring a single-line `data:application/pkcs8;base64,...` representation while retaining PEM/raw-base64 compatibility, uses Web Crypto for signing, and clears the request-local input afterward. The private key is not persisted in browser storage.
 
 The client obtains the daemon's current intent context before signing. The context supplies the signed-intent protocol version and stable daemon deployment identifier. The private signing key remains client-side; only corresponding public keys are configured as trusted mutation authorities on the daemon.
 

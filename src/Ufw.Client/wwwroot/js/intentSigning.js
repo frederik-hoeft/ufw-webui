@@ -1,6 +1,7 @@
 const PRIVATE_KEY_BEGIN = "-----BEGIN PRIVATE KEY-----";
 const PRIVATE_KEY_END = "-----END PRIVATE KEY-----";
 const ENCRYPTED_PRIVATE_KEY_BEGIN = "-----BEGIN ENCRYPTED PRIVATE KEY-----";
+const DATA_URI_PREFIX = "data:";
 const KEY_ID_PREFIX = "sha256:";
 
 export function createNonce(size) {
@@ -53,7 +54,9 @@ async function importPrivateKey(privateKeyText, extractable) {
             extractable,
             ["sign"]);
     } catch (error) {
-        throw new Error("The private key must be an unencrypted PKCS#8 ECDSA P-256 key.", { cause: error });
+        throw new Error(
+            "The private key must be an unencrypted PKCS#8 ECDSA P-256 key supplied as PEM, base64 DER, or a base64 data URI.",
+            { cause: error });
     }
 }
 
@@ -61,14 +64,40 @@ function decodePrivateKey(privateKeyText) {
     if (typeof privateKeyText !== "string" || privateKeyText.trim().length === 0) {
         throw new Error("A private key is required for this request.");
     }
-    if (privateKeyText.includes(ENCRYPTED_PRIVATE_KEY_BEGIN)) {
+
+    const normalized = privateKeyText.trim();
+    if (normalized.slice(0, DATA_URI_PREFIX.length).toLowerCase() === DATA_URI_PREFIX) {
+        return decodePrivateKeyDataUri(normalized);
+    }
+    if (normalized.includes(ENCRYPTED_PRIVATE_KEY_BEGIN)) {
         throw new Error("Encrypted private keys are not supported in this first iteration.");
     }
 
-    const base64 = privateKeyText
+    const base64 = normalized
         .replaceAll(PRIVATE_KEY_BEGIN, "")
         .replaceAll(PRIVATE_KEY_END, "")
         .replace(/\s+/g, "");
+    return decodeBase64PrivateKey(base64);
+}
+
+function decodePrivateKeyDataUri(dataUri) {
+    const separator = dataUri.indexOf(",");
+    if (separator < 0) {
+        throw new Error("The private-key data URI is missing its payload.");
+    }
+
+    const metadata = dataUri.slice(DATA_URI_PREFIX.length, separator)
+        .split(";")
+        .map(part => part.trim().toLowerCase());
+    if (!metadata.includes("base64")) {
+        throw new Error("The private-key data URI must use base64 encoding.");
+    }
+
+    const base64 = dataUri.slice(separator + 1).replace(/\s+/g, "");
+    return decodeBase64PrivateKey(base64);
+}
+
+function decodeBase64PrivateKey(base64) {
     if (base64.length === 0) {
         throw new Error("The private key is empty.");
     }
@@ -77,7 +106,9 @@ function decodePrivateKey(privateKeyText) {
     try {
         binary = atob(base64);
     } catch (error) {
-        throw new Error("The private key is not valid PKCS#8 PEM or base64 DER.", { cause: error });
+        throw new Error(
+            "The private key is not valid PKCS#8 PEM, base64 DER, or a base64 data URI.",
+            { cause: error });
     }
 
     const bytes = new Uint8Array(binary.length);

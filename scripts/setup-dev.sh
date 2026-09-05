@@ -179,6 +179,7 @@ readonly CLIENT_KEY="$PKI_DIR/client-key.pem"
 readonly CLIENT_CERT="$PKI_DIR/client-cert.pem"
 readonly JWT_KEY="$AUTH_DIR/jwt-signing-key.pem"
 readonly INTENT_PRIVATE_KEY="$INTENT_DIR/intent-key.pem"
+readonly INTENT_PRIVATE_KEY_DATA_URI="$INTENT_DIR/intent-key.data-uri.txt"
 readonly INTENT_PUBLIC_KEY="$INTENT_DIR/intent-key.pub.pem"
 readonly AUTHORIZED_KEYS="$INTENT_DIR/authorized_keys"
 
@@ -345,6 +346,15 @@ openssl pkey \
     -in "$INTENT_PRIVATE_KEY" \
     -pubout \
     -out "$INTENT_PUBLIC_KEY"
+intent_private_key_base64="$(
+    sed \
+        -e '/-----BEGIN PRIVATE KEY-----/d' \
+        -e '/-----END PRIVATE KEY-----/d' \
+        "$INTENT_PRIVATE_KEY" \
+        | tr -d '\r\n'
+)"
+[[ -n "$intent_private_key_base64" ]] || fail 'could not encode browser intent-signing key'
+printf 'data:application/pkcs8;base64,%s\n' "$intent_private_key_base64" > "$INTENT_PRIVATE_KEY_DATA_URI"
 {
     printf '# Development browser intent-signing public key\n'
     cat "$INTENT_PUBLIC_KEY"
@@ -365,7 +375,7 @@ protect_private_file() {
         /grant:r "$principal:(F)" 'SYSTEM:(F)' >/dev/null
 }
 
-for private_file in "$CA_KEY" "$SERVER_KEY" "$CLIENT_KEY" "$JWT_KEY" "$INTENT_PRIVATE_KEY"; do
+for private_file in "$CA_KEY" "$SERVER_KEY" "$CLIENT_KEY" "$JWT_KEY" "$INTENT_PRIVATE_KEY" "$INTENT_PRIVATE_KEY_DATA_URI"; do
     protect_private_file "$private_file"
 done
 if ! is_windows; then
@@ -521,13 +531,15 @@ Development material generated successfully.
   Web mTLS client cert: $CLIENT_CERT
   JWT signing key:      $JWT_KEY
   Intent private key:   $INTENT_PRIVATE_KEY
+  Intent key data URI:  $INTENT_PRIVATE_KEY_DATA_URI
   Authorized keys:      $AUTHORIZED_KEYS
   Daemon config:        $SYSTEMD_CONFIG
   Web config:           $WEB_CONFIG
   IPC endpoint:         $PIPE_ENDPOINT
 
-The generated intent private key is the value to paste into the client's per-mutation
-private-key field during development.
+The generated intent-key data URI is the preferred value to paste into or store in a
+password manager for the client's per-mutation private-key field during development.
+The PEM private key remains available for tools that need it.
 EOF_SUMMARY
 
 if [[ "$INSTALL_CA" != true ]]; then
