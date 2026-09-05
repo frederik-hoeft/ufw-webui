@@ -158,6 +158,7 @@ readonly PKI_DIR="$DEV_DIR/pki"
 readonly AUTH_DIR="$DEV_DIR/auth"
 readonly INTENT_DIR="$DEV_DIR/intent"
 readonly STATE_DIR="$DEV_DIR/systemd-state"
+readonly NONCE_STORE="$STATE_DIR/nonces"
 
 PIPE_NAME="$DEV_DIR/ufw-systemd.pipe"
 PIPE_ENDPOINT="$PIPE_NAME"
@@ -207,7 +208,9 @@ if [[ "$FORCE" == true ]]; then
     rm -f -- "$SYSTEMD_CONFIG" "$WEB_CONFIG"
 fi
 
-mkdir -p -- "$PKI_DIR" "$AUTH_DIR" "$INTENT_DIR" "$STATE_DIR/nonces"
+# FileNonceStore owns NONCE_STORE as a regular file and creates it lazily on
+# the first mutation. Only create its parent directory here.
+mkdir -p -- "$PKI_DIR" "$AUTH_DIR" "$INTENT_DIR" "$STATE_DIR"
 
 tmp_dir="$(mktemp -d)"
 cleanup() {
@@ -410,7 +413,7 @@ fi
 config_server_cert="$(to_host_path "$SERVER_CERT")"
 config_server_key="$(to_host_path "$SERVER_KEY")"
 config_authorized_keys="$(to_host_path "$AUTHORIZED_KEYS")"
-config_nonce_store="$(to_host_path "$STATE_DIR/nonces")"
+config_nonce_store="$(to_host_path "$NONCE_STORE")"
 config_deployment_id="$(to_host_path "$STATE_DIR/deployment-id")"
 
 escaped_ufw_path="$(json_escape "$ufw_path")"

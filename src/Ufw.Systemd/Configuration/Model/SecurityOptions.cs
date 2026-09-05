@@ -23,6 +23,13 @@ internal sealed class SecurityOptions : IRequireValidation
             throw new InvalidOperationException("invalid security configuration");
         }
 
+        if (Directory.Exists(AuthorizedKeysPath)
+            || Directory.Exists(NonceStorePath)
+            || Directory.Exists(DeploymentIdPath))
+        {
+            throw new InvalidOperationException("security file paths must not refer to directories");
+        }
+
         return true;
     }
 }
