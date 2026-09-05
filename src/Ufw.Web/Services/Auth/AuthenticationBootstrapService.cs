@@ -67,15 +67,10 @@ internal sealed partial class AuthenticationBootstrapService(
                 // Another application replica may have created the same account between
                 // the lookup and CreateAsync. Re-read once before treating the result as a
                 // real provisioning failure.
-                user = await userManager.FindByEmailAsync(email);
-                if (user is null)
-                {
-                    throw CreateIdentityException(createResult, "create", email);
-                }
+                user = await userManager.FindByEmailAsync(email) ?? throw CreateIdentityException(createResult, "create", email);
             }
 
-            if (configuredUserName is not null
-                && !string.Equals(user.UserName, configuredUserName, StringComparison.OrdinalIgnoreCase))
+            if (configuredUserName is not null && !string.Equals(user.UserName, configuredUserName, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
                     $"Bootstrap user '{email}' already exists with username '{user.UserName}', not configured username '{configuredUserName}'.");
