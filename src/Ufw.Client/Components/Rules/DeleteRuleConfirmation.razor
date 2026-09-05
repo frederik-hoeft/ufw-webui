@@ -22,7 +22,7 @@
                Disabled="@(Disabled || string.IsNullOrWhiteSpace(PrivateKey))"
                OnClick="OnConfirm"
                Class="mr-2">
-        Delete signed rule
+        @(Submitting ? "Deleting rule..." : "Delete signed rule")
     </MudButton>
     <MudButton Variant="Variant.Text" Disabled="@Disabled" OnClick="OnCancel">Cancel</MudButton>
 </MudAlert>
@@ -39,6 +39,9 @@
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool Submitting { get; set; }
 
     [Parameter]
     public EventCallback OnConfirm { get; set; }

@@ -25,6 +25,8 @@ The client obtains the daemon's current intent context before signing. The conte
 
 The browser reuses the shared rule validator to provide immediate field-level feedback before signing. That validation is a usability aid, not a trust decision: `Ufw.Systemd` independently validates the signed rule specification before accepting the intent.
 
+The browser treats each successful rule-list response as the current authoritative snapshot. If refresh or mutation reconciliation cannot re-establish current daemon state, the last loaded snapshot may remain visible only as stale state and the client disables additional mutations until a fresh read succeeds. This prevents the signing UI from presenting uncertain state as current; daemon-side validation and identity resolution remain the actual authorization boundary.
+
 ### Ufw.Web
 
 `Ufw.Web` is network-facing and should be treated as compromiseable relative to the privileged daemon. It authenticates users, applies application-level authorization, and proxies daemon-backed requests over local IPC.

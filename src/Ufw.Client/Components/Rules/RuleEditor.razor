@@ -142,7 +142,7 @@
                            StartIcon="@Icons.Material.Filled.Add"
                            Disabled="@(!_isValid || Disabled || string.IsNullOrWhiteSpace(PrivateKey))"
                            OnClick="SubmitAsync">
-                    Add signed rule
+                    @(Submitting ? "Adding rule..." : "Add signed rule")
                 </MudButton>
             </MudItem>
         </MudGrid>
@@ -162,6 +162,9 @@
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool Submitting { get; set; }
 
     [Parameter]
     public string PrivateKey { get; set; } = string.Empty;

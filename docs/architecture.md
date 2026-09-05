@@ -22,6 +22,8 @@ Client startup treats authentication restoration as an explicit state transition
 
 For firewall mutations the client reuses the rule validation, normalization, and canonical intent implementation from `Ufw.Ipc.Shared`, then performs P-256 SHA-256 signing through the browser Web Crypto API. Shared validation gives the editor the same address, port, interface, and comment semantics enforced by the daemon, but remains a usability check only: the daemon independently validates every signed payload before authorization and execution. The initial UX accepts an unencrypted PKCS#8 private key in a masked input for each individual AddRule or DeleteRule request. The input is cleared after the attempt and is never placed in browser storage or application-wide state. This is an intentionally temporary key-entry model; persistent or hardware-backed key handling requires a separate security design.
 
+The rules view tracks daemon responses as explicit authoritative snapshots rather than treating default UI values as firewall state. Before the first successful read, no active/inactive or empty-rule state is inferred. A failed refresh keeps the last successfully loaded snapshot visible as stale but disables further mutations until a fresh daemon read succeeds. The same stale-state boundary is entered when a mutation succeeds but post-mutation reconciliation fails, when the client cannot determine whether a mutation completed, or when the daemon rejects a mutation in a way that requires the client to re-read current state.
+
 ## Ufw.Web
 
 `Ufw.Web` is an ASP.NET Core controller application. Its responsibilities include:

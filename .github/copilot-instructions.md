@@ -37,6 +37,8 @@ Keep browser UI code in `Ufw.Client`. Do not reintroduce Razor Pages or UI asset
 
 Keep expected browser/API failures behind the client error-classification boundary. Do not render arbitrary exception messages in Razor components. Distinguish an absent/expired authentication session from API unavailability or an incompatible response, and preserve the explicit startup failure/retry state instead of converting infrastructure failures into anonymous authentication state.
 
+Treat daemon-backed rule state as a freshness-tracked snapshot. Do not infer firewall status or an empty rule set before the first successful read, and do not enable mutations against stale state. If refresh or mutation reconciliation fails, preserve the last confirmed snapshot only as explicitly stale state until a fresh daemon read succeeds.
+
 ## Daemon conventions
 
 Daemon IPC controllers use the existing route attributes and source-generated endpoint map. Keep privileged UFW execution and parsing inside the daemon rather than moving host-facing behavior into `Ufw.Web`.
