@@ -1,22 +1,24 @@
-<Solution>
+﻿<Solution>
   <Configurations>
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Solution Items/">
+    <File Path="../scripts/setup-dev.sh" />
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
   </Folder>
-  <Project Path="Ufw.Web/Ufw.Web.csproj" />
-  <Project Path="Ufw.Web.Tests/Ufw.Web.Tests.csproj" />
-  <Project Path="Ufw.Systemd/Ufw.Systemd.csproj" />
-  <Project Path="Ufw.Ipc.Shared/Ufw.Ipc.Shared.csproj" />
+  <Project Path="Ufw.Client/Ufw.Client.csproj" />
   <Project Path="Ufw.Ipc.Client/Ufw.Ipc.Client.csproj" />
-  <Project Path="Ufw.Roslyn/Ufw.Roslyn.csproj" />
-  <Project Path="Ufw.Roslyn.SourceGen/Ufw.Roslyn.SourceGen.csproj" />
-  <Project Path="Ufw.Systemd.Tests/Ufw.Systemd.Tests.csproj" />
+  <Project Path="Ufw.Ipc.Shared/Ufw.Ipc.Shared.csproj" />
   <Project Path="Ufw.Ipc.Tests/Ufw.Ipc.Tests.csproj" />
+  <Project Path="Ufw.Roslyn.SourceGen/Ufw.Roslyn.SourceGen.csproj" />
+  <Project Path="Ufw.Roslyn/Ufw.Roslyn.csproj" />
+  <Project Path="Ufw.Systemd.Tests/Ufw.Systemd.Tests.csproj" />
   <Project Path="Ufw.Mock/Ufw.Mock.csproj" />
   <Project Path="Ufw.Mock.BlackboxTests/Ufw.Mock.BlackboxTests.csproj" />
+  <Project Path="Ufw.Systemd/Ufw.Systemd.csproj" />
+  <Project Path="Ufw.Web.Tests/Ufw.Web.Tests.csproj" />
+  <Project Path="Ufw.Web/Ufw.Web.csproj" />
 </Solution>

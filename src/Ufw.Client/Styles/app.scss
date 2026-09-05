@@ -1,0 +1,236 @@
+$mobile-breakpoint: 600px;
+$compact-appbar-breakpoint: 480px;
+
+@mixin full-viewport-height {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+html,
+body,
+#app {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--mud-palette-background);
+}
+
+.skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2001;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-surface);
+    box-shadow: var(--mud-elevation-6);
+    color: var(--mud-palette-text-primary);
+    text-decoration: none;
+    transform: translateY(calc(-100% - 1rem));
+
+    &:focus {
+        transform: translateY(0);
+    }
+}
+
+.appbar-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.appbar-identity {
+    max-width: min(22rem, 35vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.appbar-signout-icon {
+    display: none;
+}
+
+.main-container {
+    min-width: 0;
+}
+
+.page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.page-header-copy {
+    flex: 1 1 20rem;
+    min-width: 0;
+}
+
+.page-header-actions {
+    flex: 0 0 auto;
+}
+
+.startup-progress,
+.startup-status,
+.login-shell,
+.unexpected-error-shell {
+    @include full-viewport-height;
+}
+
+.startup-progress,
+.startup-status,
+.login-shell {
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+}
+
+.unexpected-error-shell {
+    display: flex;
+    align-items: center;
+}
+
+.startup-card {
+    width: min(34rem, 100%);
+}
+
+.login-card {
+    width: min(28rem, 100%);
+}
+
+.rule-list-section,
+.rule-table {
+    min-width: 0;
+}
+
+.rule-table {
+    .mud-table-cell {
+        vertical-align: top;
+    }
+}
+
+.rule-endpoint,
+.rule-comment,
+.rule-raw-line {
+    overflow-wrap: anywhere;
+}
+
+.rule-endpoint,
+.rule-comment {
+    display: block;
+}
+
+.rule-comment {
+    margin-top: 0.25rem;
+}
+
+.rule-raw-line {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.delete-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+#blazor-error-ui {
+    box-sizing: border-box;
+    background: #fff3cd;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.75rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 2000;
+
+    .dismiss {
+        position: absolute;
+        right: 1rem;
+        top: 0.5rem;
+    }
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .appbar-identity {
+        display: none;
+    }
+
+    .main-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1.5rem !important;
+    }
+
+    .page-header-copy,
+    .page-header-actions {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .page-header-button {
+        width: 100%;
+    }
+
+    .rule-editor-card.pa-5,
+    .startup-card.pa-8,
+    .login-card.pa-8 {
+        padding: 1.25rem !important;
+    }
+
+    .rule-primary-action {
+        width: 100%;
+    }
+
+    .delete-dialog-actions {
+        flex-direction: column;
+        align-items: stretch;
+
+        .mud-button-root {
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
+}
+
+@media (max-width: $compact-appbar-breakpoint) {
+    .appbar-signout-text {
+        display: none;
+    }
+
+    .appbar-signout-icon {
+        display: inline-flex;
+    }
+
+    .startup-progress,
+    .startup-status,
+    .login-shell {
+        padding: 1rem;
+    }
+}
+
+.standalone-theme-toggle,
+.login-theme-toggle {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1200;
+}

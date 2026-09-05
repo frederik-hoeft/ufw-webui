@@ -19,9 +19,13 @@ These mechanisms reduce exposure and scope the HTTP/API surface, but the daemon'
 
 ### Browser or API client
 
-The client is the user-authorization boundary for firewall mutations. A future Blazor WebAssembly frontend is expected to create signed intents in the browser, but client-side key storage and signing UX are outside the current repository.
+The client is the user-authorization boundary for firewall mutations. `Ufw.Client` creates signed intents in the browser. Its first signing UX accepts an unencrypted PKCS#8 P-256 private key for one mutation at a time, preferring a single-line `data:application/pkcs8;base64,...` representation while retaining PEM/raw-base64 compatibility, uses Web Crypto for signing, and clears the request-local input afterward. The private key is not persisted in browser storage.
 
 The client obtains the daemon's current intent context before signing. The context supplies the signed-intent protocol version and stable daemon deployment identifier. The private signing key remains client-side; only corresponding public keys are configured as trusted mutation authorities on the daemon.
+
+The browser reuses the shared rule validator to provide immediate field-level feedback before signing. That validation is a usability aid, not a trust decision: `Ufw.Systemd` independently validates the signed rule specification before accepting the intent.
+
+The browser treats each successful rule-list response as the current authoritative snapshot. If refresh or mutation reconciliation cannot re-establish current daemon state, the last loaded snapshot may remain visible only as stale state and the client disables additional mutations until a fresh read succeeds. This prevents the signing UI from presenting uncertain state as current; daemon-side validation and identity resolution remain the actual authorization boundary.
 
 ### Ufw.Web
 
@@ -110,7 +114,7 @@ Disabling TLS leaves the local stream unencrypted and relies on local endpoint p
 
 The HTTP API uses ASP.NET Core Identity and short-lived RSA-signed JWT access tokens. Refresh tokens are opaque random values stored in a `Secure`, `HttpOnly`, `SameSite=Strict` host-prefixed browser cookie; only hashes are stored in SQLite.
 
-Refresh tokens rotate on every successful refresh. Reuse of an already-revoked token invalidates the active token family. The user's Identity security stamp is captured with the token family so password/security-state changes prevent continued refresh from stale families. Account confirmation and lockout checks are enforced before issuing refreshed access tokens.
+Refresh tokens rotate on every successful refresh. Reuse of an already-revoked token invalidates the active token family. Because the cookie is shared by browser tabs, the client serializes login, refresh, and logout operations with a same-origin exclusive lock so two tabs cannot concurrently consume the same rotating token. That lock does not cross origins: deployments must expose the browser application through one consistent HTTPS client origin that is same-site with the API, rather than allowing multiple independently locking client origins to use the same API refresh cookie. The user's Identity security stamp is captured with the token family so password/security-state changes prevent continued refresh from stale families. Account confirmation and lockout checks are enforced before issuing refreshed access tokens.
 
 Access JWTs remain valid until their short expiration even after a refresh family is revoked. This is an intentional property of stateless access tokens and should be accounted for when choosing the access-token lifetime.
 
@@ -118,7 +122,7 @@ Access JWTs remain valid until their short expiration even after a refresh famil
 
 The current boundary intentionally does not implement:
 
-- browser/Blazor key storage or signing UX;
+- persistent, hardware-backed, or otherwise managed browser key storage and key-enrollment UX;
 - dynamic authorized-key enrollment, revocation, or user/key lifecycle APIs;
 - ASP-side firewall state reconciliation or firewall metadata authority;
 - security audit logging/accountability infrastructure;

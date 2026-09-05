@@ -25,21 +25,8 @@ internal static class Startup
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
         services.AddDatabaseDeveloperPageExceptionFilter();
 
-        services.AddIdentityCore<IdentityUser>(options =>
-            {
-                options.Password.RequiredLength = 16;
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireNonAlphanumeric = false;
-
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.AllowedForNewUsers = true;
-
-                options.User.RequireUniqueEmail = true;
-                options.SignIn.RequireConfirmedAccount = true;
-            })
+        services.Configure<IdentityOptions>(configuration.GetSection("Auth:Identity"));
+        services.AddIdentityCore<IdentityUser>()
             .AddRoles<IdentityRole>()
             .AddSignInManager()
             .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -62,10 +49,16 @@ internal static class Startup
             .Validate(static options => options.CookieName.StartsWith("__Host-", StringComparison.Ordinal), "Refresh token cookie must use the __Host- prefix.")
             .ValidateOnStart();
 
+        services.AddOptions<AuthenticationBootstrapOptions>()
+            .Bind(configuration.GetSection(AuthenticationBootstrapOptions.SECTION_NAME))
+            .Validate(static options => options.IsValid(), "Authentication bootstrap user configuration is invalid or contains duplicate identities.")
+            .ValidateOnStart();
+
         services.AddSingleton<IJwtSigningKeyProvider, ECDsaJwtSigningKeyProvider>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
 
         services.AddAuthentication(options =>
@@ -89,7 +82,7 @@ internal static class Startup
                     ValidIssuer = jwtOptions.Value.Issuer,
                     ValidAudience = jwtOptions.Value.Audience,
                     IssuerSigningKey = signingKeyProvider.SigningKey,
-                    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+                    ValidAlgorithms = [signingKeyProvider.SigningAlgorithm],
                     ClockSkew = jwtOptions.Value.ClockSkew,
                     NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
                     RoleClaimType = System.Security.Claims.ClaimTypes.Role,
@@ -142,7 +135,8 @@ internal static class Startup
 
         services.AddUfwClientServices(client =>
         {
-            client.ConnectTo(ipcOptions.Endpoint);
+            client.ConnectTo(ipcOptions.Endpoint)
+                .UseRequestTimeout(ipcOptions.RequestTimeout);
             if (ipcOptions.TlsEnabled)
             {
                 client.UseSsl(ipcOptions.TlsServerName!, ipcOptions.SslProtocols);
@@ -191,5 +185,8 @@ internal static class Startup
         await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
         await using ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await context.Database.MigrateAsync();
+
+        AuthenticationBootstrapService bootstrapService = scope.ServiceProvider.GetRequiredService<AuthenticationBootstrapService>();
+        await bootstrapService.ApplyAsync();
     }
 }

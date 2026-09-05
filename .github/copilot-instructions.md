@@ -2,8 +2,9 @@
 
 ## Project model
 
-UFW WebUI is a .NET 10 solution with a network-facing ASP.NET Core API and a privileged host daemon.
+UFW WebUI is a .NET 10 solution with a Blazor WebAssembly client, a network-facing ASP.NET Core API, and a privileged host daemon.
 
+- `Ufw.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, and browser-side signed-intent creation.
 - `Ufw.Web` is the REST API. It owns ASP.NET Core Identity, EF Core application state, JWT/refresh-token handling, application authorization, browser-facing data models, and the local IPC client.
 - `Ufw.Systemd` is the privileged daemon and the authority for actual UFW state.
 - `Ufw.Ipc.Client` and `Ufw.Ipc.Shared` implement the typed local IPC protocol.
@@ -30,9 +31,19 @@ Authentication infrastructure consists of:
 - ASP.NET Core Identity with EF Core/SQLite
 - RSA-signed JWT bearer access tokens
 - opaque rotating refresh tokens stored as hashes in the database and delivered through a secure `HttpOnly` cookie
-- CORS configuration intended for a future Blazor frontend
+- CORS configuration for the separate `Ufw.Client` frontend
 
-Do not reintroduce Razor Pages or UI assets into `Ufw.Web`; UI implementation is outside this repository.
+`Ufw.Web` configuration has one local JSON source: the gitignored `src/Ufw.Web/appsettings.json`. Keep `src/Ufw.Web/appsettings.default.json` as the committed template/reference, and use normal environment-variable or command-line overrides for deployments. Do not reintroduce environment-specific appsettings files or user-secrets configuration.
+
+Bootstrap users are initial provisioning only. Keep `Auth:Bootstrap:Users` idempotent and non-destructive: create missing accounts through ASP.NET Core Identity, never reset an existing password from configuration, and never delete users merely because they disappear from bootstrap configuration. Standard ASP.NET Core configuration providers, including Docker environment variables, must remain sufficient to drive bootstrap.
+
+Keep browser UI code in `Ufw.Client`. Maintain global client styles in `src/Ufw.Client/Styles/app.scss`; `src/Ufw.Client/wwwroot/css/app.css` is generated during build/publish and must not be edited or committed. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser. Access tokens stay in memory; refresh-token cookies remain `HttpOnly`. Client operations that mutate the rotating refresh-token cookie must use the shared authentication-operation coordinator so concurrent tabs cannot consume the same token family member. The browser client is an HTTPS application and deployments must use one consistent client origin that is same-site with the API; Web Locks cannot serialize refresh-cookie use across different client origins. Mutation private keys must not be persisted by the client unless a later design explicitly introduces a secure key-storage boundary. Persisting non-sensitive UI preferences such as the light/dark theme is allowed, but browser storage must not become a general-purpose authentication or secret store.
+
+Keep expected browser/API failures behind the client error-classification boundary. Do not render arbitrary exception messages in Razor components. Distinguish an absent/expired authentication session from API unavailability or an incompatible response, and preserve the explicit startup failure/retry state instead of converting infrastructure failures into anonymous authentication state.
+
+Use injected `TimeProvider` for client-side token-expiry and signed-intent timestamps rather than reading the wall clock directly. Treat daemon-backed rule state as a freshness-tracked snapshot. Do not infer firewall status or an empty rule set before the first successful read, and do not enable mutations against stale state. If refresh or mutation reconciliation fails, preserve the last confirmed snapshot only as explicitly stale state until a fresh daemon read succeeds.
+
+Keep the browser UI usable with keyboard, assistive technology, and narrow viewports. Routed pages must expose a single semantic `h1`, authenticated layouts must preserve explicit navigation/main landmarks, icon-only actions require accessible labels, and responsive rule-table cells must retain meaningful `DataLabel` text. Use modal dialogs for destructive confirmations so focus stays with the active interaction instead of rendering confirmation UI away from the initiating row.
 
 ## Daemon conventions
 

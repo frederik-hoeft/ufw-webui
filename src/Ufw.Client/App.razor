@@ -1,0 +1,100 @@
+@using Ufw.Client.Errors
+@implements IDisposable
+@inject IAuthenticationService AuthenticationService
+@inject IClientErrorMapper ClientErrors
+@inject IClientThemeService Theme
+
+<MudThemeProvider IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+@if (_startupState != StartupState.Ready)
+{
+    <ThemeToggle Class="standalone-theme-toggle" />
+}
+
+@if (_startupState == StartupState.Ready)
+{
+    <CascadingAuthenticationState>
+        <RouteErrorBoundary>
+            <ChildContent>
+                <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="@typeof(Ufw.Client.Pages.NotFound)">
+                    <Found Context="routeData">
+                        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                            <NotAuthorized>
+                                <RedirectToLogin />
+                            </NotAuthorized>
+                        </AuthorizeRouteView>
+                        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+                    </Found>
+                </Router>
+            </ChildContent>
+            <ErrorContent Context="exception">
+                <UnexpectedError Error="@ClientErrors.Describe(exception)" />
+            </ErrorContent>
+        </RouteErrorBoundary>
+    </CascadingAuthenticationState>
+}
+else if (_startupState == StartupState.Failed && _startupError is not null)
+{
+    <StartupFailure Error="@_startupError" Busy="@_initializing" OnRetry="InitializeAsync" />
+}
+else
+{
+    <main class="startup-progress">
+        <div role="status" aria-label="Restoring session">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        </div>
+    </main>
+}
+
+@code {
+    private StartupState _startupState = StartupState.Loading;
+    private ClientError? _startupError;
+    private bool _initializing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Theme.Changed += OnThemeChanged;
+        await Theme.InitializeAsync();
+        await InitializeAsync();
+    }
+
+    public void Dispose() => Theme.Changed -= OnThemeChanged;
+
+    private void OnThemeChanged() => StateHasChanged();
+
+    private async Task InitializeAsync()
+    {
+        if (_initializing)
+        {
+            return;
+        }
+
+        _initializing = true;
+        _startupState = StartupState.Loading;
+        _startupError = null;
+        try
+        {
+            await AuthenticationService.InitializeAsync();
+            _startupState = StartupState.Ready;
+        }
+        catch (Exception exception)
+        {
+            _startupError = ClientErrors.Describe(exception);
+            _startupState = StartupState.Failed;
+        }
+        finally
+        {
+            _initializing = false;
+        }
+    }
+
+    private enum StartupState
+    {
+        Loading,
+        Ready,
+        Failed,
+    }
+}

@@ -3,17 +3,26 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Model.Responses;
 
-namespace Ufw.Systemd.Firewall;
+namespace Ufw.Ipc.Shared.Model.Domain.Rules;
 
-internal static partial class RuleSpecificationValidator
+/// <summary>
+/// Validates the rule fields accepted by the UFW mutation protocol.
+/// </summary>
+/// <remarks>
+/// Validation is deterministic and shared by clients and the daemon. It does not normalize a rule, authorize an intent,
+/// or inspect current firewall state.
+/// </remarks>
+public static partial class RuleSpecificationValidator
 {
     public const int MAX_COMMENT_LENGTH = 200;
     public const int MAX_INTERFACE_LENGTH = 32;
 
-    public static bool TryValidate(FirewallRuleSpecification specification, [NotNullWhen(false)] out ModelValidationErrorResponse? error)
+    /// <summary>
+    /// Returns field-specific validation errors for <paramref name="specification"/>.
+    /// </summary>
+    public static ModelValidationError[] Validate(FirewallRuleSpecification specification)
     {
         ArgumentNullException.ThrowIfNull(specification);
         List<ModelValidationError> errors = [];
@@ -48,14 +57,23 @@ internal static partial class RuleSpecificationValidator
         ValidateInterfaceDirection(specification, errors);
         ValidateComment(specification.Comment, errors);
 
-        if (errors.Count > 0)
+        return [.. errors];
+    }
+
+    /// <summary>
+    /// Validates <paramref name="specification"/> and produces the protocol validation response used by daemon endpoints.
+    /// </summary>
+    public static bool TryValidate(FirewallRuleSpecification specification, [NotNullWhen(false)] out ModelValidationErrorResponse? error)
+    {
+        ModelValidationError[] errors = Validate(specification);
+        if (errors.Length == 0)
         {
-            error = new ModelValidationErrorResponse([.. errors]);
-            return false;
+            error = null;
+            return true;
         }
 
-        error = null;
-        return true;
+        error = new ModelValidationErrorResponse(errors);
+        return false;
     }
 
     private static FirewallAddressFamily ValidateAddress(string propertyName, string? address, List<ModelValidationError> errors)

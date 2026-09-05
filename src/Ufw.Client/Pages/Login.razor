@@ -1,0 +1,146 @@
+@page "/login"
+@layout LoginLayout
+@implements IDisposable
+@inject IAuthenticationService AuthenticationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject IClientErrorMapper ClientErrors
+
+<PageTitle>Sign in - UFW Management</PageTitle>
+
+<MudPaper Class="login-card pa-8" Elevation="4">
+    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">UFW Management</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+        Sign in to manage firewall rules.
+    </MudText>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" role="alert">@_error</MudAlert>
+    }
+
+    <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync" aria-busy="@_busy">
+        <MudTextField T="string"
+                      Label="Email"
+                      InputType="InputType.Email"
+                      InputMode="InputMode.email"
+                      @bind-Value="_email"
+                      Validation="@s_emailValidation"
+                      Required="true"
+                      autocomplete="username"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      RequiredError="Email is required."
+                      Disabled="_busy"
+                      Immediate="true"
+                      Class="mb-3" />
+        <MudTextField T="string"
+                      Label="Password"
+                      InputType="InputType.Password"
+                      @bind-Value="_password"
+                      Required="true"
+                      autocomplete="current-password"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      RequiredError="Password is required."
+                      Disabled="_busy"
+                      Immediate="true" />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Disabled="@(_busy || !_isValid)"
+                   OnClick="LoginAsync"
+                   Class="mt-6">
+            @if (_busy)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            Sign in
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private static readonly EmailAddressAttribute s_emailValidation = new()
+    {
+        ErrorMessage = "Enter a valid email address."
+    };
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _busy;
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string? _error;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            NavigateAfterLogin();
+        }
+    }
+
+    public void Dispose()
+    {
+        _password = string.Empty;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private async Task LoginAsync()
+    {
+        if (_busy || _form is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+
+            await AuthenticationService.LoginAsync(_email, _password, _lifetime.Token);
+            _password = string.Empty;
+            NavigateAfterLogin();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (ApiRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            _error = "Invalid email or password, or the account is not permitted to sign in.";
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _error = ClientErrors.Describe(exception).Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void NavigateAfterLogin()
+    {
+        string target = IsLocalReturnUrl(ReturnUrl) ? ReturnUrl! : "/";
+        Navigation.NavigateTo(target, replace: true);
+    }
+
+    private static bool IsLocalReturnUrl(string? returnUrl)
+    {
+        return returnUrl is { Length: > 0 }
+            && returnUrl[0] == '/'
+            && (returnUrl.Length == 1 || (returnUrl[1] != '/' && returnUrl[1] != '\\'));
+    }
+}

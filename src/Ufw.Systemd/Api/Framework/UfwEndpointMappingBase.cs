@@ -4,6 +4,7 @@ using Ufw.Ipc.Shared.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Api.Framework;
 
@@ -14,6 +15,9 @@ internal abstract record UfwEndpointMappingBase(string Method, string Route, int
 
     protected static InternalServerErrorResponse InternalServerError(Exception exception, IServiceProvider serviceProvider)
     {
+        ILogger logger = serviceProvider.GetRequiredService<ILogger>();
+        logger.Scoped<UfwEndpointMappingBase>().LogError(exception, "An unexpected error occurred while processing an API endpoint.");
+
         IConfiguration configuration = serviceProvider.GetRequiredService<IConfiguration>();
         if (configuration.Settings.DebugMode)
         {

@@ -32,6 +32,7 @@ public sealed class AuthController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthTokenResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         IdentityUser? user = await userManager.FindByEmailAsync(request.Email);
         if (user is null)
         {

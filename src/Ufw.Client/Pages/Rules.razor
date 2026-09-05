@@ -1,0 +1,322 @@
+@page "/"
+@attribute [Authorize]
+@implements IDisposable
+@inject IUfwApiClient UfwApiClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IClientErrorMapper ClientErrors
+
+<PageTitle>Firewall rules - UFW Management</PageTitle>
+
+<header class="page-header mb-5">
+    <div class="page-header-copy">
+        <MudText Typo="Typo.h4" HtmlTag="h1">Firewall rules</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Authoritative rules reported by the privileged UFW daemon.
+        </MudText>
+    </div>
+    <div class="page-header-actions">
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            @RefreshButtonLabel
+        </MudButton>
+    </div>
+</header>
+
+@if (_state.Status == RulesPageStatus.Failed)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Firewall state could not be loaded</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_state.Error?.Message</MudText>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync">
+            Retry
+        </MudButton>
+    </MudAlert>
+}
+else if (_state.Snapshot is null)
+{
+    <MudPaper Class="pa-5" Elevation="1" role="status" aria-live="polite">
+        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="Loading firewall state" />
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Loading authoritative firewall state...
+        </MudText>
+    </MudPaper>
+}
+else if (_state.Snapshot is { } snapshot)
+{
+    @if (_state.IsStale)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Displayed firewall state is stale</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@DescribeStaleState()</MudText>
+            @if (_state.Error is not null)
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@_state.Error.Message</MudText>
+            }
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@IsBusy"
+                       OnClick="RefreshAsync">
+                Refresh authoritative state
+            </MudButton>
+        </MudAlert>
+    }
+    else if (_state.Status == RulesPageStatus.Refreshing)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.body2">
+                @(_state.RefreshReason == RuleRefreshReason.AfterMutation
+                    ? "Rule change accepted. Refreshing authoritative firewall state before allowing another mutation..."
+                    : "Refreshing authoritative firewall state...")
+            </MudText>
+        </MudAlert>
+    }
+    else if (IsDeleting)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.body2">Deleting signed firewall rule...</MudText>
+        </MudAlert>
+    }
+
+    <RuleEditor @key="_draft"
+                Rule="@_draft"
+                FirewallActive="@snapshot.FirewallActive"
+                Disabled="@(!CanMutate)"
+                Submitting="@IsAdding"
+                @bind-PrivateKey="_addPrivateKey"
+                OnSubmit="AddRuleAsync" />
+
+    <RuleTable Rules="@snapshot.Rules"
+               Loading="@(_state.Status == RulesPageStatus.Refreshing)"
+               Disabled="@(!CanMutate)"
+               DeleteRequested="BeginDeleteAsync" />
+}
+
+@code {
+    private static readonly DialogOptions s_deleteDialogOptions = new()
+    {
+        BackdropClick = true,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        DefaultFocus = DefaultFocus.FirstChild,
+        FullWidth = true,
+        MaxWidth = MaxWidth.Small,
+    };
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private RulesPageState _state = RulesPageState.Initial;
+    private FirewallRuleSpecification _draft = CreateDefaultRule();
+    private string _addPrivateKey = string.Empty;
+    private bool _deleteDialogOpen;
+    private RuleMutationOperation _mutation;
+
+    private bool IsAdding => _mutation == RuleMutationOperation.Add;
+
+    private bool IsDeleting => _mutation == RuleMutationOperation.Delete;
+
+    private bool IsMutating => _mutation != RuleMutationOperation.None;
+
+    private bool IsBusy => _state.IsLoading || IsMutating || _deleteDialogOpen;
+
+    private bool CanMutate => _state.IsCurrent && !IsMutating && !_deleteDialogOpen;
+
+    private string RefreshButtonLabel => _state.Status switch
+    {
+        RulesPageStatus.Loading => "Loading...",
+        RulesPageStatus.Refreshing => "Refreshing...",
+        _ => "Refresh",
+    };
+
+    protected override async Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private Task RefreshAsync()
+    {
+        if (IsBusy)
+        {
+            return Task.CompletedTask;
+        }
+
+        return LoadRulesAsync(RuleRefreshReason.Manual);
+    }
+
+    private async Task LoadRulesAsync(RuleRefreshReason reason)
+    {
+        if (_state.IsLoading)
+        {
+            return;
+        }
+
+        _state = _state.BeginRefresh(reason);
+        try
+        {
+            Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            _state = RulesPageState.CompleteRefresh(response);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            ClientError error = ClientErrors.Describe(exception);
+            _state = _state.FailRefresh(error);
+        }
+    }
+
+    private async Task AddRuleAsync()
+    {
+        if (!CanMutate || string.IsNullOrWhiteSpace(_addPrivateKey))
+        {
+            return;
+        }
+
+        _mutation = RuleMutationOperation.Add;
+        try
+        {
+            FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
+            await UfwApiClient.AddRuleAsync(normalized, _addPrivateKey, _lifetime.Token);
+            Snackbar.Add("Firewall rule added.", Severity.Success);
+            _draft = CreateDefaultRule();
+            _addPrivateKey = string.Empty;
+            _mutation = RuleMutationOperation.None;
+            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            HandleMutationFailure(ClientErrors.Describe(exception));
+        }
+        finally
+        {
+            _addPrivateKey = string.Empty;
+            _mutation = RuleMutationOperation.None;
+        }
+    }
+
+    private async Task BeginDeleteAsync(ListedFirewallRule rule)
+    {
+        if (!CanMutate || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
+        {
+            return;
+        }
+
+        string? privateKey = null;
+        _deleteDialogOpen = true;
+        try
+        {
+            DialogParameters<DeleteRuleDialog> parameters = new();
+            parameters.Add(component => component.Rule, rule);
+
+            IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(
+                "Delete firewall rule",
+                parameters,
+                s_deleteDialogOptions);
+            privateKey = await dialog.GetReturnValueAsync<string>();
+        }
+        finally
+        {
+            _deleteDialogOpen = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(privateKey))
+        {
+            return;
+        }
+
+        try
+        {
+            if (_lifetime.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (!CanMutate)
+            {
+                Snackbar.Add("Firewall state changed while deletion was being confirmed. Refresh and try again.", Severity.Warning);
+                return;
+            }
+
+            await DeleteRuleAsync(rule, privateKey);
+        }
+        finally
+        {
+            privateKey = string.Empty;
+        }
+    }
+
+    private async Task DeleteRuleAsync(ListedFirewallRule rule, string privateKey)
+    {
+        _mutation = RuleMutationOperation.Delete;
+        try
+        {
+            await UfwApiClient.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
+            Snackbar.Add("Firewall rule deleted.", Severity.Success);
+            _mutation = RuleMutationOperation.None;
+            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            HandleMutationFailure(ClientErrors.Describe(exception));
+        }
+        finally
+        {
+            _mutation = RuleMutationOperation.None;
+        }
+    }
+
+    private void HandleMutationFailure(ClientError error)
+    {
+        _state = _state.AfterMutationFailure(error);
+        Snackbar.Add(error.Message, Severity.Error);
+    }
+
+    private string DescribeStaleState()
+    {
+        return _state.StaleReason switch
+        {
+            RuleSnapshotStaleReason.MutationCommitted
+                => "The rule change succeeded, but the client could not reload the authoritative rule list. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.",
+            RuleSnapshotStaleReason.MutationOutcomeUnknown
+                => "The client could not confirm whether the attempted rule change completed. The last successfully loaded snapshot is shown below and must be refreshed before another mutation.",
+            RuleSnapshotStaleReason.MutationRejectedRequiresRefresh
+                => "The mutation was rejected in a way that requires authoritative firewall state to be reloaded before another change. Refresh before attempting another mutation.",
+            _
+                => "The latest refresh failed. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.",
+        };
+    }
+
+    private static FirewallRuleSpecification CreateDefaultRule() => new()
+    {
+        Action = FirewallAction.Allow,
+        AddressFamily = FirewallAddressFamily.Any,
+        Direction = FirewallDirection.In,
+        Protocol = FirewallProtocol.Any,
+        Source = RuleSpecificationNormalizer.ANY,
+        Destination = RuleSpecificationNormalizer.ANY,
+    };
+
+    private enum RuleMutationOperation
+    {
+        None,
+        Add,
+        Delete,
+    }
+}

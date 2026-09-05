@@ -2,7 +2,7 @@
   "profiles": {
     "Ufw.Systemd": {
       "commandName": "Project",
-      "commandLineArgs": "serve --config \"D:\\\\fred\\\\projects\\\\_git\\\\ufw-webui\\\\src\\\\Ufw.Systemd\\\\appsettings.json\""
+      "commandLineArgs": "serve --config \"appsettings.json\""
     }
   }
 }

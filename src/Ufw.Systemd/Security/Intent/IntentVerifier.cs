@@ -5,7 +5,6 @@ using Ufw.Ipc.Shared.Model.Responses;
 using Ufw.Ipc.Shared.Security.Intent;
 using Ufw.Ipc.Shared.Serialization.Json;
 using Ufw.Systemd.Configuration;
-using Ufw.Systemd.Firewall;
 
 namespace Ufw.Systemd.Security.Intent;
 

@@ -6,11 +6,25 @@ UFW WebUI separates network-facing application concerns from privileged host fir
 
 The system has three principal participants:
 
-1. A browser or other API client presents firewall state and obtains user authorization for mutations. A Blazor WebAssembly frontend is planned but is not part of this repository yet.
+1. `Ufw.Client` is the Blazor WebAssembly browser frontend. It presents firewall state, manages browser-local authentication state, and obtains user authorization for signed mutations. Other API clients may use the same REST and signed-intent contracts.
 2. `Ufw.Web` exposes the REST API, manages users and web sessions, and proxies daemon-backed operations over local IPC.
 3. `Ufw.Systemd` owns the host-facing UFW integration. It is authoritative for firewall state and is the only component that executes privileged UFW commands.
 
 `Ufw.Web` is deliberately not part of the privileged trust boundary. Its database contains application and authentication state, not a second copy of firewall state, and the ability to reach the daemon is not sufficient authority to mutate UFW.
+
+## Ufw.Client
+
+`Ufw.Client` is a standalone Blazor WebAssembly application using MudBlazor. It depends on the versioned HTTP API rather than on daemon transport details. UI components delegate authentication, REST access, and intent signing to scoped services so presentation code does not construct authorization headers or security envelopes directly.
+
+The client uses MudBlazor's default light and dark palettes and exposes that choice as a global UI preference. The selected light/dark mode is the only non-sensitive client preference intentionally stored in browser local storage; authentication state, refresh tokens, and mutation private keys are not persisted there.
+
+Short-lived access JWTs are held only in memory. On application startup, shortly before an access token expires, and once after an authenticated API request rejects the current access token, the client asks `Ufw.Web` to rotate the secure `HttpOnly` refresh cookie and issue a new access token. The rejected request is replayed at most once with the replacement token. Login, refresh, and logout all mutate the same browser cookie, so the client serializes those operations within the tab and across same-origin tabs before calling the authentication API. Cross-origin API calls include browser credentials so the cookie participates in those operations without becoming visible to application JavaScript. The refresh cookie is `Secure` and `SameSite=Strict`, so the client must be served over HTTPS and from a site compatible with the API cookie. Web Locks are origin-scoped; deployments therefore use one consistent client origin for browser tabs that share the API refresh cookie rather than exposing the same session through multiple independently locking client origins.
+
+Client startup treats authentication restoration as an explicit state transition. A missing or rejected refresh session produces the normal anonymous state, while transport failures, server failures, malformed successful responses, and protocol incompatibilities keep the application in a retryable initialization-failure state instead of presenting a misleading login screen. Expected client failures are classified centrally into stable user-facing messages; successful HTTP responses that violate the expected JSON/protocol contract become protocol errors. Unexpected component failures are contained by a route-level error boundary and require an explicit reload rather than replacing the entire application with raw exception output.
+
+For firewall mutations the client reuses the rule validation, normalization, and canonical intent implementation from `Ufw.Ipc.Shared`, then performs P-256 SHA-256 signing through the browser Web Crypto API. Intent timestamps and access-token freshness decisions both use the injected `TimeProvider`, keeping time-dependent client behavior deterministic outside the browser wall clock. Shared validation gives the editor the same address, port, interface, and comment semantics enforced by the daemon, but remains a usability check only: the daemon independently validates every signed payload before authorization and execution. The initial UX accepts an unencrypted PKCS#8 private key in a masked input for each individual AddRule or DeleteRule request. The preferred representation is the single-line `data:application/pkcs8;base64,...` form, while PKCS#8 PEM and raw base64 DER remain accepted. The input is cleared after the attempt and is never placed in browser storage or application-wide state. This is an intentionally temporary key-entry model; persistent or hardware-backed key handling requires a separate security design.
+
+The rules view tracks daemon responses as explicit authoritative snapshots rather than treating default UI values as firewall state. Before the first successful read, no active/inactive or empty-rule state is inferred. A failed refresh keeps the last successfully loaded snapshot visible as stale but disables further mutations until a fresh daemon read succeeds. The same stale-state boundary is entered when a mutation succeeds but post-mutation reconciliation fails, when the client cannot determine whether a mutation completed, or when the daemon rejects a mutation in a way that requires the client to re-read current state.
 
 ## Ufw.Web
 
@@ -23,9 +37,13 @@ The system has three principal participants:
 - JWT-protected rule and intent-context REST endpoints;
 - local IPC client registration and daemon-response projection.
 
+`Ufw.Web` treats `src/Ufw.Web/appsettings.json` as its only local JSON configuration source. The committed `appsettings.default.json` is a template rather than an additional runtime layer; environment variables and command-line arguments override the local file for containerized and other externalized deployments. Environment-specific appsettings files and ASP.NET Core user secrets are intentionally outside this configuration model.
+
 Refresh tokens are random opaque values delivered in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Only SHA-256 token hashes are persisted. Refresh tokens rotate on use, belong to a token family, and family reuse invalidates remaining active tokens. A stored Identity security stamp ties a refresh-token family to the user's current security state.
 
-Access tokens are short-lived RSA-signed JWTs. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved for daemon execution.
+Initial Identity accounts may be supplied through `Auth:Bootstrap:Users` from any normal ASP.NET Core configuration provider, including environment variables used by container deployments. Bootstrap runs after database migration and is deliberately non-destructive: it creates missing users through `UserManager`, reconciles configured email-confirmation state, never resets an existing password, and never deletes users that disappear from configuration. A password is therefore creation-only bootstrap material rather than ongoing desired-state configuration.
+
+Access tokens are short-lived P-256 ECDSA JWTs signed with ES256. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved for daemon execution.
 
 The current daemon-backed REST surface includes:
 

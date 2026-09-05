@@ -50,7 +50,7 @@ internal sealed class JwtTokenService(
             IssuedAt = now.UtcDateTime,
             NotBefore = now.UtcDateTime,
             Expires = expiresAt.UtcDateTime,
-            SigningCredentials = new SigningCredentials(signingKeyProvider.SigningKey, SecurityAlgorithms.RsaSha256),
+            SigningCredentials = new SigningCredentials(signingKeyProvider.SigningKey, signingKeyProvider.SigningAlgorithm),
         };
 
         JwtSecurityTokenHandler handler = new();

@@ -1,0 +1,85 @@
+<section aria-labelledby="firewall-rule-list-heading" class="rule-list-section">
+    <h2 id="firewall-rule-list-heading" class="visually-hidden">Current firewall rules</h2>
+    <MudPaper Elevation="1">
+        <MudTable T="ListedFirewallRule"
+                  Items="@Rules"
+                  Loading="@Loading"
+                  Hover="true"
+                  Breakpoint="Breakpoint.Md"
+                  Class="rule-table">
+            <HeaderContent>
+                <MudTh><span aria-hidden="true">#</span><span class="visually-hidden">Rule number</span></MudTh>
+                <MudTh>Action</MudTh>
+                <MudTh>Direction</MudTh>
+                <MudTh>Protocol</MudTh>
+                <MudTh>Address family</MudTh>
+                <MudTh>Source</MudTh>
+                <MudTh>Destination</MudTh>
+                <MudTh><span class="visually-hidden">Actions</span></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @if (context.Parsed && context.Rule is not null)
+                {
+                    <MudTd DataLabel="Rule number">@(context.DisplayNumber?.ToString() ?? "-")</MudTd>
+                    <MudTd DataLabel="Action">@FirewallRulePresentation.FormatEnum(context.Rule.Action)</MudTd>
+                    <MudTd DataLabel="Direction">@FirewallRulePresentation.FormatEnum(context.Rule.Direction)</MudTd>
+                    <MudTd DataLabel="Protocol">@FirewallRulePresentation.FormatEnum(context.Rule.Protocol)</MudTd>
+                    <MudTd DataLabel="Address family">@FirewallRulePresentation.FormatEnum(context.Rule.AddressFamily)</MudTd>
+                    <MudTd DataLabel="Source">
+                        <span class="rule-endpoint">
+                            @FirewallRulePresentation.DescribeEndpoint(context.Rule.Source, context.Rule.SourcePorts, context.Rule.SourceInterface)
+                        </span>
+                    </MudTd>
+                    <MudTd DataLabel="Destination">
+                        <span class="rule-endpoint">
+                            @FirewallRulePresentation.DescribeEndpoint(context.Rule.Destination, context.Rule.DestinationPorts, context.Rule.DestinationInterface)
+                        </span>
+                        @if (!string.IsNullOrWhiteSpace(context.Rule.Comment))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-comment">@context.Rule.Comment</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Disabled="@(Disabled || string.IsNullOrWhiteSpace(context.RuleId))"
+                                       OnClick="@(() => DeleteRequested.InvokeAsync(context))"
+                                       aria-label="@DeleteLabel(context)" />
+                    </MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="Rule number">@(context.DisplayNumber?.ToString() ?? "-")</MudTd>
+                    <MudTd colspan="6"><span class="rule-raw-line">@context.RawLine</span></MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudTooltip Text="This UFW line could not be parsed safely and cannot be mutated through the API.">
+                            <span role="img" aria-label="Rule is read-only because it could not be parsed safely">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                            </span>
+                        </MudTooltip>
+                    </MudTd>
+                }
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No firewall rules were returned.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</section>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<ListedFirewallRule> Rules { get; set; } = [];
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }
+
+    private static string DeleteLabel(ListedFirewallRule rule)
+        => rule.DisplayNumber is { } number ? $"Delete firewall rule {number}" : "Delete firewall rule";
+}

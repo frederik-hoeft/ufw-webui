@@ -18,4 +18,6 @@ internal sealed class RsaJwtSigningKeyProvider : IJwtSigningKeyProvider
     }
 
     public SecurityKey SigningKey { get; }
+
+    public string SigningAlgorithm => SecurityAlgorithms.RsaSha256;
 }
