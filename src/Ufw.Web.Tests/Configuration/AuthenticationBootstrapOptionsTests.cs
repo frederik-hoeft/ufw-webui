@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Ufw.Web.Configuration;
 
@@ -59,8 +59,8 @@ public sealed class AuthenticationBootstrapOptionsTests
 
         string password = user.Password!;
         PasswordOptions policy = identity.Password;
-        Assert.IsTrue(password.Length >= policy.RequiredLength);
-        Assert.IsTrue(password.Distinct().Count() >= policy.RequiredUniqueChars);
+        Assert.IsGreaterThanOrEqualTo(policy.RequiredLength, password.Length);
+        Assert.IsGreaterThanOrEqualTo(policy.RequiredUniqueChars, password.Distinct().Count());
         Assert.IsTrue(!policy.RequireDigit || password.Any(char.IsDigit));
         Assert.IsTrue(!policy.RequireLowercase || password.Any(char.IsLower));
         Assert.IsTrue(!policy.RequireUppercase || password.Any(char.IsUpper));

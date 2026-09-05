@@ -135,7 +135,8 @@ internal static class Startup
 
         services.AddUfwClientServices(client =>
         {
-            client.ConnectTo(ipcOptions.Endpoint);
+            client.ConnectTo(ipcOptions.Endpoint)
+                .UseRequestTimeout(ipcOptions.RequestTimeout);
             if (ipcOptions.TlsEnabled)
             {
                 client.UseSsl(ipcOptions.TlsServerName!, ipcOptions.SslProtocols);

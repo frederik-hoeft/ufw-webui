@@ -18,9 +18,11 @@ internal sealed class IpcClientOptions
 
     public string? ClientCertificateKeyPath { get; set; }
 
+    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
     public bool IsValid()
     {
-        if (string.IsNullOrWhiteSpace(Endpoint))
+        if (string.IsNullOrWhiteSpace(Endpoint) || RequestTimeout <= TimeSpan.Zero)
         {
             return false;
         }
