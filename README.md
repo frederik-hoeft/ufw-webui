@@ -8,7 +8,8 @@ The solution contains:
 - `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/SQLite, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
 - `Ufw.Systemd`: privileged host daemon responsible for authoritative UFW state, signed mutation authorization, semantic rule handling, and UFW subprocess execution;
 - `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, transport security, and shared signed-intent/rule semantics;
-- `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API.
+- `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API;
+- `Ufw.Mock`: a development-only, platform-neutral `ufw` CLI substitute that persists firewall state locally instead of modifying the host firewall.
 
 `Ufw.Client` consumes the versioned REST API. Its global stylesheet is maintained as `src/Ufw.Client/Styles/app.scss` and compiled to `src/Ufw.Client/wwwroot/css/app.css` during build/publish by `AspNetCore.SassCompiler`; the generated CSS is not committed. The client exposes MudBlazor's default light/dark palettes and stores only that non-sensitive theme preference in browser local storage. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. Refresh-cookie mutations are serialized across same-origin tabs with the browser Web Locks API, so the client must run in a secure browser context. Because the refresh cookie is `Secure` and `SameSite=Strict` while Web Locks are origin-scoped, production deployments must serve the client over HTTPS, keep it same-site with the API, and use one consistent client origin for tabs that share the API refresh cookie. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it.
 
@@ -43,6 +44,18 @@ dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/t
 ```
 
 The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory. `Ufw.Client/wwwroot/appsettings.json` configures the REST API base URL. The client requires an absolute HTTPS base URL and normalizes a missing trailing slash before constructing versioned API paths. Development CORS is configured for the HTTPS client profile at `https://localhost:7298`.
+
+### Development UFW mock
+
+`Ufw.Mock` implements the UFW 0.36.2 command-line surface used by the daemon without requiring Linux, elevated privileges, or a real firewall. It stores its state in a per-user application-data file; set `UFW_MOCK_STATE_PATH` to isolate a development or test instance.
+
+Build an executable apphost and point the daemon's `ufw_path` setting at it:
+
+```bash
+dotnet build src/Ufw.Mock/Ufw.Mock.csproj
+```
+
+The mock is not part of the production execution path. `Ufw.Systemd` still constructs normal UFW arguments and parses normal UFW status output, so substituting the executable exercises the same daemon integration boundary while keeping host networking untouched.
 
 No public user-registration endpoint is provided. User provisioning and administrative user-management APIs are separate from the authentication foundation.
 
