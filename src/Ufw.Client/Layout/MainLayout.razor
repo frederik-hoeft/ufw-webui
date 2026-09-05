@@ -4,6 +4,8 @@
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
@@ -11,34 +13,50 @@
                        Edge="Edge.Start"
                        OnClick="ToggleDrawer"
                        aria-label="Toggle navigation" />
-        <MudText Typo="Typo.h6" HtmlTag="span">UFW Management</MudText>
+        <MudText Typo="Typo.h6" HtmlTag="span" Class="appbar-title">UFW Management</MudText>
         <MudSpacer />
         <AuthorizeView>
             <Authorized>
-                <MudText Typo="Typo.body2" Class="mr-4 appbar-identity">@context.User.Identity?.Name</MudText>
+                <MudText Typo="Typo.body2" Class="mr-4 appbar-identity" title="@context.User.Identity?.Name">
+                    @context.User.Identity?.Name
+                </MudText>
                 <MudButton Variant="Variant.Text"
                            Color="Color.Inherit"
-                           Disabled="_logoutBusy"
-                           OnClick="LogoutAsync">
+                           Disabled="@_logoutBusy"
+                           OnClick="LogoutAsync"
+                           Class="appbar-signout-text">
                     @(_logoutBusy ? "Signing out..." : "Sign out")
                 </MudButton>
+                <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                               Color="Color.Inherit"
+                               Disabled="@_logoutBusy"
+                               OnClick="LogoutAsync"
+                               Class="appbar-signout-icon"
+                               aria-label="@(_logoutBusy ? "Signing out" : "Sign out")" />
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" Elevation="1">
+    <MudDrawer @bind-Open="_drawerOpen"
+               Variant="DrawerVariant.Responsive"
+               Breakpoint="Breakpoint.Md"
+               Elevation="1">
         <MudDrawerHeader>
             <MudText Typo="Typo.subtitle1">Firewall</MudText>
         </MudDrawerHeader>
-        <MudNavMenu>
-            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Rule">Rules</MudNavLink>
-        </MudNavMenu>
+        <nav aria-label="Primary navigation">
+            <MudNavMenu>
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Rule">Rules</MudNavLink>
+            </MudNavMenu>
+        </nav>
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
-            @Body
-        </MudContainer>
+        <main id="main-content" tabindex="-1">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="main-container py-6">
+                @Body
+            </MudContainer>
+        </main>
     </MudMainContent>
 </MudLayout>
 

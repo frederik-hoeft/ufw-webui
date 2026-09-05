@@ -39,6 +39,8 @@ Keep expected browser/API failures behind the client error-classification bounda
 
 Treat daemon-backed rule state as a freshness-tracked snapshot. Do not infer firewall status or an empty rule set before the first successful read, and do not enable mutations against stale state. If refresh or mutation reconciliation fails, preserve the last confirmed snapshot only as explicitly stale state until a fresh daemon read succeeds.
 
+Keep the browser UI usable with keyboard, assistive technology, and narrow viewports. Routed pages must expose a single semantic `h1`, authenticated layouts must preserve explicit navigation/main landmarks, icon-only actions require accessible labels, and responsive rule-table cells must retain meaningful `DataLabel` text. Use modal dialogs for destructive confirmations so focus stays with the active interaction instead of rendering confirmation UI away from the initiating row.
+
 ## Daemon conventions
 
 Daemon IPC controllers use the existing route attributes and source-generated endpoint map. Keep privileged UFW execution and parsing inside the daemon rather than moving host-facing behavior into `Ufw.Web`.

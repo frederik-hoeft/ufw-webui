@@ -35,9 +35,11 @@ else if (_startupState == StartupState.Failed && _startupError is not null)
 }
 else
 {
-    <div class="startup-progress" role="status" aria-label="Restoring session">
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
-    </div>
+    <main class="startup-progress">
+        <div role="status" aria-label="Restoring session">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        </div>
+    </main>
 }
 
 @code {

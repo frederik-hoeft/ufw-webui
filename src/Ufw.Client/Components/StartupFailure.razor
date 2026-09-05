@@ -1,7 +1,7 @@
 @using Ufw.Client.Errors
 
-<div class="startup-status" role="alert">
-    <MudPaper Class="startup-card pa-8" Elevation="4">
+<main class="startup-status">
+    <MudPaper Class="startup-card pa-8" Elevation="4" role="alert">
         <MudText Typo="Typo.h5" HtmlTag="h1" GutterBottom="true">Unable to initialize</MudText>
         <MudText Typo="Typo.body1" Class="mb-5">@Error.Message</MudText>
         <MudButton Variant="Variant.Filled"
@@ -15,7 +15,7 @@
             Retry
         </MudButton>
     </MudPaper>
-</div>
+</main>
 
 @code {
     [Parameter, EditorRequired]

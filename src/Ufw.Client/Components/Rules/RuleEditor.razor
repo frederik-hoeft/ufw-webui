@@ -1,9 +1,9 @@
 @using Ufw.Ipc.Shared.Model.Responses
 
-<MudPaper Class="pa-5 mb-6" Elevation="1">
+<MudPaper Class="rule-editor-card pa-5 mb-6" Elevation="1" role="region" aria-labelledby="add-rule-heading">
     <div class="d-flex flex-wrap align-center gap-3 mb-4">
         <div>
-            <MudText Typo="Typo.h6" HtmlTag="h2">Add rule</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" id="add-rule-heading">Add rule</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Define the complete UFW rule, then authorize this request with an authorized private key.
             </MudText>
@@ -18,7 +18,8 @@
              Model="@Rule"
              Validation="@s_ruleValidation"
              @bind-IsValid="_isValid"
-             Disabled="@Disabled">
+             Disabled="@Disabled"
+             aria-busy="@Submitting">
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="FirewallAction"
@@ -67,6 +68,9 @@
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
                               Label="Source"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               Placeholder="any, IP address, or CIDR"
                               @bind-Value="Rule.Source"
                               For="@(() => Rule.Source)"
@@ -75,6 +79,9 @@
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
                               Label="Destination"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               Placeholder="any, IP address, or CIDR"
                               @bind-Value="Rule.Destination"
                               For="@(() => Rule.Destination)"
@@ -83,6 +90,9 @@
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField T="string"
                               Label="Source ports"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               Placeholder="22,80:90"
                               @bind-Value="Rule.SourcePorts"
                               For="@(() => Rule.SourcePorts)"
@@ -91,6 +101,9 @@
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField T="string"
                               Label="Destination ports"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               Placeholder="443"
                               @bind-Value="Rule.DestinationPorts"
                               For="@(() => Rule.DestinationPorts)"
@@ -99,6 +112,9 @@
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField T="string"
                               Label="Source interface"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               HelperText="Egress interface for outbound or forward rules."
                               @bind-Value="Rule.SourceInterface"
                               For="@(() => Rule.SourceInterface)"
@@ -107,6 +123,9 @@
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField T="string"
                               Label="Destination interface"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              spellcheck="false"
                               HelperText="Ingress interface for inbound or forward rules."
                               @bind-Value="Rule.DestinationInterface"
                               For="@(() => Rule.DestinationInterface)"
@@ -141,7 +160,12 @@
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
                            Disabled="@(!_isValid || Disabled || string.IsNullOrWhiteSpace(PrivateKey))"
-                           OnClick="SubmitAsync">
+                           OnClick="SubmitAsync"
+                           Class="rule-primary-action">
+                    @if (Submitting)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                    }
                     @(Submitting ? "Adding rule..." : "Add signed rule")
                 </MudButton>
             </MudItem>

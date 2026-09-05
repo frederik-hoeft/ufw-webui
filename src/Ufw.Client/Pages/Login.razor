@@ -15,10 +15,10 @@
 
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" role="alert">@_error</MudAlert>
     }
 
-    <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync">
+    <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync" aria-busy="@_busy">
         <MudTextField T="string"
                       Label="Email"
                       InputType="InputType.Email"
