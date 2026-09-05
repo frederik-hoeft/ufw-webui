@@ -39,7 +39,9 @@ The rules view tracks daemon responses as explicit authoritative snapshots rathe
 
 Refresh tokens are random opaque values delivered in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Only SHA-256 token hashes are persisted. Refresh tokens rotate on use, belong to a token family, and family reuse invalidates remaining active tokens. A stored Identity security stamp ties a refresh-token family to the user's current security state.
 
-Access tokens are short-lived RSA-signed JWTs. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved for daemon execution.
+Initial Identity accounts may be supplied through `Auth:Bootstrap:Users` from any normal ASP.NET Core configuration provider, including environment variables used by container deployments. Bootstrap runs after database migration and is deliberately non-destructive: it creates missing users through `UserManager`, reconciles configured email-confirmation state, never resets an existing password, and never deletes users that disappear from configuration. A password is therefore creation-only bootstrap material rather than ongoing desired-state configuration.
+
+Access tokens are short-lived P-256 ECDSA JWTs signed with ES256. They authorize access to the HTTP API; they are not proof that a firewall mutation was approved for daemon execution.
 
 The current daemon-backed REST surface includes:
 

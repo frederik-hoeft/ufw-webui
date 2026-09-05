@@ -1,4 +1,4 @@
-# UFW WebUI
+﻿# UFW WebUI
 
 UFW WebUI separates network-facing firewall-management concerns from privileged host firewall execution.
 
@@ -45,6 +45,25 @@ dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/t
 
 The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory. `Ufw.Client/wwwroot/appsettings.json` configures the REST API base URL. The client requires an absolute HTTPS base URL and normalizes a missing trailing slash before constructing versioned API paths. Development CORS is configured for the HTTPS client profile at `https://localhost:7298`.
 
+No public user-registration endpoint is provided. Initial accounts can instead be provisioned through the `Auth:Bootstrap:Users` configuration section. Bootstrap is idempotent across restarts: missing accounts are created through ASP.NET Core Identity, while existing passwords are never reset from bootstrap configuration. `EmailConfirmed` defaults to `true` and is reconciled for existing configured accounts. Removing an entry does not delete the corresponding user.
+
+For local development, user secrets are convenient:
+
+```bash
+dotnet user-secrets --project src/Ufw.Web set "Auth:Bootstrap:Users:0:Email" "test@example.invalid"
+dotnet user-secrets --project src/Ufw.Web set "Auth:Bootstrap:Users:0:Password" "ChangeThisPassword123"
+Container deployments can use the standard ASP.NET Core environment-variable mapping instead:
+
+```text
+Auth__Bootstrap__Users__0__Email=test@example.invalid
+Auth__Bootstrap__Users__0__Password=<secret>
+Auth__Bootstrap__Users__0__EmailConfirmed=true
+# Optional; defaults to the email address when the account is first created.
+Auth__Bootstrap__Users__0__UserName=test@example.invalid
+```
+
+The password is required only if the configured account does not yet exist. After initial provisioning it can be removed from configuration; subsequent starts still reconcile non-secret bootstrap state without changing the user's password. Invalid or conflicting bootstrap entries fail application startup with an actionable error rather than silently overwriting existing identity state. Longer-term interactive user administration remains a separate API/UI concern.
+
 ### Development UFW mock
 
 `Ufw.Mock` implements the UFW 0.36.2 command-line surface used by the daemon without requiring Linux, elevated privileges, or a real firewall. It stores its state in a per-user application-data file; set `UFW_MOCK_STATE_PATH` to isolate a development or test instance.
@@ -57,7 +76,6 @@ dotnet build src/Ufw.Mock/Ufw.Mock.csproj
 
 The mock is not part of the production execution path. `Ufw.Systemd` still constructs normal UFW arguments and parses normal UFW status output, so substituting the executable exercises the same daemon integration boundary while keeping host networking untouched.
 
-No public user-registration endpoint is provided. User provisioning and administrative user-management APIs are separate from the authentication foundation.
 
 ## Firewall mutations
 

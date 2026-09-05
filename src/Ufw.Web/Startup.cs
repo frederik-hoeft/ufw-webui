@@ -62,10 +62,16 @@ internal static class Startup
             .Validate(static options => options.CookieName.StartsWith("__Host-", StringComparison.Ordinal), "Refresh token cookie must use the __Host- prefix.")
             .ValidateOnStart();
 
+        services.AddOptions<AuthenticationBootstrapOptions>()
+            .Bind(configuration.GetSection(AuthenticationBootstrapOptions.SECTION_NAME))
+            .Validate(static options => options.IsValid(), "Authentication bootstrap user configuration is invalid or contains duplicate identities.")
+            .ValidateOnStart();
+
         services.AddSingleton<IJwtSigningKeyProvider, ECDsaJwtSigningKeyProvider>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
 
         services.AddAuthentication(options =>
@@ -191,5 +197,8 @@ internal static class Startup
         await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
         await using ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await context.Database.MigrateAsync();
+
+        AuthenticationBootstrapService bootstrapService = scope.ServiceProvider.GetRequiredService<AuthenticationBootstrapService>();
+        await bootstrapService.ApplyAsync();
     }
 }
