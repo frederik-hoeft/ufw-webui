@@ -14,7 +14,11 @@
             Deleting this firewall rule requires a signed authorization and cannot be undone through this interface.
         </MudAlert>
 
-        <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="ConfirmAsync">
+        <MudForm @ref="_form"
+                 @bind-IsValid="_isValid"
+                 Disabled="_busy"
+                 OnEnterPressed="ConfirmAsync"
+                 aria-busy="@_busy">
             <MudTextField T="string"
                           Label="ECDSA P-256 private key (PKCS#8)"
                           InputType="InputType.Password"
@@ -31,11 +35,11 @@
     </DialogContent>
     <DialogActions>
         <div class="delete-dialog-actions">
-            <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">Cancel</MudButton>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Error"
                        StartIcon="@Icons.Material.Filled.Delete"
-                       Disabled="@(!_isValid || string.IsNullOrWhiteSpace(_privateKey))"
+                       Disabled="@(_busy || !_isValid || string.IsNullOrWhiteSpace(_privateKey))"
                        OnClick="ConfirmAsync">
                 Delete signed rule
             </MudButton>
@@ -46,6 +50,7 @@
 @code {
     private MudForm? _form;
     private bool _isValid;
+    private bool _busy;
     private string _privateKey = string.Empty;
 
     [CascadingParameter]
@@ -64,19 +69,27 @@
 
     private async Task ConfirmAsync()
     {
-        if (_form is null)
+        if (_busy || _form is null)
         {
             return;
         }
 
-        await _form.ValidateAsync();
-        if (!_form.IsValid || string.IsNullOrWhiteSpace(_privateKey))
+        _busy = true;
+        try
         {
-            return;
-        }
+            await _form.ValidateAsync();
+            if (!_form.IsValid || string.IsNullOrWhiteSpace(_privateKey))
+            {
+                return;
+            }
 
-        string privateKey = _privateKey;
-        _privateKey = string.Empty;
-        MudDialog.Close(DialogResult.Ok(privateKey));
+            string privateKey = _privateKey;
+            _privateKey = string.Empty;
+            MudDialog.Close(DialogResult.Ok(privateKey));
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 }

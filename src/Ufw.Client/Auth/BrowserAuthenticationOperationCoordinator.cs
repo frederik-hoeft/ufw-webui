@@ -12,6 +12,7 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
     private const string MODULE_PATH = "./js/authCoordination.js";
     private readonly SemaphoreSlim _localLock = new(1, 1);
     private IJSObjectReference? _module;
+    private int _disposeState;
 
     public async Task RunExclusiveAsync(
         Func<CancellationToken, Task> operation,
@@ -33,6 +34,7 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
 
         await _localLock.WaitAsync(cancellationToken);
         string requestId = Guid.NewGuid().ToString("N");
@@ -40,6 +42,7 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
         bool browserLockAcquired = false;
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             module = await GetModuleAsync(cancellationToken);
             await AcquireBrowserLockAsync(module, requestId, cancellationToken);
             browserLockAcquired = true;
@@ -58,19 +61,35 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
 
     public async ValueTask DisposeAsync()
     {
-        if (_module is not null)
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
         {
-            try
-            {
-                await _module.DisposeAsync();
-            }
-            catch (Exception exception) when (exception is JSException or JSDisconnectedException)
-            {
-                logger.LogDebug(exception, "Could not dispose the browser authentication coordination module.");
-            }
+            return;
         }
 
-        _localLock.Dispose();
+        await _localLock.WaitAsync();
+        try
+        {
+            if (_module is not null)
+            {
+                try
+                {
+                    await _module.DisposeAsync();
+                }
+                catch (Exception exception) when (exception is JSException or JSDisconnectedException)
+                {
+                    logger.LogDebug(exception, "Could not dispose the browser authentication coordination module.");
+                }
+                finally
+                {
+                    _module = null;
+                }
+            }
+        }
+        finally
+        {
+            _localLock.Release();
+            _localLock.Dispose();
+        }
     }
 
     private async Task<IJSObjectReference> GetModuleAsync(CancellationToken cancellationToken)

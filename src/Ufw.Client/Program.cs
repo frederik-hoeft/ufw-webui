@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
+using Ufw.Client.Configuration;
 using Ufw.Client.Errors;
 using Ufw.Client.Intent;
 
@@ -17,9 +18,7 @@ public static class Program
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
-        string apiBaseUrl = builder.Configuration["ApiBaseUrl"]
-            ?? throw new InvalidOperationException("API base URL is not configured.");
-        Uri apiBaseAddress = new(apiBaseUrl, UriKind.Absolute);
+        Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(builder.Configuration);
 
         builder.Services.AddMudServices();
         builder.Services.AddAuthorizationCore();

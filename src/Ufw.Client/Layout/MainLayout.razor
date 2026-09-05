@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject IAuthenticationService AuthenticationService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
@@ -61,8 +62,15 @@
 </MudLayout>
 
 @code {
+    private readonly CancellationTokenSource _lifetime = new();
     private bool _drawerOpen = true;
     private bool _logoutBusy;
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
@@ -76,8 +84,11 @@
         _logoutBusy = true;
         try
         {
-            await AuthenticationService.LogoutAsync();
+            await AuthenticationService.LogoutAsync(_lifetime.Token);
             Navigation.NavigateTo("login", replace: true);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
