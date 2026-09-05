@@ -16,7 +16,6 @@
   <Project Path="Ufw.Roslyn.SourceGen/Ufw.Roslyn.SourceGen.csproj" />
   <Project Path="Ufw.Roslyn/Ufw.Roslyn.csproj" />
   <Project Path="Ufw.Systemd.Tests/Ufw.Systemd.Tests.csproj" />
-  <Project Path="Ufw.Ipc.Tests/Ufw.Ipc.Tests.csproj" />
   <Project Path="Ufw.Mock/Ufw.Mock.csproj" />
   <Project Path="Ufw.Mock.BlackboxTests/Ufw.Mock.BlackboxTests.csproj" />
   <Project Path="Ufw.Systemd/Ufw.Systemd.csproj" />
