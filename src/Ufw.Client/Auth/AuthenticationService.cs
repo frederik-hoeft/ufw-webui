@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Ufw.Client.Api;
 
 namespace Ufw.Client.Auth;
@@ -7,22 +6,13 @@ internal sealed class AuthenticationService(
     IAuthApiClient authApiClient,
     IAuthenticationSession session,
     IAuthenticationOperationCoordinator operationCoordinator,
-    TimeProvider timeProvider,
-    ILogger<AuthenticationService> logger) : IAuthenticationService
+    TimeProvider timeProvider) : IAuthenticationService
 {
     private static readonly TimeSpan s_refreshLeadTime = TimeSpan.FromSeconds(30);
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await RefreshAsync(rejectedAccessToken: null, cancellationToken);
-        }
-        catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
-        {
-            session.Clear();
-            logger.LogWarning(exception, "Could not restore the browser authentication session.");
-        }
+        await RefreshAsync(rejectedAccessToken: null, cancellationToken);
     }
 
     public async Task LoginAsync(string email, string password, CancellationToken cancellationToken = default)

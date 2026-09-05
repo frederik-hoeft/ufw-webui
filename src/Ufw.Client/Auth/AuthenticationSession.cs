@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
+using Ufw.Client.Api;
 
 namespace Ufw.Client.Auth;
 
@@ -39,9 +40,9 @@ internal sealed class AuthenticationSession : AuthenticationStateProvider, IAuth
         {
             principal = CreatePrincipal(accessToken);
         }
-        catch (Exception exception) when (exception is FormatException or JsonException)
+        catch (Exception exception) when (exception is FormatException or JsonException or InvalidOperationException)
         {
-            throw new InvalidOperationException("The API returned an invalid access token.", exception);
+            throw new ApiProtocolException("The management API returned an invalid access token.", exception);
         }
 
         AuthenticationState state = new(principal);

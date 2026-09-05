@@ -35,6 +35,8 @@ Authentication infrastructure consists of:
 
 Keep browser UI code in `Ufw.Client`. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser. Access tokens stay in memory; refresh-token cookies remain `HttpOnly`. Client operations that mutate the rotating refresh-token cookie must use the shared authentication-operation coordinator so concurrent tabs cannot consume the same token family member. Mutation private keys must not be persisted by the client unless a later design explicitly introduces a secure key-storage boundary.
 
+Keep expected browser/API failures behind the client error-classification boundary. Do not render arbitrary exception messages in Razor components. Distinguish an absent/expired authentication session from API unavailability or an incompatible response, and preserve the explicit startup failure/retry state instead of converting infrastructure failures into anonymous authentication state.
+
 ## Daemon conventions
 
 Daemon IPC controllers use the existing route attributes and source-generated endpoint map. Keep privileged UFW execution and parsing inside the daemon rather than moving host-facing behavior into `Ufw.Web`.

@@ -68,7 +68,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
             cancellationToken);
         if (context.ProtocolVersion != Ufw.Ipc.Shared.Security.Intent.IntentProtocol.VERSION)
         {
-            throw new InvalidOperationException(
+            throw new ApiProtocolException(
                 $"Intent protocol mismatch. Client supports version "
                 + $"{Ufw.Ipc.Shared.Security.Intent.IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
         }

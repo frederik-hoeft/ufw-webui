@@ -3,6 +3,7 @@
 @inject IAuthenticationService AuthenticationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject IClientErrorMapper ClientErrors
 
 <PageTitle>Sign in - UFW Management</PageTitle>
 
@@ -108,9 +109,9 @@
         {
             _error = "Invalid email or password, or the account is not permitted to sign in.";
         }
-        catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            _error = exception.Message;
+            _error = ClientErrors.Describe(exception).Message;
         }
         finally
         {

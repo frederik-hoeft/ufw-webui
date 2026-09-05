@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
+using Ufw.Client.Errors;
 using Ufw.Client.Intent;
 
 namespace Ufw.Client;
@@ -31,6 +32,7 @@ public static class Program
         builder.Services.AddScoped<BrowserCredentialsHandler>();
         builder.Services.AddScoped<BearerTokenHandler>();
         builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+        builder.Services.AddScoped<IClientErrorMapper, ClientErrorMapper>();
         builder.Services.AddScoped<IIntentSigningService, BrowserIntentSigningService>();
 
         builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client => client.BaseAddress = apiBaseAddress)

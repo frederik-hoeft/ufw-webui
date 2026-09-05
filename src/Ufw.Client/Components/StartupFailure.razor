@@ -1,0 +1,29 @@
+@using Ufw.Client.Errors
+
+<div class="startup-status" role="alert">
+    <MudPaper Class="startup-card pa-8" Elevation="4">
+        <MudText Typo="Typo.h5" HtmlTag="h1" GutterBottom="true">Unable to initialize</MudText>
+        <MudText Typo="Typo.body1" Class="mb-5">@Error.Message</MudText>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="Busy"
+                   OnClick="OnRetry">
+            @if (Busy)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            Retry
+        </MudButton>
+    </MudPaper>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ClientError Error { get; set; } = null!;
+
+    [Parameter]
+    public bool Busy { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+}

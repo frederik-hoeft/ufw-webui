@@ -16,8 +16,15 @@ internal static class HttpResponseMessageExtensions
             throw await response.CreateExceptionAsync(cancellationToken);
         }
 
-        T? value = await response.Content.ReadFromJsonAsync(jsonTypeInfo, cancellationToken);
-        return value ?? throw new ApiRequestException(response.StatusCode, "The API returned an empty response.");
+        try
+        {
+            T? value = await response.Content.ReadFromJsonAsync(jsonTypeInfo, cancellationToken);
+            return value ?? throw new ApiProtocolException("The management API returned an empty response.");
+        }
+        catch (Exception exception) when (exception is NotSupportedException or System.Text.Json.JsonException)
+        {
+            throw new ApiProtocolException("The management API returned an invalid JSON response.", exception);
+        }
     }
 
     public static async Task<ApiRequestException> CreateExceptionAsync(

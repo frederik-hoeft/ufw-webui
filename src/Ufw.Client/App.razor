@@ -1,24 +1,37 @@
+@using Ufw.Client.Errors
 @inject IAuthenticationService AuthenticationService
+@inject IClientErrorMapper ClientErrors
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-@if (_initialized)
+@if (_startupState == StartupState.Ready)
 {
     <CascadingAuthenticationState>
-        <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="@typeof(Ufw.Client.Pages.NotFound)">
-            <Found Context="routeData">
-                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                    <NotAuthorized>
-                        <RedirectToLogin />
-                    </NotAuthorized>
-                </AuthorizeRouteView>
-                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-            </Found>
-        </Router>
+        <RouteErrorBoundary>
+            <ChildContent>
+                <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="@typeof(Ufw.Client.Pages.NotFound)">
+                    <Found Context="routeData">
+                        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                            <NotAuthorized>
+                                <RedirectToLogin />
+                            </NotAuthorized>
+                        </AuthorizeRouteView>
+                        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+                    </Found>
+                </Router>
+            </ChildContent>
+            <ErrorContent Context="exception">
+                <UnexpectedError Error="@ClientErrors.Describe(exception)" />
+            </ErrorContent>
+        </RouteErrorBoundary>
     </CascadingAuthenticationState>
+}
+else if (_startupState == StartupState.Failed && _startupError is not null)
+{
+    <StartupFailure Error="@_startupError" Busy="@_initializing" OnRetry="InitializeAsync" />
 }
 else
 {
@@ -28,11 +41,42 @@ else
 }
 
 @code {
-    private bool _initialized;
+    private StartupState _startupState = StartupState.Loading;
+    private ClientError? _startupError;
+    private bool _initializing;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await InitializeAsync();
+
+    private async Task InitializeAsync()
     {
-        await AuthenticationService.InitializeAsync();
-        _initialized = true;
+        if (_initializing)
+        {
+            return;
+        }
+
+        _initializing = true;
+        _startupState = StartupState.Loading;
+        _startupError = null;
+        try
+        {
+            await AuthenticationService.InitializeAsync();
+            _startupState = StartupState.Ready;
+        }
+        catch (Exception exception)
+        {
+            _startupError = ClientErrors.Describe(exception);
+            _startupState = StartupState.Failed;
+        }
+        finally
+        {
+            _initializing = false;
+        }
+    }
+
+    private enum StartupState
+    {
+        Loading,
+        Ready,
+        Failed,
     }
 }

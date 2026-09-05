@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject IUfwApiClient UfwApiClient
 @inject ISnackbar Snackbar
+@inject IClientErrorMapper ClientErrors
 
 <PageTitle>Firewall rules - UFW Management</PageTitle>
 
@@ -89,9 +90,9 @@
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            _loadError = exception.Message;
+            _loadError = ClientErrors.Describe(exception).Message;
         }
         finally
         {
@@ -118,9 +119,9 @@
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (IsMutationException(exception))
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            Snackbar.Add(exception.Message, Severity.Error);
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
         }
         finally
         {
@@ -164,9 +165,9 @@
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (IsMutationException(exception))
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            Snackbar.Add(exception.Message, Severity.Error);
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
         }
         finally
         {
@@ -201,11 +202,4 @@
         Source = RuleSpecificationNormalizer.ANY,
         Destination = RuleSpecificationNormalizer.ANY,
     };
-
-    private static bool IsMutationException(Exception exception) =>
-        exception is ApiRequestException
-            or HttpRequestException
-            or InvalidOperationException
-            or ArgumentException
-            or Microsoft.JSInterop.JSException;
 }

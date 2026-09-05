@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using Ufw.Client.Errors;
 
 namespace Ufw.Client.Auth;
 
@@ -114,7 +115,7 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
         }
         catch (Exception exception) when (exception is JSException or JSDisconnectedException)
         {
-            throw new InvalidOperationException(
+            throw new BrowserOperationException(
                 "The browser could not coordinate authentication state across tabs.",
                 exception);
         }

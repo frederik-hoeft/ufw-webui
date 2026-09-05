@@ -7,10 +7,16 @@ body {
     background: var(--mud-palette-background);
 }
 
-.startup-progress {
+.startup-progress,
+.startup-status {
     display: grid;
     min-height: 100vh;
     place-items: center;
+    padding: 1.5rem;
+}
+
+.startup-card {
+    width: min(34rem, 100%);
 }
 
 .login-shell {

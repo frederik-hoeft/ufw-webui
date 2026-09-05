@@ -2,6 +2,7 @@
 @inject IAuthenticationService AuthenticationService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject IClientErrorMapper ClientErrors
 
 <MudLayout>
     <MudAppBar Elevation="1">
@@ -60,10 +61,11 @@
             await AuthenticationService.LogoutAsync();
             Navigation.NavigateTo("login", replace: true);
         }
-        catch (Exception exception) when (exception is ApiRequestException or HttpRequestException or InvalidOperationException)
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
+            ClientError error = ClientErrors.Describe(exception);
             Snackbar.Add(
-                "Could not revoke the server session. You are still signed in; try again when the API is reachable.",
+                $"Could not sign out. {error.Message} You are still signed in.",
                 Severity.Error);
         }
         finally
