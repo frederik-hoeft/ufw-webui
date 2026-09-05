@@ -1,6 +1,22 @@
 $mobile-breakpoint: 600px;
 $compact-appbar-breakpoint: 480px;
 
+$ufw-nav-background: #0e141b;
+$ufw-nav-surface: #18202a;
+$ufw-nav-selected: #27313d;
+$ufw-nav-text: #f1f4f7;
+$ufw-nav-muted: #8a96a6;
+$ufw-font-mono: "IBM Plex Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+
+:root {
+    --ufw-nav-background: #{$ufw-nav-background};
+    --ufw-nav-surface: #{$ufw-nav-surface};
+    --ufw-nav-selected: #{$ufw-nav-selected};
+    --ufw-nav-text: #{$ufw-nav-text};
+    --ufw-nav-muted: #{$ufw-nav-muted};
+    --ufw-font-mono: #{$ufw-font-mono};
+}
+
 @mixin full-viewport-height {
     min-height: 100vh;
     min-height: 100dvh;
@@ -15,6 +31,98 @@ body,
 body {
     margin: 0;
     background: var(--mud-palette-background);
+}
+
+// Visual baseline shared by the current pages. Page structure remains intentionally unchanged;
+// later UI phases can build new layouts on the same theme tokens.
+.mud-appbar {
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.mud-drawer {
+    border-right: 1px solid var(--ufw-nav-selected) !important;
+    background: var(--ufw-nav-background);
+}
+
+.mud-drawer-header {
+    color: var(--ufw-nav-text);
+}
+
+.mud-drawer .mud-nav-link {
+    min-height: 2.5rem;
+    margin: 0.125rem 0.75rem;
+    border-radius: var(--mud-default-borderradius);
+    color: var(--ufw-nav-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+
+    .mud-nav-link-icon {
+        color: inherit;
+    }
+
+    &:hover {
+        background: var(--ufw-nav-surface);
+        color: var(--ufw-nav-text);
+    }
+
+    &.active {
+        background: var(--ufw-nav-selected);
+        color: var(--ufw-nav-text);
+        font-weight: 600;
+    }
+}
+
+.mud-button-root {
+    min-height: 2.5rem;
+    border-radius: var(--mud-default-borderradius);
+}
+
+.mud-button-outlined.mud-button-outlined-default {
+    border-color: var(--mud-palette-lines-default);
+}
+
+.mud-chip {
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.mud-alert {
+    border-radius: var(--mud-default-borderradius);
+}
+
+.mud-main-content .mud-paper,
+.login-shell > .mud-paper,
+.unexpected-error-shell .mud-paper,
+.startup-status .mud-paper {
+    border: 1px solid var(--mud-palette-lines-default);
+    box-shadow: none;
+}
+
+.rule-table {
+    border-radius: var(--mud-default-borderradius);
+    overflow: hidden;
+
+    .mud-table-head .mud-table-cell {
+        background: var(--mud-palette-background-gray);
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .mud-table-row {
+        min-height: 3rem;
+    }
+
+    .mud-table-cell {
+        border-color: var(--mud-palette-table-lines);
+        font-size: 0.8125rem;
+    }
+}
+
+.mud-popover,
+.mud-dialog {
+    border: 1px solid var(--mud-palette-lines-default);
 }
 
 .skip-link {
@@ -127,8 +235,10 @@ body {
     margin-top: 0.25rem;
 }
 
+.rule-endpoint,
 .rule-raw-line {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-family: var(--ufw-font-mono);
+    font-size: 0.8125rem;
 }
 
 .delete-dialog-actions {

@@ -4,7 +4,7 @@
 @inject IClientErrorMapper ClientErrors
 @inject IClientThemeService Theme
 
-<MudThemeProvider IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
+<MudThemeProvider Theme="@UfwMudTheme.Theme" IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
