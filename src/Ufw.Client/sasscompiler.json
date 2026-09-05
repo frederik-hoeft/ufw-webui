@@ -1,0 +1,11 @@
+{
+  "Source": "Styles/app.scss",
+  "Target": "wwwroot/css/app.css",
+  "Arguments": "--style=expanded --no-source-map",
+  "GenerateScopedCss": false,
+  "Configurations": {
+    "Release": {
+      "Arguments": "--style=compressed --no-source-map"
+    }
+  }
+}
