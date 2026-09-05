@@ -6,7 +6,7 @@ using Ufw.Mock.State;
 
 namespace Ufw.Mock.Cli;
 
-internal sealed class UfwCommandExecutor
+internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
 {
     private static readonly HashSet<string> s_reports = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -20,20 +20,13 @@ internal sealed class UfwCommandExecutor
         "added",
     };
 
-    private readonly UfwGlobalOptions _options;
-    private readonly UfwStateStore _store;
+    private readonly UfwStateStore _store = new();
     private readonly UfwRuleParser _parser = new();
-
-    public UfwCommandExecutor(UfwGlobalOptions options)
-    {
-        _options = options;
-        _store = new UfwStateStore();
-    }
 
     public int Enable(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw enable");
-        _store.Update(_options.DryRun, state =>
+        _store.Update(options.DryRun, state =>
         {
             state.Enabled = true;
             return 0;
@@ -45,7 +38,7 @@ internal sealed class UfwCommandExecutor
     public int Disable(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw disable");
-        _store.Update(_options.DryRun, state =>
+        _store.Update(options.DryRun, state =>
         {
             state.Enabled = false;
             return 0;
@@ -67,13 +60,13 @@ internal sealed class UfwCommandExecutor
     public int Reset(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw reset");
-        if (!_options.Force && !Confirm("Resetting all rules to installed defaults. Proceed with operation (y|n)? "))
+        if (!options.Force && !Confirm("Resetting all rules to installed defaults. Proceed with operation (y|n)? "))
         {
             Console.WriteLine("Aborted");
             return 0;
         }
 
-        _store.Update(_options.DryRun, state =>
+        _store.Update(options.DryRun, state =>
         {
             UfwMockState defaults = UfwMockState.CreateDefault();
             state.SchemaVersion = defaults.SchemaVersion;
@@ -115,7 +108,7 @@ internal sealed class UfwCommandExecutor
             }
             : "incoming";
 
-        _store.Update(_options.DryRun, state =>
+        _store.Update(options.DryRun, state =>
         {
             switch (direction)
             {
@@ -155,7 +148,7 @@ internal sealed class UfwCommandExecutor
             _ => throw Error($"Invalid log level '{arguments[0]}'."),
         };
 
-        string effectiveLevel = _store.Update(_options.DryRun, state =>
+        string effectiveLevel = _store.Update(options.DryRun, state =>
         {
             if (level == "on")
             {
@@ -269,7 +262,7 @@ internal sealed class UfwCommandExecutor
 
         FirewallAction action = ParseAction(arguments[0]);
         string[] ruleArguments = [.. arguments.Skip(1)];
-        List<UfwMockRule> removed = _store.Update(_options.DryRun, state =>
+        List<UfwMockRule> removed = _store.Update(options.DryRun, state =>
         {
             ParsedRuleRequest request = _parser.Parse(action, ruleArguments, routed, state);
             IReadOnlyList<UfwMockRule> targets = request.Materialize(state.IPv6Enabled);
@@ -371,7 +364,7 @@ internal sealed class UfwCommandExecutor
             "SKIP" => "skip",
             _ => throw Error($"Invalid application policy '{arguments[0]}'."),
         };
-        _store.Update(_options.DryRun, state =>
+        _store.Update(options.DryRun, state =>
         {
             state.DefaultApplicationPolicy = policy;
             return 0;
@@ -399,7 +392,7 @@ internal sealed class UfwCommandExecutor
             }
             UfwApplicationProfile profile = state.ApplicationProfiles.FirstOrDefault(profile => profile.Name.Equals(arguments[0], StringComparison.OrdinalIgnoreCase))
                 ?? throw Error($"Could not find profile '{arguments[0]}'");
-            return new List<string> { profile.Name };
+            return [profile.Name];
         });
 
         foreach (string name in names)
@@ -416,7 +409,7 @@ internal sealed class UfwCommandExecutor
         RulePlacement placement,
         int? insertNumber)
     {
-        List<RuleMutationResult> results = _store.Update(_options.DryRun, state =>
+        List<RuleMutationResult> results = _store.Update(options.DryRun, state =>
         {
             ParsedRuleRequest request = _parser.Parse(action, arguments, routed, state);
             IReadOnlyList<UfwMockRule> concreteRules = request.Materialize(state.IPv6Enabled);
@@ -458,10 +451,9 @@ internal sealed class UfwCommandExecutor
         return 0;
     }
 
-    private static InsertPlacementContext CreateInsertPlacementContext(
-        IReadOnlyList<UfwMockRule> rules,
-        int? insertNumber)
+    private static InsertPlacementContext CreateInsertPlacementContext(List<UfwMockRule> rules, int? insertNumber)
     {
+        ArgumentNullException.ThrowIfNull(rules);
         if (insertNumber is null || insertNumber <= 0 || insertNumber > rules.Count)
         {
             throw Error($"Invalid position '{insertNumber}'.");
@@ -555,7 +547,7 @@ internal sealed class UfwCommandExecutor
         {
             throw Error("Rule numbers are one-based.");
         }
-        if (!_options.Force && !Confirm($"Deleting rule {displayNumber}. Proceed with operation (y|n)? "))
+        if (!options.Force && !Confirm($"Deleting rule {displayNumber}. Proceed with operation (y|n)? "))
         {
 #pragma warning disable CA1303 // Fixed English text is part of the UFW-compatible CLI surface.
             Console.WriteLine("Aborted");
@@ -563,7 +555,7 @@ internal sealed class UfwCommandExecutor
             return 0;
         }
 
-        UfwMockRule removed = _store.Update(_options.DryRun, state =>
+        UfwMockRule removed = _store.Update(options.DryRun, state =>
         {
             if (displayNumber > state.Rules.Count)
             {
