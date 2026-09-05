@@ -46,6 +46,16 @@ All UFW subprocess activity is serialized through one in-process execution gate.
 
 UFW is invoked directly with validated argv elements rather than through a shell. The process environment forces a deterministic locale, stdout is reserved for parseable UFW output, and stderr is retained as diagnostics. A successful mutation response is returned only after the expected authoritative post-operation state has been observed.
 
+## Development UFW substitute
+
+`Ufw.Mock` is a development-only executable that implements the UFW 0.36.2 command boundary without interacting with netfilter or requiring elevated privileges. It is intentionally outside the production trust path: no production project depends on it, and `Ufw.Systemd` does not contain mock-specific execution logic. Development configurations substitute only the executable selected by `ufw_path`.
+
+The daemon therefore continues to construct the same argv, serialize access through the same execution gate, parse the same `ufw status numbered` representation, and perform the same post-mutation reconciliation. The mock persists enabled state, default policies, logging configuration, application profiles, and concrete IPv4/IPv6 rules in a local JSON state file. `UFW_MOCK_STATE_PATH` can isolate that state for tests or parallel development environments.
+
+The mock reuses `Ufw.Ipc.Shared` for normalized firewall-rule semantics, but keeps UFW-specific CLI grammar, extended protocol names, per-rule logging, application-profile handling, persistence, and output formatting local to the development tool. This avoids widening the production semantic contract solely for mock compatibility.
+
+Compatibility is defined at the observable UFW CLI boundary rather than at Linux kernel internals. Rule ordering, global numbered insertion, family-specific deletion, IPv4/IPv6 materialization, status formatting, lifecycle/default/logging commands, and documented rule syntax are modeled because daemon and manual-development flows can depend on them. Host-dependent reports such as raw netfilter tables and listening sockets are deterministic synthetic reports so the mock remains platform-neutral and cannot affect or inspect the host firewall.
+
 ## IPC layer
 
 `Ufw.Ipc.Client` and `Ufw.Ipc.Shared` define the typed request/response channel between `Ufw.Web` and `Ufw.Systemd`. The channel has four distinct stages: the local byte stream, ITP wire framing, the JSON application envelope, and daemon routing/binding. The detailed protocol contracts live under [docs/protocols](protocols/README.md).
