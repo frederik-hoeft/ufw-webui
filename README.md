@@ -1,4 +1,4 @@
-﻿﻿# UFW WebUI
+# UFW WebUI
 
 UFW WebUI separates network-facing firewall-management concerns from privileged host firewall execution.
 
