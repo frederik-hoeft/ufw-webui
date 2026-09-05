@@ -1,0 +1,46 @@
+@inject IClientThemeService Theme
+
+<MudIconButton Icon="@Icon"
+               Color="@Color"
+               Disabled="@_busy"
+               OnClick="ToggleAsync"
+               Class="@Class"
+               title="@Label"
+               aria-label="@Label"
+               aria-pressed="@Theme.IsDarkMode.ToString().ToLowerInvariant()" />
+
+@code {
+    [Parameter]
+    public Color Color { get; set; } = Color.Default;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private bool _busy;
+
+    private string Icon => Theme.IsDarkMode
+        ? Icons.Material.Filled.LightMode
+        : Icons.Material.Filled.DarkMode;
+
+    private string Label => Theme.IsDarkMode
+        ? "Dark theme enabled. Switch to light theme"
+        : "Light theme enabled. Switch to dark theme";
+
+    private async Task ToggleAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await Theme.ToggleAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

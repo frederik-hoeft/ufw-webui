@@ -10,7 +10,7 @@ The solution contains:
 - `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, transport security, and shared signed-intent/rule semantics;
 - `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API.
 
-`Ufw.Client` consumes the versioned REST API. Its global stylesheet is maintained as `src/Ufw.Client/Styles/app.scss` and compiled to `src/Ufw.Client/wwwroot/css/app.css` during build/publish by `AspNetCore.SassCompiler`; the generated CSS is not committed. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. Refresh-cookie mutations are serialized across same-origin tabs with the browser Web Locks API, so the client must run in a secure browser context. Because the refresh cookie is `Secure` and `SameSite=Strict` while Web Locks are origin-scoped, production deployments must serve the client over HTTPS, keep it same-site with the API, and use one consistent client origin for tabs that share the API refresh cookie. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it.
+`Ufw.Client` consumes the versioned REST API. Its global stylesheet is maintained as `src/Ufw.Client/Styles/app.scss` and compiled to `src/Ufw.Client/wwwroot/css/app.css` during build/publish by `AspNetCore.SassCompiler`; the generated CSS is not committed. The client exposes MudBlazor's default light/dark palettes and stores only that non-sensitive theme preference in browser local storage. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. Refresh-cookie mutations are serialized across same-origin tabs with the browser Web Locks API, so the client must run in a secure browser context. Because the refresh cookie is `Secure` and `SameSite=Strict` while Web Locks are origin-scoped, production deployments must serve the client over HTTPS, keep it same-site with the API, and use one consistent client origin for tabs that share the API refresh cookie. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it.
 
 ## Architecture
 
@@ -26,7 +26,17 @@ dotnet build src/Ufw.slnx
 dotnet test src/Ufw.slnx
 ```
 
-`Ufw.Web` requires an RSA private key in PEM format for JWT signing. Configure its path through user secrets or another non-repository configuration source:
+For local Linux or Windows development, `scripts/setup-dev.sh` generates a development CA, daemon/server and web/client mTLS credentials, an RSA JWT-signing key, a browser P-256 intent-signing keypair, the daemon `authorized_keys` file, and a gitignored `src/Ufw.Systemd/appsettings.json`. On Windows, run the same script from Git Bash/MSYS; it writes native Windows paths into .NET configuration, uses a local Windows named pipe, and protects generated private keys with Windows ACLs. By default it also configures the corresponding `Ufw.Web` values through user secrets. It never installs the generated CA into the host trust store unless `--install-ca` is passed.
+
+```bash
+./scripts/setup-dev.sh
+# or, on a disposable development host where system trust modification is desired:
+./scripts/setup-dev.sh --install-ca
+```
+
+Run `./scripts/setup-dev.sh --help` for overwrite and user-secret options. The generated credentials live under `artifacts/dev` and are development-only. If the CA is not installed by the script, it must be trusted manually before IPC TLS/mTLS can pass normal .NET certificate-chain validation. On Windows, `--install-ca` uses `certutil` to add the CA to the current user's Root store and therefore does not require an elevated Git Bash. Because native UFW is not available on Windows, set `UFW_PATH` to the Windows-compatible UFW mock/executable when it is not already on `PATH`; the script automatically uses `src/artifacts/bin/Ufw.Mock/debug/Ufw.Mock.exe` when that build output exists.
+
+For deployments or manual setup, `Ufw.Web` requires an RSA private key in PEM format for JWT signing. Configure its path through user secrets or another non-repository configuration source:
 
 ```bash
 dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/to/jwt-signing-key.pem"

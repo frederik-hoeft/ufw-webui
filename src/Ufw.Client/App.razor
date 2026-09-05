@@ -1,11 +1,18 @@
 @using Ufw.Client.Errors
+@implements IDisposable
 @inject IAuthenticationService AuthenticationService
 @inject IClientErrorMapper ClientErrors
+@inject IClientThemeService Theme
 
-<MudThemeProvider />
+<MudThemeProvider IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+
+@if (_startupState != StartupState.Ready)
+{
+    <ThemeToggle Class="standalone-theme-toggle" />
+}
 
 @if (_startupState == StartupState.Ready)
 {
@@ -47,7 +54,16 @@ else
     private ClientError? _startupError;
     private bool _initializing;
 
-    protected override async Task OnInitializedAsync() => await InitializeAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        Theme.Changed += OnThemeChanged;
+        await Theme.InitializeAsync();
+        await InitializeAsync();
+    }
+
+    public void Dispose() => Theme.Changed -= OnThemeChanged;
+
+    private void OnThemeChanged() => StateHasChanged();
 
     private async Task InitializeAsync()
     {

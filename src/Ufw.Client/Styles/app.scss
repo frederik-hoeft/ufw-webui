@@ -226,3 +226,11 @@ body {
         padding: 1rem;
     }
 }
+
+.standalone-theme-toggle,
+.login-theme-toggle {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1200;
+}
