@@ -91,6 +91,7 @@ tags
 
 # CUSTOM
 src/Ufw.Systemd/appsettings.json
+src/Ufw.Web/appsettings.json
 *.pem
 
 # Generated frontend assets

@@ -1,4 +1,4 @@
-﻿# UFW WebUI
+﻿﻿# UFW WebUI
 
 UFW WebUI separates network-facing firewall-management concerns from privileged host firewall execution.
 
@@ -27,7 +27,7 @@ dotnet build src/Ufw.slnx
 dotnet test src/Ufw.slnx
 ```
 
-For local Linux or Windows development, `scripts/setup-dev.sh` generates a development CA, daemon/server and web/client mTLS credentials, a P-256 ECDSA JWT-signing key, a browser P-256 intent-signing keypair, the daemon `authorized_keys` file, and a gitignored `src/Ufw.Systemd/appsettings.json`. On Windows, run the same script from Git Bash/MSYS; it writes native Windows paths into .NET configuration, uses a local Windows named pipe, and protects generated private keys with Windows ACLs. By default it also configures the corresponding `Ufw.Web` values through user secrets. It never installs the generated CA into the host trust store unless `--install-ca` is passed.
+For local Linux or Windows development, `scripts/setup-dev.sh` generates a development CA, daemon/server and web/client mTLS credentials, a P-256 ECDSA JWT-signing key, a browser P-256 intent-signing keypair, the daemon `authorized_keys` file, and matching gitignored `src/Ufw.Systemd/appsettings.json` and `src/Ufw.Web/appsettings.json` files. On Windows, run the same script from Git Bash/MSYS; it writes native Windows paths into .NET configuration, uses a local Windows named pipe, and protects generated private keys/configuration with Windows ACLs. It never installs the generated CA into the host trust store unless `--install-ca` is passed.
 
 ```bash
 ./scripts/setup-dev.sh
@@ -35,31 +35,26 @@ For local Linux or Windows development, `scripts/setup-dev.sh` generates a devel
 ./scripts/setup-dev.sh --install-ca
 ```
 
-Run `./scripts/setup-dev.sh --help` for overwrite and user-secret options. The generated credentials live under `artifacts/dev` and are development-only. If the CA is not installed by the script, it must be trusted manually before IPC TLS/mTLS can pass normal .NET certificate-chain validation. On Windows, `--install-ca` uses `certutil` to add the CA to the current user's Root store and therefore does not require an elevated Git Bash. Because native UFW is not available on Windows, set `UFW_PATH` to the Windows-compatible UFW mock/executable when it is not already on `PATH`; the script automatically uses `src/artifacts/bin/Ufw.Mock/debug/Ufw.Mock.exe` when that build output exists.
+Run `./scripts/setup-dev.sh --help` for overwrite options. The generated credentials live under `artifacts/dev` and are development-only. If the CA is not installed by the script, it must be trusted manually before IPC TLS/mTLS can pass normal .NET certificate-chain validation. On Windows, `--install-ca` uses `certutil` to add the CA to the current user's Root store and therefore does not require an elevated Git Bash. Because native UFW is not available on Windows, set `UFW_PATH` to the Windows-compatible UFW mock/executable when it is not already on `PATH`; the script automatically uses `src/artifacts/bin/Ufw.Mock/debug/Ufw.Mock.exe` when that build output exists.
 
-For deployments or manual setup, `Ufw.Web` requires a P-256 ECDSA private key in PKCS#8 PEM format for JWT signing. Configure its path through user secrets or another non-repository configuration source:
+`Ufw.Web` follows the same local-configuration convention as `Ufw.Systemd`. `src/Ufw.Web/appsettings.default.json` is the committed template/reference, while `src/Ufw.Web/appsettings.json` is gitignored and is the only local JSON configuration file loaded by the application. Normal environment variables and command-line arguments override it, so containers can use environment-only configuration without creating a file. Environment-specific `appsettings.{Environment}.json` files and ASP.NET Core user secrets are intentionally not part of the configuration model. The local `appsettings.json` is excluded from `dotnet publish`; deployments that use file-based configuration should mount/provide their runtime file explicitly rather than baking a developer-local file into the image.
 
-```bash
-dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/to/jwt-signing-key.pem"
-```
+The committed default is development-oriented and includes the local HTTPS client origin plus the bootstrap account `admin@home.arpa` / `admin`. Do not use those credentials unchanged in a deployed environment. The corresponding default Identity password policy is deliberately permissive enough for this bootstrap account; deployments should override `Auth:Identity` and bootstrap credentials through their local `appsettings.json` or environment variables.
+
+For deployments or manual setup, `Ufw.Web` requires a P-256 ECDSA private key in PKCS#8 PEM format for JWT signing. Set `Auth:Jwt:SigningKeyPath` in the local config or through the standard ASP.NET Core environment-variable mapping, for example `Auth__Jwt__SigningKeyPath=/run/secrets/ufw-web-jwt.pem`.
 
 The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory. `Ufw.Client/wwwroot/appsettings.json` configures the REST API base URL. The client requires an absolute HTTPS base URL and normalizes a missing trailing slash before constructing versioned API paths. Development CORS is configured for the HTTPS client profile at `https://localhost:7298`.
 
+Console formatting is configuration-driven as well. The committed default uses the normal human-readable `simple` formatter; container deployments can switch to structured JSON without a code change, for example with `Logging__Console__FormatterName=json`.
+
 No public user-registration endpoint is provided. Initial accounts can instead be provisioned through the `Auth:Bootstrap:Users` configuration section. Bootstrap is idempotent across restarts: missing accounts are created through ASP.NET Core Identity, while existing passwords are never reset from bootstrap configuration. `EmailConfirmed` defaults to `true` and is reconciled for existing configured accounts. Removing an entry does not delete the corresponding user.
 
-For local development, user secrets are convenient:
-
-```bash
-dotnet user-secrets --project src/Ufw.Web set "Auth:Bootstrap:Users:0:Email" "test@example.invalid"
-dotnet user-secrets --project src/Ufw.Web set "Auth:Bootstrap:Users:0:Password" "ChangeThisPassword123"
-Container deployments can use the standard ASP.NET Core environment-variable mapping instead:
-
 ```text
-Auth__Bootstrap__Users__0__Email=test@example.invalid
+Auth__Bootstrap__Users__0__Email=admin@example.invalid
 Auth__Bootstrap__Users__0__Password=<secret>
 Auth__Bootstrap__Users__0__EmailConfirmed=true
 # Optional; defaults to the email address when the account is first created.
-Auth__Bootstrap__Users__0__UserName=test@example.invalid
+Auth__Bootstrap__Users__0__UserName=admin
 ```
 
 The password is required only if the configured account does not yet exist. After initial provisioning it can be removed from configuration; subsequent starts still reconcile non-secret bootstrap state without changing the user's password. Invalid or conflicting bootstrap entries fail application startup with an actionable error rather than silently overwriting existing identity state. Longer-term interactive user administration remains a separate API/UI concern.

@@ -4,7 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-UfwWebUI-55d00f8c-a638-48d7-a489-08563a385b4a</UserSecretsId>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-all</AnalysisLevel>
@@ -28,6 +27,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ufw.Ipc.Client\Ufw.Ipc.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="appsettings.default.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <Content Update="appsettings.json">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

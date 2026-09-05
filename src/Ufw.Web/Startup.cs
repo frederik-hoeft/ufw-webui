@@ -25,21 +25,8 @@ internal static class Startup
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
         services.AddDatabaseDeveloperPageExceptionFilter();
 
-        services.AddIdentityCore<IdentityUser>(options =>
-            {
-                options.Password.RequiredLength = 16;
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireNonAlphanumeric = false;
-
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.AllowedForNewUsers = true;
-
-                options.User.RequireUniqueEmail = true;
-                options.SignIn.RequireConfirmedAccount = true;
-            })
+        services.Configure<IdentityOptions>(configuration.GetSection("Auth:Identity"));
+        services.AddIdentityCore<IdentityUser>()
             .AddRoles<IdentityRole>()
             .AddSignInManager()
             .AddEntityFrameworkStores<ApplicationDbContext>()

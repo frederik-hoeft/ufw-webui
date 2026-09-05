@@ -7,7 +7,8 @@ readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 readonly DEFAULT_DEV_DIR="$REPO_ROOT/artifacts/dev"
 readonly SYSTEMD_CONFIG="$REPO_ROOT/src/Ufw.Systemd/appsettings.json"
-readonly WEB_PROJECT="$REPO_ROOT/src/Ufw.Web/Ufw.Web.csproj"
+readonly WEB_CONFIG="$REPO_ROOT/src/Ufw.Web/appsettings.json"
+readonly WEB_DEFAULT_CONFIG="$REPO_ROOT/src/Ufw.Web/appsettings.default.json"
 readonly TLS_SERVER_NAME="ufw-systemd"
 readonly CA_COMMON_NAME="UFW WebUI Development CA"
 readonly SERVER_COMMON_NAME="$TLS_SERVER_NAME"
@@ -16,7 +17,6 @@ readonly CLIENT_COMMON_NAME="ufw-web-dev-client"
 DEV_DIR="${UFW_DEV_DIR:-$DEFAULT_DEV_DIR}"
 FORCE=false
 INSTALL_CA=false
-CONFIGURE_WEB=true
 
 HOST_OS="unix"
 case "$(uname -s 2>/dev/null || true)" in
@@ -39,16 +39,16 @@ Generates local development credentials and configuration for UFW WebUI:
   - a P-256 ECDSA Ufw.Web JWT signing key;
   - a P-256 browser intent-signing keypair and daemon authorized_keys file;
   - src/Ufw.Systemd/appsettings.json configured for local mTLS;
-  - Ufw.Web user-secrets entries for JWT signing and mTLS IPC.
+  - src/Ufw.Web/appsettings.json configured for the matching local IPC/TLS
+    endpoint and JWT signing key.
 
 Options:
-  --force            Replace generated development material and managed Ufw.Web
-                     user-secret values.
+  --force            Replace generated development material and generated local
+                     application configuration.
   --install-ca       Install the generated development CA into the current host trust
                      store. On Windows/Git Bash this uses the current-user Root store;
                      on Unix this may invoke sudo and supports update-ca-certificates or
                      p11-kit trust.
-  --no-user-secrets  Generate files/configuration without modifying Ufw.Web user secrets.
   -h, --help         Show this help.
 
 Environment:
@@ -102,16 +102,6 @@ run_windows_native() {
     MSYS2_ARG_CONV_EXCL='*' "$@"
 }
 
-dotnet_user_secrets() {
-    local project_path
-    project_path="$(to_host_path "$WEB_PROJECT")"
-
-    if is_windows; then
-        run_windows_native dotnet user-secrets --project "$project_path" "$@"
-    else
-        dotnet user-secrets --project "$project_path" "$@"
-    fi
-}
 
 run_as_root() {
     if [[ "$(id -u)" -eq 0 ]]; then
@@ -141,9 +131,6 @@ while (($# > 0)); do
         --install-ca)
             INSTALL_CA=true
             ;;
-        --no-user-secrets)
-            CONFIGURE_WEB=false
-            ;;
         -h|--help)
             usage
             exit 0
@@ -160,26 +147,6 @@ if is_windows; then
     require_command cygpath
     require_command icacls.exe
     DEV_DIR="$(to_shell_path "$DEV_DIR")"
-fi
-
-if [[ "$CONFIGURE_WEB" == true ]]; then
-    require_command dotnet
-
-    if [[ "$FORCE" != true ]]; then
-        existing_secrets="$(dotnet_user_secrets list 2>/dev/null || true)"
-        for key in \
-            'Auth:Jwt:SigningKeyPath' \
-            'IpcOptions:Endpoint' \
-            'IpcOptions:TlsEnabled' \
-            'IpcOptions:TlsServerName' \
-            'IpcOptions:SslProtocols' \
-            'IpcOptions:ClientCertificatePath' \
-            'IpcOptions:ClientCertificateKeyPath'; do
-            if grep -Fq -- "$key =" <<<"$existing_secrets"; then
-                fail "Ufw.Web user secret '$key' is already configured; rerun with --force to replace it or --no-user-secrets to leave user secrets unchanged"
-            fi
-        done
-    fi
 fi
 
 [[ -n "$DEV_DIR" && "$DEV_DIR" != "/" ]] || fail "unsafe UFW_DEV_DIR '$DEV_DIR'"
@@ -226,7 +193,7 @@ if ! is_windows; then
 fi
 
 if [[ "$FORCE" != true ]]; then
-    for path in "${GENERATED_PATHS[@]}" "$SYSTEMD_CONFIG"; do
+    for path in "${GENERATED_PATHS[@]}" "$SYSTEMD_CONFIG" "$WEB_CONFIG"; do
         [[ ! -e "$path" ]] || fail "'$path' already exists; rerun with --force to replace development material"
     done
 fi
@@ -236,7 +203,7 @@ if [[ "$FORCE" == true ]]; then
     if ! is_windows; then
         rm -f -- "$PIPE_NAME"
     fi
-    rm -f -- "$SYSTEMD_CONFIG"
+    rm -f -- "$SYSTEMD_CONFIG" "$WEB_CONFIG"
 fi
 
 mkdir -p -- "$PKI_DIR" "$AUTH_DIR" "$INTENT_DIR" "$STATE_DIR/nonces"
@@ -474,24 +441,47 @@ cat > "$SYSTEMD_CONFIG" <<EOF_SYSTEMD_CONFIG
   }
 }
 EOF_SYSTEMD_CONFIG
-if ! is_windows; then
-    chmod 0600 "$SYSTEMD_CONFIG"
-fi
+protect_private_file "$SYSTEMD_CONFIG"
 
-if [[ "$CONFIGURE_WEB" == true ]]; then
-    printf 'Configuring Ufw.Web user secrets...\n'
-    web_jwt_key="$(to_host_path "$JWT_KEY")"
-    web_client_cert="$(to_host_path "$CLIENT_CERT")"
-    web_client_key="$(to_host_path "$CLIENT_KEY")"
+printf 'Writing Ufw.Web local configuration...\n'
+web_jwt_key="$(to_host_path "$JWT_KEY")"
+web_client_cert="$(to_host_path "$CLIENT_CERT")"
+web_client_key="$(to_host_path "$CLIENT_KEY")"
+escaped_web_jwt_key="$(json_escape "$web_jwt_key")"
+escaped_pipe_endpoint="$(json_escape "$PIPE_ENDPOINT")"
+escaped_web_client_cert="$(json_escape "$web_client_cert")"
+escaped_web_client_key="$(json_escape "$web_client_key")"
 
-    dotnet_user_secrets set 'Auth:Jwt:SigningKeyPath' "$web_jwt_key" >/dev/null
-    dotnet_user_secrets set 'IpcOptions:Endpoint' "$PIPE_ENDPOINT" >/dev/null
-    dotnet_user_secrets set 'IpcOptions:TlsEnabled' 'true' >/dev/null
-    dotnet_user_secrets set 'IpcOptions:TlsServerName' "$TLS_SERVER_NAME" >/dev/null
-    dotnet_user_secrets set 'IpcOptions:SslProtocols' 'None' >/dev/null
-    dotnet_user_secrets set 'IpcOptions:ClientCertificatePath' "$web_client_cert" >/dev/null
-    dotnet_user_secrets set 'IpcOptions:ClientCertificateKeyPath' "$web_client_key" >/dev/null
-fi
+web_config="$(< "$WEB_DEFAULT_CONFIG")"
+replace_web_config_once() {
+    local expected="$1"
+    local replacement="$2"
+    [[ "$web_config" == *"$expected"* ]] \
+        || fail "Ufw.Web default configuration no longer contains expected template field: $expected"
+    web_config="${web_config/"$expected"/"$replacement"}"
+}
+
+replace_web_config_once \
+    '      "SigningKeyPath": "",' \
+    "      \"SigningKeyPath\": \"$escaped_web_jwt_key\","
+replace_web_config_once \
+    '    "Endpoint": "/run/ufw-systemd.pipe",' \
+    "    \"Endpoint\": \"$escaped_pipe_endpoint\","
+replace_web_config_once \
+    '    "TlsEnabled": false,' \
+    '    "TlsEnabled": true,'
+replace_web_config_once \
+    '    "TlsServerName": "",' \
+    "    \"TlsServerName\": \"$TLS_SERVER_NAME\","
+replace_web_config_once \
+    '    "ClientCertificatePath": "",' \
+    "    \"ClientCertificatePath\": \"$escaped_web_client_cert\","
+replace_web_config_once \
+    '    "ClientCertificateKeyPath": ""' \
+    "    \"ClientCertificateKeyPath\": \"$escaped_web_client_key\""
+
+printf '%s\n' "$web_config" > "$WEB_CONFIG"
+protect_private_file "$WEB_CONFIG"
 
 install_ca() {
     if is_windows; then
@@ -533,6 +523,7 @@ Development material generated successfully.
   Intent private key:   $INTENT_PRIVATE_KEY
   Authorized keys:      $AUTHORIZED_KEYS
   Daemon config:        $SYSTEMD_CONFIG
+  Web config:           $WEB_CONFIG
   IPC endpoint:         $PIPE_ENDPOINT
 
 The generated intent private key is the value to paste into the client's per-mutation

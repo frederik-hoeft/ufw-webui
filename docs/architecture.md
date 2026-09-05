@@ -37,6 +37,8 @@ The rules view tracks daemon responses as explicit authoritative snapshots rathe
 - JWT-protected rule and intent-context REST endpoints;
 - local IPC client registration and daemon-response projection.
 
+`Ufw.Web` treats `src/Ufw.Web/appsettings.json` as its only local JSON configuration source. The committed `appsettings.default.json` is a template rather than an additional runtime layer; environment variables and command-line arguments override the local file for containerized and other externalized deployments. Environment-specific appsettings files and ASP.NET Core user secrets are intentionally outside this configuration model.
+
 Refresh tokens are random opaque values delivered in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Only SHA-256 token hashes are persisted. Refresh tokens rotate on use, belong to a token family, and family reuse invalidates remaining active tokens. A stored Identity security stamp ties a refresh-token family to the user's current security state.
 
 Initial Identity accounts may be supplied through `Auth:Bootstrap:Users` from any normal ASP.NET Core configuration provider, including environment variables used by container deployments. Bootstrap runs after database migration and is deliberately non-destructive: it creates missing users through `UserManager`, reconciles configured email-confirmation state, never resets an existing password, and never deletes users that disappear from configuration. A password is therefore creation-only bootstrap material rather than ongoing desired-state configuration.
