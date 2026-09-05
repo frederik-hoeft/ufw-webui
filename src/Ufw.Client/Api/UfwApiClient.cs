@@ -9,9 +9,12 @@ namespace Ufw.Client.Api;
 
 internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService intentSigningService) : IUfwApiClient
 {
+    private static readonly Uri s_rulesUri = new("api/v1/rules", UriKind.Relative);
+    private static readonly Uri s_intentContextUri = new("api/v1/intent/context", UriKind.Relative);
+
     public async Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default)
     {
-        using HttpResponseMessage response = await httpClient.GetAsync("api/v1/rules", cancellationToken);
+        using HttpResponseMessage response = await httpClient.GetAsync(s_rulesUri, cancellationToken);
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleListResponse, cancellationToken);
     }
 
@@ -27,7 +30,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
             privateKey,
             cancellationToken);
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-            "api/v1/rules",
+            s_rulesUri,
             request,
             MessageJsonSerializerContext.Default.AddRuleRequest,
             cancellationToken);
@@ -52,7 +55,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
             rule.Rule,
             privateKey,
             cancellationToken);
-        using HttpRequestMessage httpRequest = new(HttpMethod.Delete, "api/v1/rules")
+        using HttpRequestMessage httpRequest = new(HttpMethod.Delete, s_rulesUri)
         {
             Content = JsonContent.Create(request, MessageJsonSerializerContext.Default.DeleteRuleRequest),
         };
@@ -62,7 +65,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
 
     private async Task<IntentContextResponse> GetIntentContextAsync(CancellationToken cancellationToken)
     {
-        using HttpResponseMessage response = await httpClient.GetAsync("api/v1/intent/context", cancellationToken);
+        using HttpResponseMessage response = await httpClient.GetAsync(s_intentContextUri, cancellationToken);
         IntentContextResponse context = await response.ReadRequiredAsync(
             MessageJsonSerializerContext.Default.IntentContextResponse,
             cancellationToken);

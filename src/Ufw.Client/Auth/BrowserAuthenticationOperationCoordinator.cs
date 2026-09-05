@@ -4,7 +4,7 @@ using Ufw.Client.Errors;
 
 namespace Ufw.Client.Auth;
 
-internal sealed class BrowserAuthenticationOperationCoordinator(
+internal sealed partial class BrowserAuthenticationOperationCoordinator(
     IJSRuntime jsRuntime,
     ILogger<BrowserAuthenticationOperationCoordinator> logger) : IAuthenticationOperationCoordinator, IAsyncDisposable
 {
@@ -77,7 +77,7 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
                 }
                 catch (Exception exception) when (exception is JSException or JSDisconnectedException)
                 {
-                    logger.LogDebug(exception, "Could not dispose the browser authentication coordination module.");
+                    LogModuleDisposeFailure(logger, exception);
                 }
                 finally
                 {
@@ -140,6 +140,12 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
         }
     }
 
+    [LoggerMessage(LogLevel.Debug, "Could not dispose the browser authentication coordination module.")]
+    private static partial void LogModuleDisposeFailure(ILogger logger, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Could not release the browser authentication coordination lock.")]
+    private static partial void LogLockReleaseFailure(ILogger logger, Exception exception);
+
     private async Task ReleaseBrowserLockAsync(IJSObjectReference module, string requestId)
     {
         try
@@ -148,7 +154,7 @@ internal sealed class BrowserAuthenticationOperationCoordinator(
         }
         catch (Exception exception) when (exception is JSException or JSDisconnectedException)
         {
-            logger.LogWarning(exception, "Could not release the browser authentication coordination lock.");
+            LogLockReleaseFailure(logger, exception);
         }
     }
 }

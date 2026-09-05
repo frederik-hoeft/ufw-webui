@@ -9,7 +9,7 @@ using Ufw.Ipc.Shared.Serialization.Json;
 
 namespace Ufw.Client.Intent;
 
-internal sealed class BrowserIntentSigningService(
+internal sealed partial class BrowserIntentSigningService(
     IJSRuntime jsRuntime,
     TimeProvider timeProvider,
     ILogger<BrowserIntentSigningService> logger) : IIntentSigningService, IAsyncDisposable
@@ -113,7 +113,7 @@ internal sealed class BrowserIntentSigningService(
                 }
                 catch (Exception exception) when (exception is JSException or JSDisconnectedException)
                 {
-                    logger.LogDebug(exception, "Could not dispose the browser intent-signing module.");
+                    LogModuleDisposeFailure(logger, exception);
                 }
                 finally
                 {
@@ -127,6 +127,9 @@ internal sealed class BrowserIntentSigningService(
             _operationLock.Dispose();
         }
     }
+
+    [LoggerMessage(LogLevel.Debug, "Could not dispose the browser intent-signing module.")]
+    private static partial void LogModuleDisposeFailure(ILogger logger, Exception exception);
 
     private async Task<T> RunWithModuleAsync<T>(
         Func<IJSObjectReference, Task<T>> operation,

@@ -5,7 +5,7 @@ namespace Ufw.Client.Auth;
 
 internal sealed class BearerTokenHandler(IAuthenticationService authenticationService) : DelegatingHandler
 {
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         string? accessToken = await authenticationService.GetAccessTokenAsync(cancellationToken);
         HttpRequestReplaySnapshot? replay = accessToken is null

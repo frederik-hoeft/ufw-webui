@@ -2,11 +2,11 @@ namespace Ufw.Client.Api;
 
 public sealed class ApiProblemDetails
 {
-    public string? Title { get; set; }
+    public string? Title { get; init; }
 
-    public string? Detail { get; set; }
+    public string? Detail { get; init; }
 
-    public string? Message { get; set; }
+    public string? Message { get; init; }
 
-    public Dictionary<string, string[]>? Errors { get; set; }
+    public IReadOnlyDictionary<string, string[]>? Errors { get; init; }
 }

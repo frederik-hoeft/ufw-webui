@@ -8,7 +8,7 @@ namespace Ufw.Client.Auth;
 internal sealed class AuthenticationSession : AuthenticationStateProvider, IAuthenticationSession
 {
     private static readonly AuthenticationState s_anonymous = new(new ClaimsPrincipal(new ClaimsIdentity()));
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private AuthenticationState _state = s_anonymous;
     private (string AccessToken, DateTimeOffset ExpiresAt)? _token;
 

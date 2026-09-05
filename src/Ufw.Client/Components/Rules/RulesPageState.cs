@@ -86,7 +86,7 @@ internal sealed record RulesPageState
             staleReason: StaleReason);
     }
 
-    public RulesPageState CompleteRefresh(RuleListResponse response)
+    public static RulesPageState CompleteRefresh(RuleListResponse response)
     {
         return new(
             RulesPageStatus.Current,

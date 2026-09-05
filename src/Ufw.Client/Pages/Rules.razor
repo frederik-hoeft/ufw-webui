@@ -164,7 +164,7 @@ else if (_state.Snapshot is { } snapshot)
         try
         {
             Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
-            _state = _state.CompleteRefresh(response);
+            _state = RulesPageState.CompleteRefresh(response);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {

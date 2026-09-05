@@ -5,9 +5,9 @@ using Ufw.Client.Api;
 
 namespace Ufw.Client.Errors;
 
-internal sealed class ClientErrorMapper(ILogger<ClientErrorMapper> logger) : IClientErrorMapper
+internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logger) : IClientErrorMapper
 {
-    public bool TryDescribe(Exception exception, out ClientError error)
+    public bool TryDescribe(Exception exception, out ClientError clientError)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
@@ -36,29 +36,29 @@ internal sealed class ClientErrorMapper(ILogger<ClientErrorMapper> logger) : ICl
 
         if (known is null)
         {
-            error = null!;
+            clientError = null!;
             return false;
         }
 
-        error = known;
+        clientError = known;
         return true;
     }
 
     public ClientError Describe(Exception exception)
     {
-        if (TryDescribe(exception, out ClientError error))
+        if (TryDescribe(exception, out ClientError clientError))
         {
-            return error;
+            return clientError;
         }
 
-        logger.LogError(exception, "An unexpected client error occurred.");
+        LogUnexpectedClientError(logger, exception);
         return new(
             ClientErrorKind.Unexpected,
             "An unexpected error occurred. Refresh the application and try again.",
             Retryable: true);
     }
 
-    private ClientError DescribeApiRequest(ApiRequestException exception)
+    private static ClientError DescribeApiRequest(ApiRequestException exception)
     {
         int statusCode = (int)exception.StatusCode;
         if (exception.StatusCode == HttpStatusCode.Unauthorized)
@@ -110,9 +110,15 @@ internal sealed class ClientErrorMapper(ILogger<ClientErrorMapper> logger) : ICl
             Retryable: false);
     }
 
+    [LoggerMessage(LogLevel.Error, "An unexpected client error occurred.")]
+    private static partial void LogUnexpectedClientError(ILogger logger, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "The management API returned an invalid or incompatible response.")]
+    private static partial void LogProtocolError(ILogger logger, Exception exception);
+
     private ClientError DescribeProtocolError(ApiProtocolException exception)
     {
-        logger.LogWarning(exception, "The management API returned an invalid or incompatible response.");
+        LogProtocolError(logger, exception);
         return new(
             ClientErrorKind.Protocol,
             "The management API returned a response this client could not understand. Check that the client and server versions match.",

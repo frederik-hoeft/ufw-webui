@@ -1,0 +1,9 @@
+[*.cs]
+# CA2007 targets reusable libraries. Ufw.Client is a Blazor application whose async continuations
+# may interact with renderer/browser state, so forcing ConfigureAwait(false) is not appropriate.
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1812 cannot see activation performed by Microsoft.Extensions.DependencyInjection. These internal
+# implementation types are registered explicitly in Program.cs and should not be made public just
+# to satisfy the analyzer.
+dotnet_diagnostic.CA1812.severity = none
