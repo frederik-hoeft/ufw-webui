@@ -7,7 +7,8 @@ The solution contains:
 - `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/SQLite, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
 - `Ufw.Systemd`: privileged host daemon responsible for authoritative UFW state, signed mutation authorization, semantic rule handling, and UFW subprocess execution;
 - `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, transport security, and shared signed-intent/rule semantics;
-- `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API.
+- `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API;
+- `Ufw.Mock`: a development-only, platform-neutral `ufw` CLI substitute that persists firewall state locally instead of modifying the host firewall.
 
 The browser UI is not part of this repository yet. The backend implements unsigned rule/context reads plus signed AddRule and DeleteRule flows. A future Blazor WebAssembly client can use the shared intent contract to create signatures in-browser.
 
@@ -32,6 +33,18 @@ dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/t
 ```
 
 The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory.
+
+### Development UFW mock
+
+`Ufw.Mock` implements the UFW 0.36.2 command-line surface used by the daemon without requiring Linux, elevated privileges, or a real firewall. It stores its state in a per-user application-data file; set `UFW_MOCK_STATE_PATH` to isolate a development or test instance.
+
+Build an executable apphost and point the daemon's `ufw_path` setting at it:
+
+```bash
+dotnet build src/Ufw.Mock/Ufw.Mock.csproj
+```
+
+The mock is not part of the production execution path. `Ufw.Systemd` still constructs normal UFW arguments and parses normal UFW status output, so substituting the executable exercises the same daemon integration boundary while keeping host networking untouched.
 
 No public user-registration endpoint is provided. User provisioning and administrative user-management APIs are separate from the authentication foundation.
 
