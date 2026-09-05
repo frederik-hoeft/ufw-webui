@@ -89,7 +89,7 @@ internal static class Startup
                     ValidIssuer = jwtOptions.Value.Issuer,
                     ValidAudience = jwtOptions.Value.Audience,
                     IssuerSigningKey = signingKeyProvider.SigningKey,
-                    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+                    ValidAlgorithms = [signingKeyProvider.SigningAlgorithm],
                     ClockSkew = jwtOptions.Value.ClockSkew,
                     NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
                     RoleClaimType = System.Security.Claims.ClaimTypes.Role,

@@ -27,7 +27,7 @@ dotnet build src/Ufw.slnx
 dotnet test src/Ufw.slnx
 ```
 
-For local Linux or Windows development, `scripts/setup-dev.sh` generates a development CA, daemon/server and web/client mTLS credentials, an RSA JWT-signing key, a browser P-256 intent-signing keypair, the daemon `authorized_keys` file, and a gitignored `src/Ufw.Systemd/appsettings.json`. On Windows, run the same script from Git Bash/MSYS; it writes native Windows paths into .NET configuration, uses a local Windows named pipe, and protects generated private keys with Windows ACLs. By default it also configures the corresponding `Ufw.Web` values through user secrets. It never installs the generated CA into the host trust store unless `--install-ca` is passed.
+For local Linux or Windows development, `scripts/setup-dev.sh` generates a development CA, daemon/server and web/client mTLS credentials, a P-256 ECDSA JWT-signing key, a browser P-256 intent-signing keypair, the daemon `authorized_keys` file, and a gitignored `src/Ufw.Systemd/appsettings.json`. On Windows, run the same script from Git Bash/MSYS; it writes native Windows paths into .NET configuration, uses a local Windows named pipe, and protects generated private keys with Windows ACLs. By default it also configures the corresponding `Ufw.Web` values through user secrets. It never installs the generated CA into the host trust store unless `--install-ca` is passed.
 
 ```bash
 ./scripts/setup-dev.sh
@@ -37,7 +37,7 @@ For local Linux or Windows development, `scripts/setup-dev.sh` generates a devel
 
 Run `./scripts/setup-dev.sh --help` for overwrite and user-secret options. The generated credentials live under `artifacts/dev` and are development-only. If the CA is not installed by the script, it must be trusted manually before IPC TLS/mTLS can pass normal .NET certificate-chain validation. On Windows, `--install-ca` uses `certutil` to add the CA to the current user's Root store and therefore does not require an elevated Git Bash. Because native UFW is not available on Windows, set `UFW_PATH` to the Windows-compatible UFW mock/executable when it is not already on `PATH`; the script automatically uses `src/artifacts/bin/Ufw.Mock/debug/Ufw.Mock.exe` when that build output exists.
 
-For deployments or manual setup, `Ufw.Web` requires an RSA private key in PEM format for JWT signing. Configure its path through user secrets or another non-repository configuration source:
+For deployments or manual setup, `Ufw.Web` requires a P-256 ECDSA private key in PKCS#8 PEM format for JWT signing. Configure its path through user secrets or another non-repository configuration source:
 
 ```bash
 dotnet user-secrets --project src/Ufw.Web set "Auth:Jwt:SigningKeyPath" "/path/to/jwt-signing-key.pem"

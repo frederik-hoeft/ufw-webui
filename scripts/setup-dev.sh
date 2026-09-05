@@ -36,7 +36,7 @@ Usage: scripts/setup-dev.sh [options]
 Generates local development credentials and configuration for UFW WebUI:
   - a development CA;
   - daemon TLS server and web-client mTLS certificates;
-  - the Ufw.Web RSA JWT signing key;
+  - a P-256 ECDSA Ufw.Web JWT signing key;
   - a P-256 browser intent-signing keypair and daemon authorized_keys file;
   - src/Ufw.Systemd/appsettings.json configured for local mTLS;
   - Ufw.Web user-secrets entries for JWT signing and mTLS IPC.
@@ -358,11 +358,16 @@ openssl x509 \
 openssl verify -CAfile "$CA_CERT" -purpose sslserver "$SERVER_CERT" >/dev/null
 openssl verify -CAfile "$CA_CERT" -purpose sslclient "$CLIENT_CERT" >/dev/null
 
-printf 'Generating JWT signing key...\n'
+printf 'Generating P-256 ECDSA JWT signing key...\n'
 openssl genpkey \
-    -algorithm RSA \
-    -pkeyopt rsa_keygen_bits:3072 \
+    -algorithm EC \
+    -pkeyopt ec_paramgen_curve:P-256 \
     -out "$JWT_KEY" >/dev/null 2>&1
+openssl pkey -in "$JWT_KEY" -check -noout >/dev/null
+jwt_key_details="$(openssl pkey -in "$JWT_KEY" -text -noout)"
+if ! grep -Fq 'NIST CURVE: P-256' <<< "$jwt_key_details"; then
+    fail 'generated JWT signing key is not a P-256 EC key'
+fi
 
 printf 'Generating browser intent-signing keypair...\n'
 openssl genpkey \
