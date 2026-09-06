@@ -376,7 +376,7 @@
     <value>Any family</value>
   </data>
   <data name="AnyProtocol" xml:space="preserve">
-    <value>any</value>
+    <value>Any</value>
   </data>
   <data name="Allow" xml:space="preserve">
     <value>Allow</value>

@@ -64,3 +64,31 @@
 .interface-comment-cell .mud-button-root {
     flex: 0 0 auto;
 }
+
+
+.interface-inventory-mobile {
+    display: none;
+}
+
+.interface-mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.interface-mobile-row:last-child {
+    border-bottom: 0;
+}
+
+.interface-mobile-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.25rem;
+}
+
+.interface-mobile-row .mud-button-root {
+    flex: 0 0 auto;
+}

@@ -42,8 +42,16 @@
     gap: 0.5rem;
 }
 
+.settings-row-control {
+    display: flex;
+    width: min(18rem, 100%);
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
 .settings-language-select {
-    width: min(16rem, 100%);
+    width: 100%;
 
     .mud-input,
     .mud-input-slot {

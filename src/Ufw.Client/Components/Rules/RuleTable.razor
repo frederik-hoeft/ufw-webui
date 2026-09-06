@@ -132,35 +132,14 @@
                                         }
                                     </td>
                                     <td class="rule-row-actions">
-                                        <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
-                                                 Size="Size.Small"
-                                                 Dense="true"
-                                                 Class="rule-row-menu"
-                                                 PopoverClass="rule-row-menu-popover"
-                                                 aria-label="@ActionsLabel(rule)">
-                                            <MudMenuItem Disabled="@(OrderingDisabled || !CanOrderRule(rule))"
-                                                         OnClick="@(() => RequestMoveToPositionAsync(rule))">
-                                                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Class="mr-2" />
-                                                @RulesText["MoveToPosition"]
-                                            </MudMenuItem>
-                                            <MudMenuItem Disabled="@(InsertionDisabled || !CanOrderRule(rule))"
-                                                         Href="@BuildInsertBeforeHref(rule)">
-                                                <MudIcon Icon="@Icons.Material.Filled.VerticalAlignTop" Size="Size.Small" Class="mr-2" />
-                                                @RulesText["InsertBefore"]
-                                            </MudMenuItem>
-                                            <MudMenuItem Disabled="@(InsertionDisabled || !CanOrderRule(rule))"
-                                                         Href="@BuildInsertAfterHref(rule)">
-                                                <MudIcon Icon="@Icons.Material.Filled.VerticalAlignBottom" Size="Size.Small" Class="mr-2" />
-                                                @RulesText["InsertAfter"]
-                                            </MudMenuItem>
-                                            <MudDivider />
-                                            <MudMenuItem Disabled="@(Disabled || !CanMutateRule(rule))"
-                                                         OnClick="@(() => DeleteRequested.InvokeAsync(rule))"
-                                                         Class="rule-menu-delete">
-                                                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Class="mr-2" />
-                                                @RulesText["DeleteRule"]
-                                            </MudMenuItem>
-                                        </MudMenu>
+                                        <RuleActionsMenu Rule="@rule"
+                                                         OrderingDisabled="@OrderingDisabled"
+                                                         InsertionDisabled="@InsertionDisabled"
+                                                         MutationDisabled="@Disabled"
+                                                         CanOrder="@CanOrderRule(rule)"
+                                                         CanMutate="@CanMutateRule(rule)"
+                                                         MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                                         DeleteRequested="@DeleteRequested" />
                                     </td>
                                 </tr>
                             }
@@ -193,6 +172,102 @@
                         }
                     </tbody>
                 </table>
+            </div>
+
+            <div class="rule-mobile-list" aria-busy="@Loading">
+                @foreach (ListedFirewallRule rule in Rules)
+                {
+                    if (rule.Parsed && rule.Rule is not null)
+                    {
+                        <article class="@MobileCardClass(rule)">
+                            <div class="rule-mobile-card-header">
+                                <div class="rule-mobile-card-identity">
+                                    @if (TryGetPositionChange(rule, out int originalPosition, out int currentPosition, out bool directlyMoved))
+                                    {
+                                        <span class="@PositionChangeClass(directlyMoved)"
+                                              aria-label="@PositionChangeLabel(originalPosition, currentPosition, directlyMoved)">
+                                            <span aria-hidden="true" class="rule-position-change-values">
+                                                @if (directlyMoved)
+                                                {
+                                                    <s>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
+                                                }
+                                                else
+                                                {
+                                                    <span>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                }
+                                                <span class="rule-position-arrow">→</span>
+                                                <span>@currentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                            </span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                    }
+                                    <span class="@FirewallRulePresentation.ActionClass(rule.Rule.Action)">
+                                        @RuleText.FormatAction(rule.Rule.Action)
+                                    </span>
+                                </div>
+                                <RuleActionsMenu Rule="@rule"
+                                                 OrderingDisabled="@OrderingDisabled"
+                                                 InsertionDisabled="@InsertionDisabled"
+                                                 MutationDisabled="@Disabled"
+                                                 CanOrder="@CanOrderRule(rule)"
+                                                 CanMutate="@CanMutateRule(rule)"
+                                                 MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                                 DeleteRequested="@DeleteRequested" />
+                            </div>
+
+                            <div class="rule-mobile-card-meta">
+                                <span class="rule-direction-family">
+                                    <span class="rule-direction">@RuleText.FormatDirection(rule.Rule.Direction)</span>
+                                    <span class="rule-family">@RuleText.FormatAddressFamily(rule.Rule.AddressFamily)</span>
+                                </span>
+                                <span>
+                                    <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
+                                    @if (RuleText.DescribePorts(rule.Rule) is { } mobilePortDescription)
+                                    {
+                                        <span class="rule-protocol-detail">@mobilePortDescription</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <dl class="rule-mobile-endpoints">
+                                <div>
+                                    <dt>@RulesText["FromColumn"]</dt>
+                                    <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, null, rule.Rule.SourceInterface)</dd>
+                                </div>
+                                <div>
+                                    <dt>@RulesText["ToColumn"]</dt>
+                                    <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, null, rule.Rule.DestinationInterface)</dd>
+                                </div>
+                            </dl>
+
+                            @if (!string.IsNullOrWhiteSpace(rule.Rule.Comment))
+                            {
+                                <div class="rule-mobile-comment">
+                                    <span class="rule-mobile-field-label">@RulesText["CommentColumn"]</span>
+                                    <span class="rule-comment">@rule.Rule.Comment</span>
+                                </div>
+                            }
+                        </article>
+                    }
+                    else
+                    {
+                        <article class="rule-mobile-card rule-mobile-card-readonly">
+                            <div class="rule-mobile-card-header">
+                                <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
+                                    <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
+                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+                                    </span>
+                                </MudTooltip>
+                            </div>
+                            <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
+                            <span class="rule-raw-line">@rule.RawLine</span>
+                        </article>
+                    }
+                }
             </div>
         }
     </MudPaper>
@@ -253,11 +328,6 @@
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
 
-    private string ActionsLabel(ListedFirewallRule rule)
-        => rule.DisplayNumber is { } number
-            ? RulesText["ActionsForRule", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
-            : RulesText["RuleActions"];
-
     private string DragHandleLabel(ListedFirewallRule rule)
         => rule.DisplayNumber is { } number
             ? RulesText["DragRuleNumber", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
@@ -297,6 +367,17 @@
         if (ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule))
         {
             classes.Add("rule-row-drop-target");
+        }
+
+        return string.Join(' ', classes);
+    }
+
+    private string MobileCardClass(ListedFirewallRule rule)
+    {
+        List<string> classes = ["rule-mobile-card"];
+        if (TryGetPositionChange(rule, out _, out _, out bool directlyMoved) && directlyMoved)
+        {
+            classes.Add("rule-mobile-card-ordering-direct");
         }
 
         return string.Join(' ', classes);
@@ -447,14 +528,4 @@
         return 0;
     }
 
-    private static string BuildInsertBeforeHref(ListedFirewallRule rule)
-        => BuildInsertHref("before", rule.RuleId);
-
-    private static string BuildInsertAfterHref(ListedFirewallRule rule)
-        => BuildInsertHref("after", rule.RuleId);
-
-    private static string BuildInsertHref(string placement, string? ruleId)
-        => string.IsNullOrWhiteSpace(ruleId)
-            ? "/rules/create"
-            : $"/rules/create?{placement}={Uri.EscapeDataString(ruleId)}";
 }

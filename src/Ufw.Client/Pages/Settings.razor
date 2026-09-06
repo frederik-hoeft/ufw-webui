@@ -49,18 +49,21 @@
                     @SettingsText["LanguageDescription"]
                 </MudText>
             </div>
-            <MudSelect T="string"
-                       Value="@Culture.CurrentCulture.Name"
-                       ValueChanged="SetCultureAsync"
-                       Label="@(SettingsText["LanguageLabel"])"
-                       aria-label="@(SettingsText["LanguageAria"])"
-                       Variant="Variant.Outlined"
-                       Class="settings-language-select">
-                @foreach (ClientCultureOption option in Culture.SupportedCultures)
-                {
-                    <MudSelectItem T="string" Value="@option.Name">@option.NativeDisplayName</MudSelectItem>
-                }
-            </MudSelect>
+            <div class="settings-row-control">
+                <MudSelect T="string"
+                           Value="@Culture.CurrentCulture.Name"
+                           ValueChanged="SetCultureAsync"
+                           Label="@(SettingsText["LanguageLabel"])"
+                           aria-label="@(SettingsText["LanguageAria"])"
+                           Variant="Variant.Outlined"
+                           ShrinkLabel="true"
+                           Class="settings-language-select">
+                    @foreach (ClientCultureOption option in Culture.SupportedCultures)
+                    {
+                        <MudSelectItem T="string" Value="@option.Name">@option.NativeDisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
         </div>
     </SettingsSection>
 

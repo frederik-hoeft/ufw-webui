@@ -106,7 +106,7 @@
                   Dense="true"
                   Hover="true"
                   Elevation="0"
-                  Class="interface-inventory-table">
+                  Class="interface-inventory-table interface-inventory-desktop">
             <HeaderContent>
                 <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
                 <MudTh>@InterfacesText["CommentColumn"]</MudTh>
@@ -130,6 +130,26 @@
                 </MudTd>
             </RowTemplate>
         </MudTable>
+
+        <div class="interface-inventory-mobile">
+            @foreach (NetworkInterfaceInventoryItem item in _inventory.Interfaces)
+            {
+                <div class="interface-mobile-row">
+                    <div class="interface-mobile-copy">
+                        <code class="interface-name">@item.Name</code>
+                        <span class="@(string.IsNullOrWhiteSpace(item.Comment) ? "interface-comment-empty" : "interface-comment")">
+                            @(string.IsNullOrWhiteSpace(item.Comment) ? InterfacesText["NoComment"] : item.Comment)
+                        </span>
+                    </div>
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               Disabled="@IsBusy"
+                               OnClick="@(() => EditCommentAsync(item))">
+                        @InterfacesText["EditComment"]
+                    </MudButton>
+                </div>
+            }
+        </div>
     }
 </MudPaper>
 
