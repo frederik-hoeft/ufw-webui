@@ -1,7 +1,7 @@
 ﻿using Jab;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Serialization.Json;
-using Ufw.Ipc.Shared.Transport.Itp;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Ipc.Transport.Itp;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Roslyn.Json;
 using Ufw.Systemd.Api.Controllers;

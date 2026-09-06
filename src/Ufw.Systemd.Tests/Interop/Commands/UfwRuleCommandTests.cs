@@ -1,5 +1,5 @@
-using Ufw.Firewall;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+using Ufw.Shared.Firewall.Rendering;
+using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Commands;
 
 namespace Ufw.Systemd.Tests.Interop.Commands;

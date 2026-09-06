@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
-using Ufw.Ipc.Shared.Security.Intent;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
 

@@ -1,5 +1,5 @@
 ﻿using ConsoleAppFramework;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Commands;
 

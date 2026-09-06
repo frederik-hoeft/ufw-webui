@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.ExceptionServices;
 using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Transport.Itp;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Transport.Itp;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.DependencyInjection;
 using Ufw.Ipc.Tests.Adapter.Endpoints;

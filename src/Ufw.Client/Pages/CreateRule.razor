@@ -167,7 +167,7 @@ else
         _state = _state.BeginRefresh(reason);
         try
         {
-            Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
 
             if (_mutationMayHaveCompleted)

@@ -128,7 +128,7 @@ Before this representation is built, rule semantics are normalized:
 - interfaces and comments are trimmed;
 - invalid direction/interface, address-family, protocol, address, or port combinations are rejected.
 
-Signatures use ECDSA P-256 with SHA-256 and IEEE P1363 fixed-field concatenation (`r || s`). `IntentRequestFactory`, `IntentCanonicalizer`, and `IntentSigner` in `Ufw.Ipc.Shared` implement the shared canonicalization/signing contract used by tests and future clients.
+Signatures use ECDSA P-256 with SHA-256 and IEEE P1363 fixed-field concatenation (`r || s`). `IntentRequestFactory`, `IntentCanonicalizer`, and `IntentSigner` in `Ufw.Shared.Security.Intent` implement the shared canonicalization/signing contract used by tests and future clients.
 
 ## Rule identity
 

@@ -2,14 +2,14 @@
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Pipelines;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Transport;
-using Ufw.Ipc.Shared.Transport.Itp;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Pipelines;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Transport;
+using Ufw.Shared.Ipc.Transport.Itp;
+using Ufw.Shared.Ipc.Transport.Security;
 
 namespace Ufw.Ipc.Client;
 

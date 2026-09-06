@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
 

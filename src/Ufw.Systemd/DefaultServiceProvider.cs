@@ -1,5 +1,5 @@
 ﻿using Jab;
-using Ufw.Ipc.Shared.Security.Certificates;
+using Ufw.Shared.Security.Certificates;
 using Ufw.Systemd.Api;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Firewall;

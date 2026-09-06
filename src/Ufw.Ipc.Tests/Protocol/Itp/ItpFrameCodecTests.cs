@@ -1,8 +1,8 @@
 ﻿using System.Buffers.Binary;
 using System.IO.Pipelines;
 using System.Text;
-using Ufw.Ipc.Shared.Transport;
-using Ufw.Ipc.Shared.Transport.Itp;
+using Ufw.Shared.Ipc.Transport;
+using Ufw.Shared.Ipc.Transport.Itp;
 
 namespace Ufw.Ipc.Tests.Protocol.Itp;
 

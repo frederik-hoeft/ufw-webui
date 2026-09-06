@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+using Ufw.Shared.Firewall;
 using Ufw.Mock.Cli;
 using Ufw.Mock.State;
 

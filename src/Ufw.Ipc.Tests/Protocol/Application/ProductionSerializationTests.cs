@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Roslyn.Json;
 using Ufw.Systemd.Api;
 

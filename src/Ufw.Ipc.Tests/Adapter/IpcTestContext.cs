@@ -1,9 +1,9 @@
 ﻿using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Transport;
-using Ufw.Ipc.Shared.Transport.Itp;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Transport;
+using Ufw.Shared.Ipc.Transport.Itp;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Transport;
 using Ufw.Systemd.Api.Middleware;
 

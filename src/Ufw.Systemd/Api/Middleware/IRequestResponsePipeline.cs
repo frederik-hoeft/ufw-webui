@@ -1,5 +1,5 @@
-﻿using Ufw.Ipc.Shared.Pipelines;
-using Ufw.Ipc.Shared.Serialization;
+﻿using Ufw.Shared.Ipc.Pipelines;
+using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Systemd.Api.Middleware;
 

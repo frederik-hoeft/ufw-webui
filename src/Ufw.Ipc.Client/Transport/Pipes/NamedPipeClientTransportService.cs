@@ -1,6 +1,6 @@
 ﻿using System.IO.Pipes;
 using Ufw.Ipc.Client.Configuration;
-using Ufw.Ipc.Shared.Transport;
+using Ufw.Shared.Ipc.Transport;
 
 namespace Ufw.Ipc.Client.Transport.Pipes;
 

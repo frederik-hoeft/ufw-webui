@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
-using Ufw.Ipc.Shared.Threading;
+using Ufw.Shared.Threading;
 using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Security.Intent;

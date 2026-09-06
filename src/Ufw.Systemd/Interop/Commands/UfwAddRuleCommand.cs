@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
-using Ufw.Firewall;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+using Ufw.Shared.Firewall.Rendering;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Systemd.Interop.Commands;
 

@@ -1,11 +1,11 @@
 ﻿using System.Net.Sockets;
 using System.Security.Authentication;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Transport;
-using Ufw.Ipc.Shared.Transport.Itp;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Transport;
+using Ufw.Shared.Ipc.Transport.Itp;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;

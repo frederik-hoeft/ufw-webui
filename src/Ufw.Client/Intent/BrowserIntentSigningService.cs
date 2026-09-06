@@ -2,10 +2,10 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Ufw.Client.Errors;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
-using Ufw.Ipc.Shared.Security.Intent;
-using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Security.Intent;
+using Ufw.Shared.Ipc.Serialization.Json;
 
 namespace Ufw.Client.Intent;
 

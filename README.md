@@ -7,7 +7,8 @@ The solution contains:
 - `Ufw.Client`: Blazor WebAssembly frontend using MudBlazor, with in-memory access-token state and browser-side signed-intent creation;
 - `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/SQLite, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
 - `Ufw.Systemd`: privileged host daemon responsible for authoritative UFW state, signed mutation authorization, semantic rule handling, and UFW subprocess execution;
-- `Ufw.Ipc.Client` / `Ufw.Ipc.Shared`: local IPC client, protocol models, serialization, transport security, and shared signed-intent/rule semantics;
+- `Ufw.Shared`: shared firewall semantics and rendering, signed-intent/security primitives, cross-cutting utilities, and the `Ufw.Shared.Ipc` protocol/serialization/transport contract;
+- `Ufw.Ipc.Client`: the local IPC client built on `Ufw.Shared.Ipc`;
 - `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API;
 - `Ufw.Mock`: a development-only, platform-neutral `ufw` CLI substitute that persists firewall state locally instead of modifying the host firewall.
 

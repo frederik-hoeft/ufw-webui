@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+using Ufw.Shared.Firewall;
 using Ufw.Mock.Formatting;
 using Ufw.Mock.Rules;
 using Ufw.Mock.State;

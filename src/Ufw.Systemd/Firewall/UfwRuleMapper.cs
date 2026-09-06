@@ -1,7 +1,7 @@
-﻿using Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Output;
 using Ufw.Systemd.Interop.Output.Model;
-using SharedFirewallAction = Ufw.Ipc.Shared.Model.Domain.Rules.FirewallAction;
+using SharedFirewallAction = Ufw.Shared.Firewall.FirewallAction;
 
 namespace Ufw.Systemd.Firewall;
 

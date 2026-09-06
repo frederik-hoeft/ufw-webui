@@ -1,5 +1,5 @@
 ﻿using Jab;
-using Ufw.Firewall;
+using Ufw.Shared.Firewall.Rendering;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
 

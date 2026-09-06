@@ -1,4 +1,4 @@
-﻿using Ufw.Ipc.Shared.Security.Intent;
+﻿using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Systemd.Security.Intent;
 

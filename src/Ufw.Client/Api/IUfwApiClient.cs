@@ -1,5 +1,5 @@
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 
 namespace Ufw.Client.Api;
 

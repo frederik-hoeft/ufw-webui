@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Shared.Model;
+using Ufw.Shared.Ipc.Model;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 
 namespace Ufw.Ipc.Tests.Adapter;

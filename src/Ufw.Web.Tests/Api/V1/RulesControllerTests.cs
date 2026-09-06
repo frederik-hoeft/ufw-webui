@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
-using Ufw.Ipc.Shared.Security.Intent;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
 
 namespace Ufw.Web.Tests.Api.V1;

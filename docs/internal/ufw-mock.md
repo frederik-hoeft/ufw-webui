@@ -13,11 +13,11 @@ The compatibility target is the UFW 0.36.2 command surface documented by the sup
 The production path has a useful boundary already:
 
 - `Ufw.Systemd` owns privileged execution, UFW status parsing, mutation serialization, and reconciliation.
-- `Ufw.Ipc.Shared` owns the normalized firewall-rule semantics used across process boundaries and by the daemon.
-- `Ufw.Firewall.Shared` renders validated structural rules into the canonical UFW rule argv used by the daemon and the equivalent human-readable syntax used by the browser.
+- `Ufw.Shared.Firewall` owns the normalized firewall-rule semantics used across process boundaries and by the daemon.
+- `Ufw.Shared.Firewall.Rendering` renders validated structural rules into the canonical UFW rule argv used by the daemon and the equivalent human-readable syntax used by the browser.
 - `Ufw.Web` consumes daemon behavior over IPC and has no direct UFW dependency.
 
-The mock references `Ufw.Ipc.Shared` for the rule concepts already shared with `Ufw.Systemd`, while keeping mock-only CLI parsing, persistence, formatting, application profiles, and extended UFW protocol support in `Ufw.Mock`. It does not use `Ufw.Firewall.Shared` because its responsibility is the opposite side of the boundary: parsing and emulating arbitrary supported UFW command lines rather than constructing the production rule argv. No production project references the mock and no production implementation moves into it.
+The mock references `Ufw.Shared.Firewall` for the rule concepts already shared with `Ufw.Systemd`, while keeping mock-only CLI parsing, persistence, formatting, application profiles, and extended UFW protocol support in `Ufw.Mock`. It does not use `Ufw.Shared.Firewall.Rendering` because its responsibility is the opposite side of the boundary: parsing and emulating arbitrary supported UFW command lines rather than constructing the production rule argv. No production project references the mock and no production implementation moves into it.
 
 ## Component model
 
@@ -54,7 +54,7 @@ State changes are written through a temporary file and atomically replaced. `--d
 
 ## Rule model
 
-Each persisted rule contains a normalized `FirewallRuleSpecification` from `Ufw.Ipc.Shared` plus mock-only UFW surface data that is intentionally outside the production semantic model:
+Each persisted rule contains a normalized `FirewallRuleSpecification` from `Ufw.Shared.Firewall` plus mock-only UFW surface data that is intentionally outside the production semantic model:
 
 - an extended protocol name for UFW protocols beyond `tcp`/`udp`;
 - per-rule `log`/`log-all` mode;

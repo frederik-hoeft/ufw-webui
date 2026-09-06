@@ -1,10 +1,10 @@
 ﻿using System.Security.Cryptography;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Security.Intent;
-using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Security.Intent;
+using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;

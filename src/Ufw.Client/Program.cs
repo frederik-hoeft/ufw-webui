@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
-using Ufw.Firewall;
+using Ufw.Shared.Firewall.Rendering;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
 using Ufw.Client.Configuration;

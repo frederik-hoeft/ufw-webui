@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Systemd.Network;

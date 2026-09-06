@@ -1,4 +1,4 @@
-﻿using Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Output.Grammars;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;

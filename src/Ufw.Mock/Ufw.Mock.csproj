@@ -11,6 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ufw.Ipc.Shared\Ufw.Ipc.Shared.csproj" />
+    <ProjectReference Include="..\Ufw.Shared\Ufw.Shared.csproj" />
   </ItemGroup>
 </Project>
