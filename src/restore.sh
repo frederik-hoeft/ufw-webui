@@ -12,8 +12,7 @@ unset Platform || true
 
 dotnet restore Ufw.slnx \
     --packages "$CACHE" \
-    --source https://api.nuget.org/v3/index.json \
-    --runtime linux-x64
+    --source https://api.nuget.org/v3/index.json
 
 find "$CACHE" -type f -name '*.nupkg' -exec cp -n {} "$OUT/" \;
 
