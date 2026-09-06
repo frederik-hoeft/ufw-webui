@@ -40,15 +40,3 @@ Target contract currently modeled by the client:
 The daemon read operation should enumerate known host network interfaces without requiring a signed mutation intent. ASP owns cache policy; the client treats the list as advisory autocomplete only, so free-text interface names remain valid and daemon-side rule validation remains authoritative.
 
 Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
-
-## Self-host IBM Plex design fonts
-
-The frontend typography stack now consistently prefers IBM Plex Sans for UI text and IBM Plex Mono for rule/command data, matching the exported design. Exact font files are not yet bundled with the web client, so hosts without those families installed fall back to the configured system stacks.
-
-Use the approved IBM Plex Sans/Mono assets under the SIL Open Font License 1.1 to make typography deterministic in deployed browsers:
-
-- self-host the fonts from `Ufw.Client`; do not introduce an external font/CDN dependency;
-- package only the normal styles actually used by the design (400, 500, and 600) for Sans and Mono rather than the complete family archive;
-- prefer WOFF2 web assets and `font-display: swap`, while retaining the current fallback stacks;
-- include the required OFL copyright/license notice with redistributed font software;
-- verify light/dark and English/German layouts again with the bundled fonts because metric differences can affect wrapping and table density.

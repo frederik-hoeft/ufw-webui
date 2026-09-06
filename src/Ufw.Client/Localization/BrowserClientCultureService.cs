@@ -2,12 +2,13 @@ using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using Ufw.Client.Storage;
 
 namespace Ufw.Client.Localization;
 
 internal sealed partial class BrowserClientCultureService(
     ClientLocalizationOptions options,
-    IJSRuntime jsRuntime,
+    ILocalStorage localStorage,
     NavigationManager navigation,
     ILogger<BrowserClientCultureService> logger) : IClientCultureService
 {
@@ -37,11 +38,7 @@ internal sealed partial class BrowserClientCultureService(
 
         try
         {
-            await jsRuntime.InvokeVoidAsync(
-                "localStorage.setItem",
-                cancellationToken,
-                options.StorageKey,
-                cultureName);
+            await localStorage.SetItemAsync(options.StorageKey, cultureName, cancellationToken);
         }
         catch (Exception exception) when (exception is JSException or InvalidOperationException)
         {

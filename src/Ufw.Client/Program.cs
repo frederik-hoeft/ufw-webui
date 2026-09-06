@@ -13,6 +13,7 @@ using Ufw.Client.Localization;
 using Ufw.Client.NetworkInterfaces;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Status;
+using Ufw.Client.Storage;
 using Ufw.Client.Theming;
 
 namespace Ufw.Client;
@@ -28,6 +29,7 @@ public static class Program
         Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(builder.Configuration);
 
         builder.Services.AddMudServices();
+        builder.Services.AddScoped<ILocalStorage, BrowserLocalStorage>();
         builder.Services.AddClientLocalization(builder.Configuration);
         builder.Services.AddAuthorizationCore();
         builder.Services.AddSingleton(TimeProvider.System);

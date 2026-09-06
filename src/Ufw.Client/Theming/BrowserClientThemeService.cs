@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using Ufw.Client.Storage;
 
 namespace Ufw.Client.Theming;
 
 internal sealed partial class BrowserClientThemeService(
-    IJSRuntime jsRuntime,
+    ILocalStorage localStorage,
     ILogger<BrowserClientThemeService> logger) : IClientThemeService
 {
     private const string STORAGE_KEY = "ufw.theme";
@@ -30,10 +31,7 @@ internal sealed partial class BrowserClientThemeService(
         string? storedValue = null;
         try
         {
-            storedValue = await jsRuntime.InvokeAsync<string?>(
-                "localStorage.getItem",
-                cancellationToken,
-                [STORAGE_KEY]);
+            storedValue = await localStorage.GetItemAsync(STORAGE_KEY, cancellationToken);
         }
         catch (Exception exception) when (exception is JSException or InvalidOperationException)
         {
@@ -63,11 +61,7 @@ internal sealed partial class BrowserClientThemeService(
 
         try
         {
-            await jsRuntime.InvokeVoidAsync(
-                "localStorage.setItem",
-                cancellationToken,
-                STORAGE_KEY,
-                Serialize(mode));
+            await localStorage.SetItemAsync(STORAGE_KEY, Serialize(mode), cancellationToken);
         }
         catch (Exception exception) when (exception is JSException or InvalidOperationException)
         {
