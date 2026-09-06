@@ -1,4 +1,5 @@
 @inject IClientThemeService Theme
+@inject IStringLocalizer<CommonStrings> CommonText
 
 @if (ShowLabel)
 {
@@ -11,7 +12,7 @@
                title="@Label"
                aria-label="@Label"
                aria-pressed="@Theme.IsDarkMode.ToString().ToLowerInvariant()">
-        Theme
+        @CommonText["Theme"]
     </MudButton>
 }
 else
@@ -46,8 +47,8 @@ else
         : Icons.Material.Filled.DarkMode;
 
     private string Label => Theme.IsDarkMode
-        ? "Dark theme enabled. Switch to light theme"
-        : "Light theme enabled. Switch to dark theme";
+        ? CommonText["ThemeEnabledSwitchLight"]
+        : CommonText["ThemeEnabledSwitchDark"];
 
     private async Task ToggleAsync()
     {

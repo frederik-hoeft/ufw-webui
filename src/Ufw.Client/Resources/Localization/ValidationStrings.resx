@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="ActionUnsupported" xml:space="preserve"><value>Action is not supported.</value></data>
+  <data name="AddressFamilyUnsupported" xml:space="preserve"><value>Address family is not supported.</value></data>
+  <data name="DirectionUnsupported" xml:space="preserve"><value>Direction is not supported.</value></data>
+  <data name="ProtocolUnsupported" xml:space="preserve"><value>Protocol is not supported.</value></data>
+  <data name="AddressInvalid" xml:space="preserve"><value>Address must be IPv4, IPv6, CIDR, or 'any'.</value></data>
+  <data name="ScopedIpv6Unsupported" xml:space="preserve"><value>Scoped IPv6 addresses are not supported; select the interface explicitly.</value></data>
+  <data name="Ipv4Prefix" xml:space="preserve"><value>IPv4 prefix length must be between 0 and 32.</value></data>
+  <data name="Ipv6Prefix" xml:space="preserve"><value>IPv6 prefix length must be between 0 and 128.</value></data>
+  <data name="AddressFamiliesMustMatch" xml:space="preserve"><value>Source and destination addresses must use the same address family.</value></data>
+  <data name="AddressFamilyMismatch" xml:space="preserve"><value>Address family does not match the rule addresses.</value></data>
+  <data name="PortsSyntax" xml:space="preserve"><value>Ports must be a comma-separated list of ports or port ranges.</value></data>
+  <data name="PortsRange" xml:space="preserve"><value>Ports must be between 1 and 65535.</value></data>
+  <data name="PortRangesRange" xml:space="preserve"><value>Port ranges must use values between 1 and 65535.</value></data>
+  <data name="PortRangeOrder" xml:space="preserve"><value>Port range start must be less than or equal to the end.</value></data>
+  <data name="InterfaceCharacters" xml:space="preserve"><value>Interface name contains unsupported characters.</value></data>
+  <data name="InboundInterface" xml:space="preserve"><value>Inbound rules cannot specify a source interface; use the destination interface field for the ingress interface.</value></data>
+  <data name="OutboundInterface" xml:space="preserve"><value>Outbound rules cannot specify a destination interface; use the source interface field for the egress interface.</value></data>
+  <data name="CommentInvalid" xml:space="preserve"><value>Comment must be 1-200 characters of a restricted safe alphabet.</value></data>
+</root>

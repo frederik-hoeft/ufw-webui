@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="UnableToInitialize" xml:space="preserve"><value>Initialisierung nicht möglich</value></data>
+  <data name="SomethingWentWrong" xml:space="preserve"><value>Etwas ist schiefgelaufen</value></data>
+  <data name="PageNotFoundTitle" xml:space="preserve"><value>Seite nicht gefunden</value></data>
+  <data name="PageNotFoundDescription" xml:space="preserve"><value>Die angeforderte Seite existiert nicht oder ist nicht mehr verfügbar.</value></data>
+  <data name="GoToFirewallRules" xml:space="preserve"><value>Zu den Firewallregeln</value></data>
+</root>

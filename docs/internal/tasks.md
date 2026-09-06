@@ -41,17 +41,18 @@ The daemon read operation should enumerate known host network interfaces without
 
 Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
 
-## Frontend internationalization (i18n)
+## Frontend final quality pass
 
-Introduce a maintainable localization boundary for `Ufw.Client` before the final frontend polish pass. User-facing strings should come from localized resources rather than being embedded throughout Razor components and services, with English remaining the default/fallback culture.
+Perform a final frontend-wide UX, responsive, accessibility, and consistency pass after localization is in place. Compare the implemented light/dark surfaces against the exported design references while preserving functionality and the established reusable component/service boundaries.
 
-The implementation should cover:
+The pass should include:
 
-- choose and document the Blazor localization/resource organization so shared component strings, feature-specific strings, validation messages, dialogs, and navigation labels have clear ownership;
-- provide a culture-selection surface, most naturally under Settings, and persist the user's choice across sessions;
-- initialize the effective culture early enough that first render does not briefly show the fallback language;
-- use culture-aware formatting for dates/times, counts, and other user-visible values while leaving protocol payloads, canonical UFW command syntax, identifiers, and signed structural data culture-invariant;
-- preserve usable layouts for longer translations and include translated-string expansion in the final responsive/accessibility pass;
-- define the fallback behavior for missing resources and keep adding a new language independent from application/business logic.
+- exercise narrow and wide layouts with both English and German, including longer translated labels, dialogs, table actions, settings rows, status text, and error states;
+- verify keyboard navigation, focus visibility/restoration, dialog focus behavior, drag/reorder alternatives, accessible names, status announcements, and color-independent state communication;
+- reconcile remaining spacing, typography, density, iconography, empty/loading/error states, and light/dark contrast with the exported design;
+- remove remaining one-off presentation patterns where existing shared components or small reusable abstractions provide a clearer ownership boundary;
+- audit client-side styles for obsolete selectors, accidental global leakage, and responsive rules that belong with their component/area partial;
+- verify that localized human-readable values use the active culture while protocol, UFW command, identifier, interface, and signed-data presentation remains invariant;
+- run a final user-facing string audit so new text does not bypass the localization boundary.
 
-Do not translate protocol names, CLI syntax, raw interface names, rule identifiers, or other machine-facing values merely for presentation consistency.
+Keep this pass frontend-only. Backend/API/IPC/daemon capability gaps discovered during review should be recorded as separate open tasks rather than implemented implicitly.

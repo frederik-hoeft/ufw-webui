@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="ApiUnavailable" xml:space="preserve"><value>Die Verwaltungs-API ist nicht verfügbar. Prüfen Sie die Verbindung und versuchen Sie es erneut.</value></data>
+  <data name="OperationCanceled" xml:space="preserve"><value>Der Vorgang wurde abgebrochen, bevor er abgeschlossen war.</value></data>
+  <data name="BrowserSecurityOperationFailed" xml:space="preserve"><value>Der Browser konnte einen erforderlichen Sicherheitsvorgang nicht abschließen. Versuchen Sie es erneut in einem unterstützten Browser.</value></data>
+  <data name="Unexpected" xml:space="preserve"><value>Ein unerwarteter Fehler ist aufgetreten. Aktualisieren Sie die Anwendung und versuchen Sie es erneut.</value></data>
+  <data name="SessionInvalid" xml:space="preserve"><value>Ihre Sitzung ist nicht mehr gültig. Melden Sie sich erneut an.</value></data>
+  <data name="Forbidden" xml:space="preserve"><value>Sie haben keine Berechtigung, diesen Vorgang auszuführen.</value></data>
+  <data name="ResourceMissing" xml:space="preserve"><value>Die angeforderte Ressource existiert nicht mehr. Aktualisieren Sie die Seite und versuchen Sie es erneut.</value></data>
+  <data name="ApiCouldNotComplete" xml:space="preserve"><value>Die Verwaltungs-API konnte die Anfrage nicht abschließen. Versuchen Sie es erneut.</value></data>
+  <data name="ApiRejected" xml:space="preserve"><value>Die Verwaltungs-API hat die Anfrage abgelehnt.</value></data>
+  <data name="ClientValidationRejected" xml:space="preserve"><value>Der Client hat die Anfrage aufgrund ungültiger Eingaben abgelehnt.</value></data>
+  <data name="ProtocolMismatch" xml:space="preserve"><value>Die Verwaltungs-API hat eine Antwort zurückgegeben, die dieser Client nicht versteht. Prüfen Sie, ob Client- und Serverversion übereinstimmen.</value></data>
+</root>

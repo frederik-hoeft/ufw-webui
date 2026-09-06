@@ -6,8 +6,10 @@ using Ufw.Shared.Firewall.Rendering;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
 using Ufw.Client.Configuration;
+using Ufw.Client.Components.Rules;
 using Ufw.Client.Errors;
 using Ufw.Client.Intent;
+using Ufw.Client.Localization;
 using Ufw.Client.NetworkInterfaces;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Status;
@@ -26,9 +28,12 @@ public static class Program
         Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(builder.Configuration);
 
         builder.Services.AddMudServices();
+        builder.Services.AddClientLocalization(builder.Configuration);
         builder.Services.AddAuthorizationCore();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
+        builder.Services.AddScoped<IFirewallRuleText, FirewallRuleText>();
+        builder.Services.AddScoped<IRuleValidationMessageLocalizer, RuleValidationMessageLocalizer>();
 
         builder.Services.AddScoped<AuthenticationSession>();
         builder.Services.AddScoped<IAuthenticationSession>(static services => services.GetRequiredService<AuthenticationSession>());
@@ -43,7 +48,7 @@ public static class Program
         builder.Services.AddScoped<INetworkInterfaceApiClient, MockNetworkInterfaceApiClient>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingApiClient, MockRuleOrderingApiClient>();
-        builder.Services.AddSingleton<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
+        builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
 
         builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client => client.BaseAddress = apiBaseAddress)

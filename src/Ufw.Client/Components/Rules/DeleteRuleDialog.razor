@@ -1,19 +1,21 @@
 @implements IDisposable
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
 
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-            Review the canonical UFW rule below and provide the signing key that authorizes its deletion.
+            @RulesText["DeleteReview"]
         </MudText>
 
         @if (Rule.Rule is not null)
         {
-            <UfwRuleCommandPreview Rule="@Rule.Rule" Label="Rule to delete">
+            <UfwRuleCommandPreview Rule="@Rule.Rule" Label="@(RulesText["RuleToDelete"])">
                 <Details>
                     @if (!string.IsNullOrWhiteSpace(Rule.RuleId))
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-raw-line">
-                            Rule ID: @Rule.RuleId
+                            @RulesText["RuleId", Rule.RuleId]
                         </MudText>
                     }
                 </Details>
@@ -21,13 +23,13 @@
         }
         else
         {
-            <div class="delete-rule-summary" aria-label="Rule to delete">
-                <MudText Typo="Typo.overline" HtmlTag="div" Class="delete-rule-summary-label">Rule to delete</MudText>
+            <div class="delete-rule-summary" aria-label="@(RulesText["RuleToDelete"])">
+                <MudText Typo="Typo.overline" HtmlTag="div" Class="delete-rule-summary-label">@RulesText["RuleToDelete"]</MudText>
                 <MudText Typo="Typo.body2" Class="delete-rule-summary-value">@Rule.RawLine</MudText>
             </div>
         }
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-            This removes the rule from the firewall. The operation requires signed authorization and cannot be undone through this interface.
+            @RulesText["DeleteWarning"]
         </MudAlert>
 
         <MudForm @ref="_form"
@@ -40,13 +42,13 @@
     </DialogContent>
     <DialogActions>
         <div class="delete-dialog-actions">
-            <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Error"
                        StartIcon="@Icons.Material.Filled.Delete"
                        Disabled="@(_busy || !_isValid || string.IsNullOrWhiteSpace(_privateKey))"
                        OnClick="ConfirmAsync">
-                Delete signed rule
+                @RulesText["DeleteSignedRule"]
             </MudButton>
         </div>
     </DialogActions>

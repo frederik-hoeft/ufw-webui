@@ -1,10 +1,11 @@
 @page "/not-found"
 @layout LoginLayout
+@inject IStringLocalizer<StandaloneStrings> StandaloneText
 
-<PageTitle>Page not found - UFW Console</PageTitle>
+<PageTitle>@StandaloneText["PageNotFoundTitle"] - UFW Console</PageTitle>
 
-<StandalonePanel Title="Page not found"
-                 Description="The requested page does not exist or is no longer available."
+<StandalonePanel Title="@(StandaloneText["PageNotFoundTitle"])"
+                 Description="@(StandaloneText["PageNotFoundDescription"])"
                  Icon="@Icons.Material.Filled.SearchOff"
                  IconColor="Color.Secondary"
                  Class="standalone-state-card">
@@ -13,7 +14,7 @@
                    Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.ArrowBack">
-            Go to firewall rules
+            @StandaloneText["GoToFirewallRules"]
         </MudButton>
     </Actions>
 </StandalonePanel>

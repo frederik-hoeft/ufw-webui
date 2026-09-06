@@ -1,7 +1,9 @@
 @using Ufw.Client.Errors
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<StandaloneStrings> StandaloneText
 
 <main class="standalone-shell">
-    <StandalonePanel Title="Unable to initialize"
+    <StandalonePanel Title="@(StandaloneText["UnableToInitialize"])"
                      Description="@Error.Message"
                      Icon="@Icons.Material.Filled.CloudOff"
                      IconColor="Color.Error"
@@ -17,7 +19,7 @@
                 {
                     <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
                 }
-                @(Busy ? "Retrying..." : "Retry")
+                @(Busy ? CommonText["Retrying"] : CommonText["Retry"])
             </MudButton>
         </Actions>
     </StandalonePanel>

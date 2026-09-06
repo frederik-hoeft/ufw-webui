@@ -5,11 +5,12 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 @inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<AuthenticationStrings> AuthenticationText
 
-<PageTitle>Sign in - UFW Console</PageTitle>
+<PageTitle>@AuthenticationText["PageTitle"] - UFW Console</PageTitle>
 
-<StandalonePanel Title="Sign in"
-                 Description="Use your management account to access firewall rules."
+<StandalonePanel Title="@(AuthenticationText["Title"])"
+                 Description="@(AuthenticationText["Description"])"
                  Class="login-card">
     @if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -20,28 +21,28 @@
 
     <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync" aria-busy="@_busy">
         <MudTextField T="string"
-                      Label="Email"
+                      Label="@(AuthenticationText["Email"])"
                       InputType="InputType.Email"
                       InputMode="InputMode.email"
                       @bind-Value="_email"
-                      Validation="@s_emailValidation"
+                      Validation="@EmailValidation"
                       Required="true"
                       autocomplete="username"
                       autocapitalize="off"
                       spellcheck="false"
-                      RequiredError="Email is required."
+                      RequiredError="@(AuthenticationText["EmailRequired"])"
                       Disabled="_busy"
                       Immediate="true"
                       Class="mb-3" />
         <MudTextField T="string"
-                      Label="Password"
+                      Label="@(AuthenticationText["Password"])"
                       InputType="InputType.Password"
                       @bind-Value="_password"
                       Required="true"
                       autocomplete="current-password"
                       autocapitalize="off"
                       spellcheck="false"
-                      RequiredError="Password is required."
+                      RequiredError="@(AuthenticationText["PasswordRequired"])"
                       Disabled="_busy"
                       Immediate="true" />
         <MudButton Variant="Variant.Filled"
@@ -55,16 +56,14 @@
             {
                 <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
             }
-            @(_busy ? "Signing in..." : "Sign in")
+            @(_busy ? AuthenticationText["SigningIn"] : AuthenticationText["SignIn"])
         </MudButton>
     </MudForm>
 </StandalonePanel>
 
 @code {
-    private static readonly EmailAddressAttribute s_emailValidation = new()
-    {
-        ErrorMessage = "Enter a valid email address."
-    };
+    private Func<string?, string?> EmailValidation => value =>
+        new EmailAddressAttribute().IsValid(value) ? null : AuthenticationText["EmailInvalid"].Value;
 
     private readonly CancellationTokenSource _lifetime = new();
     private MudForm? _form;
@@ -119,7 +118,7 @@
         }
         catch (ApiRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
         {
-            _error = "Invalid email or password, or the account is not permitted to sign in.";
+            _error = AuthenticationText["InvalidCredentials"];
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {

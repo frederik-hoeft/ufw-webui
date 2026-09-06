@@ -5,12 +5,14 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
 
-<PageTitle>Add firewall rule - UFW Console</PageTitle>
+<PageTitle>@RulesText["CreatePageTitle"] - UFW Console</PageTitle>
 
-<PageHeader Title="Add firewall rule"
+<PageHeader Title="@(RulesText["CreateTitle"])"
             Description="@HeaderDescription"
-            Breadcrumbs="@s_breadcrumbs"
+            Breadcrumbs="@Breadcrumbs"
             ShowStatus="@(_state.Snapshot is not null)">
     <Actions>
         <MudButton Href="/rules"
@@ -18,7 +20,7 @@
                    StartIcon="@Icons.Material.Filled.ArrowBack"
                    Disabled="@_submitting"
                    Class="page-header-button">
-            Back to rules
+            @RulesText["BackToRules"]
         </MudButton>
     </Actions>
     <Status>
@@ -28,7 +30,7 @@
                      Size="Size.Small"
                      Variant="Variant.Filled"
                      Class="@(snapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(snapshot.FirewallActive ? "Firewall active" : "Firewall inactive")
+                @(snapshot.FirewallActive ? RulesText["FirewallActive"] : RulesText["FirewallInactive"])
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
                 @DescribeRuleCount(snapshot.Rules.Count)
@@ -46,23 +48,23 @@
 @if (_state.Status == RulesPageStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">Firewall state could not be loaded</MudText>
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LoadFailed"]</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@_state.Error?.Message</MudText>
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    Disabled="@_submitting"
                    OnClick="RefreshAsync">
-            Retry
+            @CommonText["Retry"]
         </MudButton>
     </MudAlert>
 }
 else if (_state.Snapshot is null)
 {
     <MudPaper Class="pa-5" Elevation="1" role="status" aria-live="polite">
-        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="Loading firewall state" />
+        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="@(RulesText["LoadingStateAria"])" />
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Loading authoritative firewall state before enabling rule creation...
+            @RulesText["LoadingBeforeCreate"]
         </MudText>
     </MudPaper>
 }
@@ -71,7 +73,7 @@ else
     @if (_state.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">Authoritative firewall state must be refreshed</MudText>
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["StaleTitle"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">@DescribeStaleState()</MudText>
             @if (_state.Error is not null)
             {
@@ -82,7 +84,7 @@ else
                        StartIcon="@Icons.Material.Filled.Refresh"
                        Disabled="@_submitting"
                        OnClick="RefreshAsync">
-                Refresh authoritative state
+                @RulesText["RefreshAuthoritative"]
             </MudButton>
         </MudAlert>
     }
@@ -91,8 +93,8 @@ else
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">
                 @(_mutationMayHaveCompleted
-                    ? "Rule submission finished. Confirming authoritative firewall state before returning to the rule list..."
-                    : "Refreshing authoritative firewall state...")
+                    ? RulesText["RuleSubmissionConfirming"]
+                    : RulesText["RefreshingAuthoritative"])
             </MudText>
         </MudAlert>
     }
@@ -100,15 +102,11 @@ else
     @if (IsOrderedInsertionRequested)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="note">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">Ordered insertion prototype</MudText>
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["OrderedInsertionPrototype"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-3">@DescribeInsertionTarget()</MudText>
-            <MudText Typo="Typo.body2" Class="mb-3">
-                The browser can carry insertion context from the rule table, but ordered creation is not submitted yet.
-                The REST shape, signed intent operation, stale-order precondition, and daemon/UFW insertion semantics require design approval.
-                The existing signed add endpoint continues to mean append-only.
-            </MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">@RulesText["OrderedInsertionDescription"]</MudText>
             <MudButton Href="/rules/create" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add">
-                Create at end instead
+                @RulesText["CreateAtEndInstead"]
             </MudButton>
         </MudAlert>
     }
@@ -119,7 +117,7 @@ else
                 Disabled="@(!CanEdit)"
                 SubmitDisabled="@IsOrderedInsertionRequested"
                 ShowAuthorization="@(!IsOrderedInsertionRequested)"
-                SubmitLabel="@(IsOrderedInsertionRequested ? "Ordered insertion pending" : "Add signed rule")"
+                SubmitLabel="@(IsOrderedInsertionRequested ? RulesText["OrderedInsertionPending"] : RulesText["AddSignedRule"])"
                 Submitting="@_submitting"
                 @bind-PrivateKey="_privateKey"
                 OnSubmit="AddRuleAsync"
@@ -127,13 +125,6 @@ else
 }
 
 @code {
-    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
-    [
-        new BreadcrumbItem("Firewall", null, disabled: true),
-        new BreadcrumbItem("Rules", "/rules"),
-        new BreadcrumbItem("Create", null, disabled: true),
-    ];
-
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
     private FirewallRuleSpecification _draft = FirewallRuleDefaults.Create();
@@ -141,6 +132,13 @@ else
     private string? _submittedRuleIdentity;
     private bool _mutationMayHaveCompleted;
     private bool _submitting;
+
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new BreadcrumbItem(RulesText["FirewallBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(RulesText["RulesBreadcrumb"], "/rules"),
+        new BreadcrumbItem(RulesText["AddRuleBreadcrumb"], null, disabled: true),
+    ];
 
     private bool IsOrderedInsertionRequested
         => !string.IsNullOrWhiteSpace(BeforeRuleId) || !string.IsNullOrWhiteSpace(AfterRuleId);
@@ -150,12 +148,12 @@ else
     private bool CanSubmit => CanEdit && !IsOrderedInsertionRequested;
 
     private string HeaderDescription => IsOrderedInsertionRequested
-        ? "Prepare a rule for an explicit insertion point. Ordered mutation authorization is still a frontend prototype."
-        : "Create a signed UFW rule. The current mutation contract appends new rules to the evaluation order.";
+        ? RulesText["CreateOrderedDescription"]
+        : RulesText["CreateDescription"];
 
     private string RuleDefinitionDescription => IsOrderedInsertionRequested
-        ? "Define the rule to insert at the selected position. Submission remains disabled until the ordered-add contract is approved."
-        : "Define the UFW match and action. The current API appends new rules to the existing evaluation order.";
+        ? RulesText["OrderedRuleDefinitionDescription"]
+        : RulesText["DefinitionDescription"];
 
     [Parameter, SupplyParameterFromQuery(Name = "before")]
     public string? BeforeRuleId { get; set; }
@@ -172,18 +170,20 @@ else
         _lifetime.Dispose();
     }
 
-    private static string DescribeRuleCount(int count) => count == 1 ? "1 current rule" : $"{count} current rules";
+    private string DescribeRuleCount(int count) => count == 1
+        ? RulesText["CurrentRuleCountOne"]
+        : RulesText["CurrentRuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
     private string DescribeSnapshotStatus()
     {
         if (_state.IsStale)
         {
-            return "Authoritative snapshot \u00b7 stale";
+            return RulesText["AuthoritativeSnapshotStale"];
         }
 
         return _state.Status == RulesPageStatus.Refreshing
-            ? "Authoritative snapshot \u00b7 refreshing"
-            : "Authoritative snapshot \u00b7 current";
+            ? RulesText["AuthoritativeSnapshotRefreshing"]
+            : RulesText["AuthoritativeSnapshotCurrent"];
     }
 
     private Task RefreshAsync()
@@ -213,14 +213,14 @@ else
             {
                 if (_submittedRuleIdentity is not null && ContainsRuleIdentity(_state.Snapshot!, _submittedRuleIdentity))
                 {
-                    Snackbar.Add("Firewall rule added.", Severity.Success);
+                    Snackbar.Add(RulesText["RuleAdded"], Severity.Success);
                     Navigation.NavigateTo("/rules");
                     return;
                 }
 
                 _mutationMayHaveCompleted = false;
                 _submittedRuleIdentity = null;
-                Snackbar.Add("The submitted rule is not present in current firewall state. Review the form before retrying.", Severity.Warning);
+                Snackbar.Add(RulesText["SubmittedRuleMissing"], Severity.Warning);
             }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -283,13 +283,13 @@ else
     {
         if (!string.IsNullOrWhiteSpace(BeforeRuleId) && !string.IsNullOrWhiteSpace(AfterRuleId))
         {
-            return "The URL contains both before and after targets. Ordered insertion requires exactly one target.";
+            return RulesText["BothInsertionTargets"];
         }
 
         string? ruleId = BeforeRuleId ?? AfterRuleId;
         if (string.IsNullOrWhiteSpace(ruleId) || _state.Snapshot is null)
         {
-            return "The selected insertion target is unavailable.";
+            return RulesText["InsertionTargetUnavailable"];
         }
 
         ListedFirewallRule[] matches = _state.Snapshot.Rules
@@ -298,32 +298,25 @@ else
         if (matches.Length != 1)
         {
             return matches.Length == 0
-                ? "The selected insertion target is no longer present in authoritative firewall state."
-                : "The selected insertion target is ambiguous in authoritative firewall state.";
+                ? RulesText["InsertionTargetMissing"]
+                : RulesText["InsertionTargetAmbiguous"];
         }
 
         ListedFirewallRule target = matches[0];
         string position = target.DisplayNumber is { } displayNumber
-            ? $"rule {displayNumber}"
-            : "the selected rule";
-        string placement = !string.IsNullOrWhiteSpace(BeforeRuleId) ? "before" : "after";
-        return $"This rule is targeted for insertion {placement} {position}.";
+            ? RulesText["RulePosition", displayNumber.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)]
+            : RulesText["SelectedRule"];
+        string placement = !string.IsNullOrWhiteSpace(BeforeRuleId) ? RulesText["Before"] : RulesText["After"];
+        return RulesText["InsertTargetDescription", placement, position];
     }
 
-    private string DescribeStaleState()
+    private string DescribeStaleState() => _state.StaleReason switch
     {
-        return _state.StaleReason switch
-        {
-            RuleSnapshotStaleReason.MutationCommitted
-                => "The rule change succeeded, but the client could not reload the authoritative rule list. Retry the refresh before leaving or attempting another mutation.",
-            RuleSnapshotStaleReason.MutationOutcomeUnknown
-                => "The client could not confirm whether the rule change completed. Refresh authoritative state before deciding whether the rule must be retried.",
-            RuleSnapshotStaleReason.MutationRejectedRequiresRefresh
-                => "The mutation was rejected in a way that requires current firewall state to be reloaded before another attempt.",
-            _
-                => "The latest refresh failed. Rule creation is disabled until authoritative firewall state can be loaded again.",
-        };
-    }
+        RuleSnapshotStaleReason.MutationCommitted => RulesText["RefreshAfterMutationFailed"],
+        RuleSnapshotStaleReason.MutationOutcomeUnknown => RulesText["MutationOutcomeUnknown"],
+        RuleSnapshotStaleReason.MutationRejectedRequiresRefresh => RulesText["MutationRejectedRefresh"],
+        _ => RulesText["LatestRefreshFailed"],
+    };
 
     private static bool ContainsRuleIdentity(RuleSnapshot snapshot, string identity)
     {

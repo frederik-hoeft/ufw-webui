@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Systemstatus</value></data>
+  <data name="Title" xml:space="preserve"><value>Systemstatus</value></data>
+  <data name="Description" xml:space="preserve"><value>Live-Betriebsprüfungen für den daemon-gestützten Verwaltungspfad und den Firewall-Snapshot.</value></data>
+  <data name="SystemBreadcrumb" xml:space="preserve"><value>System</value></data>
+  <data name="StatusBreadcrumb" xml:space="preserve"><value>Status</value></data>
+  <data name="RefreshStatus" xml:space="preserve"><value>Status aktualisieren</value></data>
+  <data name="CheckedAt" xml:space="preserve"><value>Geprüft: {0}</value></data>
+  <data name="DaemonUnavailableAlert" xml:space="preserve"><value>Keine der daemon-gestützten Statusanfragen wurde erfolgreich abgeschlossen. Dies kann bedeuten, dass die Verwaltungs-API oder der ufw-systemd-Pfad nicht verfügbar ist; die aktuelle REST-Oberfläche kann diese Fehler nicht weiter unterscheiden.</value></data>
+  <data name="ProtocolMismatchAlert" xml:space="preserve"><value>ufw-systemd ist erreichbar, meldet jedoch Signed-Intent-Protokollversion {0}, während dieser Client Version {1} unterstützt. Firewall-Lesezugriffe können weiterhin funktionieren, signierte Mutationen sind jedoch inkompatibel.</value></data>
+  <data name="DaemonBackedApi" xml:space="preserve"><value>Daemon-gestützte API</value></data>
+  <data name="Deployment" xml:space="preserve"><value>Deployment</value></data>
+  <data name="IntentProtocol" xml:space="preserve"><value>Intent-Protokoll</value></data>
+  <data name="Firewall" xml:space="preserve"><value>Firewall</value></data>
+  <data name="Rules" xml:space="preserve"><value>Regeln</value></data>
+  <data name="Source" xml:space="preserve"><value>Quelle</value></data>
+  <data name="AuthoritativeUfwSnapshot" xml:space="preserve"><value>Autoritativer UFW-Snapshot</value></data>
+  <data name="StatusSemantics" xml:space="preserve"><value>Bedeutung des Status</value></data>
+  <data name="StatusSemanticsDescription" xml:space="preserve"><value>Diese Prüfungen verwenden die vorhandenen authentifizierten daemon-gestützten Endpunkte für Intent-Kontext und Regelliste. Eine erfolgreiche Prüfung belegt, dass der Browser den Pfad über ASP zu ufw-systemd vollständig durchlaufen kann. Fehler werden absichtlich keinem einzelnen Abschnitt zugeordnet, da die aktuelle API keinen Gesundheitsvertrag auf Komponentenebene bereitstellt.</value></data>
+  <data name="LastCombinedCheck" xml:space="preserve"><value>Die letzte kombinierte Prüfung wurde in {0} abgeschlossen.</value></data>
+  <data name="ConnectedIncompatible" xml:space="preserve"><value>Verbunden, inkompatibel</value></data>
+  <data name="Connected" xml:space="preserve"><value>Verbunden</value></data>
+  <data name="Compatible" xml:space="preserve"><value>v{0} (kompatibel)</value></data>
+  <data name="ClientSupports" xml:space="preserve"><value>v{0} (Client unterstützt v{1})</value></data>
+  <data name="RuleCountOne" xml:space="preserve"><value>1 Regel</value></data>
+  <data name="RuleCountMany" xml:space="preserve"><value>{0} Regeln</value></data>
+  <data name="DurationMilliseconds" xml:space="preserve"><value>{0} ms</value></data>
+  <data name="DurationSeconds" xml:space="preserve"><value>{0} s</value></data>
+</root>

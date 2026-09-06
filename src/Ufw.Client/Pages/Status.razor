@@ -2,12 +2,14 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject IOperationalStatusService OperationalStatus
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<StatusStrings> StatusText
 
-<PageTitle>System status - UFW Console</PageTitle>
+<PageTitle>@StatusText["PageTitle"] - UFW Console</PageTitle>
 
-<PageHeader Title="System status"
-            Description="Live operational checks for the daemon-backed management path and firewall snapshot."
-            Breadcrumbs="@s_breadcrumbs"
+<PageHeader Title="@(StatusText["Title"])"
+            Description="@(StatusText["Description"])"
+            Breadcrumbs="@Breadcrumbs"
             ShowStatus="@(OperationalStatus.Current.CheckedAt is not null)">
     <Actions>
         <MudButton Variant="Variant.Outlined"
@@ -15,7 +17,7 @@
                    Disabled="@OperationalStatus.IsRefreshing"
                    OnClick="RefreshAsync"
                    Class="page-header-button">
-            @(OperationalStatus.IsRefreshing ? "Checking..." : "Refresh status")
+            @(OperationalStatus.IsRefreshing ? CommonText["CheckingEllipsis"] : StatusText["RefreshStatus"])
         </MudButton>
     </Actions>
     <Status>
@@ -28,7 +30,7 @@
                 @DaemonStatusLabel
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                Checked @checkedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                @StatusText["CheckedAt", FormatLocalDateTime(checkedAt)]
             </MudChip>
         }
     </Status>
@@ -37,16 +39,13 @@
 @if (OperationalStatus.Current.DaemonBackedApi == OperationalAvailability.Unavailable)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
-        Neither daemon-backed status request completed successfully. This can indicate that the management API or
-        ufw-systemd path is unavailable; the current REST surface cannot distinguish those failures further.
+        @StatusText["DaemonUnavailableAlert"]
     </MudAlert>
 }
 else if (OperationalStatus.Current.IntentProtocolCompatible == false)
 {
     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
-        ufw-systemd is reachable, but it reports signed-intent protocol version
-        @OperationalStatus.Current.IntentProtocolVersion while this client supports version @IntentProtocol.VERSION.
-        Firewall reads may still work, but signed mutations are incompatible.
+        @StatusText["ProtocolMismatchAlert", OperationalStatus.Current.IntentProtocolVersion.GetValueOrDefault(), IntentProtocol.VERSION]
     </MudAlert>
 }
 
@@ -55,17 +54,17 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
         <div class="operational-status-card-heading">
             <MudIcon Icon="@Icons.Material.Filled.Dns" Color="@DaemonIconColor" />
             <div>
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Daemon-backed API</MudText>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["DaemonBackedApi"]</MudText>
                 <MudText Typo="Typo.h6" HtmlTag="h2">@DaemonStatusLabel</MudText>
             </div>
         </div>
         <dl class="operational-status-details">
             <div>
-                <dt>Deployment</dt>
+                <dt>@StatusText["Deployment"]</dt>
                 <dd><code>@ValueOrUnavailable(OperationalStatus.Current.DeploymentId)</code></dd>
             </div>
             <div>
-                <dt>Intent protocol</dt>
+                <dt>@StatusText["IntentProtocol"]</dt>
                 <dd>@DescribeIntentProtocol()</dd>
             </div>
         </dl>
@@ -79,18 +78,18 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
         <div class="operational-status-card-heading">
             <MudIcon Icon="@Icons.Material.Filled.Security" Color="@FirewallIconColor" />
             <div>
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Firewall</MudText>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["Firewall"]</MudText>
                 <MudText Typo="Typo.h6" HtmlTag="h2">@FirewallStatusLabel</MudText>
             </div>
         </div>
         <dl class="operational-status-details">
             <div>
-                <dt>Rules</dt>
+                <dt>@StatusText["Rules"]</dt>
                 <dd>@DescribeRuleCount()</dd>
             </div>
             <div>
-                <dt>Source</dt>
-                <dd>Authoritative UFW snapshot</dd>
+                <dt>@StatusText["Source"]</dt>
+                <dd>@StatusText["AuthoritativeUfwSnapshot"]</dd>
             </div>
         </dl>
         @if (OperationalStatus.Current.FirewallError is { } firewallError)
@@ -101,28 +100,26 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
 </div>
 
 <MudPaper Class="operational-status-meta" Elevation="1">
-    <MudText Typo="Typo.h6" HtmlTag="h2">Status semantics</MudText>
+    <MudText Typo="Typo.h6" HtmlTag="h2">@StatusText["StatusSemantics"]</MudText>
     <MudText Typo="Typo.body2" Color="Color.Secondary">
-        These checks use the existing authenticated daemon-backed intent-context and rule-list endpoints. A successful
-        check proves the browser can complete that path through ASP to ufw-systemd. Failures are intentionally not
-        attributed to a specific hop because the current API does not expose a component-level health contract.
+        @StatusText["StatusSemanticsDescription"]
     </MudText>
     @if (OperationalStatus.Current.RoundTrip is { } roundTrip)
     {
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3">
-            Last combined check completed in @DescribeDuration(roundTrip).
+            @StatusText["LastCombinedCheck", DescribeDuration(roundTrip)]
         </MudText>
     }
 </MudPaper>
 
 @code {
-    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
-    [
-        new BreadcrumbItem("System", null, disabled: true),
-        new BreadcrumbItem("Status", null, disabled: true),
-    ];
-
     private readonly CancellationTokenSource _lifetime = new();
+
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new BreadcrumbItem(StatusText["SystemBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(StatusText["StatusBreadcrumb"], null, disabled: true),
+    ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -156,10 +153,10 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
     private string DaemonStatusLabel => OperationalStatus.Current.DaemonBackedApi switch
     {
         OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false
-            => "Connected, incompatible",
-        OperationalAvailability.Available => "Connected",
-        OperationalAvailability.Unavailable => "Unavailable",
-        _ => OperationalStatus.IsRefreshing ? "Checking" : "Unknown",
+            => StatusText["ConnectedIncompatible"],
+        OperationalAvailability.Available => StatusText["Connected"],
+        OperationalAvailability.Unavailable => CommonText["Unavailable"],
+        _ => OperationalStatus.IsRefreshing ? CommonText["Checking"] : CommonText["Unknown"],
     };
 
     private string DaemonChipClass => OperationalStatus.Current.DaemonBackedApi switch
@@ -181,10 +178,10 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
 
     private string FirewallStatusLabel => OperationalStatus.Current.FirewallSnapshot switch
     {
-        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == true => "Active",
-        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == false => "Inactive",
-        OperationalAvailability.Unavailable => "Unavailable",
-        _ => OperationalStatus.IsRefreshing ? "Checking" : "Unknown",
+        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == true => CommonText["Active"],
+        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == false => CommonText["Inactive"],
+        OperationalAvailability.Unavailable => CommonText["Unavailable"],
+        _ => OperationalStatus.IsRefreshing ? CommonText["Checking"] : CommonText["Unknown"],
     };
 
     private Color FirewallIconColor => OperationalStatus.Current.FirewallSnapshot switch
@@ -199,24 +196,31 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
     {
         if (OperationalStatus.Current.IntentProtocolVersion is not { } version)
         {
-            return "Unavailable";
+            return CommonText["Unavailable"];
         }
 
         return OperationalStatus.Current.IntentProtocolCompatible == true
-            ? $"v{version} (compatible)"
-            : $"v{version} (client supports v{IntentProtocol.VERSION})";
+            ? StatusText["Compatible", version]
+            : StatusText["ClientSupports", version, IntentProtocol.VERSION];
     }
 
     private string DescribeRuleCount() => OperationalStatus.Current.RuleCount switch
     {
-        null => "Unavailable",
-        1 => "1 rule",
-        int count => $"{count} rules",
+        null => CommonText["Unavailable"],
+        1 => StatusText["RuleCountOne"],
+        int count => StatusText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)],
     };
 
-    private static string ValueOrUnavailable(string? value) => string.IsNullOrWhiteSpace(value) ? "Unavailable" : value;
+    private string ValueOrUnavailable(string? value) => string.IsNullOrWhiteSpace(value) ? CommonText["Unavailable"] : value;
 
-    private static string DescribeDuration(TimeSpan duration) => duration.TotalMilliseconds < 1000
-        ? $"{duration.TotalMilliseconds:F0} ms"
-        : $"{duration.TotalSeconds:F1} s";
+    private string DescribeDuration(TimeSpan duration)
+    {
+        System.Globalization.CultureInfo culture = System.Globalization.CultureInfo.CurrentCulture;
+        return duration.TotalMilliseconds < 1000
+            ? StatusText["DurationMilliseconds", duration.TotalMilliseconds.ToString("0", culture)]
+            : StatusText["DurationSeconds", duration.TotalSeconds.ToString("0.0", culture)];
+    }
+
+    private static string FormatLocalDateTime(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 }

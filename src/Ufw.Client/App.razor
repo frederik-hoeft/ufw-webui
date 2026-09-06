@@ -3,6 +3,7 @@
 @inject IAuthenticationService AuthenticationService
 @inject IClientErrorMapper ClientErrors
 @inject IClientThemeService Theme
+@inject IStringLocalizer<AuthenticationStrings> AuthenticationText
 
 <MudThemeProvider Theme="@UfwMudTheme.Theme" IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
 <MudPopoverProvider />
@@ -43,8 +44,8 @@ else if (_startupState == StartupState.Failed && _startupError is not null)
 else
 {
     <main class="standalone-shell">
-        <StandalonePanel Title="Restoring session"
-                         Description="Checking your session and preparing firewall management."
+        <StandalonePanel Title="@(AuthenticationText["RestoringSession"])"
+                         Description="@(AuthenticationText["RestoringSessionDescription"])"
                          Class="standalone-state-card"
                          Role="status"
                          AriaLive="polite">

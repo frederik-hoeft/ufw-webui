@@ -4,12 +4,14 @@
 @inject INetworkInterfaceInventoryService InterfaceInventory
 @inject IClientErrorMapper ClientErrors
 @inject ISnackbar Snackbar
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<InterfacesStrings> InterfacesText
 
-<PageTitle>Network interfaces - UFW Console</PageTitle>
+<PageTitle>@InterfacesText["PageTitle"] - UFW Console</PageTitle>
 
-<PageHeader Title="Network interfaces"
-            Description="Known host interfaces available as advisory suggestions while authoring firewall rules."
-            Breadcrumbs="@s_breadcrumbs"
+<PageHeader Title="@(InterfacesText["Title"])"
+            Description="@(InterfacesText["Description"])"
+            Breadcrumbs="@Breadcrumbs"
             ShowStatus="@(_inventory is not null)">
     <Actions>
         <MudButton Variant="Variant.Outlined"
@@ -17,7 +19,7 @@
                    Disabled="@_loading"
                    OnClick="RefreshAsync"
                    Class="page-header-button">
-            Refresh cache view
+            @InterfacesText["RefreshCacheView"]
         </MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
@@ -25,7 +27,7 @@
                    Disabled="@_loading"
                    OnClick="ReconcileAsync"
                    Class="page-header-button">
-            Reconcile from daemon
+            @InterfacesText["ReconcileFromDaemon"]
         </MudButton>
     </Actions>
     <Status>
@@ -35,12 +37,12 @@
                 @DescribeCount(_inventory.Interfaces.Count)
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                Reconciled @_inventory.ReconciledAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                @InterfacesText["ReconciledAt", FormatLocalDateTime(_inventory.ReconciledAt)]
             </MudChip>
             @if (InterfaceInventory.UsesMockData)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip page-status-chip-warning">
-                    Frontend mock data
+                    @InterfacesText["FrontendMockData"]
                 </MudChip>
             }
         }
@@ -50,22 +52,21 @@
 @if (InterfaceInventory.UsesMockData)
 {
     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
-        The network-interface backend is not implemented yet. This page uses a deterministic frontend mock so the
-        autocomplete and reconciliation UX can be exercised without inventing daemon or ASP behavior.
+        @InterfacesText["MockWarning"]
     </MudAlert>
 }
 
 @if (_error is not null)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">Interface inventory could not be loaded</MudText>
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@InterfacesText["LoadFailed"]</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@_error.Message</MudText>
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    Disabled="@_loading"
                    OnClick="RefreshAsync">
-            Retry
+            @CommonText["Retry"]
         </MudButton>
     </MudAlert>
 }
@@ -73,9 +74,9 @@
 <MudPaper Class="interface-inventory-card" Elevation="1">
     <div class="interface-inventory-heading">
         <div>
-            <MudText Typo="Typo.h6" HtmlTag="h2">Cached interface inventory</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2">@InterfacesText["CachedInventoryTitle"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                The list improves authoring convenience only. Free-text interface names remain valid input.
+                @InterfacesText["CachedInventoryDescription"]
             </MudText>
         </div>
     </div>
@@ -83,17 +84,17 @@
     @if (_loading && _inventory is null)
     {
         <div class="interface-inventory-loading" role="status" aria-live="polite">
-            <MudProgressLinear Indeterminate="true" aria-label="Loading network interfaces" />
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Loading cached interface inventory...</MudText>
+            <MudProgressLinear Indeterminate="true" aria-label="@(InterfacesText["LoadingAria"])" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@InterfacesText["LoadingInventory"]</MudText>
         </div>
     }
     else if (_inventory is { Interfaces.Count: 0 })
     {
         <div class="interface-inventory-empty">
             <MudIcon Icon="@Icons.Material.Filled.Lan" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Typo="Typo.subtitle1">No known interfaces</MudText>
+            <MudText Typo="Typo.subtitle1">@InterfacesText["NoKnownInterfaces"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Reconcile with the daemon to refresh the inventory. Rule fields still accept free text.
+                @InterfacesText["NoKnownInterfacesDescription"]
             </MudText>
         </div>
     }
@@ -106,16 +107,16 @@
                   Elevation="0"
                   Class="interface-inventory-table">
             <HeaderContent>
-                <MudTh>Interface</MudTh>
-                <MudTh>Usage</MudTh>
+                <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
+                <MudTh>@InterfacesText["UsageColumn"]</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Interface">
+                <MudTd DataLabel="@(InterfacesText["InterfaceColumn"])">
                     <code class="interface-name">@context</code>
                 </MudTd>
-                <MudTd DataLabel="Usage">
+                <MudTd DataLabel="@(InterfacesText["UsageColumn"])">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Available for source/destination interface autocomplete
+                        @InterfacesText["AutocompleteUsage"]
                     </MudText>
                 </MudTd>
             </RowTemplate>
@@ -124,16 +125,16 @@
 </MudPaper>
 
 @code {
-    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
-    [
-        new BreadcrumbItem("Host", null, disabled: true),
-        new BreadcrumbItem("Interfaces", null, disabled: true),
-    ];
-
     private readonly CancellationTokenSource _lifetime = new();
     private NetworkInterfaceInventoryResponse? _inventory;
     private ClientError? _error;
     private bool _loading;
+
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new BreadcrumbItem(InterfacesText["HostBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(InterfacesText["InterfacesBreadcrumb"], null, disabled: true),
+    ];
 
     protected override Task OnInitializedAsync() => RefreshAsync();
 
@@ -183,8 +184,8 @@
             _inventory = await InterfaceInventory.ReconcileAsync(_lifetime.Token);
             Snackbar.Add(
                 InterfaceInventory.UsesMockData
-                    ? "Mock network-interface inventory reconciled."
-                    : "Network-interface inventory reconciled from the daemon.",
+                    ? InterfacesText["MockReconciled"]
+                    : InterfacesText["ReconciledFromDaemon"],
                 Severity.Success);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -201,5 +202,10 @@
         }
     }
 
-    private static string DescribeCount(int count) => count == 1 ? "1 known interface" : $"{count} known interfaces";
+    private string DescribeCount(int count) => count == 1
+        ? InterfacesText["KnownInterfaceCountOne"]
+        : InterfacesText["KnownInterfaceCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
+
+    private static string FormatLocalDateTime(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 }

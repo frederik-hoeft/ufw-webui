@@ -1,31 +1,33 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-            Choose the one-based position this rule should occupy in the ordered firewall list.
+            @RulesText["MoveDescription"]
         </MudText>
 
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-            Rule ordering is currently a frontend prototype. This move is sent only to the mock ASP boundary and
-            updates a local preview; it does not change UFW and does not perform intent signing.
+            @RulesText["MoveMockNotice"]
         </MudAlert>
 
         <MudNumericField T="int"
-                         Label="Target position"
+                         Label="@(RulesText["TargetPosition"])"
                          @bind-Value="_targetPosition"
                          Min="1"
                          Max="@RuleCount"
                          Immediate="true"
                          Variant="Variant.Outlined"
-                         HelperText="The first firewall rule is position 1." />
+                         HelperText="@(RulesText["TargetPositionHelp"])" />
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.DragIndicator"
                    Disabled="@(!CanConfirm)"
                    OnClick="Confirm">
-            Preview move
+            @RulesText["PreviewMove"]
         </MudButton>
     </DialogActions>
 </MudDialog>

@@ -1,7 +1,9 @@
 @inject IDialogService DialogService
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
 
 <section aria-labelledby="firewall-rule-list-heading" class="rule-list-section">
-    <h2 id="firewall-rule-list-heading" class="visually-hidden">Current firewall rules</h2>
+    <h2 id="firewall-rule-list-heading" class="visually-hidden">@RulesText["CurrentFirewallRules"]</h2>
     <MudPaper Elevation="0" Class="rule-table-card">
         <MudTable T="ListedFirewallRule"
                   Items="@Rules"
@@ -10,20 +12,20 @@
                   Breakpoint="Breakpoint.Md"
                   Class="rule-table">
             <HeaderContent>
-                <MudTh Class="rule-drag-column"><span class="visually-hidden">Reorder</span></MudTh>
-                <MudTh><span aria-hidden="true">#</span><span class="visually-hidden">Rule number</span></MudTh>
-                <MudTh>Action</MudTh>
-                <MudTh>Direction</MudTh>
-                <MudTh>From</MudTh>
-                <MudTh>To</MudTh>
-                <MudTh>Protocol</MudTh>
-                <MudTh>Comment</MudTh>
-                <MudTh><span class="visually-hidden">Actions</span></MudTh>
+                <MudTh Class="rule-drag-column"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></MudTh>
+                <MudTh><span aria-hidden="true">#</span><span class="visually-hidden">@RulesText["RuleNumber"]</span></MudTh>
+                <MudTh>@RulesText["ActionColumn"]</MudTh>
+                <MudTh>@RulesText["DirectionColumn"]</MudTh>
+                <MudTh>@RulesText["FromColumn"]</MudTh>
+                <MudTh>@RulesText["ToColumn"]</MudTh>
+                <MudTh>@RulesText["ProtocolColumn"]</MudTh>
+                <MudTh>@RulesText["CommentColumn"]</MudTh>
+                <MudTh><span class="visually-hidden">@RulesText["ActionsColumn"]</span></MudTh>
             </HeaderContent>
             <RowTemplate>
                 @if (context.Parsed && context.Rule is not null)
                 {
-                    <MudTd Class="rule-drag-column" DataLabel="Reorder">
+                    <MudTd Class="rule-drag-column" DataLabel="@(RulesText["ReorderColumn"])">
                         <button type="button"
                                 class="@DragHandleClass(context)"
                                 draggable="@(!OrderingDisabled && CanOrderRule(context))"
@@ -39,46 +41,46 @@
                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                         </button>
                     </MudTd>
-                    <MudTd DataLabel="Rule number">
-                        <span class="rule-number">@(context.DisplayNumber?.ToString() ?? "-")</span>
+                    <MudTd DataLabel="@(RulesText["RuleNumber"])">
+                        <span class="rule-number">@(context.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
                     </MudTd>
-                    <MudTd DataLabel="Action">
+                    <MudTd DataLabel="@(RulesText["ActionColumn"])">
                         <span class="@FirewallRulePresentation.ActionClass(context.Rule.Action)">
-                            @FirewallRulePresentation.FormatEnum(context.Rule.Action)
+                            @RuleText.FormatAction(context.Rule.Action)
                         </span>
                     </MudTd>
-                    <MudTd DataLabel="Direction">
-                        <span class="rule-direction">@FirewallRulePresentation.FormatEnum(context.Rule.Direction)</span>
-                        <span class="rule-family">@FirewallRulePresentation.FormatAddressFamily(context.Rule.AddressFamily)</span>
+                    <MudTd DataLabel="@(RulesText["DirectionColumn"])">
+                        <span class="rule-direction">@RuleText.FormatDirection(context.Rule.Direction)</span>
+                        <span class="rule-family">@RuleText.FormatAddressFamily(context.Rule.AddressFamily)</span>
                     </MudTd>
-                    <MudTd DataLabel="From">
+                    <MudTd DataLabel="@(RulesText["FromColumn"])">
                         <span class="rule-endpoint">
-                            @FirewallRulePresentation.DescribeEndpoint(context.Rule.Source, null, context.Rule.SourceInterface)
+                            @RuleText.DescribeEndpoint(context.Rule.Source, null, context.Rule.SourceInterface)
                         </span>
                     </MudTd>
-                    <MudTd DataLabel="To">
+                    <MudTd DataLabel="@(RulesText["ToColumn"])">
                         <span class="rule-endpoint">
-                            @FirewallRulePresentation.DescribeEndpoint(context.Rule.Destination, null, context.Rule.DestinationInterface)
+                            @RuleText.DescribeEndpoint(context.Rule.Destination, null, context.Rule.DestinationInterface)
                         </span>
                     </MudTd>
-                    <MudTd DataLabel="Protocol">
-                        <span class="rule-protocol">@FirewallRulePresentation.FormatProtocol(context.Rule.Protocol)</span>
-                        @if (FirewallRulePresentation.DescribePorts(context.Rule) is { } portDescription)
+                    <MudTd DataLabel="@(RulesText["ProtocolColumn"])">
+                        <span class="rule-protocol">@RuleText.FormatProtocol(context.Rule.Protocol)</span>
+                        @if (RuleText.DescribePorts(context.Rule) is { } portDescription)
                         {
                             <span class="rule-protocol-detail">@portDescription</span>
                         }
                     </MudTd>
-                    <MudTd DataLabel="Comment">
+                    <MudTd DataLabel="@(RulesText["CommentColumn"])">
                         @if (!string.IsNullOrWhiteSpace(context.Rule.Comment))
                         {
                             <span class="rule-comment">@context.Rule.Comment</span>
                         }
                         else
                         {
-                            <span class="rule-comment-empty">None</span>
+                            <span class="rule-comment-empty">@RulesText["None"]</span>
                         }
                     </MudTd>
-                    <MudTd DataLabel="Actions" Class="rule-row-actions">
+                    <MudTd DataLabel="@(RulesText["ActionsColumn"])" Class="rule-row-actions">
                         <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
                                  Size="Size.Small"
                                  Dense="true"
@@ -87,47 +89,47 @@
                             <MudMenuItem Disabled="@(OrderingDisabled || !CanOrderRule(context))"
                                          OnClick="@(() => RequestMoveToPositionAsync(context))">
                                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Class="mr-2" />
-                                Move to position...
+                                @RulesText["MoveToPosition"]
                             </MudMenuItem>
                             <MudMenuItem Disabled="@(InsertionDisabled || !CanOrderRule(context))"
                                          Href="@BuildInsertBeforeHref(context)">
                                 <MudIcon Icon="@Icons.Material.Filled.VerticalAlignTop" Size="Size.Small" Class="mr-2" />
-                                Insert before
+                                @RulesText["InsertBefore"]
                             </MudMenuItem>
                             <MudMenuItem Disabled="@(InsertionDisabled || !CanOrderRule(context))"
                                          Href="@BuildInsertAfterHref(context)">
                                 <MudIcon Icon="@Icons.Material.Filled.VerticalAlignBottom" Size="Size.Small" Class="mr-2" />
-                                Insert after
+                                @RulesText["InsertAfter"]
                             </MudMenuItem>
                             <MudDivider />
                             <MudMenuItem Disabled="@(Disabled || !CanMutateRule(context))"
                                          OnClick="@(() => DeleteRequested.InvokeAsync(context))"
                                          Class="rule-menu-delete">
                                 <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Class="mr-2" />
-                                Delete rule
+                                @RulesText["DeleteRule"]
                             </MudMenuItem>
                         </MudMenu>
                     </MudTd>
                 }
                 else
                 {
-                    <MudTd Class="rule-drag-column" DataLabel="Reorder">
+                    <MudTd Class="rule-drag-column" DataLabel="@(RulesText["ReorderColumn"])">
                         <span class="rule-drag-handle rule-drag-handle-disabled" aria-hidden="true">
                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                         </span>
                     </MudTd>
-                    <MudTd DataLabel="Rule number">
-                        <span class="rule-number">@(context.DisplayNumber?.ToString() ?? "-")</span>
+                    <MudTd DataLabel="@(RulesText["RuleNumber"])">
+                        <span class="rule-number">@(context.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
                     </MudTd>
                     <MudTd colspan="6">
                         <div class="rule-unsupported">
-                            <span class="rule-unsupported-label">Read only</span>
+                            <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
                             <span class="rule-raw-line">@context.RawLine</span>
                         </div>
                     </MudTd>
-                    <MudTd DataLabel="Actions" Class="rule-row-actions">
-                        <MudTooltip Text="This UFW line could not be parsed safely and cannot be mutated through the API.">
-                            <span role="img" aria-label="Rule is read-only because it could not be parsed safely">
+                    <MudTd DataLabel="@(RulesText["ActionsColumn"])" Class="rule-row-actions">
+                        <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
+                            <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
                                 <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
                             </span>
                         </MudTooltip>
@@ -137,9 +139,9 @@
             <NoRecordsContent>
                 <div class="rule-empty-state">
                     <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Large" Color="Color.Secondary" />
-                    <MudText Typo="Typo.subtitle1">No firewall rules</MudText>
+                    <MudText Typo="Typo.subtitle1">@RulesText["NoFirewallRules"]</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        The authoritative UFW rule list is empty.
+                        @RulesText["NoFirewallRulesDescription"]
                     </MudText>
                     <MudButton Href="/rules/create"
                                Variant="Variant.Filled"
@@ -147,7 +149,7 @@
                                StartIcon="@Icons.Material.Filled.Add"
                                Disabled="@Disabled"
                                Class="mt-2">
-                        Add rule
+                        @RulesText["AddRule"]
                     </MudButton>
                 </div>
             </NoRecordsContent>
@@ -157,15 +159,12 @@
     @if (Rules.Count > 0)
     {
         <div class="rule-ordering-note" role="note">
-            <strong>Ordering</strong>
-            <span>
-                Drag a rule by its handle or use "Move to position..." for an explicit keyboard-friendly flow.
-                Insert-before/after actions open rule creation with the selected position context.
-            </span>
+            <strong>@RulesText["OrderingLabel"]</strong>
+            <span>@RulesText["OrderingDescription"]</span>
             @if (OrderingUsesMockData)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="rule-ordering-mock-chip">
-                    Mock API
+                    @RulesText["MockApi"]
                 </MudChip>
             }
         </div>
@@ -210,22 +209,26 @@
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
 
-    private static string ActionsLabel(ListedFirewallRule rule)
-        => rule.DisplayNumber is { } number ? $"Actions for firewall rule {number}" : "Firewall rule actions";
+    private string ActionsLabel(ListedFirewallRule rule)
+        => rule.DisplayNumber is { } number
+            ? RulesText["ActionsForRule", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
+            : RulesText["RuleActions"];
 
-    private static string DragHandleLabel(ListedFirewallRule rule)
-        => rule.DisplayNumber is { } number ? $"Drag firewall rule {number} to reorder" : "Drag firewall rule to reorder";
+    private string DragHandleLabel(ListedFirewallRule rule)
+        => rule.DisplayNumber is { } number
+            ? RulesText["DragRuleNumber", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
+            : RulesText["DragRule"];
 
     private string DragHandleTitle(ListedFirewallRule rule)
     {
         if (!CanOrderRule(rule))
         {
-            return "This rule cannot be addressed unambiguously for ordering.";
+            return RulesText["CannotOrderAmbiguous"];
         }
 
         return OrderingUsesMockData
-            ? "Drag to preview a new order. The mock does not change UFW."
-            : "Drag to reorder this firewall rule.";
+            ? RulesText["DragMockTitle"]
+            : RulesText["DragRealTitle"];
     }
 
     private string DragHandleClass(ListedFirewallRule rule)
@@ -335,7 +338,7 @@
         parameters.Add(component => component.RuleCount, Rules.Count);
 
         IDialogReference dialog = await DialogService.ShowAsync<MoveRuleDialog>(
-            "Move firewall rule",
+            RulesText["MoveDialogTitle"],
             parameters,
             s_moveDialogOptions);
         int? targetPosition = await dialog.GetReturnValueAsync<int>();

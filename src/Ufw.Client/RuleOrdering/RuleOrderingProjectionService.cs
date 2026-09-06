@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Localization;
+using Ufw.Client.Localization;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.RuleOrdering;
 
-internal sealed class RuleOrderingProjectionService : IRuleOrderingProjectionService
+internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesStrings> rulesText) : IRuleOrderingProjectionService
 {
     public IReadOnlyList<ListedFirewallRule> Move(
         IReadOnlyList<ListedFirewallRule> rules,
@@ -17,7 +19,7 @@ internal sealed class RuleOrderingProjectionService : IRuleOrderingProjectionSer
             throw new ArgumentOutOfRangeException(
                 nameof(targetPosition),
                 targetPosition,
-                $"Target position must be between 1 and {rules.Count}.");
+                rulesText["OrderingTargetRange", rules.Count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)]);
         }
 
         int sourceIndex = -1;
@@ -30,7 +32,7 @@ internal sealed class RuleOrderingProjectionService : IRuleOrderingProjectionSer
 
             if (sourceIndex >= 0)
             {
-                throw new InvalidOperationException("The rule ID is ambiguous in the current snapshot.");
+                throw new InvalidOperationException(rulesText["OrderingAmbiguous"]);
             }
 
             sourceIndex = index;
@@ -38,7 +40,7 @@ internal sealed class RuleOrderingProjectionService : IRuleOrderingProjectionSer
 
         if (sourceIndex < 0)
         {
-            throw new InvalidOperationException("The rule is not present in the current snapshot.");
+            throw new InvalidOperationException(rulesText["OrderingMissing"]);
         }
 
         List<ListedFirewallRule> ordered = [.. rules];

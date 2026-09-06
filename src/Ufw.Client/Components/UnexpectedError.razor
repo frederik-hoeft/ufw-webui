@@ -1,9 +1,11 @@
 @using Ufw.Client.Errors
 @inject NavigationManager Navigation
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<StandaloneStrings> StandaloneText
 
 <main class="standalone-shell">
     <ThemeToggle Class="standalone-theme-toggle" />
-    <StandalonePanel Title="Something went wrong"
+    <StandalonePanel Title="@(StandaloneText["SomethingWentWrong"])"
                      Description="@Error.Message"
                      Icon="@Icons.Material.Filled.ErrorOutline"
                      IconColor="Color.Error"
@@ -14,7 +16,7 @@
                        Color="Color.Primary"
                        OnClick="Reload"
                        StartIcon="@Icons.Material.Filled.Refresh">
-                Reload application
+                @CommonText["ReloadApplication"]
             </MudButton>
         </Actions>
     </StandalonePanel>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="ApiUnavailable" xml:space="preserve"><value>The management API is unavailable. Check the connection and try again.</value></data>
+  <data name="OperationCanceled" xml:space="preserve"><value>The operation was canceled before it completed.</value></data>
+  <data name="BrowserSecurityOperationFailed" xml:space="preserve"><value>The browser could not complete a required security operation. Try again in a supported browser.</value></data>
+  <data name="Unexpected" xml:space="preserve"><value>An unexpected error occurred. Refresh the application and try again.</value></data>
+  <data name="SessionInvalid" xml:space="preserve"><value>Your session is no longer valid. Sign in again.</value></data>
+  <data name="Forbidden" xml:space="preserve"><value>You do not have permission to perform this operation.</value></data>
+  <data name="ResourceMissing" xml:space="preserve"><value>The requested resource no longer exists. Refresh and try again.</value></data>
+  <data name="ApiCouldNotComplete" xml:space="preserve"><value>The management API could not complete the request. Try again.</value></data>
+  <data name="ApiRejected" xml:space="preserve"><value>The management API rejected the request.</value></data>
+  <data name="ClientValidationRejected" xml:space="preserve"><value>The client rejected the request because its input is invalid.</value></data>
+  <data name="ProtocolMismatch" xml:space="preserve"><value>The management API returned a response this client could not understand. Check that the client and server versions match.</value></data>
+</root>

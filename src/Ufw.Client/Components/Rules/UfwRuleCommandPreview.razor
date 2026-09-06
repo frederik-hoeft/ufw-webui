@@ -1,7 +1,8 @@
 @inject IUfwRuleCommandRenderer UfwRuleCommandRenderer
+@inject IStringLocalizer<RulesStrings> RulesText
 
-<div class="ufw-command-preview" role="group" aria-label="@Label">
-    <MudText Typo="Typo.overline" HtmlTag="div" Class="ufw-command-preview-label">@Label</MudText>
+<div class="ufw-command-preview" role="group" aria-label="@EffectiveLabel">
+    <MudText Typo="Typo.overline" HtmlTag="div" Class="ufw-command-preview-label">@EffectiveLabel</MudText>
     @if (TryGetCommandText(out string? commandText))
     {
         <code class="ufw-command-preview-value">@commandText</code>
@@ -9,7 +10,7 @@
     else
     {
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ufw-command-preview-empty">
-            Complete a valid rule to preview the canonical UFW syntax.
+            @RulesText["CommandPreviewEmpty"]
         </MudText>
     }
     @if (Details is not null)
@@ -25,10 +26,12 @@
     public FirewallRuleSpecification Rule { get; set; } = null!;
 
     [Parameter]
-    public string Label { get; set; } = "UFW rule";
+    public string? Label { get; set; }
 
     [Parameter]
     public RenderFragment? Details { get; set; }
+
+    private string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? RulesText["UfwRule"] : Label;
 
     private bool TryGetCommandText(out string? commandText)
     {

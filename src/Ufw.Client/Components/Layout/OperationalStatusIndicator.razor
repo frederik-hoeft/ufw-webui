@@ -1,5 +1,6 @@
 @implements IDisposable
 @inject IOperationalStatusService OperationalStatus
+@inject IStringLocalizer<NavigationStrings> NavigationText
 
 <div class="app-navigation-status" role="status" aria-live="polite" title="@Tooltip">
     <span class="app-navigation-status-dot @StatusClass" aria-hidden="true"></span>
@@ -35,9 +36,9 @@
 
     private string Label => OperationalStatus.Current.DaemonBackedApi switch
     {
-        OperationalAvailability.Available => "ufw-systemd connected",
-        OperationalAvailability.Unavailable => "ufw-systemd unavailable",
-        _ => OperationalStatus.IsRefreshing ? "checking ufw-systemd..." : "ufw-systemd status unknown",
+        OperationalAvailability.Available => NavigationText["DaemonConnected"],
+        OperationalAvailability.Unavailable => NavigationText["DaemonUnavailable"],
+        _ => OperationalStatus.IsRefreshing ? NavigationText["DaemonChecking"] : NavigationText["DaemonUnknown"],
     };
 
     private string StatusClass => OperationalStatus.Current.DaemonBackedApi switch
@@ -53,8 +54,8 @@
         {
             DateTimeOffset? checkedAt = OperationalStatus.Current.CheckedAt;
             return checkedAt is null
-                ? "No daemon-backed status check has completed yet."
-                : $"Last checked {checkedAt.Value.ToLocalTime():yyyy-MM-dd HH:mm:ss}.";
+                ? NavigationText["NoStatusCheck"]
+                : NavigationText["LastChecked", checkedAt.Value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)];
         }
     }
 }

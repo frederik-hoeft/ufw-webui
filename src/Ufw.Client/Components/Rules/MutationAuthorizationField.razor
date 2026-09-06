@@ -1,5 +1,7 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
 <MudTextField T="string"
-              Label="ECDSA P-256 private key"
+              Label="@(RulesText["PrivateKeyLabel"])"
               InputType="InputType.Password"
               Value="@Value"
               name="intent-private-key"
@@ -9,8 +11,8 @@
               ValueChanged="ValueChangedAsync"
               Disabled="@Disabled"
               Required="true"
-              RequiredError="A private key is required to authorize this mutation."
-              HelperText="Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored."
+              RequiredError="@(RulesText["PrivateKeyRequired"])"
+              HelperText="@(RulesText["PrivateKeyDetailedHelper"])"
               Placeholder="data:application/pkcs8;base64,..."
               Immediate="true" />
 

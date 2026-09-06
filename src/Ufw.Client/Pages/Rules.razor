@@ -7,12 +7,14 @@
 @inject IClientErrorMapper ClientErrors
 @inject IRuleOrderingApiClient RuleOrderingApiClient
 @inject IRuleOrderingProjectionService RuleOrderingProjection
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
 
-<PageTitle>Firewall rules - UFW Console</PageTitle>
+<PageTitle>@RulesText["RulesPageTitle"] - UFW Console</PageTitle>
 
-<PageHeader Title="Firewall rules"
-            Description="Ordered UFW rules are evaluated from top to bottom. Reorder explicitly or drag by the handle."
-            Breadcrumbs="@s_breadcrumbs"
+<PageHeader Title="@(RulesText["RulesTitle"])"
+            Description="@(RulesText["RulesDescription"])"
+            Breadcrumbs="@Breadcrumbs"
             ShowStatus="@(_state.Snapshot is not null)">
     <Actions>
         <MudButton Variant="Variant.Outlined"
@@ -28,7 +30,7 @@
                    StartIcon="@Icons.Material.Filled.Add"
                    Disabled="@(!CanMutateFirewall)"
                    Class="page-header-button">
-            Add rule
+            @RulesText["AddRule"]
         </MudButton>
     </Actions>
     <Status>
@@ -38,7 +40,7 @@
                      Size="Size.Small"
                      Variant="Variant.Filled"
                      Class="@(headerSnapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(headerSnapshot.FirewallActive ? "Firewall active" : "Firewall inactive")
+                @(headerSnapshot.FirewallActive ? RulesText["FirewallActive"] : RulesText["FirewallInactive"])
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
                 @DescribeRuleCount(headerSnapshot.Rules.Count)
@@ -56,32 +58,32 @@
 @if (_state.Status == RulesPageStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">Firewall state could not be loaded</MudText>
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LoadFailed"]</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@_state.Error?.Message</MudText>
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    Disabled="@IsBusy"
                    OnClick="RefreshAsync">
-            Retry
+            @CommonText["Retry"]
         </MudButton>
     </MudAlert>
 }
 else if (_state.Snapshot is null)
 {
     <MudPaper Class="pa-5" Elevation="1" role="status" aria-live="polite">
-        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="Loading firewall state" />
+        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="@(RulesText["LoadingStateAria"])" />
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Loading authoritative firewall state...
+            @RulesText["LoadingAuthoritativeState"]
         </MudText>
     </MudPaper>
 }
-else if (_state.Snapshot is { } snapshot)
+else if (_state.Snapshot is { })
 {
     @if (_state.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">Displayed firewall state is stale</MudText>
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["DisplayedStateStale"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">@DescribeStaleState()</MudText>
             @if (_state.Error is not null)
             {
@@ -92,7 +94,7 @@ else if (_state.Snapshot is { } snapshot)
                        StartIcon="@Icons.Material.Filled.Refresh"
                        Disabled="@IsBusy"
                        OnClick="RefreshAsync">
-                Refresh authoritative state
+                @RulesText["RefreshAuthoritative"]
             </MudButton>
         </MudAlert>
     }
@@ -101,35 +103,32 @@ else if (_state.Snapshot is { } snapshot)
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">
                 @(_state.RefreshReason == RuleRefreshReason.AfterMutation
-                    ? "Rule change accepted. Refreshing authoritative firewall state before allowing another mutation..."
-                    : "Refreshing authoritative firewall state...")
+                    ? RulesText["RuleChangeAcceptedRefreshing"]
+                    : RulesText["RefreshingAuthoritative"])
             </MudText>
         </MudAlert>
     }
     else if (_deleting)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
-            <MudText Typo="Typo.body2">Deleting signed firewall rule...</MudText>
+            <MudText Typo="Typo.body2">@RulesText["DeletingRule"]</MudText>
         </MudAlert>
     }
 
     @if (HasOrderingPreview)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5 rule-ordering-preview-alert" role="status" aria-live="polite">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">Local ordering preview</MudText>
-            <MudText Typo="Typo.body2" Class="mb-3">
-                The browser is previewing rule order through the mocked ASP ordering boundary. UFW has not changed,
-                no ordering intent was signed, and add/delete mutations are disabled until this preview is discarded or authoritative state is reloaded.
-            </MudText>
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LocalOrderingPreview"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">@RulesText["LocalOrderingPreviewDescription"]</MudText>
             <div class="rule-ordering-preview-actions">
                 <MudButton Variant="Variant.Text" Disabled="@_reordering" OnClick="DiscardOrderingPreview">
-                    Discard preview
+                    @RulesText["DiscardPreview"]
                 </MudButton>
                 <MudButton Variant="Variant.Outlined"
                            StartIcon="@Icons.Material.Filled.Refresh"
                            Disabled="@_reordering"
                            OnClick="RefreshAsync">
-                    Reload authoritative state
+                    @RulesText["ReloadAuthoritativeState"]
                 </MudButton>
             </div>
         </MudAlert>
@@ -146,12 +145,6 @@ else if (_state.Snapshot is { } snapshot)
 }
 
 @code {
-    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
-    [
-        new BreadcrumbItem("Firewall", null, disabled: true),
-        new BreadcrumbItem("Rules", null, disabled: true),
-    ];
-
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
         BackdropClick = false,
@@ -169,6 +162,12 @@ else if (_state.Snapshot is { } snapshot)
     private bool _reordering;
     private IReadOnlyList<ListedFirewallRule>? _orderingPreviewRules;
 
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new BreadcrumbItem(RulesText["FirewallBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(RulesText["RulesBreadcrumb"], null, disabled: true),
+    ];
+
     private bool HasOrderingPreview => _orderingPreviewRules is not null;
 
     private IReadOnlyList<ListedFirewallRule> DisplayedRules
@@ -182,23 +181,25 @@ else if (_state.Snapshot is { } snapshot)
 
     private string RefreshButtonLabel => _state.Status switch
     {
-        RulesPageStatus.Loading => "Loading...",
-        RulesPageStatus.Refreshing => "Refreshing...",
-        _ => "Refresh",
+        RulesPageStatus.Loading => RulesText["LoadingEllipsis"],
+        RulesPageStatus.Refreshing => RulesText["RefreshingEllipsis"],
+        _ => CommonText["Refresh"],
     };
 
-    private static string DescribeRuleCount(int count) => count == 1 ? "1 rule" : $"{count} rules";
+    private string DescribeRuleCount(int count) => count == 1
+        ? RulesText["RuleCountOne"]
+        : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
     private string DescribeSnapshotStatus()
     {
         if (_state.IsStale)
         {
-            return "Authoritative snapshot \u00b7 stale";
+            return RulesText["AuthoritativeSnapshotStale"];
         }
 
         return _state.Status == RulesPageStatus.Refreshing
-            ? "Authoritative snapshot \u00b7 refreshing"
-            : "Authoritative snapshot \u00b7 current";
+            ? RulesText["AuthoritativeSnapshotRefreshing"]
+            : RulesText["AuthoritativeSnapshotCurrent"];
     }
 
     protected override async Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
@@ -257,7 +258,7 @@ else if (_state.Snapshot is { } snapshot)
             parameters.Add(component => component.Rule, rule);
 
             IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(
-                "Delete firewall rule?",
+                RulesText["DeleteDialogTitle"],
                 parameters,
                 s_deleteDialogOptions);
             privateKey = await dialog.GetReturnValueAsync<string>();
@@ -281,7 +282,7 @@ else if (_state.Snapshot is { } snapshot)
 
             if (!CanMutateFirewall)
             {
-                Snackbar.Add("Firewall state changed while deletion was being confirmed. Refresh and try again.", Severity.Warning);
+                Snackbar.Add(RulesText["DeleteStateChanged"], Severity.Warning);
                 return;
             }
 
@@ -299,7 +300,7 @@ else if (_state.Snapshot is { } snapshot)
         try
         {
             await UfwApiClient.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
-            Snackbar.Add("Firewall rule deleted.", Severity.Success);
+            Snackbar.Add(RulesText["RuleDeleted"], Severity.Success);
             _deleting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
         }
@@ -326,7 +327,7 @@ else if (_state.Snapshot is { } snapshot)
         IReadOnlyList<ListedFirewallRule> currentRules = DisplayedRules;
         if (request.TargetPosition < 1 || request.TargetPosition > currentRules.Count)
         {
-            Snackbar.Add("The requested rule position is outside the current rule list.", Severity.Warning);
+            Snackbar.Add(RulesText["PositionOutside"], Severity.Warning);
             return;
         }
 
@@ -347,7 +348,7 @@ else if (_state.Snapshot is { } snapshot)
                 request.RuleId,
                 request.TargetPosition);
             Snackbar.Add(
-                $"Mock ordering preview moved the rule to position {request.TargetPosition}. UFW was not changed.",
+                RulesText["MockMovedPosition", request.TargetPosition.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)],
                 Severity.Info);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -381,18 +382,11 @@ else if (_state.Snapshot is { } snapshot)
         Snackbar.Add(error.Message, Severity.Error);
     }
 
-    private string DescribeStaleState()
+    private string DescribeStaleState() => _state.StaleReason switch
     {
-        return _state.StaleReason switch
-        {
-            RuleSnapshotStaleReason.MutationCommitted
-                => "The rule change succeeded, but the client could not reload the authoritative rule list. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.",
-            RuleSnapshotStaleReason.MutationOutcomeUnknown
-                => "The client could not confirm whether the attempted rule change completed. The last successfully loaded snapshot is shown below and must be refreshed before another mutation.",
-            RuleSnapshotStaleReason.MutationRejectedRequiresRefresh
-                => "The mutation was rejected in a way that requires authoritative firewall state to be reloaded before another change. Refresh before attempting another mutation.",
-            _
-                => "The latest refresh failed. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.",
-        };
-    }
+        RuleSnapshotStaleReason.MutationCommitted => RulesText["StaleMutationCommittedList"],
+        RuleSnapshotStaleReason.MutationOutcomeUnknown => RulesText["StaleMutationUnknownList"],
+        RuleSnapshotStaleReason.MutationRejectedRequiresRefresh => RulesText["StaleMutationRejectedList"],
+        _ => RulesText["StaleRefreshFailedList"],
+    };
 }

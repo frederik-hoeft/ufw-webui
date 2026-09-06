@@ -4,8 +4,9 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<CommonStrings> CommonText
 
-<a class="skip-link" href="#main-content">Skip to main content</a>
+<a class="skip-link" href="#main-content">@CommonText["SkipToMainContent"]</a>
 
 <MudLayout>
     <MudAppBar Fixed="true" Elevation="0" Class="app-shell-bar">
@@ -14,7 +15,7 @@
                        Edge="Edge.Start"
                        OnClick="ToggleDrawer"
                        Class="appbar-menu-button"
-                       aria-label="Toggle navigation" />
+                       aria-label="@(CommonText["ToggleNavigation"])" />
         <AuthorizeView>
             <Authorized>
                 <MudText Typo="Typo.caption" Class="appbar-context" title="@context.User.Identity?.Name">
@@ -34,14 +35,14 @@
                            Disabled="@_logoutBusy"
                            OnClick="LogoutAsync"
                            Class="appbar-signout-text">
-                    @(_logoutBusy ? "Signing out..." : "Sign out")
+                    @(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])
                 </MudButton>
                 <MudIconButton Icon="@Icons.Material.Filled.Logout"
                                Color="Color.Inherit"
                                Disabled="@_logoutBusy"
                                OnClick="LogoutAsync"
                                Class="appbar-signout-icon"
-                               aria-label="@(_logoutBusy ? "Signing out" : "Sign out")" />
+                               aria-label="@(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])" />
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
@@ -96,9 +97,7 @@
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             ClientError error = ClientErrors.Describe(exception);
-            Snackbar.Add(
-                $"Could not sign out. {error.Message} You are still signed in.",
-                Severity.Error);
+            Snackbar.Add(CommonText["CouldNotSignOut", error.Message], Severity.Error);
         }
         finally
         {
