@@ -29,7 +29,9 @@ internal static class UfwMudTheme
             Typography = CreateTypography(),
             LayoutProperties = new LayoutProperties
             {
+                AppbarHeight = "56px",
                 DefaultBorderRadius = "6px",
+                DrawerWidthLeft = "240px",
             },
             Shadows = shadows,
         };

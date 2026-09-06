@@ -8,14 +8,11 @@
 
 <PageTitle>Firewall rules - UFW Management</PageTitle>
 
-<header class="page-header mb-5">
-    <div class="page-header-copy">
-        <MudText Typo="Typo.h4" HtmlTag="h1">Firewall rules</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Authoritative rules reported by the privileged UFW daemon.
-        </MudText>
-    </div>
-    <div class="page-header-actions">
+<PageHeader Title="Firewall rules"
+            Description="Authoritative UFW rules in their current evaluation order."
+            Breadcrumbs="@s_breadcrumbs"
+            ShowStatus="@(_state.Snapshot is not null)">
+    <Actions>
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    Disabled="@IsBusy"
@@ -23,8 +20,36 @@
                    Class="page-header-button">
             @RefreshButtonLabel
         </MudButton>
-    </div>
-</header>
+        <MudButton Href="#add-rule"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@(!CanMutate)"
+                   Class="page-header-button">
+            Add rule
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_state.Snapshot is { } headerSnapshot)
+        {
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@(headerSnapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
+                @(headerSnapshot.FirewallActive ? "Firewall active" : "Firewall inactive")
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeRuleCount(headerSnapshot.Rules.Count)
+            </MudChip>
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
+                @DescribeSnapshotStatus()
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
 
 @if (_state.Status == RulesPageStatus.Failed)
 {
@@ -86,13 +111,15 @@ else if (_state.Snapshot is { } snapshot)
         </MudAlert>
     }
 
-    <RuleEditor @key="_draft"
+    <div id="add-rule" class="rule-editor-anchor">
+        <RuleEditor @key="_draft"
                 Rule="@_draft"
                 FirewallActive="@snapshot.FirewallActive"
                 Disabled="@(!CanMutate)"
                 Submitting="@IsAdding"
                 @bind-PrivateKey="_addPrivateKey"
                 OnSubmit="AddRuleAsync" />
+    </div>
 
     <RuleTable Rules="@snapshot.Rules"
                Loading="@(_state.Status == RulesPageStatus.Refreshing)"
@@ -101,6 +128,12 @@ else if (_state.Snapshot is { } snapshot)
 }
 
 @code {
+    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
+    [
+        new BreadcrumbItem("Firewall", null, disabled: true),
+        new BreadcrumbItem("Rules", null, disabled: true),
+    ];
+
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
         BackdropClick = true,
@@ -134,6 +167,20 @@ else if (_state.Snapshot is { } snapshot)
         RulesPageStatus.Refreshing => "Refreshing...",
         _ => "Refresh",
     };
+
+    private static string DescribeRuleCount(int count) => count == 1 ? "1 rule" : $"{count} rules";
+
+    private string DescribeSnapshotStatus()
+    {
+        if (_state.IsStale)
+        {
+            return "Authoritative snapshot \u00b7 stale";
+        }
+
+        return _state.Status == RulesPageStatus.Refreshing
+            ? "Authoritative snapshot \u00b7 refreshing"
+            : "Authoritative snapshot \u00b7 current";
+    }
 
     protected override async Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
 
