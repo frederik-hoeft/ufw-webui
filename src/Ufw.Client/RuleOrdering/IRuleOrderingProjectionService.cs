@@ -1,11 +1,12 @@
+using Ufw.Client.Api;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.RuleOrdering;
 
-public interface IRuleOrderingProjectionService
+internal interface IRuleOrderingProjectionService
 {
-    IReadOnlyList<ListedFirewallRule> Move(
-        IReadOnlyList<ListedFirewallRule> rules,
-        string ruleId,
-        int targetPosition);
+    RuleOrderingPreview Move(
+        IReadOnlyList<ListedFirewallRule> authoritativeRules,
+        RuleOrderingPreview? currentPreview,
+        RuleMoveRequest request);
 }

@@ -12,7 +12,7 @@
 .settings-section-header {
     display: grid;
     gap: 0.25rem;
-    padding: 1.25rem 1.5rem;
+    padding: 1.125rem 1.5rem;
     border-bottom: 1px solid var(--mud-palette-lines-default);
 }
 
@@ -43,9 +43,18 @@
 }
 
 .settings-language-select {
-  width: min(16rem, 100%);
+    width: min(16rem, 100%);
+
+    .mud-input,
+    .mud-input-slot {
+        font-weight: 400;
+    }
+
+    .mud-input-label {
+        font-weight: 500;
+    }
 }
 
 .settings-divider {
-  margin-block: 0.25rem;
+    margin-block: 0.25rem;
 }

@@ -10,6 +10,7 @@
 
 <PageTitle>@RulesText["CreatePageTitle"] - UFW Console</PageTitle>
 
+<div class="rule-create-page">
 <PageHeader Title="@(RulesText["CreateTitle"])"
             Description="@HeaderDescription"
             Breadcrumbs="@Breadcrumbs"
@@ -123,6 +124,7 @@ else
                 OnSubmit="AddRuleAsync"
                 OnCancel="Cancel" />
 }
+</div>
 
 @code {
     private readonly CancellationTokenSource _lifetime = new();

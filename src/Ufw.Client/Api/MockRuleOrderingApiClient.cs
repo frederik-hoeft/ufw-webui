@@ -4,19 +4,27 @@ internal sealed class MockRuleOrderingApiClient : IRuleOrderingApiClient
 {
     public bool UsesMockData => true;
 
-    public Task MoveAsync(RuleMoveRequest request, CancellationToken cancellationToken = default)
+    public Task ApplyAsync(RuleOrderingApplyRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (string.IsNullOrWhiteSpace(request.RuleId))
+        if (request.Moves.Count == 0)
         {
-            throw new ArgumentException("A rule ID is required for ordering.", nameof(request));
+            throw new ArgumentException("At least one staged rule move is required.", nameof(request));
         }
 
-        if (request.TargetPosition < 1)
+        foreach (RuleMoveRequest move in request.Moves)
         {
-            throw new ArgumentOutOfRangeException(nameof(request), "The target position must be positive.");
+            if (string.IsNullOrWhiteSpace(move.RuleId))
+            {
+                throw new ArgumentException("A rule ID is required for ordering.", nameof(request));
+            }
+
+            if (move.TargetPosition < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(request), "The target position must be positive.");
+            }
         }
 
         return Task.CompletedTask;

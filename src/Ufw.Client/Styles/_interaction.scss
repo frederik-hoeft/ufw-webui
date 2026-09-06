@@ -8,6 +8,13 @@ button,
     }
 }
 
+// FocusOnNavigate intentionally focuses headings with tabindex=-1 so assistive
+// technology announces route changes. Suppress the browser's generic element
+// outline for that programmatic focus without affecting keyboard-focusable UI.
+[tabindex="-1"]:focus {
+    outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

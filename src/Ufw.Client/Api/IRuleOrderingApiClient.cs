@@ -1,7 +1,7 @@
 namespace Ufw.Client.Api;
 
 /// <summary>
-/// Browser-facing boundary for firewall rule ordering mutations.
+/// Browser-facing boundary for confirmed firewall rule ordering mutations.
 /// </summary>
 /// <remarks>
 /// The production REST/signed-intent contract is intentionally not defined yet. The frontend currently
@@ -11,5 +11,5 @@ public interface IRuleOrderingApiClient
 {
     bool UsesMockData { get; }
 
-    Task MoveAsync(RuleMoveRequest request, CancellationToken cancellationToken = default);
+    Task ApplyAsync(RuleOrderingApplyRequest request, CancellationToken cancellationToken = default);
 }

@@ -20,6 +20,15 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
         return Current;
     }
 
+    public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(
+        string interfaceName,
+        string? comment,
+        CancellationToken cancellationToken = default)
+    {
+        Current = Normalize(await apiClient.UpdateCommentAsync(interfaceName, comment, cancellationToken));
+        return Current;
+    }
+
     private static NetworkInterfaceInventoryResponse Normalize(NetworkInterfaceInventoryResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
@@ -28,11 +37,16 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
             throw new ApiProtocolException("Network-interface inventory response is missing required fields.");
         }
 
-        string[] interfaces = response.Interfaces
-            .Where(static value => !string.IsNullOrWhiteSpace(value))
-            .Select(static value => value.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
+        NetworkInterfaceInventoryItem[] interfaces = response.Interfaces
+            .Where(static entry => entry is not null && !string.IsNullOrWhiteSpace(entry.Name))
+            .Select(static entry => new NetworkInterfaceInventoryItem
+            {
+                Name = entry.Name.Trim(),
+                Comment = string.IsNullOrWhiteSpace(entry.Comment) ? null : entry.Comment.Trim(),
+            })
+            .GroupBy(static entry => entry.Name, StringComparer.Ordinal)
+            .Select(static group => group.First())
+            .OrderBy(static entry => entry.Name, StringComparer.Ordinal)
             .ToArray();
 
         return new NetworkInterfaceInventoryResponse

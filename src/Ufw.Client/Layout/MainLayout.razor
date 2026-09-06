@@ -32,6 +32,7 @@
             <Authorized>
                 <MudButton Variant="Variant.Outlined"
                            Color="Color.Inherit"
+                           StartIcon="@Icons.Material.Filled.Logout"
                            Disabled="@_logoutBusy"
                            OnClick="LogoutAsync"
                            Class="appbar-signout-text">
@@ -49,7 +50,7 @@
 
     <MudDrawer @bind-Open="_drawerOpen"
                Variant="DrawerVariant.Responsive"
-               Breakpoint="Breakpoint.Md"
+               Breakpoint="Breakpoint.Sm"
                ClipMode="DrawerClipMode.Never"
                Elevation="0"
                Class="app-shell-drawer">

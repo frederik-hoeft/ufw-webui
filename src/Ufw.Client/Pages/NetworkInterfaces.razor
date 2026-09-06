@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject INetworkInterfaceInventoryService InterfaceInventory
 @inject IClientErrorMapper ClientErrors
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<InterfacesStrings> InterfacesText
@@ -16,7 +17,7 @@
     <Actions>
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.Refresh"
-                   Disabled="@_loading"
+                   Disabled="@IsBusy"
                    OnClick="RefreshAsync"
                    Class="page-header-button">
             @InterfacesText["RefreshCacheView"]
@@ -24,7 +25,7 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Sync"
-                   Disabled="@_loading"
+                   Disabled="@IsBusy"
                    OnClick="ReconcileAsync"
                    Class="page-header-button">
             @InterfacesText["ReconcileFromDaemon"]
@@ -64,7 +65,7 @@
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Refresh"
-                   Disabled="@_loading"
+                   Disabled="@IsBusy"
                    OnClick="RefreshAsync">
             @CommonText["Retry"]
         </MudButton>
@@ -100,7 +101,7 @@
     }
     else if (_inventory is not null)
     {
-        <MudTable T="string"
+        <MudTable T="NetworkInterfaceInventoryItem"
                   Items="@_inventory.Interfaces"
                   Dense="true"
                   Hover="true"
@@ -108,16 +109,24 @@
                   Class="interface-inventory-table">
             <HeaderContent>
                 <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
-                <MudTh>@InterfacesText["UsageColumn"]</MudTh>
+                <MudTh>@InterfacesText["CommentColumn"]</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="@(InterfacesText["InterfaceColumn"])">
-                    <code class="interface-name">@context</code>
+                    <code class="interface-name">@context.Name</code>
                 </MudTd>
-                <MudTd DataLabel="@(InterfacesText["UsageColumn"])">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        @InterfacesText["AutocompleteUsage"]
-                    </MudText>
+                <MudTd DataLabel="@(InterfacesText["CommentColumn"])">
+                    <div class="interface-comment-cell">
+                        <span class="@(string.IsNullOrWhiteSpace(context.Comment) ? "interface-comment-empty" : "interface-comment")">
+                            @(string.IsNullOrWhiteSpace(context.Comment) ? InterfacesText["NoComment"] : context.Comment)
+                        </span>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Disabled="@IsBusy"
+                                   OnClick="@(() => EditCommentAsync(context))">
+                            @InterfacesText["EditComment"]
+                        </MudButton>
+                    </div>
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -125,16 +134,28 @@
 </MudPaper>
 
 @code {
+    private static readonly DialogOptions s_commentDialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        FullWidth = true,
+        MaxWidth = MaxWidth.Small,
+    };
+
     private readonly CancellationTokenSource _lifetime = new();
     private NetworkInterfaceInventoryResponse? _inventory;
     private ClientError? _error;
     private bool _loading;
+    private bool _savingComment;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
         new BreadcrumbItem(InterfacesText["HostBreadcrumb"], null, disabled: true),
         new BreadcrumbItem(InterfacesText["InterfacesBreadcrumb"], null, disabled: true),
     ];
+
+    private bool IsBusy => _loading || _savingComment;
 
     protected override Task OnInitializedAsync() => RefreshAsync();
 
@@ -146,7 +167,7 @@
 
     private async Task RefreshAsync()
     {
-        if (_loading)
+        if (IsBusy)
         {
             return;
         }
@@ -172,7 +193,7 @@
 
     private async Task ReconcileAsync()
     {
-        if (_loading)
+        if (IsBusy)
         {
             return;
         }
@@ -199,6 +220,50 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task EditCommentAsync(NetworkInterfaceInventoryItem item)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new();
+        parameters.Add(component => component.InterfaceName, item.Name);
+        parameters.Add(component => component.Comment, item.Comment);
+        IDialogReference dialog = await DialogService.ShowAsync<EditNetworkInterfaceCommentDialog>(
+            InterfacesText["EditCommentTitle"],
+            parameters,
+            s_commentDialogOptions);
+        string? comment = await dialog.GetReturnValueAsync<string>();
+        if (comment is null)
+        {
+            return;
+        }
+
+        _savingComment = true;
+        try
+        {
+            _inventory = await InterfaceInventory.UpdateCommentAsync(item.Name, comment, _lifetime.Token);
+            Snackbar.Add(
+                InterfaceInventory.UsesMockData
+                    ? InterfacesText["MockCommentSaved"]
+                    : InterfacesText["CommentSaved"],
+                Severity.Success);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _error = ClientErrors.Describe(exception);
+            Snackbar.Add(_error.Message, Severity.Error);
+        }
+        finally
+        {
+            _savingComment = false;
         }
     }
 

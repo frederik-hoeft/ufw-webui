@@ -6,26 +6,36 @@
     </MudDrawerHeader>
 
     <nav class="app-navigation-menu" aria-label="@(NavigationText["PrimaryNavigation"])">
-        <MudText Typo="Typo.overline" HtmlTag="div" Class="app-navigation-section-label">@NavigationText["Management"]</MudText>
+        <MudText Typo="Typo.overline" HtmlTag="div" Class="app-navigation-section-label">
+            @NavigationText["Management"]
+        </MudText>
         <MudNavMenu>
             <MudNavLink Href="/rules"
                         Match="NavLinkMatch.Prefix"
-                        Icon="@Icons.Material.Filled.Circle">
+                        Icon="@Icons.Material.Filled.Security"
+                        title="@(NavigationText["Rules"])"
+                        aria-label="@(NavigationText["Rules"])">
                 @NavigationText["Rules"]
             </MudNavLink>
             <MudNavLink Href="/interfaces"
                         Match="NavLinkMatch.Prefix"
-                        Icon="@Icons.Material.Filled.Circle">
+                        Icon="@Icons.Material.Filled.Lan"
+                        title="@(NavigationText["Interfaces"])"
+                        aria-label="@(NavigationText["Interfaces"])">
                 @NavigationText["Interfaces"]
             </MudNavLink>
             <MudNavLink Href="/status"
                         Match="NavLinkMatch.Prefix"
-                        Icon="@Icons.Material.Filled.Circle">
+                        Icon="@Icons.Material.Filled.Dns"
+                        title="@(NavigationText["Status"])"
+                        aria-label="@(NavigationText["Status"])">
                 @NavigationText["Status"]
             </MudNavLink>
             <MudNavLink Href="/settings"
                         Match="NavLinkMatch.Prefix"
-                        Icon="@Icons.Material.Filled.Circle">
+                        Icon="@Icons.Material.Filled.Settings"
+                        title="@(NavigationText["Settings"])"
+                        aria-label="@(NavigationText["Settings"])">
                 @NavigationText["Settings"]
             </MudNavLink>
         </MudNavMenu>

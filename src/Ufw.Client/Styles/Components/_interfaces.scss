@@ -42,3 +42,25 @@
     font-family: var(--ufw-font-mono);
     font-size: 0.8125rem;
 }
+
+.interface-comment-cell {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.interface-comment,
+.interface-comment-empty {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.interface-comment-empty {
+    color: var(--mud-palette-text-secondary);
+}
+
+.interface-comment-cell .mud-button-root {
+    flex: 0 0 auto;
+}

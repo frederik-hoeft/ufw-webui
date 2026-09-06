@@ -1,12 +1,106 @@
 @use "foundation" as *;
 
-@media (min-width: $desktop-navigation-breakpoint) {
+@media (min-width: $mobile-breakpoint) {
     .appbar-menu-button {
         display: none;
     }
 }
 
-@media (max-width: ($desktop-navigation-breakpoint - 1px)) {
+// Between the mobile drawer and the full navigation rail, reserve only enough
+// horizontal space for the section icons. Hover/focus expands the drawer over
+// content without causing the page to reflow.
+@media (min-width: $mobile-breakpoint) and (max-width: ($navigation-expanded-breakpoint - 0.02px)) {
+    .mud-layout {
+        --mud-drawer-width-left: #{$navigation-compact-width};
+    }
+
+    .mud-drawer.app-shell-drawer {
+        width: $navigation-compact-width;
+        transition: width 160ms ease, box-shadow 160ms ease;
+
+        .app-brand-name,
+        .app-navigation-section-label,
+        .mud-nav-link-text,
+        .app-navigation-status-text {
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .app-navigation-brand {
+            justify-content: center;
+            padding-inline: 0;
+
+            .app-brand {
+                gap: 0;
+            }
+        }
+
+        .mud-nav-link {
+            justify-content: center;
+            margin-inline: 0.5rem;
+            padding-inline: 0;
+
+            .mud-nav-link-icon {
+                margin-inline-end: 0;
+            }
+        }
+
+        .app-navigation-status {
+            justify-content: center;
+            padding-inline: 0;
+        }
+
+        &:hover,
+        &:focus-within {
+            width: $navigation-expanded-width;
+            box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 24%);
+
+            .app-brand-name,
+            .mud-nav-link-text,
+            .app-navigation-status-text {
+                width: auto;
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .app-navigation-section-label {
+                width: auto;
+                opacity: 1;
+                overflow: visible;
+                pointer-events: auto;
+            }
+
+            .app-navigation-brand {
+                justify-content: flex-start;
+                padding-inline: 1.125rem;
+
+                .app-brand {
+                    gap: 0.75rem;
+                }
+            }
+
+            .mud-nav-link {
+                justify-content: flex-start;
+                margin-inline: 0.75rem;
+                padding-inline: 0.75rem;
+
+                .mud-nav-link-icon {
+                    margin-inline-end: 0.625rem;
+                }
+            }
+
+            .app-navigation-status {
+                justify-content: flex-start;
+                padding-inline: 1.25rem;
+            }
+        }
+    }
+}
+
+@media (max-width: ($mobile-breakpoint - 0.02px)) {
     .app-shell-bar .mud-toolbar {
         padding-inline: 1rem;
     }

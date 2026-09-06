@@ -1,28 +1,34 @@
 @using System.Linq.Expressions
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<MudAutocomplete T="string"
-                 Label="@Label"
-                 Value="@Value"
-                 ValueChanged="ValueChanged"
-                 For="@For"
-                 SearchFunc="SearchAsync"
-                 CoerceValue="true"
-                 Clearable="true"
-                 Immediate="true"
-                 ResetValueOnEmptyText="true"
-                 Disabled="@Disabled"
-                 HelperText="@HelperText"
-                 MaxItems="12"
-                 autocomplete="off"
-                 autocapitalize="off"
-                 spellcheck="false">
-    <NoItemsTemplate>
-        <MudText Typo="Typo.caption" Class="pa-2">
-            @RulesText["NoInterfaceMatches"]
-        </MudText>
-    </NoItemsTemplate>
-</MudAutocomplete>
+<div class="network-interface-field">
+    <MudAutocomplete T="string"
+                     Label="@Label"
+                     Value="@Value"
+                     ValueChanged="ValueChanged"
+                     For="@For"
+                     SearchFunc="SearchAsync"
+                     CoerceValue="true"
+                     Clearable="true"
+                     Immediate="true"
+                     ResetValueOnEmptyText="true"
+                     Disabled="@Disabled"
+                     MaxItems="12"
+                     autocomplete="off"
+                     autocapitalize="off"
+                     spellcheck="false">
+        <NoItemsTemplate>
+            <div class="network-interface-no-items">
+                @RulesText["NoInterfaceMatches"]
+            </div>
+        </NoItemsTemplate>
+    </MudAutocomplete>
+
+    @if (!string.IsNullOrWhiteSpace(HelperText))
+    {
+        <div class="network-interface-help">@HelperText</div>
+    }
+</div>
 
 @code {
     [Parameter, EditorRequired]

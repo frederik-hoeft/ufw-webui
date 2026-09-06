@@ -103,7 +103,7 @@
     <value>Local ordering preview</value>
   </data>
   <data name="LocalOrderingPreviewDescription" xml:space="preserve">
-    <value>The displayed order is a browser-local preview produced through the mock ASP boundary. UFW has not changed, no ordering intent was signed, and real add/delete mutations are disabled until this preview is discarded or authoritative state is reloaded.</value>
+    <value>Reorder changes are staged in this browser. UFW has not changed, no ordering intent has been signed, and real add/delete mutations stay disabled until you discard or confirm the preview.</value>
   </data>
   <data name="DiscardPreview" xml:space="preserve">
     <value>Discard preview</value>
@@ -346,7 +346,7 @@
     <value>Ordering</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>Drag a rule by its handle or use "Move to position..." for an explicit keyboard-friendly flow. Insert-before/after actions open rule creation with the selected position context.</value>
+    <value>Drag a rule by its handle or use "Move to position..." to stage a new order. Confirm the preview before the mocked ASP boundary is invoked. Insert-before/after actions open rule creation with the selected position context.</value>
   </data>
   <data name="MockApi" xml:space="preserve">
     <value>Mock API</value>
@@ -367,7 +367,7 @@
     <value>This rule cannot be addressed unambiguously for ordering.</value>
   </data>
   <data name="DragMockTitle" xml:space="preserve">
-    <value>Drag to preview a new order. The mock does not change UFW.</value>
+    <value>Drag to stage a new order. Nothing is sent to the mock until you confirm the preview.</value>
   </data>
   <data name="DragRealTitle" xml:space="preserve">
     <value>Drag to reorder this firewall rule.</value>
@@ -472,7 +472,7 @@
     <value>The requested rule position is outside the current rule list.</value>
   </data>
   <data name="MockMovedPosition" xml:space="preserve">
-    <value>Mock ordering preview moved the rule to position {0}. UFW was not changed.</value>
+    <value>Staged the rule at position {0}. UFW has not changed.</value>
   </data>
   <data name="StaleMutationCommittedList" xml:space="preserve">
     <value>The rule change succeeded, but the client could not reload the authoritative rule list. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.</value>
@@ -500,5 +500,20 @@
   </data>
   <data name="CurrentRuleCountMany" xml:space="preserve">
     <value>{0} current rules</value>
+  </data>
+  <data name="ApplyReordering" xml:space="preserve">
+    <value>Apply reordering</value>
+  </data>
+  <data name="ApplyingReordering" xml:space="preserve">
+    <value>Applying...</value>
+  </data>
+  <data name="MockOrderingApplied" xml:space="preserve">
+    <value>The mock ASP boundary accepted the staged ordering request. UFW was not changed; authoritative state was reloaded.</value>
+  </data>
+  <data name="DirectMovePositionAria" xml:space="preserve">
+    <value>Moved directly from position {0} to {1}.</value>
+  </data>
+  <data name="IndirectShiftPositionAria" xml:space="preserve">
+    <value>Shifted from position {0} to {1} because another rule moved.</value>
   </data>
 </root>

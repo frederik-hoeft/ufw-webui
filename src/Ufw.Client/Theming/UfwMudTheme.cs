@@ -125,16 +125,16 @@ internal static class UfwMudTheme
         H1 = CreateTypographyPreset<H1Typography>("2.25rem", "600", "1.2"),
         H2 = CreateTypographyPreset<H2Typography>("2rem", "600", "1.2"),
         H3 = CreateTypographyPreset<H3Typography>("1.875rem", "600", "1.2"),
-        H4 = CreateTypographyPreset<H4Typography>("1.75rem", "600", "1.25"),
+        H4 = CreateTypographyPreset<H4Typography>("1.625rem", "600", "1.25"),
         H5 = CreateTypographyPreset<H5Typography>("1.25rem", "600", "1.3"),
-        H6 = CreateTypographyPreset<H6Typography>("1.125rem", "600", "1.35"),
-        Subtitle1 = CreateTypographyPreset<Subtitle1Typography>("1rem", "600", "1.4"),
-        Subtitle2 = CreateTypographyPreset<Subtitle2Typography>("0.8125rem", "600", "1.4"),
+        H6 = CreateTypographyPreset<H6Typography>("1rem", "600", "1.4"),
+        Subtitle1 = CreateTypographyPreset<Subtitle1Typography>("0.9375rem", "600", "1.45"),
+        Subtitle2 = CreateTypographyPreset<Subtitle2Typography>("0.875rem", "500", "1.45"),
         Body1 = CreateTypographyPreset<Body1Typography>("0.875rem", "400", "1.5"),
         Body2 = CreateTypographyPreset<Body2Typography>("0.875rem", "400", "1.5"),
         Button = CreateTypographyPreset<ButtonTypography>("0.8125rem", "600", "1.25"),
         Caption = CreateTypographyPreset<CaptionTypography>("0.75rem", "400", "1.4"),
-        Overline = CreateTypographyPreset<OverlineTypography>("0.75rem", "600", "1.4"),
+        Overline = CreateTypographyPreset<OverlineTypography>("0.75rem", "500", "1.4"),
     };
 
     private static T CreateTypographyPreset<T>(string fontSize, string fontWeight, string lineHeight)

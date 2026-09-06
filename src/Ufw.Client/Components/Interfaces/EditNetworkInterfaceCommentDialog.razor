@@ -1,0 +1,41 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<InterfacesStrings> InterfacesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @InterfacesText["EditCommentDescription", InterfaceName]
+        </MudText>
+        <MudTextField T="string"
+                      Label="@(InterfacesText["CommentColumn"])"
+                      @bind-Value="_comment"
+                      Immediate="true"
+                      Lines="3"
+                      autofocus="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">
+            @InterfacesText["SaveComment"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _comment;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public string InterfaceName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Comment { get; set; }
+
+    protected override void OnParametersSet() => _comment ??= Comment;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(_comment ?? string.Empty));
+}

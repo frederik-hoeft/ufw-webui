@@ -15,7 +15,7 @@
   <data name="KnownInterfaceCountMany" xml:space="preserve"><value>{0} bekannte Schnittstellen</value></data>
   <data name="ReconciledAt" xml:space="preserve"><value>Synchronisiert: {0}</value></data>
   <data name="FrontendMockData" xml:space="preserve"><value>Frontend-Mockdaten</value></data>
-  <data name="MockWarning" xml:space="preserve"><value>Das Backend für Netzwerkschnittstellen ist noch nicht implementiert. Diese Seite verwendet einen deterministischen Frontend-Mock, damit Autovervollständigung und Synchronisierung ohne erfundenes Daemon- oder ASP-Verhalten getestet werden können.</value></data>
+  <data name="MockWarning" xml:space="preserve"><value>Das Backend für Netzwerkschnittstellen ist noch nicht implementiert. Diese Seite verwendet einen deterministischen Frontend-Mock, damit Autovervollständigung, ASP-verwaltete Kommentare und Synchronisierung ohne erfundenes Daemon-Verhalten getestet werden können.</value></data>
   <data name="LoadFailed" xml:space="preserve"><value>Schnittstellenbestand konnte nicht geladen werden</value></data>
   <data name="CachedInventoryTitle" xml:space="preserve"><value>Zwischengespeicherter Schnittstellenbestand</value></data>
   <data name="CachedInventoryDescription" xml:space="preserve"><value>Die Liste verbessert nur den Bedienkomfort beim Erstellen. Freie Schnittstellennamen bleiben gültige Eingaben.</value></data>
@@ -24,9 +24,15 @@
   <data name="NoKnownInterfaces" xml:space="preserve"><value>Keine bekannten Schnittstellen</value></data>
   <data name="NoKnownInterfacesDescription" xml:space="preserve"><value>Synchronisieren Sie mit dem Daemon, um den Bestand zu aktualisieren. Regelfelder akzeptieren weiterhin Freitext.</value></data>
   <data name="InterfaceColumn" xml:space="preserve"><value>Schnittstelle</value></data>
-  <data name="UsageColumn" xml:space="preserve"><value>Verwendung</value></data>
-  <data name="AutocompleteUsage" xml:space="preserve"><value>Für die Autovervollständigung von Quell-/Zielschnittstellen verfügbar</value></data>
   <data name="MockReconciled" xml:space="preserve"><value>Mock-Netzwerkschnittstellenbestand synchronisiert.</value></data>
   <data name="ReconciledFromDaemon" xml:space="preserve"><value>Netzwerkschnittstellenbestand wurde vom Daemon synchronisiert.</value></data>
   <data name="NoSuggestions" xml:space="preserve"><value>Keine zwischengespeicherten Vorschläge. Sie können weiterhin einen gültigen Schnittstellennamen eingeben.</value></data>
+  <data name="CommentColumn" xml:space="preserve"><value>Kommentar</value></data>
+  <data name="NoComment" xml:space="preserve"><value>Kein Kommentar</value></data>
+  <data name="EditComment" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="EditCommentTitle" xml:space="preserve"><value>Schnittstellenkommentar bearbeiten</value></data>
+  <data name="EditCommentDescription" xml:space="preserve"><value>Speichern Sie einen browserseitigen Kommentar für {0}. Diese Metadaten gehören zu ASP und beeinflussen die Firewall-Semantik nicht.</value></data>
+  <data name="SaveComment" xml:space="preserve"><value>Kommentar speichern</value></data>
+  <data name="MockCommentSaved" xml:space="preserve"><value>Mock-Schnittstellenkommentar gespeichert.</value></data>
+  <data name="CommentSaved" xml:space="preserve"><value>Schnittstellenkommentar gespeichert.</value></data>
 </root>

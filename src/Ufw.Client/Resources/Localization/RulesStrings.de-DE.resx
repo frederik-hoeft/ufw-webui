@@ -103,7 +103,7 @@
     <value>Lokale Reihenfolgevorschau</value>
   </data>
   <data name="LocalOrderingPreviewDescription" xml:space="preserve">
-    <value>Die angezeigte Reihenfolge ist eine browserlokale Vorschau über die Mock-ASP-Grenze. UFW wurde nicht geändert, kein Ordnungs-Intent wurde signiert, und echte Hinzufügen-/Löschmutationen sind deaktiviert, bis die Vorschau verworfen oder der autoritative Status neu geladen wird.</value>
+    <value>Änderungen an der Reihenfolge werden in diesem Browser vorgemerkt. UFW wurde nicht geändert, kein Ordnungs-Intent wurde signiert, und echte Hinzufügen-/Löschmutationen bleiben deaktiviert, bis Sie die Vorschau verwerfen oder bestätigen.</value>
   </data>
   <data name="DiscardPreview" xml:space="preserve">
     <value>Vorschau verwerfen</value>
@@ -346,7 +346,7 @@
     <value>Reihenfolge</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>Ziehen Sie eine Regel am Griff oder verwenden Sie „An Position verschieben...“ für einen expliziten tastaturfreundlichen Ablauf. Aktionen zum Einfügen davor/danach öffnen die Regelerstellung mit dem ausgewählten Positionskontext.</value>
+    <value>Ziehen Sie eine Regel am Griff oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Bestätigen Sie die Vorschau, bevor die Mock-ASP-Grenze aufgerufen wird. Aktionen zum Einfügen davor/danach öffnen die Regelerstellung mit dem ausgewählten Positionskontext.</value>
   </data>
   <data name="MockApi" xml:space="preserve">
     <value>Mock-API</value>
@@ -367,7 +367,7 @@
     <value>Diese Regel kann für die Reihenfolge nicht eindeutig adressiert werden.</value>
   </data>
   <data name="DragMockTitle" xml:space="preserve">
-    <value>Ziehen Sie, um eine neue Reihenfolge vorzuschauen. Der Mock ändert UFW nicht.</value>
+    <value>Ziehen Sie, um eine neue Reihenfolge vorzumerken. Bis zur Bestätigung der Vorschau wird nichts an den Mock gesendet.</value>
   </data>
   <data name="DragRealTitle" xml:space="preserve">
     <value>Ziehen Sie, um diese Firewallregel neu anzuordnen.</value>
@@ -472,7 +472,7 @@
     <value>Die angeforderte Regelposition liegt außerhalb der aktuellen Regelliste.</value>
   </data>
   <data name="MockMovedPosition" xml:space="preserve">
-    <value>Die Mock-Reihenfolgevorschau hat die Regel an Position {0} verschoben. UFW wurde nicht geändert.</value>
+    <value>Die Regel wurde für Position {0} vorgemerkt. UFW wurde nicht geändert.</value>
   </data>
   <data name="StaleMutationCommittedList" xml:space="preserve">
     <value>Die Regeländerung war erfolgreich, aber der Client konnte die autoritative Regelliste nicht neu laden. Der zuletzt erfolgreich geladene Snapshot wird unten angezeigt und Mutationen bleiben deaktiviert, bis die Aktualisierung gelingt.</value>
@@ -500,5 +500,20 @@
   </data>
   <data name="CurrentRuleCountMany" xml:space="preserve">
     <value>{0} aktuelle Regeln</value>
+  </data>
+  <data name="ApplyReordering" xml:space="preserve">
+    <value>Reihenfolge anwenden</value>
+  </data>
+  <data name="ApplyingReordering" xml:space="preserve">
+    <value>Wird angewendet...</value>
+  </data>
+  <data name="MockOrderingApplied" xml:space="preserve">
+    <value>Die Mock-ASP-Grenze hat die vorgemerkte Reihenfolge akzeptiert. UFW wurde nicht geändert; der autoritative Status wurde neu geladen.</value>
+  </data>
+  <data name="DirectMovePositionAria" xml:space="preserve">
+    <value>Direkt von Position {0} auf {1} verschoben.</value>
+  </data>
+  <data name="IndirectShiftPositionAria" xml:space="preserve">
+    <value>Von Position {0} auf {1} verschoben, weil eine andere Regel bewegt wurde.</value>
   </data>
 </root>

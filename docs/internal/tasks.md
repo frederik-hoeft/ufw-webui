@@ -4,7 +4,7 @@ This file tracks only open project work. Remove an item when the corresponding w
 
 ## Firewall rule ordering backend and signed mutation contract
 
-The browser-side ordering UX is implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the only registered implementation. Existing parsed rules can be reordered by drag handle or an explicit one-based "Move to position..." dialog. Mock moves update only a local browser projection, are clearly labeled as non-authoritative, disable real add/delete mutations while active, and are discarded by authoritative refresh. No private key is collected because no signed ordering operation exists yet.
+The browser-side ordering UX is implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the only registered implementation. Existing parsed rules can be reordered by drag handle or an explicit one-based "Move to position..." dialog. Moves are staged entirely in a browser-local projection; the table distinguishes directly moved rules from rules whose displayed position shifted indirectly. The mock boundary is invoked only when the user explicitly confirms the preview with **Apply reordering**. Because the mock cannot change UFW, a successful mock application reloads authoritative state and the preview disappears. Real add/delete mutations remain disabled while a preview is active. No private key is collected because no signed ordering operation exists yet.
 
 The rule menu also carries insertion intent into the create flow through `/rules/create?before=<rule-id>` and `/rules/create?after=<rule-id>`. The create page resolves and displays that target but deliberately disables submission. The existing signed `rules.add` operation remains append-only. No real HTTP implementation or endpoint URI is encoded for `IRuleOrderingApiClient`; doing so would prematurely freeze a contract before the authorization and daemon semantics are designed.
 
@@ -35,8 +35,13 @@ Target contract currently modeled by the client:
 
 - `GET /api/v1/network-interfaces` returns the ASP-cached inventory.
 - `POST /api/v1/network-interfaces/reconcile` forces ASP to refresh the inventory from the daemon and returns the refreshed snapshot.
-- Response shape: `{ "interfaces": ["eno1", "docker0"], "reconciledAt": "<RFC 3339 timestamp>" }`.
+- `PUT /api/v1/network-interfaces/{name}/comment` stores an ASP-owned browser-facing comment for one interface and returns the refreshed inventory. Request shape: `{ "comment": "LAN uplink" }`; an empty/null comment clears it.
+- Response shape: `{ "interfaces": [{ "name": "eno1", "comment": "LAN uplink" }, { "name": "docker0", "comment": null }], "reconciledAt": "<RFC 3339 timestamp>" }`.
 
-The daemon read operation should enumerate known host network interfaces without requiring a signed mutation intent. ASP owns cache policy; the client treats the list as advisory autocomplete only, so free-text interface names remain valid and daemon-side rule validation remains authoritative.
+The daemon read operation should enumerate known host network interfaces without requiring a signed mutation intent. ASP owns cache policy and comments; reconciliation should preserve comments for interfaces that remain present and decide retention policy for interfaces that disappear. The client treats interface names as advisory autocomplete only, so free-text interface names remain valid and daemon-side rule validation remains authoritative. Comments are presentation metadata and never participate in firewall or signed-intent semantics.
 
-Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
+Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the provisional target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
+
+## Finalize application brand and icon
+
+Replace the temporary blue `U` application mark with the final UFW Console brand/icon once the visual asset is designed. Apply the final mark consistently to the navigation rail, login/startup surfaces, favicon/application metadata, and any installable/PWA assets that exist at that point. Keep the current text branding and accessible names stable unless the product name itself is intentionally changed.

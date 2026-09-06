@@ -9,12 +9,19 @@
     .mud-breadcrumb-item,
     .mud-breadcrumb-separator {
         color: var(--mud-palette-text-secondary);
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        line-height: 1.5;
     }
 
     .mud-breadcrumb-item:last-child {
         color: var(--mud-palette-text-secondary);
-        font-weight: 500;
+        font-weight: 400;
+    }
+
+    a.mud-breadcrumb-item:hover,
+    .mud-breadcrumb-item a:hover {
+        color: var(--mud-palette-text-primary);
     }
 }
 
