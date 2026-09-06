@@ -41,18 +41,14 @@ The daemon read operation should enumerate known host network interfaces without
 
 Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
 
-## Frontend final quality pass
+## Self-host IBM Plex design fonts
 
-Perform a final frontend-wide UX, responsive, accessibility, and consistency pass after localization is in place. Compare the implemented light/dark surfaces against the exported design references while preserving functionality and the established reusable component/service boundaries.
+The frontend typography stack now consistently prefers IBM Plex Sans for UI text and IBM Plex Mono for rule/command data, matching the exported design. Exact font files are not yet bundled with the web client, so hosts without those families installed fall back to the configured system stacks.
 
-The pass should include:
+Use the approved IBM Plex Sans/Mono assets under the SIL Open Font License 1.1 to make typography deterministic in deployed browsers:
 
-- exercise narrow and wide layouts with both English and German, including longer translated labels, dialogs, table actions, settings rows, status text, and error states;
-- verify keyboard navigation, focus visibility/restoration, dialog focus behavior, drag/reorder alternatives, accessible names, status announcements, and color-independent state communication;
-- reconcile remaining spacing, typography, density, iconography, empty/loading/error states, and light/dark contrast with the exported design;
-- remove remaining one-off presentation patterns where existing shared components or small reusable abstractions provide a clearer ownership boundary;
-- audit client-side styles for obsolete selectors, accidental global leakage, and responsive rules that belong with their component/area partial;
-- verify that localized human-readable values use the active culture while protocol, UFW command, identifier, interface, and signed-data presentation remains invariant;
-- run a final user-facing string audit so new text does not bypass the localization boundary.
-
-Keep this pass frontend-only. Backend/API/IPC/daemon capability gaps discovered during review should be recorded as separate open tasks rather than implemented implicitly.
+- self-host the fonts from `Ufw.Client`; do not introduce an external font/CDN dependency;
+- package only the normal styles actually used by the design (400, 500, and 600) for Sans and Mono rather than the complete family archive;
+- prefer WOFF2 web assets and `font-display: swap`, while retaining the current fallback stacks;
+- include the required OFL copyright/license notice with redistributed font software;
+- verify light/dark and English/German layouts again with the bundled fonts because metric differences can affect wrapping and table density.

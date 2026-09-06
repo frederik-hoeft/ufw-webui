@@ -23,11 +23,11 @@
     }
 
     .mud-table-row {
-        min-height: 3.25rem;
+        min-height: 3rem;
     }
 
     .mud-table-cell {
-        padding-block: 0.65rem;
+        padding-block: 0.5rem;
         border-color: var(--mud-palette-table-lines);
         font-size: 0.8125rem;
         vertical-align: middle;
@@ -233,7 +233,7 @@
     gap: 0.5rem;
 }
 
-@media (max-width: 959.98px) {
+@media (max-width: 1279.98px) {
     .rule-ordering-note {
         align-items: flex-start;
         flex-direction: column;
@@ -243,4 +243,14 @@
     .rule-ordering-mock-chip {
         margin-left: 0;
     }
+}
+
+.rule-row-menu-popover .mud-list {
+    min-width: 13rem;
+    max-width: min(22rem, calc(100vw - 2rem));
+}
+
+.rule-row-menu-popover .mud-list-item-text {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }

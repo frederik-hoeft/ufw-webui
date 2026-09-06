@@ -8,6 +8,7 @@ $ufw-nav-selected: #27313d;
 $ufw-nav-text: #f1f4f7;
 $ufw-nav-muted: #8a96a6;
 $ufw-nav-accent: #6ea8fe;
+$ufw-font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 $ufw-font-mono: "IBM Plex Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
 
 :root {
@@ -17,6 +18,7 @@ $ufw-font-mono: "IBM Plex Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, mon
     --ufw-nav-text: #{$ufw-nav-text};
     --ufw-nav-muted: #{$ufw-nav-muted};
     --ufw-nav-accent: #{$ufw-nav-accent};
+    --ufw-font-sans: #{$ufw-font-sans};
     --ufw-font-mono: #{$ufw-font-mono};
 }
 
@@ -34,6 +36,17 @@ body,
 body {
     margin: 0;
     background: var(--mud-palette-background);
+    color: var(--mud-palette-text-primary);
+    font-family: var(--ufw-font-sans);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+code,
+kbd,
+pre,
+samp {
+    font-family: var(--ufw-font-mono);
 }
 
 .mud-button-root {
@@ -56,9 +69,7 @@ body {
 }
 
 .mud-main-content .mud-paper,
-.login-shell > .mud-paper,
-.unexpected-error-shell .mud-paper,
-.startup-status .mud-paper {
+.login-shell > .mud-paper {
     border: 1px solid var(--mud-palette-lines-default);
     box-shadow: none;
 }

@@ -9,7 +9,7 @@
                   Items="@Rules"
                   Loading="@Loading"
                   Hover="true"
-                  Breakpoint="Breakpoint.Md"
+                  Breakpoint="Breakpoint.Lg"
                   Class="rule-table">
             <HeaderContent>
                 <MudTh Class="rule-drag-column"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></MudTh>
@@ -85,6 +85,7 @@
                                  Size="Size.Small"
                                  Dense="true"
                                  Class="rule-row-menu"
+                                 PopoverClass="rule-row-menu-popover"
                                  aria-label="@ActionsLabel(context)">
                             <MudMenuItem Disabled="@(OrderingDisabled || !CanOrderRule(context))"
                                          OnClick="@(() => RequestMoveToPositionAsync(context))">

@@ -4,15 +4,7 @@ namespace Ufw.Client.Theming;
 
 internal static class UfwMudTheme
 {
-    private static readonly string[] s_sansSerifFonts =
-    [
-        "IBM Plex Sans",
-        "Segoe UI",
-        "system-ui",
-        "-apple-system",
-        "BlinkMacSystemFont",
-        "sans-serif",
-    ];
+    private static readonly string[] s_defaultFontFamily = ["var(--ufw-font-sans)"];
 
     public static MudTheme Theme { get; } = CreateTheme();
 
@@ -150,7 +142,7 @@ internal static class UfwMudTheme
     {
         T typography = new()
         {
-            FontFamily = s_sansSerifFonts,
+            FontFamily = s_defaultFontFamily,
             FontSize = fontSize,
             FontWeight = fontWeight,
             LineHeight = lineHeight,

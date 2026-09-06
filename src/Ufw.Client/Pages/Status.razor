@@ -49,7 +49,7 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
     </MudAlert>
 }
 
-<div class="operational-status-grid">
+<div class="operational-status-grid" aria-busy="@OperationalStatus.IsRefreshing">
     <MudPaper Class="operational-status-card" Elevation="1">
         <div class="operational-status-card-heading">
             <MudIcon Icon="@Icons.Material.Filled.Dns" Color="@DaemonIconColor" />
@@ -70,7 +70,7 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
         </dl>
         @if (OperationalStatus.Current.IntentContextError is { } intentError)
         {
-            <MudText Typo="Typo.caption" Color="Color.Error">@intentError.Message</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Error" role="alert">@intentError.Message</MudText>
         }
     </MudPaper>
 
@@ -94,7 +94,7 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
         </dl>
         @if (OperationalStatus.Current.FirewallError is { } firewallError)
         {
-            <MudText Typo="Typo.caption" Color="Color.Error">@firewallError.Message</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Error" role="alert">@firewallError.Message</MudText>
         }
     </MudPaper>
 </div>

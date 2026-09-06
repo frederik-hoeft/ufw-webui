@@ -53,6 +53,15 @@
         padding: 1.25rem;
     }
 
+    .standalone-panel-actions {
+        flex-direction: column;
+        align-items: stretch;
+
+        .mud-button-root {
+            width: 100%;
+        }
+    }
+
     .rule-editor-actions {
         flex-direction: column-reverse;
         align-items: stretch;
@@ -79,6 +88,11 @@
         grid-template-columns: 1fr;
     }
 
+    .operational-status-details > div {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+
     .settings-row {
         align-items: stretch;
         flex-direction: column;
@@ -102,6 +116,15 @@
 }
 
 @media (max-width: $compact-appbar-breakpoint) {
+    .appbar-theme-toggle .mud-button-label {
+        display: none;
+    }
+
+    .appbar-theme-toggle.mud-button-root {
+        min-width: 2.5rem;
+        padding-inline: 0.5rem;
+    }
+
     .appbar-signout-text {
         display: none;
     }
