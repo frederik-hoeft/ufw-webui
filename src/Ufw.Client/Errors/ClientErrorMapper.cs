@@ -52,14 +52,17 @@ internal sealed partial class ClientErrorMapper(
     {
         if (TryDescribe(exception, out ClientError clientError))
         {
+            LogKnownFailure(exception);
             return clientError;
         }
 
-        LogUnexpectedClientError(logger, exception);
+        string reference = GetOrCreateDiagnosticReference(exception);
+        LogUnexpectedClientError(logger, reference, exception);
         return new(
             ClientErrorKind.Unexpected,
             errorsText["Unexpected"],
-            Retryable: true);
+            Retryable: true,
+            DiagnosticReference: reference);
     }
 
     private ClientError DescribeApiRequest(ApiRequestException exception)
@@ -114,15 +117,65 @@ internal sealed partial class ClientErrorMapper(
             Retryable: false);
     }
 
-    [LoggerMessage(LogLevel.Error, "An unexpected client error occurred.")]
-    private static partial void LogUnexpectedClientError(ILogger logger, Exception exception);
+    [LoggerMessage(LogLevel.Error, "Unexpected client error {DiagnosticReference}.")]
+    private static partial void LogUnexpectedClientError(ILogger logger, string diagnosticReference, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Management API request {Method} {RequestUri} failed with HTTP {StatusCode}.")]
+    private static partial void LogApiRequestFailure(
+        ILogger logger,
+        string method,
+        string requestUri,
+        int statusCode,
+        Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Management API transport failed.")]
+    private static partial void LogApiTransportFailure(ILogger logger, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "The browser could not complete a required client operation.")]
+    private static partial void LogBrowserOperationFailure(ILogger logger, Exception exception);
 
     [LoggerMessage(LogLevel.Warning, "The management API returned an invalid or incompatible response.")]
     private static partial void LogProtocolError(ILogger logger, Exception exception);
 
+    private static string GetOrCreateDiagnosticReference(Exception exception)
+    {
+        const string key = "Ufw.Client.DiagnosticReference";
+        if (exception.Data[key] is string existing && !string.IsNullOrWhiteSpace(existing))
+        {
+            return existing;
+        }
+
+        string reference = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant();
+        exception.Data[key] = reference;
+        return reference;
+    }
+
+    private void LogKnownFailure(Exception exception)
+    {
+        switch (exception)
+        {
+            case ApiRequestException apiException:
+                LogApiRequestFailure(
+                    logger,
+                    apiException.Method?.Method ?? "?",
+                    apiException.RequestUri?.PathAndQuery ?? "?",
+                    (int)apiException.StatusCode,
+                    apiException);
+                break;
+            case ApiProtocolException protocolException:
+                LogProtocolError(logger, protocolException);
+                break;
+            case HttpRequestException httpException:
+                LogApiTransportFailure(logger, httpException);
+                break;
+            case BrowserOperationException or JSException or JSDisconnectedException:
+                LogBrowserOperationFailure(logger, exception);
+                break;
+        }
+    }
+
     private ClientError DescribeProtocolError(ApiProtocolException exception)
     {
-        LogProtocolError(logger, exception);
         return new(
             ClientErrorKind.Protocol,
             errorsText["ProtocolMismatch"],

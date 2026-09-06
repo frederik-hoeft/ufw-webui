@@ -2,15 +2,15 @@
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <div class="network-interface-field">
+    <label class="network-interface-label" for="@_inputId">@Label</label>
     <MudAutocomplete T="string"
-                     Label="@Label"
+                     InputId="@_inputId"
                      Value="@Value"
                      ValueChanged="ValueChanged"
                      For="@For"
                      SearchFunc="SearchAsync"
                      CoerceValue="true"
                      Clearable="true"
-                     ShrinkLabel="true"
                      Immediate="true"
                      ResetValueOnEmptyText="true"
                      Disabled="@Disabled"
@@ -32,6 +32,8 @@
 </div>
 
 @code {
+    private readonly string _inputId = $"network-interface-{Guid.NewGuid():N}";
+
     [Parameter, EditorRequired]
     public string Label { get; set; } = string.Empty;
 

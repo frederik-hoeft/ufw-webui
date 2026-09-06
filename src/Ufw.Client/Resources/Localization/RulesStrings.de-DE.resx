@@ -405,6 +405,9 @@
   <data name="SourcePortsShort" xml:space="preserve">
     <value>Quelle {0}</value>
   </data>
+  <data name="DestinationPortsShort" xml:space="preserve">
+    <value>Ziel {0}</value>
+  </data>
   <data name="BothPortsShort" xml:space="preserve">
     <value>Quelle {0} / Ziel {1}</value>
   </data>

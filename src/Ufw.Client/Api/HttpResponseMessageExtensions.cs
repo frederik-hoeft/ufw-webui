@@ -63,6 +63,10 @@ internal static class HttpResponseMessageExtensions
             // Preserve the status-based fallback for non-problem responses.
         }
 
-        return new ApiRequestException(response.StatusCode, message);
+        return new ApiRequestException(
+            response.StatusCode,
+            message,
+            response.RequestMessage?.Method,
+            response.RequestMessage?.RequestUri);
     }
 }

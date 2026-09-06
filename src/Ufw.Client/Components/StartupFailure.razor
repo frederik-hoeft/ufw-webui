@@ -1,6 +1,7 @@
 @using Ufw.Client.Errors
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<StandaloneStrings> StandaloneText
+@inject IStringLocalizer<ErrorsStrings> ErrorsText
 
 <main class="standalone-shell">
     <StandalonePanel Title="@(StandaloneText["UnableToInitialize"])"
@@ -9,6 +10,14 @@
                      IconColor="Color.Error"
                      Class="standalone-state-card"
                      Role="alert">
+        <ChildContent>
+            @if (!string.IsNullOrWhiteSpace(Error.DiagnosticReference))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="error-diagnostic-reference">
+                    @ErrorsText["DiagnosticReference", Error.DiagnosticReference]
+                </MudText>
+            }
+        </ChildContent>
         <Actions>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"

@@ -7,25 +7,26 @@
          PopoverClass="rule-row-menu-popover"
          aria-label="@ActionsLabel">
     <MudMenuItem Disabled="@(OrderingDisabled || !CanOrder)"
+                 Icon="@Icons.Material.Filled.DragIndicator"
                  OnClick="@(() => MoveToPositionRequested.InvokeAsync(Rule))">
-        <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Class="rule-menu-icon" />
         @RulesText["MoveToPosition"]
     </MudMenuItem>
     <MudMenuItem Disabled="@(InsertionDisabled || !CanOrder)"
+                 Icon="@Icons.Material.Filled.VerticalAlignTop"
                  Href="@BuildInsertHref("before")">
-        <MudIcon Icon="@Icons.Material.Filled.VerticalAlignTop" Size="Size.Small" Class="rule-menu-icon" />
         @RulesText["InsertBefore"]
     </MudMenuItem>
     <MudMenuItem Disabled="@(InsertionDisabled || !CanOrder)"
+                 Icon="@Icons.Material.Filled.VerticalAlignBottom"
                  Href="@BuildInsertHref("after")">
-        <MudIcon Icon="@Icons.Material.Filled.VerticalAlignBottom" Size="Size.Small" Class="rule-menu-icon" />
         @RulesText["InsertAfter"]
     </MudMenuItem>
     <MudDivider />
     <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
+                 Icon="@Icons.Material.Filled.Delete"
+                 IconColor="Color.Error"
                  OnClick="@(() => DeleteRequested.InvokeAsync(Rule))"
                  Class="rule-menu-delete">
-        <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Class="rule-menu-icon" />
         @RulesText["DeleteRule"]
     </MudMenuItem>
 </MudMenu>

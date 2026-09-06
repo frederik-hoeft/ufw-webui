@@ -179,34 +179,50 @@
                 {
                     if (rule.Parsed && rule.Rule is not null)
                     {
-                        <article class="@MobileCardClass(rule)">
+                        <article class="@MobileCardClass(rule)"
+                                 @ondragenter="@(() => SetDragTarget(rule))"
+                                 @ondragover="@(() => SetDragTarget(rule))"
+                                 @ondragover:preventDefault
+                                 @ondrop="@(() => DropAsync(rule))">
                             <div class="rule-mobile-card-header">
-                                <div class="rule-mobile-card-identity">
-                                    @if (TryGetPositionChange(rule, out int originalPosition, out int currentPosition, out bool directlyMoved))
-                                    {
-                                        <span class="@PositionChangeClass(directlyMoved)"
-                                              aria-label="@PositionChangeLabel(originalPosition, currentPosition, directlyMoved)">
-                                            <span aria-hidden="true" class="rule-position-change-values">
-                                                @if (directlyMoved)
-                                                {
-                                                    <s>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
-                                                }
-                                                else
-                                                {
-                                                    <span>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                                                }
-                                                <span class="rule-position-arrow">→</span>
-                                                <span>@currentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                <div class="rule-mobile-card-leading">
+                                    <button type="button"
+                                            class="@DragHandleClass(rule)"
+                                            draggable="@DragEnabled(rule)"
+                                            disabled="@(OrderingDisabled || !CanOrderRule(rule))"
+                                            title="@DragHandleTitle(rule)"
+                                            aria-label="@DragHandleLabel(rule)"
+                                            @ondragstart="@(() => BeginDrag(rule))"
+                                            @ondragend="EndDrag">
+                                        <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
+                                    </button>
+                                    <div class="rule-mobile-card-identity">
+                                        @if (TryGetPositionChange(rule, out int originalPosition, out int currentPosition, out bool directlyMoved))
+                                        {
+                                            <span class="@PositionChangeClass(directlyMoved)"
+                                                  aria-label="@PositionChangeLabel(originalPosition, currentPosition, directlyMoved)">
+                                                <span aria-hidden="true" class="rule-position-change-values">
+                                                    @if (directlyMoved)
+                                                    {
+                                                        <s>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                    }
+                                                    <span class="rule-position-arrow">→</span>
+                                                    <span>@currentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                </span>
                                             </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                        }
+                                        <span class="@FirewallRulePresentation.ActionClass(rule.Rule.Action)">
+                                            @RuleText.FormatAction(rule.Rule.Action)
                                         </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
-                                    }
-                                    <span class="@FirewallRulePresentation.ActionClass(rule.Rule.Action)">
-                                        @RuleText.FormatAction(rule.Rule.Action)
-                                    </span>
+                                    </div>
                                 </div>
                                 <RuleActionsMenu Rule="@rule"
                                                  OrderingDisabled="@OrderingDisabled"
@@ -218,18 +234,24 @@
                                                  DeleteRequested="@DeleteRequested" />
                             </div>
 
-                            <div class="rule-mobile-card-meta">
-                                <span class="rule-direction-family">
-                                    <span class="rule-direction">@RuleText.FormatDirection(rule.Rule.Direction)</span>
-                                    <span class="rule-family">@RuleText.FormatAddressFamily(rule.Rule.AddressFamily)</span>
-                                </span>
-                                <span>
-                                    <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
-                                    @if (RuleText.DescribePorts(rule.Rule) is { } mobilePortDescription)
-                                    {
-                                        <span class="rule-protocol-detail">@mobilePortDescription</span>
-                                    }
-                                </span>
+                            <div class="rule-mobile-card-details">
+                                <div>
+                                    <span class="rule-mobile-field-label">@RulesText["DirectionColumn"]</span>
+                                    <span class="rule-direction-family">
+                                        <span class="rule-direction">@RuleText.FormatDirection(rule.Rule.Direction)</span>
+                                        <span class="rule-family">@RuleText.FormatAddressFamily(rule.Rule.AddressFamily)</span>
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="rule-mobile-field-label">@RulesText["ProtocolColumn"]</span>
+                                    <span class="rule-mobile-protocol-value">
+                                        <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
+                                        @if (RuleText.DescribePorts(rule.Rule) is { } mobilePortDescription)
+                                        {
+                                            <span class="rule-protocol-detail">@mobilePortDescription</span>
+                                        }
+                                    </span>
+                                </div>
                             </div>
 
                             <dl class="rule-mobile-endpoints">
@@ -378,6 +400,11 @@
         if (TryGetPositionChange(rule, out _, out _, out bool directlyMoved) && directlyMoved)
         {
             classes.Add("rule-mobile-card-ordering-direct");
+        }
+
+        if (ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule))
+        {
+            classes.Add("rule-mobile-card-drop-target");
         }
 
         return string.Join(' ', classes);

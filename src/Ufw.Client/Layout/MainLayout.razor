@@ -24,18 +24,18 @@
             </Authorized>
         </AuthorizeView>
         <MudSpacer />
-        <ThemeToggle Color="Color.Inherit"
+        <ThemeToggle Color="Color.Default"
                      Variant="Variant.Outlined"
                      ShowLabel="true"
                      Class="appbar-theme-toggle-text" />
-        <ThemeToggle Color="Color.Inherit"
+        <ThemeToggle Color="Color.Default"
                      Variant="Variant.Outlined"
                      ShowLabel="false"
                      Class="appbar-theme-toggle-icon" />
         <AuthorizeView>
             <Authorized>
                 <MudButton Variant="Variant.Outlined"
-                           Color="Color.Inherit"
+                           Color="Color.Default"
                            StartIcon="@Icons.Material.Filled.Logout"
                            Disabled="@_logoutBusy"
                            OnClick="LogoutAsync"
@@ -43,7 +43,7 @@
                     @(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])
                 </MudButton>
                 <MudIconButton Icon="@Icons.Material.Filled.Logout"
-                               Color="Color.Inherit"
+                               Color="Color.Default"
                                Variant="Variant.Outlined"
                                Disabled="@_logoutBusy"
                                OnClick="LogoutAsync"

@@ -13,4 +13,8 @@ public enum ClientErrorKind
     Unexpected,
 }
 
-public sealed record ClientError(ClientErrorKind Kind, string Message, bool Retryable);
+public sealed record ClientError(
+    ClientErrorKind Kind,
+    string Message,
+    bool Retryable,
+    string? DiagnosticReference = null);

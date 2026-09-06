@@ -15,4 +15,5 @@
   <data name="ApiRejected" xml:space="preserve"><value>The management API rejected the request.</value></data>
   <data name="ClientValidationRejected" xml:space="preserve"><value>The client rejected the request because its input is invalid.</value></data>
   <data name="ProtocolMismatch" xml:space="preserve"><value>The management API returned a response this client could not understand. Check that the client and server versions match.</value></data>
+  <data name="DiagnosticReference" xml:space="preserve"><value>Diagnostic reference: {0}</value></data>
 </root>

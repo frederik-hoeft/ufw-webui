@@ -237,6 +237,7 @@
         grid-template-columns: 1fr;
     }
 
+
     .interface-inventory-desktop {
         display: none;
     }
@@ -266,5 +267,9 @@
     .standalone-shell,
     .login-shell {
         padding: 1rem;
+    }
+
+    .rule-mobile-card-details {
+        grid-template-columns: 1fr;
     }
 }

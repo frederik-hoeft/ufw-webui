@@ -29,9 +29,9 @@ internal sealed class FirewallRuleText(IStringLocalizer<RulesStrings> rulesText)
         return (hasSource, hasDestination) switch
         {
             (false, false) => null,
-            (false, true) => rule.DestinationPorts,
-            (true, false) => rulesText["SourcePortsShort", rule.SourcePorts!],
-            (true, true) => rulesText["BothPortsShort", rule.SourcePorts!, rule.DestinationPorts!],
+            (false, true) => rulesText["DestinationPortsShort", rule.DestinationPorts!].Value,
+            (true, false) => rulesText["SourcePortsShort", rule.SourcePorts!].Value,
+            (true, true) => rulesText["BothPortsShort", rule.SourcePorts!, rule.DestinationPorts!].Value,
         };
     }
 

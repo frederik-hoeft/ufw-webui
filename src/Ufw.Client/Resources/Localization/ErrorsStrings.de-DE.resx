@@ -15,4 +15,5 @@
   <data name="ApiRejected" xml:space="preserve"><value>Die Verwaltungs-API hat die Anfrage abgelehnt.</value></data>
   <data name="ClientValidationRejected" xml:space="preserve"><value>Der Client hat die Anfrage aufgrund ungültiger Eingaben abgelehnt.</value></data>
   <data name="ProtocolMismatch" xml:space="preserve"><value>Die Verwaltungs-API hat eine Antwort zurückgegeben, die dieser Client nicht versteht. Prüfen Sie, ob Client- und Serverversion übereinstimmen.</value></data>
+  <data name="DiagnosticReference" xml:space="preserve"><value>Diagnosereferenz: {0}</value></data>
 </root>
