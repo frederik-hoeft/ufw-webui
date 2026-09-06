@@ -133,7 +133,7 @@
 
     private void NavigateAfterLogin()
     {
-        string target = IsLocalReturnUrl(ReturnUrl) ? ReturnUrl! : "/";
+        string target = IsLocalReturnUrl(ReturnUrl) ? ReturnUrl! : "/rules";
         Navigation.NavigateTo(target, replace: true);
     }
 

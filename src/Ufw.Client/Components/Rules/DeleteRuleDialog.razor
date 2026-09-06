@@ -19,19 +19,7 @@
                  Disabled="_busy"
                  OnEnterPressed="ConfirmAsync"
                  aria-busy="@_busy">
-            <MudTextField T="string"
-                          Label="ECDSA P-256 private key"
-                          InputType="InputType.Password"
-                          @bind-Value="_privateKey"
-                          name="intent-private-key"
-                          autocomplete="off"
-                          autocapitalize="off"
-                          spellcheck="false"
-                          Required="true"
-                          RequiredError="A private key is required to authorize this mutation."
-                          HelperText="Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored."
-                          Placeholder="data:application/pkcs8;base64,..."
-                          Immediate="true" />
+            <MutationAuthorizationField @bind-Value="_privateKey" Disabled="_busy" />
         </MudForm>
     </DialogContent>
     <DialogActions>

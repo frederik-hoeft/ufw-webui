@@ -1,17 +1,11 @@
 @using Ufw.Ipc.Shared.Model.Responses
 
-<MudPaper Class="rule-editor-card pa-5 mb-6" Elevation="1" role="region" aria-labelledby="add-rule-heading">
-    <div class="d-flex flex-wrap align-center gap-3 mb-4">
-        <div>
-            <MudText Typo="Typo.h6" HtmlTag="h2" id="add-rule-heading">Add rule</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Define the complete UFW rule, then authorize this request with an authorized private key.
-            </MudText>
-        </div>
-        <MudSpacer />
-        <MudChip T="string" Color="@(FirewallActive ? Color.Success : Color.Warning)" Variant="Variant.Outlined">
-            @(FirewallActive ? "Firewall active" : "Firewall inactive")
-        </MudChip>
+<MudPaper Class="rule-editor-card pa-5" Elevation="1" role="region" aria-labelledby="rule-definition-heading">
+    <div class="rule-editor-section-heading">
+        <MudText Typo="Typo.h6" HtmlTag="h2" id="rule-definition-heading">Rule definition</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Define the UFW match and action. The current API appends new rules to the existing evaluation order.
+        </MudText>
     </div>
 
     <MudForm @ref="_form"
@@ -68,7 +62,6 @@
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
                               Label="Source"
-                              name="intent-private-key"
                               autocomplete="off"
                               autocapitalize="off"
                               spellcheck="false"
@@ -141,34 +134,43 @@
                               For="@(() => Rule.Comment)"
                               Immediate="true" />
             </MudItem>
+
             <MudItem xs="12">
-                <MudTextField T="string"
-                              Label="ECDSA P-256 private key"
-                              InputType="InputType.Password"
-                              Value="@PrivateKey"
-                              autocomplete="off"
-                              autocapitalize="off"
-                              spellcheck="false"
-                              ValueChanged="PrivateKeyChangedAsync"
-                              Required="true"
-                              RequiredError="A private key is required to authorize this mutation."
-                              HelperText="Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored."
-                              Placeholder="data:application/pkcs8;base64,..."
-                              Immediate="true" />
+                <MudDivider Class="rule-editor-divider" />
             </MudItem>
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Disabled="@(!_isValid || Disabled || string.IsNullOrWhiteSpace(PrivateKey))"
-                           OnClick="SubmitAsync"
-                           Class="rule-primary-action">
-                    @if (Submitting)
-                    {
-                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
-                    }
-                    @(Submitting ? "Adding rule..." : "Add signed rule")
-                </MudButton>
+                <div class="rule-editor-section-heading rule-editor-authorization-heading">
+                    <MudText Typo="Typo.subtitle1" HtmlTag="h3">Authorization</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Sign this individual mutation with an authorized key. The browser does not retain the private key.
+                    </MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="12">
+                <MutationAuthorizationField Value="@PrivateKey"
+                                            ValueChanged="PrivateKeyChangedAsync"
+                                            Disabled="@(Disabled || Submitting)" />
+            </MudItem>
+            <MudItem xs="12">
+                <div class="rule-editor-actions">
+                    <MudButton Variant="Variant.Text"
+                               Disabled="@(Disabled || Submitting)"
+                               OnClick="CancelAsync">
+                        Cancel
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@(!_isValid || Disabled || Submitting || string.IsNullOrWhiteSpace(PrivateKey))"
+                               OnClick="SubmitAsync"
+                               Class="rule-primary-action">
+                        @if (Submitting)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        }
+                        @(Submitting ? "Adding rule..." : "Add signed rule")
+                    </MudButton>
+                </div>
             </MudItem>
         </MudGrid>
     </MudForm>
@@ -181,9 +183,6 @@
 
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
-
-    [Parameter]
-    public bool FirewallActive { get; set; }
 
     [Parameter]
     public bool Disabled { get; set; }
@@ -200,6 +199,9 @@
     [Parameter]
     public EventCallback OnSubmit { get; set; }
 
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
     private static IEnumerable<string> ValidateRule(object model, string propertyName)
     {
         if (model is not FirewallRuleSpecification specification)
@@ -215,15 +217,22 @@
             .Select(static error => error.ErrorMessage);
     }
 
-    private async Task PrivateKeyChangedAsync(string? value)
+    private async Task PrivateKeyChangedAsync(string value)
     {
-        PrivateKey = value ?? string.Empty;
-        await PrivateKeyChanged.InvokeAsync(PrivateKey);
+        PrivateKey = value;
+        await PrivateKeyChanged.InvokeAsync(value);
+    }
+
+    private async Task CancelAsync()
+    {
+        PrivateKey = string.Empty;
+        await PrivateKeyChanged.InvokeAsync(string.Empty);
+        await OnCancel.InvokeAsync();
     }
 
     private async Task SubmitAsync()
     {
-        if (_form is null || Disabled || string.IsNullOrWhiteSpace(PrivateKey))
+        if (_form is null || Disabled || Submitting || string.IsNullOrWhiteSpace(PrivateKey))
         {
             return;
         }

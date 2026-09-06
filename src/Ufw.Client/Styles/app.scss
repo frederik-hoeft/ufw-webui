@@ -316,9 +316,6 @@ body {
     color: var(--mud-palette-warning) !important;
 }
 
-.rule-editor-anchor {
-    scroll-margin-top: calc(var(--mud-appbar-height) + 1rem);
-}
 
 .startup-progress,
 .startup-status,
@@ -378,6 +375,28 @@ body {
 .rule-raw-line {
     font-family: var(--ufw-font-mono);
     font-size: 0.8125rem;
+}
+
+.rule-editor-card {
+    max-width: 72rem;
+}
+
+.rule-editor-section-heading {
+    margin-bottom: 1rem;
+}
+
+.rule-editor-authorization-heading {
+    margin-bottom: 0;
+}
+
+.rule-editor-divider {
+    margin-block: 0.5rem;
+}
+
+.rule-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 .delete-dialog-actions {
@@ -456,7 +475,7 @@ body {
 
     .page-header-actions {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
     }
 
     .page-header-button {
@@ -469,8 +488,15 @@ body {
         padding: 1.25rem !important;
     }
 
-    .rule-primary-action {
-        width: 100%;
+    .rule-editor-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+
+        .mud-button-root {
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+        }
     }
 
     .delete-dialog-actions {

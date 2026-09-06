@@ -1,0 +1,264 @@
+@page "/rules/create"
+@attribute [Authorize]
+@implements IDisposable
+@inject IUfwApiClient UfwApiClient
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IClientErrorMapper ClientErrors
+
+<PageTitle>Add firewall rule - UFW Management</PageTitle>
+
+<PageHeader Title="Add firewall rule"
+            Description="Create a signed UFW rule. The current mutation contract appends new rules to the evaluation order."
+            Breadcrumbs="@s_breadcrumbs"
+            ShowStatus="@(_state.Snapshot is not null)">
+    <Actions>
+        <MudButton Href="/rules"
+                   Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Disabled="@_submitting"
+                   Class="page-header-button">
+            Back to rules
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_state.Snapshot is { } snapshot)
+        {
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@(snapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
+                @(snapshot.FirewallActive ? "Firewall active" : "Firewall inactive")
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeRuleCount(snapshot.Rules.Count)
+            </MudChip>
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
+                @DescribeSnapshotStatus()
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
+
+@if (_state.Status == RulesPageStatus.Failed)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Firewall state could not be loaded</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_state.Error?.Message</MudText>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@_submitting"
+                   OnClick="RefreshAsync">
+            Retry
+        </MudButton>
+    </MudAlert>
+}
+else if (_state.Snapshot is null)
+{
+    <MudPaper Class="pa-5" Elevation="1" role="status" aria-live="polite">
+        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="Loading firewall state" />
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Loading authoritative firewall state before enabling rule creation...
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    @if (_state.IsStale)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Authoritative firewall state must be refreshed</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@DescribeStaleState()</MudText>
+            @if (_state.Error is not null)
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@_state.Error.Message</MudText>
+            }
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@_submitting"
+                       OnClick="RefreshAsync">
+                Refresh authoritative state
+            </MudButton>
+        </MudAlert>
+    }
+    else if (_state.Status == RulesPageStatus.Refreshing)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.body2">
+                @(_mutationMayHaveCompleted
+                    ? "Rule submission finished. Confirming authoritative firewall state before returning to the rule list..."
+                    : "Refreshing authoritative firewall state...")
+            </MudText>
+        </MudAlert>
+    }
+
+    <RuleEditor @key="_draft"
+                Rule="@_draft"
+                Disabled="@(!CanSubmit)"
+                Submitting="@_submitting"
+                @bind-PrivateKey="_privateKey"
+                OnSubmit="AddRuleAsync"
+                OnCancel="Cancel" />
+}
+
+@code {
+    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
+    [
+        new BreadcrumbItem("Firewall", null, disabled: true),
+        new BreadcrumbItem("Rules", "/rules"),
+        new BreadcrumbItem("Create", null, disabled: true),
+    ];
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private RulesPageState _state = RulesPageState.Initial;
+    private FirewallRuleSpecification _draft = FirewallRuleDefaults.Create();
+    private string _privateKey = string.Empty;
+    private string? _submittedRuleIdentity;
+    private bool _mutationMayHaveCompleted;
+    private bool _submitting;
+
+    private bool CanSubmit => _state.IsCurrent && !_submitting && !_mutationMayHaveCompleted;
+
+    protected override async Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
+
+    public void Dispose()
+    {
+        _privateKey = string.Empty;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private static string DescribeRuleCount(int count) => count == 1 ? "1 current rule" : $"{count} current rules";
+
+    private string DescribeSnapshotStatus()
+    {
+        if (_state.IsStale)
+        {
+            return "Authoritative snapshot \u00b7 stale";
+        }
+
+        return _state.Status == RulesPageStatus.Refreshing
+            ? "Authoritative snapshot \u00b7 refreshing"
+            : "Authoritative snapshot \u00b7 current";
+    }
+
+    private Task RefreshAsync()
+    {
+        if (_submitting || _state.IsLoading)
+        {
+            return Task.CompletedTask;
+        }
+
+        return LoadRulesAsync(RuleRefreshReason.Manual);
+    }
+
+    private async Task LoadRulesAsync(RuleRefreshReason reason)
+    {
+        if (_state.IsLoading)
+        {
+            return;
+        }
+
+        _state = _state.BeginRefresh(reason);
+        try
+        {
+            Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            _state = RulesPageState.CompleteRefresh(response);
+
+            if (_mutationMayHaveCompleted)
+            {
+                if (_submittedRuleIdentity is not null && ContainsRuleIdentity(_state.Snapshot!, _submittedRuleIdentity))
+                {
+                    Snackbar.Add("Firewall rule added.", Severity.Success);
+                    Navigation.NavigateTo("/rules");
+                    return;
+                }
+
+                _mutationMayHaveCompleted = false;
+                _submittedRuleIdentity = null;
+                Snackbar.Add("The submitted rule is not present in current firewall state. Review the form before retrying.", Severity.Warning);
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _state = _state.FailRefresh(ClientErrors.Describe(exception));
+        }
+    }
+
+    private async Task AddRuleAsync()
+    {
+        if (!CanSubmit || string.IsNullOrWhiteSpace(_privateKey))
+        {
+            return;
+        }
+
+        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
+        _submittedRuleIdentity = RuleIdentity.Compute(normalized);
+        _submitting = true;
+        try
+        {
+            await UfwApiClient.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
+            _mutationMayHaveCompleted = true;
+            _submitting = false;
+            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            ClientError error = ClientErrors.Describe(exception);
+            _state = _state.AfterMutationFailure(error);
+            _mutationMayHaveCompleted = _state.StaleReason == RuleSnapshotStaleReason.MutationOutcomeUnknown;
+            if (!_mutationMayHaveCompleted)
+            {
+                _submittedRuleIdentity = null;
+            }
+            Snackbar.Add(error.Message, Severity.Error);
+        }
+        finally
+        {
+            _privateKey = string.Empty;
+            _submitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        if (!_submitting)
+        {
+            _privateKey = string.Empty;
+            Navigation.NavigateTo("/rules");
+        }
+    }
+
+    private string DescribeStaleState()
+    {
+        return _state.StaleReason switch
+        {
+            RuleSnapshotStaleReason.MutationCommitted
+                => "The rule change succeeded, but the client could not reload the authoritative rule list. Retry the refresh before leaving or attempting another mutation.",
+            RuleSnapshotStaleReason.MutationOutcomeUnknown
+                => "The client could not confirm whether the rule change completed. Refresh authoritative state before deciding whether the rule must be retried.",
+            RuleSnapshotStaleReason.MutationRejectedRequiresRefresh
+                => "The mutation was rejected in a way that requires current firewall state to be reloaded before another attempt.",
+            _
+                => "The latest refresh failed. Rule creation is disabled until authoritative firewall state can be loaded again.",
+        };
+    }
+
+    private static bool ContainsRuleIdentity(RuleSnapshot snapshot, string identity)
+    {
+        return snapshot.Rules.Any(rule => rule.Parsed
+            && rule.Rule is not null
+            && string.Equals(rule.RuleId ?? RuleIdentity.Compute(rule.Rule), identity, StringComparison.Ordinal));
+    }
+}

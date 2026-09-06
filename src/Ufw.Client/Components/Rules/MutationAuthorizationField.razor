@@ -1,0 +1,32 @@
+<MudTextField T="string"
+              Label="ECDSA P-256 private key"
+              InputType="InputType.Password"
+              Value="@Value"
+              name="intent-private-key"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              ValueChanged="ValueChangedAsync"
+              Disabled="@Disabled"
+              Required="true"
+              RequiredError="A private key is required to authorize this mutation."
+              HelperText="Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored."
+              Placeholder="data:application/pkcs8;base64,..."
+              Immediate="true" />
+
+@code {
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private async Task ValueChangedAsync(string? value)
+    {
+        Value = value ?? string.Empty;
+        await ValueChanged.InvokeAsync(Value);
+    }
+}
