@@ -1,4 +1,6 @@
 @using Ufw.Ipc.Shared.Model.Responses
+@inject INetworkInterfaceInventoryService NetworkInterfaces
+@inject IClientErrorMapper ClientErrors
 
 <MudPaper Class="rule-editor-card pa-5" Elevation="1" role="region" aria-labelledby="rule-definition-heading">
     <div class="rule-editor-section-heading">
@@ -104,26 +106,20 @@
                               Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudTextField T="string"
-                              Label="Source interface"
-                              autocomplete="off"
-                              autocapitalize="off"
-                              spellcheck="false"
-                              HelperText="Egress interface for outbound or forward rules."
-                              @bind-Value="Rule.SourceInterface"
-                              For="@(() => Rule.SourceInterface)"
-                              Immediate="true" />
+                <NetworkInterfaceField Label="Source interface"
+                                       HelperText="@SourceInterfaceHelp"
+                                       @bind-Value="Rule.SourceInterface"
+                                       For="@(() => Rule.SourceInterface)"
+                                       Suggestions="@_knownInterfaces"
+                                       Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudTextField T="string"
-                              Label="Destination interface"
-                              autocomplete="off"
-                              autocapitalize="off"
-                              spellcheck="false"
-                              HelperText="Ingress interface for inbound or forward rules."
-                              @bind-Value="Rule.DestinationInterface"
-                              For="@(() => Rule.DestinationInterface)"
-                              Immediate="true" />
+                <NetworkInterfaceField Label="Destination interface"
+                                       HelperText="@DestinationInterfaceHelp"
+                                       @bind-Value="Rule.DestinationInterface"
+                                       For="@(() => Rule.DestinationInterface)"
+                                       Suggestions="@_knownInterfaces"
+                                       Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField T="string"
@@ -179,7 +175,15 @@
 @code {
     private static readonly Func<object, string, IEnumerable<string>> s_ruleValidation = ValidateRule;
     private MudForm? _form;
+    private IReadOnlyList<string> _knownInterfaces = [];
+    private string? _interfaceInventoryError;
     private bool _isValid;
+
+    private string SourceInterfaceHelp => DescribeInterfaceHelp(
+        "Egress interface for outbound or forward rules.");
+
+    private string DestinationInterfaceHelp => DescribeInterfaceHelp(
+        "Ingress interface for inbound or forward rules.");
 
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
@@ -201,6 +205,31 @@
 
     [Parameter]
     public EventCallback OnCancel { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
+            _knownInterfaces = inventory.Interfaces;
+        }
+        catch (Exception exception)
+        {
+            _interfaceInventoryError = ClientErrors.Describe(exception).Message;
+        }
+    }
+
+    private string DescribeInterfaceHelp(string directionHelp)
+    {
+        if (_interfaceInventoryError is not null)
+        {
+            return $"{directionHelp} Cached suggestions are unavailable; free text is still accepted.";
+        }
+
+        return _knownInterfaces.Count == 0
+            ? $"{directionHelp} Enter a valid interface name."
+            : $"{directionHelp} Choose a known interface or enter another valid name.";
+    }
 
     private static IEnumerable<string> ValidateRule(object model, string propertyName)
     {

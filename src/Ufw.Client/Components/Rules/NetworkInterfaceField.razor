@@ -1,0 +1,58 @@
+@using System.Linq.Expressions
+
+<MudAutocomplete T="string"
+                 Label="@Label"
+                 Value="@Value"
+                 ValueChanged="ValueChanged"
+                 For="@For"
+                 SearchFunc="SearchAsync"
+                 CoerceValue="true"
+                 Clearable="true"
+                 Immediate="true"
+                 ResetValueOnEmptyText="true"
+                 Disabled="@Disabled"
+                 HelperText="@HelperText"
+                 MaxItems="12"
+                 autocomplete="off"
+                 autocapitalize="off"
+                 spellcheck="false">
+    <NoItemsTemplate>
+        <MudText Typo="Typo.caption" Class="pa-2">
+            No cached interface matches. You can still enter a valid interface name.
+        </MudText>
+    </NoItemsTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<string?>>? For { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string> Suggestions { get; set; } = [];
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private Task<IEnumerable<string>> SearchAsync(string? value, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IEnumerable<string> matches = string.IsNullOrWhiteSpace(value)
+            ? Suggestions
+            : Suggestions.Where(candidate => candidate.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(matches);
+    }
+}

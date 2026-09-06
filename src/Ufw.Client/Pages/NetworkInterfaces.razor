@@ -1,0 +1,205 @@
+@page "/interfaces"
+@attribute [Authorize]
+@implements IDisposable
+@inject INetworkInterfaceInventoryService InterfaceInventory
+@inject IClientErrorMapper ClientErrors
+@inject ISnackbar Snackbar
+
+<PageTitle>Network interfaces - UFW Console</PageTitle>
+
+<PageHeader Title="Network interfaces"
+            Description="Known host interfaces available as advisory suggestions while authoring firewall rules."
+            Breadcrumbs="@s_breadcrumbs"
+            ShowStatus="@(_inventory is not null)">
+    <Actions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@_loading"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            Refresh cache view
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Sync"
+                   Disabled="@_loading"
+                   OnClick="ReconcileAsync"
+                   Class="page-header-button">
+            Reconcile from daemon
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_inventory is not null)
+        {
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeCount(_inventory.Interfaces.Count)
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                Reconciled @_inventory.ReconciledAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+            </MudChip>
+            @if (InterfaceInventory.UsesMockData)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip page-status-chip-warning">
+                    Frontend mock data
+                </MudChip>
+            }
+        }
+    </Status>
+</PageHeader>
+
+@if (InterfaceInventory.UsesMockData)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
+        The network-interface backend is not implemented yet. This page uses a deterministic frontend mock so the
+        autocomplete and reconciliation UX can be exercised without inventing daemon or ASP behavior.
+    </MudAlert>
+}
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Interface inventory could not be loaded</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_error.Message</MudText>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@_loading"
+                   OnClick="RefreshAsync">
+            Retry
+        </MudButton>
+    </MudAlert>
+}
+
+<MudPaper Class="interface-inventory-card" Elevation="1">
+    <div class="interface-inventory-heading">
+        <div>
+            <MudText Typo="Typo.h6" HtmlTag="h2">Cached interface inventory</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                The list improves authoring convenience only. Free-text interface names remain valid input.
+            </MudText>
+        </div>
+    </div>
+
+    @if (_loading && _inventory is null)
+    {
+        <div class="interface-inventory-loading" role="status" aria-live="polite">
+            <MudProgressLinear Indeterminate="true" aria-label="Loading network interfaces" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Loading cached interface inventory...</MudText>
+        </div>
+    }
+    else if (_inventory is { Interfaces.Count: 0 })
+    {
+        <div class="interface-inventory-empty">
+            <MudIcon Icon="@Icons.Material.Filled.Lan" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1">No known interfaces</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Reconcile with the daemon to refresh the inventory. Rule fields still accept free text.
+            </MudText>
+        </div>
+    }
+    else if (_inventory is not null)
+    {
+        <MudTable T="string"
+                  Items="@_inventory.Interfaces"
+                  Dense="true"
+                  Hover="true"
+                  Elevation="0"
+                  Class="interface-inventory-table">
+            <HeaderContent>
+                <MudTh>Interface</MudTh>
+                <MudTh>Usage</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Interface">
+                    <code class="interface-name">@context</code>
+                </MudTd>
+                <MudTd DataLabel="Usage">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Available for source/destination interface autocomplete
+                    </MudText>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
+    [
+        new BreadcrumbItem("Host", null, disabled: true),
+        new BreadcrumbItem("Interfaces", null, disabled: true),
+    ];
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private NetworkInterfaceInventoryResponse? _inventory;
+    private ClientError? _error;
+    private bool _loading;
+
+    protected override Task OnInitializedAsync() => RefreshAsync();
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _loading = true;
+        _error = null;
+        try
+        {
+            _inventory = await InterfaceInventory.RefreshAsync(_lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _error = ClientErrors.Describe(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReconcileAsync()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _loading = true;
+        _error = null;
+        try
+        {
+            _inventory = await InterfaceInventory.ReconcileAsync(_lifetime.Token);
+            Snackbar.Add(
+                InterfaceInventory.UsesMockData
+                    ? "Mock network-interface inventory reconciled."
+                    : "Network-interface inventory reconciled from the daemon.",
+                Severity.Success);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _error = ClientErrors.Describe(exception);
+            Snackbar.Add(_error.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string DescribeCount(int count) => count == 1 ? "1 known interface" : $"{count} known interfaces";
+}
