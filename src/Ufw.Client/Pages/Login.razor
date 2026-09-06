@@ -6,17 +6,16 @@
 @inject NavigationManager Navigation
 @inject IClientErrorMapper ClientErrors
 
-<PageTitle>Sign in - UFW Management</PageTitle>
+<PageTitle>Sign in - UFW Console</PageTitle>
 
-<MudPaper Class="login-card pa-8" Elevation="4">
-    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">UFW Management</MudText>
-    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
-        Sign in to manage firewall rules.
-    </MudText>
-
+<StandalonePanel Title="Sign in"
+                 Description="Use your management account to access firewall rules."
+                 Class="login-card">
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" role="alert">@_error</MudAlert>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4" role="alert">
+            @_error
+        </MudAlert>
     }
 
     <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync" aria-busy="@_busy">
@@ -50,15 +49,16 @@
                    FullWidth="true"
                    Disabled="@(_busy || !_isValid)"
                    OnClick="LoginAsync"
+                   StartIcon="@Icons.Material.Filled.Login"
                    Class="mt-6">
             @if (_busy)
             {
                 <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
             }
-            Sign in
+            @(_busy ? "Signing in..." : "Sign in")
         </MudButton>
     </MudForm>
-</MudPaper>
+</StandalonePanel>
 
 @code {
     private static readonly EmailAddressAttribute s_emailValidation = new()

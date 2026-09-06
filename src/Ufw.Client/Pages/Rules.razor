@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
 
-<PageTitle>Firewall rules - UFW Management</PageTitle>
+<PageTitle>Firewall rules - UFW Console</PageTitle>
 
 <PageHeader Title="Firewall rules"
             Description="Authoritative UFW rules, evaluated from top to bottom."
@@ -126,7 +126,7 @@ else if (_state.Snapshot is { } snapshot)
 
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
-        BackdropClick = true,
+        BackdropClick = false,
         CloseButton = true,
         CloseOnEscapeKey = true,
         DefaultFocus = DefaultFocus.FirstChild,
@@ -219,7 +219,7 @@ else if (_state.Snapshot is { } snapshot)
             parameters.Add(component => component.Rule, rule);
 
             IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(
-                "Delete firewall rule",
+                "Delete firewall rule?",
                 parameters,
                 s_deleteDialogOptions);
             privateKey = await dialog.GetReturnValueAsync<string>();

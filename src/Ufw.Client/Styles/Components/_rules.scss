@@ -147,13 +147,8 @@
     margin-block: 0.5rem;
 }
 
-.rule-editor-actions,
-.delete-dialog-actions {
+.rule-editor-actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
-}
-
-.delete-dialog-actions {
-    width: 100%;
 }

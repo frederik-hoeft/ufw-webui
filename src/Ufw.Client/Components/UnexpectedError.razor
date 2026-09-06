@@ -1,16 +1,23 @@
 @using Ufw.Client.Errors
 @inject NavigationManager Navigation
 
-<main class="unexpected-error-shell">
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
-        <MudPaper Class="pa-6" Elevation="1" role="alert">
-            <MudText Typo="Typo.h5" HtmlTag="h1" GutterBottom="true">Something went wrong</MudText>
-            <MudText Typo="Typo.body1" Class="mb-5">@Error.Message</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Reload">
+<main class="standalone-shell">
+    <ThemeToggle Class="standalone-theme-toggle" />
+    <StandalonePanel Title="Something went wrong"
+                     Description="@Error.Message"
+                     Icon="@Icons.Material.Filled.ErrorOutline"
+                     IconColor="Color.Error"
+                     Class="standalone-state-card"
+                     Role="alert">
+        <Actions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Reload"
+                       StartIcon="@Icons.Material.Filled.Refresh">
                 Reload application
             </MudButton>
-        </MudPaper>
-    </MudContainer>
+        </Actions>
+    </StandalonePanel>
 </main>
 
 @code {

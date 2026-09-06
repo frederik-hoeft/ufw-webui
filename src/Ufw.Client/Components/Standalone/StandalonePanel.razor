@@ -1,0 +1,80 @@
+<MudPaper Class="@CssClass" Elevation="0" role="@Role" aria-live="@AriaLive">
+    <AppBrand Class="standalone-panel-brand" />
+
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <div class="@IconClass" aria-hidden="true">
+            <MudIcon Icon="@Icon" Size="Size.Medium" />
+        </div>
+    }
+
+    <div class="standalone-panel-copy">
+        <MudText Typo="@TitleTypo" HtmlTag="h1">@Title</MudText>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="standalone-panel-description">
+                @Description
+            </MudText>
+        }
+    </div>
+
+    @if (ChildContent is not null)
+    {
+        <div class="standalone-panel-content">
+            @ChildContent
+        </div>
+    }
+
+    @if (Actions is not null)
+    {
+        <div class="standalone-panel-actions">
+            @Actions
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public Color IconColor { get; set; } = Color.Primary;
+
+    [Parameter]
+    public Typo TitleTypo { get; set; } = Typo.h4;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public string? Role { get; set; }
+
+    [Parameter]
+    public string? AriaLive { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(Class)
+        ? "standalone-panel"
+        : $"standalone-panel {Class}";
+
+    private string IconClass => IconColor switch
+    {
+        Color.Secondary => "standalone-panel-icon standalone-panel-icon-secondary",
+        Color.Info => "standalone-panel-icon standalone-panel-icon-info",
+        Color.Success => "standalone-panel-icon standalone-panel-icon-success",
+        Color.Warning => "standalone-panel-icon standalone-panel-icon-warning",
+        Color.Error => "standalone-panel-icon standalone-panel-icon-error",
+        _ => "standalone-panel-icon",
+    };
+}

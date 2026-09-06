@@ -6,12 +6,18 @@
     <base href="/" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
-    <title>UFW Management</title>
+    <title>UFW Console</title>
 </head>
 <body>
     <div id="app">
-        <main class="startup-progress">
-            <div role="status" aria-label="Loading application"></div>
+        <main class="bootstrap-shell">
+            <div class="bootstrap-status" role="status" aria-live="polite">
+                <span class="bootstrap-brand-mark" aria-hidden="true">U</span>
+                <span class="bootstrap-status-copy">
+                    <span class="bootstrap-status-title">UFW Console</span>
+                    <span class="bootstrap-status-detail">Loading application...</span>
+                </span>
+            </div>
         </main>
     </div>
     <div id="blazor-error-ui" data-nosnippet>

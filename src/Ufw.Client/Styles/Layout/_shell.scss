@@ -54,27 +54,6 @@
     color: var(--ufw-nav-text);
 }
 
-.app-brand-mark {
-    display: inline-grid;
-    width: 2rem;
-    height: 2rem;
-    flex: 0 0 2rem;
-    place-items: center;
-    border-radius: var(--mud-default-borderradius);
-    background: var(--mud-palette-primary);
-    color: var(--mud-palette-primary-contrasttext);
-    font-size: 0.875rem;
-    font-weight: 600;
-    line-height: 1;
-}
-
-.app-brand-name {
-    overflow: hidden;
-    color: var(--ufw-nav-text);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .app-navigation-menu {
     padding-top: 1.25rem;
 }

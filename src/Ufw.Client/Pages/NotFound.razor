@@ -1,12 +1,19 @@
 @page "/not-found"
 @layout LoginLayout
 
-<PageTitle>Page not found - UFW Management</PageTitle>
+<PageTitle>Page not found - UFW Console</PageTitle>
 
-<MudPaper Class="login-card pa-8 text-center" Elevation="1">
-    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">Page not found</MudText>
-    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
-        The requested page does not exist.
-    </MudText>
-    <MudButton Href="/rules" Variant="Variant.Filled" Color="Color.Primary">Go to firewall rules</MudButton>
-</MudPaper>
+<StandalonePanel Title="Page not found"
+                 Description="The requested page does not exist or is no longer available."
+                 Icon="@Icons.Material.Filled.SearchOff"
+                 IconColor="Color.Secondary"
+                 Class="standalone-state-card">
+    <Actions>
+        <MudButton Href="/rules"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ArrowBack">
+            Go to firewall rules
+        </MudButton>
+    </Actions>
+</StandalonePanel>

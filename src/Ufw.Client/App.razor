@@ -42,10 +42,16 @@ else if (_startupState == StartupState.Failed && _startupError is not null)
 }
 else
 {
-    <main class="startup-progress">
-        <div role="status" aria-label="Restoring session">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
-        </div>
+    <main class="standalone-shell">
+        <StandalonePanel Title="Restoring session"
+                         Description="Checking your session and preparing firewall management."
+                         Class="standalone-state-card"
+                         Role="status"
+                         AriaLive="polite">
+            <div class="standalone-progress" aria-hidden="true">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+            </div>
+        </StandalonePanel>
     </main>
 }
 

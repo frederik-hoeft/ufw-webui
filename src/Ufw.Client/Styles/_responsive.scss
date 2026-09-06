@@ -45,10 +45,12 @@
         width: 100%;
     }
 
-    .rule-editor-card.pa-5,
-    .startup-card.pa-8,
-    .login-card.pa-8 {
+    .rule-editor-card.pa-5 {
         padding: 1.25rem !important;
+    }
+
+    .standalone-panel {
+        padding: 1.25rem;
     }
 
     .rule-editor-actions {
@@ -89,8 +91,7 @@
         display: inline-flex;
     }
 
-    .startup-progress,
-    .startup-status,
+    .standalone-shell,
     .login-shell {
         padding: 1rem;
     }

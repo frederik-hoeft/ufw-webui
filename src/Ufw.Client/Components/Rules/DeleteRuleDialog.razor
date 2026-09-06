@@ -2,16 +2,25 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-2">@FirewallRulePresentation.DescribeRule(Rule)</MudText>
-        @if (!string.IsNullOrWhiteSpace(Rule.RuleId))
-        {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-raw-line mb-4">
-                Rule ID: @Rule.RuleId
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Review the rule below and provide the signing key that authorizes this deletion.
+        </MudText>
+
+        <div class="delete-rule-summary" aria-label="Rule to delete">
+            <MudText Typo="Typo.overline" HtmlTag="div" Class="delete-rule-summary-label">Rule to delete</MudText>
+            <MudText Typo="Typo.body2" Class="delete-rule-summary-value">
+                @FirewallRulePresentation.DescribeRule(Rule)
             </MudText>
-        }
+            @if (!string.IsNullOrWhiteSpace(Rule.RuleId))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-raw-line delete-rule-id">
+                    Rule ID: @Rule.RuleId
+                </MudText>
+            }
+        </div>
 
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-            Deleting this firewall rule requires a signed authorization and cannot be undone through this interface.
+            This removes the rule from the firewall. The operation requires signed authorization and cannot be undone through this interface.
         </MudAlert>
 
         <MudForm @ref="_form"
