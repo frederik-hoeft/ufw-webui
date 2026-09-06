@@ -1,0 +1,43 @@
+.settings-page {
+    display: grid;
+    gap: 1rem;
+}
+
+.settings-section {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-surface);
+}
+
+.settings-section-header {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.settings-section-content {
+    padding: 0 1.5rem;
+}
+
+.settings-row {
+    display: flex;
+    min-height: 5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-block: 1rem;
+}
+
+.settings-row-copy {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.settings-choice-group {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.5rem;
+}

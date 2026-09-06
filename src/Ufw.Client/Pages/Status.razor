@@ -1,0 +1,222 @@
+@page "/status"
+@attribute [Authorize]
+@implements IDisposable
+@inject IOperationalStatusService OperationalStatus
+
+<PageTitle>System status - UFW Console</PageTitle>
+
+<PageHeader Title="System status"
+            Description="Live operational checks for the daemon-backed management path and firewall snapshot."
+            Breadcrumbs="@s_breadcrumbs"
+            ShowStatus="@(OperationalStatus.Current.CheckedAt is not null)">
+    <Actions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@OperationalStatus.IsRefreshing"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            @(OperationalStatus.IsRefreshing ? "Checking..." : "Refresh status")
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (OperationalStatus.Current.CheckedAt is { } checkedAt)
+        {
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@DaemonChipClass">
+                @DaemonStatusLabel
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                Checked @checkedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
+
+@if (OperationalStatus.Current.DaemonBackedApi == OperationalAvailability.Unavailable)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        Neither daemon-backed status request completed successfully. This can indicate that the management API or
+        ufw-systemd path is unavailable; the current REST surface cannot distinguish those failures further.
+    </MudAlert>
+}
+else if (OperationalStatus.Current.IntentProtocolCompatible == false)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
+        ufw-systemd is reachable, but it reports signed-intent protocol version
+        @OperationalStatus.Current.IntentProtocolVersion while this client supports version @IntentProtocol.VERSION.
+        Firewall reads may still work, but signed mutations are incompatible.
+    </MudAlert>
+}
+
+<div class="operational-status-grid">
+    <MudPaper Class="operational-status-card" Elevation="1">
+        <div class="operational-status-card-heading">
+            <MudIcon Icon="@Icons.Material.Filled.Dns" Color="@DaemonIconColor" />
+            <div>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Daemon-backed API</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2">@DaemonStatusLabel</MudText>
+            </div>
+        </div>
+        <dl class="operational-status-details">
+            <div>
+                <dt>Deployment</dt>
+                <dd><code>@ValueOrUnavailable(OperationalStatus.Current.DeploymentId)</code></dd>
+            </div>
+            <div>
+                <dt>Intent protocol</dt>
+                <dd>@DescribeIntentProtocol()</dd>
+            </div>
+        </dl>
+        @if (OperationalStatus.Current.IntentContextError is { } intentError)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error">@intentError.Message</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="operational-status-card" Elevation="1">
+        <div class="operational-status-card-heading">
+            <MudIcon Icon="@Icons.Material.Filled.Security" Color="@FirewallIconColor" />
+            <div>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Firewall</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2">@FirewallStatusLabel</MudText>
+            </div>
+        </div>
+        <dl class="operational-status-details">
+            <div>
+                <dt>Rules</dt>
+                <dd>@DescribeRuleCount()</dd>
+            </div>
+            <div>
+                <dt>Source</dt>
+                <dd>Authoritative UFW snapshot</dd>
+            </div>
+        </dl>
+        @if (OperationalStatus.Current.FirewallError is { } firewallError)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error">@firewallError.Message</MudText>
+        }
+    </MudPaper>
+</div>
+
+<MudPaper Class="operational-status-meta" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2">Status semantics</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        These checks use the existing authenticated daemon-backed intent-context and rule-list endpoints. A successful
+        check proves the browser can complete that path through ASP to ufw-systemd. Failures are intentionally not
+        attributed to a specific hop because the current API does not expose a component-level health contract.
+    </MudText>
+    @if (OperationalStatus.Current.RoundTrip is { } roundTrip)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3">
+            Last combined check completed in @DescribeDuration(roundTrip).
+        </MudText>
+    }
+</MudPaper>
+
+@code {
+    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
+    [
+        new BreadcrumbItem("System", null, disabled: true),
+        new BreadcrumbItem("Status", null, disabled: true),
+    ];
+
+    private readonly CancellationTokenSource _lifetime = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        OperationalStatus.Changed += OnStatusChanged;
+        if (OperationalStatus.Current.CheckedAt is null && !OperationalStatus.IsRefreshing)
+        {
+            await RefreshAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        OperationalStatus.Changed -= OnStatusChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await OperationalStatus.RefreshAsync(_lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+    }
+
+    private void OnStatusChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private string DaemonStatusLabel => OperationalStatus.Current.DaemonBackedApi switch
+    {
+        OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false
+            => "Connected, incompatible",
+        OperationalAvailability.Available => "Connected",
+        OperationalAvailability.Unavailable => "Unavailable",
+        _ => OperationalStatus.IsRefreshing ? "Checking" : "Unknown",
+    };
+
+    private string DaemonChipClass => OperationalStatus.Current.DaemonBackedApi switch
+    {
+        OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false
+            => "page-status-chip page-status-chip-warning",
+        OperationalAvailability.Available => "page-status-chip page-status-chip-success",
+        OperationalAvailability.Unavailable => "page-status-chip page-status-chip-error",
+        _ => "page-status-chip",
+    };
+
+    private Color DaemonIconColor => OperationalStatus.Current.DaemonBackedApi switch
+    {
+        OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false => Color.Warning,
+        OperationalAvailability.Available => Color.Success,
+        OperationalAvailability.Unavailable => Color.Error,
+        _ => Color.Secondary,
+    };
+
+    private string FirewallStatusLabel => OperationalStatus.Current.FirewallSnapshot switch
+    {
+        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == true => "Active",
+        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == false => "Inactive",
+        OperationalAvailability.Unavailable => "Unavailable",
+        _ => OperationalStatus.IsRefreshing ? "Checking" : "Unknown",
+    };
+
+    private Color FirewallIconColor => OperationalStatus.Current.FirewallSnapshot switch
+    {
+        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == true => Color.Success,
+        OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == false => Color.Warning,
+        OperationalAvailability.Unavailable => Color.Error,
+        _ => Color.Secondary,
+    };
+
+    private string DescribeIntentProtocol()
+    {
+        if (OperationalStatus.Current.IntentProtocolVersion is not { } version)
+        {
+            return "Unavailable";
+        }
+
+        return OperationalStatus.Current.IntentProtocolCompatible == true
+            ? $"v{version} (compatible)"
+            : $"v{version} (client supports v{IntentProtocol.VERSION})";
+    }
+
+    private string DescribeRuleCount() => OperationalStatus.Current.RuleCount switch
+    {
+        null => "Unavailable",
+        1 => "1 rule",
+        int count => $"{count} rules",
+    };
+
+    private static string ValueOrUnavailable(string? value) => string.IsNullOrWhiteSpace(value) ? "Unavailable" : value;
+
+    private static string DescribeDuration(TimeSpan duration) => duration.TotalMilliseconds < 1000
+        ? $"{duration.TotalMilliseconds:F0} ms"
+        : $"{duration.TotalSeconds:F1} s";
+}

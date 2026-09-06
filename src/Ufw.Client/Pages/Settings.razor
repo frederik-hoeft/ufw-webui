@@ -1,0 +1,93 @@
+@page "/settings"
+@attribute [Authorize]
+@implements IDisposable
+@inject IClientThemeService Theme
+
+<PageTitle>Settings - UFW Console</PageTitle>
+
+<PageHeader Title="Settings"
+            Description="Browser-local preferences and management data used by this console."
+            Breadcrumbs="@s_breadcrumbs" />
+
+<div class="settings-page">
+    <SettingsSection Title="Appearance"
+                     Description="Theme preference is stored only in this browser and does not affect firewall behavior.">
+        <div class="settings-row">
+            <div class="settings-row-copy">
+                <MudText Typo="Typo.subtitle2">Theme</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Choose the light or dark console palette.
+                </MudText>
+            </div>
+            <div class="settings-choice-group" role="group" aria-label="Theme">
+                <MudButton Variant="@(Theme.Mode == ClientThemeMode.Light ? Variant.Filled : Variant.Outlined)"
+                           Color="@(Theme.Mode == ClientThemeMode.Light ? Color.Primary : Color.Default)"
+                           StartIcon="@Icons.Material.Filled.LightMode"
+                           Disabled="@_themeBusy"
+                           OnClick="@(() => SetThemeAsync(ClientThemeMode.Light))"
+                           aria-pressed="@((Theme.Mode == ClientThemeMode.Light).ToString().ToLowerInvariant())">
+                    Light
+                </MudButton>
+                <MudButton Variant="@(Theme.Mode == ClientThemeMode.Dark ? Variant.Filled : Variant.Outlined)"
+                           Color="@(Theme.Mode == ClientThemeMode.Dark ? Color.Primary : Color.Default)"
+                           StartIcon="@Icons.Material.Filled.DarkMode"
+                           Disabled="@_themeBusy"
+                           OnClick="@(() => SetThemeAsync(ClientThemeMode.Dark))"
+                           aria-pressed="@((Theme.Mode == ClientThemeMode.Dark).ToString().ToLowerInvariant())">
+                    Dark
+                </MudButton>
+            </div>
+        </div>
+    </SettingsSection>
+
+    <SettingsSection Title="Host data"
+                     Description="Manage browser-facing operational data that assists rule authoring without becoming firewall authority.">
+        <div class="settings-row">
+            <div class="settings-row-copy">
+                <MudText Typo="Typo.subtitle2">Network interface inventory</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Review and reconcile interface names used for free-text autocomplete in firewall rules.
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Lan"
+                       Href="/interfaces">
+                Manage interfaces
+            </MudButton>
+        </div>
+    </SettingsSection>
+</div>
+
+@code {
+    private static readonly IReadOnlyList<BreadcrumbItem> s_breadcrumbs =
+    [
+        new BreadcrumbItem("System", null, disabled: true),
+        new BreadcrumbItem("Settings", null, disabled: true),
+    ];
+
+    private bool _themeBusy;
+
+    protected override void OnInitialized() => Theme.Changed += OnThemeChanged;
+
+    public void Dispose() => Theme.Changed -= OnThemeChanged;
+
+    private void OnThemeChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task SetThemeAsync(ClientThemeMode mode)
+    {
+        if (_themeBusy || Theme.Mode == mode)
+        {
+            return;
+        }
+
+        _themeBusy = true;
+        try
+        {
+            await Theme.SetModeAsync(mode);
+        }
+        finally
+        {
+            _themeBusy = false;
+        }
+    }
+}

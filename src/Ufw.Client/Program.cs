@@ -10,6 +10,7 @@ using Ufw.Client.Errors;
 using Ufw.Client.Intent;
 using Ufw.Client.NetworkInterfaces;
 using Ufw.Client.RuleOrdering;
+using Ufw.Client.Status;
 using Ufw.Client.Theming;
 
 namespace Ufw.Client;
@@ -43,6 +44,7 @@ public static class Program
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingApiClient, MockRuleOrderingApiClient>();
         builder.Services.AddSingleton<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
+        builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
 
         builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BrowserCredentialsHandler>();

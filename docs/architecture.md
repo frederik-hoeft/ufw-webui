@@ -26,6 +26,10 @@ For firewall mutations the client reuses rule validation/normalization from `Ufw
 
 The rules view tracks daemon responses as explicit authoritative snapshots rather than treating default UI values as firewall state. Before the first successful read, no active/inactive or empty-rule state is inferred. A failed refresh keeps the last successfully loaded snapshot visible as stale but disables further mutations until a fresh daemon read succeeds. The same stale-state boundary is entered when a mutation succeeds but post-mutation reconciliation fails, when the client cannot determine whether a mutation completed, or when the daemon rejects a mutation in a way that requires the client to re-read current state.
 
+Operational status reuses the existing authenticated daemon-backed intent-context and rule-list reads instead of introducing a parallel health protocol. A successful status check therefore proves that the browser can complete that request path through `Ufw.Web` to `Ufw.Systemd`, while failures remain deliberately unattributed because the current REST API cannot distinguish browser-to-ASP failure from ASP-to-daemon failure. The status surface also reports firewall active state, rule count, daemon deployment identity, and signed-intent protocol compatibility from those authoritative responses. Navigation exposes the last completed daemon-backed availability check as a compact connection indicator rather than fabricating process state.
+
+Settings are limited to preferences and management surfaces that already have a real client-side contract. Appearance uses the existing browser-local theme service, and host interface management links to the advisory interface inventory workflow. Server- or daemon-owned configuration is not represented as editable UI until a corresponding backend ownership and persistence contract exists.
+
 ## Ufw.Web
 
 `Ufw.Web` is an ASP.NET Core controller application. Its responsibilities include:

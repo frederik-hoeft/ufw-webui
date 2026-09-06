@@ -75,6 +75,25 @@
         }
     }
 
+    .operational-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-row {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .settings-choice-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .settings-row > .mud-button-root {
+        width: 100%;
+    }
+
     .rule-unsupported {
         align-items: flex-start;
         flex-direction: column;

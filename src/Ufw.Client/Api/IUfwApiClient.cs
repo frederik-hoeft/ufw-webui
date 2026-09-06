@@ -7,6 +7,8 @@ public interface IUfwApiClient
 {
     Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default);
 
+    Task<IntentContextResponse> GetIntentContextAsync(CancellationToken cancellationToken = default);
+
     Task<RuleMutationResponse> AddRuleAsync(
         FirewallRuleSpecification rule,
         string privateKey,

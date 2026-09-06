@@ -13,9 +13,21 @@
             </MudNavLink>
             <MudNavLink Href="/interfaces"
                         Match="NavLinkMatch.Prefix"
-                        Icon="@Icons.Material.Filled.Lan">
+                        Icon="@Icons.Material.Filled.Circle">
                 Interfaces
+            </MudNavLink>
+            <MudNavLink Href="/status"
+                        Match="NavLinkMatch.Prefix"
+                        Icon="@Icons.Material.Filled.Circle">
+                Status
+            </MudNavLink>
+            <MudNavLink Href="/settings"
+                        Match="NavLinkMatch.Prefix"
+                        Icon="@Icons.Material.Filled.Circle">
+                Settings
             </MudNavLink>
         </MudNavMenu>
     </nav>
+
+    <OperationalStatusIndicator />
 </div>
