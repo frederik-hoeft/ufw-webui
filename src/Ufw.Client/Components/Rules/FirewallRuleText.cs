@@ -11,28 +11,14 @@ internal sealed class FirewallRuleText(IStringLocalizer<RulesStrings> rulesText)
         string value = string.IsNullOrWhiteSpace(address) ? RuleSpecificationNormalizer.ANY : address;
         if (!string.IsNullOrWhiteSpace(ports))
         {
-            value += $":{ports}";
+            string displayPorts = ports.Replace(':', '-');
+            value = rulesText["EndpointPort", value, displayPorts];
         }
         if (!string.IsNullOrWhiteSpace(networkInterface))
         {
             value = rulesText["EndpointVia", value, networkInterface];
         }
         return value;
-    }
-
-    public string? DescribePorts(FirewallRuleSpecification rule)
-    {
-        ArgumentNullException.ThrowIfNull(rule);
-
-        bool hasSource = !string.IsNullOrWhiteSpace(rule.SourcePorts);
-        bool hasDestination = !string.IsNullOrWhiteSpace(rule.DestinationPorts);
-        return (hasSource, hasDestination) switch
-        {
-            (false, false) => null,
-            (false, true) => rulesText["DestinationPortsShort", rule.DestinationPorts!].Value,
-            (true, false) => rulesText["SourcePortsShort", rule.SourcePorts!].Value,
-            (true, true) => rulesText["BothPortsShort", rule.SourcePorts!, rule.DestinationPorts!].Value,
-        };
     }
 
     public string FormatAction(FirewallAction action) => action switch

@@ -402,14 +402,8 @@
   <data name="EndpointVia" xml:space="preserve">
     <value>{0} via {1}</value>
   </data>
-  <data name="SourcePortsShort" xml:space="preserve">
-    <value>src {0}</value>
-  </data>
-  <data name="DestinationPortsShort" xml:space="preserve">
-    <value>dst {0}</value>
-  </data>
-  <data name="BothPortsShort" xml:space="preserve">
-    <value>src {0} / dst {1}</value>
+  <data name="EndpointPort" xml:space="preserve">
+    <value>{0} port {1}</value>
   </data>
   <data name="RuleMovedPreview" xml:space="preserve">
     <value>Rule order updated in the local preview.</value>

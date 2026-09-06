@@ -212,15 +212,8 @@
 }
 
 .rule-endpoint,
-.rule-comment,
-.rule-protocol-detail {
+.rule-comment {
     display: block;
-}
-
-.rule-protocol-detail {
-    margin-top: 0.125rem;
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
 }
 
 .rule-comment-empty {
@@ -316,6 +309,16 @@
 }
 
 .network-interface-field .mud-input-control {
+    margin-top: 0;
+}
+
+// MudAutocomplete reserves label space internally when bound to a model expression,
+// even though this component renders its own external label. Remove that reserved
+// margin so selecting/clearing an interface never changes the grid row height.
+.network-interface-field
+    .mud-input-control
+    > .mud-input-control-input-container
+    > .mud-input.mud-input-text.mud-input-text-with-label {
     margin-top: 0;
 }
 
@@ -487,18 +490,6 @@
     gap: 0.25rem;
 }
 
-.rule-mobile-protocol-value {
-    display: flex;
-    min-width: 0;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.5rem;
-}
-
-.rule-mobile-protocol-value .rule-protocol-detail {
-    display: inline;
-    margin: 0;
-}
 
 .rule-mobile-endpoints {
     display: grid;

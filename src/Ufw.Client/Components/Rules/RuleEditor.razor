@@ -35,7 +35,8 @@
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="FirewallDirection"
                            Label="@(RulesText["Direction"])"
-                           @bind-Value="Rule.Direction"
+                           Value="@Rule.Direction"
+                           ValueChanged="DirectionChangedAsync"
                            For="@(() => Rule.Direction)">
                     @foreach (FirewallDirection value in Enum.GetValues<FirewallDirection>())
                     {
@@ -287,6 +288,16 @@
         return errors
             .Where(error => string.Equals(error.PropertyName, memberName, StringComparison.Ordinal))
             .Select(ValidationMessages.Localize);
+    }
+
+    private async Task DirectionChangedAsync(FirewallDirection value)
+    {
+        Rule.Direction = value;
+
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+        }
     }
 
     private async Task PrivateKeyChangedAsync(string value)

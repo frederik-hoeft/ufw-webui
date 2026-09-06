@@ -6,8 +6,6 @@ internal interface IFirewallRuleText
 {
     string DescribeEndpoint(string? address, string? ports, string? networkInterface);
 
-    string? DescribePorts(FirewallRuleSpecification rule);
-
     string FormatAction(FirewallAction action);
 
     string FormatDirection(FirewallDirection direction);

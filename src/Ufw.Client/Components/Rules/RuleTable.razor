@@ -106,20 +106,16 @@
                                     </td>
                                     <td class="rule-endpoint-column">
                                         <span class="rule-endpoint">
-                                            @RuleText.DescribeEndpoint(rule.Rule.Source, null, rule.Rule.SourceInterface)
+                                            @RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)
                                         </span>
                                     </td>
                                     <td class="rule-endpoint-column">
                                         <span class="rule-endpoint">
-                                            @RuleText.DescribeEndpoint(rule.Rule.Destination, null, rule.Rule.DestinationInterface)
+                                            @RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)
                                         </span>
                                     </td>
                                     <td class="rule-protocol-column">
                                         <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
-                                        @if (RuleText.DescribePorts(rule.Rule) is { } portDescription)
-                                        {
-                                            <span class="rule-protocol-detail">@portDescription</span>
-                                        }
                                     </td>
                                     <td class="rule-comment-column">
                                         @if (!string.IsNullOrWhiteSpace(rule.Rule.Comment))
@@ -244,24 +240,18 @@
                                 </div>
                                 <div>
                                     <span class="rule-mobile-field-label">@RulesText["ProtocolColumn"]</span>
-                                    <span class="rule-mobile-protocol-value">
-                                        <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
-                                        @if (RuleText.DescribePorts(rule.Rule) is { } mobilePortDescription)
-                                        {
-                                            <span class="rule-protocol-detail">@mobilePortDescription</span>
-                                        }
-                                    </span>
+                                    <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
                                 </div>
                             </div>
 
                             <dl class="rule-mobile-endpoints">
                                 <div>
                                     <dt>@RulesText["FromColumn"]</dt>
-                                    <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, null, rule.Rule.SourceInterface)</dd>
+                                    <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)</dd>
                                 </div>
                                 <div>
                                     <dt>@RulesText["ToColumn"]</dt>
-                                    <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, null, rule.Rule.DestinationInterface)</dd>
+                                    <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)</dd>
                                 </div>
                             </dl>
 
