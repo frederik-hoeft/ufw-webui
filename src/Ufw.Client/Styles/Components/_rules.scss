@@ -152,3 +152,95 @@
     justify-content: flex-end;
     gap: 0.5rem;
 }
+
+.rule-drag-column {
+    width: 2.5rem;
+    padding-inline: 0.5rem !important;
+    text-align: center;
+}
+
+.rule-drag-handle {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--mud-default-borderradius);
+    background: transparent;
+    color: var(--mud-palette-text-secondary);
+    cursor: grab;
+    transition: background-color 120ms ease, color 120ms ease, outline-color 120ms ease;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+        background: var(--mud-palette-action-default-hover);
+        color: var(--mud-palette-text-primary);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 1px;
+    }
+
+    &:active:not(:disabled) {
+        cursor: grabbing;
+    }
+}
+
+.rule-drag-handle-disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.rule-drag-handle-target {
+    color: var(--mud-palette-primary);
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 1px;
+}
+
+.rule-ordering-note {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-background-gray);
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.8125rem;
+
+    strong {
+        flex: 0 0 auto;
+        color: var(--mud-palette-text-primary);
+        font-weight: 600;
+    }
+
+    span {
+        min-width: 0;
+    }
+}
+
+.rule-ordering-mock-chip {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.rule-ordering-preview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 959.98px) {
+    .rule-ordering-note {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .rule-ordering-mock-chip {
+        margin-left: 0;
+    }
+}

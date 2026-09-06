@@ -6,7 +6,7 @@
     <div class="rule-editor-section-heading">
         <MudText Typo="Typo.h6" HtmlTag="h2" id="rule-definition-heading">Rule definition</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Define the UFW match and action. The current API appends new rules to the existing evaluation order.
+            @DefinitionDescription
         </MudText>
     </div>
 
@@ -131,25 +131,34 @@
                               Immediate="true" />
             </MudItem>
 
-            <MudItem xs="12">
-                <MudDivider Class="rule-editor-divider" />
-            </MudItem>
-            <MudItem xs="12">
-                <div class="rule-editor-section-heading rule-editor-authorization-heading">
-                    <MudText Typo="Typo.subtitle1" HtmlTag="h3">Authorization</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Sign this individual mutation with an authorized key. The browser does not retain the private key.
-                    </MudText>
-                </div>
-            </MudItem>
-            <MudItem xs="12">
-                <UfwRuleCommandPreview Rule="@Rule" Label="Canonical UFW rule" />
-            </MudItem>
-            <MudItem xs="12">
-                <MutationAuthorizationField Value="@PrivateKey"
-                                            ValueChanged="PrivateKeyChangedAsync"
-                                            Disabled="@(Disabled || Submitting)" />
-            </MudItem>
+            @if (ShowAuthorization)
+            {
+                <MudItem xs="12">
+                    <MudDivider Class="rule-editor-divider" />
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="rule-editor-section-heading rule-editor-authorization-heading">
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h3">Authorization</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Sign this individual mutation with an authorized key. The browser does not retain the private key.
+                        </MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="12">
+                    <UfwRuleCommandPreview Rule="@Rule" Label="Canonical UFW rule" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MutationAuthorizationField Value="@PrivateKey"
+                                                ValueChanged="PrivateKeyChangedAsync"
+                                                Disabled="@(Disabled || Submitting)" />
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <UfwRuleCommandPreview Rule="@Rule" Label="Canonical UFW rule" />
+                </MudItem>
+            }
             <MudItem xs="12">
                 <div class="rule-editor-actions">
                     <MudButton Variant="Variant.Text"
@@ -160,14 +169,14 @@
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Add"
-                               Disabled="@(!_isValid || Disabled || Submitting || string.IsNullOrWhiteSpace(PrivateKey))"
+                               Disabled="@(!_isValid || Disabled || SubmitDisabled || Submitting || RequiresPrivateKey)"
                                OnClick="SubmitAsync"
                                Class="rule-primary-action">
                         @if (Submitting)
                         {
                             <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
                         }
-                        @(Submitting ? "Adding rule..." : "Add signed rule")
+                        @(Submitting ? SubmittingLabel : SubmitLabel)
                     </MudButton>
                 </div>
             </MudItem>
@@ -182,6 +191,8 @@
     private string? _interfaceInventoryError;
     private bool _isValid;
 
+    private bool RequiresPrivateKey => ShowAuthorization && string.IsNullOrWhiteSpace(PrivateKey);
+
     private string SourceInterfaceHelp => DescribeInterfaceHelp(
         "Egress interface for outbound or forward rules.");
 
@@ -191,8 +202,25 @@
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
 
+
+    [Parameter]
+    public string DefinitionDescription { get; set; }
+        = "Define the UFW match and action. The current API appends new rules to the existing evaluation order.";
+
     [Parameter]
     public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool SubmitDisabled { get; set; }
+
+    [Parameter]
+    public bool ShowAuthorization { get; set; } = true;
+
+    [Parameter]
+    public string SubmitLabel { get; set; } = "Add signed rule";
+
+    [Parameter]
+    public string SubmittingLabel { get; set; } = "Adding rule...";
 
     [Parameter]
     public bool Submitting { get; set; }
@@ -264,7 +292,7 @@
 
     private async Task SubmitAsync()
     {
-        if (_form is null || Disabled || Submitting || string.IsNullOrWhiteSpace(PrivateKey))
+        if (_form is null || Disabled || SubmitDisabled || Submitting || RequiresPrivateKey)
         {
             return;
         }

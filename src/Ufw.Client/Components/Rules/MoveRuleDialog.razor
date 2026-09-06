@@ -1,0 +1,66 @@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Choose the one-based position this rule should occupy in the ordered firewall list.
+        </MudText>
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            Rule ordering is currently a frontend prototype. This move is sent only to the mock ASP boundary and
+            updates a local preview; it does not change UFW and does not perform intent signing.
+        </MudAlert>
+
+        <MudNumericField T="int"
+                         Label="Target position"
+                         @bind-Value="_targetPosition"
+                         Min="1"
+                         Max="@RuleCount"
+                         Immediate="true"
+                         Variant="Variant.Outlined"
+                         HelperText="The first firewall rule is position 1." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.DragIndicator"
+                   Disabled="@(!CanConfirm)"
+                   OnClick="Confirm">
+            Preview move
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private int _targetPosition;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public int CurrentPosition { get; set; }
+
+    [Parameter]
+    public int RuleCount { get; set; }
+
+    private bool CanConfirm => _targetPosition >= 1
+        && _targetPosition <= RuleCount
+        && _targetPosition != CurrentPosition;
+
+    protected override void OnParametersSet()
+    {
+        if (_targetPosition == 0)
+        {
+            _targetPosition = CurrentPosition;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm()
+    {
+        if (CanConfirm)
+        {
+            MudDialog.Close(DialogResult.Ok(_targetPosition));
+        }
+    }
+}

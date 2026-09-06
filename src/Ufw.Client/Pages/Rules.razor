@@ -5,11 +5,13 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
+@inject IRuleOrderingApiClient RuleOrderingApiClient
+@inject IRuleOrderingProjectionService RuleOrderingProjection
 
 <PageTitle>Firewall rules - UFW Console</PageTitle>
 
 <PageHeader Title="Firewall rules"
-            Description="Authoritative UFW rules, evaluated from top to bottom."
+            Description="Ordered UFW rules are evaluated from top to bottom. Reorder explicitly or drag by the handle."
             Breadcrumbs="@s_breadcrumbs"
             ShowStatus="@(_state.Snapshot is not null)">
     <Actions>
@@ -24,7 +26,7 @@
                    Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
-                   Disabled="@(!CanMutate)"
+                   Disabled="@(!CanMutateFirewall)"
                    Class="page-header-button">
             Add rule
         </MudButton>
@@ -111,10 +113,36 @@ else if (_state.Snapshot is { } snapshot)
         </MudAlert>
     }
 
-    <RuleTable Rules="@snapshot.Rules"
-               Loading="@(_state.Status == RulesPageStatus.Refreshing)"
-               Disabled="@(!CanMutate)"
-               DeleteRequested="BeginDeleteAsync" />
+    @if (HasOrderingPreview)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5 rule-ordering-preview-alert" role="status" aria-live="polite">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Local ordering preview</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                The browser is previewing rule order through the mocked ASP ordering boundary. UFW has not changed,
+                no ordering intent was signed, and add/delete mutations are disabled until this preview is discarded or authoritative state is reloaded.
+            </MudText>
+            <div class="rule-ordering-preview-actions">
+                <MudButton Variant="Variant.Text" Disabled="@_reordering" OnClick="DiscardOrderingPreview">
+                    Discard preview
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           Disabled="@_reordering"
+                           OnClick="RefreshAsync">
+                    Reload authoritative state
+                </MudButton>
+            </div>
+        </MudAlert>
+    }
+
+    <RuleTable Rules="@DisplayedRules"
+               Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+               Disabled="@(!CanMutateFirewall)"
+               OrderingDisabled="@(!CanPreviewOrdering)"
+               InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
+               OrderingUsesMockData="@RuleOrderingApiClient.UsesMockData"
+               DeleteRequested="BeginDeleteAsync"
+               MoveRequested="MoveRuleAsync" />
 }
 
 @code {
@@ -138,10 +166,19 @@ else if (_state.Snapshot is { } snapshot)
     private RulesPageState _state = RulesPageState.Initial;
     private bool _deleteDialogOpen;
     private bool _deleting;
+    private bool _reordering;
+    private IReadOnlyList<ListedFirewallRule>? _orderingPreviewRules;
 
-    private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen;
+    private bool HasOrderingPreview => _orderingPreviewRules is not null;
 
-    private bool CanMutate => _state.IsCurrent && !_deleting && !_deleteDialogOpen;
+    private IReadOnlyList<ListedFirewallRule> DisplayedRules
+        => _orderingPreviewRules ?? _state.Snapshot?.Rules ?? [];
+
+    private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering;
+
+    private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !HasOrderingPreview;
+
+    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering;
 
     private string RefreshButtonLabel => _state.Status switch
     {
@@ -189,6 +226,7 @@ else if (_state.Snapshot is { } snapshot)
             return;
         }
 
+        _orderingPreviewRules = null;
         _state = _state.BeginRefresh(reason);
         try
         {
@@ -206,7 +244,7 @@ else if (_state.Snapshot is { } snapshot)
 
     private async Task BeginDeleteAsync(ListedFirewallRule rule)
     {
-        if (!CanMutate || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
+        if (!CanMutateFirewall || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
         {
             return;
         }
@@ -241,7 +279,7 @@ else if (_state.Snapshot is { } snapshot)
                 return;
             }
 
-            if (!CanMutate)
+            if (!CanMutateFirewall)
             {
                 Snackbar.Add("Firewall state changed while deletion was being confirmed. Refresh and try again.", Severity.Warning);
                 return;
@@ -275,6 +313,65 @@ else if (_state.Snapshot is { } snapshot)
         finally
         {
             _deleting = false;
+        }
+    }
+
+    private async Task MoveRuleAsync(RuleMoveRequest request)
+    {
+        if (!CanPreviewOrdering || string.IsNullOrWhiteSpace(request.RuleId))
+        {
+            return;
+        }
+
+        IReadOnlyList<ListedFirewallRule> currentRules = DisplayedRules;
+        if (request.TargetPosition < 1 || request.TargetPosition > currentRules.Count)
+        {
+            Snackbar.Add("The requested rule position is outside the current rule list.", Severity.Warning);
+            return;
+        }
+
+        _reordering = true;
+        try
+        {
+            await RuleOrderingApiClient.MoveAsync(request, _lifetime.Token);
+
+            if (!RuleOrderingApiClient.UsesMockData)
+            {
+                _reordering = false;
+                await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+                return;
+            }
+
+            _orderingPreviewRules = RuleOrderingProjection.Move(
+                currentRules,
+                request.RuleId,
+                request.TargetPosition);
+            Snackbar.Add(
+                $"Mock ordering preview moved the rule to position {request.TargetPosition}. UFW was not changed.",
+                Severity.Info);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Snackbar.Add(exception.Message, Severity.Warning);
+        }
+        finally
+        {
+            _reordering = false;
+        }
+    }
+
+    private void DiscardOrderingPreview()
+    {
+        if (!_reordering)
+        {
+            _orderingPreviewRules = null;
         }
     }
 

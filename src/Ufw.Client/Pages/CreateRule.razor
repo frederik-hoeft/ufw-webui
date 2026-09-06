@@ -9,7 +9,7 @@
 <PageTitle>Add firewall rule - UFW Console</PageTitle>
 
 <PageHeader Title="Add firewall rule"
-            Description="Create a signed UFW rule. The current mutation contract appends new rules to the evaluation order."
+            Description="@HeaderDescription"
             Breadcrumbs="@s_breadcrumbs"
             ShowStatus="@(_state.Snapshot is not null)">
     <Actions>
@@ -97,9 +97,29 @@ else
         </MudAlert>
     }
 
+    @if (IsOrderedInsertionRequested)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="note">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Ordered insertion prototype</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">@DescribeInsertionTarget()</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                The browser can carry insertion context from the rule table, but ordered creation is not submitted yet.
+                The REST shape, signed intent operation, stale-order precondition, and daemon/UFW insertion semantics require design approval.
+                The existing signed add endpoint continues to mean append-only.
+            </MudText>
+            <MudButton Href="/rules/create" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add">
+                Create at end instead
+            </MudButton>
+        </MudAlert>
+    }
+
     <RuleEditor @key="_draft"
                 Rule="@_draft"
-                Disabled="@(!CanSubmit)"
+                DefinitionDescription="@RuleDefinitionDescription"
+                Disabled="@(!CanEdit)"
+                SubmitDisabled="@IsOrderedInsertionRequested"
+                ShowAuthorization="@(!IsOrderedInsertionRequested)"
+                SubmitLabel="@(IsOrderedInsertionRequested ? "Ordered insertion pending" : "Add signed rule")"
                 Submitting="@_submitting"
                 @bind-PrivateKey="_privateKey"
                 OnSubmit="AddRuleAsync"
@@ -122,7 +142,26 @@ else
     private bool _mutationMayHaveCompleted;
     private bool _submitting;
 
-    private bool CanSubmit => _state.IsCurrent && !_submitting && !_mutationMayHaveCompleted;
+    private bool IsOrderedInsertionRequested
+        => !string.IsNullOrWhiteSpace(BeforeRuleId) || !string.IsNullOrWhiteSpace(AfterRuleId);
+
+    private bool CanEdit => _state.IsCurrent && !_submitting && !_mutationMayHaveCompleted;
+
+    private bool CanSubmit => CanEdit && !IsOrderedInsertionRequested;
+
+    private string HeaderDescription => IsOrderedInsertionRequested
+        ? "Prepare a rule for an explicit insertion point. Ordered mutation authorization is still a frontend prototype."
+        : "Create a signed UFW rule. The current mutation contract appends new rules to the evaluation order.";
+
+    private string RuleDefinitionDescription => IsOrderedInsertionRequested
+        ? "Define the rule to insert at the selected position. Submission remains disabled until the ordered-add contract is approved."
+        : "Define the UFW match and action. The current API appends new rules to the existing evaluation order.";
+
+    [Parameter, SupplyParameterFromQuery(Name = "before")]
+    public string? BeforeRuleId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "after")]
+    public string? AfterRuleId { get; set; }
 
     protected override async Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
 
@@ -238,6 +277,37 @@ else
             _privateKey = string.Empty;
             Navigation.NavigateTo("/rules");
         }
+    }
+
+    private string DescribeInsertionTarget()
+    {
+        if (!string.IsNullOrWhiteSpace(BeforeRuleId) && !string.IsNullOrWhiteSpace(AfterRuleId))
+        {
+            return "The URL contains both before and after targets. Ordered insertion requires exactly one target.";
+        }
+
+        string? ruleId = BeforeRuleId ?? AfterRuleId;
+        if (string.IsNullOrWhiteSpace(ruleId) || _state.Snapshot is null)
+        {
+            return "The selected insertion target is unavailable.";
+        }
+
+        ListedFirewallRule[] matches = _state.Snapshot.Rules
+            .Where(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            return matches.Length == 0
+                ? "The selected insertion target is no longer present in authoritative firewall state."
+                : "The selected insertion target is ambiguous in authoritative firewall state.";
+        }
+
+        ListedFirewallRule target = matches[0];
+        string position = target.DisplayNumber is { } displayNumber
+            ? $"rule {displayNumber}"
+            : "the selected rule";
+        string placement = !string.IsNullOrWhiteSpace(BeforeRuleId) ? "before" : "after";
+        return $"This rule is targeted for insertion {placement} {position}.";
     }
 
     private string DescribeStaleState()

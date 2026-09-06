@@ -2,9 +2,22 @@
 
 This file tracks only open project work. Remove an item when the corresponding work is completed and merged into the approved baseline.
 
-## Firewall rule ordering
+## Firewall rule ordering backend and signed mutation contract
 
-Design and implement ordered rule insertion and reordering across the browser, REST API, signed-intent protocol, daemon, and UFW subprocess boundary. The frontend must not imply drag/drop or insertion semantics until the mutation contract defines authoritative ordering, conflict behavior, stale-state handling, and signed authorization for the operation.
+The browser-side ordering UX is implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the only registered implementation. Existing parsed rules can be reordered by drag handle or an explicit one-based "Move to position..." dialog. Mock moves update only a local browser projection, are clearly labeled as non-authoritative, disable real add/delete mutations while active, and are discarded by authoritative refresh. No private key is collected because no signed ordering operation exists yet.
+
+The rule menu also carries insertion intent into the create flow through `/rules/create?before=<rule-id>` and `/rules/create?after=<rule-id>`. The create page resolves and displays that target but deliberately disables submission. The existing signed `rules.add` operation remains append-only. No real HTTP implementation or endpoint URI is encoded for `IRuleOrderingApiClient`; doing so would prematurely freeze a contract before the authorization and daemon semantics are designed.
+
+Remaining design work spans REST, signed intent, daemon execution, and UFW reconciliation:
+
+- Define a safe snapshot/order precondition. `ruleId` is a semantic identity rather than a unique row identity: externally-created duplicate rules can share one ID, while unsupported/read-only UFW rows have no mutable ID at all. Ordering needs an unambiguous target/addressing model and must conflict rather than guess when the authoritative order changed.
+- Choose the operation model: absolute one-based move, move-before/move-after an anchor, or another representation. The signed canonical payload must make the requested final placement unambiguous.
+- Define ordered creation separately from append-only `rules.add`, including whether insertion is a new intent operation or a versioned extension of add. The current browser query parameters are presentation state, not a protocol proposal.
+- Define user authorization and canonical signing fields for reorder/insert requests, including any authoritative snapshot token/revision used as a stale-order precondition. This requires explicit security-protocol approval and may require an intent protocol version change.
+- Define daemon execution and failure semantics. UFW supports positional insertion, but moving an existing rule may require a compound delete/insert sequence. The daemon must retain its serialized execution gate across the whole mutation, define rollback/recovery behavior for partial subprocess failure, and reconcile authoritative state before success.
+- Resolve address-family expansion and numbering behavior for family-neutral ordered creation, where one structural add can materialize as multiple concrete UFW rows.
+- Decide whether unsupported/read-only rows participate as movable anchors, immutable ordering barriers, or only snapshot positions. The browser currently disables direct ordering of rows it cannot address safely.
+- Define the successful mutation response and post-mutation browser reconciliation path. The final implementation should replace the mock DI registration rather than preserve the local projection as authoritative state.
 
 ## Signed UFW presentation consistency check
 
