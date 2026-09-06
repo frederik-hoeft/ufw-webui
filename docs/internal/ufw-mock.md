@@ -12,11 +12,12 @@ The compatibility target is the UFW 0.36.2 command surface documented by the sup
 
 The production path has a useful boundary already:
 
-- `Ufw.Systemd` owns privileged execution, UFW argument construction, UFW status parsing, mutation serialization, and reconciliation.
+- `Ufw.Systemd` owns privileged execution, UFW status parsing, mutation serialization, and reconciliation.
 - `Ufw.Ipc.Shared` owns the normalized firewall-rule semantics used across process boundaries and by the daemon.
+- `Ufw.Firewall.Shared` renders validated structural rules into the canonical UFW rule argv used by the daemon and the equivalent human-readable syntax used by the browser.
 - `Ufw.Web` consumes daemon behavior over IPC and has no direct UFW dependency.
 
-The mock therefore does not require a new shared library. It references `Ufw.Ipc.Shared` for the rule concepts already shared with `Ufw.Systemd`, while keeping mock-only CLI parsing, persistence, formatting, application profiles, and extended UFW protocol support in `Ufw.Mock`. No production project references the mock and no production implementation moves into it.
+The mock references `Ufw.Ipc.Shared` for the rule concepts already shared with `Ufw.Systemd`, while keeping mock-only CLI parsing, persistence, formatting, application profiles, and extended UFW protocol support in `Ufw.Mock`. It does not use `Ufw.Firewall.Shared` because its responsibility is the opposite side of the boundary: parsing and emulating arbitrary supported UFW command lines rather than constructing the production rule argv. No production project references the mock and no production implementation moves into it.
 
 ## Component model
 

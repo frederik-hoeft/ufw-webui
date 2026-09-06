@@ -11,6 +11,8 @@
     <File Path="restore.sh" />
   </Folder>
   <Project Path="Ufw.Client/Ufw.Client.csproj" />
+  <Project Path="Ufw.Firewall.Shared/Ufw.Firewall.Shared.csproj" />
+  <Project Path="Ufw.Firewall.Shared.Tests/Ufw.Firewall.Shared.Tests.csproj" />
   <Project Path="Ufw.Ipc.Client/Ufw.Ipc.Client.csproj" />
   <Project Path="Ufw.Ipc.Shared/Ufw.Ipc.Shared.csproj" />
   <Project Path="Ufw.Ipc.Tests/Ufw.Ipc.Tests.csproj" />

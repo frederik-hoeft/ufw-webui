@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Ufw.Firewall;
+using Moq;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Ufw.Ipc.Shared.Model;
@@ -606,7 +607,7 @@ public sealed class FirewallMutationServiceTests
                 _clock,
                 MessageJsonSerializerContext.Default);
             UfwRunner runner = new(_configuration, ProcessRunner.Object);
-            return new FirewallMutationService(runner, verifier, _nonces, _gate, new ConsoleLogger());
+            return new FirewallMutationService(runner, new UfwRuleCommandRenderer(), verifier, _nonces, _gate, new ConsoleLogger());
         }
 
         public ValueTask DisposeAsync()

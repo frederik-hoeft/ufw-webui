@@ -143,6 +143,9 @@
                 </div>
             </MudItem>
             <MudItem xs="12">
+                <UfwRuleCommandPreview Rule="@Rule" Label="Canonical UFW rule" />
+            </MudItem>
+            <MudItem xs="12">
                 <MutationAuthorizationField Value="@PrivateKey"
                                             ValueChanged="PrivateKeyChangedAsync"
                                             Disabled="@(Disabled || Submitting)" />

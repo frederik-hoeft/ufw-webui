@@ -6,11 +6,9 @@ This file tracks only open project work. Remove an item when the corresponding w
 
 Design and implement ordered rule insertion and reordering across the browser, REST API, signed-intent protocol, daemon, and UFW subprocess boundary. The frontend must not imply drag/drop or insertion semantics until the mutation contract defines authoritative ordering, conflict behavior, stale-state handling, and signed authorization for the operation.
 
-## Canonical UFW command presentation
+## Signed UFW presentation consistency check
 
-Extract the daemon's safe structural-to-UFW command rendering into a reusable DI service/shared library and use the same renderer for human-readable mutation confirmations in the client. Confirmation UI should show the actual canonical UFW syntax, for example `route allow from ... to ...`, instead of maintaining a separate `ToString()`-style rule description.
-
-The structural rule representation remains authoritative and subprocess execution must continue to use validated argv elements without shell interpolation. Separately evaluate whether a future signed-intent revision should also include the canonical command text shown to the user so the daemon can sanity-check that its rendered command matches the user-visible representation. Treat that comparison as defense in depth, not as the command-injection boundary. Changes to the signed-intent payload are intentionally outside the frontend redesign.
+Evaluate whether a future signed-intent protocol revision should include the canonical UFW rule text shown to the user and require the daemon to compare that signed presentation with the text rendered from the authoritative structural rule. Treat this only as a defense-in-depth consistency assertion; validated structural fields and direct argv execution remain the command-injection boundary. Any signed-intent payload/version change requires separate security design and approval.
 
 ## Replace static helpers with DI services
 

@@ -1,4 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Firewall;
+using Ufw.Ipc.Shared.Model;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 using Ufw.Ipc.Shared.Model.Requests.Domain;
 using Ufw.Ipc.Shared.Model.Responses;
@@ -15,6 +16,7 @@ namespace Ufw.Systemd.Firewall;
 internal sealed class FirewallMutationService
 (
     IUfwRunner ufwRunner,
+    IUfwRuleCommandRenderer ufwRuleCommandRenderer,
     IIntentVerifier intentVerifier,
     INonceStore nonceStore,
     IUfwExecutionGate executionGate,
@@ -83,7 +85,7 @@ internal sealed class FirewallMutationService
         }
 
         (IResponsePayload? executionError, UfwProcessResult? addResult) = await ExecuteProcessAsync(
-            new UfwAddRuleCommand(accepted.Rule),
+            new UfwAddRuleCommand(accepted.Rule, ufwRuleCommandRenderer),
             "Failed to start the UFW add-rule operation.",
             cancellationToken);
         if (executionError is not null)

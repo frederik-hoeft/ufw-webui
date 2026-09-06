@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using Ufw.Firewall;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
 using Ufw.Client.Configuration;
@@ -25,6 +26,7 @@ public static class Program
         builder.Services.AddMudServices();
         builder.Services.AddAuthorizationCore();
         builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
 
         builder.Services.AddScoped<AuthenticationSession>();
         builder.Services.AddScoped<IAuthenticationSession>(static services => services.GetRequiredService<AuthenticationSession>());

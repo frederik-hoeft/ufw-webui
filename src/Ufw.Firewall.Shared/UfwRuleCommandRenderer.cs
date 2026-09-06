@@ -1,51 +1,38 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Ufw.Ipc.Shared.Model.Domain.Rules;
 
-namespace Ufw.Systemd.Firewall;
+namespace Ufw.Firewall;
 
-/// <summary>
-/// Builds argv arrays for UFW. Values are only emitted after validation so they
-/// cannot be interpreted as additional options or a shell command.
-/// </summary>
-internal static class UfwRuleArgumentBuilder
+public sealed class UfwRuleCommandRenderer : IUfwRuleCommandRenderer
 {
-    public static ImmutableArray<string> BuildAdd(FirewallRuleSpecification specification)
+    public UfwRenderedRule Render(FirewallRuleSpecification specification)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+        if (!TryRender(specification, out UfwRenderedRule? renderedRule))
+        {
+            throw new InvalidOperationException("Refusing to render UFW syntax from an invalid rule specification.");
+        }
+
+        return renderedRule!;
+    }
+
+    public bool TryRender(FirewallRuleSpecification specification, [NotNullWhen(true)] out UfwRenderedRule? renderedRule)
     {
         ArgumentNullException.ThrowIfNull(specification);
         if (!RuleSpecificationValidator.TryValidate(specification, out _))
         {
-            throw new InvalidOperationException("Refusing to build UFW arguments from an invalid rule specification.");
+            renderedRule = null;
+            return false;
         }
 
-        List<string> arguments = ["--force"];
+        List<string> arguments = [];
         AppendRuleTokens(arguments, RuleSpecificationNormalizer.Normalize(specification));
-        return [.. arguments];
+        ImmutableArray<string> renderedArguments = [.. arguments];
+        renderedRule = new UfwRenderedRule(renderedArguments, FormatDisplayText(renderedArguments));
+        return true;
     }
-
-    public static ImmutableArray<string> BuildDeleteByNumber(int displayNumber)
-    {
-        if (displayNumber <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(displayNumber), displayNumber, "UFW rule numbers are 1-based.");
-        }
-
-        return ["--force", "delete", displayNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)];
-    }
-
-    public static ImmutableArray<string> BuildDeleteBySpecification(FirewallRuleSpecification specification)
-    {
-        ArgumentNullException.ThrowIfNull(specification);
-        if (!RuleSpecificationValidator.TryValidate(specification, out _))
-        {
-            throw new InvalidOperationException("Refusing to build UFW arguments from an invalid rule specification.");
-        }
-
-        List<string> arguments = ["--force", "delete"];
-        AppendRuleTokens(arguments, RuleSpecificationNormalizer.Normalize(specification));
-        return [.. arguments];
-    }
-
-    public static ImmutableArray<string> BuildList() => ["status", "numbered"];
 
     private static void AppendRuleTokens(List<string> arguments, FirewallRuleSpecification specification)
     {
@@ -135,5 +122,42 @@ internal static class UfwRuleArgumentBuilder
             FirewallAddressFamily.IPv6 => "::/0",
             _ => RuleSpecificationNormalizer.ANY,
         };
+    }
+
+    private static string FormatDisplayText(ImmutableArray<string> arguments)
+    {
+        StringBuilder builder = new();
+        for (int index = 0; index < arguments.Length; index++)
+        {
+            if (index > 0)
+            {
+                builder.Append(' ');
+            }
+
+            AppendDisplayArgument(builder, arguments[index]);
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendDisplayArgument(StringBuilder builder, string argument)
+    {
+        if (!argument.Any(static character => char.IsWhiteSpace(character) || character is '"' or '\\'))
+        {
+            builder.Append(argument);
+            return;
+        }
+
+        builder.Append('"');
+        foreach (char character in argument)
+        {
+            if (character is '"' or '\\')
+            {
+                builder.Append('\\');
+            }
+
+            builder.Append(character);
+        }
+        builder.Append('"');
     }
 }

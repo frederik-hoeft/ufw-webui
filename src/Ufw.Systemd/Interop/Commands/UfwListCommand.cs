@@ -1,12 +1,11 @@
 ﻿using System.Collections.Immutable;
-using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.Output;
 
 namespace Ufw.Systemd.Interop.Commands;
 
 internal sealed class UfwListCommand : IUfwCommand<UfwStatusSnapshot>
 {
-    private static readonly ImmutableArray<string> s_arguments = UfwRuleArgumentBuilder.BuildList();
+    private static readonly ImmutableArray<string> s_arguments = ["status", "numbered"];
     private string? _output;
 
     public ImmutableArray<string> BuildArguments() => s_arguments;
