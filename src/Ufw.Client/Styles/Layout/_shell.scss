@@ -1,0 +1,137 @@
+.mud-appbar {
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.app-shell-bar {
+    box-shadow: none;
+
+    .mud-toolbar {
+        gap: 0.75rem;
+        padding-inline: 1.75rem 1.25rem;
+    }
+
+    .mud-button-root {
+        min-height: 2rem;
+        padding: 0.25rem 0.75rem;
+    }
+}
+
+.appbar-menu-button {
+    margin-left: -0.5rem;
+}
+
+.appbar-context {
+    max-width: min(28rem, 45vw);
+    overflow: hidden;
+    color: var(--mud-palette-text-secondary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.appbar-signout-icon {
+    display: none;
+}
+
+.mud-drawer.app-shell-drawer {
+    border-right: 1px solid var(--ufw-nav-selected) !important;
+    background: var(--ufw-nav-background);
+}
+
+.app-navigation {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    color: var(--ufw-nav-text);
+}
+
+.app-navigation-brand {
+    display: flex;
+    min-height: var(--mud-appbar-height);
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1.125rem;
+    border-bottom: 1px solid transparent;
+    color: var(--ufw-nav-text);
+}
+
+.app-brand-mark {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    place-items: center;
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-contrasttext);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.app-brand-name {
+    overflow: hidden;
+    color: var(--ufw-nav-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-navigation-menu {
+    padding-top: 1.25rem;
+}
+
+.app-navigation-section-label {
+    margin: 0 1.25rem 0.5rem;
+    color: var(--ufw-nav-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.mud-drawer .mud-nav-link {
+    min-height: 2.25rem;
+    margin: 0.125rem 1rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--mud-default-borderradius);
+    color: var(--ufw-nav-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+
+    .mud-nav-link-icon {
+        min-width: 1rem;
+        margin-inline-end: 0.5rem;
+        color: inherit;
+        font-size: 0.5rem;
+    }
+
+    &:hover {
+        background: var(--ufw-nav-surface);
+        color: var(--ufw-nav-text);
+    }
+
+    &.active {
+        background: var(--ufw-nav-selected);
+        color: var(--ufw-nav-text);
+        font-weight: 600;
+
+        .mud-nav-link-icon {
+            color: var(--ufw-nav-accent);
+        }
+    }
+}
+
+.app-main-content,
+.app-main {
+    min-width: 0;
+}
+
+.app-main-content {
+    background: var(--mud-palette-background);
+}
+
+.main-container {
+    width: 100%;
+    max-width: 100rem;
+    min-width: 0;
+    margin-inline: auto;
+    padding: 2rem 2.25rem 3rem !important;
+}

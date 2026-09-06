@@ -1,0 +1,37 @@
+@use "../foundation" as *;
+
+.startup-progress,
+.startup-status,
+.login-shell,
+.unexpected-error-shell {
+    @include full-viewport-height;
+}
+
+.startup-progress,
+.startup-status,
+.login-shell {
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+}
+
+.unexpected-error-shell {
+    display: flex;
+    align-items: center;
+}
+
+.startup-card {
+    width: min(34rem, 100%);
+}
+
+.login-card {
+    width: min(28rem, 100%);
+}
+
+.standalone-theme-toggle,
+.login-theme-toggle {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1200;
+}

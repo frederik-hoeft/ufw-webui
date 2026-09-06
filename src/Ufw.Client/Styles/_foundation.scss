@@ -1,0 +1,118 @@
+$mobile-breakpoint: 600px;
+$desktop-navigation-breakpoint: 960px;
+$compact-appbar-breakpoint: 480px;
+
+$ufw-nav-background: #0e141b;
+$ufw-nav-surface: #18202a;
+$ufw-nav-selected: #27313d;
+$ufw-nav-text: #f1f4f7;
+$ufw-nav-muted: #8a96a6;
+$ufw-nav-accent: #6ea8fe;
+$ufw-font-mono: "IBM Plex Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+
+:root {
+    --ufw-nav-background: #{$ufw-nav-background};
+    --ufw-nav-surface: #{$ufw-nav-surface};
+    --ufw-nav-selected: #{$ufw-nav-selected};
+    --ufw-nav-text: #{$ufw-nav-text};
+    --ufw-nav-muted: #{$ufw-nav-muted};
+    --ufw-nav-accent: #{$ufw-nav-accent};
+    --ufw-font-mono: #{$ufw-font-mono};
+}
+
+@mixin full-viewport-height {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+html,
+body,
+#app {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--mud-palette-background);
+}
+
+.mud-button-root {
+    min-height: 2.5rem;
+    border-radius: var(--mud-default-borderradius);
+}
+
+.mud-button-outlined.mud-button-outlined-default {
+    border-color: var(--mud-palette-lines-default);
+}
+
+.mud-chip {
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.mud-alert {
+    border-radius: var(--mud-default-borderradius);
+}
+
+.mud-main-content .mud-paper,
+.login-shell > .mud-paper,
+.unexpected-error-shell .mud-paper,
+.startup-status .mud-paper {
+    border: 1px solid var(--mud-palette-lines-default);
+    box-shadow: none;
+}
+
+.mud-popover,
+.mud-dialog {
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+.skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2001;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-surface);
+    box-shadow: var(--mud-elevation-6);
+    color: var(--mud-palette-text-primary);
+    text-decoration: none;
+    transform: translateY(calc(-100% - 1rem));
+
+    &:focus {
+        transform: translateY(0);
+    }
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+#blazor-error-ui {
+    box-sizing: border-box;
+    background: #fff3cd;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.75rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 2000;
+
+    .dismiss {
+        position: absolute;
+        right: 1rem;
+        top: 0.5rem;
+    }
+}
