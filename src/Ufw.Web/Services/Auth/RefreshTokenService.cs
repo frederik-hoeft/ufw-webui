@@ -54,25 +54,15 @@ internal sealed class RefreshTokenService(
             return null;
         }
 
-        if (!string.Equals(current.SecurityStamp, current.User.SecurityStamp, StringComparison.Ordinal))
+        if (!string.Equals(current.SecurityStamp, current.User.SecurityStamp, StringComparison.Ordinal)
+            || current.RevokedAt is not null
+            || current.ExpiresAt <= now)
         {
-            await RevokeActiveFamilyTokensAsync(current.FamilyId, now, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-            return null;
-        }
-
-        if (current.RevokedAt is not null)
-        {
-            await RevokeActiveFamilyTokensAsync(current.FamilyId, now, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-            return null;
-        }
-
-        if (current.ExpiresAt <= now)
-        {
-            current.RevokedAt = now;
-            current.ConcurrencyToken = Guid.NewGuid().ToString("N");
-            await context.SaveChangesAsync(cancellationToken);
+            // Invalidating the whole active family is deliberate. It keeps replay, expiry,
+            // and changed-identity state conservative and makes this path robust when a
+            // sibling request is rotating the same family concurrently.
+            context.ChangeTracker.Clear();
+            await RevokeActiveFamilyTokensBulkAsync(current.FamilyId, now, cancellationToken);
             return null;
         }
 
@@ -117,14 +107,14 @@ internal sealed class RefreshTokenService(
 
         string tokenHash = HashToken(token);
         RefreshToken? current = await context.Set<RefreshToken>()
+            .AsNoTracking()
             .SingleOrDefaultAsync(refreshToken => refreshToken.TokenHash == tokenHash, cancellationToken);
         if (current is null)
         {
             return;
         }
 
-        await RevokeActiveFamilyTokensAsync(current.FamilyId, timeProvider.GetUtcNow(), cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
+        await RevokeActiveFamilyTokensBulkAsync(current.FamilyId, timeProvider.GetUtcNow(), cancellationToken);
     }
 
     private async Task RevokeActiveFamilyTokensBulkAsync(Guid familyId, DateTimeOffset revokedAt, CancellationToken cancellationToken)
@@ -135,19 +125,6 @@ internal sealed class RefreshTokenService(
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(token => token.RevokedAt, (DateTimeOffset?)revokedAt)
                 .SetProperty(token => token.ConcurrencyToken, concurrencyToken), cancellationToken);
-    }
-
-    private async Task RevokeActiveFamilyTokensAsync(Guid familyId, DateTimeOffset revokedAt, CancellationToken cancellationToken)
-    {
-        List<RefreshToken> activeTokens = await context.Set<RefreshToken>()
-            .Where(token => token.FamilyId == familyId && token.RevokedAt == null)
-            .ToListAsync(cancellationToken);
-
-        foreach (RefreshToken activeToken in activeTokens)
-        {
-            activeToken.RevokedAt = revokedAt;
-            activeToken.ConcurrencyToken = Guid.NewGuid().ToString("N");
-        }
     }
 
     private static string GenerateToken() => Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
