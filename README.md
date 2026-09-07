@@ -5,7 +5,7 @@ UFW WebUI separates network-facing firewall-management concerns from privileged 
 The solution contains:
 
 - `Ufw.Client`: Blazor WebAssembly frontend using MudBlazor, with in-memory access-token state and browser-side signed-intent creation;
-- `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/SQLite, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
+- `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/PostgreSQL, request-scoped transactions, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
 - `Ufw.Systemd`: privileged host daemon responsible for authoritative UFW state, signed mutation authorization, semantic rule handling, and UFW subprocess execution;
 - `Ufw.Shared`: shared firewall semantics and rendering, signed-intent/security primitives, cross-cutting utilities, and the `Ufw.Shared.Ipc` protocol/serialization/transport contract;
 - `Ufw.Ipc.Client`: the local IPC client built on `Ufw.Shared.Ipc`;
@@ -44,7 +44,13 @@ The committed default is development-oriented and includes the local HTTPS clien
 
 For deployments or manual setup, `Ufw.Web` requires a P-256 ECDSA private key in PKCS#8 PEM format for JWT signing. Set `Auth:Jwt:SigningKeyPath` in the local config or through the standard ASP.NET Core environment-variable mapping, for example `Auth__Jwt__SigningKeyPath=/run/secrets/ufw-web-jwt.pem`.
 
-The default web database is SQLite and EF Core migrations are applied at startup. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory. `Ufw.Client/wwwroot/appsettings.json` configures the REST API base URL. The client requires an absolute HTTPS base URL and normalizes a missing trailing slash before constructing versioned API paths. Development CORS is configured for the HTTPS client profile at `https://localhost:7298`.
+`Ufw.Web` uses PostgreSQL and applies EF Core migrations at startup. The committed `docker-compose.yml` starts the development PostgreSQL instance expected by `appsettings.default.json`:
+
+```bash
+docker compose up -d postgres
+```
+
+The compose credentials are development-only. Production deployments should override `ConnectionStrings:DefaultConnection` through their runtime configuration. `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint; their default Linux paths use the conventional `/run`/`/var/run` runtime directory. `Ufw.Client/wwwroot/appsettings.json` configures the REST API base URL. The client requires an absolute HTTPS base URL and normalizes a missing trailing slash before constructing versioned API paths. Development CORS is configured for the HTTPS client profile at `https://localhost:7298`.
 
 Console formatting is configuration-driven as well. The committed default uses the normal human-readable `simple` formatter; container deployments can switch to structured JSON without a code change, for example with `Logging__Console__FormatterName=json`.
 

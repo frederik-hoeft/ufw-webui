@@ -23,7 +23,7 @@ public sealed class RefreshTokenServiceTests
         DbContextOptions<ApplicationDbContext> databaseOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(connection)
             .Options;
-        await using ApplicationDbContext context = new(databaseOptions);
+        await using ApplicationDbContext context = new(databaseOptions, new ApplicationModelLoader());
         await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
 
         IdentityUser user = new()
@@ -42,7 +42,7 @@ public sealed class RefreshTokenServiceTests
         RefreshTokenService service = new(context, Options.Create(refreshTokenOptions), TimeProvider.System);
 
         RefreshTokenIssueResult issued = await service.IssueAsync(user, TestContext.CancellationToken);
-        RefreshToken persistedToken = await context.RefreshTokens.SingleAsync(TestContext.CancellationToken);
+        RefreshToken persistedToken = await context.Set<RefreshToken>().SingleAsync(TestContext.CancellationToken);
         Assert.AreNotEqual(issued.Token, persistedToken.TokenHash);
         Assert.AreEqual(64, persistedToken.TokenHash.Length);
 
@@ -54,7 +54,7 @@ public sealed class RefreshTokenServiceTests
         Assert.IsNull(replay);
 
         context.ChangeTracker.Clear();
-        int activeFamilyTokenCount = await context.RefreshTokens
+        int activeFamilyTokenCount = await context.Set<RefreshToken>()
             .CountAsync(token => token.FamilyId == persistedToken.FamilyId && token.RevokedAt == null, TestContext.CancellationToken);
         Assert.AreEqual(0, activeFamilyTokenCount);
     }

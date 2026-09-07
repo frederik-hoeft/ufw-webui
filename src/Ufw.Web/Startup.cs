@@ -3,6 +3,7 @@ using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ufw.Ipc.Client.Configuration;
@@ -10,19 +11,32 @@ using Ufw.Web.Configuration;
 using Ufw.Web.Configuration.Swagger;
 using Ufw.Web.Data;
 using Ufw.Web.Services.Auth;
+using Ufw.Web.Services.ErrorHandling;
+using Wkg.AspNetCore.Configuration;
+using Wkg.AspNetCore.ErrorHandling;
+using Wkg.AspNetCore.Transactions;
+using Wkg.AspNetCore.Transactions.Configuration;
+using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web;
 
-internal static class Startup
+internal sealed class Startup : IAsyncStartupScript
 {
     internal const string BLAZOR_CORS_POLICY = "BlazorClient";
 
-    public static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    public static ValueTask ConfigureServicesAsync(
+        IServiceCollection services,
+        IConfiguration configuration,
+        CancellationToken cancellationToken = default)
     {
+        _ = cancellationToken;
         string connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-        // TODO: SQLite for dev/testing, migrate to PostgreSQL for prod
-        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
+        services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+        services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddSingleton<IErrorSentry, ApplicationErrorSentry>();
+        services.AddTransactionManagement<ApplicationDbContext>(options =>
+            options.UseIsolationLevel(IsolationLevel.ReadCommitted));
         services.AddDatabaseDeveloperPageExceptionFilter();
 
         services.Configure<IdentityOptions>(configuration.GetSection("Auth:Identity"));
@@ -148,9 +162,13 @@ internal static class Startup
                 client.UseClientCertificate(ipcOptions.ClientCertificatePath, ipcOptions.ClientCertificateKeyPath);
             }
         });
+
+        return ValueTask.CompletedTask;
     }
 
-    public static async Task ConfigureAsync(WebApplication app)
+    public static async ValueTask ConfigureAsync(
+        WebApplication app,
+        CancellationToken cancellationToken = default)
     {
         _ = app.Services.GetRequiredService<IJwtSigningKeyProvider>();
 
@@ -183,10 +201,16 @@ internal static class Startup
         app.MapHealthChecks("/health");
 
         await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
-        await using ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await context.Database.MigrateAsync();
+        ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync(cancellationToken);
 
         AuthenticationBootstrapService bootstrapService = scope.ServiceProvider.GetRequiredService<AuthenticationBootstrapService>();
-        await bootstrapService.ApplyAsync();
+        ITransactionService<ApplicationDbContext> transactionService =
+            scope.ServiceProvider.GetRequiredService<ITransactionService<ApplicationDbContext>>();
+        await transactionService.Scoped.RunAsync(async (_, transaction, ct) =>
+        {
+            await bootstrapService.ApplyAsync(ct);
+            return transaction.Commit();
+        }, cancellationToken);
     }
 }

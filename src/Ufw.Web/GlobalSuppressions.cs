@@ -8,4 +8,4 @@ using System.Diagnostics.CodeAnalysis;
     "IDE0161:Convert to file-scoped namespace",
     Justification = "Auto-generated EF Core migration files",
     Scope = "namespaceanddescendants",
-    Target = "~N:UfwWebUI.Data.Migrations")]
+    Target = "~N:Ufw.Web.Data.Migrations")]

@@ -1,11 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
-using Ufw.Web;
+﻿using Ufw.Web;
+using Wkg.AspNetCore.Configuration;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
-// Ufw.Web intentionally has one local JSON configuration file. The committed
-// appsettings.default.json is a template; environment variables and command-line
-// arguments override the gitignored appsettings.json for deployed/containerized use.
 builder.Configuration.Sources.Clear();
 builder.Configuration
     .SetBasePath(builder.Environment.ContentRootPath)
@@ -13,8 +9,5 @@ builder.Configuration
     .AddEnvironmentVariables()
     .AddCommandLine(args);
 
-Startup.ConfigureServices(builder.Services, builder.Configuration);
-
-WebApplication app = builder.Build();
-await Startup.ConfigureAsync(app);
+WebApplication app = await builder.BuildUsingAsync<Startup>();
 await app.RunAsync();

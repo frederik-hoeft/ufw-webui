@@ -38,7 +38,7 @@ Culture-sensitive presentation uses the active UI culture for human-readable dat
 
 `Ufw.Web` is an ASP.NET Core controller application. Its responsibilities include:
 
-- ASP.NET Core Identity backed by EF Core and SQLite;
+- ASP.NET Core Identity backed by EF Core and PostgreSQL;
 - JWT bearer authentication for API requests;
 - opaque refresh-token issuance, rotation, and revocation;
 - API versioning, controller discovery, CORS, and development Swagger support;
@@ -46,6 +46,10 @@ Culture-sensitive presentation uses the active UI culture for human-readable dat
 - local IPC client registration and daemon-response projection.
 
 `Ufw.Web` treats `src/Ufw.Web/appsettings.json` as its only local JSON configuration source. The committed `appsettings.default.json` is a template rather than an additional runtime layer; environment variables and command-line arguments override the local file for containerized and other externalized deployments. Environment-specific appsettings files and ASP.NET Core user secrets are intentionally outside this configuration model.
+
+Persistent web state is stored in PostgreSQL. `ApplicationDbContext` keeps ASP.NET Core Identity's built-in model and loads application-owned entity mappings through the source-generated `Wkg.EntityFrameworkCore` model loader. Application entities keep their mapping beside the entity as discoverable model configuration rather than accumulating mapping logic in the context. EF migrations remain the schema source of truth and are applied before authentication bootstrap runs.
+
+Database-backed request work uses `Wkg.AspNetCore` request-scoped transactions. The authentication controller opens the transaction before Identity or refresh-token services touch the shared scoped `ApplicationDbContext`, and returns explicit commit/rollback continuations. Expected writes are committed even when the HTTP result is an authentication failure, for example failed-login lockout counters and refresh-family invalidation. Unexpected exceptions flow through the WKG error sentry and force rollback. The default isolation level is `ReadCommitted`; refresh-token replay safety is enforced with the token row's optimistic concurrency token, and a losing rotation can then observe the winning commit and revoke the newly active family token in the same request transaction.
 
 Refresh tokens are random opaque values delivered in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. Only SHA-256 token hashes are persisted. Refresh tokens rotate on use, belong to a token family, and family reuse invalidates remaining active tokens. A stored Identity security stamp ties a refresh-token family to the user's current security state.
 
