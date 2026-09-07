@@ -1,13 +1,14 @@
-﻿using Moq;
+﻿using Ufw.Shared.Firewall.Rendering;
+using Moq;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
-using Ufw.Ipc.Shared.Security.Intent;
-using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Security.Intent;
+using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.IO;
@@ -606,7 +607,7 @@ public sealed class FirewallMutationServiceTests
                 _clock,
                 MessageJsonSerializerContext.Default);
             UfwRunner runner = new(_configuration, ProcessRunner.Object);
-            return new FirewallMutationService(runner, verifier, _nonces, _gate, new ConsoleLogger());
+            return new FirewallMutationService(runner, new UfwRuleCommandRenderer(), verifier, _nonces, _gate, new ConsoleLogger());
         }
 
         public ValueTask DisposeAsync()

@@ -1,0 +1,68 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @RulesText["MoveDescription"]
+        </MudText>
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            @RulesText["MoveMockNotice"]
+        </MudAlert>
+
+        <MudNumericField T="int"
+                         Label="@(RulesText["TargetPosition"])"
+                         @bind-Value="_targetPosition"
+                         Min="1"
+                         Max="@RuleCount"
+                         Immediate="true"
+                         Variant="Variant.Outlined"
+                         HelperText="@(RulesText["TargetPositionHelp"])" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.DragIndicator"
+                   Disabled="@(!CanConfirm)"
+                   OnClick="Confirm">
+            @RulesText["PreviewMove"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private int _targetPosition;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public int CurrentPosition { get; set; }
+
+    [Parameter]
+    public int RuleCount { get; set; }
+
+    private bool CanConfirm => _targetPosition >= 1
+        && _targetPosition <= RuleCount
+        && _targetPosition != CurrentPosition;
+
+    protected override void OnParametersSet()
+    {
+        if (_targetPosition == 0)
+        {
+            _targetPosition = CurrentPosition;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm()
+    {
+        if (CanConfirm)
+        {
+            MudDialog.Close(DialogResult.Ok(_targetPosition));
+        }
+    }
+}

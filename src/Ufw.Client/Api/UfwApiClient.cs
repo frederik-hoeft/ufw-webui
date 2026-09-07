@@ -1,9 +1,9 @@
 using System.Net.Http.Json;
 using Ufw.Client.Intent;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
-using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Serialization.Json;
 
 namespace Ufw.Client.Api;
 
@@ -23,7 +23,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
         string privateKey,
         CancellationToken cancellationToken = default)
     {
-        IntentContextResponse context = await GetIntentContextAsync(cancellationToken);
+        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
         AddRuleRequest request = await intentSigningService.CreateAddRuleRequestAsync(
             context.DeploymentId,
             rule,
@@ -48,7 +48,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
             throw new InvalidOperationException("Only parsed rules with a stable rule ID can be deleted.");
         }
 
-        IntentContextResponse context = await GetIntentContextAsync(cancellationToken);
+        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
         DeleteRuleRequest request = await intentSigningService.CreateDeleteRuleRequestAsync(
             context.DeploymentId,
             rule.RuleId,
@@ -63,17 +63,22 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleMutationResponse, cancellationToken);
     }
 
-    private async Task<IntentContextResponse> GetIntentContextAsync(CancellationToken cancellationToken)
+    public async Task<IntentContextResponse> GetIntentContextAsync(CancellationToken cancellationToken = default)
     {
         using HttpResponseMessage response = await httpClient.GetAsync(s_intentContextUri, cancellationToken);
-        IntentContextResponse context = await response.ReadRequiredAsync(
+        return await response.ReadRequiredAsync(
             MessageJsonSerializerContext.Default.IntentContextResponse,
             cancellationToken);
-        if (context.ProtocolVersion != Ufw.Ipc.Shared.Security.Intent.IntentProtocol.VERSION)
+    }
+
+    private async Task<IntentContextResponse> GetCompatibleIntentContextAsync(CancellationToken cancellationToken)
+    {
+        IntentContextResponse context = await GetIntentContextAsync(cancellationToken);
+        if (context.ProtocolVersion != Ufw.Shared.Security.Intent.IntentProtocol.VERSION)
         {
             throw new ApiProtocolException(
                 $"Intent protocol mismatch. Client supports version "
-                + $"{Ufw.Ipc.Shared.Security.Intent.IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
+                + $"{Ufw.Shared.Security.Intent.IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
         }
 
         return context;

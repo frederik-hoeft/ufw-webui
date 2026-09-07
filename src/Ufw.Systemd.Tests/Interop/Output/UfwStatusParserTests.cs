@@ -48,7 +48,7 @@ public sealed class UfwStatusParserTests
         Assert.HasCount(1, snapshot.Rules);
         Assert.AreEqual(1, snapshot.Rules[0].DisplayNumber);
         Assert.IsNotNull(snapshot.Rules[0].Parsed);
-        Assert.AreEqual(Ufw.Ipc.Shared.Model.Domain.Rules.FirewallAddressFamily.IPv6, snapshot.Rules[0].Parsed!.AddressFamily);
+        Assert.AreEqual(Ufw.Shared.Firewall.FirewallAddressFamily.IPv6, snapshot.Rules[0].Parsed!.AddressFamily);
     }
 
     [TestMethod]

@@ -1,0 +1,78 @@
+# Open tasks
+
+This file tracks only open project work. Remove an item when the corresponding work is completed and merged into the approved baseline.
+
+## Firewall rule ordering backend and signed mutation contract
+
+The browser-side ordering UX is implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the only registered implementation. Existing parsed rules can be reordered by drag handle or an explicit one-based "Move to position..." dialog. Moves are staged entirely in a browser-local projection; the table distinguishes directly moved rules from rules whose displayed position shifted indirectly. The mock boundary is invoked only when the user explicitly confirms the preview with **Apply reordering**. Because the mock cannot change UFW, a successful mock application reloads authoritative state and the preview disappears. Real add/delete mutations remain disabled while a preview is active. No private key is collected because no signed ordering operation exists yet.
+
+The rule menu also carries insertion intent into the create flow through `/rules/create?before=<rule-id>` and `/rules/create?after=<rule-id>`. The create page resolves and displays that target but deliberately disables submission. The existing signed `rules.add` operation remains append-only. No real HTTP implementation or endpoint URI is encoded for `IRuleOrderingApiClient`; doing so would prematurely freeze a contract before the authorization and daemon semantics are designed.
+
+Remaining design work spans REST, signed intent, daemon execution, and UFW reconciliation:
+
+- Define a safe snapshot/order precondition. `ruleId` is a semantic identity rather than a unique row identity: externally-created duplicate rules can share one ID, while unsupported/read-only UFW rows have no mutable ID at all. Ordering needs an unambiguous target/addressing model and must conflict rather than guess when the authoritative order changed.
+- Choose the operation model: absolute one-based move, move-before/move-after an anchor, or another representation. The signed canonical payload must make the requested final placement unambiguous.
+- Define ordered creation separately from append-only `rules.add`, including whether insertion is a new intent operation or a versioned extension of add. The current browser query parameters are presentation state, not a protocol proposal.
+- Define user authorization and canonical signing fields for reorder/insert requests, including any authoritative snapshot token/revision used as a stale-order precondition. This requires explicit security-protocol approval and may require an intent protocol version change.
+- Define daemon execution and failure semantics. UFW supports positional insertion, but moving an existing rule may require a compound delete/insert sequence. The daemon must retain its serialized execution gate across the whole mutation, define rollback/recovery behavior for partial subprocess failure, and reconcile authoritative state before success.
+- Resolve address-family expansion and numbering behavior for family-neutral ordered creation, where one structural add can materialize as multiple concrete UFW rows.
+- Decide whether unsupported/read-only rows participate as movable anchors, immutable ordering barriers, or only snapshot positions. The browser currently disables direct ordering of rows it cannot address safely.
+- Define the successful mutation response and post-mutation browser reconciliation path. The final implementation should replace the mock DI registration rather than preserve the local projection as authoritative state.
+
+## Reliable mutation reconciliation from UFW output
+
+The daemon currently reconciles successful add/delete operations by reparsing `ufw status numbered` and matching the resulting structural rule identity. The development mock exposes a lossy round-trip for at least one valid rule shape: `route reject from 0.0.0.0/0 to 10.100.200.2 proto udp` is rendered by `Ufw.Mock status numbered` as `10.100.200.2 REJECT FWD Anywhere`, with no protocol marker because neither endpoint has a port. The parser therefore reconstructs the observed rule with protocol `Any`, so the post-add semantic identity does not match the signed UDP specification even though the mock successfully created the rule. The current safe response is an uncertain-mutation error and an authoritative refresh requirement rather than falsely reporting success.
+
+First verify the corresponding output against real UFW. If real `ufw status numbered` retains enough information, this is a mock-fidelity bug and the mock should be corrected to match UFW. If the real status representation is also lossy, design a reconciliation source/model that preserves all semantics required by `RuleIdentity` without weakening identity comparison globally. In particular, do not simply ignore protocol during matching: TCP/UDP distinctions are security-relevant and may be observable in other rule shapes. Candidate approaches include using a richer UFW representation such as the added/user-rules form, correlating the pre/post snapshot delta with a canonical command representation under strict ambiguity checks, or introducing daemon-owned metadata only if that can coexist safely with externally managed UFW rules. The solution must continue to handle externally-created rules, duplicate semantic rules, address-family expansion, cancellation, and ambiguous post-mutation state conservatively.
+
+Add regression coverage for protocol-only rules without ports and any other rule fields that the selected authoritative representation cannot round-trip before changing the mutation success criteria. This requires explicit daemon/backend design approval unless verification shows the issue is isolated to `Ufw.Mock` fidelity.
+
+## Signed UFW presentation consistency check
+
+Evaluate whether a future signed-intent protocol revision should include the canonical UFW rule text shown to the user and require the daemon to compare that signed presentation with the text rendered from the authoritative structural rule. Treat this only as a defense-in-depth consistency assertion; validated structural fields and direct argv execution remain the command-injection boundary. Any signed-intent payload/version change requires separate security design and approval.
+
+## Replace static helpers with DI services
+
+Review reusable static helper classes, especially in shared libraries, and convert stateful, policy-bearing, or extensible behavior to injected services where doing so improves testability and substitution. Keep genuinely pure constants/trivial value helpers static where DI would add ceremony without a useful seam.
+
+## Network interface inventory backend
+
+Replace the frontend mock interface inventory with an authoritative daemon-backed read path and ASP cache.
+
+Target contract currently modeled by the client:
+
+- `GET /api/v1/network-interfaces` returns the ASP-cached inventory.
+- `POST /api/v1/network-interfaces/reconcile` forces ASP to refresh the inventory from the daemon and returns the refreshed snapshot.
+- `PUT /api/v1/network-interfaces/{name}/comment` stores an ASP-owned browser-facing comment for one interface and returns the refreshed inventory. Request shape: `{ "comment": "LAN uplink" }`; an empty/null comment clears it.
+- Response shape: `{ "interfaces": [{ "name": "eno1", "comment": "LAN uplink" }, { "name": "docker0", "comment": null }], "reconciledAt": "<RFC 3339 timestamp>" }`.
+
+The daemon read operation should enumerate known host network interfaces without requiring a signed mutation intent. ASP owns cache policy and comments; reconciliation should preserve comments for interfaces that remain present and decide retention policy for interfaces that disappear. The client treats interface names as advisory autocomplete only, so free-text interface names remain valid and daemon-side rule validation remains authoritative. Comments are presentation metadata and never participate in firewall or signed-intent semantics.
+
+Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the provisional target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
+
+## Frontend follow-ups after visual polish
+
+### Stabilize rule-editor interface field height
+
+The source/destination interface autocomplete still changes the vertical geometry of the rule form when a value is selected. The current external-label treatment removes MudBlazor's reserved floating-label margin, but the selected state still appears to alter the input/adornment box height. Inspect the rendered `MudAutocomplete` structure, especially the clear-button/end-adornment container and input line-height/padding, and make empty, focused, typed, selected, validation-error, and disabled states occupy the same control height. Preserve the clear affordance and keyboard/accessibility behavior rather than hiding the symptom with a fixed outer container.
+
+### Evaluate address-family-separated rule tables
+
+Consider replacing the inline `IPv4` / `IPv6` marker in the Direction column with distinct IPv4 and IPv6 rule tables rendered one after another. The goal is to make the primary rows visually cleaner while keeping address family explicit at the table level.
+
+Before implementing this, resolve how the presentation maps to UFW's single authoritative ordered rule list:
+
+- determine whether the two visual tables may reorder independently or whether cross-family ordering must remain visible/preservable;
+- define how family-neutral (`Any family`) structural rules that may materialize into both IPv4 and IPv6 UFW rows are represented without implying two independently mutable rules;
+- ensure row numbering, drag/drop, insert-before/after, and future signed ordering intents still refer unambiguously to authoritative UFW ordering rather than table-local positions;
+- decide whether unsupported/read-only rows can cause inter-family ordering constraints that make a clean split misleading.
+
+Treat this as a presentation/design task until the ordering semantics are settled. Do not silently change the signed mutation model to fit the visual grouping.
+
+### Tighten the Rules protocol column
+
+The Rules table Protocol column now contains only the protocol token (`TCP`, `UDP`, `Any`, and similar short values) because source/destination ports are rendered with their corresponding endpoints. Reduce the desktop column width accordingly and reallocate the freed space to endpoint/comment content. Keep enough width for localized or future protocol labels without forcing unnecessary wrapping.
+
+## Finalize application brand and icon
+
+Replace the temporary blue `U` application mark with the final UFW Console brand/icon once the visual asset is designed. Apply the final mark consistently to the navigation rail, login/startup surfaces, favicon/application metadata, and any installable/PWA assets that exist at that point. Keep the current text branding and accessible names stable unless the product name itself is intentionally changed.

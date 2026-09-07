@@ -1,96 +1,96 @@
-@using Ufw.Ipc.Shared.Model.Responses
+@using Ufw.Shared.Ipc.Model.Responses
+@inject INetworkInterfaceInventoryService NetworkInterfaces
+@inject IClientErrorMapper ClientErrors
+@inject IFirewallRuleText RuleText
+@inject IRuleValidationMessageLocalizer ValidationMessages
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
 
-<MudPaper Class="rule-editor-card pa-5 mb-6" Elevation="1" role="region" aria-labelledby="add-rule-heading">
-    <div class="d-flex flex-wrap align-center gap-3 mb-4">
-        <div>
-            <MudText Typo="Typo.h6" HtmlTag="h2" id="add-rule-heading">Add rule</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Define the complete UFW rule, then authorize this request with an authorized private key.
-            </MudText>
-        </div>
-        <MudSpacer />
-        <MudChip T="string" Color="@(FirewallActive ? Color.Success : Color.Warning)" Variant="Variant.Outlined">
-            @(FirewallActive ? "Firewall active" : "Firewall inactive")
-        </MudChip>
+<MudPaper Class="rule-editor-card pa-5" Elevation="1" role="region" aria-labelledby="rule-definition-heading">
+    <div class="rule-editor-section-heading">
+        <MudText Typo="Typo.h6" HtmlTag="h2" id="rule-definition-heading">@RulesText["RuleDefinition"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @EffectiveDefinitionDescription
+        </MudText>
     </div>
 
     <MudForm @ref="_form"
              Model="@Rule"
-             Validation="@s_ruleValidation"
+             Validation="@RuleValidation"
              @bind-IsValid="_isValid"
              Disabled="@Disabled"
              aria-busy="@Submitting">
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="FirewallAction"
-                           Label="Action"
+                           Label="@(RulesText["Action"])"
                            @bind-Value="Rule.Action"
                            For="@(() => Rule.Action)">
                     @foreach (FirewallAction value in Enum.GetValues<FirewallAction>())
                     {
-                        <MudSelectItem T="FirewallAction" Value="@value">@FirewallRulePresentation.FormatEnum(value)</MudSelectItem>
+                        <MudSelectItem T="FirewallAction" Value="@value">@RuleText.FormatAction(value)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="FirewallDirection"
-                           Label="Direction"
-                           @bind-Value="Rule.Direction"
+                           Label="@(RulesText["Direction"])"
+                           Value="@Rule.Direction"
+                           ValueChanged="DirectionChangedAsync"
                            For="@(() => Rule.Direction)">
                     @foreach (FirewallDirection value in Enum.GetValues<FirewallDirection>())
                     {
-                        <MudSelectItem T="FirewallDirection" Value="@value">@FirewallRulePresentation.FormatEnum(value)</MudSelectItem>
+                        <MudSelectItem T="FirewallDirection" Value="@value">@RuleText.FormatDirection(value)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="FirewallProtocol"
-                           Label="Protocol"
+                           Label="@(RulesText["Protocol"])"
                            @bind-Value="Rule.Protocol"
                            For="@(() => Rule.Protocol)">
                     @foreach (FirewallProtocol value in Enum.GetValues<FirewallProtocol>())
                     {
-                        <MudSelectItem T="FirewallProtocol" Value="@value">@FirewallRulePresentation.FormatEnum(value)</MudSelectItem>
+                        <MudSelectItem T="FirewallProtocol" Value="@value">@RuleText.FormatProtocol(value)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="FirewallAddressFamily"
-                           Label="Address family"
+                           Label="@(RulesText["AddressFamily"])"
                            @bind-Value="Rule.AddressFamily"
                            For="@(() => Rule.AddressFamily)">
                     @foreach (FirewallAddressFamily value in Enum.GetValues<FirewallAddressFamily>())
                     {
-                        <MudSelectItem T="FirewallAddressFamily" Value="@value">@FirewallRulePresentation.FormatEnum(value)</MudSelectItem>
+                        <MudSelectItem T="FirewallAddressFamily" Value="@value">@RuleText.FormatAddressFamily(value)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
-                              Label="Source"
-                              name="intent-private-key"
+                              Label="@(RulesText["Source"])"
                               autocomplete="off"
                               autocapitalize="off"
                               spellcheck="false"
-                              Placeholder="any, IP address, or CIDR"
+                              Placeholder="@(RulesText["AddressPlaceholder"])"
                               @bind-Value="Rule.Source"
                               For="@(() => Rule.Source)"
                               Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
-                              Label="Destination"
+                              Label="@(RulesText["Destination"])"
                               autocomplete="off"
                               autocapitalize="off"
                               spellcheck="false"
-                              Placeholder="any, IP address, or CIDR"
+                              Placeholder="@(RulesText["AddressPlaceholder"])"
                               @bind-Value="Rule.Destination"
                               For="@(() => Rule.Destination)"
                               Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField T="string"
-                              Label="Source ports"
+                              Label="@(RulesText["SourcePorts"])"
                               autocomplete="off"
                               autocapitalize="off"
                               spellcheck="false"
@@ -101,7 +101,7 @@
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField T="string"
-                              Label="Destination ports"
+                              Label="@(RulesText["DestinationPorts"])"
                               autocomplete="off"
                               autocapitalize="off"
                               spellcheck="false"
@@ -111,82 +111,129 @@
                               Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudTextField T="string"
-                              Label="Source interface"
-                              autocomplete="off"
-                              autocapitalize="off"
-                              spellcheck="false"
-                              HelperText="Egress interface for outbound or forward rules."
-                              @bind-Value="Rule.SourceInterface"
-                              For="@(() => Rule.SourceInterface)"
-                              Immediate="true" />
+                <NetworkInterfaceField Label="@(RulesText["SourceInterface"])"
+                                       HelperText="@SourceInterfaceHelp"
+                                       @bind-Value="Rule.SourceInterface"
+                                       For="@(() => Rule.SourceInterface)"
+                                       Suggestions="@_knownInterfaces"
+                                       Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudTextField T="string"
-                              Label="Destination interface"
-                              autocomplete="off"
-                              autocapitalize="off"
-                              spellcheck="false"
-                              HelperText="Ingress interface for inbound or forward rules."
-                              @bind-Value="Rule.DestinationInterface"
-                              For="@(() => Rule.DestinationInterface)"
-                              Immediate="true" />
+                <NetworkInterfaceField Label="@(RulesText["DestinationInterface"])"
+                                       HelperText="@DestinationInterfaceHelp"
+                                       @bind-Value="Rule.DestinationInterface"
+                                       For="@(() => Rule.DestinationInterface)"
+                                       Suggestions="@_knownInterfaces"
+                                       Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField T="string"
-                              Label="Comment"
+                              Label="@(RulesText["Comment"])"
                               Counter="@RuleSpecificationValidator.MAX_COMMENT_LENGTH"
                               MaxLength="@RuleSpecificationValidator.MAX_COMMENT_LENGTH"
                               @bind-Value="Rule.Comment"
                               For="@(() => Rule.Comment)"
                               Immediate="true" />
             </MudItem>
+
+            @if (ShowAuthorization)
+            {
+                <MudItem xs="12">
+                    <MudDivider Class="rule-editor-divider" />
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="rule-editor-section-heading rule-editor-authorization-heading">
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h3">@RulesText["Authorization"]</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @RulesText["AuthorizationDescription"]
+                        </MudText>
+                    </div>
+                </MudItem>
+                <MudItem xs="12">
+                    <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["CanonicalUfwRule"])" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MutationAuthorizationField Value="@PrivateKey"
+                                                ValueChanged="PrivateKeyChangedAsync"
+                                                Disabled="@(Disabled || Submitting)" />
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["CanonicalUfwRule"])" />
+                </MudItem>
+            }
             <MudItem xs="12">
-                <MudTextField T="string"
-                              Label="ECDSA P-256 private key"
-                              InputType="InputType.Password"
-                              Value="@PrivateKey"
-                              autocomplete="off"
-                              autocapitalize="off"
-                              spellcheck="false"
-                              ValueChanged="PrivateKeyChangedAsync"
-                              Required="true"
-                              RequiredError="A private key is required to authorize this mutation."
-                              HelperText="Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored."
-                              Placeholder="data:application/pkcs8;base64,..."
-                              Immediate="true" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Disabled="@(!_isValid || Disabled || string.IsNullOrWhiteSpace(PrivateKey))"
-                           OnClick="SubmitAsync"
-                           Class="rule-primary-action">
-                    @if (Submitting)
-                    {
-                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
-                    }
-                    @(Submitting ? "Adding rule..." : "Add signed rule")
-                </MudButton>
+                <div class="rule-editor-actions">
+                    <MudButton Variant="Variant.Text"
+                               Disabled="@(Disabled || Submitting)"
+                               OnClick="CancelAsync">
+                        @CommonText["Cancel"]
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@(!_isValid || Disabled || SubmitDisabled || Submitting || RequiresPrivateKey)"
+                               OnClick="SubmitAsync"
+                               Class="rule-primary-action">
+                        @if (Submitting)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        }
+                        @(Submitting ? EffectiveSubmittingLabel : EffectiveSubmitLabel)
+                    </MudButton>
+                </div>
             </MudItem>
         </MudGrid>
     </MudForm>
 </MudPaper>
 
 @code {
-    private static readonly Func<object, string, IEnumerable<string>> s_ruleValidation = ValidateRule;
     private MudForm? _form;
+    private Func<object, string, IEnumerable<string>> RuleValidation => ValidateRule;
+    private IReadOnlyList<string> _knownInterfaces = [];
+    private string? _interfaceInventoryError;
     private bool _isValid;
+
+    private bool RequiresPrivateKey => ShowAuthorization && string.IsNullOrWhiteSpace(PrivateKey);
+
+    private string EffectiveDefinitionDescription => string.IsNullOrWhiteSpace(DefinitionDescription)
+        ? RulesText["DefinitionDescription"]
+        : DefinitionDescription;
+
+    private string EffectiveSubmitLabel => string.IsNullOrWhiteSpace(SubmitLabel)
+        ? RulesText["AddSignedRule"]
+        : SubmitLabel;
+
+    private string EffectiveSubmittingLabel => string.IsNullOrWhiteSpace(SubmittingLabel)
+        ? RulesText["AddingRule"]
+        : SubmittingLabel;
+
+    private string SourceInterfaceHelp => DescribeInterfaceHelp(RulesText["SourceInterfaceHelp"]);
+
+    private string DestinationInterfaceHelp => DescribeInterfaceHelp(RulesText["DestinationInterfaceHelp"]);
 
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
 
     [Parameter]
-    public bool FirewallActive { get; set; }
+    public string? DefinitionDescription { get; set; }
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool SubmitDisabled { get; set; }
+
+    [Parameter]
+    public bool ShowAuthorization { get; set; } = true;
+
+    [Parameter]
+    public string? SubmitLabel { get; set; }
+
+    [Parameter]
+    public string? SubmittingLabel { get; set; }
 
     [Parameter]
     public bool Submitting { get; set; }
@@ -200,7 +247,35 @@
     [Parameter]
     public EventCallback OnSubmit { get; set; }
 
-    private static IEnumerable<string> ValidateRule(object model, string propertyName)
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
+            _knownInterfaces = inventory.Interfaces.Select(static entry => entry.Name).ToArray();
+        }
+        catch (Exception exception)
+        {
+            _interfaceInventoryError = ClientErrors.Describe(exception).Message;
+        }
+    }
+
+    private string DescribeInterfaceHelp(string directionHelp)
+    {
+        if (_interfaceInventoryError is not null)
+        {
+            return RulesText["InterfaceSuggestionsUnavailable", directionHelp];
+        }
+
+        return _knownInterfaces.Count == 0
+            ? RulesText["InterfaceEnterValid", directionHelp]
+            : RulesText["InterfaceChooseKnown", directionHelp];
+    }
+
+    private IEnumerable<string> ValidateRule(object model, string propertyName)
     {
         if (model is not FirewallRuleSpecification specification)
         {
@@ -212,18 +287,35 @@
         ModelValidationError[] errors = RuleSpecificationValidator.Validate(specification);
         return errors
             .Where(error => string.Equals(error.PropertyName, memberName, StringComparison.Ordinal))
-            .Select(static error => error.ErrorMessage);
+            .Select(ValidationMessages.Localize);
     }
 
-    private async Task PrivateKeyChangedAsync(string? value)
+    private async Task DirectionChangedAsync(FirewallDirection value)
     {
-        PrivateKey = value ?? string.Empty;
-        await PrivateKeyChanged.InvokeAsync(PrivateKey);
+        Rule.Direction = value;
+
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+        }
+    }
+
+    private async Task PrivateKeyChangedAsync(string value)
+    {
+        PrivateKey = value;
+        await PrivateKeyChanged.InvokeAsync(value);
+    }
+
+    private async Task CancelAsync()
+    {
+        PrivateKey = string.Empty;
+        await PrivateKeyChanged.InvokeAsync(string.Empty);
+        await OnCancel.InvokeAsync();
     }
 
     private async Task SubmitAsync()
     {
-        if (_form is null || Disabled || string.IsNullOrWhiteSpace(PrivateKey))
+        if (_form is null || Disabled || SubmitDisabled || Submitting || RequiresPrivateKey)
         {
             return;
         }

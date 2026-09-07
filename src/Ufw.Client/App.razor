@@ -3,8 +3,9 @@
 @inject IAuthenticationService AuthenticationService
 @inject IClientErrorMapper ClientErrors
 @inject IClientThemeService Theme
+@inject IStringLocalizer<AuthenticationStrings> AuthenticationText
 
-<MudThemeProvider IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
+<MudThemeProvider Theme="@UfwMudTheme.Theme" IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -42,10 +43,16 @@ else if (_startupState == StartupState.Failed && _startupError is not null)
 }
 else
 {
-    <main class="startup-progress">
-        <div role="status" aria-label="Restoring session">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
-        </div>
+    <main class="standalone-shell">
+        <StandalonePanel Title="@(AuthenticationText["RestoringSession"])"
+                         Description="@(AuthenticationText["RestoringSessionDescription"])"
+                         Class="standalone-state-card"
+                         Role="status"
+                         AriaLive="polite">
+            <div class="standalone-progress" aria-hidden="true">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+            </div>
+        </StandalonePanel>
     </main>
 }
 

@@ -1,16 +1,34 @@
 @using Ufw.Client.Errors
 @inject NavigationManager Navigation
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<StandaloneStrings> StandaloneText
+@inject IStringLocalizer<ErrorsStrings> ErrorsText
 
-<main class="unexpected-error-shell">
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
-        <MudPaper Class="pa-6" Elevation="1" role="alert">
-            <MudText Typo="Typo.h5" HtmlTag="h1" GutterBottom="true">Something went wrong</MudText>
-            <MudText Typo="Typo.body1" Class="mb-5">@Error.Message</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Reload">
-                Reload application
+<main class="standalone-shell">
+    <ThemeToggle Class="standalone-theme-toggle" />
+    <StandalonePanel Title="@(StandaloneText["SomethingWentWrong"])"
+                     Description="@Error.Message"
+                     Icon="@Icons.Material.Filled.ErrorOutline"
+                     IconColor="Color.Error"
+                     Class="standalone-state-card"
+                     Role="alert">
+        <ChildContent>
+            @if (!string.IsNullOrWhiteSpace(Error.DiagnosticReference))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="error-diagnostic-reference">
+                    @ErrorsText["DiagnosticReference", Error.DiagnosticReference]
+                </MudText>
+            }
+        </ChildContent>
+        <Actions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Reload"
+                       StartIcon="@Icons.Material.Filled.Refresh">
+                @CommonText["ReloadApplication"]
             </MudButton>
-        </MudPaper>
-    </MudContainer>
+        </Actions>
+    </StandalonePanel>
 </main>
 
 @code {

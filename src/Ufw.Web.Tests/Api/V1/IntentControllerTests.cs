@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Controllers;
 
 namespace Ufw.Web.Tests.Api.V1;

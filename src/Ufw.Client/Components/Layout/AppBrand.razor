@@ -1,0 +1,11 @@
+<div class="@CssClass">
+    <span class="app-brand-mark" aria-hidden="true">U</span>
+    <MudText Typo="Typo.subtitle1" HtmlTag="span" Class="app-brand-name">UFW Console</MudText>
+</div>
+
+@code {
+    [Parameter]
+    public string? Class { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(Class) ? "app-brand" : $"app-brand {Class}";
+}

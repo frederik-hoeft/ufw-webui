@@ -1,8 +1,8 @@
 ﻿using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 

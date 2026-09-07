@@ -1,6 +1,6 @@
 ﻿using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Serialization;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Ipc.Tests.Adapter;
 

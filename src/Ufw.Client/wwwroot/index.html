@@ -1,25 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
-    <title>UFW Management</title>
+    <title>UFW Console</title>
 </head>
 <body>
     <div id="app">
-        <main class="startup-progress">
-            <div role="status" aria-label="Loading application"></div>
+        <main class="bootstrap-shell">
+            <div class="bootstrap-status" role="status" aria-live="polite">
+                <span class="bootstrap-brand-mark" aria-hidden="true">U</span>
+                <span class="bootstrap-status-copy">
+                    <span class="bootstrap-status-title">UFW Console</span>
+                    <span id="bootstrap-status-detail" class="bootstrap-status-detail">Loading application...</span>
+                </span>
+            </div>
         </main>
     </div>
     <div id="blazor-error-ui" data-nosnippet>
-        An unexpected error occurred.
+        <span id="blazor-error-message">An unexpected error occurred.</span>
         <a href="." class="reload">Reload</a>
         <button type="button" class="dismiss" aria-label="Dismiss">&#x2715;</button>
     </div>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="js/startup.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 </html>

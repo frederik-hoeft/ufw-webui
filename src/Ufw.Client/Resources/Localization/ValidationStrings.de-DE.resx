@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="ActionUnsupported" xml:space="preserve"><value>Aktion wird nicht unterstützt.</value></data>
+  <data name="AddressFamilyUnsupported" xml:space="preserve"><value>Adressfamilie wird nicht unterstützt.</value></data>
+  <data name="DirectionUnsupported" xml:space="preserve"><value>Richtung wird nicht unterstützt.</value></data>
+  <data name="ProtocolUnsupported" xml:space="preserve"><value>Protokoll wird nicht unterstützt.</value></data>
+  <data name="AddressInvalid" xml:space="preserve"><value>Adresse muss IPv4, IPv6, CIDR oder 'any' sein.</value></data>
+  <data name="ScopedIpv6Unsupported" xml:space="preserve"><value>IPv6-Adressen mit Scope werden nicht unterstützt; wählen Sie die Schnittstelle explizit aus.</value></data>
+  <data name="Ipv4Prefix" xml:space="preserve"><value>Die IPv4-Präfixlänge muss zwischen 0 und 32 liegen.</value></data>
+  <data name="Ipv6Prefix" xml:space="preserve"><value>Die IPv6-Präfixlänge muss zwischen 0 und 128 liegen.</value></data>
+  <data name="AddressFamiliesMustMatch" xml:space="preserve"><value>Quell- und Zieladresse müssen dieselbe Adressfamilie verwenden.</value></data>
+  <data name="AddressFamilyMismatch" xml:space="preserve"><value>Die Adressfamilie passt nicht zu den Regeladressen.</value></data>
+  <data name="PortsSyntax" xml:space="preserve"><value>Ports müssen eine kommagetrennte Liste von Ports oder Portbereichen sein.</value></data>
+  <data name="PortsRange" xml:space="preserve"><value>Ports müssen zwischen 1 und 65535 liegen.</value></data>
+  <data name="PortRangesRange" xml:space="preserve"><value>Portbereiche müssen Werte zwischen 1 und 65535 verwenden.</value></data>
+  <data name="PortRangeOrder" xml:space="preserve"><value>Der Beginn des Portbereichs muss kleiner oder gleich dem Ende sein.</value></data>
+  <data name="InterfaceCharacters" xml:space="preserve"><value>Der Schnittstellenname enthält nicht unterstützte Zeichen.</value></data>
+  <data name="InboundInterface" xml:space="preserve"><value>Eingehende Regeln können keine Quellschnittstelle angeben; verwenden Sie das Feld Zielschnittstelle für die Eingangsschnittstelle.</value></data>
+  <data name="OutboundInterface" xml:space="preserve"><value>Ausgehende Regeln können keine Zielschnittstelle angeben; verwenden Sie das Feld Quellschnittstelle für die Ausgangsschnittstelle.</value></data>
+  <data name="CommentInvalid" xml:space="preserve"><value>Der Kommentar muss 1–200 Zeichen aus einem eingeschränkten sicheren Zeichensatz enthalten.</value></data>
+</root>

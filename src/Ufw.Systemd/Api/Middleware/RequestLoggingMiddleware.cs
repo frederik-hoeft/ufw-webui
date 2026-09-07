@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using Ufw.Ipc.Shared.Serialization;
+using Ufw.Shared.Ipc.Serialization;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
 

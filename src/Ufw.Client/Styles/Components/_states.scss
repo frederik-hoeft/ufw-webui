@@ -1,0 +1,163 @@
+@use "../foundation" as *;
+
+.standalone-shell,
+.login-shell {
+    @include full-viewport-height;
+    display: grid;
+    place-items: center;
+    padding: 2rem 1.5rem;
+    background: var(--mud-palette-background);
+}
+
+.standalone-panel {
+    width: min(34rem, 100%);
+    padding: 2rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    box-shadow: none;
+}
+
+.standalone-panel-brand {
+    margin-bottom: 2rem;
+
+    .app-brand-name {
+        color: var(--mud-palette-text-primary);
+        font-weight: 600;
+    }
+}
+
+.standalone-panel-icon {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: 1rem;
+    place-items: center;
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-background-gray);
+    color: var(--mud-palette-primary);
+}
+
+.standalone-panel-icon-secondary {
+    color: var(--mud-palette-text-secondary);
+}
+
+.standalone-panel-icon-info {
+    background: color-mix(in srgb, var(--mud-palette-info) 10%, var(--mud-palette-surface));
+    color: var(--mud-palette-info);
+}
+
+.standalone-panel-icon-error {
+    background: color-mix(in srgb, var(--mud-palette-error) 10%, var(--mud-palette-surface));
+    color: var(--mud-palette-error);
+}
+
+.standalone-panel-icon-warning {
+    background: color-mix(in srgb, var(--mud-palette-warning) 10%, var(--mud-palette-surface));
+    color: var(--mud-palette-warning);
+}
+
+.standalone-panel-icon-success {
+    background: color-mix(in srgb, var(--mud-palette-success) 10%, var(--mud-palette-surface));
+    color: var(--mud-palette-success);
+}
+
+.standalone-panel-description {
+    margin-top: 0.375rem;
+}
+
+.standalone-panel-content {
+    margin-top: 1.5rem;
+}
+
+.standalone-panel-content:empty {
+    display: none;
+}
+
+.standalone-panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.standalone-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.login-card {
+    width: min(28rem, 100%);
+}
+
+.standalone-state-card {
+    width: min(34rem, 100%);
+}
+
+.standalone-theme-toggle,
+.login-theme-toggle {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1200;
+}
+
+.bootstrap-shell {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: var(--mud-palette-background, #f5f7fa);
+    box-sizing: border-box;
+}
+
+.bootstrap-status {
+    display: flex;
+    width: min(28rem, 100%);
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1.25rem;
+    border: 1px solid var(--mud-palette-lines-default, #dce2e8);
+    border-radius: 6px;
+    background: var(--mud-palette-surface, #ffffff);
+    color: var(--mud-palette-text-primary, #18212b);
+    box-sizing: border-box;
+}
+
+.bootstrap-brand-mark {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    place-items: center;
+    border-radius: 6px;
+    background: var(--mud-palette-primary, #2f6fda);
+    color: var(--mud-palette-primary-contrasttext, #ffffff);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.bootstrap-status-copy {
+    min-width: 0;
+}
+
+.bootstrap-status-title,
+.bootstrap-status-detail {
+    display: block;
+}
+
+.bootstrap-status-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.bootstrap-status-detail {
+    margin-top: 0.125rem;
+    color: var(--mud-palette-text-secondary, #5e6a78);
+    font-size: 0.75rem;
+}
+
+.error-diagnostic-reference {
+    font-family: var(--ufw-font-mono);
+    font-variant-numeric: tabular-nums;
+}

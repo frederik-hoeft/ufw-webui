@@ -5,44 +5,44 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 @inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<AuthenticationStrings> AuthenticationText
 
-<PageTitle>Sign in - UFW Management</PageTitle>
+<PageTitle>@AuthenticationText["PageTitle"] - UFW Console</PageTitle>
 
-<MudPaper Class="login-card pa-8" Elevation="4">
-    <MudText Typo="Typo.h4" HtmlTag="h1" GutterBottom="true">UFW Management</MudText>
-    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
-        Sign in to manage firewall rules.
-    </MudText>
-
+<StandalonePanel Title="@(AuthenticationText["Title"])"
+                 Description="@(AuthenticationText["Description"])"
+                 Class="login-card">
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" role="alert">@_error</MudAlert>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4" role="alert">
+            @_error
+        </MudAlert>
     }
 
     <MudForm @ref="_form" @bind-IsValid="_isValid" OnEnterPressed="LoginAsync" aria-busy="@_busy">
         <MudTextField T="string"
-                      Label="Email"
+                      Label="@(AuthenticationText["Email"])"
                       InputType="InputType.Email"
                       InputMode="InputMode.email"
                       @bind-Value="_email"
-                      Validation="@s_emailValidation"
+                      Validation="@EmailValidation"
                       Required="true"
                       autocomplete="username"
                       autocapitalize="off"
                       spellcheck="false"
-                      RequiredError="Email is required."
+                      RequiredError="@(AuthenticationText["EmailRequired"])"
                       Disabled="_busy"
                       Immediate="true"
                       Class="mb-3" />
         <MudTextField T="string"
-                      Label="Password"
+                      Label="@(AuthenticationText["Password"])"
                       InputType="InputType.Password"
                       @bind-Value="_password"
                       Required="true"
                       autocomplete="current-password"
                       autocapitalize="off"
                       spellcheck="false"
-                      RequiredError="Password is required."
+                      RequiredError="@(AuthenticationText["PasswordRequired"])"
                       Disabled="_busy"
                       Immediate="true" />
         <MudButton Variant="Variant.Filled"
@@ -50,21 +50,20 @@
                    FullWidth="true"
                    Disabled="@(_busy || !_isValid)"
                    OnClick="LoginAsync"
+                   StartIcon="@Icons.Material.Filled.Login"
                    Class="mt-6">
             @if (_busy)
             {
                 <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
             }
-            Sign in
+            @(_busy ? AuthenticationText["SigningIn"] : AuthenticationText["SignIn"])
         </MudButton>
     </MudForm>
-</MudPaper>
+</StandalonePanel>
 
 @code {
-    private static readonly EmailAddressAttribute s_emailValidation = new()
-    {
-        ErrorMessage = "Enter a valid email address."
-    };
+    private Func<string?, string?> EmailValidation => value =>
+        new EmailAddressAttribute().IsValid(value) ? null : AuthenticationText["EmailInvalid"].Value;
 
     private readonly CancellationTokenSource _lifetime = new();
     private MudForm? _form;
@@ -119,7 +118,7 @@
         }
         catch (ApiRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
         {
-            _error = "Invalid email or password, or the account is not permitted to sign in.";
+            _error = AuthenticationText["InvalidCredentials"];
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
@@ -133,7 +132,7 @@
 
     private void NavigateAfterLogin()
     {
-        string target = IsLocalReturnUrl(ReturnUrl) ? ReturnUrl! : "/";
+        string target = IsLocalReturnUrl(ReturnUrl) ? ReturnUrl! : "/rules";
         Navigation.NavigateTo(target, replace: true);
     }
 

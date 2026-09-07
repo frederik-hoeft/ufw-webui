@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>System status</value></data>
+  <data name="Title" xml:space="preserve"><value>System status</value></data>
+  <data name="Description" xml:space="preserve"><value>Live operational checks for the daemon-backed management path and firewall snapshot.</value></data>
+  <data name="SystemBreadcrumb" xml:space="preserve"><value>System</value></data>
+  <data name="StatusBreadcrumb" xml:space="preserve"><value>Status</value></data>
+  <data name="RefreshStatus" xml:space="preserve"><value>Refresh status</value></data>
+  <data name="CheckedAt" xml:space="preserve"><value>Checked {0}</value></data>
+  <data name="DaemonUnavailableAlert" xml:space="preserve"><value>Neither daemon-backed status request completed successfully. This can indicate that the management API or ufw-systemd path is unavailable; the current REST surface cannot distinguish those failures further.</value></data>
+  <data name="ProtocolMismatchAlert" xml:space="preserve"><value>ufw-systemd is reachable, but it reports signed-intent protocol version {0} while this client supports version {1}. Firewall reads may still work, but signed mutations are incompatible.</value></data>
+  <data name="DaemonBackedApi" xml:space="preserve"><value>Daemon-backed API</value></data>
+  <data name="Deployment" xml:space="preserve"><value>Deployment</value></data>
+  <data name="IntentProtocol" xml:space="preserve"><value>Intent protocol</value></data>
+  <data name="Firewall" xml:space="preserve"><value>Firewall</value></data>
+  <data name="Rules" xml:space="preserve"><value>Rules</value></data>
+  <data name="Source" xml:space="preserve"><value>Source</value></data>
+  <data name="AuthoritativeUfwSnapshot" xml:space="preserve"><value>Authoritative UFW snapshot</value></data>
+  <data name="StatusSemantics" xml:space="preserve"><value>Status semantics</value></data>
+  <data name="StatusSemanticsDescription" xml:space="preserve"><value>These checks use the existing authenticated daemon-backed intent-context and rule-list endpoints. A successful check proves the browser can complete that path through ASP to ufw-systemd. Failures are intentionally not attributed to a specific hop because the current API does not expose a component-level health contract.</value></data>
+  <data name="LastCombinedCheck" xml:space="preserve"><value>Last combined check completed in {0}.</value></data>
+  <data name="ConnectedIncompatible" xml:space="preserve"><value>Connected, incompatible</value></data>
+  <data name="Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="Compatible" xml:space="preserve"><value>v{0} (compatible)</value></data>
+  <data name="ClientSupports" xml:space="preserve"><value>v{0} (client supports v{1})</value></data>
+  <data name="RuleCountOne" xml:space="preserve"><value>1 rule</value></data>
+  <data name="RuleCountMany" xml:space="preserve"><value>{0} rules</value></data>
+  <data name="DurationMilliseconds" xml:space="preserve"><value>{0} ms</value></data>
+  <data name="DurationSeconds" xml:space="preserve"><value>{0} s</value></data>
+</root>

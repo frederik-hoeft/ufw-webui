@@ -1,10 +1,10 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using Ufw.Ipc.Shared.Handlers;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Pipelines;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization;
+using Ufw.Shared.Ipc.Handlers;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Pipelines;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Ipc.Client.Handlers;
 

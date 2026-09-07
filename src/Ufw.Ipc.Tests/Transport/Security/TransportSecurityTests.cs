@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Transport.Security;
-using Ufw.Ipc.Shared.Security.Certificates;
+using Ufw.Shared.Security.Certificates;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.Transport;
 using Ufw.Systemd.Configuration.Model;

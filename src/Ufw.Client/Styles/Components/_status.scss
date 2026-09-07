@@ -1,0 +1,64 @@
+.operational-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.operational-status-card,
+.operational-status-meta {
+    border: 1px solid var(--mud-palette-lines-default);
+    box-shadow: none;
+}
+
+.operational-status-card {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.5rem;
+}
+
+.operational-status-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .mud-icon-root {
+        flex: 0 0 auto;
+    }
+}
+
+.operational-status-details {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+
+    > div {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: baseline;
+    }
+
+    dt {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    dd {
+        min-width: 0;
+        margin: 0;
+        overflow-wrap: anywhere;
+        color: var(--mud-palette-text-primary);
+        font-size: 0.8125rem;
+    }
+
+    code {
+        font-family: var(--ufw-font-mono);
+        font-size: 0.8125rem;
+    }
+}
+
+.operational-status-meta {
+    margin-top: 1rem;
+    padding: 1.5rem;
+}

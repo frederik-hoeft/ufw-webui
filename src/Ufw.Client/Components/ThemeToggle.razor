@@ -1,17 +1,42 @@
 @inject IClientThemeService Theme
+@inject IStringLocalizer<CommonStrings> CommonText
 
-<MudIconButton Icon="@Icon"
+@if (ShowLabel)
+{
+    <MudButton Variant="@Variant"
                Color="@Color"
+               StartIcon="@Icon"
                Disabled="@_busy"
                OnClick="ToggleAsync"
                Class="@Class"
                title="@Label"
                aria-label="@Label"
-               aria-pressed="@Theme.IsDarkMode.ToString().ToLowerInvariant()" />
+               aria-pressed="@Theme.IsDarkMode.ToString().ToLowerInvariant()">
+        @CommonText["Theme"]
+    </MudButton>
+}
+else
+{
+    <MudIconButton Icon="@Icon"
+                   Color="@Color"
+                   Variant="@Variant"
+                   Disabled="@_busy"
+                   OnClick="ToggleAsync"
+                   Class="@Class"
+                   title="@Label"
+                   aria-label="@Label"
+                   aria-pressed="@Theme.IsDarkMode.ToString().ToLowerInvariant()" />
+}
 
 @code {
     [Parameter]
     public Color Color { get; set; } = Color.Default;
+
+    [Parameter]
+    public Variant Variant { get; set; } = Variant.Text;
+
+    [Parameter]
+    public bool ShowLabel { get; set; }
 
     [Parameter]
     public string? Class { get; set; }
@@ -19,12 +44,12 @@
     private bool _busy;
 
     private string Icon => Theme.IsDarkMode
-        ? Icons.Material.Filled.LightMode
-        : Icons.Material.Filled.DarkMode;
+        ? Icons.Material.Filled.DarkMode
+        : Icons.Material.Filled.LightMode;
 
     private string Label => Theme.IsDarkMode
-        ? "Dark theme enabled. Switch to light theme"
-        : "Light theme enabled. Switch to dark theme";
+        ? CommonText["ThemeEnabledSwitchLight"]
+        : CommonText["ThemeEnabledSwitchDark"];
 
     private async Task ToggleAsync()
     {

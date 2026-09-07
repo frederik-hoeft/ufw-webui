@@ -1,6 +1,6 @@
-﻿using Ufw.Ipc.Shared.Handlers;
-using Ufw.Ipc.Shared.Pipelines;
-using Ufw.Ipc.Shared.Serialization;
+﻿using Ufw.Shared.Ipc.Handlers;
+using Ufw.Shared.Ipc.Pipelines;
+using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Ipc.Client.Handlers;
 

@@ -1,4 +1,4 @@
-﻿using Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.Output;
 

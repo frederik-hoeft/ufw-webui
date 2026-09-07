@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Network interfaces</value></data>
+  <data name="Title" xml:space="preserve"><value>Network interfaces</value></data>
+  <data name="Description" xml:space="preserve"><value>Known host interfaces available as advisory suggestions while authoring firewall rules.</value></data>
+  <data name="HostBreadcrumb" xml:space="preserve"><value>Host</value></data>
+  <data name="InterfacesBreadcrumb" xml:space="preserve"><value>Interfaces</value></data>
+  <data name="RefreshCacheView" xml:space="preserve"><value>Refresh cache view</value></data>
+  <data name="ReconcileFromDaemon" xml:space="preserve"><value>Reconcile from daemon</value></data>
+  <data name="KnownInterfaceCountOne" xml:space="preserve"><value>1 known interface</value></data>
+  <data name="KnownInterfaceCountMany" xml:space="preserve"><value>{0} known interfaces</value></data>
+  <data name="ReconciledAt" xml:space="preserve"><value>Reconciled {0}</value></data>
+  <data name="FrontendMockData" xml:space="preserve"><value>Frontend mock data</value></data>
+  <data name="MockWarning" xml:space="preserve"><value>The network-interface backend is not implemented yet. This page uses a deterministic frontend mock so autocomplete, ASP-owned comments, and reconciliation UX can be exercised without inventing daemon behavior.</value></data>
+  <data name="LoadFailed" xml:space="preserve"><value>Interface inventory could not be loaded</value></data>
+  <data name="CachedInventoryTitle" xml:space="preserve"><value>Cached interface inventory</value></data>
+  <data name="CachedInventoryDescription" xml:space="preserve"><value>The list improves authoring convenience only. Free-text interface names remain valid input.</value></data>
+  <data name="LoadingAria" xml:space="preserve"><value>Loading network interfaces</value></data>
+  <data name="LoadingInventory" xml:space="preserve"><value>Loading cached interface inventory...</value></data>
+  <data name="NoKnownInterfaces" xml:space="preserve"><value>No known interfaces</value></data>
+  <data name="NoKnownInterfacesDescription" xml:space="preserve"><value>Reconcile with the daemon to refresh the inventory. Rule fields still accept free text.</value></data>
+  <data name="InterfaceColumn" xml:space="preserve"><value>Interface</value></data>
+  <data name="MockReconciled" xml:space="preserve"><value>Mock network-interface inventory reconciled.</value></data>
+  <data name="ReconciledFromDaemon" xml:space="preserve"><value>Network-interface inventory reconciled from the daemon.</value></data>
+  <data name="NoSuggestions" xml:space="preserve"><value>No cached suggestions. You can still enter a valid interface name.</value></data>
+  <data name="CommentColumn" xml:space="preserve"><value>Comment</value></data>
+  <data name="NoComment" xml:space="preserve"><value>No comment</value></data>
+  <data name="EditComment" xml:space="preserve"><value>Edit</value></data>
+  <data name="EditCommentTitle" xml:space="preserve"><value>Edit interface comment</value></data>
+  <data name="EditCommentDescription" xml:space="preserve"><value>Store a browser-facing comment for {0}. This metadata belongs to ASP and does not affect firewall semantics.</value></data>
+  <data name="SaveComment" xml:space="preserve"><value>Save comment</value></data>
+  <data name="MockCommentSaved" xml:space="preserve"><value>Mock interface comment saved.</value></data>
+  <data name="CommentSaved" xml:space="preserve"><value>Interface comment saved.</value></data>
+</root>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PrimaryNavigation" xml:space="preserve"><value>Hauptnavigation</value></data>
+  <data name="Management" xml:space="preserve"><value>Verwaltung</value></data>
+  <data name="Rules" xml:space="preserve"><value>Regeln</value></data>
+  <data name="Interfaces" xml:space="preserve"><value>Schnittstellen</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Settings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="DaemonConnected" xml:space="preserve"><value>ufw-systemd verbunden</value></data>
+  <data name="DaemonUnavailable" xml:space="preserve"><value>ufw-systemd nicht verfügbar</value></data>
+  <data name="DaemonChecking" xml:space="preserve"><value>ufw-systemd wird geprüft...</value></data>
+  <data name="DaemonUnknown" xml:space="preserve"><value>ufw-systemd-Status unbekannt</value></data>
+  <data name="NoStatusCheck" xml:space="preserve"><value>Es wurde noch keine daemon-gestützte Statusprüfung abgeschlossen.</value></data>
+  <data name="LastChecked" xml:space="preserve"><value>Zuletzt geprüft: {0}.</value></data>
+</root>

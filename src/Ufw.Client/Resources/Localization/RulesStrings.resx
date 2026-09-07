@@ -1,0 +1,516 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="RulesPageTitle" xml:space="preserve">
+    <value>Firewall rules</value>
+  </data>
+  <data name="RulesTitle" xml:space="preserve">
+    <value>Firewall rules</value>
+  </data>
+  <data name="RulesDescription" xml:space="preserve">
+    <value>Ordered UFW rules from the authoritative firewall snapshot.</value>
+  </data>
+  <data name="CreatePageTitle" xml:space="preserve">
+    <value>Add firewall rule</value>
+  </data>
+  <data name="CreateTitle" xml:space="preserve">
+    <value>Add firewall rule</value>
+  </data>
+  <data name="CreateDescription" xml:space="preserve">
+    <value>Create and authorize a new rule. The current backend appends signed additions to the end of the rule list.</value>
+  </data>
+  <data name="CreateOrderedDescription" xml:space="preserve">
+    <value>Draft a rule for the selected ordered position. Submission remains disabled until the ordering mutation contract is designed.</value>
+  </data>
+  <data name="FirewallBreadcrumb" xml:space="preserve">
+    <value>Firewall</value>
+  </data>
+  <data name="RulesBreadcrumb" xml:space="preserve">
+    <value>Rules</value>
+  </data>
+  <data name="AddRuleBreadcrumb" xml:space="preserve">
+    <value>Add rule</value>
+  </data>
+  <data name="BackToRules" xml:space="preserve">
+    <value>Back to rules</value>
+  </data>
+  <data name="FirewallActive" xml:space="preserve">
+    <value>Firewall active</value>
+  </data>
+  <data name="FirewallInactive" xml:space="preserve">
+    <value>Firewall inactive</value>
+  </data>
+  <data name="RuleCountOne" xml:space="preserve">
+    <value>1 rule</value>
+  </data>
+  <data name="RuleCountMany" xml:space="preserve">
+    <value>{0} rules</value>
+  </data>
+  <data name="CurrentSnapshot" xml:space="preserve">
+    <value>Current snapshot</value>
+  </data>
+  <data name="StaleSnapshot" xml:space="preserve">
+    <value>Stale snapshot</value>
+  </data>
+  <data name="LoadFailed" xml:space="preserve">
+    <value>Firewall state could not be loaded</value>
+  </data>
+  <data name="LoadingStateAria" xml:space="preserve">
+    <value>Loading firewall state</value>
+  </data>
+  <data name="LoadingBeforeCreate" xml:space="preserve">
+    <value>Loading authoritative firewall state before enabling rule creation...</value>
+  </data>
+  <data name="LoadingRules" xml:space="preserve">
+    <value>Loading authoritative firewall rules...</value>
+  </data>
+  <data name="StaleTitle" xml:space="preserve">
+    <value>Authoritative firewall state must be refreshed</value>
+  </data>
+  <data name="RefreshAuthoritative" xml:space="preserve">
+    <value>Refresh authoritative state</value>
+  </data>
+  <data name="RuleSubmissionConfirming" xml:space="preserve">
+    <value>Rule submission finished. Confirming authoritative firewall state before returning to the rule list...</value>
+  </data>
+  <data name="RefreshingAuthoritative" xml:space="preserve">
+    <value>Refreshing authoritative firewall state...</value>
+  </data>
+  <data name="OrderedInsertionPrototype" xml:space="preserve">
+    <value>Ordered insertion prototype</value>
+  </data>
+  <data name="OrderedInsertionDescription" xml:space="preserve">
+    <value>The browser can carry insertion context from the rule table, but ordered creation is not submitted yet. The REST shape, signed intent operation, stale-order precondition, and daemon/UFW insertion semantics require design approval. The existing signed add endpoint continues to mean append-only.</value>
+  </data>
+  <data name="OrderedInsertionDisabled" xml:space="preserve">
+    <value>Ordered insertion is not yet authorized or submitted.</value>
+  </data>
+  <data name="DeletingRule" xml:space="preserve">
+    <value>Deleting signed firewall rule...</value>
+  </data>
+  <data name="LocalOrderingPreview" xml:space="preserve">
+    <value>Local ordering preview</value>
+  </data>
+  <data name="LocalOrderingPreviewDescription" xml:space="preserve">
+    <value>Reorder changes are staged in this browser. UFW has not changed, no ordering intent has been signed, and real add/delete mutations stay disabled until you discard or confirm the preview.</value>
+  </data>
+  <data name="DiscardPreview" xml:space="preserve">
+    <value>Discard preview</value>
+  </data>
+  <data name="PreviewingMove" xml:space="preserve">
+    <value>Previewing move...</value>
+  </data>
+  <data name="RuleAdded" xml:space="preserve">
+    <value>Firewall rule added.</value>
+  </data>
+  <data name="RuleDeleted" xml:space="preserve">
+    <value>Firewall rule deleted.</value>
+  </data>
+  <data name="SubmittedRuleMissing" xml:space="preserve">
+    <value>The submitted rule is not present in current firewall state. Review the form before retrying.</value>
+  </data>
+  <data name="DeleteDialogTitle" xml:space="preserve">
+    <value>Delete firewall rule?</value>
+  </data>
+  <data name="MoveDialogTitle" xml:space="preserve">
+    <value>Move firewall rule</value>
+  </data>
+  <data name="RefreshAfterMutationFailed" xml:space="preserve">
+    <value>The rule change succeeded, but the client could not reload the authoritative rule list. Retry the refresh before leaving or attempting another mutation.</value>
+  </data>
+  <data name="MutationOutcomeUnknown" xml:space="preserve">
+    <value>The client could not confirm whether the rule change completed. Refresh authoritative state before deciding whether the rule must be retried.</value>
+  </data>
+  <data name="MutationRejectedRefresh" xml:space="preserve">
+    <value>The mutation was rejected in a way that requires current firewall state to be reloaded before another attempt.</value>
+  </data>
+  <data name="LatestRefreshFailed" xml:space="preserve">
+    <value>The latest refresh failed. Rule creation is disabled until authoritative firewall state can be loaded again.</value>
+  </data>
+  <data name="BothInsertionTargets" xml:space="preserve">
+    <value>The URL contains both before and after targets. Ordered insertion requires exactly one target.</value>
+  </data>
+  <data name="InsertionTargetUnavailable" xml:space="preserve">
+    <value>The selected insertion target is unavailable.</value>
+  </data>
+  <data name="InsertionTargetMissing" xml:space="preserve">
+    <value>The selected insertion target is no longer present in authoritative firewall state.</value>
+  </data>
+  <data name="InsertionTargetAmbiguous" xml:space="preserve">
+    <value>The selected insertion target is ambiguous in authoritative firewall state.</value>
+  </data>
+  <data name="SelectedRule" xml:space="preserve">
+    <value>the selected rule</value>
+  </data>
+  <data name="RulePosition" xml:space="preserve">
+    <value>rule {0}</value>
+  </data>
+  <data name="InsertTargetDescription" xml:space="preserve">
+    <value>This rule is targeted for insertion {0} {1}.</value>
+  </data>
+  <data name="Before" xml:space="preserve">
+    <value>before</value>
+  </data>
+  <data name="After" xml:space="preserve">
+    <value>after</value>
+  </data>
+  <data name="RuleDefinition" xml:space="preserve">
+    <value>Rule definition</value>
+  </data>
+  <data name="DefinitionDescription" xml:space="preserve">
+    <value>Define the UFW match and action. The current API appends new rules to the existing evaluation order.</value>
+  </data>
+  <data name="Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+  <data name="Protocol" xml:space="preserve">
+    <value>Protocol</value>
+  </data>
+  <data name="AddressFamily" xml:space="preserve">
+    <value>Address family</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="AddressPlaceholder" xml:space="preserve">
+    <value>any, IP address, or CIDR</value>
+  </data>
+  <data name="SourcePorts" xml:space="preserve">
+    <value>Source ports</value>
+  </data>
+  <data name="DestinationPorts" xml:space="preserve">
+    <value>Destination ports</value>
+  </data>
+  <data name="SourceInterface" xml:space="preserve">
+    <value>Source interface</value>
+  </data>
+  <data name="DestinationInterface" xml:space="preserve">
+    <value>Destination interface</value>
+  </data>
+  <data name="Comment" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="Authorization" xml:space="preserve">
+    <value>Authorization</value>
+  </data>
+  <data name="AuthorizationDescription" xml:space="preserve">
+    <value>Sign this individual mutation with an authorized key. The browser does not retain the private key.</value>
+  </data>
+  <data name="CanonicalUfwRule" xml:space="preserve">
+    <value>Canonical UFW rule</value>
+  </data>
+  <data name="AddSignedRule" xml:space="preserve">
+    <value>Add signed rule</value>
+  </data>
+  <data name="AddingRule" xml:space="preserve">
+    <value>Adding rule...</value>
+  </data>
+  <data name="SourceInterfaceHelp" xml:space="preserve">
+    <value>Egress interface for outbound or forward rules.</value>
+  </data>
+  <data name="DestinationInterfaceHelp" xml:space="preserve">
+    <value>Ingress interface for inbound or forward rules.</value>
+  </data>
+  <data name="InterfaceSuggestionsUnavailable" xml:space="preserve">
+    <value>{0} Cached suggestions are unavailable; free text is still accepted.</value>
+  </data>
+  <data name="InterfaceEnterValid" xml:space="preserve">
+    <value>{0} Enter a valid interface name.</value>
+  </data>
+  <data name="InterfaceChooseKnown" xml:space="preserve">
+    <value>{0} Choose a known interface or enter another valid name.</value>
+  </data>
+  <data name="PrivateKeyLabel" xml:space="preserve">
+    <value>ECDSA P-256 private key</value>
+  </data>
+  <data name="PrivateKeyRequired" xml:space="preserve">
+    <value>A private key is required to authorize this mutation.</value>
+  </data>
+  <data name="PrivateKeyHelper" xml:space="preserve">
+    <value>Used only to sign this request in the browser; never sent to the server.</value>
+  </data>
+  <data name="CommandPreviewEmpty" xml:space="preserve">
+    <value>Complete a valid rule to preview the canonical UFW syntax.</value>
+  </data>
+  <data name="UfwRule" xml:space="preserve">
+    <value>UFW rule</value>
+  </data>
+  <data name="DeleteReview" xml:space="preserve">
+    <value>Review the canonical UFW rule below and provide the signing key that authorizes its deletion.</value>
+  </data>
+  <data name="RuleToDelete" xml:space="preserve">
+    <value>Rule to delete</value>
+  </data>
+  <data name="RuleId" xml:space="preserve">
+    <value>Rule ID: {0}</value>
+  </data>
+  <data name="DeleteWarning" xml:space="preserve">
+    <value>This removes the rule from the firewall. The operation requires signed authorization and cannot be undone through this interface.</value>
+  </data>
+  <data name="DeleteSignedRule" xml:space="preserve">
+    <value>Delete signed rule</value>
+  </data>
+  <data name="MoveDescription" xml:space="preserve">
+    <value>Choose the one-based position this rule should occupy in the ordered firewall list.</value>
+  </data>
+  <data name="MoveMockNotice" xml:space="preserve">
+    <value>Rule ordering is currently a frontend prototype. This move is sent only to the mock ASP boundary and updates a local preview; it does not change UFW and does not perform intent signing.</value>
+  </data>
+  <data name="TargetPosition" xml:space="preserve">
+    <value>Target position</value>
+  </data>
+  <data name="TargetPositionHelp" xml:space="preserve">
+    <value>The first firewall rule is position 1.</value>
+  </data>
+  <data name="PreviewMove" xml:space="preserve">
+    <value>Preview move</value>
+  </data>
+  <data name="TableAria" xml:space="preserve">
+    <value>Firewall rules</value>
+  </data>
+  <data name="ReorderColumn" xml:space="preserve">
+    <value>Reorder</value>
+  </data>
+  <data name="RuleNumberColumn" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="ActionColumn" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="DirectionColumn" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+  <data name="FromColumn" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="ToColumn" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="ProtocolColumn" xml:space="preserve">
+    <value>Protocol</value>
+  </data>
+  <data name="CommentColumn" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="ActionsColumn" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="MoveToPosition" xml:space="preserve">
+    <value>Move to position...</value>
+  </data>
+  <data name="InsertBefore" xml:space="preserve">
+    <value>Insert before</value>
+  </data>
+  <data name="InsertAfter" xml:space="preserve">
+    <value>Insert after</value>
+  </data>
+  <data name="DeleteRule" xml:space="preserve">
+    <value>Delete rule</value>
+  </data>
+  <data name="ReadOnly" xml:space="preserve">
+    <value>Read only</value>
+  </data>
+  <data name="ReadOnlyTooltip" xml:space="preserve">
+    <value>This UFW line could not be parsed safely and cannot be mutated through the API.</value>
+  </data>
+  <data name="ReadOnlyAria" xml:space="preserve">
+    <value>Rule is read-only because it could not be parsed safely</value>
+  </data>
+  <data name="NoFirewallRules" xml:space="preserve">
+    <value>No firewall rules</value>
+  </data>
+  <data name="NoFirewallRulesDescription" xml:space="preserve">
+    <value>The authoritative UFW rule list is empty.</value>
+  </data>
+  <data name="AddRule" xml:space="preserve">
+    <value>Add rule</value>
+  </data>
+  <data name="OrderingLabel" xml:space="preserve">
+    <value>Ordering</value>
+  </data>
+  <data name="OrderingDescription" xml:space="preserve">
+    <value>Drag a rule by its handle or use "Move to position..." to stage a new order. Confirm the preview before the mocked ASP boundary is invoked. Insert-before/after actions open rule creation with the selected position context.</value>
+  </data>
+  <data name="MockApi" xml:space="preserve">
+    <value>Mock API</value>
+  </data>
+  <data name="ActionsForRule" xml:space="preserve">
+    <value>Actions for firewall rule {0}</value>
+  </data>
+  <data name="RuleActions" xml:space="preserve">
+    <value>Firewall rule actions</value>
+  </data>
+  <data name="DragRuleNumber" xml:space="preserve">
+    <value>Drag firewall rule {0} to reorder</value>
+  </data>
+  <data name="DragRule" xml:space="preserve">
+    <value>Drag firewall rule to reorder</value>
+  </data>
+  <data name="CannotOrderAmbiguous" xml:space="preserve">
+    <value>This rule cannot be addressed unambiguously for ordering.</value>
+  </data>
+  <data name="DragMockTitle" xml:space="preserve">
+    <value>Drag to stage a new order. Nothing is sent to the mock until you confirm the preview.</value>
+  </data>
+  <data name="DragRealTitle" xml:space="preserve">
+    <value>Drag to reorder this firewall rule.</value>
+  </data>
+  <data name="AnyFamily" xml:space="preserve">
+    <value>Any family</value>
+  </data>
+  <data name="AnyProtocol" xml:space="preserve">
+    <value>Any</value>
+  </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>Deny</value>
+  </data>
+  <data name="Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Limit" xml:space="preserve">
+    <value>Limit</value>
+  </data>
+  <data name="In" xml:space="preserve">
+    <value>In</value>
+  </data>
+  <data name="Out" xml:space="preserve">
+    <value>Out</value>
+  </data>
+  <data name="Forward" xml:space="preserve">
+    <value>Forward</value>
+  </data>
+  <data name="EndpointVia" xml:space="preserve">
+    <value>{0} via {1}</value>
+  </data>
+  <data name="EndpointPort" xml:space="preserve">
+    <value>{0} port {1}</value>
+  </data>
+  <data name="RuleMovedPreview" xml:space="preserve">
+    <value>Rule order updated in the local preview.</value>
+  </data>
+  <data name="RuleMoveFailed" xml:space="preserve">
+    <value>Could not preview the requested rule move.</value>
+  </data>
+  <data name="OrderingTargetRange" xml:space="preserve">
+    <value>Target position must be between 1 and {0}.</value>
+  </data>
+  <data name="OrderingAmbiguous" xml:space="preserve">
+    <value>The rule ID is ambiguous in the current snapshot.</value>
+  </data>
+  <data name="OrderingMissing" xml:space="preserve">
+    <value>The rule is not present in the current snapshot.</value>
+  </data>
+  <data name="PrivateKeyDetailedHelper" xml:space="preserve">
+    <value>Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored.</value>
+  </data>
+  <data name="NoInterfaceMatches" xml:space="preserve">
+    <value>No cached interface matches. You can still enter a valid interface name.</value>
+  </data>
+  <data name="CurrentFirewallRules" xml:space="preserve">
+    <value>Current firewall rules</value>
+  </data>
+  <data name="RuleNumber" xml:space="preserve">
+    <value>Rule number</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="LoadingEllipsis" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="RefreshingEllipsis" xml:space="preserve">
+    <value>Refreshing...</value>
+  </data>
+  <data name="LoadingAuthoritativeState" xml:space="preserve">
+    <value>Loading authoritative firewall state...</value>
+  </data>
+  <data name="DisplayedStateStale" xml:space="preserve">
+    <value>Displayed firewall state is stale</value>
+  </data>
+  <data name="RuleChangeAcceptedRefreshing" xml:space="preserve">
+    <value>Rule change accepted. Refreshing authoritative firewall state before allowing another mutation...</value>
+  </data>
+  <data name="ReloadAuthoritativeState" xml:space="preserve">
+    <value>Reload authoritative state</value>
+  </data>
+  <data name="AuthoritativeSnapshotStale" xml:space="preserve">
+    <value>Authoritative snapshot · stale</value>
+  </data>
+  <data name="AuthoritativeSnapshotRefreshing" xml:space="preserve">
+    <value>Authoritative snapshot · refreshing</value>
+  </data>
+  <data name="AuthoritativeSnapshotCurrent" xml:space="preserve">
+    <value>Authoritative snapshot · current</value>
+  </data>
+  <data name="DeleteStateChanged" xml:space="preserve">
+    <value>Firewall state changed while deletion was being confirmed. Refresh and try again.</value>
+  </data>
+  <data name="PositionOutside" xml:space="preserve">
+    <value>The requested rule position is outside the current rule list.</value>
+  </data>
+  <data name="MockMovedPosition" xml:space="preserve">
+    <value>Staged the rule at position {0}. UFW has not changed.</value>
+  </data>
+  <data name="StaleMutationCommittedList" xml:space="preserve">
+    <value>The rule change succeeded, but the client could not reload the authoritative rule list. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.</value>
+  </data>
+  <data name="StaleMutationUnknownList" xml:space="preserve">
+    <value>The client could not confirm whether the attempted rule change completed. The last successfully loaded snapshot is shown below and must be refreshed before another mutation.</value>
+  </data>
+  <data name="StaleMutationRejectedList" xml:space="preserve">
+    <value>The mutation was rejected in a way that requires authoritative firewall state to be reloaded before another change. Refresh before attempting another mutation.</value>
+  </data>
+  <data name="StaleRefreshFailedList" xml:space="preserve">
+    <value>The latest refresh failed. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.</value>
+  </data>
+  <data name="CreateAtEndInstead" xml:space="preserve">
+    <value>Create at end instead</value>
+  </data>
+  <data name="OrderedInsertionPending" xml:space="preserve">
+    <value>Ordered insertion pending</value>
+  </data>
+  <data name="OrderedRuleDefinitionDescription" xml:space="preserve">
+    <value>Define the rule to insert at the selected position. Submission remains disabled until the ordered-add contract is approved.</value>
+  </data>
+  <data name="CurrentRuleCountOne" xml:space="preserve">
+    <value>1 current rule</value>
+  </data>
+  <data name="CurrentRuleCountMany" xml:space="preserve">
+    <value>{0} current rules</value>
+  </data>
+  <data name="ApplyReordering" xml:space="preserve">
+    <value>Apply reordering</value>
+  </data>
+  <data name="ApplyingReordering" xml:space="preserve">
+    <value>Applying...</value>
+  </data>
+  <data name="MockOrderingApplied" xml:space="preserve">
+    <value>The mock ASP boundary accepted the staged ordering request. UFW was not changed; authoritative state was reloaded.</value>
+  </data>
+  <data name="DirectMovePositionAria" xml:space="preserve">
+    <value>Moved directly from position {0} to {1}.</value>
+  </data>
+  <data name="IndirectShiftPositionAria" xml:space="preserve">
+    <value>Shifted from position {0} to {1} because another rule moved.</value>
+  </data>
+</root>

@@ -1,0 +1,36 @@
+.ufw-command-preview,
+.delete-rule-summary {
+    margin-bottom: 1rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-background-gray);
+}
+
+.ufw-command-preview-label,
+.delete-rule-summary-label {
+    margin-bottom: 0.25rem;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.ufw-command-preview-value,
+.delete-rule-summary-value {
+    display: block;
+    color: var(--mud-palette-text-primary);
+    font-family: var(--ufw-font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.ufw-command-preview-empty {
+    margin: 0;
+}
+
+.ufw-command-preview-details {
+    margin-top: 0.5rem;
+}

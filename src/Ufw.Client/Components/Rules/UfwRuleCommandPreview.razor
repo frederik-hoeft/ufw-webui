@@ -1,0 +1,47 @@
+@inject IUfwRuleCommandRenderer UfwRuleCommandRenderer
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<div class="ufw-command-preview" role="group" aria-label="@EffectiveLabel">
+    <MudText Typo="Typo.overline" HtmlTag="div" Class="ufw-command-preview-label">@EffectiveLabel</MudText>
+    @if (TryGetCommandText(out string? commandText))
+    {
+        <code class="ufw-command-preview-value">@commandText</code>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ufw-command-preview-empty">
+            @RulesText["CommandPreviewEmpty"]
+        </MudText>
+    }
+    @if (Details is not null)
+    {
+        <div class="ufw-command-preview-details">
+            @Details
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public FirewallRuleSpecification Rule { get; set; } = null!;
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public RenderFragment? Details { get; set; }
+
+    private string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? RulesText["UfwRule"] : Label;
+
+    private bool TryGetCommandText(out string? commandText)
+    {
+        if (!UfwRuleCommandRenderer.TryRender(Rule, out UfwRenderedRule? renderedRule))
+        {
+            commandText = null;
+            return false;
+        }
+
+        commandText = renderedRule.DisplayText;
+        return true;
+    }
+}

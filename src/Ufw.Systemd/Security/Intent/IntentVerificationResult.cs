@@ -1,5 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Systemd.Security.Intent;
 

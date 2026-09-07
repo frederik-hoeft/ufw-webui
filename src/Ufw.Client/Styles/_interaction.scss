@@ -1,0 +1,27 @@
+a,
+button,
+[role="button"],
+[tabindex]:not([tabindex="-1"]) {
+    &:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+}
+
+// FocusOnNavigate intentionally focuses headings with tabindex=-1 so assistive
+// technology announces route changes. Suppress the browser's generic element
+// outline for that programmatic focus without affecting keyboard-focusable UI.
+[tabindex="-1"]:focus {
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

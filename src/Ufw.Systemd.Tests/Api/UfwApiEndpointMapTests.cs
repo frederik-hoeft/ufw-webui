@@ -1,4 +1,4 @@
-﻿using Ufw.Ipc.Shared.Model;
+﻿using Ufw.Shared.Ipc.Model;
 using Ufw.Systemd.Api;
 using Ufw.Systemd.Api.Endpoints;
 

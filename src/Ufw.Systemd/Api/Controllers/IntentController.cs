@@ -1,5 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model.Responses.Domain;
-using Ufw.Ipc.Shared.Security.Intent;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Security.Intent;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Routing;
 using Ufw.Systemd.Security.Intent;

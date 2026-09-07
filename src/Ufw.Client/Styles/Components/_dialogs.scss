@@ -1,0 +1,20 @@
+.delete-dialog-actions {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+
+.mud-dialog .mud-dialog-title {
+    position: relative;
+    display: flex;
+    min-height: 3.5rem;
+    box-sizing: border-box;
+    align-items: center;
+}
+
+.mud-dialog .mud-dialog-title .mud-button-close {
+    top: 50%;
+    transform: translateY(-50%);
+}

@@ -5,11 +5,11 @@ using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Client.Transport.Pipes;
 using Ufw.Ipc.Client.Transport.Security;
 using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
-using Ufw.Ipc.Shared.Security.Certificates;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Serialization.Json;
-using Ufw.Ipc.Shared.Transport.Itp;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Security.Certificates;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Ipc.Transport.Itp;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Roslyn.Json;
 
 namespace Ufw.Ipc.Client.Configuration;

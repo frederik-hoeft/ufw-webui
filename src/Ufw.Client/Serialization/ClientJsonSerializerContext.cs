@@ -9,4 +9,6 @@ namespace Ufw.Client.Serialization;
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(AuthTokenResponse))]
 [JsonSerializable(typeof(ApiProblemDetails))]
+[JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
+[JsonSerializable(typeof(UpdateNetworkInterfaceCommentRequest))]
 internal sealed partial class ClientJsonSerializerContext : JsonSerializerContext;

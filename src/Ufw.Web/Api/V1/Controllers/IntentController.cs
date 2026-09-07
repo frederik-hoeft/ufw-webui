@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 
 namespace Ufw.Web.Api.V1.Controllers;
 

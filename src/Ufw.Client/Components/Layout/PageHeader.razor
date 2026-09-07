@@ -1,0 +1,52 @@
+<header class="page-header">
+    @if (Breadcrumbs.Count > 0)
+    {
+        <MudBreadcrumbs Items="@Breadcrumbs" Separator="/" Class="page-breadcrumbs" />
+    }
+
+    <div class="page-header-row">
+        <div class="page-header-copy">
+            <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
+            @if (!string.IsNullOrWhiteSpace(Description))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="page-header-description">
+                    @Description
+                </MudText>
+            }
+        </div>
+
+        @if (Actions is not null)
+        {
+            <div class="page-header-actions">
+                @Actions
+            </div>
+        }
+    </div>
+
+    @if (ShowStatus && Status is not null)
+    {
+        <div class="page-status-strip" role="status" aria-live="polite">
+            @Status
+        </div>
+    }
+</header>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<BreadcrumbItem> Breadcrumbs { get; set; } = [];
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    [Parameter]
+    public RenderFragment? Status { get; set; }
+
+    [Parameter]
+    public bool ShowStatus { get; set; } = true;
+}

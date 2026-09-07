@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Title" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Description" xml:space="preserve"><value>Browserlokale Einstellungen und Verwaltungsdaten dieser Konsole.</value></data>
+  <data name="SystemBreadcrumb" xml:space="preserve"><value>System</value></data>
+  <data name="AppearanceTitle" xml:space="preserve"><value>Darstellung</value></data>
+  <data name="AppearanceDescription" xml:space="preserve"><value>Design- und Spracheinstellungen werden nur in diesem Browser gespeichert und beeinflussen das Firewallverhalten nicht.</value></data>
+  <data name="ThemeLabel" xml:space="preserve"><value>Design</value></data>
+  <data name="ThemeDescription" xml:space="preserve"><value>Wählen Sie das helle oder dunkle Konsolendesign.</value></data>
+  <data name="LanguageLabel" xml:space="preserve"><value>Sprache</value></data>
+  <data name="LanguageDescription" xml:space="preserve"><value>Wählen Sie die Sprache für diesen Browser. Eine Änderung lädt die Konsole neu.</value></data>
+  <data name="LanguageAria" xml:space="preserve"><value>Sprache</value></data>
+  <data name="HostDataTitle" xml:space="preserve"><value>Hostdaten</value></data>
+  <data name="HostDataDescription" xml:space="preserve"><value>Verwalten Sie browserseitige Betriebsdaten, die beim Erstellen von Regeln helfen, ohne zur Firewall-Autorität zu werden.</value></data>
+  <data name="InterfaceInventoryTitle" xml:space="preserve"><value>Netzwerkschnittstellenbestand</value></data>
+  <data name="InterfaceInventoryDescription" xml:space="preserve"><value>Prüfen und synchronisieren Sie Schnittstellennamen für die Freitext-Autovervollständigung in Firewallregeln.</value></data>
+  <data name="ManageInterfaces" xml:space="preserve"><value>Schnittstellen verwalten</value></data>
+</root>

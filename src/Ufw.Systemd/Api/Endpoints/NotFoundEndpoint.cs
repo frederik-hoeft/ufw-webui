@@ -1,5 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Serialization;
+﻿using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Systemd.Api.Endpoints;
 

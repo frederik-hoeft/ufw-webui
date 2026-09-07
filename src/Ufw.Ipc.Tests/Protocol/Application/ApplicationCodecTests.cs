@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using System.Text.Json;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Protocol;
-using Ufw.Ipc.Shared.Serialization;
-using Ufw.Ipc.Shared.Serialization.Json;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Ipc.Tests.Adapter.Serialization;
 
 namespace Ufw.Ipc.Tests.Protocol.Application;

@@ -1,5 +1,5 @@
 ﻿using Ufw.Ipc.Client.Transport;
-using Ufw.Ipc.Shared.Transport;
+using Ufw.Shared.Ipc.Transport;
 
 namespace Ufw.Ipc.Tests.Adapter.Transport;
 

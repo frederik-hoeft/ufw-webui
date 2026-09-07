@@ -1,5 +1,5 @@
-﻿using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Requests.Domain;
+﻿using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Routing;
 using Ufw.Systemd.Firewall;

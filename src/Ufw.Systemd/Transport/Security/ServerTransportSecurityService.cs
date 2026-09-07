@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using Ufw.Ipc.Shared.Security.Certificates;
-using Ufw.Ipc.Shared.Threading;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Security.Certificates;
+using Ufw.Shared.Threading;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Transport.Security.CertificateValidation;

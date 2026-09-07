@@ -1,5 +1,5 @@
 ﻿using System.Collections.Immutable;
-using Ufw.Ipc.Shared.Pipelines;
+using Ufw.Shared.Ipc.Pipelines;
 
 namespace Ufw.Systemd.Configuration.Providers;
 

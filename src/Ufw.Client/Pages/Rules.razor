@@ -1,21 +1,22 @@
-@page "/"
+@page "/rules"
 @attribute [Authorize]
 @implements IDisposable
 @inject IUfwApiClient UfwApiClient
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
+@inject IRuleOrderingApiClient RuleOrderingApiClient
+@inject IRuleOrderingProjectionService RuleOrderingProjection
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
 
-<PageTitle>Firewall rules - UFW Management</PageTitle>
+<PageTitle>@RulesText["RulesPageTitle"] - UFW Console</PageTitle>
 
-<header class="page-header mb-5">
-    <div class="page-header-copy">
-        <MudText Typo="Typo.h4" HtmlTag="h1">Firewall rules</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Authoritative rules reported by the privileged UFW daemon.
-        </MudText>
-    </div>
-    <div class="page-header-actions">
+<PageHeader Title="@(RulesText["RulesTitle"])"
+            Description="@(RulesText["RulesDescription"])"
+            Breadcrumbs="@Breadcrumbs"
+            ShowStatus="@(_state.Snapshot is not null)">
+    <Actions>
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    Disabled="@IsBusy"
@@ -23,38 +24,66 @@
                    Class="page-header-button">
             @RefreshButtonLabel
         </MudButton>
-    </div>
-</header>
+        <MudButton Href="/rules/create"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@(!CanMutateFirewall)"
+                   Class="page-header-button">
+            @RulesText["AddRule"]
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_state.Snapshot is { } headerSnapshot)
+        {
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@(headerSnapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
+                @(headerSnapshot.FirewallActive ? RulesText["FirewallActive"] : RulesText["FirewallInactive"])
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeRuleCount(headerSnapshot.Rules.Count)
+            </MudChip>
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
+                @DescribeSnapshotStatus()
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
 
 @if (_state.Status == RulesPageStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">Firewall state could not be loaded</MudText>
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LoadFailed"]</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@_state.Error?.Message</MudText>
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    Disabled="@IsBusy"
                    OnClick="RefreshAsync">
-            Retry
+            @CommonText["Retry"]
         </MudButton>
     </MudAlert>
 }
 else if (_state.Snapshot is null)
 {
     <MudPaper Class="pa-5" Elevation="1" role="status" aria-live="polite">
-        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="Loading firewall state" />
+        <MudProgressLinear Indeterminate="true" Class="mb-3" aria-label="@(RulesText["LoadingStateAria"])" />
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Loading authoritative firewall state...
+            @RulesText["LoadingAuthoritativeState"]
         </MudText>
     </MudPaper>
 }
-else if (_state.Snapshot is { } snapshot)
+else if (_state.Snapshot is { })
 {
     @if (_state.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">Displayed firewall state is stale</MudText>
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["DisplayedStateStale"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">@DescribeStaleState()</MudText>
             @if (_state.Error is not null)
             {
@@ -65,7 +94,7 @@ else if (_state.Snapshot is { } snapshot)
                        StartIcon="@Icons.Material.Filled.Refresh"
                        Disabled="@IsBusy"
                        OnClick="RefreshAsync">
-                Refresh authoritative state
+                @RulesText["RefreshAuthoritative"]
             </MudButton>
         </MudAlert>
     }
@@ -74,36 +103,58 @@ else if (_state.Snapshot is { } snapshot)
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">
                 @(_state.RefreshReason == RuleRefreshReason.AfterMutation
-                    ? "Rule change accepted. Refreshing authoritative firewall state before allowing another mutation..."
-                    : "Refreshing authoritative firewall state...")
+                    ? RulesText["RuleChangeAcceptedRefreshing"]
+                    : RulesText["RefreshingAuthoritative"])
             </MudText>
         </MudAlert>
     }
-    else if (IsDeleting)
+    else if (_deleting)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
-            <MudText Typo="Typo.body2">Deleting signed firewall rule...</MudText>
+            <MudText Typo="Typo.body2">@RulesText["DeletingRule"]</MudText>
         </MudAlert>
     }
 
-    <RuleEditor @key="_draft"
-                Rule="@_draft"
-                FirewallActive="@snapshot.FirewallActive"
-                Disabled="@(!CanMutate)"
-                Submitting="@IsAdding"
-                @bind-PrivateKey="_addPrivateKey"
-                OnSubmit="AddRuleAsync" />
+    @if (HasOrderingPreview)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5 rule-ordering-preview-alert" role="status" aria-live="polite">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LocalOrderingPreview"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">@RulesText["LocalOrderingPreviewDescription"]</MudText>
+            <div class="rule-ordering-preview-actions">
+                <MudButton Variant="Variant.Text" Disabled="@_reordering" OnClick="DiscardOrderingPreview">
+                    @RulesText["DiscardPreview"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           Disabled="@_reordering"
+                           OnClick="RefreshAsync">
+                    @RulesText["ReloadAuthoritativeState"]
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Disabled="@_reordering"
+                           OnClick="ApplyOrderingPreviewAsync">
+                    @(_reordering ? RulesText["ApplyingReordering"] : RulesText["ApplyReordering"])
+                </MudButton>
+            </div>
+        </MudAlert>
+    }
 
-    <RuleTable Rules="@snapshot.Rules"
-               Loading="@(_state.Status == RulesPageStatus.Refreshing)"
-               Disabled="@(!CanMutate)"
-               DeleteRequested="BeginDeleteAsync" />
+    <RuleTable Rules="@DisplayedRules"
+               OrderingPreview="@_orderingPreview"
+               Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+               Disabled="@(!CanMutateFirewall)"
+               OrderingDisabled="@(!CanPreviewOrdering)"
+               InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
+               OrderingUsesMockData="@RuleOrderingApiClient.UsesMockData"
+               DeleteRequested="BeginDeleteAsync"
+               MoveRequested="MoveRuleAsync" />
 }
 
 @code {
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
-        BackdropClick = true,
+        BackdropClick = false,
         CloseButton = true,
         CloseOnEscapeKey = true,
         DefaultFocus = DefaultFocus.FirstChild,
@@ -113,27 +164,50 @@ else if (_state.Snapshot is { } snapshot)
 
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
-    private FirewallRuleSpecification _draft = CreateDefaultRule();
-    private string _addPrivateKey = string.Empty;
     private bool _deleteDialogOpen;
-    private RuleMutationOperation _mutation;
+    private bool _deleting;
+    private bool _reordering;
+    private RuleOrderingPreview? _orderingPreview;
 
-    private bool IsAdding => _mutation == RuleMutationOperation.Add;
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new BreadcrumbItem(RulesText["FirewallBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(RulesText["RulesBreadcrumb"], null, disabled: true),
+    ];
 
-    private bool IsDeleting => _mutation == RuleMutationOperation.Delete;
+    private bool HasOrderingPreview => _orderingPreview is not null;
 
-    private bool IsMutating => _mutation != RuleMutationOperation.None;
+    private IReadOnlyList<ListedFirewallRule> DisplayedRules
+        => _orderingPreview?.Rules ?? _state.Snapshot?.Rules ?? [];
 
-    private bool IsBusy => _state.IsLoading || IsMutating || _deleteDialogOpen;
+    private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering;
 
-    private bool CanMutate => _state.IsCurrent && !IsMutating && !_deleteDialogOpen;
+    private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !HasOrderingPreview;
+
+    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering;
 
     private string RefreshButtonLabel => _state.Status switch
     {
-        RulesPageStatus.Loading => "Loading...",
-        RulesPageStatus.Refreshing => "Refreshing...",
-        _ => "Refresh",
+        RulesPageStatus.Loading => RulesText["LoadingEllipsis"],
+        RulesPageStatus.Refreshing => RulesText["RefreshingEllipsis"],
+        _ => CommonText["Refresh"],
     };
+
+    private string DescribeRuleCount(int count) => count == 1
+        ? RulesText["RuleCountOne"]
+        : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
+
+    private string DescribeSnapshotStatus()
+    {
+        if (_state.IsStale)
+        {
+            return RulesText["AuthoritativeSnapshotStale"];
+        }
+
+        return _state.Status == RulesPageStatus.Refreshing
+            ? RulesText["AuthoritativeSnapshotRefreshing"]
+            : RulesText["AuthoritativeSnapshotCurrent"];
+    }
 
     protected override async Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
 
@@ -160,10 +234,11 @@ else if (_state.Snapshot is { } snapshot)
             return;
         }
 
+        _orderingPreview = null;
         _state = _state.BeginRefresh(reason);
         try
         {
-            Ufw.Ipc.Shared.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -171,46 +246,13 @@ else if (_state.Snapshot is { } snapshot)
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            ClientError error = ClientErrors.Describe(exception);
-            _state = _state.FailRefresh(error);
-        }
-    }
-
-    private async Task AddRuleAsync()
-    {
-        if (!CanMutate || string.IsNullOrWhiteSpace(_addPrivateKey))
-        {
-            return;
-        }
-
-        _mutation = RuleMutationOperation.Add;
-        try
-        {
-            FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
-            await UfwApiClient.AddRuleAsync(normalized, _addPrivateKey, _lifetime.Token);
-            Snackbar.Add("Firewall rule added.", Severity.Success);
-            _draft = CreateDefaultRule();
-            _addPrivateKey = string.Empty;
-            _mutation = RuleMutationOperation.None;
-            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
-        {
-            HandleMutationFailure(ClientErrors.Describe(exception));
-        }
-        finally
-        {
-            _addPrivateKey = string.Empty;
-            _mutation = RuleMutationOperation.None;
+            _state = _state.FailRefresh(ClientErrors.Describe(exception));
         }
     }
 
     private async Task BeginDeleteAsync(ListedFirewallRule rule)
     {
-        if (!CanMutate || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
+        if (!CanMutateFirewall || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
         {
             return;
         }
@@ -223,7 +265,7 @@ else if (_state.Snapshot is { } snapshot)
             parameters.Add(component => component.Rule, rule);
 
             IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(
-                "Delete firewall rule",
+                RulesText["DeleteDialogTitle"],
                 parameters,
                 s_deleteDialogOptions);
             privateKey = await dialog.GetReturnValueAsync<string>();
@@ -245,9 +287,9 @@ else if (_state.Snapshot is { } snapshot)
                 return;
             }
 
-            if (!CanMutate)
+            if (!CanMutateFirewall)
             {
-                Snackbar.Add("Firewall state changed while deletion was being confirmed. Refresh and try again.", Severity.Warning);
+                Snackbar.Add(RulesText["DeleteStateChanged"], Severity.Warning);
                 return;
             }
 
@@ -261,12 +303,12 @@ else if (_state.Snapshot is { } snapshot)
 
     private async Task DeleteRuleAsync(ListedFirewallRule rule, string privateKey)
     {
-        _mutation = RuleMutationOperation.Delete;
+        _deleting = true;
         try
         {
             await UfwApiClient.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
-            Snackbar.Add("Firewall rule deleted.", Severity.Success);
-            _mutation = RuleMutationOperation.None;
+            Snackbar.Add(RulesText["RuleDeleted"], Severity.Success);
+            _deleting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -278,7 +320,79 @@ else if (_state.Snapshot is { } snapshot)
         }
         finally
         {
-            _mutation = RuleMutationOperation.None;
+            _deleting = false;
+        }
+    }
+
+    private Task MoveRuleAsync(RuleMoveRequest request)
+    {
+        if (!CanPreviewOrdering || string.IsNullOrWhiteSpace(request.RuleId))
+        {
+            return Task.CompletedTask;
+        }
+
+        IReadOnlyList<ListedFirewallRule> authoritativeRules = _state.Snapshot?.Rules ?? [];
+        if (request.TargetPosition < 1 || request.TargetPosition > DisplayedRules.Count)
+        {
+            Snackbar.Add(RulesText["PositionOutside"], Severity.Warning);
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            _orderingPreview = RuleOrderingProjection.Move(authoritativeRules, _orderingPreview, request);
+            Snackbar.Add(
+                RulesText["MockMovedPosition", request.TargetPosition.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)],
+                Severity.Info);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Snackbar.Add(exception.Message, Severity.Warning);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ApplyOrderingPreviewAsync()
+    {
+        if (_orderingPreview is null || _reordering)
+        {
+            return;
+        }
+
+        _reordering = true;
+        try
+        {
+            await RuleOrderingApiClient.ApplyAsync(
+                new RuleOrderingApplyRequest(_orderingPreview.Moves),
+                _lifetime.Token);
+
+            if (RuleOrderingApiClient.UsesMockData)
+            {
+                Snackbar.Add(RulesText["MockOrderingApplied"], Severity.Info);
+            }
+
+            _reordering = false;
+            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
+        }
+        finally
+        {
+            _reordering = false;
+        }
+    }
+
+    private void DiscardOrderingPreview()
+    {
+        if (!_reordering)
+        {
+            _orderingPreview = null;
         }
     }
 
@@ -288,35 +402,11 @@ else if (_state.Snapshot is { } snapshot)
         Snackbar.Add(error.Message, Severity.Error);
     }
 
-    private string DescribeStaleState()
+    private string DescribeStaleState() => _state.StaleReason switch
     {
-        return _state.StaleReason switch
-        {
-            RuleSnapshotStaleReason.MutationCommitted
-                => "The rule change succeeded, but the client could not reload the authoritative rule list. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.",
-            RuleSnapshotStaleReason.MutationOutcomeUnknown
-                => "The client could not confirm whether the attempted rule change completed. The last successfully loaded snapshot is shown below and must be refreshed before another mutation.",
-            RuleSnapshotStaleReason.MutationRejectedRequiresRefresh
-                => "The mutation was rejected in a way that requires authoritative firewall state to be reloaded before another change. Refresh before attempting another mutation.",
-            _
-                => "The latest refresh failed. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.",
-        };
-    }
-
-    private static FirewallRuleSpecification CreateDefaultRule() => new()
-    {
-        Action = FirewallAction.Allow,
-        AddressFamily = FirewallAddressFamily.Any,
-        Direction = FirewallDirection.In,
-        Protocol = FirewallProtocol.Any,
-        Source = RuleSpecificationNormalizer.ANY,
-        Destination = RuleSpecificationNormalizer.ANY,
+        RuleSnapshotStaleReason.MutationCommitted => RulesText["StaleMutationCommittedList"],
+        RuleSnapshotStaleReason.MutationOutcomeUnknown => RulesText["StaleMutationUnknownList"],
+        RuleSnapshotStaleReason.MutationRejectedRequiresRefresh => RulesText["StaleMutationRejectedList"],
+        _ => RulesText["StaleRefreshFailedList"],
     };
-
-    private enum RuleMutationOperation
-    {
-        None,
-        Add,
-        Delete,
-    }
 }

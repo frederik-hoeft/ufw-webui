@@ -1,8 +1,8 @@
 ﻿using System.Buffers.Binary;
 using System.Diagnostics;
-using Ufw.Ipc.Shared.Model;
-using Ufw.Ipc.Shared.Model.Responses;
-using Ufw.Ipc.Shared.Transport.Itp;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Transport.Itp;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 

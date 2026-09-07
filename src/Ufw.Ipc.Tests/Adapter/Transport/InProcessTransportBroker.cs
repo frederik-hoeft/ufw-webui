@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
-using Ufw.Ipc.Shared.Transport;
+using Ufw.Shared.Ipc.Transport;
 
 namespace Ufw.Ipc.Tests.Adapter.Transport;
 

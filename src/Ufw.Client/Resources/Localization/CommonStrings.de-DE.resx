@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="SkipToMainContent" xml:space="preserve">
+    <value>Zum Hauptinhalt springen</value>
+  </data>
+  <data name="ToggleNavigation" xml:space="preserve">
+    <value>Navigation umschalten</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Abmelden</value>
+  </data>
+  <data name="SigningOut" xml:space="preserve">
+    <value>Abmeldung...</value>
+  </data>
+  <data name="CouldNotSignOut" xml:space="preserve">
+    <value>Abmeldung fehlgeschlagen. {0} Sie sind weiterhin angemeldet.</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>Erneut versuchen</value>
+  </data>
+  <data name="Retrying" xml:space="preserve">
+    <value>Erneuter Versuch...</value>
+  </data>
+  <data name="ReloadApplication" xml:space="preserve">
+    <value>Anwendung neu laden</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Aktualisieren</value>
+  </data>
+  <data name="Checking" xml:space="preserve">
+    <value>Wird geprüft</value>
+  </data>
+  <data name="CheckingEllipsis" xml:space="preserve">
+    <value>Wird geprüft...</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unbekannt</value>
+  </data>
+  <data name="Unavailable" xml:space="preserve">
+    <value>Nicht verfügbar</value>
+  </data>
+  <data name="Available" xml:space="preserve">
+    <value>Verfügbar</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Aktiv</value>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>Inaktiv</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Hell</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Dunkel</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Design</value>
+  </data>
+  <data name="ToggleThemeToLight" xml:space="preserve">
+    <value>Zum hellen Design wechseln</value>
+  </data>
+  <data name="ToggleThemeToDark" xml:space="preserve">
+    <value>Zum dunklen Design wechseln</value>
+  </data>
+  <data name="ThemeEnabledSwitchLight" xml:space="preserve">
+    <value>Dunkles Design aktiviert. Zum hellen Design wechseln</value>
+  </data>
+  <data name="ThemeEnabledSwitchDark" xml:space="preserve">
+    <value>Helles Design aktiviert. Zum dunklen Design wechseln</value>
+  </data>
+</root>

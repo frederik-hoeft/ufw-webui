@@ -1,11 +1,15 @@
 using System.Net;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Ufw.Client.Api;
+using Ufw.Client.Localization;
 
 namespace Ufw.Client.Errors;
 
-internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logger) : IClientErrorMapper
+internal sealed partial class ClientErrorMapper(
+    ILogger<ClientErrorMapper> logger,
+    IStringLocalizer<ErrorsStrings> errorsText) : IClientErrorMapper
 {
     public bool TryDescribe(Exception exception, out ClientError clientError)
     {
@@ -17,19 +21,19 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
             ApiProtocolException protocolException => DescribeProtocolError(protocolException),
             HttpRequestException => new(
                 ClientErrorKind.Unavailable,
-                "The management API is unavailable. Check the connection and try again.",
+                errorsText["ApiUnavailable"],
                 Retryable: true),
             OperationCanceledException => new(
                 ClientErrorKind.Canceled,
-                "The operation was canceled before it completed.",
+                errorsText["OperationCanceled"],
                 Retryable: true),
             BrowserOperationException or JSException or JSDisconnectedException => new(
                 ClientErrorKind.Browser,
-                "The browser could not complete a required security operation. Try again in a supported browser.",
+                errorsText["BrowserSecurityOperationFailed"],
                 Retryable: true),
-            ArgumentException argumentException => new(
+            ArgumentException => new(
                 ClientErrorKind.RequestRejected,
-                argumentException.Message,
+                errorsText["ClientValidationRejected"],
                 Retryable: false),
             _ => null,
         };
@@ -48,24 +52,27 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
     {
         if (TryDescribe(exception, out ClientError clientError))
         {
+            LogKnownFailure(exception);
             return clientError;
         }
 
-        LogUnexpectedClientError(logger, exception);
+        string reference = GetOrCreateDiagnosticReference(exception);
+        LogUnexpectedClientError(logger, reference, exception);
         return new(
             ClientErrorKind.Unexpected,
-            "An unexpected error occurred. Refresh the application and try again.",
-            Retryable: true);
+            errorsText["Unexpected"],
+            Retryable: true,
+            DiagnosticReference: reference);
     }
 
-    private static ClientError DescribeApiRequest(ApiRequestException exception)
+    private ClientError DescribeApiRequest(ApiRequestException exception)
     {
         int statusCode = (int)exception.StatusCode;
         if (exception.StatusCode == HttpStatusCode.Unauthorized)
         {
             return new(
                 ClientErrorKind.Unauthorized,
-                "Your session is no longer valid. Sign in again.",
+                errorsText["SessionInvalid"],
                 Retryable: false);
         }
 
@@ -73,7 +80,7 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
         {
             return new(
                 ClientErrorKind.Forbidden,
-                "You do not have permission to perform this operation.",
+                errorsText["Forbidden"],
                 Retryable: false);
         }
 
@@ -86,7 +93,7 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
         {
             return new(
                 ClientErrorKind.RequestRejected,
-                "The requested resource no longer exists. Refresh and try again.",
+                errorsText["ResourceMissing"],
                 Retryable: true);
         }
 
@@ -100,28 +107,78 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
         {
             return new(
                 ClientErrorKind.Unavailable,
-                "The management API could not complete the request. Try again.",
+                errorsText["ApiCouldNotComplete"],
                 Retryable: true);
         }
 
         return new(
             ClientErrorKind.RequestRejected,
-            "The management API rejected the request.",
+            errorsText["ApiRejected"],
             Retryable: false);
     }
 
-    [LoggerMessage(LogLevel.Error, "An unexpected client error occurred.")]
-    private static partial void LogUnexpectedClientError(ILogger logger, Exception exception);
+    [LoggerMessage(LogLevel.Error, "Unexpected client error {DiagnosticReference}.")]
+    private static partial void LogUnexpectedClientError(ILogger logger, string diagnosticReference, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Management API request {Method} {RequestUri} failed with HTTP {StatusCode}.")]
+    private static partial void LogApiRequestFailure(
+        ILogger logger,
+        string method,
+        string requestUri,
+        int statusCode,
+        Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Management API transport failed.")]
+    private static partial void LogApiTransportFailure(ILogger logger, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "The browser could not complete a required client operation.")]
+    private static partial void LogBrowserOperationFailure(ILogger logger, Exception exception);
 
     [LoggerMessage(LogLevel.Warning, "The management API returned an invalid or incompatible response.")]
     private static partial void LogProtocolError(ILogger logger, Exception exception);
 
+    private static string GetOrCreateDiagnosticReference(Exception exception)
+    {
+        const string key = "Ufw.Client.DiagnosticReference";
+        if (exception.Data[key] is string existing && !string.IsNullOrWhiteSpace(existing))
+        {
+            return existing;
+        }
+
+        string reference = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant();
+        exception.Data[key] = reference;
+        return reference;
+    }
+
+    private void LogKnownFailure(Exception exception)
+    {
+        switch (exception)
+        {
+            case ApiRequestException apiException:
+                LogApiRequestFailure(
+                    logger,
+                    apiException.Method?.Method ?? "?",
+                    apiException.RequestUri?.PathAndQuery ?? "?",
+                    (int)apiException.StatusCode,
+                    apiException);
+                break;
+            case ApiProtocolException protocolException:
+                LogProtocolError(logger, protocolException);
+                break;
+            case HttpRequestException httpException:
+                LogApiTransportFailure(logger, httpException);
+                break;
+            case BrowserOperationException or JSException or JSDisconnectedException:
+                LogBrowserOperationFailure(logger, exception);
+                break;
+        }
+    }
+
     private ClientError DescribeProtocolError(ApiProtocolException exception)
     {
-        LogProtocolError(logger, exception);
         return new(
             ClientErrorKind.Protocol,
-            "The management API returned a response this client could not understand. Check that the client and server versions match.",
+            errorsText["ProtocolMismatch"],
             Retryable: false);
     }
 }

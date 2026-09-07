@@ -1,5 +1,5 @@
 ﻿using System.Security.Cryptography;
-using Ufw.Ipc.Shared.Security.Intent;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;

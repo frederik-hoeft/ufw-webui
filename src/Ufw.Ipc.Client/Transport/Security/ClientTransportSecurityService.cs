@@ -2,9 +2,9 @@
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
-using Ufw.Ipc.Shared.Security.Certificates;
-using Ufw.Ipc.Shared.Threading;
-using Ufw.Ipc.Shared.Transport.Security;
+using Ufw.Shared.Security.Certificates;
+using Ufw.Shared.Threading;
+using Ufw.Shared.Ipc.Transport.Security;
 
 namespace Ufw.Ipc.Client.Transport.Security;
 

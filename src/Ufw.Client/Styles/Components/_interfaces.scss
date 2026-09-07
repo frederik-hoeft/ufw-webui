@@ -1,0 +1,94 @@
+.interface-inventory-card {
+    overflow: hidden;
+}
+
+.interface-inventory-heading {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.interface-inventory-loading,
+.interface-inventory-empty {
+    display: grid;
+    gap: 0.75rem;
+    padding: 2rem 1.5rem;
+}
+
+.interface-inventory-loading {
+    max-width: 32rem;
+}
+
+.interface-inventory-empty {
+    justify-items: center;
+    padding-block: 3rem;
+    text-align: center;
+}
+
+.interface-inventory-table {
+    .mud-table-head .mud-table-cell {
+        background: var(--mud-palette-background-gray);
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .mud-table-cell {
+        border-color: var(--mud-palette-table-lines);
+    }
+}
+
+.interface-name {
+    color: var(--mud-palette-text-primary);
+    font-family: var(--ufw-font-mono);
+    font-size: 0.8125rem;
+}
+
+.interface-comment-cell {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.interface-comment,
+.interface-comment-empty {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.interface-comment-empty {
+    color: var(--mud-palette-text-secondary);
+}
+
+.interface-comment-cell .mud-button-root {
+    flex: 0 0 auto;
+}
+
+
+.interface-inventory-mobile {
+    display: none;
+}
+
+.interface-mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.interface-mobile-row:last-child {
+    border-bottom: 0;
+}
+
+.interface-mobile-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.25rem;
+}
+
+.interface-mobile-row .mud-button-root {
+    flex: 0 0 auto;
+}

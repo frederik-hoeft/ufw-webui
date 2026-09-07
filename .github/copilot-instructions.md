@@ -7,7 +7,8 @@ UFW WebUI is a .NET 10 solution with a Blazor WebAssembly client, a network-faci
 - `Ufw.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, and browser-side signed-intent creation.
 - `Ufw.Web` is the REST API. It owns ASP.NET Core Identity, EF Core application state, JWT/refresh-token handling, application authorization, browser-facing data models, and the local IPC client.
 - `Ufw.Systemd` is the privileged daemon and the authority for actual UFW state.
-- `Ufw.Ipc.Client` and `Ufw.Ipc.Shared` implement the typed local IPC protocol.
+- `Ufw.Shared` owns shared firewall/security/threading primitives and the `Ufw.Shared.Ipc` protocol, serialization, and transport contract.
+- `Ufw.Ipc.Client` implements the typed local IPC client on top of `Ufw.Shared.Ipc`.
 - `Ufw.Roslyn` and `Ufw.Roslyn.SourceGen` support daemon-side source-generated routing.
 
 Read [docs/architecture.md](../docs/architecture.md) before changing subsystem boundaries and [security/architecture-baseline.md](../security/architecture-baseline.md) before working on authentication, authorization, IPC, or firewall mutations.

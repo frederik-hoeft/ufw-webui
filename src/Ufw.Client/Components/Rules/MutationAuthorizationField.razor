@@ -1,0 +1,34 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTextField T="string"
+              Label="@(RulesText["PrivateKeyLabel"])"
+              InputType="InputType.Password"
+              Value="@Value"
+              name="intent-private-key"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              ValueChanged="ValueChangedAsync"
+              Disabled="@Disabled"
+              Required="true"
+              RequiredError="@(RulesText["PrivateKeyRequired"])"
+              HelperText="@(RulesText["PrivateKeyDetailedHelper"])"
+              Placeholder="data:application/pkcs8;base64,..."
+              Immediate="true" />
+
+@code {
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private async Task ValueChangedAsync(string? value)
+    {
+        Value = value ?? string.Empty;
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

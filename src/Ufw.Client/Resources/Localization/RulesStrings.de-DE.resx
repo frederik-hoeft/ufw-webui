@@ -1,0 +1,516 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="RulesPageTitle" xml:space="preserve">
+    <value>Firewallregeln</value>
+  </data>
+  <data name="RulesTitle" xml:space="preserve">
+    <value>Firewallregeln</value>
+  </data>
+  <data name="RulesDescription" xml:space="preserve">
+    <value>Geordnete UFW-Regeln aus dem autoritativen Firewall-Snapshot.</value>
+  </data>
+  <data name="CreatePageTitle" xml:space="preserve">
+    <value>Firewallregel hinzufügen</value>
+  </data>
+  <data name="CreateTitle" xml:space="preserve">
+    <value>Firewallregel hinzufügen</value>
+  </data>
+  <data name="CreateDescription" xml:space="preserve">
+    <value>Erstellen und autorisieren Sie eine neue Regel. Das aktuelle Backend hängt signierte neue Regeln an das Ende der Regelliste an.</value>
+  </data>
+  <data name="CreateOrderedDescription" xml:space="preserve">
+    <value>Entwerfen Sie eine Regel für die ausgewählte Position. Das Absenden bleibt deaktiviert, bis der Vertrag für Ordnungsänderungen entworfen ist.</value>
+  </data>
+  <data name="FirewallBreadcrumb" xml:space="preserve">
+    <value>Firewall</value>
+  </data>
+  <data name="RulesBreadcrumb" xml:space="preserve">
+    <value>Regeln</value>
+  </data>
+  <data name="AddRuleBreadcrumb" xml:space="preserve">
+    <value>Regel hinzufügen</value>
+  </data>
+  <data name="BackToRules" xml:space="preserve">
+    <value>Zurück zu Regeln</value>
+  </data>
+  <data name="FirewallActive" xml:space="preserve">
+    <value>Firewall aktiv</value>
+  </data>
+  <data name="FirewallInactive" xml:space="preserve">
+    <value>Firewall inaktiv</value>
+  </data>
+  <data name="RuleCountOne" xml:space="preserve">
+    <value>1 Regel</value>
+  </data>
+  <data name="RuleCountMany" xml:space="preserve">
+    <value>{0} Regeln</value>
+  </data>
+  <data name="CurrentSnapshot" xml:space="preserve">
+    <value>Aktueller Snapshot</value>
+  </data>
+  <data name="StaleSnapshot" xml:space="preserve">
+    <value>Veralteter Snapshot</value>
+  </data>
+  <data name="LoadFailed" xml:space="preserve">
+    <value>Firewallstatus konnte nicht geladen werden</value>
+  </data>
+  <data name="LoadingStateAria" xml:space="preserve">
+    <value>Firewallstatus wird geladen</value>
+  </data>
+  <data name="LoadingBeforeCreate" xml:space="preserve">
+    <value>Autoritativer Firewallstatus wird geladen, bevor das Erstellen von Regeln aktiviert wird...</value>
+  </data>
+  <data name="LoadingRules" xml:space="preserve">
+    <value>Autoritative Firewallregeln werden geladen...</value>
+  </data>
+  <data name="StaleTitle" xml:space="preserve">
+    <value>Autoritativer Firewallstatus muss aktualisiert werden</value>
+  </data>
+  <data name="RefreshAuthoritative" xml:space="preserve">
+    <value>Autoritativen Status aktualisieren</value>
+  </data>
+  <data name="RuleSubmissionConfirming" xml:space="preserve">
+    <value>Regel wurde übermittelt. Der autoritative Firewallstatus wird geprüft, bevor zur Regelliste zurückgekehrt wird...</value>
+  </data>
+  <data name="RefreshingAuthoritative" xml:space="preserve">
+    <value>Autoritativer Firewallstatus wird aktualisiert...</value>
+  </data>
+  <data name="OrderedInsertionPrototype" xml:space="preserve">
+    <value>Prototyp für geordnetes Einfügen</value>
+  </data>
+  <data name="OrderedInsertionDescription" xml:space="preserve">
+    <value>Der Browser kann Einfügekontext aus der Regeltabelle übernehmen, geordnetes Erstellen wird jedoch noch nicht übermittelt. REST-Form, Signed-Intent-Operation, Vorbedingung für veraltete Reihenfolgen und Daemon/UFW-Einfügesemantik benötigen Designfreigabe. Der bestehende signierte Add-Endpunkt bleibt weiterhin ausschließlich anhängend.</value>
+  </data>
+  <data name="OrderedInsertionDisabled" xml:space="preserve">
+    <value>Geordnetes Einfügen wird noch nicht autorisiert oder übermittelt.</value>
+  </data>
+  <data name="DeletingRule" xml:space="preserve">
+    <value>Signierte Firewallregel wird gelöscht...</value>
+  </data>
+  <data name="LocalOrderingPreview" xml:space="preserve">
+    <value>Lokale Reihenfolgevorschau</value>
+  </data>
+  <data name="LocalOrderingPreviewDescription" xml:space="preserve">
+    <value>Änderungen an der Reihenfolge werden in diesem Browser vorgemerkt. UFW wurde nicht geändert, kein Ordnungs-Intent wurde signiert, und echte Hinzufügen-/Löschmutationen bleiben deaktiviert, bis Sie die Vorschau verwerfen oder bestätigen.</value>
+  </data>
+  <data name="DiscardPreview" xml:space="preserve">
+    <value>Vorschau verwerfen</value>
+  </data>
+  <data name="PreviewingMove" xml:space="preserve">
+    <value>Verschiebung wird als Vorschau angezeigt...</value>
+  </data>
+  <data name="RuleAdded" xml:space="preserve">
+    <value>Firewallregel hinzugefügt.</value>
+  </data>
+  <data name="RuleDeleted" xml:space="preserve">
+    <value>Firewallregel gelöscht.</value>
+  </data>
+  <data name="SubmittedRuleMissing" xml:space="preserve">
+    <value>Die übermittelte Regel ist im aktuellen Firewallstatus nicht vorhanden. Prüfen Sie das Formular vor einem erneuten Versuch.</value>
+  </data>
+  <data name="DeleteDialogTitle" xml:space="preserve">
+    <value>Firewallregel löschen?</value>
+  </data>
+  <data name="MoveDialogTitle" xml:space="preserve">
+    <value>Firewallregel verschieben</value>
+  </data>
+  <data name="RefreshAfterMutationFailed" xml:space="preserve">
+    <value>Die Regeländerung war erfolgreich, aber der Client konnte die autoritative Regelliste nicht neu laden. Aktualisieren Sie erneut, bevor Sie die Seite verlassen oder eine weitere Mutation versuchen.</value>
+  </data>
+  <data name="MutationOutcomeUnknown" xml:space="preserve">
+    <value>Der Client konnte nicht bestätigen, ob die Regeländerung abgeschlossen wurde. Aktualisieren Sie den autoritativen Status, bevor Sie entscheiden, ob die Regel erneut ausgeführt werden muss.</value>
+  </data>
+  <data name="MutationRejectedRefresh" xml:space="preserve">
+    <value>Die Mutation wurde so abgelehnt, dass der aktuelle Firewallstatus vor einem weiteren Versuch neu geladen werden muss.</value>
+  </data>
+  <data name="LatestRefreshFailed" xml:space="preserve">
+    <value>Die letzte Aktualisierung ist fehlgeschlagen. Das Erstellen von Regeln bleibt deaktiviert, bis der autoritative Firewallstatus wieder geladen werden kann.</value>
+  </data>
+  <data name="BothInsertionTargets" xml:space="preserve">
+    <value>Die URL enthält sowohl ein Vorher- als auch ein Nachher-Ziel. Geordnetes Einfügen benötigt genau ein Ziel.</value>
+  </data>
+  <data name="InsertionTargetUnavailable" xml:space="preserve">
+    <value>Das ausgewählte Einfügeziel ist nicht verfügbar.</value>
+  </data>
+  <data name="InsertionTargetMissing" xml:space="preserve">
+    <value>Das ausgewählte Einfügeziel ist im autoritativen Firewallstatus nicht mehr vorhanden.</value>
+  </data>
+  <data name="InsertionTargetAmbiguous" xml:space="preserve">
+    <value>Das ausgewählte Einfügeziel ist im autoritativen Firewallstatus mehrdeutig.</value>
+  </data>
+  <data name="SelectedRule" xml:space="preserve">
+    <value>die ausgewählte Regel</value>
+  </data>
+  <data name="RulePosition" xml:space="preserve">
+    <value>Regel {0}</value>
+  </data>
+  <data name="InsertTargetDescription" xml:space="preserve">
+    <value>Diese Regel soll {0} {1} eingefügt werden.</value>
+  </data>
+  <data name="Before" xml:space="preserve">
+    <value>vor</value>
+  </data>
+  <data name="After" xml:space="preserve">
+    <value>nach</value>
+  </data>
+  <data name="RuleDefinition" xml:space="preserve">
+    <value>Regeldefinition</value>
+  </data>
+  <data name="DefinitionDescription" xml:space="preserve">
+    <value>Definieren Sie UFW-Match und Aktion. Die aktuelle API hängt neue Regeln an die bestehende Auswertungsreihenfolge an.</value>
+  </data>
+  <data name="Action" xml:space="preserve">
+    <value>Aktion</value>
+  </data>
+  <data name="Direction" xml:space="preserve">
+    <value>Richtung</value>
+  </data>
+  <data name="Protocol" xml:space="preserve">
+    <value>Protokoll</value>
+  </data>
+  <data name="AddressFamily" xml:space="preserve">
+    <value>Adressfamilie</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Quelle</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Ziel</value>
+  </data>
+  <data name="AddressPlaceholder" xml:space="preserve">
+    <value>any, IP-Adresse oder CIDR</value>
+  </data>
+  <data name="SourcePorts" xml:space="preserve">
+    <value>Quellports</value>
+  </data>
+  <data name="DestinationPorts" xml:space="preserve">
+    <value>Zielports</value>
+  </data>
+  <data name="SourceInterface" xml:space="preserve">
+    <value>Quellschnittstelle</value>
+  </data>
+  <data name="DestinationInterface" xml:space="preserve">
+    <value>Zielschnittstelle</value>
+  </data>
+  <data name="Comment" xml:space="preserve">
+    <value>Kommentar</value>
+  </data>
+  <data name="Authorization" xml:space="preserve">
+    <value>Autorisierung</value>
+  </data>
+  <data name="AuthorizationDescription" xml:space="preserve">
+    <value>Signieren Sie diese einzelne Mutation mit einem autorisierten Schlüssel. Der Browser speichert den privaten Schlüssel nicht.</value>
+  </data>
+  <data name="CanonicalUfwRule" xml:space="preserve">
+    <value>Kanonische UFW-Regel</value>
+  </data>
+  <data name="AddSignedRule" xml:space="preserve">
+    <value>Signierte Regel hinzufügen</value>
+  </data>
+  <data name="AddingRule" xml:space="preserve">
+    <value>Regel wird hinzugefügt...</value>
+  </data>
+  <data name="SourceInterfaceHelp" xml:space="preserve">
+    <value>Ausgangsschnittstelle für ausgehende oder Weiterleitungsregeln.</value>
+  </data>
+  <data name="DestinationInterfaceHelp" xml:space="preserve">
+    <value>Eingangsschnittstelle für eingehende oder Weiterleitungsregeln.</value>
+  </data>
+  <data name="InterfaceSuggestionsUnavailable" xml:space="preserve">
+    <value>{0} Zwischengespeicherte Vorschläge sind nicht verfügbar; Freitext wird weiterhin akzeptiert.</value>
+  </data>
+  <data name="InterfaceEnterValid" xml:space="preserve">
+    <value>{0} Geben Sie einen gültigen Schnittstellennamen ein.</value>
+  </data>
+  <data name="InterfaceChooseKnown" xml:space="preserve">
+    <value>{0} Wählen Sie eine bekannte Schnittstelle oder geben Sie einen anderen gültigen Namen ein.</value>
+  </data>
+  <data name="PrivateKeyLabel" xml:space="preserve">
+    <value>Privater ECDSA-P-256-Schlüssel</value>
+  </data>
+  <data name="PrivateKeyRequired" xml:space="preserve">
+    <value>Für die Autorisierung dieser Mutation ist ein privater Schlüssel erforderlich.</value>
+  </data>
+  <data name="PrivateKeyHelper" xml:space="preserve">
+    <value>Wird nur zum Signieren dieser Anfrage im Browser verwendet und niemals an den Server gesendet.</value>
+  </data>
+  <data name="CommandPreviewEmpty" xml:space="preserve">
+    <value>Vervollständigen Sie eine gültige Regel, um die kanonische UFW-Syntax als Vorschau anzuzeigen.</value>
+  </data>
+  <data name="UfwRule" xml:space="preserve">
+    <value>UFW-Regel</value>
+  </data>
+  <data name="DeleteReview" xml:space="preserve">
+    <value>Prüfen Sie die kanonische UFW-Regel unten und geben Sie den Signierschlüssel an, der das Löschen autorisiert.</value>
+  </data>
+  <data name="RuleToDelete" xml:space="preserve">
+    <value>Zu löschende Regel</value>
+  </data>
+  <data name="RuleId" xml:space="preserve">
+    <value>Regel-ID: {0}</value>
+  </data>
+  <data name="DeleteWarning" xml:space="preserve">
+    <value>Dadurch wird die Regel aus der Firewall entfernt. Der Vorgang benötigt eine signierte Autorisierung und kann über diese Oberfläche nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="DeleteSignedRule" xml:space="preserve">
+    <value>Signierte Regel löschen</value>
+  </data>
+  <data name="MoveDescription" xml:space="preserve">
+    <value>Wählen Sie die einsbasierte Position, die diese Regel in der geordneten Firewallliste einnehmen soll.</value>
+  </data>
+  <data name="MoveMockNotice" xml:space="preserve">
+    <value>Die Regelreihenfolge ist derzeit ein Frontend-Prototyp. Diese Verschiebung wird nur an die Mock-ASP-Grenze gesendet und aktualisiert eine lokale Vorschau; UFW wird nicht geändert und es erfolgt keine Intent-Signierung.</value>
+  </data>
+  <data name="TargetPosition" xml:space="preserve">
+    <value>Zielposition</value>
+  </data>
+  <data name="TargetPositionHelp" xml:space="preserve">
+    <value>Die erste Firewallregel befindet sich an Position 1.</value>
+  </data>
+  <data name="PreviewMove" xml:space="preserve">
+    <value>Verschiebung vorschauen</value>
+  </data>
+  <data name="TableAria" xml:space="preserve">
+    <value>Firewallregeln</value>
+  </data>
+  <data name="ReorderColumn" xml:space="preserve">
+    <value>Reihenfolge</value>
+  </data>
+  <data name="RuleNumberColumn" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="ActionColumn" xml:space="preserve">
+    <value>Aktion</value>
+  </data>
+  <data name="DirectionColumn" xml:space="preserve">
+    <value>Richtung</value>
+  </data>
+  <data name="FromColumn" xml:space="preserve">
+    <value>Von</value>
+  </data>
+  <data name="ToColumn" xml:space="preserve">
+    <value>Nach</value>
+  </data>
+  <data name="ProtocolColumn" xml:space="preserve">
+    <value>Protokoll</value>
+  </data>
+  <data name="CommentColumn" xml:space="preserve">
+    <value>Kommentar</value>
+  </data>
+  <data name="ActionsColumn" xml:space="preserve">
+    <value>Aktionen</value>
+  </data>
+  <data name="MoveToPosition" xml:space="preserve">
+    <value>An Position verschieben...</value>
+  </data>
+  <data name="InsertBefore" xml:space="preserve">
+    <value>Davor einfügen</value>
+  </data>
+  <data name="InsertAfter" xml:space="preserve">
+    <value>Danach einfügen</value>
+  </data>
+  <data name="DeleteRule" xml:space="preserve">
+    <value>Regel löschen</value>
+  </data>
+  <data name="ReadOnly" xml:space="preserve">
+    <value>Schreibgeschützt</value>
+  </data>
+  <data name="ReadOnlyTooltip" xml:space="preserve">
+    <value>Diese UFW-Zeile konnte nicht sicher geparst werden und kann nicht über die API verändert werden.</value>
+  </data>
+  <data name="ReadOnlyAria" xml:space="preserve">
+    <value>Die Regel ist schreibgeschützt, da sie nicht sicher geparst werden konnte</value>
+  </data>
+  <data name="NoFirewallRules" xml:space="preserve">
+    <value>Keine Firewallregeln</value>
+  </data>
+  <data name="NoFirewallRulesDescription" xml:space="preserve">
+    <value>Die autoritative UFW-Regelliste ist leer.</value>
+  </data>
+  <data name="AddRule" xml:space="preserve">
+    <value>Regel hinzufügen</value>
+  </data>
+  <data name="OrderingLabel" xml:space="preserve">
+    <value>Reihenfolge</value>
+  </data>
+  <data name="OrderingDescription" xml:space="preserve">
+    <value>Ziehen Sie eine Regel am Griff oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Bestätigen Sie die Vorschau, bevor die Mock-ASP-Grenze aufgerufen wird. Aktionen zum Einfügen davor/danach öffnen die Regelerstellung mit dem ausgewählten Positionskontext.</value>
+  </data>
+  <data name="MockApi" xml:space="preserve">
+    <value>Mock-API</value>
+  </data>
+  <data name="ActionsForRule" xml:space="preserve">
+    <value>Aktionen für Firewallregel {0}</value>
+  </data>
+  <data name="RuleActions" xml:space="preserve">
+    <value>Aktionen für Firewallregel</value>
+  </data>
+  <data name="DragRuleNumber" xml:space="preserve">
+    <value>Firewallregel {0} ziehen, um sie neu anzuordnen</value>
+  </data>
+  <data name="DragRule" xml:space="preserve">
+    <value>Firewallregel ziehen, um sie neu anzuordnen</value>
+  </data>
+  <data name="CannotOrderAmbiguous" xml:space="preserve">
+    <value>Diese Regel kann für die Reihenfolge nicht eindeutig adressiert werden.</value>
+  </data>
+  <data name="DragMockTitle" xml:space="preserve">
+    <value>Ziehen Sie, um eine neue Reihenfolge vorzumerken. Bis zur Bestätigung der Vorschau wird nichts an den Mock gesendet.</value>
+  </data>
+  <data name="DragRealTitle" xml:space="preserve">
+    <value>Ziehen Sie, um diese Firewallregel neu anzuordnen.</value>
+  </data>
+  <data name="AnyFamily" xml:space="preserve">
+    <value>Beliebige Familie</value>
+  </data>
+  <data name="AnyProtocol" xml:space="preserve">
+    <value>Beliebig</value>
+  </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Erlauben</value>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>Verweigern</value>
+  </data>
+  <data name="Reject" xml:space="preserve">
+    <value>Ablehnen</value>
+  </data>
+  <data name="Limit" xml:space="preserve">
+    <value>Begrenzen</value>
+  </data>
+  <data name="In" xml:space="preserve">
+    <value>Eingehend</value>
+  </data>
+  <data name="Out" xml:space="preserve">
+    <value>Ausgehend</value>
+  </data>
+  <data name="Forward" xml:space="preserve">
+    <value>Weiterleiten</value>
+  </data>
+  <data name="EndpointVia" xml:space="preserve">
+    <value>{0} über {1}</value>
+  </data>
+  <data name="EndpointPort" xml:space="preserve">
+    <value>{0} Port {1}</value>
+  </data>
+  <data name="RuleMovedPreview" xml:space="preserve">
+    <value>Regelreihenfolge wurde in der lokalen Vorschau aktualisiert.</value>
+  </data>
+  <data name="RuleMoveFailed" xml:space="preserve">
+    <value>Die angeforderte Regelverschiebung konnte nicht als Vorschau angezeigt werden.</value>
+  </data>
+  <data name="OrderingTargetRange" xml:space="preserve">
+    <value>Die Zielposition muss zwischen 1 und {0} liegen.</value>
+  </data>
+  <data name="OrderingAmbiguous" xml:space="preserve">
+    <value>Die Regel-ID ist im aktuellen Snapshot mehrdeutig.</value>
+  </data>
+  <data name="OrderingMissing" xml:space="preserve">
+    <value>Die Regel ist im aktuellen Snapshot nicht vorhanden.</value>
+  </data>
+  <data name="PrivateKeyDetailedHelper" xml:space="preserve">
+    <value>Für Passwortmanager wird data:application/pkcs8;base64,... empfohlen. PKCS#8-PEM und Base64-DER werden ebenfalls akzeptiert. Der Schlüssel wird nur für diese Anfrage verwendet und nicht gespeichert.</value>
+  </data>
+  <data name="NoInterfaceMatches" xml:space="preserve">
+    <value>Keine zwischengespeicherte Schnittstelle stimmt überein. Sie können weiterhin einen gültigen Schnittstellennamen eingeben.</value>
+  </data>
+  <data name="CurrentFirewallRules" xml:space="preserve">
+    <value>Aktuelle Firewallregeln</value>
+  </data>
+  <data name="RuleNumber" xml:space="preserve">
+    <value>Regelnummer</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>Keine</value>
+  </data>
+  <data name="LoadingEllipsis" xml:space="preserve">
+    <value>Wird geladen...</value>
+  </data>
+  <data name="RefreshingEllipsis" xml:space="preserve">
+    <value>Wird aktualisiert...</value>
+  </data>
+  <data name="LoadingAuthoritativeState" xml:space="preserve">
+    <value>Autoritativer Firewallstatus wird geladen...</value>
+  </data>
+  <data name="DisplayedStateStale" xml:space="preserve">
+    <value>Angezeigter Firewallstatus ist veraltet</value>
+  </data>
+  <data name="RuleChangeAcceptedRefreshing" xml:space="preserve">
+    <value>Regeländerung akzeptiert. Der autoritative Firewallstatus wird aktualisiert, bevor eine weitere Mutation zugelassen wird...</value>
+  </data>
+  <data name="ReloadAuthoritativeState" xml:space="preserve">
+    <value>Autoritativen Status neu laden</value>
+  </data>
+  <data name="AuthoritativeSnapshotStale" xml:space="preserve">
+    <value>Autoritativer Snapshot · veraltet</value>
+  </data>
+  <data name="AuthoritativeSnapshotRefreshing" xml:space="preserve">
+    <value>Autoritativer Snapshot · wird aktualisiert</value>
+  </data>
+  <data name="AuthoritativeSnapshotCurrent" xml:space="preserve">
+    <value>Autoritativer Snapshot · aktuell</value>
+  </data>
+  <data name="DeleteStateChanged" xml:space="preserve">
+    <value>Der Firewallstatus hat sich während der Löschbestätigung geändert. Aktualisieren Sie den Status und versuchen Sie es erneut.</value>
+  </data>
+  <data name="PositionOutside" xml:space="preserve">
+    <value>Die angeforderte Regelposition liegt außerhalb der aktuellen Regelliste.</value>
+  </data>
+  <data name="MockMovedPosition" xml:space="preserve">
+    <value>Die Regel wurde für Position {0} vorgemerkt. UFW wurde nicht geändert.</value>
+  </data>
+  <data name="StaleMutationCommittedList" xml:space="preserve">
+    <value>Die Regeländerung war erfolgreich, aber der Client konnte die autoritative Regelliste nicht neu laden. Der zuletzt erfolgreich geladene Snapshot wird unten angezeigt und Mutationen bleiben deaktiviert, bis die Aktualisierung gelingt.</value>
+  </data>
+  <data name="StaleMutationUnknownList" xml:space="preserve">
+    <value>Der Client konnte nicht bestätigen, ob die versuchte Regeländerung abgeschlossen wurde. Der zuletzt erfolgreich geladene Snapshot wird unten angezeigt und muss vor einer weiteren Mutation aktualisiert werden.</value>
+  </data>
+  <data name="StaleMutationRejectedList" xml:space="preserve">
+    <value>Die Mutation wurde so abgelehnt, dass der autoritative Firewallstatus vor einer weiteren Änderung neu geladen werden muss. Aktualisieren Sie den Status vor einer weiteren Mutation.</value>
+  </data>
+  <data name="StaleRefreshFailedList" xml:space="preserve">
+    <value>Die letzte Aktualisierung ist fehlgeschlagen. Der zuletzt erfolgreich geladene Snapshot wird unten angezeigt und Mutationen bleiben deaktiviert, bis die Aktualisierung gelingt.</value>
+  </data>
+  <data name="CreateAtEndInstead" xml:space="preserve">
+    <value>Stattdessen am Ende erstellen</value>
+  </data>
+  <data name="OrderedInsertionPending" xml:space="preserve">
+    <value>Geordnetes Einfügen ausstehend</value>
+  </data>
+  <data name="OrderedRuleDefinitionDescription" xml:space="preserve">
+    <value>Definieren Sie die Regel für die ausgewählte Position. Das Absenden bleibt deaktiviert, bis der Vertrag für geordnetes Hinzufügen freigegeben ist.</value>
+  </data>
+  <data name="CurrentRuleCountOne" xml:space="preserve">
+    <value>1 aktuelle Regel</value>
+  </data>
+  <data name="CurrentRuleCountMany" xml:space="preserve">
+    <value>{0} aktuelle Regeln</value>
+  </data>
+  <data name="ApplyReordering" xml:space="preserve">
+    <value>Reihenfolge anwenden</value>
+  </data>
+  <data name="ApplyingReordering" xml:space="preserve">
+    <value>Wird angewendet...</value>
+  </data>
+  <data name="MockOrderingApplied" xml:space="preserve">
+    <value>Die Mock-ASP-Grenze hat die vorgemerkte Reihenfolge akzeptiert. UFW wurde nicht geändert; der autoritative Status wurde neu geladen.</value>
+  </data>
+  <data name="DirectMovePositionAria" xml:space="preserve">
+    <value>Direkt von Position {0} auf {1} verschoben.</value>
+  </data>
+  <data name="IndirectShiftPositionAria" xml:space="preserve">
+    <value>Von Position {0} auf {1} verschoben, weil eine andere Regel bewegt wurde.</value>
+  </data>
+</root>

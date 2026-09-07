@@ -1,0 +1,122 @@
+@page "/settings"
+@attribute [Authorize]
+@implements IDisposable
+@inject IClientThemeService Theme
+@inject IClientCultureService Culture
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<SettingsStrings> SettingsText
+
+<PageTitle>@SettingsText["PageTitle"] - UFW Console</PageTitle>
+
+<PageHeader Title="@(SettingsText["Title"])"
+            Description="@(SettingsText["Description"])"
+            Breadcrumbs="@Breadcrumbs" />
+
+<div class="settings-page">
+    <SettingsSection Title="@(SettingsText["AppearanceTitle"])"
+                     Description="@(SettingsText["AppearanceDescription"])">
+        <div class="settings-row">
+            <div class="settings-row-copy">
+                <MudText Typo="Typo.subtitle2">@SettingsText["ThemeLabel"]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @SettingsText["ThemeDescription"]
+                </MudText>
+            </div>
+            <div class="settings-choice-group" role="group" aria-label="@(CommonText["Theme"])">
+                <MudButton Variant="@(Theme.Mode == ClientThemeMode.Light ? Variant.Filled : Variant.Outlined)"
+                           Color="@(Theme.Mode == ClientThemeMode.Light ? Color.Primary : Color.Default)"
+                           StartIcon="@Icons.Material.Filled.LightMode"
+                           Disabled="@_themeBusy"
+                           OnClick="@(() => SetThemeAsync(ClientThemeMode.Light))"
+                           aria-pressed="@((Theme.Mode == ClientThemeMode.Light).ToString().ToLowerInvariant())">
+                    @CommonText["Light"]
+                </MudButton>
+                <MudButton Variant="@(Theme.Mode == ClientThemeMode.Dark ? Variant.Filled : Variant.Outlined)"
+                           Color="@(Theme.Mode == ClientThemeMode.Dark ? Color.Primary : Color.Default)"
+                           StartIcon="@Icons.Material.Filled.DarkMode"
+                           Disabled="@_themeBusy"
+                           OnClick="@(() => SetThemeAsync(ClientThemeMode.Dark))"
+                           aria-pressed="@((Theme.Mode == ClientThemeMode.Dark).ToString().ToLowerInvariant())">
+                    @CommonText["Dark"]
+                </MudButton>
+            </div>
+        </div>
+        <MudDivider Class="settings-divider" />
+        <div class="settings-row">
+            <div class="settings-row-copy">
+                <MudText Typo="Typo.subtitle2">@SettingsText["LanguageLabel"]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @SettingsText["LanguageDescription"]
+                </MudText>
+            </div>
+            <div class="settings-row-control">
+                <MudSelect T="string"
+                           Value="@Culture.CurrentCulture.Name"
+                           ValueChanged="SetCultureAsync"
+                           Label="@(SettingsText["LanguageLabel"])"
+                           aria-label="@(SettingsText["LanguageAria"])"
+                           Variant="Variant.Outlined"
+                           ShrinkLabel="true"
+                           Class="settings-language-select">
+                    @foreach (ClientCultureOption option in Culture.SupportedCultures)
+                    {
+                        <MudSelectItem T="string" Value="@option.Name">@option.NativeDisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </div>
+    </SettingsSection>
+
+    <SettingsSection Title="@(SettingsText["HostDataTitle"])"
+                     Description="@(SettingsText["HostDataDescription"])">
+        <div class="settings-row">
+            <div class="settings-row-copy">
+                <MudText Typo="Typo.subtitle2">@SettingsText["InterfaceInventoryTitle"]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @SettingsText["InterfaceInventoryDescription"]
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Lan"
+                       Href="/interfaces">
+                @SettingsText["ManageInterfaces"]
+            </MudButton>
+        </div>
+    </SettingsSection>
+</div>
+
+@code {
+    private bool _themeBusy;
+
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new BreadcrumbItem(SettingsText["SystemBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(SettingsText["Title"], null, disabled: true),
+    ];
+
+    protected override void OnInitialized() => Theme.Changed += OnThemeChanged;
+
+    public void Dispose() => Theme.Changed -= OnThemeChanged;
+
+    private void OnThemeChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task SetThemeAsync(ClientThemeMode mode)
+    {
+        if (_themeBusy || Theme.Mode == mode)
+        {
+            return;
+        }
+
+        _themeBusy = true;
+        try
+        {
+            await Theme.SetModeAsync(mode);
+        }
+        finally
+        {
+            _themeBusy = false;
+        }
+    }
+
+    private Task SetCultureAsync(string cultureName) => Culture.SetCultureAsync(cultureName);
+}

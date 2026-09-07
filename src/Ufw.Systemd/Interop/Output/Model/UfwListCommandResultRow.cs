@@ -2,7 +2,7 @@
 
 internal sealed class UfwListCommandResultRow
 {
-    public Ipc.Shared.Model.Domain.Rules.FirewallAddressFamily AddressFamily { get; set; } = Ufw.Ipc.Shared.Model.Domain.Rules.FirewallAddressFamily.IPv4;
+    public Ufw.Shared.Firewall.FirewallAddressFamily AddressFamily { get; set; } = Ufw.Shared.Firewall.FirewallAddressFamily.IPv4;
 
     public int RowNumber { get; set; }
 

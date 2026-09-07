@@ -1,17 +1,35 @@
 @implements IDisposable
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-2">@FirewallRulePresentation.DescribeRule(Rule)</MudText>
-        @if (!string.IsNullOrWhiteSpace(Rule.RuleId))
-        {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-raw-line mb-4">
-                Rule ID: @Rule.RuleId
-            </MudText>
-        }
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @RulesText["DeleteReview"]
+        </MudText>
 
+        @if (Rule.Rule is not null)
+        {
+            <UfwRuleCommandPreview Rule="@Rule.Rule" Label="@(RulesText["RuleToDelete"])">
+                <Details>
+                    @if (!string.IsNullOrWhiteSpace(Rule.RuleId))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-raw-line">
+                            @RulesText["RuleId", Rule.RuleId]
+                        </MudText>
+                    }
+                </Details>
+            </UfwRuleCommandPreview>
+        }
+        else
+        {
+            <div class="delete-rule-summary" aria-label="@(RulesText["RuleToDelete"])">
+                <MudText Typo="Typo.overline" HtmlTag="div" Class="delete-rule-summary-label">@RulesText["RuleToDelete"]</MudText>
+                <MudText Typo="Typo.body2" Class="delete-rule-summary-value">@Rule.RawLine</MudText>
+            </div>
+        }
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-            Deleting this firewall rule requires a signed authorization and cannot be undone through this interface.
+            @RulesText["DeleteWarning"]
         </MudAlert>
 
         <MudForm @ref="_form"
@@ -19,30 +37,18 @@
                  Disabled="_busy"
                  OnEnterPressed="ConfirmAsync"
                  aria-busy="@_busy">
-            <MudTextField T="string"
-                          Label="ECDSA P-256 private key"
-                          InputType="InputType.Password"
-                          @bind-Value="_privateKey"
-                          name="intent-private-key"
-                          autocomplete="off"
-                          autocapitalize="off"
-                          spellcheck="false"
-                          Required="true"
-                          RequiredError="A private key is required to authorize this mutation."
-                          HelperText="Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored."
-                          Placeholder="data:application/pkcs8;base64,..."
-                          Immediate="true" />
+            <MutationAuthorizationField @bind-Value="_privateKey" Disabled="_busy" />
         </MudForm>
     </DialogContent>
     <DialogActions>
         <div class="delete-dialog-actions">
-            <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Error"
                        StartIcon="@Icons.Material.Filled.Delete"
                        Disabled="@(_busy || !_isValid || string.IsNullOrWhiteSpace(_privateKey))"
                        OnClick="ConfirmAsync">
-                Delete signed rule
+                @RulesText["DeleteSignedRule"]
             </MudButton>
         </div>
     </DialogActions>

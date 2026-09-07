@@ -4,58 +4,67 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<CommonStrings> CommonText
 
-<a class="skip-link" href="#main-content">Skip to main content</a>
+<a class="skip-link" href="#main-content">@CommonText["SkipToMainContent"]</a>
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Fixed="true" Elevation="0" Class="app-shell-bar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
                        OnClick="ToggleDrawer"
-                       aria-label="Toggle navigation" />
-        <MudText Typo="Typo.h6" HtmlTag="span" Class="appbar-title">UFW Management</MudText>
-        <MudSpacer />
-        <ThemeToggle Color="Color.Inherit" />
+                       Class="appbar-menu-button"
+                       aria-label="@(CommonText["ToggleNavigation"])" />
         <AuthorizeView>
             <Authorized>
-                <MudText Typo="Typo.body2" Class="mr-4 appbar-identity" title="@context.User.Identity?.Name">
+                <MudText Typo="Typo.caption" Class="appbar-context" title="@context.User.Identity?.Name">
                     @context.User.Identity?.Name
                 </MudText>
-                <MudButton Variant="Variant.Text"
-                           Color="Color.Inherit"
+            </Authorized>
+        </AuthorizeView>
+        <MudSpacer />
+        <ThemeToggle Color="Color.Default"
+                     Variant="Variant.Outlined"
+                     ShowLabel="true"
+                     Class="appbar-theme-toggle-text" />
+        <ThemeToggle Color="Color.Default"
+                     Variant="Variant.Outlined"
+                     ShowLabel="false"
+                     Class="appbar-theme-toggle-icon" />
+        <AuthorizeView>
+            <Authorized>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.Logout"
                            Disabled="@_logoutBusy"
                            OnClick="LogoutAsync"
                            Class="appbar-signout-text">
-                    @(_logoutBusy ? "Signing out..." : "Sign out")
+                    @(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])
                 </MudButton>
                 <MudIconButton Icon="@Icons.Material.Filled.Logout"
-                               Color="Color.Inherit"
+                               Color="Color.Default"
+                               Variant="Variant.Outlined"
                                Disabled="@_logoutBusy"
                                OnClick="LogoutAsync"
                                Class="appbar-signout-icon"
-                               aria-label="@(_logoutBusy ? "Signing out" : "Sign out")" />
+                               aria-label="@(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])" />
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen"
                Variant="DrawerVariant.Responsive"
-               Breakpoint="Breakpoint.Md"
-               Elevation="1">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.subtitle1">Firewall</MudText>
-        </MudDrawerHeader>
-        <nav aria-label="Primary navigation">
-            <MudNavMenu>
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Rule">Rules</MudNavLink>
-            </MudNavMenu>
-        </nav>
+               Breakpoint="Breakpoint.Sm"
+               ClipMode="DrawerClipMode.Never"
+               Elevation="0"
+               Class="app-shell-drawer">
+        <PrimaryNavigation />
     </MudDrawer>
 
-    <MudMainContent>
-        <main id="main-content" tabindex="-1">
-            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="main-container py-6">
+    <MudMainContent Class="app-main-content">
+        <main id="main-content" tabindex="-1" class="app-main">
+            <MudContainer MaxWidth="MaxWidth.False" Class="main-container">
                 @Body
             </MudContainer>
         </main>
@@ -94,9 +103,7 @@
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             ClientError error = ClientErrors.Describe(exception);
-            Snackbar.Add(
-                $"Could not sign out. {error.Message} You are still signed in.",
-                Severity.Error);
+            Snackbar.Add(CommonText["CouldNotSignOut", error.Message], Severity.Error);
         }
         finally
         {

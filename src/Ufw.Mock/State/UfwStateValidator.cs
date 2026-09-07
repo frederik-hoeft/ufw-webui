@@ -1,4 +1,4 @@
-﻿using Ufw.Ipc.Shared.Model.Domain.Rules;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Mock.Cli;
 
 namespace Ufw.Mock.State;
