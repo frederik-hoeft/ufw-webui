@@ -125,16 +125,11 @@
 }
 
 .bootstrap-brand-mark {
-    display: inline-grid;
+    display: block;
     width: 2rem;
     height: 2rem;
     flex: 0 0 2rem;
-    place-items: center;
-    border-radius: 6px;
-    background: var(--mud-palette-primary, #2f6fda);
-    color: var(--mud-palette-primary-contrasttext, #ffffff);
-    font-size: 0.875rem;
-    font-weight: 600;
+    object-fit: contain;
 }
 
 .bootstrap-status-copy {

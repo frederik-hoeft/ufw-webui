@@ -1,0 +1,143 @@
+<MudPaper Class="rule-editor-card rule-interface-experiments pa-5" Elevation="1" role="region" aria-labelledby="interface-sizing-experiments-heading">
+    <div class="rule-editor-section-heading">
+        <MudText Typo="Typo.h6" HtmlTag="h2" id="interface-sizing-experiments-heading">Interface autocomplete sizing experiments</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Temporary comparison harness. Type into each right-hand interface control and compare its underline with the ordinary text field to the left.
+        </MudText>
+    </div>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+        The production interface fields above intentionally have no sizing workaround on this branch. These variants isolate one hypothesis at a time.
+    </MudAlert>
+
+    <MudForm Model="@_values">
+        <MudGrid Spacing="2" Class="rule-interface-experiment-grid">
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference A" @bind-Value="_values.ReferenceA" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <NetworkInterfaceField Label="A. Baseline"
+                                       @bind-Value="_values.Baseline"
+                                       For="@(() => _values.Baseline)"
+                                       Suggestions="@s_suggestions" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference B" @bind-Value="_values.ReferenceB" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <NetworkInterfaceField Label="B. No clear button"
+                                       @bind-Value="_values.NoClear"
+                                       For="@(() => _values.NoClear)"
+                                       Suggestions="@s_suggestions"
+                                       Clearable="false" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference C" @bind-Value="_values.ReferenceC" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <NetworkInterfaceField Label="C. Absolute clear button"
+                                       @bind-Value="_values.AbsoluteClear"
+                                       For="@(() => _values.AbsoluteClear)"
+                                       Suggestions="@s_suggestions"
+                                       Class="network-interface-experiment--absolute-clear" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference D" @bind-Value="_values.ReferenceD" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <NetworkInterfaceField Label="D. No For expression"
+                                       @bind-Value="_values.NoFor"
+                                       Suggestions="@s_suggestions" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference E" @bind-Value="_values.ReferenceE" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <NetworkInterfaceField Label="E. Zero internal label margin"
+                                       @bind-Value="_values.ZeroLabelMargin"
+                                       For="@(() => _values.ZeroLabelMargin)"
+                                       Suggestions="@s_suggestions"
+                                       Class="network-interface-experiment--zero-label-margin" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference F" @bind-Value="_values.ReferenceF" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <div class="network-interface-native-experiment">
+                    <MudAutocomplete T="string"
+                                     Label="F. Native Mud label"
+                                     @bind-Value="_values.NativeLabel"
+                                     For="@(() => _values.NativeLabel)"
+                                     SearchFunc="SearchAsync"
+                                     CoerceValue="true"
+                                     Clearable="true"
+                                     Immediate="true"
+                                     ResetValueOnEmptyText="true"
+                                     MaxItems="12"
+                                     autocomplete="off"
+                                     autocapitalize="off"
+                                     spellcheck="false" />
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Reference G" @bind-Value="_values.ReferenceG" Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <NetworkInterfaceField Label="G. Reserved label height"
+                                       @bind-Value="_values.ReservedHeight"
+                                       For="@(() => _values.ReservedHeight)"
+                                       Suggestions="@s_suggestions"
+                                       Class="network-interface-experiment--reserve-label-height" />
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private static readonly IReadOnlyList<string> s_suggestions =
+    [
+        "eno1",
+        "eno2",
+        "docker0",
+        "br0",
+        "wg0",
+        "tailscale0",
+    ];
+
+    private readonly ExperimentValues _values = new();
+
+    private static Task<IEnumerable<string>> SearchAsync(string? value, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IEnumerable<string> matches = string.IsNullOrWhiteSpace(value)
+            ? s_suggestions
+            : s_suggestions.Where(candidate => candidate.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(matches);
+    }
+
+    private sealed class ExperimentValues
+    {
+        public string? ReferenceA { get; set; }
+        public string? Baseline { get; set; }
+        public string? ReferenceB { get; set; }
+        public string? NoClear { get; set; }
+        public string? ReferenceC { get; set; }
+        public string? AbsoluteClear { get; set; }
+        public string? ReferenceD { get; set; }
+        public string? NoFor { get; set; }
+        public string? ReferenceE { get; set; }
+        public string? ZeroLabelMargin { get; set; }
+        public string? ReferenceF { get; set; }
+        public string? NativeLabel { get; set; }
+        public string? ReferenceG { get; set; }
+        public string? ReservedHeight { get; set; }
+    }
+}

@@ -54,7 +54,7 @@ Until this backend work is approved and implemented, `Ufw.Client` registers `Moc
 
 ### Stabilize rule-editor interface field height
 
-The source/destination interface autocomplete still changes the vertical geometry of the rule form when a value is selected. The current external-label treatment removes MudBlazor's reserved floating-label margin, but the selected state still appears to alter the input/adornment box height. Inspect the rendered `MudAutocomplete` structure, especially the clear-button/end-adornment container and input line-height/padding, and make empty, focused, typed, selected, validation-error, and disabled states occupy the same control height. Preserve the clear affordance and keyboard/accessibility behavior rather than hiding the symptom with a fixed outer container.
+The source/destination interface autocomplete still changes the vertical geometry of the rule form when text is entered or selected. The production fields are currently back on unmodified MudBlazor sizing while the add-rule page carries a temporary comparison harness with isolated variants for the clear button, `For` expression, native label treatment, and internal label spacing. Use that harness to identify the actual cause before selecting a permanent fix. The final result must keep empty, focused, typed, selected, validation-error, and disabled states at a consistent control height while preserving the clear affordance and keyboard/accessibility behavior.
 
 ### Evaluate address-family-separated rule tables
 
@@ -68,11 +68,3 @@ Before implementing this, resolve how the presentation maps to UFW's single auth
 - decide whether unsupported/read-only rows can cause inter-family ordering constraints that make a clean split misleading.
 
 Treat this as a presentation/design task until the ordering semantics are settled. Do not silently change the signed mutation model to fit the visual grouping.
-
-### Tighten the Rules protocol column
-
-The Rules table Protocol column now contains only the protocol token (`TCP`, `UDP`, `Any`, and similar short values) because source/destination ports are rendered with their corresponding endpoints. Reduce the desktop column width accordingly and reallocate the freed space to endpoint/comment content. Keep enough width for localized or future protocol labels without forcing unnecessary wrapping.
-
-## Finalize application brand and icon
-
-Replace the temporary blue `U` application mark with the final UFW Console brand/icon once the visual asset is designed. Apply the final mark consistently to the navigation rail, login/startup surfaces, favicon/application metadata, and any installable/PWA assets that exist at that point. Keep the current text branding and accessible names stable unless the product name itself is intentionally changed.

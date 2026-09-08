@@ -100,8 +100,8 @@
 }
 
 .rule-protocol-column {
-    width: 9rem;
-    min-width: 9rem;
+    width: 6rem;
+    min-width: 6rem;
 }
 
 .rule-comment-column {
@@ -312,16 +312,6 @@
     margin-top: 0;
 }
 
-// MudAutocomplete reserves label space internally when bound to a model expression,
-// even though this component renders its own external label. Remove that reserved
-// margin so selecting/clearing an interface never changes the grid row height.
-.network-interface-field
-    .mud-input-control
-    > .mud-input-control-input-container
-    > .mud-input.mud-input-text.mud-input-text-with-label {
-    margin-top: 0;
-}
-
 .network-interface-help {
     min-height: 2.15rem;
     color: var(--mud-palette-text-secondary);
@@ -335,6 +325,46 @@
     font-size: 0.8125rem;
     line-height: 1.45;
     overflow-wrap: anywhere;
+}
+
+.rule-interface-experiments {
+    margin-top: 1rem;
+}
+
+.rule-interface-experiment-grid {
+    align-items: start;
+}
+
+// Diagnostic variant: keep the clear affordance but remove it from the flex layout
+// so its appearance cannot change the input's measured height.
+.network-interface-experiment--absolute-clear .mud-input {
+    padding-inline-end: 1.75rem;
+}
+
+.network-interface-experiment--absolute-clear .mud-input-clear-button {
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 0;
+    margin: 0;
+    transform: translateY(-50%);
+}
+
+// Isolated reproduction of the previous workaround. The production fields above
+// no longer receive this rule, which keeps the experiment baseline honest.
+.network-interface-experiment--zero-label-margin
+    .mud-input-control
+    > .mud-input-control-input-container
+    > .mud-input.mud-input-text.mud-input-text-with-label {
+    margin-top: 0;
+}
+
+// Fallback experiment: reserve MudBlazor's labeled-input offset even before any
+// text is present. This intentionally prefers stable geometry over compact height.
+.network-interface-experiment--reserve-label-height
+    .mud-input-control
+    > .mud-input-control-input-container
+    > .mud-input.mud-input-text {
+    margin-top: 1rem;
 }
 
 .rule-drag-handle {
