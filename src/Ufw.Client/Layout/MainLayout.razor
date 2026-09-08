@@ -8,6 +8,7 @@
 
 <a class="skip-link" href="#main-content">@CommonText["SkipToMainContent"]</a>
 
+<CascadingValue Value="@_pageChrome" IsFixed="true">
 <MudLayout>
     <MudAppBar Fixed="true" Elevation="0" Class="app-shell-bar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
@@ -16,14 +17,20 @@
                        OnClick="ToggleDrawer"
                        Class="appbar-menu-button"
                        aria-label="@(CommonText["ToggleNavigation"])" />
+        @if (_pageChrome.Breadcrumbs.Count > 0)
+        {
+            <div class="appbar-navigation-context">
+                <MudBreadcrumbs Items="@_pageChrome.Breadcrumbs" Separator="/" Class="appbar-breadcrumbs" />
+            </div>
+        }
+        <MudSpacer />
         <AuthorizeView>
             <Authorized>
-                <MudText Typo="Typo.caption" Class="appbar-context" title="@context.User.Identity?.Name">
+                <MudText Typo="Typo.body2" Class="appbar-user" title="@context.User.Identity?.Name">
                     @context.User.Identity?.Name
                 </MudText>
             </Authorized>
         </AuthorizeView>
-        <MudSpacer />
         <ThemeToggle Color="Color.Default"
                      Variant="Variant.Outlined"
                      ShowLabel="true"
@@ -70,19 +77,26 @@
         </main>
     </MudMainContent>
 </MudLayout>
+</CascadingValue>
 
 @code {
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly PageChromeState _pageChrome = new();
     private bool _drawerOpen = true;
     private bool _logoutBusy;
 
+    protected override void OnInitialized() => _pageChrome.Changed += OnPageChromeChanged;
+
     public void Dispose()
     {
+        _pageChrome.Changed -= OnPageChromeChanged;
         _lifetime.Cancel();
         _lifetime.Dispose();
     }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void OnPageChromeChanged(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
 
     private async Task LogoutAsync()
     {

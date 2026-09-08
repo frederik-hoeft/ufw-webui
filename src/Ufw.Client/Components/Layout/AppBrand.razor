@@ -11,8 +11,8 @@
     public bool TransparentMark { get; set; }
 
     private string MarkSource => TransparentMark
-        ? "brand/cleaned-close-3-gradient.svg"
-        : "brand/cleaned-close-3-app-icon.svg";
+        ? "brand/ufw-console-mark.svg"
+        : "brand/ufw-console-app-icon.svg";
 
     private string CssClass => string.IsNullOrWhiteSpace(Class) ? "app-brand" : $"app-brand {Class}";
 }

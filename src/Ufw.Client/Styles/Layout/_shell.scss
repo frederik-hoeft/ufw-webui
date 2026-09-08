@@ -24,8 +24,42 @@
     margin-left: -0.5rem;
 }
 
-.appbar-context {
-    max-width: min(28rem, 45vw);
+.appbar-navigation-context {
+    min-width: 0;
+    max-width: min(40rem, 50vw);
+    overflow: hidden;
+}
+
+.appbar-breadcrumbs {
+    display: flex;
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+
+    .mud-breadcrumb-item,
+    .mud-breadcrumb-separator {
+        flex: 0 0 auto;
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.8125rem;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    .mud-breadcrumb-separator {
+        padding-inline: 0.5rem;
+    }
+
+    a.mud-breadcrumb-item:hover,
+    .mud-breadcrumb-item a:hover {
+        color: var(--mud-palette-text-primary);
+    }
+}
+
+.appbar-user {
+    max-width: min(12rem, 20vw);
     overflow: hidden;
     color: var(--mud-palette-text-secondary);
     text-overflow: ellipsis;

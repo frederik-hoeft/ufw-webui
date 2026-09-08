@@ -46,7 +46,7 @@
             .mud-nav-link-icon {
                 width: 1.5rem;
                 min-width: 1.5rem;
-                margin-inline: 0 !important;
+                margin-inline: 0;
             }
 
             .mud-nav-link-text {
@@ -62,7 +62,7 @@
 
         &:hover,
         &:focus-within {
-            z-index: 1301;
+            z-index: calc(var(--mud-zindex-appbar) + 2);
             width: $navigation-expanded-width;
             box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 24%);
 
@@ -119,8 +119,12 @@
 }
 
 @media (max-width: $mobile-breakpoint) {
-    .appbar-context {
+    .appbar-user {
         display: none;
+    }
+
+    .appbar-navigation-context {
+        max-width: min(20rem, 55vw);
     }
 
     .main-container {

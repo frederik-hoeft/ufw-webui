@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title" shape-rendering="geometricPrecision">
-  <title id="title">UFW cleaned-close-3 app icon</title>
+  <title id="title">UFW Console mark</title>
   <defs>
 <linearGradient id="ufwMarkGradient"
                     x1="12" y1="128" x2="244" y2="128"
@@ -9,7 +9,6 @@
     </linearGradient>
   </defs>
   <g>
-  <rect x="8" y="8" width="240" height="240" rx="54" fill="#0E141B"/>
     <rect x="80.000" y="62.667" width="80.000" height="21.333" rx="10.667" fill="url(#ufwMarkGradient)"/>
     <rect x="29.333" y="100.000" width="114.667" height="21.333" rx="10.667" fill="url(#ufwMarkGradient)"/>
     <rect x="12.000" y="136.000" width="112.000" height="21.333" rx="10.667" fill="url(#ufwMarkGradient)"/>
