@@ -58,17 +58,31 @@
     }
 }
 
-.appbar-user {
-    max-width: min(12rem, 20vw);
+.appbar-account-menu {
+    flex: 0 0 auto;
+}
+
+.appbar-account-button {
+    max-width: min(16rem, 28vw);
+
+    .mud-button-label {
+        min-width: 0;
+    }
+}
+
+.appbar-account-name {
+    min-width: 0;
     overflow: hidden;
-    color: var(--mud-palette-text-secondary);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.appbar-theme-toggle-icon,
-.appbar-signout-icon {
-    display: none;
+.appbar-account-popover {
+    min-width: 13rem;
+}
+
+.appbar-account-menu-list {
+    min-width: 13rem;
 }
 
 .mud-drawer.app-shell-drawer {
