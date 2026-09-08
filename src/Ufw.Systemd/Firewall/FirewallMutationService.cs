@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall.Rendering;
+﻿using System.Net.NetworkInformation;
+using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
@@ -8,6 +9,7 @@ using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Interop.Output;
+using Ufw.Systemd.NetworkInterfaces;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 
@@ -20,6 +22,7 @@ internal sealed class FirewallMutationService
     IIntentVerifier intentVerifier,
     INonceStore nonceStore,
     IUfwExecutionGate executionGate,
+    INetworkInterfaceProvider networkInterfaces,
     ILogger logger
 ) : IFirewallMutationService
 {
@@ -70,6 +73,12 @@ internal sealed class FirewallMutationService
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {
             return new ConflictResponse("Intent nonce has already been used.");
+        }
+
+        IResponsePayload? interfaceError = ValidateNetworkInterfaces(accepted.Rule);
+        if (interfaceError is not null)
+        {
+            return interfaceError;
         }
 
         (IResponsePayload? listError, UfwStatusSnapshot? snapshot) = await ReadStatusAsync(cancellationToken);
@@ -196,6 +205,49 @@ internal sealed class FirewallMutationService
         ThrowIfCancellationRequested(cancellationToken);
         _logger.LogInformation($"Deleted firewall rule '{identity}'.");
         return new RuleMutationResponse(IntentOperations.DELETE_RULE, match);
+    }
+
+    private IResponsePayload? ValidateNetworkInterfaces(FirewallRuleSpecification rule)
+    {
+        if (string.IsNullOrWhiteSpace(rule.SourceInterface)
+            && string.IsNullOrWhiteSpace(rule.DestinationInterface))
+        {
+            return null;
+        }
+
+        IReadOnlyList<string> availableInterfaces;
+        try
+        {
+            availableInterfaces = networkInterfaces.GetInterfaceNames();
+        }
+        catch (NetworkInformationException exception)
+        {
+            _logger.LogError(exception, "Failed to enumerate host network interfaces while validating an add-rule request.");
+            return new InternalServerErrorResponse("Failed to validate rule interfaces against the current host network state.");
+        }
+        catch (PlatformNotSupportedException exception)
+        {
+            _logger.LogError(exception, "Host network-interface enumeration is not supported while validating an add-rule request.");
+            return new InternalServerErrorResponse("Failed to validate rule interfaces against the current host network state.");
+        }
+
+        HashSet<string> available = new(availableInterfaces, StringComparer.Ordinal);
+        List<ModelValidationError> errors = [];
+        if (!string.IsNullOrWhiteSpace(rule.SourceInterface) && !available.Contains(rule.SourceInterface))
+        {
+            errors.Add(new ModelValidationError(
+                nameof(FirewallRuleSpecification.SourceInterface),
+                $"Interface '{rule.SourceInterface}' is not present on this host."));
+        }
+
+        if (!string.IsNullOrWhiteSpace(rule.DestinationInterface) && !available.Contains(rule.DestinationInterface))
+        {
+            errors.Add(new ModelValidationError(
+                nameof(FirewallRuleSpecification.DestinationInterface),
+                $"Interface '{rule.DestinationInterface}' is not present on this host."));
+        }
+
+        return errors.Count == 0 ? null : new ModelValidationErrorResponse([.. errors]);
     }
 
     private async Task<(IResponsePayload? Error, UfwStatusSnapshot? Snapshot)> ReadStatusAsync(CancellationToken cancellationToken)

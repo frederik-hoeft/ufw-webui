@@ -229,13 +229,13 @@
     <value>Ingress interface for inbound or forward rules.</value>
   </data>
   <data name="InterfaceSuggestionsUnavailable" xml:space="preserve">
-    <value>{0} Cached suggestions are unavailable; free text is still accepted.</value>
+    <value>{0} Cached suggestions are unavailable; you can still enter a host interface name.</value>
   </data>
   <data name="InterfaceEnterValid" xml:space="preserve">
-    <value>{0} Enter a valid interface name.</value>
+    <value>{0} Enter a host interface name. The daemon verifies it before adding the rule.</value>
   </data>
   <data name="InterfaceChooseKnown" xml:space="preserve">
-    <value>{0} Choose a known interface or enter another valid name.</value>
+    <value>{0} Choose a known interface (search by name or comment) or enter another host interface name.</value>
   </data>
   <data name="PrivateKeyLabel" xml:space="preserve">
     <value>ECDSA P-256 private key</value>
@@ -424,7 +424,7 @@
     <value>Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored.</value>
   </data>
   <data name="NoInterfaceMatches" xml:space="preserve">
-    <value>No cached interface matches. You can still enter a valid interface name.</value>
+    <value>No cached interface matches this name or comment. You can still enter a host interface name.</value>
   </data>
   <data name="CurrentFirewallRules" xml:space="preserve">
     <value>Current firewall rules</value>

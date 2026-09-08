@@ -1,4 +1,4 @@
-@inject IStringLocalizer<CommonStrings> CommonText
+﻿@inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<InterfacesStrings> InterfacesText
 
 <MudDialog>
@@ -10,6 +10,8 @@
                       Label="@(InterfacesText["CommentColumn"])"
                       @bind-Value="_comment"
                       Immediate="true"
+                      Counter="200"
+                      MaxLength="200"
                       autofocus="true" />
     </DialogContent>
     <DialogActions>

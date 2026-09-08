@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Ufw.Client.Serialization;
 
 namespace Ufw.Client.Api;
@@ -7,8 +7,6 @@ internal sealed class NetworkInterfaceApiClient(HttpClient httpClient) : INetwor
 {
     private static readonly Uri s_interfacesUri = new("api/v1/network-interfaces", UriKind.Relative);
     private static readonly Uri s_reconcileUri = new("api/v1/network-interfaces/reconcile", UriKind.Relative);
-
-    public bool UsesMockData => false;
 
     public async Task<NetworkInterfaceInventoryResponse> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -27,15 +25,16 @@ internal sealed class NetworkInterfaceApiClient(HttpClient httpClient) : INetwor
     }
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(
-        string interfaceName,
+        Guid interfaceId,
         string? comment,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(interfaceName);
+        if (interfaceId == Guid.Empty)
+        {
+            throw new ArgumentException("Interface ID must not be empty.", nameof(interfaceId));
+        }
 
-        Uri uri = new(
-            $"api/v1/network-interfaces/{Uri.EscapeDataString(interfaceName)}/comment",
-            UriKind.Relative);
+        Uri uri = new($"api/v1/network-interfaces/{interfaceId:D}/comment", UriKind.Relative);
         UpdateNetworkInterfaceCommentRequest request = new() { Comment = comment };
         using JsonContent content = JsonContent.Create(
             request,

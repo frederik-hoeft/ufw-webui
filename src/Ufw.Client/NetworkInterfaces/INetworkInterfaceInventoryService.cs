@@ -1,11 +1,9 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 
 namespace Ufw.Client.NetworkInterfaces;
 
 public interface INetworkInterfaceInventoryService
 {
-    bool UsesMockData { get; }
-
     NetworkInterfaceInventoryResponse? Current { get; }
 
     Task<NetworkInterfaceInventoryResponse> RefreshAsync(CancellationToken cancellationToken = default);
@@ -13,7 +11,7 @@ public interface INetworkInterfaceInventoryService
     Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default);
 
     Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(
-        string interfaceName,
+        Guid interfaceId,
         string? comment,
         CancellationToken cancellationToken = default);
 }

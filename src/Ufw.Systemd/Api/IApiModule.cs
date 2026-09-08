@@ -11,6 +11,7 @@ namespace Ufw.Systemd.Api;
 
 [ServiceProviderModule]
 [Scoped<IntentController>]
+[Scoped<NetworkInterfacesController>]
 [Scoped<RulesController>]
 [Singleton<MessageJsonSerializerContext>(Factory = nameof(GetMessageJsonSerializerContext))]
 [Singleton<AotJsonSerializerContext>(Factory = nameof(GetAotJsonSerializerContext))]

@@ -35,21 +35,6 @@ Evaluate whether a future signed-intent protocol revision should include the can
 
 Review reusable static helper classes, especially in shared libraries, and convert stateful, policy-bearing, or extensible behavior to injected services where doing so improves testability and substitution. Keep genuinely pure constants/trivial value helpers static where DI would add ceremony without a useful seam.
 
-## Network interface inventory backend
-
-Replace the frontend mock interface inventory with an authoritative daemon-backed read path and ASP cache.
-
-Target contract currently modeled by the client:
-
-- `GET /api/v1/network-interfaces` returns the ASP-cached inventory.
-- `POST /api/v1/network-interfaces/reconcile` forces ASP to refresh the inventory from the daemon and returns the refreshed snapshot.
-- `PUT /api/v1/network-interfaces/{name}/comment` stores an ASP-owned browser-facing comment for one interface and returns the refreshed inventory. Request shape: `{ "comment": "LAN uplink" }`; an empty/null comment clears it.
-- Response shape: `{ "interfaces": [{ "name": "eno1", "comment": "LAN uplink" }, { "name": "docker0", "comment": null }], "reconciledAt": "<RFC 3339 timestamp>" }`.
-
-The daemon read operation should enumerate known host network interfaces without requiring a signed mutation intent. ASP owns cache policy and comments; reconciliation should preserve comments for interfaces that remain present and decide retention policy for interfaces that disappear. The client treats interface names as advisory autocomplete only, so free-text interface names remain valid and daemon-side rule validation remains authoritative. Comments are presentation metadata and never participate in firewall or signed-intent semantics.
-
-Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the provisional target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
-
 ## Frontend follow-ups after visual polish
 
 ### Evaluate address-family-separated rule tables

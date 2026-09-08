@@ -94,7 +94,7 @@ Rows that cannot be fully parsed and semantically validated remain visible to re
 
 ## Privileged process boundary
 
-Signed authorization grants permission only for the supported semantic UFW operation. Mutation input is validated and converted into argv controlled by the daemon; it is never interpolated into a shell command.
+Signed authorization grants permission only for the supported semantic UFW operation. Mutation input is validated and converted into argv controlled by the daemon; it is never interpolated into a shell command. For AddRule, any signed source/destination interface is also checked against the daemon's current host network-interface inventory before UFW can start. This check is independent of the ASP-cached interface list and its comments. DeleteRule intentionally remains possible after an interface disappears.
 
 All UFW process activity is serialized in-process. The daemon owns a started child until it exits or has been terminated and reaped, even when the originating request is canceled. The execution gate remains held while interrupted mutations are reconciled against authoritative UFW state.
 

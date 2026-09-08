@@ -1,4 +1,4 @@
-@using Ufw.Shared.Ipc.Model.Responses
+﻿@using Ufw.Shared.Ipc.Model.Responses
 @inject INetworkInterfaceInventoryService NetworkInterfaces
 @inject IClientErrorMapper ClientErrors
 @inject IFirewallRuleText RuleText
@@ -192,7 +192,7 @@
 @code {
     private MudForm? _form;
     private Func<object, string, IEnumerable<string>> RuleValidation => ValidateRule;
-    private IReadOnlyList<string> _knownInterfaces = [];
+    private IReadOnlyList<NetworkInterfaceInventoryItem> _knownInterfaces = [];
     private string? _interfaceInventoryError;
     private bool _isValid;
 
@@ -255,7 +255,7 @@
         try
         {
             NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
-            _knownInterfaces = inventory.Interfaces.Select(static entry => entry.Name).ToArray();
+            _knownInterfaces = inventory.Interfaces;
         }
         catch (Exception exception)
         {

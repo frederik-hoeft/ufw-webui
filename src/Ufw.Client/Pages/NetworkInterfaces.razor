@@ -1,4 +1,4 @@
-@page "/interfaces"
+﻿@page "/interfaces"
 @attribute [Authorize]
 @implements IDisposable
 @inject INetworkInterfaceInventoryService InterfaceInventory
@@ -38,24 +38,13 @@
                 @DescribeCount(_inventory.Interfaces.Count)
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @InterfacesText["ReconciledAt", FormatLocalDateTime(_inventory.ReconciledAt)]
+                @(_inventory.ReconciledAt is { } reconciledAt
+                    ? InterfacesText["ReconciledAt", FormatLocalDateTime(reconciledAt)]
+                    : InterfacesText["NotReconciledYet"])
             </MudChip>
-            @if (InterfaceInventory.UsesMockData)
-            {
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip page-status-chip-warning">
-                    @InterfacesText["FrontendMockData"]
-                </MudChip>
-            }
         }
     </Status>
 </PageHeader>
-
-@if (InterfaceInventory.UsesMockData)
-{
-    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
-        @InterfacesText["MockWarning"]
-    </MudAlert>
-}
 
 @if (_error is not null)
 {
@@ -223,11 +212,7 @@
         try
         {
             _inventory = await InterfaceInventory.ReconcileAsync(_lifetime.Token);
-            Snackbar.Add(
-                InterfaceInventory.UsesMockData
-                    ? InterfacesText["MockReconciled"]
-                    : InterfacesText["ReconciledFromDaemon"],
-                Severity.Success);
+            Snackbar.Add(InterfacesText["ReconciledFromDaemon"], Severity.Success);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -266,12 +251,8 @@
         _savingComment = true;
         try
         {
-            _inventory = await InterfaceInventory.UpdateCommentAsync(item.Name, comment, _lifetime.Token);
-            Snackbar.Add(
-                InterfaceInventory.UsesMockData
-                    ? InterfacesText["MockCommentSaved"]
-                    : InterfacesText["CommentSaved"],
-                Severity.Success);
+            _inventory = await InterfaceInventory.UpdateCommentAsync(item.Id, comment, _lifetime.Token);
+            Snackbar.Add(InterfacesText["CommentSaved"], Severity.Success);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {

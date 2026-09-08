@@ -229,13 +229,13 @@
     <value>Eingangsschnittstelle für eingehende oder Weiterleitungsregeln.</value>
   </data>
   <data name="InterfaceSuggestionsUnavailable" xml:space="preserve">
-    <value>{0} Zwischengespeicherte Vorschläge sind nicht verfügbar; Freitext wird weiterhin akzeptiert.</value>
+    <value>{0} Zwischengespeicherte Vorschläge sind nicht verfügbar; Sie können weiterhin einen Host-Schnittstellennamen eingeben.</value>
   </data>
   <data name="InterfaceEnterValid" xml:space="preserve">
-    <value>{0} Geben Sie einen gültigen Schnittstellennamen ein.</value>
+    <value>{0} Geben Sie einen Host-Schnittstellennamen ein. Der Daemon prüft ihn vor dem Hinzufügen der Regel.</value>
   </data>
   <data name="InterfaceChooseKnown" xml:space="preserve">
-    <value>{0} Wählen Sie eine bekannte Schnittstelle oder geben Sie einen anderen gültigen Namen ein.</value>
+    <value>{0} Wählen Sie eine bekannte Schnittstelle (Suche nach Name oder Kommentar) oder geben Sie einen anderen Host-Schnittstellennamen ein.</value>
   </data>
   <data name="PrivateKeyLabel" xml:space="preserve">
     <value>Privater ECDSA-P-256-Schlüssel</value>
@@ -424,7 +424,7 @@
     <value>Für Passwortmanager wird data:application/pkcs8;base64,... empfohlen. PKCS#8-PEM und Base64-DER werden ebenfalls akzeptiert. Der Schlüssel wird nur für diese Anfrage verwendet und nicht gespeichert.</value>
   </data>
   <data name="NoInterfaceMatches" xml:space="preserve">
-    <value>Keine zwischengespeicherte Schnittstelle stimmt überein. Sie können weiterhin einen gültigen Schnittstellennamen eingeben.</value>
+    <value>Keine zwischengespeicherte Schnittstelle passt zu diesem Namen oder Kommentar. Sie können weiterhin einen Host-Schnittstellennamen eingeben.</value>
   </data>
   <data name="CurrentFirewallRules" xml:space="preserve">
     <value>Aktuelle Firewallregeln</value>

@@ -171,6 +171,20 @@ Controller response DTOs retain their `IIdentifiable` contract for generated
 endpoint mapping. That DTO identity is separate from the application envelope
 and is not an on-wire message identifier.
 
+## Current daemon domain routes
+
+The current v1 daemon route set includes:
+
+| Method | Route | Purpose | Signed mutation intent |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/intent/context` | Read signed-intent protocol/deployment context | no |
+| `GET` | `/api/v1/network-interfaces` | Enumerate current host network-interface names | no |
+| `GET` | `/api/v1/rules` | Read authoritative UFW state | no |
+| `POST` | `/api/v1/rules` | Add a rule | yes (`rules.add`) |
+| `DELETE` | `/api/v1/rules` | Delete a concrete listed rule | yes (`rules.delete`) |
+
+The network-interface response contains daemon-observed names only. ASP-owned frontend UUIDs and comments are deliberately not part of IPC because they are presentation/cache metadata rather than host or firewall authority.
+
 ## Typed request binding
 
 Envelope validity and route-specific DTO validity are separate stages. The

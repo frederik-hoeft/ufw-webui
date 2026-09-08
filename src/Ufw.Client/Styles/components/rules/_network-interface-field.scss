@@ -42,3 +42,15 @@
     margin: 0;
     transform: translateY(-50%);
 }
+
+.network-interface-option {
+    display: grid;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.network-interface-option span {
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+}
