@@ -1,5 +1,5 @@
 <MudPaper Class="@CssClass" Elevation="0" role="@Role" aria-live="@AriaLive">
-    <AppBrand Class="standalone-panel-brand" />
+    <AppBrand Class="standalone-panel-brand" TransparentMark="@TransparentBrandMark" />
 
     @if (!string.IsNullOrWhiteSpace(Icon))
     {
@@ -57,6 +57,9 @@
 
     [Parameter]
     public string? AriaLive { get; set; }
+
+    [Parameter]
+    public bool TransparentBrandMark { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

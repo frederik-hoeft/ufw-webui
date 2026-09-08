@@ -52,10 +52,6 @@ Until this backend work is approved and implemented, `Ufw.Client` registers `Moc
 
 ## Frontend follow-ups after visual polish
 
-### Stabilize rule-editor interface field height
-
-The source/destination interface autocomplete still changes the vertical geometry of the rule form when text is entered or selected. The production fields are currently back on unmodified MudBlazor sizing while the add-rule page carries a temporary comparison harness with isolated variants for the clear button, `For` expression, native label treatment, and internal label spacing. Use that harness to identify the actual cause before selecting a permanent fix. The final result must keep empty, focused, typed, selected, validation-error, and disabled states at a consistent control height while preserving the clear affordance and keyboard/accessibility behavior.
-
 ### Evaluate address-family-separated rule tables
 
 Consider replacing the inline `IPv4` / `IPv6` marker in the Direction column with distinct IPv4 and IPv6 rule tables rendered one after another. The goal is to make the primary rows visually cleaner while keeping address family explicit at the table level.

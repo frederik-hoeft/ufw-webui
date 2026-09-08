@@ -1,11 +1,18 @@
 <div class="@CssClass">
-    <img class="app-brand-mark" src="brand/cleaned-close-3-app-icon.svg" alt="" aria-hidden="true" />
+    <img class="app-brand-mark" src="@MarkSource" alt="" aria-hidden="true" />
     <MudText Typo="Typo.subtitle1" HtmlTag="span" Class="app-brand-name">UFW Console</MudText>
 </div>
 
 @code {
     [Parameter]
     public string? Class { get; set; }
+
+    [Parameter]
+    public bool TransparentMark { get; set; }
+
+    private string MarkSource => TransparentMark
+        ? "brand/cleaned-close-3-gradient.svg"
+        : "brand/cleaned-close-3-app-icon.svg";
 
     private string CssClass => string.IsNullOrWhiteSpace(Class) ? "app-brand" : $"app-brand {Class}";
 }

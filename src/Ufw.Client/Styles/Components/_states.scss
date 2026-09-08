@@ -88,6 +88,12 @@
 
 .login-card {
     width: min(28rem, 100%);
+
+    .standalone-panel-brand .app-brand-mark {
+        width: 3rem;
+        height: 3rem;
+        flex-basis: 3rem;
+    }
 }
 
 .standalone-state-card {

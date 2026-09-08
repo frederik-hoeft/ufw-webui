@@ -11,7 +11,8 @@
 
 <StandalonePanel Title="@(AuthenticationText["Title"])"
                  Description="@(AuthenticationText["Description"])"
-                 Class="login-card">
+                 Class="login-card"
+                 TransparentBrandMark="true">
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4" role="alert">
