@@ -1,0 +1,28 @@
+.mud-button-root {
+    min-height: 2.5rem;
+    border-radius: var(--mud-default-borderradius);
+}
+
+.mud-button-outlined.mud-button-outlined-default {
+    border-color: var(--mud-palette-lines-default);
+}
+
+.mud-chip {
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.mud-alert {
+    border-radius: var(--mud-default-borderradius);
+}
+
+.mud-main-content .mud-paper {
+    border: 1px solid var(--mud-palette-lines-default);
+    box-shadow: none;
+}
+
+.mud-popover,
+.mud-dialog {
+    border: 1px solid var(--mud-palette-lines-default);
+}

@@ -1,11 +1,13 @@
 @inject IStringLocalizer<RulesStrings> RulesText
 
+@* Password managers recognize this as an existing password-like secret. There is no standard autofill token for a signing key. *@
 <MudTextField T="string"
               Label="@(RulesText["PrivateKeyLabel"])"
               InputType="InputType.Password"
               Value="@Value"
-              name="intent-private-key"
-              autocomplete="off"
+              InputId="intent-private-key-password"
+              name="password"
+              autocomplete="current-password"
               autocapitalize="off"
               spellcheck="false"
               ValueChanged="ValueChangedAsync"

@@ -1,0 +1,56 @@
+@use "../../core/tokens" as *;
+
+.rule-editor-card {
+    width: 100%;
+    max-width: 72rem;
+    padding: 1.25rem;
+
+    .mud-input-label {
+        font-weight: 500;
+    }
+
+    .mud-input,
+    .mud-input-slot,
+    input,
+    textarea {
+        font-weight: 400;
+    }
+
+    .mud-input-helper-text {
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+}
+
+.rule-editor-section-heading {
+    display: grid;
+    gap: 0.125rem;
+    margin-bottom: 1rem;
+}
+
+.rule-editor-authorization-heading {
+    margin-bottom: 0;
+}
+
+.rule-editor-divider {
+    margin-block: 0.75rem 0.5rem;
+}
+
+.rule-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .rule-editor-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+
+        .mud-button-root {
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
+}

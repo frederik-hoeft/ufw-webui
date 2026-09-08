@@ -1,4 +1,5 @@
-@use "../foundation" as *;
+@use "../core/mixins" as *;
+@use "../core/tokens" as *;
 
 .standalone-shell,
 .login-shell {
@@ -88,6 +89,12 @@
 
 .login-card {
     width: min(28rem, 100%);
+
+    .standalone-panel-brand .app-brand-mark {
+        width: 3rem;
+        height: 3rem;
+        flex-basis: 3rem;
+    }
 }
 
 .standalone-state-card {
@@ -125,16 +132,11 @@
 }
 
 .bootstrap-brand-mark {
-    display: inline-grid;
+    display: block;
     width: 2rem;
     height: 2rem;
     flex: 0 0 2rem;
-    place-items: center;
-    border-radius: 6px;
-    background: var(--mud-palette-primary, #2f6fda);
-    color: var(--mud-palette-primary-contrasttext, #ffffff);
-    font-size: 0.875rem;
-    font-weight: 600;
+    object-fit: contain;
 }
 
 .bootstrap-status-copy {
@@ -160,4 +162,26 @@
 .error-diagnostic-reference {
     font-family: var(--ufw-font-mono);
     font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .standalone-panel {
+        padding: 1.25rem;
+    }
+
+    .standalone-panel-actions {
+        flex-direction: column;
+        align-items: stretch;
+
+        .mud-button-root {
+            width: 100%;
+        }
+    }
+}
+
+@media (max-width: $compact-appbar-breakpoint) {
+    .standalone-shell,
+    .login-shell {
+        padding: 1rem;
+    }
 }

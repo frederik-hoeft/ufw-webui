@@ -1,3 +1,5 @@
+@use "../core/tokens" as *;
+
 .delete-dialog-actions {
     display: flex;
     width: 100%;
@@ -17,4 +19,17 @@
 .mud-dialog .mud-dialog-title .mud-button-close {
     top: 50%;
     transform: translateY(-50%);
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .delete-dialog-actions {
+        flex-direction: column;
+        align-items: stretch;
+
+        .mud-button-root {
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
 }

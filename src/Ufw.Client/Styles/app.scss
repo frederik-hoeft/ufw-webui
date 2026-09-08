@@ -1,14 +1,22 @@
-@use "fonts";
-@use "foundation";
-@use "interaction";
-@use "Layout/shell";
-@use "Components/brand";
-@use "Components/page-header";
-@use "Components/rules";
-@use "Components/interfaces";
-@use "Components/status";
-@use "Components/settings";
-@use "Components/states";
-@use "Components/command-preview";
-@use "Components/dialogs";
-@use "responsive";
+@use "core/fonts";
+@use "core/tokens";
+@use "core/global";
+@use "core/interaction";
+
+@use "layout/shell";
+
+@use "controls/brand";
+@use "controls/dialogs";
+@use "controls/mud";
+@use "controls/page-header";
+@use "controls/standalone";
+
+@use "components/rules/command-preview";
+@use "components/rules/network-interface-field";
+@use "components/rules/rule-editor";
+@use "components/rules/rule-table";
+
+@use "pages/interfaces";
+@use "pages/rules";
+@use "pages/settings";
+@use "pages/status";

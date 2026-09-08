@@ -8,6 +8,7 @@
 
 <a class="skip-link" href="#main-content">@CommonText["SkipToMainContent"]</a>
 
+<CascadingValue Value="@_pageChrome" IsFixed="true">
 <MudLayout>
     <MudAppBar Fixed="true" Elevation="0" Class="app-shell-bar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
@@ -16,39 +17,18 @@
                        OnClick="ToggleDrawer"
                        Class="appbar-menu-button"
                        aria-label="@(CommonText["ToggleNavigation"])" />
-        <AuthorizeView>
-            <Authorized>
-                <MudText Typo="Typo.caption" Class="appbar-context" title="@context.User.Identity?.Name">
-                    @context.User.Identity?.Name
-                </MudText>
-            </Authorized>
-        </AuthorizeView>
+        @if (_pageChrome.Breadcrumbs.Count > 0)
+        {
+            <div class="appbar-navigation-context">
+                <MudBreadcrumbs Items="@_pageChrome.Breadcrumbs" Separator="/" Class="appbar-breadcrumbs" />
+            </div>
+        }
         <MudSpacer />
-        <ThemeToggle Color="Color.Default"
-                     Variant="Variant.Outlined"
-                     ShowLabel="true"
-                     Class="appbar-theme-toggle-text" />
-        <ThemeToggle Color="Color.Default"
-                     Variant="Variant.Outlined"
-                     ShowLabel="false"
-                     Class="appbar-theme-toggle-icon" />
         <AuthorizeView>
             <Authorized>
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Default"
-                           StartIcon="@Icons.Material.Filled.Logout"
-                           Disabled="@_logoutBusy"
-                           OnClick="LogoutAsync"
-                           Class="appbar-signout-text">
-                    @(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])
-                </MudButton>
-                <MudIconButton Icon="@Icons.Material.Filled.Logout"
-                               Color="Color.Default"
-                               Variant="Variant.Outlined"
-                               Disabled="@_logoutBusy"
-                               OnClick="LogoutAsync"
-                               Class="appbar-signout-icon"
-                               aria-label="@(_logoutBusy ? CommonText["SigningOut"] : CommonText["SignOut"])" />
+                <AppUserMenu UserName="@(context.User.Identity?.Name ?? string.Empty)"
+                             SignOutBusy="@_logoutBusy"
+                             SignOut="LogoutAsync" />
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
@@ -70,19 +50,26 @@
         </main>
     </MudMainContent>
 </MudLayout>
+</CascadingValue>
 
 @code {
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly PageChromeState _pageChrome = new();
     private bool _drawerOpen = true;
     private bool _logoutBusy;
 
+    protected override void OnInitialized() => _pageChrome.Changed += OnPageChromeChanged;
+
     public void Dispose()
     {
+        _pageChrome.Changed -= OnPageChromeChanged;
         _lifetime.Cancel();
         _lifetime.Dispose();
     }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void OnPageChromeChanged(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);
 
     private async Task LogoutAsync()
     {

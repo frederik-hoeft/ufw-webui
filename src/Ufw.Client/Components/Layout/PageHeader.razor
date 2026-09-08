@@ -1,9 +1,6 @@
-<header class="page-header">
-    @if (Breadcrumbs.Count > 0)
-    {
-        <MudBreadcrumbs Items="@Breadcrumbs" Separator="/" Class="page-breadcrumbs" />
-    }
+@implements IDisposable
 
+<header class="page-header">
     <div class="page-header-row">
         <div class="page-header-copy">
             <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
@@ -32,6 +29,9 @@
 </header>
 
 @code {
+    [CascadingParameter]
+    public PageChromeState? PageChrome { get; set; }
+
     [Parameter, EditorRequired]
     public string Title { get; set; } = string.Empty;
 
@@ -49,4 +49,19 @@
 
     [Parameter]
     public bool ShowStatus { get; set; } = true;
+
+    private PageChromeState? _registeredPageChrome;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(_registeredPageChrome, PageChrome))
+        {
+            _registeredPageChrome?.ClearBreadcrumbs(this);
+            _registeredPageChrome = PageChrome;
+        }
+
+        _registeredPageChrome?.SetBreadcrumbs(this, Breadcrumbs);
+    }
+
+    public void Dispose() => _registeredPageChrome?.ClearBreadcrumbs(this);
 }

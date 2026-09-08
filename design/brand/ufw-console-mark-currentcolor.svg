@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title" shape-rendering="geometricPrecision">
+  <title id="title">UFW Console mark (current color)</title>
+  <g>
+    <rect x="80.000" y="62.667" width="80.000" height="21.333" rx="10.667" fill="currentColor"/>
+    <rect x="29.333" y="100.000" width="114.667" height="21.333" rx="10.667" fill="currentColor"/>
+    <rect x="12.000" y="136.000" width="112.000" height="21.333" rx="10.667" fill="currentColor"/>
+    <rect x="48.000" y="172.000" width="93.333" height="21.333" rx="10.667" fill="currentColor"/>
+    <rect x="147.667" y="132.667" width="30.667" height="26.667" rx="5.000" fill="currentColor"/>
+    <rect x="187.000" y="102.667" width="24.000" height="24.000" rx="5.000" fill="currentColor"/>
+    <rect x="188.333" y="145.333" width="21.333" height="25.333" rx="5.000" fill="currentColor"/>
+    <rect x="219.000" y="121.333" width="16.000" height="16.000" rx="4.480" fill="currentColor"/>
+  </g>
+</svg>

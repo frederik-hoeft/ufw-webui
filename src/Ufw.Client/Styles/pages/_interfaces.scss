@@ -1,3 +1,5 @@
+@use "../core/tokens" as *;
+
 .interface-inventory-card {
     overflow: hidden;
 }
@@ -91,4 +93,14 @@
 
 .interface-mobile-row .mud-button-root {
     flex: 0 0 auto;
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .interface-inventory-desktop {
+        display: none;
+    }
+
+    .interface-inventory-mobile {
+        display: block;
+    }
 }

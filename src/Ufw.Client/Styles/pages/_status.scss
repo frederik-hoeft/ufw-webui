@@ -1,3 +1,5 @@
+@use "../core/tokens" as *;
+
 .operational-status-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -61,4 +63,15 @@
 .operational-status-meta {
     margin-top: 1rem;
     padding: 1.5rem;
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .operational-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .operational-status-details > div {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
 }
