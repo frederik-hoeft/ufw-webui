@@ -1,3 +1,5 @@
+@use "../core/tokens" as *;
+
 .page-header {
     margin-bottom: 2rem;
 }
@@ -69,4 +71,30 @@
 
 .page-status-chip-error {
     color: var(--mud-palette-error) !important;
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header-row {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-header-copy,
+    .page-header-actions {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .page-header-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    }
+
+    .page-header-button {
+        width: 100%;
+    }
 }

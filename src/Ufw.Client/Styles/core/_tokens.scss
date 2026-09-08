@@ -1,0 +1,26 @@
+$mobile-breakpoint: 600px;
+$desktop-breakpoint: 1280px;
+$navigation-expanded-breakpoint: $desktop-breakpoint;
+$navigation-compact-width: 4.5rem;
+$navigation-expanded-width: 15rem;
+$compact-appbar-breakpoint: 480px;
+
+$ufw-nav-background: #0e141b;
+$ufw-nav-surface: #18202a;
+$ufw-nav-selected: #27313d;
+$ufw-nav-text: #f1f4f7;
+$ufw-nav-muted: #8a96a6;
+$ufw-nav-accent: #6ea8fe;
+$ufw-font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+$ufw-font-mono: "IBM Plex Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+
+:root {
+    --ufw-nav-background: #{$ufw-nav-background};
+    --ufw-nav-surface: #{$ufw-nav-surface};
+    --ufw-nav-selected: #{$ufw-nav-selected};
+    --ufw-nav-text: #{$ufw-nav-text};
+    --ufw-nav-muted: #{$ufw-nav-muted};
+    --ufw-nav-accent: #{$ufw-nav-accent};
+    --ufw-font-sans: #{$ufw-font-sans};
+    --ufw-font-mono: #{$ufw-font-mono};
+}

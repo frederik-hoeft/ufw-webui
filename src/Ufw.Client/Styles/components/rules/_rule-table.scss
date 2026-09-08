@@ -1,8 +1,4 @@
-.rule-create-page,
-.rule-editor-card {
-    width: 100%;
-    max-width: 72rem;
-}
+@use "../../core/tokens" as *;
 
 .rule-list-section,
 .rule-table-card,
@@ -73,11 +69,11 @@
     }
 }
 
-.rule-drag-column {
+.rule-table .rule-drag-column {
     width: 2.75rem;
     min-width: 2.75rem;
-    padding-inline: 0.5rem !important;
-    text-align: center !important;
+    padding-inline: 0.5rem;
+    text-align: center;
 }
 
 .rule-number-column {
@@ -109,10 +105,10 @@
     min-width: 12rem;
 }
 
-.rule-row-actions {
+.rule-table .rule-row-actions {
     width: 3rem;
     min-width: 3rem;
-    text-align: right !important;
+    text-align: right;
     white-space: nowrap;
 }
 
@@ -255,96 +251,6 @@
     gap: 0.5rem;
     padding: 3rem 1.5rem;
     text-align: center;
-}
-
-.rule-editor-card {
-    .mud-input-label {
-        font-weight: 500;
-    }
-
-    .mud-input,
-    .mud-input-slot,
-    input,
-    textarea {
-        font-weight: 400;
-    }
-
-    .mud-input-helper-text {
-        font-size: 0.75rem;
-        line-height: 1.45;
-    }
-}
-
-.rule-editor-section-heading {
-    display: grid;
-    gap: 0.125rem;
-    margin-bottom: 1rem;
-}
-
-.rule-editor-authorization-heading {
-    margin-bottom: 0;
-}
-
-.rule-editor-divider {
-    margin-block: 0.75rem 0.5rem;
-}
-
-.rule-editor-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-.network-interface-field {
-    display: grid;
-    align-content: start;
-    gap: 0.25rem;
-}
-
-.network-interface-label {
-    color: var(--mud-palette-text-primary);
-    font-size: 0.75rem;
-    font-weight: 500;
-    line-height: 1.25;
-}
-
-.network-interface-field .mud-input-control {
-    margin-top: 0;
-}
-
-// The interface autocomplete uses an external label, which leaves its underline
-// slightly lower than MudTextField's built-in floating-label geometry. Keep the
-// two port fields in the same row aligned with that stable autocomplete height.
-.rule-editor-card .rule-editor-port-field.mud-input-control > .mud-input-control-input-container >
-    div.mud-input.mud-input-text.mud-input-text-with-label {
-    margin-top: 19px;
-}
-
-.network-interface-help {
-    min-height: 2.15rem;
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
-    line-height: 1.45;
-}
-
-.network-interface-no-items {
-    padding: 0.75rem 1rem;
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.8125rem;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-}
-
-// MudBlazor inserts the clear icon into the input flex row only once text exists.
-// Taking it out of flow keeps the autocomplete underline at a stable height. The
-// button sits immediately before the end adornment (the dropdown arrow), so no
-// trailing gap appears while the clear action is absent.
-.network-interface-field .mud-input-clear-button {
-    position: absolute;
-    top: 50%;
-    inset-inline-end: 1.5rem;
-    margin: 0;
-    transform: translateY(-50%);
 }
 
 .rule-drag-handle {
@@ -534,7 +440,7 @@
     color: var(--mud-palette-text-secondary);
 }
 
-@media (max-width: 1279.98px) {
+@media (max-width: ($desktop-breakpoint - 0.02px)) {
     .rule-ordering-note {
         align-items: flex-start;
         flex-direction: column;
@@ -543,5 +449,36 @@
 
     .rule-ordering-mock-chip {
         margin-left: 0;
+    }
+}
+
+
+@media (max-width: $mobile-breakpoint) {
+    .rule-unsupported {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .rule-table-scroll {
+        display: none;
+    }
+
+    .rule-mobile-list {
+        display: block;
+    }
+
+    .rule-table-card {
+        overflow: hidden;
+    }
+
+    .rule-mobile-endpoints {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: $compact-appbar-breakpoint) {
+    .rule-mobile-card-details {
+        grid-template-columns: 1fr;
     }
 }

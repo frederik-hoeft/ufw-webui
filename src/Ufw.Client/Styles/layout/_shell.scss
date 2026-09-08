@@ -1,3 +1,5 @@
+@use "../core/tokens" as *;
+
 .mud-appbar {
     border-bottom: 1px solid var(--mud-palette-lines-default);
 }
@@ -58,10 +60,6 @@
     }
 }
 
-.appbar-account-menu {
-    flex: 0 0 auto;
-}
-
 .appbar-account-button {
     max-width: min(16rem, 28vw);
 
@@ -87,7 +85,7 @@
 
 .mud-drawer.app-shell-drawer {
     overflow-x: hidden;
-    border-right: 1px solid var(--ufw-nav-selected) !important;
+    border-right: 1px solid var(--ufw-nav-selected);
     background: var(--ufw-nav-background);
 }
 
@@ -222,5 +220,145 @@
     max-width: 100rem;
     min-width: 0;
     margin-inline: auto;
-    padding: 2rem 2.25rem 3rem !important;
+    padding: 2rem 2.25rem 3rem;
+}
+
+
+@media (min-width: $mobile-breakpoint) {
+    .appbar-menu-button {
+        display: none;
+    }
+}
+
+// Between the mobile drawer and the full navigation rail, reserve only enough
+// horizontal space for the section icons. Hover/focus expands the drawer over
+// content without causing the page to reflow.
+@media (min-width: $mobile-breakpoint) and (max-width: ($navigation-expanded-breakpoint - 0.02px)) {
+    .mud-layout {
+        --mud-drawer-width-left: #{$navigation-compact-width};
+    }
+
+    .mud-drawer.app-shell-drawer {
+        z-index: calc(var(--mud-zindex-appbar) + 2);
+        width: $navigation-compact-width;
+        transition: width 160ms ease, box-shadow 160ms ease;
+
+        .app-brand-name,
+        .app-navigation-section-label,
+        .mud-nav-link-text,
+        .app-navigation-status-text {
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .app-navigation-brand {
+            justify-content: center;
+            padding-inline: 0;
+
+            .app-brand {
+                gap: 0;
+            }
+        }
+
+        .mud-nav-link {
+            justify-content: center;
+            margin-inline: 0.5rem;
+            padding-inline: 0;
+
+            .mud-nav-link-icon {
+                width: 1.5rem;
+                min-width: 1.5rem;
+                margin-inline: 0;
+            }
+
+            .mud-nav-link-text {
+                flex: 0 0 0;
+                margin: 0;
+            }
+        }
+
+        .app-navigation-status {
+            justify-content: center;
+            padding-inline: 0;
+        }
+
+        &:hover,
+        &:focus-within {
+            width: $navigation-expanded-width;
+            box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 24%);
+
+            .app-brand-name,
+            .mud-nav-link-text,
+            .app-navigation-status-text {
+                width: auto;
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .app-navigation-section-label {
+                width: auto;
+                opacity: 1;
+                overflow: visible;
+                pointer-events: auto;
+            }
+
+            .app-navigation-brand {
+                justify-content: flex-start;
+                padding-inline: 1.125rem;
+
+                .app-brand {
+                    gap: 0.75rem;
+                }
+            }
+
+            .mud-nav-link {
+                justify-content: flex-start;
+                margin-inline: 0.75rem;
+                padding-inline: 0.75rem;
+
+                .mud-nav-link-icon {
+                    margin-inline-end: 0.625rem;
+                }
+
+                .mud-nav-link-text {
+                    flex: 1 1 auto;
+                }
+            }
+
+            .app-navigation-status {
+                justify-content: flex-start;
+                padding-inline: 1.25rem;
+            }
+        }
+    }
+}
+
+@media (max-width: ($mobile-breakpoint - 0.02px)) {
+    .app-shell-bar .mud-toolbar {
+        padding-inline: 1rem;
+    }
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .appbar-navigation-context {
+        max-width: min(20rem, 55vw);
+    }
+
+    .main-container {
+        padding: 1.25rem 1rem 2rem;
+    }
+}
+
+@media (max-width: $compact-appbar-breakpoint) {
+    .appbar-account-name {
+        display: none;
+    }
+
+    .appbar-account-button {
+        min-width: 2.5rem;
+        padding-inline: 0.625rem;
+    }
 }

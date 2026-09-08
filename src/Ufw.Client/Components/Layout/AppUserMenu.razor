@@ -20,7 +20,7 @@
         </MudButton>
     </ActivatorContent>
     <ChildContent>
-        <MudMenuItem Icon="@ThemeIcon"
+        <MudMenuItem Icon="@ThemeActionIcon"
                      Disabled="@(_themeBusy || SignOutBusy)"
                      OnClick="ToggleThemeAsync">
             @ThemeActionLabel
@@ -43,12 +43,12 @@
     [Parameter]
     public bool SignOutBusy { get; set; }
 
-    [Parameter]
+    [Parameter, EditorRequired]
     public EventCallback SignOut { get; set; }
 
-    private string ThemeIcon => Theme.IsDarkMode
-        ? Icons.Material.Filled.DarkMode
-        : Icons.Material.Filled.LightMode;
+    private string ThemeActionIcon => Theme.IsDarkMode
+        ? Icons.Material.Filled.LightMode
+        : Icons.Material.Filled.DarkMode;
 
     private string ThemeActionLabel => Theme.IsDarkMode
         ? CommonText["ToggleThemeToLight"]

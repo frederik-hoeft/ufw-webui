@@ -1,3 +1,4 @@
+@using Ufw.Shared.Ipc.Model.Responses.Domain
 @page "/rules/create"
 @attribute [Authorize]
 @implements IDisposable
@@ -123,7 +124,6 @@ else
                 @bind-PrivateKey="_privateKey"
                 OnSubmit="AddRuleAsync"
                 OnCancel="Cancel" />
-
 }
 </div>
 
@@ -132,7 +132,7 @@ else
     private RulesPageState _state = RulesPageState.Initial;
     private FirewallRuleSpecification _draft = FirewallRuleDefaults.Create();
     private string _privateKey = string.Empty;
-    private string? _submittedRuleIdentity;
+    private string? _reconciliationRuleIdentity;
     private bool _mutationMayHaveCompleted;
     private bool _submitting;
 
@@ -209,12 +209,12 @@ else
         _state = _state.BeginRefresh(reason);
         try
         {
-            Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
 
             if (_mutationMayHaveCompleted)
             {
-                if (_submittedRuleIdentity is not null && ContainsRuleIdentity(_state.Snapshot!, _submittedRuleIdentity))
+                if (_reconciliationRuleIdentity is not null && ContainsRuleIdentity(_state.Snapshot!, _reconciliationRuleIdentity))
                 {
                     Snackbar.Add(RulesText["RuleAdded"], Severity.Success);
                     Navigation.NavigateTo("/rules");
@@ -222,7 +222,7 @@ else
                 }
 
                 _mutationMayHaveCompleted = false;
-                _submittedRuleIdentity = null;
+                _reconciliationRuleIdentity = null;
                 Snackbar.Add(RulesText["SubmittedRuleMissing"], Severity.Warning);
             }
         }
@@ -243,11 +243,16 @@ else
         }
 
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
-        _submittedRuleIdentity = RuleIdentity.Compute(normalized);
+        // Keep the requested identity as the fallback for an uncertain outcome where no
+        // mutation response is available. A successful family-neutral add returns a
+        // concrete family-specific rule, so prefer that identity for the subsequent
+        // authoritative refresh.
+        _reconciliationRuleIdentity = RuleIdentity.Compute(normalized);
         _submitting = true;
         try
         {
-            await UfwApiClient.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
+            RuleMutationResponse mutation = await UfwApiClient.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
+            _reconciliationRuleIdentity = GetRuleIdentity(mutation.Rule) ?? _reconciliationRuleIdentity;
             _mutationMayHaveCompleted = true;
             _submitting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
@@ -262,7 +267,7 @@ else
             _mutationMayHaveCompleted = _state.StaleReason == RuleSnapshotStaleReason.MutationOutcomeUnknown;
             if (!_mutationMayHaveCompleted)
             {
-                _submittedRuleIdentity = null;
+                _reconciliationRuleIdentity = null;
             }
             Snackbar.Add(error.Message, Severity.Error);
         }
@@ -320,6 +325,16 @@ else
         RuleSnapshotStaleReason.MutationRejectedRequiresRefresh => RulesText["MutationRejectedRefresh"],
         _ => RulesText["LatestRefreshFailed"],
     };
+
+    private static string? GetRuleIdentity(ListedFirewallRule rule)
+    {
+        if (!string.IsNullOrWhiteSpace(rule.RuleId))
+        {
+            return rule.RuleId;
+        }
+
+        return rule.Parsed && rule.Rule is not null ? RuleIdentity.Compute(rule.Rule) : null;
+    }
 
     private static bool ContainsRuleIdentity(RuleSnapshot snapshot, string identity)
     {
