@@ -1,31 +1,24 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Ufw.Web.Data.Model;
+using Wkg.EntityFrameworkCore.Configuration;
+using Wkg.EntityFrameworkCore.Configuration.Policies.Defaults.EntityNamingPolicies;
+using Wkg.EntityFrameworkCore.Configuration.Policies.Defaults.PropertyMappingPolicies;
+using Wkg.EntityFrameworkCore.Extensions;
 
 namespace Ufw.Web.Data;
 
-internal sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext(options)
+public sealed class ApplicationDbContext(
+    DbContextOptions<ApplicationDbContext> options,
+    IModelLoader modelLoader) : IdentityDbContext(options)
 {
-    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         base.OnModelCreating(builder);
-
-        builder.Entity<RefreshToken>(entity =>
-        {
-            entity.Property(static token => token.TokenHash).HasMaxLength(64);
-            entity.Property(static token => token.ReplacedByTokenHash).HasMaxLength(64);
-            entity.Property(static token => token.ConcurrencyToken).HasMaxLength(32).IsConcurrencyToken();
-
-            entity.HasIndex(static token => token.TokenHash).IsUnique();
-            entity.HasIndex(static token => token.FamilyId);
-            entity.HasIndex(static token => token.ExpiresAt);
-
-            entity.HasOne(static token => token.User)
-                .WithMany()
-                .HasForeignKey(static token => token.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        builder.LoadModels(modelLoader, options => options
+            .ConfigurePolicies(policies => policies
+                .AddPolicy<EntityNaming>(policy => policy.RequireExplicit())
+                .AddPolicy<PropertyMapping>(policy => policy.RequireExplicit())));
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
 using Ufw.Web.Services.Auth;
+using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Tests.Services.Auth;
 
@@ -148,6 +149,7 @@ public sealed class AuthenticationBootstrapServiceTests
 
             ServiceCollection services = new();
             services.AddLogging();
+            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
             services.AddIdentityCore<IdentityUser>(options =>
                 {

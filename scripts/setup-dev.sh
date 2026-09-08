@@ -560,6 +560,7 @@ cat <<EOF_RUN
 
 Suggested development commands after the CA is trusted:
 
+  docker compose -f "$REPO_ROOT/docker-compose.yml" up -d postgres
   dotnet run --project "$REPO_ROOT/src/Ufw.Systemd" --no-launch-profile -- serve --config "$SYSTEMD_CONFIG"
   dotnet run --project "$REPO_ROOT/src/Ufw.Web"
   dotnet run --project "$REPO_ROOT/src/Ufw.Client"

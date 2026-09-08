@@ -2,7 +2,7 @@
 
 namespace Ufw.Web.Data.Model;
 
-internal sealed class RefreshToken
+internal sealed partial class RefreshToken
 {
     public long Id { get; set; }
 

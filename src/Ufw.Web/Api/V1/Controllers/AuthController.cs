@@ -5,7 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Ufw.Web.Api.V1.Models.Auth;
 using Ufw.Web.Configuration;
+using Ufw.Web.Data;
 using Ufw.Web.Services.Auth;
+using Wkg.AspNetCore.Abstractions.Controllers;
+using Wkg.AspNetCore.Transactions;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -21,8 +24,9 @@ public sealed class AuthController
     IJwtTokenService jwtTokenService,
     IRefreshTokenService refreshTokenService,
     IAuthenticationTimingService authenticationTimingService,
-    IOptions<RefreshTokenOptions> refreshTokenOptions
-) : ControllerBase
+    IOptions<RefreshTokenOptions> refreshTokenOptions,
+    ITransactionServiceHandle transactionService
+) : DatabaseController<ApplicationDbContext>(transactionService)
 {
     private readonly RefreshTokenOptions _refreshTokenOptions = refreshTokenOptions.Value;
 
@@ -30,79 +34,94 @@ public sealed class AuthController
     [HttpPost("login")]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<AuthTokenResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        IdentityUser? user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null)
+    public Task<IActionResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken) =>
+        Transaction.Scoped.RunAsync<IActionResult>(async (_, transaction, ct) =>
         {
-            authenticationTimingService.PerformDummyPasswordVerification(request.Password);
-            return Unauthorized();
-        }
+            ArgumentNullException.ThrowIfNull(request);
 
-        SignInResult result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (!result.Succeeded)
-        {
-            if (result.IsLockedOut || result.IsNotAllowed)
+            IdentityUser? user = await userManager.FindByEmailAsync(request.Email);
+            if (user is null)
             {
                 authenticationTimingService.PerformDummyPasswordVerification(request.Password);
+                return transaction.Rollback(Unauthorized());
             }
-            return Unauthorized();
-        }
 
-        AccessToken accessToken = await jwtTokenService.IssueAsync(user, cancellationToken);
-        RefreshTokenIssueResult refreshToken = await refreshTokenService.IssueAsync(user, cancellationToken);
-        SetRefreshTokenCookie(refreshToken.Token, refreshToken.ExpiresAt);
+            SignInResult result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (!result.Succeeded)
+            {
+                if (result.IsLockedOut || result.IsNotAllowed)
+                {
+                    authenticationTimingService.PerformDummyPasswordVerification(request.Password);
+                }
 
-        return Ok(new AuthTokenResponse(accessToken.Value, accessToken.ExpiresAt));
-    }
+                // Identity may update the failed-access count or lockout state even though
+                // authentication failed, so this is an expected write and must be committed.
+                return transaction.Commit(Unauthorized());
+            }
+
+            AccessToken accessToken = await jwtTokenService.IssueAsync(user, ct);
+            RefreshTokenIssueResult refreshToken = await refreshTokenService.IssueAsync(user, ct);
+            SetRefreshTokenCookie(refreshToken.Token, refreshToken.ExpiresAt);
+
+            return transaction.Commit(Ok(new AuthTokenResponse(accessToken.Value, accessToken.ExpiresAt)));
+        }, cancellationToken);
 
     [AllowAnonymous]
     [HttpPost("refresh")]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<AuthTokenResponse>> RefreshAsync(CancellationToken cancellationToken)
+    public Task<IActionResult> RefreshAsync(CancellationToken cancellationToken)
     {
         if (!Request.Cookies.TryGetValue(_refreshTokenOptions.CookieName, out string? refreshToken)
             || string.IsNullOrWhiteSpace(refreshToken))
         {
-            return Unauthorized();
+            return Task.FromResult<IActionResult>(Unauthorized());
         }
 
-        RefreshTokenRotationResult? rotation = await refreshTokenService.RotateAsync(refreshToken, cancellationToken);
-        if (rotation is null)
+        return Transaction.Scoped.RunAsync<IActionResult>(async (_, transaction, ct) =>
         {
-            DeleteRefreshTokenCookie();
-            return Unauthorized();
-        }
+            RefreshTokenRotationResult? rotation = await refreshTokenService.RotateAsync(refreshToken, ct);
+            if (rotation is null)
+            {
+                // Invalid/replayed tokens can revoke persistent family state. Committing is
+                // therefore required even though the client receives an unauthorized result.
+                DeleteRefreshTokenCookie();
+                return transaction.Commit(Unauthorized());
+            }
 
-        bool canSignIn = await signInManager.CanSignInAsync(rotation.User);
-        bool isLockedOut = userManager.SupportsUserLockout && await userManager.IsLockedOutAsync(rotation.User);
-        if (!canSignIn || isLockedOut)
-        {
-            await refreshTokenService.RevokeFamilyAsync(rotation.Token, cancellationToken);
-            DeleteRefreshTokenCookie();
-            return Unauthorized();
-        }
+            bool canSignIn = await signInManager.CanSignInAsync(rotation.User);
+            bool isLockedOut = userManager.SupportsUserLockout && await userManager.IsLockedOutAsync(rotation.User);
+            if (!canSignIn || isLockedOut)
+            {
+                await refreshTokenService.RevokeFamilyAsync(rotation.Token, ct);
+                DeleteRefreshTokenCookie();
+                return transaction.Commit(Unauthorized());
+            }
 
-        AccessToken accessToken = await jwtTokenService.IssueAsync(rotation.User, cancellationToken);
-        SetRefreshTokenCookie(rotation.Token, rotation.ExpiresAt);
-        return Ok(new AuthTokenResponse(accessToken.Value, accessToken.ExpiresAt));
+            AccessToken accessToken = await jwtTokenService.IssueAsync(rotation.User, ct);
+            SetRefreshTokenCookie(rotation.Token, rotation.ExpiresAt);
+            return transaction.Commit(Ok(new AuthTokenResponse(accessToken.Value, accessToken.ExpiresAt)));
+        }, cancellationToken);
     }
 
     [AllowAnonymous]
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
+    public Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
     {
-        if (Request.Cookies.TryGetValue(_refreshTokenOptions.CookieName, out string? refreshToken)
-            && !string.IsNullOrWhiteSpace(refreshToken))
+        if (!Request.Cookies.TryGetValue(_refreshTokenOptions.CookieName, out string? refreshToken)
+            || string.IsNullOrWhiteSpace(refreshToken))
         {
-            await refreshTokenService.RevokeFamilyAsync(refreshToken, cancellationToken);
+            DeleteRefreshTokenCookie();
+            return Task.FromResult<IActionResult>(NoContent());
         }
 
-        DeleteRefreshTokenCookie();
-        return NoContent();
+        return Transaction.Scoped.RunAsync<IActionResult>(async (_, transaction, ct) =>
+        {
+            await refreshTokenService.RevokeFamilyAsync(refreshToken, ct);
+            DeleteRefreshTokenCookie();
+            return transaction.Commit(NoContent());
+        }, cancellationToken);
     }
 
     private void SetRefreshTokenCookie(string token, DateTimeOffset expiresAt) => Response.Cookies.Append(
