@@ -100,12 +100,12 @@
                   Elevation="0"
                   Class="interface-inventory-table interface-inventory-desktop">
             <HeaderContent>
-                <MudTh Class="interface-visibility-column">@InterfacesText["RuleEditorColumn"]</MudTh>
+                <MudTh Class="interface-visibility-column">@InterfacesText["VisibilityColumn"]</MudTh>
                 <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
                 <MudTh>@InterfacesText["CommentColumn"]</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="@(InterfacesText["RuleEditorColumn"])" Class="interface-visibility-column">
+                <MudTd DataLabel="@(InterfacesText["VisibilityColumn"])" Class="interface-visibility-column">
                     <div class="interface-visibility-cell">
                         <MudTooltip Text="@VisibilityActionText(context)">
                             <MudIconButton Icon="@(context.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
@@ -240,7 +240,6 @@
         try
         {
             _inventory = await InterfaceInventory.ReconcileAsync(_lifetime.Token);
-            Snackbar.Add(InterfacesText["ReconciledFromDaemon"], Severity.Success);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -280,7 +279,6 @@
         try
         {
             _inventory = await InterfaceInventory.UpdateCommentAsync(item.Id, comment, _lifetime.Token);
-            Snackbar.Add(InterfacesText["CommentSaved"], Severity.Success);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -308,9 +306,6 @@
         try
         {
             _inventory = await InterfaceInventory.UpdateVisibilityAsync(item.Id, isVisible, _lifetime.Token);
-            Snackbar.Add(
-                isVisible ? InterfacesText["InterfaceShown"] : InterfacesText["InterfaceHidden"],
-                Severity.Success);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {

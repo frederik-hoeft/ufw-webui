@@ -115,7 +115,9 @@
                                        HelperText="@SourceInterfaceHelp"
                                        @bind-Value="Rule.SourceInterface"
                                        For="@(() => Rule.SourceInterface)"
-                                       Suggestions="@_knownInterfaces"
+                                       Suggestions="@_visibleInterfaces"
+                                       KnownInterfaces="@_knownInterfaces"
+                                       InventoryAvailable="@(_interfaceInventoryError is null)"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
@@ -123,7 +125,9 @@
                                        HelperText="@DestinationInterfaceHelp"
                                        @bind-Value="Rule.DestinationInterface"
                                        For="@(() => Rule.DestinationInterface)"
-                                       Suggestions="@_knownInterfaces"
+                                       Suggestions="@_visibleInterfaces"
+                                       KnownInterfaces="@_knownInterfaces"
+                                       InventoryAvailable="@(_interfaceInventoryError is null)"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12">
@@ -193,6 +197,7 @@
     private MudForm? _form;
     private Func<object, string, IEnumerable<string>> RuleValidation => ValidateRule;
     private IReadOnlyList<NetworkInterfaceInventoryItem> _knownInterfaces = [];
+    private IReadOnlyList<NetworkInterfaceInventoryItem> _visibleInterfaces = [];
     private string? _interfaceInventoryError;
     private bool _isValid;
 
@@ -255,7 +260,8 @@
         try
         {
             NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
-            _knownInterfaces = inventory.Interfaces.Where(static networkInterface => networkInterface.IsVisible).ToArray();
+            _knownInterfaces = inventory.Interfaces;
+            _visibleInterfaces = inventory.Interfaces.Where(static networkInterface => networkInterface.IsVisible).ToArray();
         }
         catch (Exception exception)
         {
@@ -270,7 +276,7 @@
             return RulesText["InterfaceSuggestionsUnavailable", directionHelp];
         }
 
-        return _knownInterfaces.Count == 0
+        return _visibleInterfaces.Count == 0
             ? RulesText["InterfaceEnterValid", directionHelp]
             : RulesText["InterfaceChooseKnown", directionHelp];
     }

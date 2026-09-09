@@ -307,7 +307,6 @@ else if (_state.Snapshot is { })
         try
         {
             await UfwApiClient.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
-            Snackbar.Add(RulesText["RuleDeleted"], Severity.Success);
             _deleting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
         }
@@ -341,9 +340,6 @@ else if (_state.Snapshot is { })
         try
         {
             _orderingPreview = RuleOrderingProjection.Move(authoritativeRules, _orderingPreview, request);
-            Snackbar.Add(
-                RulesText["MockMovedPosition", request.TargetPosition.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)],
-                Severity.Info);
         }
         catch (InvalidOperationException exception)
         {
@@ -366,11 +362,6 @@ else if (_state.Snapshot is { })
             await RuleOrderingApiClient.ApplyAsync(
                 new RuleOrderingApplyRequest(_orderingPreview.Moves),
                 _lifetime.Token);
-
-            if (RuleOrderingApiClient.UsesMockData)
-            {
-                Snackbar.Add(RulesText["MockOrderingApplied"], Severity.Info);
-            }
 
             _reordering = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);

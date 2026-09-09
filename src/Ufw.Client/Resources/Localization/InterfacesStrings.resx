@@ -23,19 +23,15 @@
   <data name="NoKnownInterfaces" xml:space="preserve"><value>No known interfaces</value></data>
   <data name="NoKnownInterfacesDescription" xml:space="preserve"><value>Reconcile with the daemon to refresh the inventory. Rule fields still allow free text, subject to daemon-side interface validation.</value></data>
   <data name="InterfaceColumn" xml:space="preserve"><value>Interface</value></data>
-  <data name="ReconciledFromDaemon" xml:space="preserve"><value>Network-interface inventory reconciled from the daemon.</value></data>
   <data name="CommentColumn" xml:space="preserve"><value>Comment</value></data>
   <data name="NoComment" xml:space="preserve"><value>No comment</value></data>
   <data name="EditComment" xml:space="preserve"><value>Edit</value></data>
   <data name="EditCommentTitle" xml:space="preserve"><value>Edit interface comment</value></data>
   <data name="EditCommentDescription" xml:space="preserve"><value>Store a browser-facing comment for {0}. This metadata belongs to ASP and does not affect firewall semantics.</value></data>
   <data name="SaveComment" xml:space="preserve"><value>Save comment</value></data>
-  <data name="CommentSaved" xml:space="preserve"><value>Interface comment saved.</value></data>
   <data name="VisibleInterfaceCountOne" xml:space="preserve"><value>1 shown in rule editor</value></data>
   <data name="VisibleInterfaceCountMany" xml:space="preserve"><value>{0} shown in rule editor</value></data>
-  <data name="RuleEditorColumn" xml:space="preserve"><value>Rule editor</value></data>
+  <data name="VisibilityColumn" xml:space="preserve"><value>Visibility</value></data>
   <data name="HideFromRuleEditor" xml:space="preserve"><value>Hide {0} from rule-editor suggestions</value></data>
   <data name="ShowInRuleEditor" xml:space="preserve"><value>Show {0} in rule-editor suggestions</value></data>
-  <data name="InterfaceShown" xml:space="preserve"><value>Interface is now shown in rule-editor suggestions.</value></data>
-  <data name="InterfaceHidden" xml:space="preserve"><value>Interface is now hidden from rule-editor suggestions.</value></data>
 </root>

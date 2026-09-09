@@ -111,12 +111,6 @@
   <data name="PreviewingMove" xml:space="preserve">
     <value>Verschiebung wird als Vorschau angezeigt...</value>
   </data>
-  <data name="RuleAdded" xml:space="preserve">
-    <value>Firewallregel hinzugefügt.</value>
-  </data>
-  <data name="RuleDeleted" xml:space="preserve">
-    <value>Firewallregel gelöscht.</value>
-  </data>
   <data name="SubmittedRuleMissing" xml:space="preserve">
     <value>Die übermittelte Regel ist im aktuellen Firewallstatus nicht vorhanden. Prüfen Sie das Formular vor einem erneuten Versuch.</value>
   </data>
@@ -468,9 +462,6 @@
   <data name="PositionOutside" xml:space="preserve">
     <value>Die angeforderte Regelposition liegt außerhalb der aktuellen Regelliste.</value>
   </data>
-  <data name="MockMovedPosition" xml:space="preserve">
-    <value>Die Regel wurde für Position {0} vorgemerkt. UFW wurde nicht geändert.</value>
-  </data>
   <data name="StaleMutationCommittedList" xml:space="preserve">
     <value>Die Regeländerung war erfolgreich, aber der Client konnte die autoritative Regelliste nicht neu laden. Der zuletzt erfolgreich geladene Snapshot wird unten angezeigt und Mutationen bleiben deaktiviert, bis die Aktualisierung gelingt.</value>
   </data>
@@ -504,13 +495,13 @@
   <data name="ApplyingReordering" xml:space="preserve">
     <value>Wird angewendet...</value>
   </data>
-  <data name="MockOrderingApplied" xml:space="preserve">
-    <value>Die Mock-ASP-Grenze hat die vorgemerkte Reihenfolge akzeptiert. UFW wurde nicht geändert; der autoritative Status wurde neu geladen.</value>
-  </data>
   <data name="DirectMovePositionAria" xml:space="preserve">
     <value>Direkt von Position {0} auf {1} verschoben.</value>
   </data>
   <data name="IndirectShiftPositionAria" xml:space="preserve">
     <value>Von Position {0} auf {1} verschoben, weil eine andere Regel bewegt wurde.</value>
+  </data>
+  <data name="UnknownInterfaceWarning" xml:space="preserve">
+    <value>„{0}“ ist nicht im zwischengespeicherten Bestand der Host-Schnittstellen enthalten. Der Daemon prüft die Existenz der Schnittstelle vor dem Anwenden der Regel, daher kann diese Regel abgelehnt werden.</value>
   </data>
 </root>
