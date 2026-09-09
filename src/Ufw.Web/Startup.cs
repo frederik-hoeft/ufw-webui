@@ -195,12 +195,20 @@ internal sealed class Startup : IAsyncStartupScript
         }
 
         app.UseHttpsRedirection();
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
         app.UseCors(BLAZOR_CORS_POLICY);
         app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();
         app.MapHealthChecks("/health");
+
+        string clientIndexPath = Path.Combine(app.Environment.WebRootPath ?? string.Empty, "index.html");
+        if (File.Exists(clientIndexPath))
+        {
+            app.MapFallbackToFile("index.html");
+        }
 
         await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
         ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

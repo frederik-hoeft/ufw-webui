@@ -1,0 +1,28 @@
+[Unit]
+Description=UFW WebUI privileged firewall daemon
+Documentation=file:/usr/local/share/doc/ufw-webui/deployment.md
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+Group=@IPC_GROUP@
+ExecStart=/usr/local/lib/ufw-webui/ufw-systemd serve --config /etc/ufw-manager/settings.json
+Restart=on-failure
+RestartSec=2s
+
+# The runtime directory is the only host filesystem surface shared with the
+# unprivileged web container. Ufw.Systemd creates the socket itself as 0660.
+RuntimeDirectory=ufw-manager
+RuntimeDirectoryMode=0750
+
+# Replay state and deployment identity stay daemon/root-only.
+StateDirectory=ufw-manager
+StateDirectoryMode=0700
+
+UMask=0007
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

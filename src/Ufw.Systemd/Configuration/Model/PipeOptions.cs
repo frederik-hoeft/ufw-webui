@@ -23,6 +23,12 @@ internal sealed class PipeOptions : IRequireValidation
             throw new InvalidOperationException("invalid pipe configuration");
         }
 
+        if (!OperatingSystem.IsWindows()
+            && (!Path.IsPathFullyQualified(PipeName) || Path.EndsInDirectorySeparator(PipeName)))
+        {
+            throw new InvalidOperationException("Unix pipe endpoints must be absolute file paths");
+        }
+
         if (!TlsEnabled)
         {
             if (RemoteCertificateValidation is not null)

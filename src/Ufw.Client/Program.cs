@@ -26,7 +26,9 @@ public static class Program
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
-        Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(builder.Configuration);
+        Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(
+            builder.Configuration,
+            new Uri(builder.HostEnvironment.BaseAddress, UriKind.Absolute));
 
         builder.Services.AddMudServices();
         builder.Services.AddScoped<ILocalStorage, BrowserLocalStorage>();

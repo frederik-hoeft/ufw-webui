@@ -72,4 +72,21 @@ public sealed class PipeOptionsTests
             File.Delete(keyPath);
         }
     }
+
+    [TestMethod]
+    public void AssertIsValid_RejectsRelativeUnixPipePath()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Windows named pipes use logical pipe names rather than Unix socket paths.");
+        }
+
+        PipeOptions options = new()
+        {
+            PipeName = "ufw-tests.pipe",
+            TlsEnabled = false,
+        };
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => options.AssertIsValid());
+    }
 }

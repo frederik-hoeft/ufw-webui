@@ -14,7 +14,7 @@ The system has three principal participants:
 
 ## Ufw.Client
 
-`Ufw.Client` is a standalone Blazor WebAssembly application using MudBlazor. It depends on the versioned HTTP API rather than on daemon transport details. UI components delegate authentication, REST access, and intent signing to scoped services so presentation code does not construct authorization headers or security envelopes directly.
+`Ufw.Client` is a Blazor WebAssembly application using MudBlazor. It depends on the versioned HTTP API rather than on daemon transport details. During development it can run as a standalone dev-server origin; the production container publishes its static assets together with `Ufw.Web` so browser UI and REST API share one HTTPS origin. The production client configuration therefore resolves the API relative to the application origin, while the development override points at the standalone local API profile. UI components delegate authentication, REST access, and intent signing to scoped services so presentation code does not construct authorization headers or security envelopes directly.
 
 The client defines coordinated light and dark MudBlazor palettes and exposes that choice as a global UI preference. Its UI typography self-hosts the IBM Plex Sans and IBM Plex Mono weights used by the design, with system fallback stacks retained for resilience and `font-display: swap` so font loading does not block first paint. Appearance and language are non-sensitive browser-local preferences and are persisted in local storage. Runtime .NET code reaches Web Storage through the injected `ILocalStorage` boundary rather than issuing storage-specific JavaScript calls from feature services. Authentication state, refresh tokens, and mutation private keys are not persisted there.
 
@@ -42,6 +42,7 @@ Culture-sensitive presentation uses the active UI culture for human-readable dat
 - JWT bearer authentication for API requests;
 - opaque refresh-token issuance, rotation, and revocation;
 - API versioning, controller discovery, CORS, and development Swagger support;
+- production static hosting for the published Blazor WebAssembly client;
 - JWT-protected rule and intent-context REST endpoints;
 - local IPC client registration and daemon-response projection.
 
@@ -96,7 +97,9 @@ This layering also defines failure containment. Expected peer-originated framing
 
 Connection policy applies both a per-I/O idle timeout and an overall transaction deadline. The idle timeout bounds a read or write that stops making progress; the transaction deadline bounds the complete exchange even when bytes continue to arrive slowly. External client cancellation and daemon shutdown remain cancellation rather than internal timeout failures.
 
-The local IPC endpoint is a named pipe on Windows and a Unix-domain socket path on Linux. TLS is optional and configured independently from protocol selection. When TLS is enabled, `SslProtocols.None` keeps its standard .NET meaning and lets the runtime/OS negotiate the supported protocol set; deployments may instead select explicit protocols. The server is authenticated whenever TLS is enabled. Client-certificate validation can additionally enable mTLS. TLS and socket permissions are defense in depth and do not replace signed-intent authorization.
+The local IPC endpoint is a named pipe on Windows and a Unix-domain socket path on Linux. On Unix the daemon requires an absolute endpoint path and sets the socket mode to `0660`; the socket group is inherited from the daemon process. The production systemd unit uses `/run/ufw-manager/ufw-systemd.sock`, a `0750` runtime directory, and a deployment-selected group shared only with the ASP container. Rootful Docker adds that host GID directly to the non-root ASP process; rootless Docker assigns the daemon socket to the rootless Docker user's primary host group and gives the ASP process supplemental container GID 0, which maps back to that host group. The socket directory is bind-mounted read-only into the container.
+
+TLS is optional and configured independently from protocol selection. When TLS is enabled, `SslProtocols.None` keeps its standard .NET meaning and lets the runtime/OS negotiate the supported protocol set; deployments may instead select explicit protocols. The server is authenticated whenever TLS is enabled. Client-certificate validation can additionally enable mTLS. TLS and socket permissions are defense in depth and do not replace signed-intent authorization. See [the deployment runbook](deployment/deployment.md) for the supported ownership models and permission mapping.
 
 ## Firewall rule model and identity
 

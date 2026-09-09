@@ -37,9 +37,11 @@ The web process may eventually store metadata or computed analysis around firewa
 
 ### Local IPC boundary
 
-The daemon accepts requests through the configured local named-pipe/Unix-domain endpoint; it does not expose a TCP listener. Filesystem/pipe permissions restrict which local principals can connect and therefore reduce local attack surface.
+The daemon accepts requests through the configured local named-pipe/Unix-domain endpoint; it does not expose a TCP listener. Filesystem/pipe permissions restrict which local principals can connect and therefore reduce local attack surface. The production Unix deployment creates `/run/ufw-manager` as a `0750` root/group runtime directory and the daemon forces its socket to `0660`, inheriting the systemd service's configured IPC group. The ASP container receives only a read-only bind mount of that runtime directory plus the minimum supplemental group mapping required to connect. It does not receive the daemon configuration, authorized keys, replay state, deployment identity, UFW files, Docker socket, or host network capabilities.
 
 TLS can optionally wrap this stream. Server authentication is required whenever TLS is enabled, and optional client-certificate validation provides mTLS. These controls authenticate and protect the transport peer, but `Ufw.Web` is an expected peer and is explicitly included in the compromise model. Transport authentication therefore cannot substitute for end-user intent authorization.
+
+The production web container is published on host loopback only and is intended to sit behind a host HTTPS reverse proxy. Its forwarded-header configuration accepts the proxy-provided scheme without a deployment-specific source-IP allowlist, so loopback-only publication and keeping untrusted containers off the application network are part of the deployment boundary. This transport/proxy assumption is not a firewall-mutation authorization mechanism.
 
 ### Ufw.Systemd
 

@@ -16,7 +16,7 @@ internal sealed class Commands
         bool success = await configuration.TryReloadAsync(config, cancellationToken);
         if (!success)
         {
-            await Console.Error.WriteLineAsync("Failed to load service configuration from /etc/ufw-manager/settings.json");
+            await Console.Error.WriteLineAsync($"Failed to load service configuration from {config}");
             throw new InvalidOperationException("failed to load service configuration");
         }
         INetworkApplication networkApp = serviceProvider.GetService<INetworkApplication>();
