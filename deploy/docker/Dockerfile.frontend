@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0-bookworm-slim AS build
+WORKDIR /source
+
+COPY src ./src
+RUN dotnet restore src/Ufw.Client/Ufw.Client.csproj
+RUN dotnet publish src/Ufw.Client/Ufw.Client.csproj \
+        --configuration Release \
+        --no-restore \
+        --output /out/client \
+    && ! grep -Fq '#[.{fingerprint}]' /out/client/wwwroot/index.html \
+    && ! grep -Fq 'src="_framework/blazor.webassembly.js"' /out/client/wwwroot/index.html \
+    && grep -Eq 'src="_framework/blazor\.webassembly\.[^"]+\.js"' /out/client/wwwroot/index.html
+
+FROM nginx:1.31.5-alpine3.24 AS runtime
+
+RUN rm -f /etc/nginx/conf.d/default.conf \
+    && rm -rf /usr/share/nginx/html/* \
+    && mkdir -p /run/tls /run/ufw-web-api/socket \
+    && touch /run/ufw-web-api/socket/.volume-seed \
+    && chown -R 1654:1654 /run/ufw-web-api/socket \
+    && chmod 0770 /run/ufw-web-api/socket \
+    && chmod 0555 /run/tls
+COPY deploy/docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY deploy/docker/nginx/security-headers.conf /etc/nginx/security-headers.conf
+COPY --from=build /out/client/wwwroot/ /usr/share/nginx/html/
+RUN rm -f /usr/share/nginx/html/appsettings.Development.json* \
+    && chmod -R a-w /etc/nginx/nginx.conf /etc/nginx/security-headers.conf /usr/share/nginx/html
+
+EXPOSE 8443
+USER nginx
+ENTRYPOINT ["nginx", "-g", "daemon off;"]

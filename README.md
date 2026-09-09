@@ -50,13 +50,13 @@ For deployments or manual setup, `Ufw.Web` requires a P-256 ECDSA private key in
 docker compose up -d postgres
 ```
 
-The compose credentials are development-only. Production deployments use the separate stack under `deploy/docker`; see [the deployment runbook](docs/deployment/deployment.md). `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint. The production image publishes `Ufw.Client` together with `Ufw.Web`, and the committed client configuration uses the current HTTPS origin for REST calls. `appsettings.Development.json` overrides that with the standalone local `Ufw.Web` HTTPS profile at `https://localhost:7259`. Cross-origin development CORS remains configured for the standalone client at `https://localhost:7298`.
+The compose credentials are development-only. Production deployments use the separate stack under `deploy/docker`; see [the deployment runbook](docs/deployment/deployment.md). `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint. Production builds deliberately separate the browser and API runtime images: a hardened non-root nginx container serves the independently published `Ufw.Client` assets and proxies only `/api/*` to a private `Ufw.Web` container. The committed client configuration therefore uses the current HTTPS origin for REST calls. `appsettings.Development.json` overrides that with the standalone local `Ufw.Web` HTTPS profile at `https://localhost:7259`. Cross-origin development CORS remains configured for the standalone client at `https://localhost:7298`.
 
 Console formatting is configuration-driven as well. The committed default uses the normal human-readable `simple` formatter; container deployments can switch to structured JSON without a code change, for example with `Logging__Console__FormatterName=json`.
 
 ## Production deployment
 
-Production deployment keeps `Ufw.Systemd` as a privileged host systemd service while running the ASP/frontend application and PostgreSQL in Docker. The supported rootful/rootless ownership models, Unix-socket group mapping, daemon installer, container build, HTTPS reverse-proxy requirements, backup procedure, and update/rollback flow are documented in [docs/deployment/deployment.md](docs/deployment/deployment.md).
+Production deployment keeps `Ufw.Systemd` as a privileged host systemd service while running three isolated Docker services: a public nginx TLS/static-frontend container, a private ASP REST API container, and PostgreSQL on its own private network. Separating the frontend runtime from ASP prevents a compromised ASP process from replacing browser-delivered mutation-signing code. The supported rootful/rootless ownership models, Unix-socket group mapping, daemon AOT build/install flow, TLS setup, backup procedure, and update/rollback flow are documented in [docs/deployment/deployment.md](docs/deployment/deployment.md).
 
 The production Compose stack is intentionally distinct from the top-level development PostgreSQL compose file:
 
@@ -67,7 +67,7 @@ chmod 0600 deploy/docker/.env
 docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml up -d --build
 ```
 
-Do not expose the privileged daemon through TCP or mount UFW/daemon security state into the web container. The container reaches the host daemon only through a group-restricted Unix-domain socket under `/run/ufw-manager`.
+Do not expose the privileged daemon through TCP or mount UFW/daemon security state into an application container. Only ASP receives the group-restricted Unix-domain socket under `/run/ufw-manager`; nginx receives neither the socket nor ASP/PostgreSQL secrets.
 
 No public user-registration endpoint is provided. Initial accounts can instead be provisioned through the `Auth:Bootstrap:Users` configuration section. Bootstrap is idempotent across restarts: missing accounts are created through ASP.NET Core Identity, while existing passwords are never reset from bootstrap configuration. `EmailConfirmed` defaults to `true` and is reconciled for existing configured accounts. Removing an entry does not delete the corresponding user.
 

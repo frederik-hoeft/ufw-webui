@@ -12,9 +12,11 @@ The system has three principal participants:
 
 `Ufw.Web` is deliberately not part of the privileged trust boundary. Its database contains application and authentication state, not a second copy of firewall state, and the ability to reach the daemon is not sufficient authority to mutate UFW.
 
+Production additionally separates frontend delivery from ASP. A dedicated non-root nginx container is the only public HTTP/TLS endpoint and owns the immutable `Ufw.Client` publish output. It proxies only `/api/*` to `Ufw.Web` over a container-private Unix-domain socket; ASP exposes no TCP listener and contains no frontend assets. Because browser code handles administrator mutation-signing private keys, the delivered frontend is part of the signing trusted computing base. Keeping it outside the ASP runtime prevents an ASP compromise from simply replacing the signing UI with key-capture code.
+
 ## Ufw.Client
 
-`Ufw.Client` is a Blazor WebAssembly application using MudBlazor. It depends on the versioned HTTP API rather than on daemon transport details. During development it can run as a standalone dev-server origin; the production container publishes its static assets together with `Ufw.Web` so browser UI and REST API share one HTTPS origin. The production client configuration therefore resolves the API relative to the application origin, while the development override points at the standalone local API profile. UI components delegate authentication, REST access, and intent signing to scoped services so presentation code does not construct authorization headers or security envelopes directly.
+`Ufw.Client` is a Blazor WebAssembly application using MudBlazor. It depends on the versioned HTTP API rather than on daemon transport details. During development it can run as a standalone dev-server origin. Production publishes the client into a dedicated hardened nginx image, separate from `Ufw.Web`; nginx serves the static WebAssembly assets and proxies `/api/*` to ASP so browser UI and REST API still share one HTTPS origin without giving ASP write/control access to the browser application. The production client configuration therefore resolves the API relative to the application origin, while the development override points at the standalone local API profile. UI components delegate authentication, REST access, and intent signing to scoped services so presentation code does not construct authorization headers or security envelopes directly.
 
 The client defines coordinated light and dark MudBlazor palettes and exposes that choice as a global UI preference. Its UI typography self-hosts the IBM Plex Sans and IBM Plex Mono weights used by the design, with system fallback stacks retained for resilience and `font-display: swap` so font loading does not block first paint. Appearance and language are non-sensitive browser-local preferences and are persisted in local storage. Runtime .NET code reaches Web Storage through the injected `ILocalStorage` boundary rather than issuing storage-specific JavaScript calls from feature services. Authentication state, refresh tokens, and mutation private keys are not persisted there.
 
@@ -42,7 +44,6 @@ Culture-sensitive presentation uses the active UI culture for human-readable dat
 - JWT bearer authentication for API requests;
 - opaque refresh-token issuance, rotation, and revocation;
 - API versioning, controller discovery, CORS, and development Swagger support;
-- production static hosting for the published Blazor WebAssembly client;
 - JWT-protected rule and intent-context REST endpoints;
 - local IPC client registration and daemon-response projection.
 
