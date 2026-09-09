@@ -27,6 +27,10 @@ internal sealed partial class NetworkInterfaceEntry : IDiscoverableModelConfigur
         self.Property(static networkInterface => networkInterface.Comment)
             .HasColumnName("Comment")
             .HasMaxLength(MAX_COMMENT_LENGTH);
+        self.Property(static networkInterface => networkInterface.IsVisible)
+            .HasColumnName("IsVisible")
+            .HasDefaultValue(true)
+            .IsRequired();
 
         self.HasIndex(static networkInterface => networkInterface.PublicId).IsUnique();
         self.HasIndex(static networkInterface => networkInterface.Name).IsUnique();

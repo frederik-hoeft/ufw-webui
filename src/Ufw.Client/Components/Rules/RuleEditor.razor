@@ -255,7 +255,7 @@
         try
         {
             NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
-            _knownInterfaces = inventory.Interfaces;
+            _knownInterfaces = inventory.Interfaces.Where(static networkInterface => networkInterface.IsVisible).ToArray();
         }
         catch (Exception exception)
         {

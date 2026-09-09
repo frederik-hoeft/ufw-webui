@@ -7,6 +7,8 @@ public sealed class NetworkInterfaceInventoryItem
     public string Name { get; init; } = string.Empty;
 
     public string? Comment { get; init; }
+
+    public bool IsVisible { get; init; }
 }
 
 public sealed class NetworkInterfaceInventoryResponse
@@ -19,4 +21,9 @@ public sealed class NetworkInterfaceInventoryResponse
 public sealed class UpdateNetworkInterfaceCommentRequest
 {
     public string? Comment { get; init; }
+}
+
+public sealed class UpdateNetworkInterfaceVisibilityRequest
+{
+    public bool IsVisible { get; init; }
 }

@@ -54,3 +54,10 @@
     font-size: 0.75rem;
     overflow-wrap: anywhere;
 }
+
+// MudAutocomplete gives both its popover and the nested MudList vertical overflow.
+// With a long interface inventory this produces two adjacent scrollbars. Keep the
+// list as the sole scroll container while preserving MudBlazor's MaxHeight limit.
+.network-interface-popover {
+    overflow-y: hidden;
+}

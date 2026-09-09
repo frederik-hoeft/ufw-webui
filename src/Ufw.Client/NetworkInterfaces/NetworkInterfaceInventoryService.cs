@@ -27,6 +27,15 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
         return Current;
     }
 
+    public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(
+        Guid interfaceId,
+        bool isVisible,
+        CancellationToken cancellationToken = default)
+    {
+        Current = Normalize(await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken));
+        return Current;
+    }
+
     private static NetworkInterfaceInventoryResponse Normalize(NetworkInterfaceInventoryResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
@@ -47,6 +56,7 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
                 Id = entry.Id,
                 Name = entry.Name,
                 Comment = string.IsNullOrWhiteSpace(entry.Comment) ? null : entry.Comment.Trim(),
+                IsVisible = entry.IsVisible,
             })
             .OrderBy(static entry => entry.Name, StringComparer.Ordinal)
             .ToArray();

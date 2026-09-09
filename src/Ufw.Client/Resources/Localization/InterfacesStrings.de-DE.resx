@@ -17,7 +17,7 @@
   <data name="NotReconciledYet" xml:space="preserve"><value>Noch nicht synchronisiert</value></data>
   <data name="LoadFailed" xml:space="preserve"><value>Schnittstellenbestand konnte nicht geladen werden</value></data>
   <data name="CachedInventoryTitle" xml:space="preserve"><value>Zwischengespeicherter Schnittstellenbestand</value></data>
-  <data name="CachedInventoryDescription" xml:space="preserve"><value>Die Liste dient nur als Eingabehilfe. Freitext bleibt möglich, der Daemon prüft beim Hinzufügen einer Regel jedoch, ob die Schnittstelle existiert.</value></data>
+  <data name="CachedInventoryDescription" xml:space="preserve"><value>Die Liste dient nur als Eingabehilfe. Unnötige Schnittstellen können aus den Vorschlägen des Regeleditors ausgeblendet werden; Freitext bleibt möglich und der Daemon prüft beim Hinzufügen einer Regel weiterhin, ob die Schnittstelle existiert.</value></data>
   <data name="LoadingAria" xml:space="preserve"><value>Netzwerkschnittstellen werden geladen</value></data>
   <data name="LoadingInventory" xml:space="preserve"><value>Zwischengespeicherter Schnittstellenbestand wird geladen...</value></data>
   <data name="NoKnownInterfaces" xml:space="preserve"><value>Keine bekannten Schnittstellen</value></data>
@@ -31,4 +31,12 @@
   <data name="EditCommentDescription" xml:space="preserve"><value>Speichern Sie einen browserseitigen Kommentar für {0}. Diese Metadaten gehören zu ASP und beeinflussen die Firewall-Semantik nicht.</value></data>
   <data name="SaveComment" xml:space="preserve"><value>Kommentar speichern</value></data>
   <data name="CommentSaved" xml:space="preserve"><value>Schnittstellenkommentar gespeichert.</value></data>
+  <data name="VisibleInterfaceCountOne" xml:space="preserve"><value>1 im Regeleditor sichtbar</value></data>
+  <data name="VisibleInterfaceCountMany" xml:space="preserve"><value>{0} im Regeleditor sichtbar</value></data>
+  <data name="RuleEditorColumn" xml:space="preserve"><value>Regeleditor</value></data>
+  <data name="Shown" xml:space="preserve"><value>Sichtbar</value></data>
+  <data name="Hidden" xml:space="preserve"><value>Ausgeblendet</value></data>
+  <data name="VisibilityAria" xml:space="preserve"><value>{0} im Regeleditor anzeigen</value></data>
+  <data name="InterfaceShown" xml:space="preserve"><value>Schnittstelle wird jetzt in den Vorschlägen des Regeleditors angezeigt.</value></data>
+  <data name="InterfaceHidden" xml:space="preserve"><value>Schnittstelle wird jetzt aus den Vorschlägen des Regeleditors ausgeblendet.</value></data>
 </root>

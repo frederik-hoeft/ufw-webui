@@ -104,3 +104,24 @@
         display: block;
     }
 }
+
+.interface-visibility-cell,
+.interface-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.interface-visibility-cell > span {
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.75rem;
+}
+
+.interface-visibility-cell .mud-input-control,
+.interface-mobile-actions .mud-input-control {
+    margin: 0;
+}
+
+.interface-mobile-actions {
+    flex: 0 0 auto;
+}

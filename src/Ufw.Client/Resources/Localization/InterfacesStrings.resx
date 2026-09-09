@@ -17,7 +17,7 @@
   <data name="NotReconciledYet" xml:space="preserve"><value>Not reconciled yet</value></data>
   <data name="LoadFailed" xml:space="preserve"><value>Interface inventory could not be loaded</value></data>
   <data name="CachedInventoryTitle" xml:space="preserve"><value>Cached interface inventory</value></data>
-  <data name="CachedInventoryDescription" xml:space="preserve"><value>The list improves authoring convenience only. Free-text entry remains available, but the daemon verifies interface existence when adding a rule.</value></data>
+  <data name="CachedInventoryDescription" xml:space="preserve"><value>The list improves authoring convenience only. Hide noisy interfaces to omit them from rule-editor suggestions; free-text entry remains available and the daemon still verifies interface existence when adding a rule.</value></data>
   <data name="LoadingAria" xml:space="preserve"><value>Loading network interfaces</value></data>
   <data name="LoadingInventory" xml:space="preserve"><value>Loading cached interface inventory...</value></data>
   <data name="NoKnownInterfaces" xml:space="preserve"><value>No known interfaces</value></data>
@@ -31,4 +31,12 @@
   <data name="EditCommentDescription" xml:space="preserve"><value>Store a browser-facing comment for {0}. This metadata belongs to ASP and does not affect firewall semantics.</value></data>
   <data name="SaveComment" xml:space="preserve"><value>Save comment</value></data>
   <data name="CommentSaved" xml:space="preserve"><value>Interface comment saved.</value></data>
+  <data name="VisibleInterfaceCountOne" xml:space="preserve"><value>1 shown in rule editor</value></data>
+  <data name="VisibleInterfaceCountMany" xml:space="preserve"><value>{0} shown in rule editor</value></data>
+  <data name="RuleEditorColumn" xml:space="preserve"><value>Rule editor</value></data>
+  <data name="Shown" xml:space="preserve"><value>Shown</value></data>
+  <data name="Hidden" xml:space="preserve"><value>Hidden</value></data>
+  <data name="VisibilityAria" xml:space="preserve"><value>Show {0} in the rule editor</value></data>
+  <data name="InterfaceShown" xml:space="preserve"><value>Interface is now shown in rule-editor suggestions.</value></data>
+  <data name="InterfaceHidden" xml:space="preserve"><value>Interface is now hidden from rule-editor suggestions.</value></data>
 </root>

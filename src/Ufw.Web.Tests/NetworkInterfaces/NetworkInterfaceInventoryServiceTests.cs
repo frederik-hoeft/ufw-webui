@@ -1,12 +1,18 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Data;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Models.NetworkInterfaces;
 using Ufw.Web.Data;
 using Ufw.Web.Services.NetworkInterfaces;
+using Wkg.AspNetCore.Transactions;
+using Wkg.AspNetCore.Transactions.Continuations;
+using Wkg.AspNetCore.Transactions.Configuration;
+using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Tests.NetworkInterfaces;
 
@@ -26,6 +32,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
         NetworkInterfaceInventoryResponse initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
         NetworkInterfaceInventoryItem eno1 = initial.Interfaces.Single(static item => item.Name == "eno1");
         Assert.AreEqual('7', eno1.Id.ToString("D")[14]);
+        Assert.IsTrue(eno1.IsVisible);
 
         NetworkInterfaceInventoryResponse? commented = await host.Service.UpdateCommentAsync(
             eno1.Id,
@@ -33,6 +40,13 @@ public sealed class NetworkInterfaceInventoryServiceTests
             TestContext.CancellationToken);
         Assert.IsNotNull(commented);
         Assert.AreEqual("service VLAN", commented.Interfaces.Single(static item => item.Name == "eno1").Comment);
+
+        NetworkInterfaceInventoryResponse? hidden = await host.Service.UpdateVisibilityAsync(
+            eno1.Id,
+            isVisible: false,
+            TestContext.CancellationToken);
+        Assert.IsNotNull(hidden);
+        Assert.IsFalse(hidden.Interfaces.Single(static item => item.Name == "eno1").IsVisible);
 
         host.Clock.Advance(TimeSpan.FromMinutes(1));
         host.SetDaemonInterfaces("eno1", "wlan0");
@@ -42,9 +56,23 @@ public sealed class NetworkInterfaceInventoryServiceTests
         NetworkInterfaceInventoryItem retained = reconciled.Interfaces.Single(static item => item.Name == "eno1");
         Assert.AreEqual(eno1.Id, retained.Id);
         Assert.AreEqual("service VLAN", retained.Comment);
+        Assert.IsFalse(retained.IsVisible);
         Assert.IsFalse(reconciled.Interfaces.Any(static item => item.Name == "docker0"));
-        Assert.AreEqual('7', reconciled.Interfaces.Single(static item => item.Name == "wlan0").Id.ToString("D")[14]);
+        NetworkInterfaceInventoryItem wlan0 = reconciled.Interfaces.Single(static item => item.Name == "wlan0");
+        Assert.AreEqual('7', wlan0.Id.ToString("D")[14]);
+        Assert.IsTrue(wlan0.IsVisible);
         Assert.AreEqual(host.Clock.GetUtcNow(), reconciled.ReconciledAt);
+    }
+
+    [TestMethod]
+    public async Task ReconcileAsync_UsesSharedWkgTransactionScopeAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetDaemonInterfaces("eno1");
+
+        _ = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+
+        Assert.AreEqual(TransactionState.Commit, host.TransactionService.Scoped.State);
     }
 
     [TestMethod]
@@ -104,26 +132,47 @@ public sealed class NetworkInterfaceInventoryServiceTests
         Assert.IsNull(response);
     }
 
+    [TestMethod]
+    public async Task UpdateVisibilityAsync_UnknownPublicIdReturnsNullAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+
+        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateVisibilityAsync(
+            Guid.CreateVersion7(),
+            isVisible: false,
+            TestContext.CancellationToken);
+
+        Assert.IsNull(response);
+    }
+
     private sealed class TestHost : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
-        private readonly ApplicationDbContext _context;
+        private readonly ServiceProvider _services;
+        private readonly AsyncServiceScope _scope;
         private readonly Mock<IUfwClient> _ufwClient;
 
         private TestHost(
             SqliteConnection connection,
-            ApplicationDbContext context,
+            ServiceProvider services,
+            AsyncServiceScope scope,
             Mock<IUfwClient> ufwClient,
-            MutableTimeProvider clock)
+            MutableTimeProvider clock,
+            ITransactionService<ApplicationDbContext> transactionService,
+            NetworkInterfaceInventoryService service)
         {
             _connection = connection;
-            _context = context;
+            _services = services;
+            _scope = scope;
             _ufwClient = ufwClient;
             Clock = clock;
-            Service = new NetworkInterfaceInventoryService(context, ufwClient.Object, clock);
+            TransactionService = transactionService;
+            Service = service;
         }
 
         public MutableTimeProvider Clock { get; }
+
+        public ITransactionService<ApplicationDbContext> TransactionService { get; }
 
         public NetworkInterfaceInventoryService Service { get; }
 
@@ -131,15 +180,25 @@ public sealed class NetworkInterfaceInventoryServiceTests
         {
             SqliteConnection connection = new("Data Source=:memory:");
             await connection.OpenAsync(cancellationToken);
-            DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseSqlite(connection)
-                .Options;
-            ApplicationDbContext context = new(options, new ApplicationModelLoader());
+
+            ServiceCollection services = new();
+            services.AddLogging();
+            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
+            services.AddTransactionManagement<ApplicationDbContext>(options =>
+                options.UseIsolationLevel(IsolationLevel.ReadCommitted));
+
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
+            AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
+            ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync(cancellationToken);
 
             Mock<IUfwClient> ufwClient = new();
             MutableTimeProvider clock = new(new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
-            return new TestHost(connection, context, ufwClient, clock);
+            ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
+            ITransactionService<ApplicationDbContext> transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService<ApplicationDbContext>>();
+            NetworkInterfaceInventoryService service = new(transactionHandle, ufwClient.Object, clock);
+            return new TestHost(connection, serviceProvider, scope, ufwClient, clock, transactionService, service);
         }
 
         public void SetDaemonInterfaces(params string[] names) => _ufwClient
@@ -151,7 +210,8 @@ public sealed class NetworkInterfaceInventoryServiceTests
 
         public async ValueTask DisposeAsync()
         {
-            await _context.DisposeAsync();
+            await _scope.DisposeAsync();
+            await _services.DisposeAsync();
             await _connection.DisposeAsync();
         }
     }

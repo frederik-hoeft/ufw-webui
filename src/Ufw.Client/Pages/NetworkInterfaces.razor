@@ -38,6 +38,9 @@
                 @DescribeCount(_inventory.Interfaces.Count)
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeVisibleCount(_inventory.Interfaces.Count(static item => item.IsVisible))
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
                 @(_inventory.ReconciledAt is { } reconciledAt
                     ? InterfacesText["ReconciledAt", FormatLocalDateTime(reconciledAt)]
                     : InterfacesText["NotReconciledYet"])
@@ -98,11 +101,23 @@
                   Class="interface-inventory-table interface-inventory-desktop">
             <HeaderContent>
                 <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
+                <MudTh>@InterfacesText["RuleEditorColumn"]</MudTh>
                 <MudTh>@InterfacesText["CommentColumn"]</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="@(InterfacesText["InterfaceColumn"])">
                     <code class="interface-name">@context.Name</code>
+                </MudTd>
+                <MudTd DataLabel="@(InterfacesText["RuleEditorColumn"])">
+                    <div class="interface-visibility-cell">
+                        <MudSwitch T="bool"
+                                   Value="@context.IsVisible"
+                                   ValueChanged="@(visible => UpdateVisibilityAsync(context, visible))"
+                                   Color="Color.Primary"
+                                   Disabled="@IsBusy"
+                                   AriaLabel="@(InterfacesText["VisibilityAria", context.Name])" />
+                        <span>@(context.IsVisible ? InterfacesText["Shown"] : InterfacesText["Hidden"])</span>
+                    </div>
                 </MudTd>
                 <MudTd DataLabel="@(InterfacesText["CommentColumn"])">
                     <div class="interface-comment-cell">
@@ -130,12 +145,20 @@
                             @(string.IsNullOrWhiteSpace(item.Comment) ? InterfacesText["NoComment"] : item.Comment)
                         </span>
                     </div>
-                    <MudButton Variant="Variant.Text"
-                               Size="Size.Small"
-                               Disabled="@IsBusy"
-                               OnClick="@(() => EditCommentAsync(item))">
-                        @InterfacesText["EditComment"]
-                    </MudButton>
+                    <div class="interface-mobile-actions">
+                        <MudSwitch T="bool"
+                                   Value="@item.IsVisible"
+                                   ValueChanged="@(visible => UpdateVisibilityAsync(item, visible))"
+                                   Color="Color.Primary"
+                                   Disabled="@IsBusy"
+                                   AriaLabel="@(InterfacesText["VisibilityAria", item.Name])" />
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Disabled="@IsBusy"
+                                   OnClick="@(() => EditCommentAsync(item))">
+                            @InterfacesText["EditComment"]
+                        </MudButton>
+                    </div>
                 </div>
             }
         </div>
@@ -156,7 +179,7 @@
     private NetworkInterfaceInventoryResponse? _inventory;
     private ClientError? _error;
     private bool _loading;
-    private bool _savingComment;
+    private bool _savingMetadata;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -164,7 +187,7 @@
         new BreadcrumbItem(InterfacesText["InterfacesBreadcrumb"], null, disabled: true),
     ];
 
-    private bool IsBusy => _loading || _savingComment;
+    private bool IsBusy => _loading || _savingMetadata;
 
     protected override Task OnInitializedAsync() => RefreshAsync();
 
@@ -248,7 +271,7 @@
             return;
         }
 
-        _savingComment = true;
+        _savingMetadata = true;
         try
         {
             _inventory = await InterfaceInventory.UpdateCommentAsync(item.Id, comment, _lifetime.Token);
@@ -264,13 +287,47 @@
         }
         finally
         {
-            _savingComment = false;
+            _savingMetadata = false;
+        }
+    }
+
+    private async Task UpdateVisibilityAsync(NetworkInterfaceInventoryItem item, bool isVisible)
+    {
+        if (IsBusy || item.IsVisible == isVisible)
+        {
+            return;
+        }
+
+        _savingMetadata = true;
+        _error = null;
+        try
+        {
+            _inventory = await InterfaceInventory.UpdateVisibilityAsync(item.Id, isVisible, _lifetime.Token);
+            Snackbar.Add(
+                isVisible ? InterfacesText["InterfaceShown"] : InterfacesText["InterfaceHidden"],
+                Severity.Success);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _error = ClientErrors.Describe(exception);
+            Snackbar.Add(_error.Message, Severity.Error);
+        }
+        finally
+        {
+            _savingMetadata = false;
         }
     }
 
     private string DescribeCount(int count) => count == 1
         ? InterfacesText["KnownInterfaceCountOne"]
         : InterfacesText["KnownInterfaceCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
+
+    private string DescribeVisibleCount(int count) => count == 1
+        ? InterfacesText["VisibleInterfaceCountOne"]
+        : InterfacesText["VisibleInterfaceCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
     private static string FormatLocalDateTime(DateTimeOffset value) =>
         value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);

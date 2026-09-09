@@ -10,4 +10,9 @@ public interface INetworkInterfaceApiClient
         Guid interfaceId,
         string? comment,
         CancellationToken cancellationToken = default);
+
+    Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(
+        Guid interfaceId,
+        bool isVisible,
+        CancellationToken cancellationToken = default);
 }

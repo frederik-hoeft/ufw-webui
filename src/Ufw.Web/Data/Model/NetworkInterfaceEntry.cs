@@ -12,4 +12,6 @@ internal sealed partial class NetworkInterfaceEntry
     public required string Name { get; set; }
 
     public string? Comment { get; set; }
+
+    public bool IsVisible { get; set; } = true;
 }
