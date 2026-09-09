@@ -31,24 +31,24 @@ Add regression coverage for protocol-only rules without ports and any other rule
 
 Evaluate whether a future signed-intent protocol revision should include the canonical UFW rule text shown to the user and require the daemon to compare that signed presentation with the text rendered from the authoritative structural rule. Treat this only as a defense-in-depth consistency assertion; validated structural fields and direct argv execution remain the command-injection boundary. Any signed-intent payload/version change requires separate security design and approval.
 
+## Known hosts authoring aliases
+
+Add an ASP-owned **known hosts** management feature, conceptually similar to the network-interface metadata workflow, so administrators can maintain reusable host aliases for rule authoring instead of repeatedly entering literal IP addresses. This is an authoring convenience only: UFW and the daemon remain authoritative for firewall semantics, and selecting a known host must resolve to the underlying literal IP address before canonical rule rendering, signing, validation, IPC, or daemon dispatch. Do not extend the signed intent contract with ASP-only host IDs, names, or comments.
+
+The initial design should cover:
+
+- Persist known hosts in the ASP database using the project's normal WKG/EF mapping conventions, with an internal numeric primary key and a UUIDv7 frontend-facing identifier. Store the literal IP address plus human-facing metadata suitable for identification/search (for example a short name and/or comment; settle the exact presentation model before freezing the schema).
+- Provide ASP API and frontend management flows to list, create, edit, and delete known-host entries. Deleting or changing an alias must not mutate existing firewall rules; aliases are lookup metadata for future authoring only.
+- Integrate known hosts into source/destination address authoring. Autocomplete/search should support useful substring matching over the literal address and human-facing metadata while preserving free-text address entry for hosts or networks that are not in the ASP catalog.
+- When a known host is selected, write only its literal IP address into `FirewallRuleSpecification`. The canonical UFW preview and browser-side signed intent must therefore be indistinguishable from manually entering that same IP address.
+- Validate address-family compatibility and malformed/stale entries at the authoring/API boundaries. A stored IPv4 alias must not silently become an IPv6 value (or vice versa), and changing an alias after a rule was authored must not retroactively change the rule being signed or displayed.
+- Keep the feature independent of daemon inventory/reconciliation unless a separate host-discovery requirement is introduced later. Unlike network interfaces, these records are intentionally ASP-owned rather than a cache of daemon-owned state.
+
+Consider whether a visibility/show-in-suggestions flag is useful for parity with network-interface authoring, but do not make hidden entries affect firewall validity: visibility would be a presentation preference only.
+
 ## Replace static helpers with DI services
 
 Review reusable static helper classes, especially in shared libraries, and convert stateful, policy-bearing, or extensible behavior to injected services where doing so improves testability and substitution. Keep genuinely pure constants/trivial value helpers static where DI would add ceremony without a useful seam.
-
-## Network interface inventory backend
-
-Replace the frontend mock interface inventory with an authoritative daemon-backed read path and ASP cache.
-
-Target contract currently modeled by the client:
-
-- `GET /api/v1/network-interfaces` returns the ASP-cached inventory.
-- `POST /api/v1/network-interfaces/reconcile` forces ASP to refresh the inventory from the daemon and returns the refreshed snapshot.
-- `PUT /api/v1/network-interfaces/{name}/comment` stores an ASP-owned browser-facing comment for one interface and returns the refreshed inventory. Request shape: `{ "comment": "LAN uplink" }`; an empty/null comment clears it.
-- Response shape: `{ "interfaces": [{ "name": "eno1", "comment": "LAN uplink" }, { "name": "docker0", "comment": null }], "reconciledAt": "<RFC 3339 timestamp>" }`.
-
-The daemon read operation should enumerate known host network interfaces without requiring a signed mutation intent. ASP owns cache policy and comments; reconciliation should preserve comments for interfaces that remain present and decide retention policy for interfaces that disappear. The client treats interface names as advisory autocomplete only, so free-text interface names remain valid and daemon-side rule validation remains authoritative. Comments are presentation metadata and never participate in firewall or signed-intent semantics.
-
-Until this backend work is approved and implemented, `Ufw.Client` registers `MockNetworkInterfaceApiClient`. The real HTTP client is already implemented against the provisional target contract so replacing the mock should require only DI/configuration wiring plus backend implementation and tests.
 
 ## Frontend follow-ups after visual polish
 

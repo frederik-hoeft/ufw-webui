@@ -1,5 +1,6 @@
 ﻿using Ufw.Shared.Firewall.Rendering;
 using Moq;
+using System.Net.NetworkInformation;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Ufw.Shared.Ipc.Model;
@@ -12,6 +13,7 @@ using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.IO;
+using Ufw.Systemd.NetworkInterfaces;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;
@@ -105,6 +107,42 @@ public sealed class FirewallMutationServiceTests
                 It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [TestMethod]
+    public async Task TestAddAsync_RejectsUnknownNetworkInterfaceBeforeCallingUfwAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        FirewallRuleSpecification rule = CreateSshRule();
+        rule.DestinationInterface = "missing0";
+
+        IResponsePayload response = await harness.Service.AddAsync(
+            harness.SignAdd(rule),
+            TestContext.CancellationToken);
+
+        ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
+        Assert.IsTrue(validation.Errors.Any(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.DestinationInterface)
+            && error.ErrorMessage.Contains("missing0", StringComparison.Ordinal)));
+        VerifyNoUfwCalls(harness);
+    }
+
+    [TestMethod]
+    public async Task TestAddAsync_InterfaceEnumerationFailureDoesNotCallUfwAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        FirewallRuleSpecification rule = CreateSshRule();
+        rule.DestinationInterface = "eno1";
+        harness.NetworkInterfaces
+            .Setup(static provider => provider.GetInterfaceNames())
+            .Throws(new NetworkInformationException());
+
+        IResponsePayload response = await harness.Service.AddAsync(
+            harness.SignAdd(rule),
+            TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<InternalServerErrorResponse>(response);
+        VerifyNoUfwCalls(harness);
     }
 
     [TestMethod]
@@ -517,6 +555,8 @@ public sealed class FirewallMutationServiceTests
             _configuration = configuration;
             _noncePath = configuration.Settings.Security!.NonceStorePath;
             ProcessRunner = processRunner;
+            NetworkInterfaces = new Mock<INetworkInterfaceProvider>();
+            NetworkInterfaces.Setup(static provider => provider.GetInterfaceNames()).Returns(["eno1", "lo"]);
             CurrentStatus = initialStatus;
             ConfigureDefaultProcessRunner();
             _keys = new FileAuthorizedKeyStore(configuration, new ConsoleLogger());
@@ -527,6 +567,8 @@ public sealed class FirewallMutationServiceTests
         }
 
         public Mock<IChildProcessRunner> ProcessRunner { get; }
+
+        public Mock<INetworkInterfaceProvider> NetworkInterfaces { get; }
 
         public FirewallMutationService Service { get; private set; }
 
@@ -607,7 +649,14 @@ public sealed class FirewallMutationServiceTests
                 _clock,
                 MessageJsonSerializerContext.Default);
             UfwRunner runner = new(_configuration, ProcessRunner.Object);
-            return new FirewallMutationService(runner, new UfwRuleCommandRenderer(), verifier, _nonces, _gate, new ConsoleLogger());
+            return new FirewallMutationService(
+                runner,
+                new UfwRuleCommandRenderer(),
+                verifier,
+                _nonces,
+                _gate,
+                NetworkInterfaces.Object,
+                new ConsoleLogger());
         }
 
         public ValueTask DisposeAsync()

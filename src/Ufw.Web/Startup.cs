@@ -12,6 +12,7 @@ using Ufw.Web.Configuration.Swagger;
 using Ufw.Web.Data;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.ErrorHandling;
+using Ufw.Web.Services.NetworkInterfaces;
 using Wkg.AspNetCore.Configuration;
 using Wkg.AspNetCore.ErrorHandling;
 using Wkg.AspNetCore.Transactions;
@@ -74,6 +75,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
+        services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
 
         services.AddAuthentication(options =>
         {

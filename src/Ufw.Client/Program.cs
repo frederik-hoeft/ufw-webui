@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -47,7 +47,6 @@ public static class Program
         builder.Services.AddScoped<IClientErrorMapper, ClientErrorMapper>();
         builder.Services.AddScoped<IIntentSigningService, BrowserIntentSigningService>();
         builder.Services.AddScoped<IClientThemeService, BrowserClientThemeService>();
-        builder.Services.AddScoped<INetworkInterfaceApiClient, MockNetworkInterfaceApiClient>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingApiClient, MockRuleOrderingApiClient>();
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
@@ -57,6 +56,9 @@ public static class Program
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         // Keep browser credentials inside the bearer handler so a one-time 401 replay reapplies cookie credentials.
         builder.Services.AddHttpClient<IUfwApiClient, UfwApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<INetworkInterfaceApiClient, NetworkInterfaceApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
 

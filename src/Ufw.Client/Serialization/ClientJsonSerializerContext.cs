@@ -11,4 +11,5 @@ namespace Ufw.Client.Serialization;
 [JsonSerializable(typeof(ApiProblemDetails))]
 [JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceCommentRequest))]
+[JsonSerializable(typeof(UpdateNetworkInterfaceVisibilityRequest))]
 internal sealed partial class ClientJsonSerializerContext : JsonSerializerContext;

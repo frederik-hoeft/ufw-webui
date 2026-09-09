@@ -1,11 +1,9 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 
 namespace Ufw.Client.NetworkInterfaces;
 
 internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClient apiClient) : INetworkInterfaceInventoryService
 {
-    public bool UsesMockData => apiClient.UsesMockData;
-
     public NetworkInterfaceInventoryResponse? Current { get; private set; }
 
     public async Task<NetworkInterfaceInventoryResponse> RefreshAsync(CancellationToken cancellationToken = default)
@@ -21,33 +19,54 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
     }
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(
-        string interfaceName,
+        Guid interfaceId,
         string? comment,
         CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.UpdateCommentAsync(interfaceName, comment, cancellationToken));
+        Current = Normalize(await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken));
+        return Current;
+    }
+
+    public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(
+        Guid interfaceId,
+        bool isVisible,
+        CancellationToken cancellationToken = default)
+    {
+        Current = Normalize(await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken));
         return Current;
     }
 
     private static NetworkInterfaceInventoryResponse Normalize(NetworkInterfaceInventoryResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
-        if (response.Interfaces is null || response.ReconciledAt == default)
+        if (response.Interfaces is null)
         {
-            throw new ApiProtocolException("Network-interface inventory response is missing required fields.");
+            throw new ApiProtocolException("Network-interface inventory response is missing the interface list.");
+        }
+
+        if (response.Interfaces.Any(static entry =>
+            entry is null || entry.Id == Guid.Empty || string.IsNullOrWhiteSpace(entry.Name)))
+        {
+            throw new ApiProtocolException("Network-interface inventory response contains an invalid interface entry.");
         }
 
         NetworkInterfaceInventoryItem[] interfaces = response.Interfaces
-            .Where(static entry => entry is not null && !string.IsNullOrWhiteSpace(entry.Name))
             .Select(static entry => new NetworkInterfaceInventoryItem
             {
-                Name = entry.Name.Trim(),
+                Id = entry.Id,
+                Name = entry.Name,
                 Comment = string.IsNullOrWhiteSpace(entry.Comment) ? null : entry.Comment.Trim(),
+                IsVisible = entry.IsVisible,
             })
-            .GroupBy(static entry => entry.Name, StringComparer.Ordinal)
-            .Select(static group => group.First())
-            .OrderBy(static entry => entry.Name, StringComparer.Ordinal)
+            .OrderByDescending(static entry => entry.IsVisible)
+            .ThenBy(static entry => entry.Name, StringComparer.Ordinal)
             .ToArray();
+
+        if (interfaces.Select(static entry => entry.Id).Distinct().Count() != interfaces.Length
+            || interfaces.Select(static entry => entry.Name).Distinct(StringComparer.Ordinal).Count() != interfaces.Length)
+        {
+            throw new ApiProtocolException("Network-interface inventory response contains duplicate interface identities.");
+        }
 
         return new NetworkInterfaceInventoryResponse
         {

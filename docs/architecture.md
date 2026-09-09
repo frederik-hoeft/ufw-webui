@@ -112,7 +112,7 @@ The semantic model covers:
 - interfaces whose meaning depends on direction;
 - an optional comment.
 
-Normalization is semantic rather than textual. IPv4 and IPv6 CIDRs are reduced to their canonical network address, equivalent all-addresses forms normalize to `any`, and port sets are sorted, deduplicated, and merged where ranges overlap or are adjacent. For non-forward rules, only the interface meaningful for that direction is accepted; forward rules may carry both ingress and egress interfaces.
+Normalization is semantic rather than textual. IPv4 and IPv6 CIDRs are reduced to their canonical network address, equivalent all-addresses forms normalize to `any`, and port sets are sorted, deduplicated, and merged where ranges overlap or are adjacent. For non-forward rules, only the interface meaningful for that direction is accepted; forward rules may carry both ingress and egress interfaces. AddRule performs one additional host-state check inside the daemon: any referenced interface must exist in the daemon's current network-interface inventory before UFW can be started. DeleteRule does not apply that existence check, because an interface may disappear while a rule that references it still needs to remain deletable.
 
 Rule identity is a SHA-256 content hash of normalized match/action semantics. Comments and current UFW row numbers are deliberately excluded. IPv4 and IPv6 are distinct semantic identities. A family-neutral AddRule can correspond to the concrete IPv4 and IPv6 rows that UFW materializes, whereas DeleteRule always targets a concrete family-specific identity returned by listing.
 
@@ -132,6 +132,17 @@ A read-only rule operation follows this path:
 4. Supported rows are normalized and assigned semantic identities; unsupported rows remain visible without mutable identities.
 5. The authoritative result returns through IPC and is projected into the HTTP response.
 
+### Network interface inventory
+
+Network-interface discovery is an unsigned read path whose authority remains with the daemon, while presentation metadata belongs to `Ufw.Web`:
+
+1. `Ufw.Systemd` enumerates the host's current network interfaces through the platform networking API and exposes their names through `GET /api/v1/network-interfaces` over IPC. The daemon deliberately does not filter by operational state, assigned IP addresses, or interface type: those properties are transient and interfaces such as disconnected wireless devices, VLANs, tunnels, or bridges can still be valid firewall targets. The daemon does not persist presentation metadata.
+2. `Ufw.Web` stores a reconciled cache in PostgreSQL. Each cached interface has an internal numeric primary key, a stable UUIDv7 exposed to the frontend, the authoritative interface name, an optional ASP-owned comment, and an ASP-owned visibility flag controlling whether it is offered as a rule-editor suggestion. A separate cache-state row records the last successful reconciliation time, including the valid empty-inventory case.
+3. Browser `GET /api/v1/network-interfaces` reads only the ASP cache. `POST /api/v1/network-interfaces/reconcile` explicitly refreshes it from the daemon: surviving names keep their UUID/comment/visibility metadata, new names receive a new UUIDv7 and are visible by default, and disappeared names are deleted together with their presentation metadata.
+4. Comment and visibility updates are addressed by frontend UUID and never cross the IPC or signed-intent boundary. The rule editor only offers visible cached interfaces and can search them by either interface-name or comment substring, but the selected rule value is always the real interface name. Free-text entry remains available, including for interfaces hidden from suggestions.
+
+The cache is therefore advisory for authoring and presentation only. Hiding an ASP cache entry does not make the underlying host interface invalid, and a stale visible entry cannot authorize use of an interface that no longer exists because AddRule independently checks the signed interface name against the daemon's current host inventory immediately before UFW execution.
+
 ### Firewall mutation
 
 A signed mutation follows this path:
@@ -148,9 +159,9 @@ The cryptographic and replay invariants are described in [the security baseline]
 
 ## Firewall state and application metadata
 
-UFW and `Ufw.Systemd` are authoritative for firewall rule existence and semantics. `Ufw.Web` may later maintain richer application metadata such as presentation information, authorship, semantic analysis, or reachability analysis, but that state cannot establish that a firewall rule exists or authorize a mutation.
+UFW and `Ufw.Systemd` are authoritative for firewall rule existence and semantics. `Ufw.Web` owns application metadata and caches that do not change firewall meaning. The network-interface inventory is the first such cache: its comments and frontend UUIDs are ASP-owned presentation state, while interface existence is re-established from the daemon and independently validated again for AddRule. Future metadata such as authorship, semantic analysis, or reachability analysis follows the same boundary and cannot establish that a firewall rule exists or authorize a mutation.
 
-Out-of-band UFW changes are expected. Rule listing observes them directly, semantic identity allows manually created supported rules to be addressed, and DeleteRule resolves against fresh daemon-observed state. If future web metadata and UFW disagree, reconciliation starts from UFW.
+Out-of-band UFW and host-network changes are expected. Rule listing observes firewall changes directly, semantic identity allows manually created supported rules to be addressed, and DeleteRule resolves against fresh daemon-observed state. Interface reconciliation explicitly observes host-network changes. If web metadata and daemon/host state disagree, reconciliation starts from the authoritative daemon state.
 
 ## Extension boundaries
 

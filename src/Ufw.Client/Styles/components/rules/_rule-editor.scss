@@ -54,3 +54,12 @@
         }
     }
 }
+
+.rule-editor-interface-warning-list {
+    margin: 0.5rem 0 0;
+    padding-inline-start: 1.25rem;
+}
+
+.rule-editor-interface-warning-list li + li {
+    margin-top: 0.25rem;
+}

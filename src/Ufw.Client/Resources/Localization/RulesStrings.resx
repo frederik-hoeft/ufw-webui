@@ -111,12 +111,6 @@
   <data name="PreviewingMove" xml:space="preserve">
     <value>Previewing move...</value>
   </data>
-  <data name="RuleAdded" xml:space="preserve">
-    <value>Firewall rule added.</value>
-  </data>
-  <data name="RuleDeleted" xml:space="preserve">
-    <value>Firewall rule deleted.</value>
-  </data>
   <data name="SubmittedRuleMissing" xml:space="preserve">
     <value>The submitted rule is not present in current firewall state. Review the form before retrying.</value>
   </data>
@@ -229,13 +223,13 @@
     <value>Ingress interface for inbound or forward rules.</value>
   </data>
   <data name="InterfaceSuggestionsUnavailable" xml:space="preserve">
-    <value>{0} Cached suggestions are unavailable; free text is still accepted.</value>
+    <value>{0} Cached suggestions are unavailable; you can still enter a host interface name.</value>
   </data>
   <data name="InterfaceEnterValid" xml:space="preserve">
-    <value>{0} Enter a valid interface name.</value>
+    <value>{0} Enter a host interface name. The daemon verifies it before adding the rule.</value>
   </data>
   <data name="InterfaceChooseKnown" xml:space="preserve">
-    <value>{0} Choose a known interface or enter another valid name.</value>
+    <value>{0} Choose a known interface (search by name or comment) or enter another host interface name.</value>
   </data>
   <data name="PrivateKeyLabel" xml:space="preserve">
     <value>ECDSA P-256 private key</value>
@@ -424,7 +418,7 @@
     <value>Prefer data:application/pkcs8;base64,... for password-manager use. PKCS#8 PEM and base64 DER are also accepted. The key is used only for this request and is not stored.</value>
   </data>
   <data name="NoInterfaceMatches" xml:space="preserve">
-    <value>No cached interface matches. You can still enter a valid interface name.</value>
+    <value>No cached interface matches this name or comment. You can still enter a host interface name.</value>
   </data>
   <data name="CurrentFirewallRules" xml:space="preserve">
     <value>Current firewall rules</value>
@@ -468,9 +462,6 @@
   <data name="PositionOutside" xml:space="preserve">
     <value>The requested rule position is outside the current rule list.</value>
   </data>
-  <data name="MockMovedPosition" xml:space="preserve">
-    <value>Staged the rule at position {0}. UFW has not changed.</value>
-  </data>
   <data name="StaleMutationCommittedList" xml:space="preserve">
     <value>The rule change succeeded, but the client could not reload the authoritative rule list. The last successfully loaded snapshot is shown below and mutations are disabled until refresh succeeds.</value>
   </data>
@@ -504,13 +495,13 @@
   <data name="ApplyingReordering" xml:space="preserve">
     <value>Applying...</value>
   </data>
-  <data name="MockOrderingApplied" xml:space="preserve">
-    <value>The mock ASP boundary accepted the staged ordering request. UFW was not changed; authoritative state was reloaded.</value>
-  </data>
   <data name="DirectMovePositionAria" xml:space="preserve">
     <value>Moved directly from position {0} to {1}.</value>
   </data>
   <data name="IndirectShiftPositionAria" xml:space="preserve">
     <value>Shifted from position {0} to {1} because another rule moved.</value>
+  </data>
+  <data name="UnknownInterfacesWarning" xml:space="preserve">
+    <value>One or more entered interface names are not present in the cached host-interface inventory. The daemon verifies interface existence before applying the rule, so the rule may be rejected.</value>
   </data>
 </root>

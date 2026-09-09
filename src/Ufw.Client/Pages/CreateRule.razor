@@ -216,7 +216,6 @@ else
             {
                 if (_reconciliationRuleIdentity is not null && ContainsRuleIdentity(_state.Snapshot!, _reconciliationRuleIdentity))
                 {
-                    Snackbar.Add(RulesText["RuleAdded"], Severity.Success);
                     Navigation.NavigateTo("/rules");
                     return;
                 }
