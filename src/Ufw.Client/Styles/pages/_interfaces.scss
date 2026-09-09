@@ -87,6 +87,7 @@
 
 .interface-mobile-copy {
     display: grid;
+    flex: 1 1 auto;
     min-width: 0;
     gap: 0.25rem;
 }
@@ -105,23 +106,23 @@
     }
 }
 
-.interface-visibility-cell,
-.interface-mobile-actions {
+.interface-visibility-column {
+    width: 5.5rem;
+    text-align: center;
+}
+
+.interface-visibility-cell {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
 }
 
-.interface-visibility-cell > span {
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
-}
-
-.interface-visibility-cell .mud-input-control,
-.interface-mobile-actions .mud-input-control {
-    margin: 0;
-}
-
+.interface-mobile-visibility,
 .interface-mobile-actions {
     flex: 0 0 auto;
+}
+
+.interface-mobile-visibility {
+    display: flex;
+    align-items: center;
 }

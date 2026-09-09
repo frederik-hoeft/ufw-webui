@@ -58,7 +58,8 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
                 Comment = string.IsNullOrWhiteSpace(entry.Comment) ? null : entry.Comment.Trim(),
                 IsVisible = entry.IsVisible,
             })
-            .OrderBy(static entry => entry.Name, StringComparer.Ordinal)
+            .OrderByDescending(static entry => entry.IsVisible)
+            .ThenBy(static entry => entry.Name, StringComparer.Ordinal)
             .ToArray();
 
         if (interfaces.Select(static entry => entry.Id).Distinct().Count() != interfaces.Length

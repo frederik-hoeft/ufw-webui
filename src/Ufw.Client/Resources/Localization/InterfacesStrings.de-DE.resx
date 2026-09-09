@@ -34,9 +34,8 @@
   <data name="VisibleInterfaceCountOne" xml:space="preserve"><value>1 im Regeleditor sichtbar</value></data>
   <data name="VisibleInterfaceCountMany" xml:space="preserve"><value>{0} im Regeleditor sichtbar</value></data>
   <data name="RuleEditorColumn" xml:space="preserve"><value>Regeleditor</value></data>
-  <data name="Shown" xml:space="preserve"><value>Sichtbar</value></data>
-  <data name="Hidden" xml:space="preserve"><value>Ausgeblendet</value></data>
-  <data name="VisibilityAria" xml:space="preserve"><value>{0} im Regeleditor anzeigen</value></data>
+  <data name="HideFromRuleEditor" xml:space="preserve"><value>{0} aus den Vorschlägen des Regeleditors ausblenden</value></data>
+  <data name="ShowInRuleEditor" xml:space="preserve"><value>{0} in den Vorschlägen des Regeleditors anzeigen</value></data>
   <data name="InterfaceShown" xml:space="preserve"><value>Schnittstelle wird jetzt in den Vorschlägen des Regeleditors angezeigt.</value></data>
   <data name="InterfaceHidden" xml:space="preserve"><value>Schnittstelle wird jetzt aus den Vorschlägen des Regeleditors ausgeblendet.</value></data>
 </root>

@@ -34,9 +34,8 @@
   <data name="VisibleInterfaceCountOne" xml:space="preserve"><value>1 shown in rule editor</value></data>
   <data name="VisibleInterfaceCountMany" xml:space="preserve"><value>{0} shown in rule editor</value></data>
   <data name="RuleEditorColumn" xml:space="preserve"><value>Rule editor</value></data>
-  <data name="Shown" xml:space="preserve"><value>Shown</value></data>
-  <data name="Hidden" xml:space="preserve"><value>Hidden</value></data>
-  <data name="VisibilityAria" xml:space="preserve"><value>Show {0} in the rule editor</value></data>
+  <data name="HideFromRuleEditor" xml:space="preserve"><value>Hide {0} from rule-editor suggestions</value></data>
+  <data name="ShowInRuleEditor" xml:space="preserve"><value>Show {0} in rule-editor suggestions</value></data>
   <data name="InterfaceShown" xml:space="preserve"><value>Interface is now shown in rule-editor suggestions.</value></data>
   <data name="InterfaceHidden" xml:space="preserve"><value>Interface is now hidden from rule-editor suggestions.</value></data>
 </root>

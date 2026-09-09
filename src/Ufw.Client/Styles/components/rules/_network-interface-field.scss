@@ -31,18 +31,6 @@
     overflow-wrap: anywhere;
 }
 
-// MudBlazor inserts the clear icon into the input flex row only once text exists.
-// Taking it out of flow keeps the autocomplete underline at a stable height. The
-// button sits immediately before the end adornment (the dropdown arrow), so no
-// trailing gap appears while the clear action is absent.
-.network-interface-field .mud-input-clear-button {
-    position: absolute;
-    top: 50%;
-    inset-inline-end: 1.5rem;
-    margin: 0;
-    transform: translateY(-50%);
-}
-
 .network-interface-option {
     display: grid;
     gap: 0.125rem;

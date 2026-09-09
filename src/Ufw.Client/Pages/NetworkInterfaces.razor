@@ -100,24 +100,25 @@
                   Elevation="0"
                   Class="interface-inventory-table interface-inventory-desktop">
             <HeaderContent>
+                <MudTh Class="interface-visibility-column">@InterfacesText["RuleEditorColumn"]</MudTh>
                 <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
-                <MudTh>@InterfacesText["RuleEditorColumn"]</MudTh>
                 <MudTh>@InterfacesText["CommentColumn"]</MudTh>
             </HeaderContent>
             <RowTemplate>
+                <MudTd DataLabel="@(InterfacesText["RuleEditorColumn"])" Class="interface-visibility-column">
+                    <div class="interface-visibility-cell">
+                        <MudTooltip Text="@VisibilityActionText(context)">
+                            <MudIconButton Icon="@(context.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                           Color="@(context.IsVisible ? Color.Primary : Color.Default)"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => UpdateVisibilityAsync(context, !context.IsVisible))"
+                                           aria-label="@VisibilityActionText(context)" />
+                        </MudTooltip>
+                    </div>
+                </MudTd>
                 <MudTd DataLabel="@(InterfacesText["InterfaceColumn"])">
                     <code class="interface-name">@context.Name</code>
-                </MudTd>
-                <MudTd DataLabel="@(InterfacesText["RuleEditorColumn"])">
-                    <div class="interface-visibility-cell">
-                        <MudSwitch T="bool"
-                                   Value="@context.IsVisible"
-                                   ValueChanged="@(visible => UpdateVisibilityAsync(context, visible))"
-                                   Color="Color.Primary"
-                                   Disabled="@IsBusy"
-                                   AriaLabel="@(InterfacesText["VisibilityAria", context.Name])" />
-                        <span>@(context.IsVisible ? InterfacesText["Shown"] : InterfacesText["Hidden"])</span>
-                    </div>
                 </MudTd>
                 <MudTd DataLabel="@(InterfacesText["CommentColumn"])">
                     <div class="interface-comment-cell">
@@ -139,6 +140,16 @@
             @foreach (NetworkInterfaceInventoryItem item in _inventory.Interfaces)
             {
                 <div class="interface-mobile-row">
+                    <div class="interface-mobile-visibility">
+                        <MudTooltip Text="@VisibilityActionText(item)">
+                            <MudIconButton Icon="@(item.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                           Color="@(item.IsVisible ? Color.Primary : Color.Default)"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => UpdateVisibilityAsync(item, !item.IsVisible))"
+                                           aria-label="@VisibilityActionText(item)" />
+                        </MudTooltip>
+                    </div>
                     <div class="interface-mobile-copy">
                         <code class="interface-name">@item.Name</code>
                         <span class="@(string.IsNullOrWhiteSpace(item.Comment) ? "interface-comment-empty" : "interface-comment")">
@@ -146,12 +157,6 @@
                         </span>
                     </div>
                     <div class="interface-mobile-actions">
-                        <MudSwitch T="bool"
-                                   Value="@item.IsVisible"
-                                   ValueChanged="@(visible => UpdateVisibilityAsync(item, visible))"
-                                   Color="Color.Primary"
-                                   Disabled="@IsBusy"
-                                   AriaLabel="@(InterfacesText["VisibilityAria", item.Name])" />
                         <MudButton Variant="Variant.Text"
                                    Size="Size.Small"
                                    Disabled="@IsBusy"
@@ -320,6 +325,10 @@
             _savingMetadata = false;
         }
     }
+
+    private string VisibilityActionText(NetworkInterfaceInventoryItem item) => item.IsVisible
+        ? InterfacesText["HideFromRuleEditor", item.Name]
+        : InterfacesText["ShowInRuleEditor", item.Name];
 
     private string DescribeCount(int count) => count == 1
         ? InterfacesText["KnownInterfaceCountOne"]
