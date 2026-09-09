@@ -10,6 +10,13 @@ independent application images:
 - `Dockerfile.asp` publishes only `Ufw.Web`. Kestrel listens only on that Unix
   socket; ASP has no frontend files and no TCP listener.
 
+The frontend image treats .NET 10's generated import map as part of the immutable
+frontend artifact. During the image build it computes the CSP SHA-256 source hash
+for that exact inline import map and renders it into nginx's security headers.
+Missing files under `/_framework/`, `/_content/`, and the application-owned static
+asset trees return `404` directly; they must never use the SPA fallback to
+`index.html`.
+
 PostgreSQL is reachable only from ASP on a separate internal network. The
 privileged `Ufw.Systemd` daemon remains a host systemd service reached through
 its group-restricted Unix socket.

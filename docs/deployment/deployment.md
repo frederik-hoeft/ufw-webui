@@ -309,7 +309,7 @@ docker compose \
 
 The two build products are intentionally independent:
 
-- `frontend` compiles only `Ufw.Client` and copies its publish output into nginx; its build also verifies that the .NET 10 Blazor boot-script fingerprint placeholder was resolved into an actual published asset;
+- `frontend` compiles only `Ufw.Client` and copies its publish output into nginx; its build verifies that the .NET 10 Blazor boot-script fingerprint placeholder was resolved, then hashes the generated inline import map into nginx's CSP so fingerprinted framework-module resolution remains permitted without enabling arbitrary inline scripts;
 - `asp` compiles only `Ufw.Web` and fails the image build if a frontend `wwwroot/index.html` appears in the ASP publish output.
 
 Do not collapse them into one runtime image. The inability of a compromised ASP process to replace browser signing code is part of the production security model.
@@ -447,6 +447,6 @@ Restore the previous daemon binary using the same installer, keeping the same se
 - nginx mounts the ASP API-socket volume read-only; connecting to the Unix-domain socket itself does not require filesystem write access to the mounted volume.
 - The daemon socket is `0660`, and `/run/ufw-manager` is `0750`. Do not solve IPC failures by making the socket world-accessible.
 - Unix socket permissions and optional IPC TLS/mTLS are defense in depth. A mutating daemon request still requires a valid browser-created signed intent.
-- nginx sets HSTS and restrictive browser security headers, including a CSP intended for the committed Blazor WebAssembly application. If future frontend dependencies require additional origins/capabilities, review the CSP rather than broadly disabling it.
+- nginx sets HSTS and restrictive browser security headers. The frontend image derives the CSP hash for .NET 10's generated inline import map from the exact published `index.html`; do not replace this with broad `unsafe-inline` script permission. Static framework/library/application asset trees return a real `404` when an asset is missing rather than falling through to the SPA `index.html`, so broken fingerprint/import-map resolution remains observable instead of surfacing as misleading JavaScript MIME errors. If future frontend dependencies require additional origins/capabilities, review the CSP rather than broadly disabling it.
 - Do not mount `/etc/ufw`, `/var/lib/ufw-manager`, the host Docker socket, or the browser signing private key into any application container.
 - Keep `deploy/docker/.env`, TLS/JWT private keys, database dumps, and browser private keys out of source control.

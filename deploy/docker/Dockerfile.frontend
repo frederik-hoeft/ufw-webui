@@ -4,6 +4,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-resolute AS build
 WORKDIR /source
 
 COPY src ./src
+COPY deploy/docker/nginx/security-headers.conf.template /tmp/security-headers.conf.template
+COPY deploy/docker/nginx/render-security-headers.ps1 /tmp/render-security-headers.ps1
 RUN dotnet restore src/Ufw.Client/Ufw.Client.csproj
 RUN dotnet publish src/Ufw.Client/Ufw.Client.csproj \
         --configuration Release \
@@ -11,7 +13,11 @@ RUN dotnet publish src/Ufw.Client/Ufw.Client.csproj \
         --output /out/client \
     && ! grep -Fq '#[.{fingerprint}]' /out/client/wwwroot/index.html \
     && ! grep -Fq 'src="_framework/blazor.webassembly.js"' /out/client/wwwroot/index.html \
-    && grep -Eq 'src="_framework/blazor\.webassembly\.[^"]+\.js"' /out/client/wwwroot/index.html
+    && grep -Eq 'src="_framework/blazor\.webassembly\.[^"]+\.js"' /out/client/wwwroot/index.html \
+    && pwsh -NoLogo -NoProfile -NonInteractive -File /tmp/render-security-headers.ps1 \
+        -IndexHtml /out/client/wwwroot/index.html \
+        -Template /tmp/security-headers.conf.template \
+        -Output /out/security-headers.conf
 
 FROM nginx:1.31.5-alpine3.24 AS runtime
 
@@ -23,7 +29,7 @@ RUN rm -f /etc/nginx/conf.d/default.conf \
     && chmod 0770 /run/ufw-web-api/socket \
     && chmod 0555 /run/tls
 COPY deploy/docker/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY deploy/docker/nginx/security-headers.conf /etc/nginx/security-headers.conf
+COPY --from=build /out/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /out/client/wwwroot/ /usr/share/nginx/html/
 RUN rm -f /usr/share/nginx/html/appsettings.Development.json* \
     && chmod -R a-w /etc/nginx/nginx.conf /etc/nginx/security-headers.conf /usr/share/nginx/html
