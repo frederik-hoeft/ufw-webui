@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
 
@@ -8,9 +8,7 @@ internal static class FirewallRuleDefaults
     {
         Action = FirewallAction.Allow,
         AddressFamily = FirewallAddressFamily.Any,
-        Direction = FirewallDirection.In,
-        Protocol = FirewallProtocol.Any,
-        Source = RuleSpecificationNormalizer.ANY,
-        Destination = RuleSpecificationNormalizer.ANY,
+        Direction = FirewallDirection.Forward,
+        Protocol = FirewallProtocol.Any
     };
 }

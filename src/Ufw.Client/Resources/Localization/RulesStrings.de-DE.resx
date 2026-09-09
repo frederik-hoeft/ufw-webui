@@ -501,7 +501,7 @@
   <data name="IndirectShiftPositionAria" xml:space="preserve">
     <value>Von Position {0} auf {1} verschoben, weil eine andere Regel bewegt wurde.</value>
   </data>
-  <data name="UnknownInterfaceWarning" xml:space="preserve">
-    <value>„{0}“ ist nicht im zwischengespeicherten Bestand der Host-Schnittstellen enthalten. Der Daemon prüft die Existenz der Schnittstelle vor dem Anwenden der Regel, daher kann diese Regel abgelehnt werden.</value>
+  <data name="UnknownInterfacesWarning" xml:space="preserve">
+    <value>Mindestens ein eingegebener Schnittstellenname ist nicht im zwischengespeicherten Bestand der Host-Schnittstellen enthalten. Der Daemon prüft die Existenz der Schnittstelle vor dem Anwenden der Regel, daher kann die Regel abgelehnt werden.</value>
   </data>
 </root>

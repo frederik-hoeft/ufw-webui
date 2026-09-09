@@ -116,8 +116,6 @@
                                        @bind-Value="Rule.SourceInterface"
                                        For="@(() => Rule.SourceInterface)"
                                        Suggestions="@_visibleInterfaces"
-                                       KnownInterfaces="@_knownInterfaces"
-                                       InventoryAvailable="@(_interfaceInventoryError is null)"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
@@ -126,8 +124,6 @@
                                        @bind-Value="Rule.DestinationInterface"
                                        For="@(() => Rule.DestinationInterface)"
                                        Suggestions="@_visibleInterfaces"
-                                       KnownInterfaces="@_knownInterfaces"
-                                       InventoryAvailable="@(_interfaceInventoryError is null)"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12">
@@ -156,6 +152,24 @@
                 <MudItem xs="12">
                     <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["CanonicalUfwRule"])" />
                 </MudItem>
+                @if (HasUnknownInterfaces)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3" role="status">
+                            @RulesText["UnknownInterfacesWarning"]
+                            <ul class="rule-editor-interface-warning-list">
+                                @if (IsUnknownInterface(Rule.SourceInterface))
+                                {
+                                    <li><strong>@RulesText["SourceInterface"]:</strong> <code>@Rule.SourceInterface</code></li>
+                                }
+                                @if (IsUnknownInterface(Rule.DestinationInterface))
+                                {
+                                    <li><strong>@RulesText["DestinationInterface"]:</strong> <code>@Rule.DestinationInterface</code></li>
+                                }
+                            </ul>
+                        </MudAlert>
+                    </MudItem>
+                }
                 <MudItem xs="12">
                     <MutationAuthorizationField Value="@PrivateKey"
                                                 ValueChanged="PrivateKeyChangedAsync"
@@ -219,6 +233,9 @@
 
     private string DestinationInterfaceHelp => DescribeInterfaceHelp(RulesText["DestinationInterfaceHelp"]);
 
+    private bool HasUnknownInterfaces =>
+        IsUnknownInterface(Rule.SourceInterface) || IsUnknownInterface(Rule.DestinationInterface);
+
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
 
@@ -268,6 +285,11 @@
             _interfaceInventoryError = ClientErrors.Describe(exception).Message;
         }
     }
+
+    private bool IsUnknownInterface(string? interfaceName) =>
+        _interfaceInventoryError is null
+        && !string.IsNullOrWhiteSpace(interfaceName)
+        && !_knownInterfaces.Any(candidate => string.Equals(candidate.Name, interfaceName, StringComparison.Ordinal));
 
     private string DescribeInterfaceHelp(string directionHelp)
     {

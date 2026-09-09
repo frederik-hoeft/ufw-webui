@@ -501,7 +501,7 @@
   <data name="IndirectShiftPositionAria" xml:space="preserve">
     <value>Shifted from position {0} to {1} because another rule moved.</value>
   </data>
-  <data name="UnknownInterfaceWarning" xml:space="preserve">
-    <value>“{0}” is not present in the cached host-interface inventory. The daemon verifies interface existence before applying the rule, so this rule may be rejected.</value>
+  <data name="UnknownInterfacesWarning" xml:space="preserve">
+    <value>One or more entered interface names are not present in the cached host-interface inventory. The daemon verifies interface existence before applying the rule, so the rule may be rejected.</value>
   </data>
 </root>
