@@ -40,12 +40,14 @@ The same Compose file supports three host/container ownership layouts. The appli
 
 ### 1. Rootful Docker, non-root application containers
 
+All Docker deployment models use `/var/lib/ufw-webui/ipc` as the **host-side** daemon IPC directory. Keep the ASP-facing path unchanged at `/run/ufw-manager`; Compose bind-mounts the host IPC directory there. The host path deliberately does not live below `/var/lib/ufw-manager`, because that directory contains daemon security state and remains root-only.
+
 Use a dedicated host IPC group such as `ufw-webui-ipc` when installing the daemon. The daemon runs as `root:<ipc-group>` and creates:
 
-- `/run/ufw-manager` as `root:<ipc-group>` mode `0750` via systemd;
-- `/run/ufw-manager/ufw-systemd.sock` as `root:<ipc-group>` mode `0660` via `Ufw.Systemd`.
+- `/var/lib/ufw-webui/ipc` as `root:<ipc-group>` mode `0750`;
+- `/var/lib/ufw-webui/ipc/ufw-systemd.sock` as `root:<ipc-group>` mode `0660` via `Ufw.Systemd`.
 
-Set `UFW_IPC_CONTAINER_GID` to the numeric host GID of that group. Docker adds the group to the non-root ASP process, allowing socket connection without running ASP as root.
+Set `UFW_IPC_HOST_DIR=/var/lib/ufw-webui/ipc` and set `UFW_IPC_CONTAINER_GID` to the numeric host GID of that group. Docker adds the group to the non-root ASP process, allowing socket connection without running ASP as root. Inside ASP, `IpcOptions__Endpoint` remains `/run/ufw-manager/ufw-systemd.sock`.
 
 Use separate host groups for ASP's JWT key and the nginx TLS key, for example `ufw-webui-jwt` and `ufw-webui-tls`. Set `UFW_JWT_CONTAINER_GID` and `UFW_TLS_CONTAINER_GID` to their numeric host GIDs. Keeping those groups distinct from `ufw-webui-ipc` prevents ordinary IPC-group membership from also granting read access to application private keys.
 
@@ -57,9 +59,12 @@ Rootful Docker programs host firewall rules independently from UFW and can under
 
 Install Rootless Docker normally and enable lingering for the Docker user if the stack must survive logout/reboot. Container UID/GID `0` maps to the rootless Docker user's host identity, while nonzero container IDs map through subordinate UID/GID ranges.
 
+Do not use a host path below `/run` for daemon IPC with rootless Docker. RootlessKit commonly gives rootless `dockerd` a private copied-up `/run`, so a socket created later in the host mount namespace may be absent from the directory that Docker bind-mounts. `/var/lib/ufw-webui/ipc` is outside that private runtime tree and is therefore the supported host-side socket directory for both rootless and rootful deployments.
+
 Install `Ufw.Systemd` with the rootless Docker user's existing primary host group as its IPC group. Keep:
 
 ```text
+UFW_IPC_HOST_DIR=/var/lib/ufw-webui/ipc
 UFW_IPC_CONTAINER_GID=0
 UFW_JWT_CONTAINER_GID=0
 UFW_TLS_CONTAINER_GID=0
@@ -163,16 +168,18 @@ sudo ./deploy/systemd/install.sh \
 
 Keep `UFW_IPC_CONTAINER_GID=0` in Compose.
 
-The installer preserves existing daemon configuration and `authorized_keys` on updates unless replacement files are supplied explicitly. It enables/restarts the systemd service by default.
+The installer preserves existing daemon configuration and `authorized_keys` on updates unless replacement files are supplied explicitly. Configure the production daemon endpoint as `/var/lib/ufw-webui/ipc/ufw-systemd.sock`, ensure `/var/lib/ufw-webui/ipc` is owned by `root:<ipc-group>` with mode `0750`, then restart the service. The socket itself is recreated by the daemon and is not persistent state.
 
 Inspect the result:
 
 ```bash
 systemctl status ufw-systemd.service
-sudo stat -c '%A %U:%G %n' /run/ufw-manager /run/ufw-manager/ufw-systemd.sock
+sudo stat -c '%A %U:%G %n' \
+  /var/lib/ufw-webui/ipc \
+  /var/lib/ufw-webui/ipc/ufw-systemd.sock
 ```
 
-Expected socket mode is `srw-rw----`; the directory is group-traversable but not writable by ASP.
+Expected socket mode is `srw-rw----`; the directory is group-traversable but not writable by ASP. The daemon's private replay/deployment state remains separately protected below `/var/lib/ufw-manager`.
 
 ## 2. Provision daemon mutation authority
 
@@ -281,6 +288,7 @@ $EDITOR deploy/docker/.env
 At minimum change:
 
 - `UFW_TLS_HOST_DIR`;
+- `UFW_IPC_HOST_DIR=/var/lib/ufw-webui/ipc`;
 - `UFW_WEB_JWT_KEY_PATH`;
 - bootstrap email/username/password;
 - PostgreSQL password;
@@ -363,11 +371,20 @@ After signing in through the browser:
 For host-side IPC permission troubleshooting:
 
 ```bash
-namei -l /run/ufw-manager/ufw-systemd.sock
-sudo stat -c '%a %U:%G %n' /run/ufw-manager /run/ufw-manager/ufw-systemd.sock
+namei -l /var/lib/ufw-webui/ipc/ufw-systemd.sock
+sudo stat -c '%a %U:%G %n' \
+  /var/lib/ufw-webui/ipc \
+  /var/lib/ufw-webui/ipc/ufw-systemd.sock
 ```
 
-For rootless Docker, remember that supplemental container GID 0 maps to the rootless Docker user's primary host GID; it does not grant host-root group membership.
+To verify the bind mount from inside ASP, use the unchanged container-side path:
+
+```bash
+docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml exec asp \
+  ls -la /run/ufw-manager
+```
+
+For rootless Docker, remember that supplemental container GID 0 maps to the rootless Docker user's primary host GID; it does not grant host-root group membership. If the host socket exists but `/run/ufw-manager` is empty in ASP, verify that `UFW_IPC_HOST_DIR` resolves to `/var/lib/ufw-webui/ipc` rather than a path below the host `/run`.
 
 ## Backups
 
@@ -387,7 +404,7 @@ Also back up separately:
 - the nginx TLS certificate/key or the certificate automation state needed to reproduce them;
 - administrator browser signing private keys/password-manager entries.
 
-The daemon deployment ID and replay store under `/var/lib/ufw-manager` are host state. Preserve the deployment ID when restoring the same logical deployment. Do not restore stale nonce data in a way that weakens replay protection; restoring the complete recent daemon state is safest.
+The daemon deployment ID and replay store under `/var/lib/ufw-manager` are host state. Preserve the deployment ID when restoring the same logical deployment. Do not restore stale nonce data in a way that weakens replay protection; restoring the complete recent daemon state is safest. `/var/lib/ufw-webui/ipc/ufw-systemd.sock` is ephemeral IPC state and must not be included in backups or restored.
 
 ## Updates
 
@@ -445,8 +462,8 @@ Restore the previous daemon binary using the same installer, keeping the same se
 - ASP receives the JWT key, daemon socket, and read-write side of its nginx-facing API socket volume, but does **not** receive nginx static assets, nginx TLS key, Docker socket, UFW files, daemon security state, or any TCP listener.
 - PostgreSQL shares a network only with ASP and has no published host port.
 - nginx mounts the ASP API-socket volume read-only; connecting to the Unix-domain socket itself does not require filesystem write access to the mounted volume.
-- The daemon socket is `0660`, and `/run/ufw-manager` is `0750`. Do not solve IPC failures by making the socket world-accessible.
+- The host daemon socket is `/var/lib/ufw-webui/ipc/ufw-systemd.sock` mode `0660`, and its host directory is `0750`. ASP sees that directory at `/run/ufw-manager` through a read-only bind mount. Do not solve IPC failures by making the socket world-accessible.
 - Unix socket permissions and optional IPC TLS/mTLS are defense in depth. A mutating daemon request still requires a valid browser-created signed intent.
 - nginx sets HSTS and restrictive browser security headers. The frontend image derives the CSP hash for .NET 10's generated inline import map from the exact published `index.html`; do not replace this with broad `unsafe-inline` script permission. Static framework/library/application asset trees return a real `404` when an asset is missing rather than falling through to the SPA `index.html`, so broken fingerprint/import-map resolution remains observable instead of surfacing as misleading JavaScript MIME errors. If future frontend dependencies require additional origins/capabilities, review the CSP rather than broadly disabling it.
-- Do not mount `/etc/ufw`, `/var/lib/ufw-manager`, the host Docker socket, or the browser signing private key into any application container.
+- Do not mount `/etc/ufw`, `/var/lib/ufw-manager`, the host Docker socket, or the browser signing private key into any application container. The only host daemon filesystem surface ASP receives is the dedicated `/var/lib/ufw-webui/ipc` directory, mounted read-only at `/run/ufw-manager`.
 - Keep `deploy/docker/.env`, TLS/JWT private keys, database dumps, and browser private keys out of source control.
