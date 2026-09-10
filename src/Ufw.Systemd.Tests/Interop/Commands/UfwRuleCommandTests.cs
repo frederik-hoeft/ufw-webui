@@ -11,7 +11,7 @@ public sealed class UfwRuleCommandTests
     private static readonly string[] s_expectedDeleteArguments = ["--force", "delete", "12"];
 
     [TestMethod]
-    public void AddRule_BuildArguments_PrefixesForceToSharedCanonicalRuleTokens()
+    public void AddRule_BuildArguments_UsesSharedCanonicalRuleTokens()
     {
         FirewallRuleSpecification rule = new()
         {
@@ -25,8 +25,7 @@ public sealed class UfwRuleCommandTests
         UfwRenderedRule rendered = s_renderer.Render(rule);
         UfwAddRuleCommand command = new(rule, s_renderer);
 
-        string[] expected = ["--force", .. rendered.Arguments];
-        CollectionAssert.AreEqual(expected, command.BuildArguments().ToArray());
+        CollectionAssert.AreEqual(rendered.Arguments.ToArray(), command.BuildArguments().ToArray());
     }
 
     [TestMethod]
