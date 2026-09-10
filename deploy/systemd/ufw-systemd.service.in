@@ -11,10 +11,9 @@ ExecStart=/usr/local/lib/ufw-webui/ufw-systemd serve --config /etc/ufw-manager/s
 Restart=on-failure
 RestartSec=2s
 
-# The runtime directory is the only host filesystem surface shared with the
-# unprivileged ASP container. Ufw.Systemd creates the socket itself as 0660.
-RuntimeDirectory=ufw-manager
-RuntimeDirectoryMode=0750
+# /var/lib/ufw-webui/ipc is provisioned by install.sh as root:@IPC_GROUP@
+# mode 0750. It intentionally lives outside /run so rootless Docker can bind
+# mount the host directory into ASP. Ufw.Systemd creates the socket as 0660.
 
 # Replay state and deployment identity stay daemon/root-only.
 StateDirectory=ufw-manager

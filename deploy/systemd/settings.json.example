@@ -3,7 +3,7 @@
   "ufw_path": "/usr/sbin/ufw",
   "write_to_console": true,
   "pipe": {
-    "pipe_name": "/run/ufw-manager/ufw-systemd.sock",
+    "pipe_name": "/var/lib/ufw-webui/ipc/ufw-systemd.sock",
     "tls_enabled": false,
     "ssl_protocols": "none",
     "remote_certificate_validation": null,

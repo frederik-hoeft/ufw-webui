@@ -77,7 +77,7 @@ services:
       Logging__Console__FormatterName: "json"
     volumes:
       - type: bind
-        source: ${UFW_IPC_HOST_DIR:-/run/ufw-manager}
+        source: ${UFW_IPC_HOST_DIR:-/var/lib/ufw-webui/ipc}
         target: /run/ufw-manager
         read_only: true
       - type: bind

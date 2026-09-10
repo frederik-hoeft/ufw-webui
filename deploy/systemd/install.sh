@@ -7,6 +7,10 @@ readonly BINARY_TARGET="$INSTALL_ROOT/ufw-systemd"
 readonly CONFIG_DIR="/etc/ufw-manager"
 readonly CONFIG_TARGET="$CONFIG_DIR/settings.json"
 readonly AUTHORIZED_KEYS_TARGET="$CONFIG_DIR/authorized_keys"
+readonly IPC_ROOT="/var/lib/ufw-webui"
+readonly IPC_DIR="$IPC_ROOT/ipc"
+readonly IPC_SOCKET="$IPC_DIR/ufw-systemd.sock"
+readonly LEGACY_IPC_SOCKET="/run/ufw-manager/ufw-systemd.sock"
 readonly UNIT_TARGET="/etc/systemd/system/ufw-systemd.service"
 readonly DOC_DIR="/usr/local/share/doc/ufw-webui"
 
@@ -98,14 +102,22 @@ fi
 IPC_GROUP="$(getent group "$IPC_GROUP" | cut -d: -f1)"
 [[ -n "$IPC_GROUP" ]] || fail "could not resolve IPC group"
 
-install -d -o root -g root -m 0755 "$INSTALL_ROOT" "$DOC_DIR"
+install -d -o root -g root -m 0755 "$INSTALL_ROOT" "$DOC_DIR" "$IPC_ROOT"
 install -d -o root -g root -m 0750 "$CONFIG_DIR"
+install -d -o root -g "$IPC_GROUP" -m 0750 "$IPC_DIR"
 install -o root -g root -m 0755 "$BINARY_SOURCE" "$BINARY_TARGET"
 
 if [[ -n "$SETTINGS_SOURCE" ]]; then
     install -o root -g root -m 0640 "$SETTINGS_SOURCE" "$CONFIG_TARGET"
 elif [[ ! -e "$CONFIG_TARGET" ]]; then
     install -o root -g root -m 0640 "$SCRIPT_DIR/settings.json.example" "$CONFIG_TARGET"
+elif grep -Fq "$LEGACY_IPC_SOCKET" "$CONFIG_TARGET"; then
+    # Migrate only the previous deployment default. Other custom endpoint paths
+    # remain administrator-owned configuration and are deliberately preserved.
+    sed -i "s|$LEGACY_IPC_SOCKET|$IPC_SOCKET|g" "$CONFIG_TARGET"
+    chown root:root "$CONFIG_TARGET"
+    chmod 0640 "$CONFIG_TARGET"
+    printf 'Migrated daemon socket path to %s\n' "$IPC_SOCKET"
 fi
 
 if [[ -n "$AUTHORIZED_KEYS_SOURCE" ]]; then
@@ -135,4 +147,4 @@ printf 'Installed Ufw.Systemd to %s\n' "$BINARY_TARGET"
 printf 'IPC group: %s (gid %s)\n' "$IPC_GROUP" "$(getent group "$IPC_GROUP" | cut -d: -f3)"
 printf 'Configuration: %s\n' "$CONFIG_TARGET"
 printf 'Authorized keys: %s\n' "$AUTHORIZED_KEYS_TARGET"
-printf 'Socket directory (while running): /run/ufw-manager\n'
+printf 'Host socket directory: %s\n' "$IPC_DIR"
