@@ -47,7 +47,7 @@ public static class Atomic
     /// <summary>
     /// Sets a variable of the specified type <typeparamref name="TEnum"/> to a specified value and returns the original value, as an atomic operation.
     /// </summary>
-    /// <typeparam name="TEnum">The type to be used for <paramref name="location1"/> and <paramref name="value"/>. 
+    /// <typeparam name="TEnum">The type to be used for <paramref name="location1"/> and <paramref name="value"/>.
     /// This type must be an enum type whose underlying size is 32 or 64 bits.</typeparam>
     /// <param name="location1">The variable to set to the specified value. This is a reference parameter (<see langword="ref"/> in C#, <c>ByRef</c> in Visual Basic).</param>
     /// <param name="value">The value to which the <paramref name="location1"/> parameter is set.</param>
@@ -68,7 +68,7 @@ public static class Atomic
     /// <summary>
     /// Compares two <typeparamref name="TEnum"/> values for equality and, if they are equal, replaces the first value, as an atomic operation.
     /// </summary>
-    /// <typeparam name="TEnum">The type to be used for <paramref name="location1"/>, <paramref name="value"/>, and <paramref name="comparand"/>. 
+    /// <typeparam name="TEnum">The type to be used for <paramref name="location1"/>, <paramref name="value"/>, and <paramref name="comparand"/>.
     /// This type must be an enum type whose underlying size is 32 or 64 bits.</typeparam>
     /// <param name="location1">The destination, whose value is compared with <paramref name="comparand"/> and possibly replaced.</param>
     /// <param name="value">The value that replaces the destination value if the comparison results in equality.</param>
@@ -173,7 +173,7 @@ public static class Atomic
         return original;
     }
 
-    #endregion
+    #endregion IncrementModulo
 
     #region WriteMax
 
@@ -444,7 +444,7 @@ public static class Atomic
     #region TestAllFlagsExchange
 
     /// <summary>
-    /// Tests whether the specified flags are set in the specified location (<c>(location &amp; flags) == flags</c>), and if so, 
+    /// Tests whether the specified flags are set in the specified location (<c>(location &amp; flags) == flags</c>), and if so,
     /// replaces the value stored in that location with the specified value.
     /// </summary>
     /// <param name="location">The location to test and exchange.</param>
@@ -793,7 +793,7 @@ public static class Atomic
     }
 
     /// <summary>
-    /// Tests whether any of the specified flags are set in the specified location (<c>(location &amp; flags) != 0</c>), and if so, 
+    /// Tests whether any of the specified flags are set in the specified location (<c>(location &amp; flags) != 0</c>), and if so,
     /// runs the specified transformation function on the original value and replaces the value stored in that location with the transformed value.
     /// </summary>
     /// <param name="location">The location to test and exchange.</param>

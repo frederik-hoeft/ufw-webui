@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
-using Ufw.Shared.Firewall;
 using Ufw.Mock.State;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Formatting;
 

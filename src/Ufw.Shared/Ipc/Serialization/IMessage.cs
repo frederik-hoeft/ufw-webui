@@ -12,15 +12,3 @@ public interface IMessage : IDisposable, IAsyncDisposable
 
     IMessageBlob Payload { get; }
 }
-
-public interface IRequestMessage : IMessage
-{
-    string Method { get; }
-
-    string Route { get; }
-}
-
-public interface IResponseMessage : IMessage
-{
-    int StatusCode { get; }
-}

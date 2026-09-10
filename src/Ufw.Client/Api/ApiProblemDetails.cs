@@ -1,4 +1,4 @@
-namespace Ufw.Client.Api;
+﻿namespace Ufw.Client.Api;
 
 public sealed class ApiProblemDetails
 {

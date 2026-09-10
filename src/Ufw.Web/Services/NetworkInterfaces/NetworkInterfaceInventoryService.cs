@@ -22,10 +22,7 @@ internal sealed class NetworkInterfaceInventoryService(
     {
         // Do not hold a database transaction open while waiting on the daemon. The returned
         // names are validated before the transactional cache update begins.
-        NetworkInterfaceListResponse daemonResponse = await ufwClient.SendAsync<NetworkInterfaceListResponse>(
-            RequestMethod.Get,
-            "/api/v1/network-interfaces",
-            cancellationToken);
+        NetworkInterfaceListResponse daemonResponse = await ufwClient.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", cancellationToken);
         string[] currentNames = ValidateAndOrderDaemonNames(daemonResponse.Interfaces);
 
         return await Transaction.Scoped.RunAsync<NetworkInterfaceInventoryResponse>(async (context, transaction) =>
@@ -73,28 +70,19 @@ internal sealed class NetworkInterfaceInventoryService(
         });
     }
 
-    public Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(
-        Guid publicId,
-        string? comment,
-        CancellationToken cancellationToken = default) =>
+    public Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(Guid publicId, string? comment, CancellationToken cancellationToken = default) =>
         UpdateEntryAsync(
             publicId,
             (networkInterface) => networkInterface.Comment = NormalizeComment(comment),
             cancellationToken);
 
-    public Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(
-        Guid publicId,
-        bool isVisible,
-        CancellationToken cancellationToken = default) =>
+    public Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(Guid publicId, bool isVisible, CancellationToken cancellationToken = default) =>
         UpdateEntryAsync(
             publicId,
             networkInterface => networkInterface.IsVisible = isVisible,
             cancellationToken);
 
-    private Task<NetworkInterfaceInventoryResponse?> UpdateEntryAsync(
-        Guid publicId,
-        Action<NetworkInterfaceEntry> update,
-        CancellationToken cancellationToken) =>
+    private Task<NetworkInterfaceInventoryResponse?> UpdateEntryAsync(Guid publicId, Action<NetworkInterfaceEntry> update, CancellationToken cancellationToken) =>
         Transaction.Scoped.RunAsync<NetworkInterfaceInventoryResponse?>(async (context, transaction) =>
         {
             NetworkInterfaceEntry? networkInterface = await context.Set<NetworkInterfaceEntry>()
@@ -110,18 +98,12 @@ internal sealed class NetworkInterfaceInventoryService(
             return transaction.Commit<NetworkInterfaceInventoryResponse?>(response);
         });
 
-    private static async Task<NetworkInterfaceInventoryResponse> GetCachedCoreAsync(
-        ApplicationDbContext context,
-        CancellationToken cancellationToken)
+    private static async Task<NetworkInterfaceInventoryResponse> GetCachedCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
     {
         NetworkInterfaceInventoryItem[] interfaces = await context.Set<NetworkInterfaceEntry>()
             .AsNoTracking()
             .OrderBy(static networkInterface => networkInterface.Name)
-            .Select(static networkInterface => new NetworkInterfaceInventoryItem(
-                networkInterface.PublicId,
-                networkInterface.Name,
-                networkInterface.Comment,
-                networkInterface.IsVisible))
+            .Select(static networkInterface => new NetworkInterfaceInventoryItem(networkInterface.PublicId, networkInterface.Name, networkInterface.Comment, networkInterface.IsVisible))
             .ToArrayAsync(cancellationToken);
         DateTimeOffset? reconciledAt = await context.Set<NetworkInterfaceCacheState>()
             .AsNoTracking()

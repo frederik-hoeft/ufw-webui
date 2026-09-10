@@ -1,14 +1,11 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 using Ufw.Client.Errors;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.Status;
 
-internal sealed class OperationalStatusService(
-    IUfwApiClient apiClient,
-    IClientErrorMapper clientErrors,
-    TimeProvider timeProvider) : IOperationalStatusService, IDisposable
+internal sealed class OperationalStatusService(IUfwApiClient apiClient, IClientErrorMapper clientErrors, TimeProvider timeProvider) : IOperationalStatusService, IDisposable
 {
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
 

@@ -21,11 +21,7 @@ internal sealed class EndpointProcessor(SourceProductionContext context, Control
         string fullRoute = CombineRoutes(controllerContext.Route, endpointVerb.Route);
         if (string.IsNullOrEmpty(fullRoute))
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.MissingRoute,
-                method.Locations.FirstOrDefault(),
-                method.Name,
-                controllerContext.ControllerTypeFullName));
+            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.MissingRoute, method.Locations.FirstOrDefault(), method.Name, controllerContext.ControllerTypeFullName));
             return null;
         }
 
@@ -60,12 +56,12 @@ internal sealed class EndpointProcessor(SourceProductionContext context, Control
 
     private static string CombineRoutes(string? controllerRoute, string? methodRoute)
     {
-        string controller = controllerRoute?.Trim('/') ?? "";
-        string method = methodRoute?.Trim('/') ?? "";
+        string controller = controllerRoute?.Trim('/') ?? string.Empty;
+        string method = methodRoute?.Trim('/') ?? string.Empty;
 
         if (string.IsNullOrEmpty(controller) && string.IsNullOrEmpty(method))
         {
-            return "";
+            return string.Empty;
         }
 
         if (string.IsNullOrEmpty(controller))

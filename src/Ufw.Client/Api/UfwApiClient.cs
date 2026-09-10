@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Ufw.Client.Intent;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
@@ -18,29 +18,15 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleListResponse, cancellationToken);
     }
 
-    public async Task<RuleMutationResponse> AddRuleAsync(
-        FirewallRuleSpecification rule,
-        string privateKey,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMutationResponse> AddRuleAsync(FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default)
     {
         IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
-        AddRuleRequest request = await intentSigningService.CreateAddRuleRequestAsync(
-            context.DeploymentId,
-            rule,
-            privateKey,
-            cancellationToken);
-        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-            s_rulesUri,
-            request,
-            MessageJsonSerializerContext.Default.AddRuleRequest,
-            cancellationToken);
+        AddRuleRequest request = await intentSigningService.CreateAddRuleRequestAsync(context.DeploymentId, rule, privateKey, cancellationToken);
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(s_rulesUri, request, MessageJsonSerializerContext.Default.AddRuleRequest, cancellationToken);
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleMutationResponse, cancellationToken);
     }
 
-    public async Task<RuleMutationResponse> DeleteRuleAsync(
-        ListedFirewallRule rule,
-        string privateKey,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMutationResponse> DeleteRuleAsync(ListedFirewallRule rule, string privateKey, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(rule);
         if (!rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
@@ -49,12 +35,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
         }
 
         IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
-        DeleteRuleRequest request = await intentSigningService.CreateDeleteRuleRequestAsync(
-            context.DeploymentId,
-            rule.RuleId,
-            rule.Rule,
-            privateKey,
-            cancellationToken);
+        DeleteRuleRequest request = await intentSigningService.CreateDeleteRuleRequestAsync(context.DeploymentId, rule.RuleId, rule.Rule, privateKey, cancellationToken);
         using HttpRequestMessage httpRequest = new(HttpMethod.Delete, s_rulesUri)
         {
             Content = JsonContent.Create(request, MessageJsonSerializerContext.Default.DeleteRuleRequest),
@@ -66,9 +47,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
     public async Task<IntentContextResponse> GetIntentContextAsync(CancellationToken cancellationToken = default)
     {
         using HttpResponseMessage response = await httpClient.GetAsync(s_intentContextUri, cancellationToken);
-        return await response.ReadRequiredAsync(
-            MessageJsonSerializerContext.Default.IntentContextResponse,
-            cancellationToken);
+        return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.IntentContextResponse, cancellationToken);
     }
 
     private async Task<IntentContextResponse> GetCompatibleIntentContextAsync(CancellationToken cancellationToken)
@@ -76,9 +55,7 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
         IntentContextResponse context = await GetIntentContextAsync(cancellationToken);
         if (context.ProtocolVersion != Ufw.Shared.Security.Intent.IntentProtocol.VERSION)
         {
-            throw new ApiProtocolException(
-                $"Intent protocol mismatch. Client supports version "
-                + $"{Ufw.Shared.Security.Intent.IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
+            throw new ApiProtocolException($"Intent protocol mismatch. Client supports version " + $"{Ufw.Shared.Security.Intent.IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
         }
 
         return context;

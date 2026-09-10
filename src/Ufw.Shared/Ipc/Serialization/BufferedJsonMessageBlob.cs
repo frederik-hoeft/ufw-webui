@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
+using Ufw.Roslyn.Json;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Protocol;
-using Ufw.Roslyn.Json;
 
 namespace Ufw.Shared.Ipc.Serialization;
 
@@ -64,11 +64,7 @@ internal sealed class BufferedJsonMessageBlob : IMessageBlob
         }
 
         byte[] utf8 = JsonSerializer.SerializeToUtf8Bytes(payload, serializerContext.GetTypeInfo<JsonElement>());
-        return new BufferedJsonMessageBlob(
-            utf8,
-            serializerContext,
-            hasPayload: true,
-            isJsonNull: payload.ValueKind == JsonValueKind.Null);
+        return new BufferedJsonMessageBlob(utf8, serializerContext, hasPayload: true, isJsonNull: payload.ValueKind == JsonValueKind.Null);
     }
 
     public ValueTask<TResult?> ReadAsync<TResult>(CancellationToken cancellationToken)

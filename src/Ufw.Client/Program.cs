@@ -2,11 +2,10 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
-using Ufw.Shared.Firewall.Rendering;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
-using Ufw.Client.Configuration;
 using Ufw.Client.Components.Rules;
+using Ufw.Client.Configuration;
 using Ufw.Client.Errors;
 using Ufw.Client.Intent;
 using Ufw.Client.Localization;
@@ -15,6 +14,7 @@ using Ufw.Client.RuleOrdering;
 using Ufw.Client.Status;
 using Ufw.Client.Storage;
 using Ufw.Client.Theming;
+using Ufw.Shared.Firewall.Rendering;
 
 namespace Ufw.Client;
 
@@ -26,9 +26,7 @@ public static class Program
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
-        Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(
-            builder.Configuration,
-            new Uri(builder.HostEnvironment.BaseAddress, UriKind.Absolute));
+        Uri apiBaseAddress = ClientRuntimeConfiguration.GetApiBaseAddress(builder.Configuration, new Uri(builder.HostEnvironment.BaseAddress, UriKind.Absolute));
 
         builder.Services.AddMudServices();
         builder.Services.AddScoped<ILocalStorage, BrowserLocalStorage>();

@@ -1,12 +1,12 @@
 ﻿using System.Globalization;
-using Ufw.Shared.Firewall;
 using Ufw.Mock.Formatting;
 using Ufw.Mock.Rules;
 using Ufw.Mock.State;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Cli;
 
-internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
+internal sealed class UfwCommandExecutor(UfwGlobalOptions options, UfwStateStore store, UfwRuleParser parser)
 {
     private static readonly HashSet<string> s_reports = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -20,13 +20,10 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
         "added",
     };
 
-    private readonly UfwStateStore _store = new();
-    private readonly UfwRuleParser _parser = new();
-
     public int Enable(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw enable");
-        _store.Update(options.DryRun, state =>
+        store.Update(options.DryRun, state =>
         {
             state.Enabled = true;
             return 0;
@@ -38,7 +35,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
     public int Disable(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw disable");
-        _store.Update(options.DryRun, state =>
+        store.Update(options.DryRun, state =>
         {
             state.Enabled = false;
             return 0;
@@ -50,7 +47,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
     public int Reload(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw reload");
-        return _store.Read(state =>
+        return store.Read(state =>
         {
             Console.WriteLine(state.Enabled ? "Firewall reloaded" : "Firewall not enabled (skipping reload)");
             return 0;
@@ -66,7 +63,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             return 0;
         }
 
-        _store.Update(options.DryRun, state =>
+        store.Update(options.DryRun, state =>
         {
             UfwMockState defaults = UfwMockState.CreateDefault();
             state.SchemaVersion = defaults.SchemaVersion;
@@ -108,7 +105,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             }
             : "incoming";
 
-        _store.Update(options.DryRun, state =>
+        store.Update(options.DryRun, state =>
         {
             switch (direction)
             {
@@ -148,7 +145,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             _ => throw Error($"Invalid log level '{arguments[0]}'."),
         };
 
-        string effectiveLevel = _store.Update(options.DryRun, state =>
+        string effectiveLevel = store.Update(options.DryRun, state =>
         {
             if (level == "on")
             {
@@ -192,7 +189,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             }
         }
 
-        return _store.Read(state =>
+        return store.Read(state =>
         {
             Console.WriteLine(UfwOutputFormatter.FormatStatus(state, numbered, verbose));
             return 0;
@@ -207,7 +204,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
         }
 
         string report = arguments[0].ToUpperInvariant();
-        return _store.Read(state =>
+        return store.Read(state =>
         {
             string output = report switch
             {
@@ -268,9 +265,9 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
 
         FirewallAction action = ParseAction(arguments[0]);
         string[] ruleArguments = [.. arguments.Skip(1)];
-        List<UfwMockRule> removed = _store.Update(options.DryRun, state =>
+        List<UfwMockRule> removed = store.Update(options.DryRun, state =>
         {
-            ParsedRuleRequest request = _parser.Parse(action, ruleArguments, routed, state);
+            ParsedRuleRequest request = parser.Parse(action, ruleArguments, routed, state);
             IReadOnlyList<UfwMockRule> targets = request.Materialize(state.IPv6Enabled);
             List<UfwMockRule> matches = [];
             foreach (UfwMockRule target in targets)
@@ -292,7 +289,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             return matches;
         });
 
-        bool enabled = _store.Read(static state => state.Enabled);
+        bool enabled = store.Read(static state => state.Enabled);
         foreach (UfwMockRule rule in removed)
         {
             Console.WriteLine(FormatMutationMessage(enabled, "deleted", rule.Specification.AddressFamily));
@@ -303,7 +300,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
     public int AppList(IReadOnlyList<string> arguments) => Execute(() =>
     {
         RequireNoArguments(arguments, "ufw app list");
-        return _store.Read(state =>
+        return store.Read(state =>
         {
             Console.WriteLine("Available applications:");
             foreach (UfwApplicationProfile profile in state.ApplicationProfiles.OrderBy(static profile => profile.Name, StringComparer.OrdinalIgnoreCase))
@@ -320,7 +317,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
         {
             throw Error("Usage: ufw app info PROFILE|all");
         }
-        return _store.Read(state =>
+        return store.Read(state =>
         {
             IReadOnlyList<UfwApplicationProfile> profiles;
             if (arguments[0].Equals("all", StringComparison.OrdinalIgnoreCase))
@@ -370,7 +367,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             "SKIP" => "skip",
             _ => throw Error($"Invalid application policy '{arguments[0]}'."),
         };
-        _store.Update(options.DryRun, state =>
+        store.Update(options.DryRun, state =>
         {
             state.DefaultApplicationPolicy = policy;
             return 0;
@@ -390,7 +387,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             throw Error("Cannot specify 'all' with '--add-new'");
         }
 
-        List<string> names = _store.Read(state =>
+        List<string> names = store.Read(state =>
         {
             if (arguments[0].Equals("all", StringComparison.OrdinalIgnoreCase))
             {
@@ -408,16 +405,11 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
         return 0;
     });
 
-    private int MutateRule(
-        FirewallAction action,
-        IReadOnlyList<string> arguments,
-        bool routed,
-        RulePlacement placement,
-        int? insertNumber)
+    private int MutateRule(FirewallAction action, IReadOnlyList<string> arguments, bool routed, RulePlacement placement, int? insertNumber)
     {
-        List<RuleMutationResult> results = _store.Update(options.DryRun, state =>
+        List<RuleMutationResult> results = store.Update(options.DryRun, state =>
         {
-            ParsedRuleRequest request = _parser.Parse(action, arguments, routed, state);
+            ParsedRuleRequest request = parser.Parse(action, arguments, routed, state);
             IReadOnlyList<UfwMockRule> concreteRules = request.Materialize(state.IPv6Enabled);
             bool spansAddressFamilies = concreteRules.Count > 1;
             InsertPlacementContext? insertContext = placement == RulePlacement.Insert
@@ -449,7 +441,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             return mutationResults;
         });
 
-        bool enabled = _store.Read(static state => state.Enabled);
+        bool enabled = store.Read(static state => state.Enabled);
         foreach (RuleMutationResult result in results)
         {
             Console.WriteLine(FormatMutationResult(enabled, result));
@@ -478,12 +470,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             : new InsertPlacementContext(insertNumber.Value, FirewallAddressFamily.IPv6, counterpart, target);
     }
 
-    private static void InsertRule(
-        List<UfwMockRule> rules,
-        UfwMockRule rule,
-        RulePlacement placement,
-        InsertPlacementContext? insertContext,
-        bool spansAddressFamilies)
+    private static void InsertRule(List<UfwMockRule> rules, UfwMockRule rule, RulePlacement placement, InsertPlacementContext? insertContext, bool spansAddressFamilies)
     {
         FirewallAddressFamily family = rule.Specification.AddressFamily;
         int familyStart = family == FirewallAddressFamily.IPv6
@@ -505,11 +492,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
         rules.Insert(index, rule);
     }
 
-    private static int ResolveInsertIndex(
-        List<UfwMockRule> rules,
-        UfwMockRule rule,
-        InsertPlacementContext? context,
-        bool spansAddressFamilies)
+    private static int ResolveInsertIndex(List<UfwMockRule> rules, UfwMockRule rule, InsertPlacementContext? context, bool spansAddressFamilies)
     {
         if (context is null)
         {
@@ -561,7 +544,7 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             return 0;
         }
 
-        UfwMockRule removed = _store.Update(options.DryRun, state =>
+        UfwMockRule removed = store.Update(options.DryRun, state =>
         {
             if (displayNumber > state.Rules.Count)
             {
@@ -571,21 +554,21 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
             state.Rules.RemoveAt(displayNumber - 1);
             return rule;
         });
-        bool enabled = _store.Read(static state => state.Enabled);
+        bool enabled = store.Read(static state => state.Enabled);
         Console.WriteLine(FormatMutationMessage(enabled, "deleted", removed.Specification.AddressFamily));
         return 0;
     }
 
     private void UpdateApplicationProfile(string name, bool addNew)
     {
-        string policy = _store.Read(static state => state.DefaultApplicationPolicy);
+        string policy = store.Read(static state => state.DefaultApplicationPolicy);
         Console.WriteLine("Rules updated for profile '" + name + "'");
         if (!addNew || policy == "skip")
         {
             return;
         }
 
-        bool exists = _store.Read(state => state.Rules.Any(rule =>
+        bool exists = store.Read(state => state.Rules.Any(rule =>
             string.Equals(rule.SourceApplicationName, name, StringComparison.OrdinalIgnoreCase)
             || string.Equals(rule.DestinationApplicationName, name, StringComparison.OrdinalIgnoreCase)));
         if (exists)
@@ -679,9 +662,5 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
 
     private sealed record RuleMutationResult(UfwMockRule Rule, RuleMutationKind Kind);
 
-    private sealed record InsertPlacementContext(
-        int UserPosition,
-        FirewallAddressFamily UserTargetFamily,
-        UfwMockRule? IPv4Target,
-        UfwMockRule? IPv6Target);
+    private sealed record InsertPlacementContext(int UserPosition, FirewallAddressFamily UserTargetFamily, UfwMockRule? IPv4Target, UfwMockRule? IPv6Target);
 }

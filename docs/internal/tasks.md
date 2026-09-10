@@ -46,10 +46,6 @@ The initial design should cover:
 
 Consider whether a visibility/show-in-suggestions flag is useful for parity with network-interface authoring, but do not make hidden entries affect firewall validity: visibility would be a presentation preference only.
 
-## Replace static helpers with DI services
-
-Review reusable static helper classes, especially in shared libraries, and convert stateful, policy-bearing, or extensible behavior to injected services where doing so improves testability and substitution. Keep genuinely pure constants/trivial value helpers static where DI would add ceremony without a useful seam.
-
 ## Frontend follow-ups after visual polish
 
 ### Evaluate address-family-separated rule tables

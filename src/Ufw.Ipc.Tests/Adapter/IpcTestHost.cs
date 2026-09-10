@@ -1,13 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.ExceptionServices;
 using Ufw.Ipc.Client;
-using Ufw.Shared.Ipc.Serialization;
-using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.DependencyInjection;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Ipc.Tests.Adapter.Transport;
+using Ufw.Shared.Ipc.Serialization;
+using Ufw.Shared.Ipc.Transport.Itp;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Network;

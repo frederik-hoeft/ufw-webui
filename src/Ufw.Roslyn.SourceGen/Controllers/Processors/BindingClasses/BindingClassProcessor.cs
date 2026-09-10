@@ -36,11 +36,7 @@ internal sealed class BindingClassProcessor(SourceProductionContext context, Com
             (string HttpMethod, string Route) key = (mapping.HttpMethod, mapping.Route);
             if (seenMappings.Contains(key))
             {
-                Context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.DuplicateEndpoints,
-                    location: null,
-                    mapping.HttpMethod,
-                    mapping.Route));
+                Context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.DuplicateEndpoints, location: null, mapping.HttpMethod, mapping.Route));
             }
             else
             {

@@ -1,4 +1,4 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.RuleOrdering;

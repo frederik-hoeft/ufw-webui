@@ -17,7 +17,10 @@ public abstract class AotJsonSerializerContext : JsonSerializerContext, IJsonTyp
 
     public abstract JsonTypeInfo<T>? GetTypeInfoOrDefault<T>();
 
-    public virtual JsonTypeInfo<T> GetTypeInfo<T>() => GetTypeInfoOrDefault<T>() ?? throw new NotSupportedException($"Type {typeof(T)} was not registered with this {"JsonSerializerContext"}. To register the type, add [{"JsonSerializableAttribute"}(typeof({typeof(T).Name}))] to the definition of {GetType().Name}.");
+    public virtual JsonTypeInfo<T> GetTypeInfo<T>() => GetTypeInfoOrDefault<T>()
+        ?? throw new NotSupportedException(
+            $"Type {typeof(T)} was not registered with this {"JsonSerializerContext"}. "
+            + $"To register the type, add [{"JsonSerializableAttribute"}(typeof({typeof(T).Name}))] to the definition of {GetType().Name}.");
 
     public virtual bool TryGetTypeInfo<T>([NotNullWhen(true)] out JsonTypeInfo<T>? jsonTypeInfo)
     {

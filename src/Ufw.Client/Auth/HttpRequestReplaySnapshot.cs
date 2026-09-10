@@ -1,4 +1,4 @@
-namespace Ufw.Client.Auth;
+﻿namespace Ufw.Client.Auth;
 
 internal sealed class HttpRequestReplaySnapshot
 {
@@ -31,9 +31,7 @@ internal sealed class HttpRequestReplaySnapshot
         _contentHeaders = contentHeaders;
     }
 
-    public static async Task<HttpRequestReplaySnapshot> CaptureAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken)
+    public static async Task<HttpRequestReplaySnapshot> CaptureAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 

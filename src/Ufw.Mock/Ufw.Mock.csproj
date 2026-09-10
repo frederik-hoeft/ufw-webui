@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="ConsoleAppFramework" Version="5.7.13" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup>

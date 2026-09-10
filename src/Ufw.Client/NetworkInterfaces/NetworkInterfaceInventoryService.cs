@@ -18,19 +18,13 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
         return Current;
     }
 
-    public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(
-        Guid interfaceId,
-        string? comment,
-        CancellationToken cancellationToken = default)
+    public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(Guid interfaceId, string? comment, CancellationToken cancellationToken = default)
     {
         Current = Normalize(await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken));
         return Current;
     }
 
-    public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(
-        Guid interfaceId,
-        bool isVisible,
-        CancellationToken cancellationToken = default)
+    public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(Guid interfaceId, bool isVisible, CancellationToken cancellationToken = default)
     {
         Current = Normalize(await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken));
         return Current;

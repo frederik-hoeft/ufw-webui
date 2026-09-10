@@ -2,8 +2,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Roslyn.Json;
+using Ufw.Shared.Ipc.Serialization.Json;
 
 namespace Ufw.Ipc.Tests.Adapter.Serialization;
 

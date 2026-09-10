@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Shared.Security.Certificates;
 using Ufw.Shared.Threading;
-using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Transport.Security.CertificateValidation;
@@ -11,11 +11,7 @@ using Ufw.Systemd.Transport.Security.CertificateValidation;
 namespace Ufw.Systemd.Transport.Security;
 
 internal sealed class ServerTransportSecurityService
-(
-    IRemoteCertificateValidationHandler certificateValidationHandler,
-    IConfiguration configuration,
-    ICertificateLoader certificateLoader
-) : ITransportSecurityService, IDisposable
+(IRemoteCertificateValidationHandler certificateValidationHandler, IConfiguration configuration, ICertificateLoader certificateLoader) : ITransportSecurityService, IDisposable
 {
     private readonly AsyncLock _lock = new();
     private SslServerAuthenticationOptions? _sslOptions;
@@ -52,10 +48,7 @@ internal sealed class ServerTransportSecurityService
 
         PipeOptions pipeOptions = configuration.Settings.Pipe;
         pipeOptions.AssertIsValid();
-        X509Certificate2 certificate = await certificateLoader.LoadCertificateAsync(
-            pipeOptions.ServerCertificatePath!,
-            pipeOptions.ServerCertificateKeyPath!,
-            cancellationToken);
+        X509Certificate2 certificate = await certificateLoader.LoadCertificateAsync(pipeOptions.ServerCertificatePath!, pipeOptions.ServerCertificateKeyPath!, cancellationToken);
 
         sslOptions = new SslServerAuthenticationOptions
         {

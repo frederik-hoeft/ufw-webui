@@ -1,12 +1,13 @@
 ﻿using ConsoleAppFramework;
+using Ufw.Mock.Cli;
 
 namespace Ufw.Mock.Commands;
 
-internal sealed class StatusCommands
+internal sealed class StatusCommands(UfwCommandExecutor executor)
 {
-    public int Status(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Status(arguments);
+    public int Status([Argument] params string[] arguments) =>
+        executor.Status(arguments);
 
-    public int Show(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Show(arguments);
+    public int Show([Argument] params string[] arguments) =>
+        executor.Show(arguments);
 }

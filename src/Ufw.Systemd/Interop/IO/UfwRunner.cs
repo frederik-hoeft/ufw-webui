@@ -25,11 +25,6 @@ internal sealed class UfwRunner(IConfiguration configuration, IChildProcessRunne
         ChildProcessRequest request = new(configuration.Settings.UfwPath, args, s_environment);
         ChildProcessResult result = await processRunner.RunAsync(request, cancellationToken);
         command.SetOutput(result.StandardOutput);
-        return new UfwProcessResult(
-            result.ExitCode,
-            result.StandardOutput,
-            result.StandardError,
-            args,
-            result.CancellationRequested);
+        return new UfwProcessResult(result.ExitCode, result.StandardOutput, result.StandardError, args, result.CancellationRequested);
     }
 }

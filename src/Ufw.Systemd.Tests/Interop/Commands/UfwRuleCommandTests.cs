@@ -1,5 +1,5 @@
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
-using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Commands;
 
 namespace Ufw.Systemd.Tests.Interop.Commands;

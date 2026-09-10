@@ -100,9 +100,7 @@ internal sealed partial class AuthenticationBootstrapService(
 
     private static InvalidOperationException CreateIdentityException(IdentityResult result, string operation, string email)
     {
-        string errors = string.Join(
-            "; ",
-            result.Errors.Select(static error => $"{error.Code}: {error.Description}"));
+        string errors = string.Join("; ", result.Errors.Select(static error => $"{error.Code}: {error.Description}"));
         return new InvalidOperationException($"Could not {operation} bootstrap user '{email}': {errors}");
     }
 

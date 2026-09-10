@@ -1,7 +1,7 @@
 ﻿using System.Collections.Frozen;
+using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Serialization;
-using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Systemd.Api.Endpoints;
 
 namespace Ufw.Ipc.Tests.Adapter.Endpoints;

@@ -19,13 +19,13 @@ public sealed partial class AsyncLock
 
     private sealed class OwnershipFrame(OwnershipContext context, OwnershipFrame? parent, int depth)
     {
+        internal AtomicBoolean ExitRequested;
+
         internal OwnershipContext Context { get; } = context;
 
         internal OwnershipFrame? Parent { get; } = parent;
 
         internal int Depth { get; } = depth;
-
-        internal AtomicBoolean ExitRequested;
     }
 
     private readonly record struct ExecutionResult<TResult>(TResult? Result, bool TaskExecuted)

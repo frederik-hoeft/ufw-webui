@@ -21,7 +21,7 @@ The mock references `Ufw.Shared.Firewall` for the rule concepts already shared w
 
 ## Component model
 
-`Ufw.Mock` is a normal .NET 10 console application built on ConsoleAppFramework. The entrypoint creates one `ConsoleAppBuilder`, configures the UFW global options, and registers command-category classes with chained `Add<T>()` calls. Command categories only translate CAF dispatch into a shared mock runtime; UFW's rule grammar is parsed by a dedicated parser rather than encoded as a large set of CAF method parameters.
+`Ufw.Mock` is a normal .NET 10 console application built on ConsoleAppFramework. The entrypoint creates one `ConsoleAppBuilder`, configures the UFW global options, registers invocation-scoped runtime dependencies through CAF's dependency-injection integration, and registers command-category classes with chained `Add<T>()` calls. Command categories only translate CAF dispatch into `UfwCommandExecutor`; the executor receives the parsed global options, state store, and rule parser through constructor injection. UFW's rule grammar remains in the dedicated parser rather than being encoded as a large set of CAF method parameters.
 
 The command categories are:
 

@@ -1,0 +1,11 @@
+﻿namespace Ufw.Client.Components;
+
+public sealed partial class RedirectToLogin
+{
+    protected override void OnInitialized()
+    {
+        string relativePath = Navigation.ToBaseRelativePath(Navigation.Uri);
+        string returnUrl = string.IsNullOrWhiteSpace(relativePath) ? "/" : $"/{relativePath}";
+        Navigation.NavigateTo($"login?returnUrl={Uri.EscapeDataString(returnUrl)}", replace: true);
+    }
+}

@@ -1,11 +1,11 @@
 ﻿using System.Buffers.Binary;
+using Ufw.Ipc.Tests.Adapter;
+using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Ipc.Tests.Adapter;
-using Ufw.Ipc.Tests.Adapter.Endpoints;
 
 namespace Ufw.Ipc.Tests.Protocol.Integration;
 
@@ -26,12 +26,9 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task FragmentedApplicationFrame_IsAccepted() => RunAsync(async (context, cancellationToken) =>
+    public Task FragmentedApplicationFrame_IsAcceptedAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
-            "/api/v1/raw-ok",
-            RequestMethod.Get.ToString(),
-            cancellationToken);
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync("/api/v1/raw-ok", RequestMethod.Get.ToString(), cancellationToken);
         byte[] frame = BuildFrame(ItpPacketType.ApplicationData, context.MessageSerializer.Encode(request));
 
         await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -51,7 +48,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task WrongItpVersionPreamble_DoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task WrongItpVersionPreamble_DoesNotKillWorkerAsync() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] preamble = [(byte)'I', (byte)'T', (byte)'P', 9];
 
@@ -66,12 +63,9 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task UnsupportedPayloadFormat_DoesNotReachApplicationAndDoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task UnsupportedPayloadFormat_DoesNotReachApplicationAndDoesNotKillWorkerAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        byte[] frame = BuildFrame(
-            ItpPacketType.ApplicationData,
-            "not-json-and-must-not-be-decoded"u8,
-            payloadFormat: (ItpPayloadFormat)0x7F);
+        byte[] frame = BuildFrame(ItpPacketType.ApplicationData, "not-json-and-must-not-be-decoded"u8, payloadFormat: (ItpPayloadFormat)0x7F);
 
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
         {
@@ -85,7 +79,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task UnknownPacketType_DoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task UnknownPacketType_DoesNotKillWorkerAsync() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] frame = BuildFrame((ItpPacketType)0x3C, "???"u8.ToArray());
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
@@ -100,7 +94,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task PeerTransportError_DoesNotTriggerTransportErrorResponseLoop() => RunAsync(async (context, cancellationToken) =>
+    public Task PeerTransportError_DoesNotTriggerTransportErrorResponseLoopAsync() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] peerErrorPayload =
         [
@@ -122,7 +116,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task MalformedPeerTransportError_DoesNotTriggerTransportErrorResponseLoop() => RunAsync(async (context, cancellationToken) =>
+    public Task MalformedPeerTransportError_DoesNotTriggerTransportErrorResponseLoopAsync() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] frame = BuildFrame(ItpPacketType.TransportError, [0x00, 0x03]);
 
@@ -138,7 +132,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task InvalidApplicationJson_ReturnsBadRequestAndKeepsWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task InvalidApplicationJson_ReturnsBadRequestAndKeepsWorkerAsync() => RunAsync(async (context, cancellationToken) =>
     {
         byte[] frame = BuildFrame(ItpPacketType.ApplicationData, "{}"u8.ToArray());
         await using IResponseMessage response = await context.ExchangeBytesAsync(frame, cancellationToken);
@@ -150,20 +144,16 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task ResponseDocumentSentAsRequest_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
+    public Task ResponseDocumentSentAsRequest_ReturnsBadRequestAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IResponseMessage responseDocument = await context.MessageSerializer.SerializeResponseAsync(
-            new OkResponse(),
-            cancellationToken);
-        await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(
-            context.MessageSerializer.Encode(responseDocument),
-            cancellationToken);
+        await using IResponseMessage responseDocument = await context.MessageSerializer.SerializeResponseAsync(new OkResponse(), cancellationToken);
+        await using IResponseMessage response = await context.ExchangeApplicationBytesAsync(context.MessageSerializer.Encode(responseDocument), cancellationToken);
         Assert.AreEqual(400, response.StatusCode);
         Assert.AreEqual(ApplicationPayloadTypes.ERROR, response.PayloadType);
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task PeerCloseWithoutFrame_DoesNotKillWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task PeerCloseWithoutFrame_DoesNotKillWorkerAsync() => RunAsync(async (context, cancellationToken) =>
     {
         await using Stream stream = await context.ConnectRawAsync(cancellationToken);
         await stream.DisposeAsync();
@@ -172,11 +162,7 @@ public sealed class ItpIntegrationTests : IpcProtocolTestBase
         Assert.IsNotNull(ok);
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
-    private static byte[] BuildFrame(
-        ItpPacketType packetType,
-        ReadOnlySpan<byte> payload,
-        byte version = ItpConstants.VERSION,
-        ItpPayloadFormat? payloadFormat = null)
+    private static byte[] BuildFrame(ItpPacketType packetType, ReadOnlySpan<byte> payload, byte version = ItpConstants.VERSION, ItpPayloadFormat? payloadFormat = null)
     {
         ItpPayloadFormat effectivePayloadFormat = payloadFormat ?? (packetType == ItpPacketType.ApplicationData
             ? ItpPayloadFormat.IpcJson

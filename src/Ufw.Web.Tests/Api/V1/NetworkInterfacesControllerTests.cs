@@ -50,9 +50,7 @@ public sealed class NetworkInterfacesControllerTests
     {
         Mock<INetworkInterfaceInventoryService> inventory = new();
         Guid id = Guid.CreateVersion7();
-        NetworkInterfaceInventoryResponse expected = new(
-            [new NetworkInterfaceInventoryItem(id, "docker0", null, IsVisible: false)],
-            new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
+        NetworkInterfaceInventoryResponse expected = new([new NetworkInterfaceInventoryItem(id, "docker0", null, IsVisible: false)], new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
         inventory
             .Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);

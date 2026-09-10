@@ -1,6 +1,4 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Ufw.Web.Api.V1.Models.Auth;
@@ -13,11 +11,7 @@ using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-[ApiController]
-[ApiVersion(1.0)]
-[Route("api/v{version:apiVersion}/auth")]
-[ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
-public sealed class AuthController
+public sealed partial class AuthController
 (
     UserManager<IdentityUser> userManager,
     SignInManager<IdentityUser> signInManager,
@@ -30,11 +24,7 @@ public sealed class AuthController
 {
     private readonly RefreshTokenOptions _refreshTokenOptions = refreshTokenOptions.Value;
 
-    [AllowAnonymous]
-    [HttpPost("login")]
-    [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public Task<IActionResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken) =>
+    public partial Task<IActionResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken) =>
         Transaction.Scoped.RunAsync<IActionResult>(async (_, transaction, ct) =>
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -66,11 +56,7 @@ public sealed class AuthController
             return transaction.Commit(Ok(new AuthTokenResponse(accessToken.Value, accessToken.ExpiresAt)));
         }, cancellationToken);
 
-    [AllowAnonymous]
-    [HttpPost("refresh")]
-    [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public Task<IActionResult> RefreshAsync(CancellationToken cancellationToken)
+    public partial Task<IActionResult> RefreshAsync(CancellationToken cancellationToken)
     {
         if (!Request.Cookies.TryGetValue(_refreshTokenOptions.CookieName, out string? refreshToken)
             || string.IsNullOrWhiteSpace(refreshToken))
@@ -104,10 +90,7 @@ public sealed class AuthController
         }, cancellationToken);
     }
 
-    [AllowAnonymous]
-    [HttpPost("logout")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
+    public partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
     {
         if (!Request.Cookies.TryGetValue(_refreshTokenOptions.CookieName, out string? refreshToken)
             || string.IsNullOrWhiteSpace(refreshToken))

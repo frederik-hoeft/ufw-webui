@@ -1,11 +1,11 @@
 ﻿using System.Text.Json;
+using Ufw.Roslyn.Json;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Roslyn.Json;
 using Ufw.Systemd.Api;
 
 namespace Ufw.Ipc.Tests.Protocol.Application;

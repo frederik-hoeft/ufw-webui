@@ -1,8 +1,8 @@
 ﻿using Ufw.Ipc.Client;
+using Ufw.Ipc.Tests.Adapter;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Serialization;
-using Ufw.Ipc.Tests.Adapter;
 
 namespace Ufw.Ipc.Tests.Smoke;
 
@@ -10,7 +10,7 @@ namespace Ufw.Ipc.Tests.Smoke;
 public sealed class RoutingSmokeTests : IpcProtocolTestBase
 {
     [TestMethod]
-    public Task TestUnknownRoute_ReturnsNotFound() => RunAsync(
+    public Task TestUnknownRoute_ReturnsNotFoundAsync() => RunAsync(
         configureEndpoints: static endpoints => endpoints
             .MapGet("/api/v1/known", static _ => ValueTask.FromResult(new OkResponse())),
         actAsync: async (context, cancellationToken) =>
@@ -23,20 +23,17 @@ public sealed class RoutingSmokeTests : IpcProtocolTestBase
         }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestPerTestEndpoint_OverridesClassMapIsolation() => RunAsync(
+    public Task TestPerTestEndpoint_OverridesClassMapIsolationAsync() => RunAsync(
         configureEndpoints: static endpoints => endpoints
             .MapGet("/api/v1/ephemeral", static _ => ValueTask.FromResult(new OkResponse())),
         actAsync: async (context, cancellationToken) =>
         {
-            OkResponse response = await context.SendAsync<OkResponse>(
-                RequestMethod.Get,
-                "/api/v1/ephemeral",
-                cancellationToken);
+            OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/ephemeral", cancellationToken);
             Assert.IsNotNull(response);
         }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestPipelineOnly_MatchUnsupportedMethod() => RunAsync(async (context, cancellationToken) =>
+    public Task TestPipelineOnly_MatchUnsupportedMethodAsync() => RunAsync(async (context, cancellationToken) =>
     {
         await using IRequestMessage request = await context.MessageSerializer
             .SerializeRequestAsync(route: "/api/v1/anything", method: "PATCH", cancellationToken);

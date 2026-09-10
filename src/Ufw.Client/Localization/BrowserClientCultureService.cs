@@ -1,7 +1,7 @@
-using System.Globalization;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using System.Globalization;
 using Ufw.Client.Storage;
 
 namespace Ufw.Client.Localization;

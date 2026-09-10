@@ -1,10 +1,10 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Ufw.Ipc.Tests.Adapter.Serialization;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Ipc.Tests.Adapter.Serialization;
 
 namespace Ufw.Ipc.Tests.Protocol.Application;
 
@@ -18,10 +18,7 @@ public sealed class ApplicationCodecTests
     public async Task TestEncodeDecode_GetRequest_RoundTripsAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        await using IRequestMessage original = await serializer.SerializeRequestAsync(
-            "/api/v1/ping",
-            "GET",
-            CancellationToken.None);
+        await using IRequestMessage original = await serializer.SerializeRequestAsync("/api/v1/ping", "GET", CancellationToken.None);
 
         IRequestMessage decoded = RequireRequest(serializer.Decode(serializer.Encode(original)));
         Assert.AreEqual(ApplicationMessageKind.Request, decoded.Kind);
@@ -34,10 +31,7 @@ public sealed class ApplicationCodecTests
     public async Task TestEncodeDecode_ValidationError_KeepsDiscriminatorAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        ModelValidationErrorResponse payload = new(
-        [
-            new ModelValidationError("port", "out of range"),
-        ]);
+        ModelValidationErrorResponse payload = new([new ModelValidationError("port", "out of range"),]);
         await using IResponseMessage original = await serializer.SerializeResponseAsync(payload, CancellationToken.None);
 
         IResponseMessage decoded = RequireResponse(serializer.Decode(serializer.Encode(original)));
@@ -203,11 +197,7 @@ public sealed class ApplicationCodecTests
     public async Task TestEncodeDecode_ExplicitJsonNull_IsPresentDataPayloadAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        await using IRequestMessage original = await serializer.SerializeRequestAsync<object?>(
-            "/api/v1/null",
-            "POST",
-            payload: null,
-            CancellationToken.None);
+        await using IRequestMessage original = await serializer.SerializeRequestAsync<object?>("/api/v1/null", "POST", payload: null, CancellationToken.None);
 
         Assert.AreEqual(ApplicationPayloadTypes.DATA, original.PayloadType);
         Assert.IsTrue(original.Payload.HasPayload);
@@ -259,10 +249,7 @@ public sealed class ApplicationCodecTests
     public async Task TestPayloadRead_Absent_ThrowsInsteadOfReturningDefaultValueAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        await using IRequestMessage request = await serializer.SerializeRequestAsync(
-            "/api/v1/empty",
-            "GET",
-            CancellationToken.None);
+        await using IRequestMessage request = await serializer.SerializeRequestAsync("/api/v1/empty", "GET", CancellationToken.None);
 
         Assert.IsFalse(request.Payload.HasPayload);
         ApplicationProtocolException exception = await Assert.ThrowsExactlyAsync<ApplicationProtocolException>(async () =>

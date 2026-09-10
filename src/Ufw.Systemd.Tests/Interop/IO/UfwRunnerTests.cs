@@ -20,11 +20,7 @@ public sealed class UfwRunnerTests
         Mock<IChildProcessRunner> processRunner = new();
         processRunner
             .Setup(static runner => runner.RunAsync(It.IsAny<ChildProcessRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ChildProcessResult(
-                0,
-                UfwStatusFixtures.EMPTY_ACTIVE,
-                "diagnostic stderr\n",
-                CancellationRequested: false));
+            .ReturnsAsync(new ChildProcessResult(0, UfwStatusFixtures.EMPTY_ACTIVE, "diagnostic stderr\n", CancellationRequested: false));
         UfwRunner runner = new(configuration, processRunner.Object);
         UfwListCommand command = new();
 

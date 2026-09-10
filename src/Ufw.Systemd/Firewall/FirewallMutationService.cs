@@ -1,7 +1,7 @@
 ﻿using System.Net.NetworkInformation;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model;
-using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -235,16 +235,12 @@ internal sealed class FirewallMutationService
         List<ModelValidationError> errors = [];
         if (!string.IsNullOrWhiteSpace(rule.SourceInterface) && !available.Contains(rule.SourceInterface))
         {
-            errors.Add(new ModelValidationError(
-                nameof(FirewallRuleSpecification.SourceInterface),
-                $"Interface '{rule.SourceInterface}' is not present on this host."));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.SourceInterface), $"Interface '{rule.SourceInterface}' is not present on this host."));
         }
 
         if (!string.IsNullOrWhiteSpace(rule.DestinationInterface) && !available.Contains(rule.DestinationInterface))
         {
-            errors.Add(new ModelValidationError(
-                nameof(FirewallRuleSpecification.DestinationInterface),
-                $"Interface '{rule.DestinationInterface}' is not present on this host."));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.DestinationInterface), $"Interface '{rule.DestinationInterface}' is not present on this host."));
         }
 
         return errors.Count == 0 ? null : new ModelValidationErrorResponse([.. errors]);

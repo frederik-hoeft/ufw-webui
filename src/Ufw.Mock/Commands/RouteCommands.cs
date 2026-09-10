@@ -1,28 +1,29 @@
 ﻿using ConsoleAppFramework;
+using Ufw.Mock.Cli;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Commands;
 
-internal sealed class RouteCommands
+internal sealed class RouteCommands(UfwCommandExecutor executor)
 {
-    public int Allow(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Add(FirewallAction.Allow, arguments, routed: true);
+    public int Allow([Argument] params string[] arguments) =>
+        executor.Add(FirewallAction.Allow, arguments, routed: true);
 
-    public int Deny(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Add(FirewallAction.Deny, arguments, routed: true);
+    public int Deny([Argument] params string[] arguments) =>
+        executor.Add(FirewallAction.Deny, arguments, routed: true);
 
-    public int Reject(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Add(FirewallAction.Reject, arguments, routed: true);
+    public int Reject([Argument] params string[] arguments) =>
+        executor.Add(FirewallAction.Reject, arguments, routed: true);
 
-    public int Limit(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Add(FirewallAction.Limit, arguments, routed: true);
+    public int Limit([Argument] params string[] arguments) =>
+        executor.Add(FirewallAction.Limit, arguments, routed: true);
 
-    public int Delete(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Delete(arguments, routed: true);
+    public int Delete([Argument] params string[] arguments) =>
+        executor.Delete(arguments, routed: true);
 
-    public int Insert(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Insert(arguments, routed: true);
+    public int Insert([Argument] params string[] arguments) =>
+        executor.Insert(arguments, routed: true);
 
-    public int Prepend(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).Prepend(arguments, routed: true);
+    public int Prepend([Argument] params string[] arguments) =>
+        executor.Prepend(arguments, routed: true);
 }

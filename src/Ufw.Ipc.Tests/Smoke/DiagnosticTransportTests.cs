@@ -1,9 +1,9 @@
-﻿using Ufw.Shared.Ipc.Model.Responses;
+﻿using Ufw.Ipc.Tests.Adapter.Serialization;
+using Ufw.Ipc.Tests.Adapter.Transport;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Ipc.Tests.Adapter.Serialization;
-using Ufw.Ipc.Tests.Adapter.Transport;
 
 namespace Ufw.Ipc.Tests.Smoke;
 
@@ -25,10 +25,7 @@ public sealed class DiagnosticTransportTests
             HybridMessageJsonSerializerContext context = HybridMessageJsonSerializerContext.CreateDefault();
             JsonMessageSerializer serializer = new(context);
 
-            await using IRequestMessage outbound = await serializer.SerializeRequestAsync(
-                route: "/api/v1/ping",
-                method: "GET",
-                CancellationToken.None);
+            await using IRequestMessage outbound = await serializer.SerializeRequestAsync(route: "/api/v1/ping", method: "GET", CancellationToken.None);
 
             Task serverTask = Task.Run(async () =>
             {
@@ -39,9 +36,7 @@ public sealed class DiagnosticTransportTests
                 IRequestMessage request = (IRequestMessage)decodedRequest;
                 Assert.AreEqual("GET", request.Method);
                 Assert.AreEqual("/api/v1/ping", request.Route);
-                await using IResponseMessage response = await serializer.SerializeResponseAsync(
-                    new DiagnosticResponse(true),
-                    CancellationToken.None);
+                await using IResponseMessage response = await serializer.SerializeResponseAsync(new DiagnosticResponse(true), CancellationToken.None);
                 await serverItp.WriteApplicationDataAsync(serializer.Encode(response), CancellationToken.None);
             }, TestContext.CancellationToken);
 

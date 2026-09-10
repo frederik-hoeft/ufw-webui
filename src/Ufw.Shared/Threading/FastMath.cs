@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace Ufw.Shared.Threading;
 
 /// <summary>
-/// Provides performance-oriented implementations of common math functions that are generally faster 
+/// Provides performance-oriented implementations of common math functions that are generally faster
 /// than the BCL implementations in the <see cref="Math"/> API, but some additional preconditions may apply.
 /// </summary>
 [DebuggerStepThrough]

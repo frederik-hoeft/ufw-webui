@@ -61,11 +61,18 @@ internal sealed class MappingClassEmitter(SourceProductionContext context)
         {
             sb.AppendLine(
                 $$"""
-                        {{result.FactoryFullName}}.Map{{endpoint.GenericParams}}("{{endpoint.HttpMethod}}", "{{endpoint.Route}}", priority: {{endpoint.Priority}}, static async (serviceProvider, initializeAsync{{endpoint.RequestParam}}, cancellationToken) =>
-                        {
-                            {{endpoint.ControllerTypeFullName}} controller = await {{ACTIVATOR_FULL_NAME}}.CreateControllerAsync<{{endpoint.ControllerTypeFullName}}>(serviceProvider, initializeAsync, cancellationToken);
-                            return await controller.{{endpoint.MethodName}}({{endpoint.MethodArgs}}cancellationToken);
-                        }),
+                        {{result.FactoryFullName}}.Map{{endpoint.GenericParams}}(
+                            "{{endpoint.HttpMethod}}",
+                            "{{endpoint.Route}}",
+                            priority: {{endpoint.Priority}},
+                            static async (serviceProvider, initializeAsync{{endpoint.RequestParam}}, cancellationToken) =>
+                            {
+                                {{endpoint.ControllerTypeFullName}} controller = await {{ACTIVATOR_FULL_NAME}}.CreateControllerAsync<{{endpoint.ControllerTypeFullName}}>(
+                                    serviceProvider,
+                                    initializeAsync,
+                                    cancellationToken);
+                                return await controller.{{endpoint.MethodName}}({{endpoint.MethodArgs}}cancellationToken);
+                            }),
                 """);
         }
 
@@ -73,7 +80,8 @@ internal sealed class MappingClassEmitter(SourceProductionContext context)
                 ];
 
                 [global::{{result.CompilerGeneratedFullName}}]
-                protected override {{API_ENDPOINT_MAPPING_FULL_NAME}}<{{result.RequestEnvelopeFullName}}, {{result.ResponseEnvelopeFullName}}>[] {{result.GetMappingsMethodName}}() => {{result.MappingsFieldName}};
+                protected override {{API_ENDPOINT_MAPPING_FULL_NAME}}<{{result.RequestEnvelopeFullName}}, {{result.ResponseEnvelopeFullName}}>[]
+                    {{result.GetMappingsMethodName}}() => {{result.MappingsFieldName}};
             }
             """);
 

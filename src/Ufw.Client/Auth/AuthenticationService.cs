@@ -1,4 +1,4 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 
 namespace Ufw.Client.Auth;
 
@@ -20,9 +20,7 @@ internal sealed class AuthenticationService(
         await operationCoordinator.RunExclusiveAsync(
             async operationCancellationToken =>
             {
-                AuthTokenResponse token = await authApiClient.LoginAsync(
-                    new LoginRequest(email, password),
-                    operationCancellationToken);
+                AuthTokenResponse token = await authApiClient.LoginAsync(new LoginRequest(email, password), operationCancellationToken);
                 session.SetToken(token.AccessToken, token.ExpiresAt);
             },
             cancellationToken);
@@ -50,9 +48,7 @@ internal sealed class AuthenticationService(
         return await RefreshAsync(rejectedAccessToken: null, cancellationToken);
     }
 
-    public Task<string?> RefreshAfterUnauthorizedAsync(
-        string rejectedAccessToken,
-        CancellationToken cancellationToken = default)
+    public Task<string?> RefreshAfterUnauthorizedAsync(string rejectedAccessToken, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rejectedAccessToken);
         return RefreshAsync(rejectedAccessToken, cancellationToken);
@@ -97,9 +93,7 @@ internal sealed class AuthenticationService(
             cancellationToken);
     }
 
-    private bool IsFresh(
-        (string AccessToken, DateTimeOffset ExpiresAt) token,
-        TimeSpan requiredRemainingLifetime)
+    private bool IsFresh((string AccessToken, DateTimeOffset ExpiresAt) token, TimeSpan requiredRemainingLifetime)
     {
         return token.ExpiresAt > timeProvider.GetUtcNow().Add(requiredRemainingLifetime);
     }

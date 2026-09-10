@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Ufw.Roslyn.Controllers;
+using Ufw.Roslyn.Json;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
-using Ufw.Roslyn.Controllers;
-using Ufw.Roslyn.Json;
 
 namespace Ufw.Shared.Ipc.Serialization.Json;
 
@@ -18,12 +18,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     public ValueTask<IRequestMessage> SerializeRequestAsync(string route, string method, CancellationToken cancellationToken)
     {
         ValidateRequestMetadata(route, method, payload: null);
-        IRequestMessage message = new RequestMessage(
-            ApplicationProtocolVersion.CURRENT,
-            method,
-            route,
-            ApplicationPayloadTypes.EMPTY,
-            BufferedJsonMessageBlob.Empty(context));
+        IRequestMessage message = new RequestMessage(ApplicationProtocolVersion.CURRENT, method, route, ApplicationPayloadTypes.EMPTY, BufferedJsonMessageBlob.Empty(context));
         return ValueTask.FromResult(message);
     }
 
@@ -55,11 +50,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         }
 
         BufferedJsonMessageBlob payloadBlob = BufferedJsonMessageBlob.CreateFrom(payload, payload.GetType(), context);
-        IResponseMessage message = new ResponseMessage(
-            ApplicationProtocolVersion.CURRENT,
-            (int)responsePayload.StatusCode,
-            ResolveResponsePayloadType(responsePayload),
-            payloadBlob);
+        IResponseMessage message = new ResponseMessage(ApplicationProtocolVersion.CURRENT, (int)responsePayload.StatusCode, ResolveResponsePayloadType(responsePayload), payloadBlob);
         return ValueTask.FromResult(message);
     }
 
@@ -74,9 +65,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
     {
         if (buffer.IsEmpty)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.EmptyDocument,
-                "Application payload is empty.");
+            throw new ApplicationProtocolException(ApplicationProtocolError.EmptyDocument, "Application payload is empty.");
         }
 
         ApplicationEnvelope? envelope;
@@ -86,17 +75,12 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         }
         catch (JsonException ex)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.InvalidJson,
-                "Application payload is not valid JSON.",
-                ex);
+            throw new ApplicationProtocolException(ApplicationProtocolError.InvalidJson, "Application payload is not valid JSON.", ex);
         }
 
         if (envelope is null)
         {
-            throw new ApplicationProtocolException(
-                ApplicationProtocolError.EmptyDocument,
-                "Application payload deserialized to null.");
+            throw new ApplicationProtocolException(ApplicationProtocolError.EmptyDocument, "Application payload deserialized to null.");
         }
 
         return FromEnvelope(envelope);
@@ -206,12 +190,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
                 $"Request documents cannot use response payload type '{envelope.PayloadType}'.");
         }
 
-        return new RequestMessage(
-            envelope.ProtocolVersion,
-            envelope.Method,
-            envelope.Route,
-            envelope.PayloadType,
-            CreatePayloadBlob(envelope, hasPayload));
+        return new RequestMessage(envelope.ProtocolVersion, envelope.Method, envelope.Route, envelope.PayloadType, CreatePayloadBlob(envelope, hasPayload));
     }
 
     [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
@@ -243,11 +222,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
 
         ValidateWellKnownResponseRepresentation(envelope);
 
-        return new ResponseMessage(
-            envelope.ProtocolVersion,
-            status,
-            envelope.PayloadType,
-            CreatePayloadBlob(envelope, hasPayload));
+        return new ResponseMessage(envelope.ProtocolVersion, status, envelope.PayloadType, CreatePayloadBlob(envelope, hasPayload));
     }
 
     private static void ValidateWellKnownResponseRepresentation(ApplicationEnvelope envelope)

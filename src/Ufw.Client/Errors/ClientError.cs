@@ -1,4 +1,4 @@
-namespace Ufw.Client.Errors;
+﻿namespace Ufw.Client.Errors;
 
 public enum ClientErrorKind
 {
@@ -13,8 +13,4 @@ public enum ClientErrorKind
     Unexpected,
 }
 
-public sealed record ClientError(
-    ClientErrorKind Kind,
-    string Message,
-    bool Retryable,
-    string? DiagnosticReference = null);
+public sealed record ClientError(ClientErrorKind Kind, string Message, bool Retryable, string? DiagnosticReference = null);

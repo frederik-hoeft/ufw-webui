@@ -1,4 +1,4 @@
-using Ufw.Client.Errors;
+﻿using Ufw.Client.Errors;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -39,12 +39,7 @@ internal sealed record RuleSnapshot(bool FirewallActive, IReadOnlyList<ListedFir
 
 internal sealed record RulesPageState
 {
-    private RulesPageState(
-        RulesPageStatus status,
-        RuleSnapshot? snapshot,
-        ClientError? error,
-        RuleRefreshReason? refreshReason,
-        RuleSnapshotStaleReason? staleReason)
+    private RulesPageState(RulesPageStatus status, RuleSnapshot? snapshot, ClientError? error, RuleRefreshReason? refreshReason, RuleSnapshotStaleReason? staleReason)
     {
         Status = status;
         Snapshot = snapshot;
@@ -69,31 +64,16 @@ internal sealed record RulesPageState
 
     public bool IsStale => Status == RulesPageStatus.Stale;
 
-    public static RulesPageState Initial { get; } = new(
-        RulesPageStatus.NotLoaded,
-        snapshot: null,
-        error: null,
-        refreshReason: null,
-        staleReason: null);
+    public static RulesPageState Initial { get; } = new(RulesPageStatus.NotLoaded, snapshot: null, error: null, refreshReason: null, staleReason: null);
 
     public RulesPageState BeginRefresh(RuleRefreshReason reason)
     {
-        return new(
-            Snapshot is null ? RulesPageStatus.Loading : RulesPageStatus.Refreshing,
-            Snapshot,
-            error: null,
-            refreshReason: reason,
-            staleReason: StaleReason);
+        return new(Snapshot is null ? RulesPageStatus.Loading : RulesPageStatus.Refreshing, Snapshot, error: null, refreshReason: reason, staleReason: StaleReason);
     }
 
     public static RulesPageState CompleteRefresh(RuleListResponse response)
     {
-        return new(
-            RulesPageStatus.Current,
-            RuleSnapshot.FromResponse(response),
-            error: null,
-            refreshReason: null,
-            staleReason: null);
+        return new(RulesPageStatus.Current, RuleSnapshot.FromResponse(response), error: null, refreshReason: null, staleReason: null);
     }
 
     public RulesPageState FailRefresh(ClientError error)
@@ -101,23 +81,13 @@ internal sealed record RulesPageState
         ArgumentNullException.ThrowIfNull(error);
         if (Snapshot is null)
         {
-            return new(
-                RulesPageStatus.Failed,
-                snapshot: null,
-                error,
-                refreshReason: null,
-                staleReason: null);
+            return new(RulesPageStatus.Failed, snapshot: null, error, refreshReason: null, staleReason: null);
         }
 
         RuleSnapshotStaleReason staleReason = RefreshReason == RuleRefreshReason.AfterMutation
             ? RuleSnapshotStaleReason.MutationCommitted
             : StaleReason ?? RuleSnapshotStaleReason.RefreshFailed;
-        return new(
-            RulesPageStatus.Stale,
-            Snapshot,
-            error,
-            refreshReason: null,
-            staleReason);
+        return new(RulesPageStatus.Stale, Snapshot, error, refreshReason: null, staleReason);
     }
 
     public RulesPageState AfterMutationFailure(ClientError error)
@@ -140,11 +110,6 @@ internal sealed record RulesPageState
 
         return staleReason is null
             ? this
-            : new RulesPageState(
-                RulesPageStatus.Stale,
-                Snapshot,
-                error,
-                refreshReason: null,
-                staleReason: staleReason.Value);
+            : new RulesPageState(RulesPageStatus.Stale, Snapshot, error, refreshReason: null, staleReason: staleReason.Value);
     }
 }

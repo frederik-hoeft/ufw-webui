@@ -1,6 +1,6 @@
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Components.Authorization;
 using Ufw.Client.Api;
 
 namespace Ufw.Client.Auth;

@@ -1,10 +1,10 @@
 ﻿using System.Buffers.Binary;
 using System.Diagnostics;
+using Ufw.Ipc.Tests.Adapter;
+using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Ipc.Tests.Adapter;
-using Ufw.Ipc.Tests.Adapter.Endpoints;
 
 namespace Ufw.Ipc.Tests.Protocol.Integration;
 
@@ -32,7 +32,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task TestSilentPeer_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
+    public Task TestSilentPeer_IsClosedByIoTimeout_AndWorkerRecoversAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -44,7 +44,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
         TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestPartialPreamble_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
+    public Task TestPartialPreamble_IsClosedByIoTimeout_AndWorkerRecoversAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -58,7 +58,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
         TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestPartialPayload_IsClosedByIoTimeout_AndWorkerRecovers() => RunAsync(
+    public Task TestPartialPayload_IsClosedByIoTimeout_AndWorkerRecoversAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -73,7 +73,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
         TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(100), requestTimeout: TimeSpan.FromSeconds(2)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestSlowTrickle_ExceedsOverallRequestDeadline() => RunAsync(
+    public Task TestSlowTrickle_ExceedsOverallRequestDeadlineAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);
@@ -108,7 +108,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
         TimeoutConfiguration(ioTimeout: TimeSpan.FromMilliseconds(400), requestTimeout: TimeSpan.FromMilliseconds(700)), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestCallerCancellation_RemainsOperationCanceledException() => RunAsync(
+    public Task TestCallerCancellation_RemainsOperationCanceledExceptionAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             using CancellationTokenSource callerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -120,7 +120,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
         TimeoutConfiguration(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan), TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestClientRequestDeadline_SurfacesTimeoutException() => RunAsync(
+    public Task TestClientRequestDeadline_SurfacesTimeoutExceptionAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await Assert.ThrowsExactlyAsync<TimeoutException>(async () =>
@@ -158,7 +158,7 @@ public sealed class TimeoutIntegrationTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task TestInfiniteTimeouts_DoNotCreateInternalTimeout() => RunAsync(
+    public Task TestInfiniteTimeouts_DoNotCreateInternalTimeoutAsync() => RunAsync(
         static async (context, cancellationToken) =>
         {
             await using Stream stream = await context.ConnectRawAsync(cancellationToken);

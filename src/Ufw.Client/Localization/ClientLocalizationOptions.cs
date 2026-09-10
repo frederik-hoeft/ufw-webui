@@ -1,5 +1,5 @@
+﻿using Microsoft.Extensions.Configuration;
 using System.Globalization;
-using Microsoft.Extensions.Configuration;
 
 namespace Ufw.Client.Localization;
 
@@ -7,10 +7,7 @@ internal sealed class ClientLocalizationOptions
 {
     private const string SECTION_NAME = "Localization";
 
-    private ClientLocalizationOptions(
-        CultureInfo defaultCulture,
-        IReadOnlyList<ClientCultureOption> supportedCultures,
-        string storageKey)
+    private ClientLocalizationOptions(CultureInfo defaultCulture, IReadOnlyList<ClientCultureOption> supportedCultures, string storageKey)
     {
         DefaultCulture = defaultCulture;
         SupportedCultures = supportedCultures;

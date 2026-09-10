@@ -8,6 +8,7 @@ indent_style = space
 trim_trailing_whitespace = true
 end_of_line = lf
 insert_final_newline = true
+max_line_length = 200
 
 #### Core EditorConfig Options ####
 
@@ -53,7 +54,7 @@ csharp_style_conditional_delegate_call = true:suggestion
 
 # Modifier preferences
 csharp_prefer_static_local_function = true:suggestion
-csharp_preferred_modifier_order = public,private,internal,protected,file,static,extern,const,required,virtual,sealed,new,async,abstract,override,readonly,partial,unsafe,volatile:warning
+csharp_preferred_modifier_order = public,private,internal,protected,file,static,extern,const,required,sealed,virtual,new,async,abstract,override,readonly,partial,unsafe,volatile:warning
 csharp_style_prefer_readonly_struct = true:suggestion
 csharp_style_prefer_readonly_struct_member = true:suggestion
 
@@ -941,3 +942,11 @@ resharper_member_can_be_private_global_highlighting = none
 resharper_enum_underlying_type_is_int_highlighting = hint
 # Redundant lambda expression parameter type specification
 resharper_redundant_lambda_parameter_type_highlighting = hint
+
+# Routed Razor page names intentionally match feature-area namespaces.
+[Ufw.Client/Pages/*.razor.cs]
+dotnet_diagnostic.CA1724.severity = none
+
+# returnUrl is a validated local navigation path/query value, not an absolute URI.
+[Ufw.Client/Pages/Login.razor.cs]
+dotnet_diagnostic.CA1056.severity = none

@@ -1,4 +1,4 @@
-namespace Ufw.Client.Auth;
+﻿namespace Ufw.Client.Auth;
 
 public interface IAuthenticationService
 {
@@ -10,9 +10,7 @@ public interface IAuthenticationService
 
     Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default);
 
-    Task<string?> RefreshAfterUnauthorizedAsync(
-        string rejectedAccessToken,
-        CancellationToken cancellationToken = default);
+    Task<string?> RefreshAfterUnauthorizedAsync(string rejectedAccessToken, CancellationToken cancellationToken = default);
 
     void InvalidateAccessToken(string rejectedAccessToken);
 }

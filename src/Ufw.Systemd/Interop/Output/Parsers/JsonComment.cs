@@ -17,9 +17,7 @@ internal sealed class JsonComment(string? name = null) : IParser<JsonComment>
     {
         try
         {
-            UfwRuleContext? context = JsonSerializer.Deserialize(
-                input.AsSpan(offset),
-                global::Ufw.Systemd.Interop.Output.UfwJsonSerializerContext.Default.UfwRuleContext);
+            UfwRuleContext? context = JsonSerializer.Deserialize(input.AsSpan(offset), global::Ufw.Systemd.Interop.Output.UfwJsonSerializerContext.Default.UfwRuleContext);
             if (context is not null)
             {
                 charsConsumed = input.Length - offset;

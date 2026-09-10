@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Ufw.Client.Errors;
 
@@ -14,9 +14,7 @@ internal sealed partial class BrowserAuthenticationOperationCoordinator(
     private IJSObjectReference? _module;
     private int _disposeState;
 
-    public async Task RunExclusiveAsync(
-        Func<CancellationToken, Task> operation,
-        CancellationToken cancellationToken = default)
+    public async Task RunExclusiveAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
 
@@ -29,9 +27,7 @@ internal sealed partial class BrowserAuthenticationOperationCoordinator(
             cancellationToken);
     }
 
-    public async Task<T> RunExclusiveAsync<T>(
-        Func<CancellationToken, Task<T>> operation,
-        CancellationToken cancellationToken = default)
+    public async Task<T> RunExclusiveAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
@@ -103,16 +99,9 @@ internal sealed partial class BrowserAuthenticationOperationCoordinator(
         return _module;
     }
 
-    private static async Task AcquireBrowserLockAsync(
-        IJSObjectReference module,
-        string requestId,
-        CancellationToken cancellationToken)
+    private static async Task AcquireBrowserLockAsync(IJSObjectReference module, string requestId, CancellationToken cancellationToken)
     {
-        Task acquisition = module.InvokeVoidAsync(
-            "acquire",
-            CancellationToken.None,
-            LOCK_NAME,
-            requestId).AsTask();
+        Task acquisition = module.InvokeVoidAsync("acquire", CancellationToken.None, LOCK_NAME, requestId).AsTask();
 
         try
         {
@@ -134,9 +123,7 @@ internal sealed partial class BrowserAuthenticationOperationCoordinator(
         }
         catch (Exception exception) when (exception is JSException or JSDisconnectedException)
         {
-            throw new BrowserOperationException(
-                "The browser could not coordinate authentication state across tabs.",
-                exception);
+            throw new BrowserOperationException("The browser could not coordinate authentication state across tabs.", exception);
         }
     }
 

@@ -108,9 +108,7 @@ internal sealed class UfwClient
             await using IMessage decoded = messageSerializer.Decode(frame.Payload);
             if (decoded is not IResponseMessage response)
             {
-                throw new ApplicationProtocolException(
-                    ApplicationProtocolError.InvalidKind,
-                    "Peer returned an application document that is not a response.");
+                throw new ApplicationProtocolException(ApplicationProtocolError.InvalidKind, "Peer returned an application document that is not a response.");
             }
 
             foreach (IResponseMessageHandler handler in _handlerPipeline)

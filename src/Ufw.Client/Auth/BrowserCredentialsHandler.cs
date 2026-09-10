@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.WebAssembly.Http;
+﻿using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
 namespace Ufw.Client.Auth;
 

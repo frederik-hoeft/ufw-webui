@@ -14,6 +14,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
     private const string AOT_JSON_SERIALIZER_CONTEXT_FULL_NAME = "Ufw.Roslyn.Json.AotJsonSerializerContext";
     private const string JSON_SERIALIZABLE_ATTRIBUTE_FULL_NAME = "System.Text.Json.Serialization.JsonSerializableAttribute";
     private const string JSON_TYPE_INFO_FULL_NAME = "System.Text.Json.Serialization.Metadata.JsonTypeInfo";
+    private static readonly SymbolDisplayFormat s_fullyQualifiedDisplayFormat = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -24,14 +25,16 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
             {
                 ISymbol targetClass = context.TargetSymbol;
                 ImmutableArray<AttributeData> attributes = targetClass.GetAttributes();
-                AttributeData jsonTypeInfoBindingsGeneratorAttribute = attributes.FirstOrDefault(static attr => attr.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)) is GENERIC_JSON_TYPE_INFO_BINDINGS_ATTRIBUTE_FULL_NAME)
+                AttributeData jsonTypeInfoBindingsGeneratorAttribute = attributes
+                    .FirstOrDefault(static attr =>
+                        attr.AttributeClass?.ToDisplayString(s_fullyQualifiedDisplayFormat) is GENERIC_JSON_TYPE_INFO_BINDINGS_ATTRIBUTE_FULL_NAME)
                     ?? throw new InvalidOperationException($"{nameof(JsonTypeInfoBindingsGenerator)} requires JsonTypeInfoBindingsGeneratorAttribute to be applied to the class");
                 ImmutableArray<AttributeData> jsonSerializables =
                 [
-                    .. attributes.Where(static attr => attr.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)) is JSON_SERIALIZABLE_ATTRIBUTE_FULL_NAME)
+                    .. attributes.Where(static attr => attr.AttributeClass?.ToDisplayString(s_fullyQualifiedDisplayFormat) is JSON_SERIALIZABLE_ATTRIBUTE_FULL_NAME)
                 ];
                 return new Model(
-                    Namespace: targetClass.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)),
+                    Namespace: targetClass.ContainingNamespace.ToDisplayString(s_fullyQualifiedDisplayFormat),
                     Class: targetClass,
                     GeneratorAttribute: jsonTypeInfoBindingsGeneratorAttribute,
                     JsonSerializableAttributes: jsonSerializables);
@@ -45,9 +48,9 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
             StringBuilder sourceBuilder = new(
                 $$"""
                 #nullable enable
-  
+
                 namespace {{model.Namespace}};
- 
+
                 partial class {{model.Class.Name}}
                 {
                     // the JIT will optimize this switch statement away
@@ -99,7 +102,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
         // traverse the inheritance hierarchy to see if the class inherits from AotJsonSerializerContext
         for (INamedTypeSymbol? namedTypeSymbol = model.Class as INamedTypeSymbol; namedTypeSymbol is not null; namedTypeSymbol = namedTypeSymbol.BaseType)
         {
-            if (namedTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)) is AOT_JSON_SERIALIZER_CONTEXT_FULL_NAME)
+            if (namedTypeSymbol.ToDisplayString(s_fullyQualifiedDisplayFormat) is AOT_JSON_SERIALIZER_CONTEXT_FULL_NAME)
             {
                 // include the space after the override keyword
                 overrideModifier = "override ";

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
+using Ufw.Shared.Ipc.Model;
 
 namespace Ufw.Ipc.Tests.Adapter;
 
@@ -109,11 +109,7 @@ public abstract class IpcProtocolTestBase
     /// <summary>
     /// Full-stack typed GET/DELETE-style round-trip helper.
     /// </summary>
-    protected ValueTask<TResponse> SendAsync<TResponse>(
-        RequestMethod method,
-        string route,
-        IpcTestRunConfiguration? configuration = null,
-        CancellationToken cancellationToken = default)
+    protected ValueTask<TResponse> SendAsync<TResponse>(RequestMethod method, string route, IpcTestRunConfiguration? configuration = null, CancellationToken cancellationToken = default)
         where TResponse : IEquatable<TResponse> =>
         RunAsync(
             (context, ct) => context.SendAsync<TResponse>(method, route, ct),
@@ -135,14 +131,9 @@ public abstract class IpcProtocolTestBase
             configuration,
             cancellationToken);
 
-    private async ValueTask<T> RunCoreAsync<T>(
-        Func<IIpcTestContext, CancellationToken, ValueTask<T>> actAsync,
-        IpcTestRunConfiguration? configuration,
-        CancellationToken cancellationToken)
+    private async ValueTask<T> RunCoreAsync<T>(Func<IIpcTestContext, CancellationToken, ValueTask<T>> actAsync, IpcTestRunConfiguration? configuration, CancellationToken cancellationToken)
     {
-        using CancellationTokenSource runCts = CancellationTokenSource.CreateLinkedTokenSource(
-            TestContext.CancellationToken,
-            cancellationToken);
+        using CancellationTokenSource runCts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken, cancellationToken);
         CancellationToken runToken = runCts.Token;
 
         IpcTestOptions options = new();

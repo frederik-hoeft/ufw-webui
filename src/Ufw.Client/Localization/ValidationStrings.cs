@@ -1,3 +1,3 @@
-namespace Ufw.Client.Localization;
+﻿namespace Ufw.Client.Localization;
 
 internal sealed class ValidationStrings;

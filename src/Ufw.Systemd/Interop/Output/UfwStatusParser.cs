@@ -54,14 +54,3 @@ internal sealed partial class UfwStatusParser
     [GeneratedRegex(@"^\s*\[\s*(?<number>\d+)\]\s+", RegexOptions.CultureInvariant)]
     private static partial Regex NumberedRuleLine();
 }
-
-internal sealed record UfwStatusSnapshot(bool Active, IReadOnlyList<ObservedUfwRule> Rules);
-
-internal sealed class ObservedUfwRule
-{
-    public required string RawLine { get; init; }
-
-    public int DisplayNumber { get; init; }
-
-    public UfwListCommandResultRow? Parsed { get; init; }
-}

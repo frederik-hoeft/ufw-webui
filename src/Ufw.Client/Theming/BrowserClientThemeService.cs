@@ -1,12 +1,10 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Ufw.Client.Storage;
 
 namespace Ufw.Client.Theming;
 
-internal sealed partial class BrowserClientThemeService(
-    ILocalStorage localStorage,
-    ILogger<BrowserClientThemeService> logger) : IClientThemeService
+internal sealed partial class BrowserClientThemeService(ILocalStorage localStorage, ILogger<BrowserClientThemeService> logger) : IClientThemeService
 {
     private const string STORAGE_KEY = "ufw.theme";
     private const string LIGHT_VALUE = "light";

@@ -1,9 +1,9 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
-using Ufw.Shared.Firewall;
 using Ufw.Mock.Cli;
 using Ufw.Mock.State;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Rules;
 
@@ -284,12 +284,7 @@ internal sealed partial class UfwRuleParser
         }
     }
 
-    private static void ParseSimpleTarget(
-        string token,
-        UfwMockState state,
-        ref string? destinationPorts,
-        ref string? protocol,
-        ref string? destinationApplicationName)
+    private static void ParseSimpleTarget(string token, UfwMockState state, ref string? destinationPorts, ref string? protocol, ref string? destinationApplicationName)
     {
         int slash = token.LastIndexOf('/');
         string target = slash >= 0 ? token[..slash] : token;

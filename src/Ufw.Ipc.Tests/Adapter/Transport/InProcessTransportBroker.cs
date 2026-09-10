@@ -20,7 +20,10 @@ internal sealed class InProcessTransportBroker : IAsyncDisposable
 
     private bool _disposed;
 
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership of both connections is transferred: server side to the accept queue, client side to the caller.")]
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Ownership of both connections is transferred: server side to the accept queue, client side to the caller.")]
     public async ValueTask<ITransportLayerConnection> ConnectAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

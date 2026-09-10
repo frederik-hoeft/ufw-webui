@@ -1,4 +1,4 @@
-namespace Ufw.Client.Theming;
+﻿namespace Ufw.Client.Theming;
 
 internal enum ClientThemeMode
 {

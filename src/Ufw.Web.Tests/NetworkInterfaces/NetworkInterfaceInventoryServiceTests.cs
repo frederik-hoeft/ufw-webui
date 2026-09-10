@@ -10,8 +10,8 @@ using Ufw.Web.Api.V1.Models.NetworkInterfaces;
 using Ufw.Web.Data;
 using Ufw.Web.Services.NetworkInterfaces;
 using Wkg.AspNetCore.Transactions;
-using Wkg.AspNetCore.Transactions.Continuations;
 using Wkg.AspNetCore.Transactions.Configuration;
+using Wkg.AspNetCore.Transactions.Continuations;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Tests.NetworkInterfaces;
@@ -34,17 +34,11 @@ public sealed class NetworkInterfaceInventoryServiceTests
         Assert.AreEqual('7', eno1.Id.ToString("D")[14]);
         Assert.IsTrue(eno1.IsVisible);
 
-        NetworkInterfaceInventoryResponse? commented = await host.Service.UpdateCommentAsync(
-            eno1.Id,
-            " service VLAN ",
-            TestContext.CancellationToken);
+        NetworkInterfaceInventoryResponse? commented = await host.Service.UpdateCommentAsync(eno1.Id, " service VLAN ", TestContext.CancellationToken);
         Assert.IsNotNull(commented);
         Assert.AreEqual("service VLAN", commented.Interfaces.Single(static item => item.Name == "eno1").Comment);
 
-        NetworkInterfaceInventoryResponse? hidden = await host.Service.UpdateVisibilityAsync(
-            eno1.Id,
-            isVisible: false,
-            TestContext.CancellationToken);
+        NetworkInterfaceInventoryResponse? hidden = await host.Service.UpdateVisibilityAsync(eno1.Id, isVisible: false, TestContext.CancellationToken);
         Assert.IsNotNull(hidden);
         Assert.IsFalse(hidden.Interfaces.Single(static item => item.Name == "eno1").IsVisible);
 
@@ -114,9 +108,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
 
         NetworkInterfaceInventoryResponse reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            s_vlanInterfaceNames,
-            reconciled.Interfaces.Select(static item => item.Name).ToArray());
+        CollectionAssert.AreEqual(s_vlanInterfaceNames, reconciled.Interfaces.Select(static item => item.Name).ToArray());
     }
 
     [TestMethod]
@@ -124,10 +116,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateCommentAsync(
-            Guid.CreateVersion7(),
-            "missing",
-            TestContext.CancellationToken);
+        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateCommentAsync(Guid.CreateVersion7(), "missing", TestContext.CancellationToken);
 
         Assert.IsNull(response);
     }
@@ -137,10 +126,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateVisibilityAsync(
-            Guid.CreateVersion7(),
-            isVisible: false,
-            TestContext.CancellationToken);
+        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateVisibilityAsync(Guid.CreateVersion7(), isVisible: false, TestContext.CancellationToken);
 
         Assert.IsNull(response);
     }
@@ -202,10 +188,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
         }
 
         public void SetDaemonInterfaces(params string[] names) => _ufwClient
-            .Setup(client => client.SendAsync<NetworkInterfaceListResponse>(
-                RequestMethod.Get,
-                "/api/v1/network-interfaces",
-                It.IsAny<CancellationToken>()))
+            .Setup(client => client.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new NetworkInterfaceListResponse(names));
 
         public async ValueTask DisposeAsync()

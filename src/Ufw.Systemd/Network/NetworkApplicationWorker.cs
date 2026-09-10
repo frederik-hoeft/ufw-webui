@@ -105,12 +105,7 @@ internal sealed class NetworkApplicationWorker
             logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: ITP framing failure {ex.ErrorCode}.");
             if (ex.CanReplyWithTransportError)
             {
-                await ItpConnection.TryWriteTransportErrorAsync(
-                    secureStream,
-                    itpOptions,
-                    ex.ErrorCode,
-                    ex.Message,
-                    cancellationToken);
+                await ItpConnection.TryWriteTransportErrorAsync(secureStream, itpOptions, ex.ErrorCode, ex.Message, cancellationToken);
             }
             return;
         }
@@ -123,9 +118,7 @@ internal sealed class NetworkApplicationWorker
         catch (ApplicationProtocolException ex)
         {
             logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: application protocol error {ex.Error}.");
-            await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(
-                new BadRequestResponse(ex.Message),
-                cancellationToken);
+            await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(new BadRequestResponse(ex.Message), cancellationToken);
             await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
             return;
         }
@@ -134,9 +127,7 @@ internal sealed class NetworkApplicationWorker
         {
             if (decoded is not IRequestMessage request)
             {
-                await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(
-                    new BadRequestResponse("Expected an application request document."),
-                    cancellationToken);
+                await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(new BadRequestResponse("Expected an application request document."), cancellationToken);
                 await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
                 return;
             }

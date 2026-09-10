@@ -17,11 +17,7 @@ internal sealed class ControllerProcessor(BindingClassProcessor parent)
         string? controllerRoute = GetControllerRoute(controllerType);
         int? controllerPriority = GetControllerPriority(controllerType);
 
-        ControllerProcessingContext context = new(
-            this,
-            controllerType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            controllerRoute,
-            controllerPriority);
+        ControllerProcessingContext context = new(this, controllerType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), controllerRoute, controllerPriority);
 
         // Process public methods with HTTP verb attributes
         EndpointVerbProcessor endpointVerbProcessor = new(parent.Context);

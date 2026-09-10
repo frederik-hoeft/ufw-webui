@@ -1,4 +1,4 @@
-namespace Ufw.Client.Storage;
+﻿namespace Ufw.Client.Storage;
 
 internal interface ILocalStorage
 {

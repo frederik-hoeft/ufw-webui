@@ -8,13 +8,7 @@ public interface INetworkInterfaceInventoryService
 
     Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default);
 
-    Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(
-        Guid publicId,
-        string? comment,
-        CancellationToken cancellationToken = default);
+    Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(Guid publicId, string? comment, CancellationToken cancellationToken = default);
 
-    Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(
-        Guid publicId,
-        bool isVisible,
-        CancellationToken cancellationToken = default);
+    Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(Guid publicId, bool isVisible, CancellationToken cancellationToken = default);
 }

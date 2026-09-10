@@ -1,4 +1,4 @@
-namespace Ufw.Client.Errors;
+﻿namespace Ufw.Client.Errors;
 
 public interface IClientErrorMapper
 {

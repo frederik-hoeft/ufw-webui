@@ -1,11 +1,11 @@
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using System.Text.Json;
 using Ufw.Client.Errors;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Security.Intent;
 using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.Intent;
 
@@ -19,11 +19,7 @@ internal sealed partial class BrowserIntentSigningService(
     private IJSObjectReference? _module;
     private int _disposeState;
 
-    public Task<AddRuleRequest> CreateAddRuleRequestAsync(
-        string deploymentId,
-        FirewallRuleSpecification rule,
-        string privateKey,
-        CancellationToken cancellationToken = default)
+    public Task<AddRuleRequest> CreateAddRuleRequestAsync(string deploymentId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
         ArgumentNullException.ThrowIfNull(rule);
@@ -131,9 +127,7 @@ internal sealed partial class BrowserIntentSigningService(
     [LoggerMessage(LogLevel.Debug, "Could not dispose the browser intent-signing module.")]
     private static partial void LogModuleDisposeFailure(ILogger logger, Exception exception);
 
-    private async Task<T> RunWithModuleAsync<T>(
-        Func<IJSObjectReference, Task<T>> operation,
-        CancellationToken cancellationToken)
+    private async Task<T> RunWithModuleAsync<T>(Func<IJSObjectReference, Task<T>> operation, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
         await _operationLock.WaitAsync(cancellationToken);
@@ -163,9 +157,7 @@ internal sealed partial class BrowserIntentSigningService(
         }
         catch (Exception exception) when (exception is JSException or JSDisconnectedException)
         {
-            throw new BrowserOperationException(
-                "The browser could not load the intent-signing module.",
-                exception);
+            throw new BrowserOperationException("The browser could not load the intent-signing module.", exception);
         }
     }
 

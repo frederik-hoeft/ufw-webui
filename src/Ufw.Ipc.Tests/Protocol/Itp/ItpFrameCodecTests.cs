@@ -165,10 +165,7 @@ public sealed class ItpFrameCodecTests
     [TestMethod]
     public async Task TestRead_UnsupportedApplicationPayloadFormat_IsRejectedBeforeBodyReadAsync()
     {
-        byte[] frame = ItpTestFrame.Build(
-            ItpPacketType.ApplicationData,
-            "hello"u8,
-            payloadFormat: (ItpPayloadFormat)0x7F);
+        byte[] frame = ItpTestFrame.Build(ItpPacketType.ApplicationData, "hello"u8, payloadFormat: (ItpPayloadFormat)0x7F);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
@@ -181,10 +178,7 @@ public sealed class ItpFrameCodecTests
     [TestMethod]
     public async Task TestRead_TransportErrorWithApplicationFormat_IsInvalidFrameAsync()
     {
-        byte[] frame = ItpTestFrame.Build(
-            ItpPacketType.TransportError,
-            [0x00, 0x01, 0x00, 0x00],
-            payloadFormat: ItpPayloadFormat.IpcJson);
+        byte[] frame = ItpTestFrame.Build(ItpPacketType.TransportError, [0x00, 0x01, 0x00, 0x00], payloadFormat: ItpPayloadFormat.IpcJson);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
@@ -243,10 +237,7 @@ public sealed class ItpFrameCodecTests
     [TestMethod]
     public async Task TestRead_MalformedTransportErrorPayload_IsInvalidFrameAsync()
     {
-        byte[] frame = ItpTestFrame.Build(
-            ItpPacketType.TransportError,
-            [0x00, 0x02],
-            payloadFormat: ItpPayloadFormat.None);
+        byte[] frame = ItpTestFrame.Build(ItpPacketType.TransportError, [0x00, 0x02], payloadFormat: ItpPayloadFormat.None);
         using MemoryStream stream = new(frame);
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
             await new ItpConnection(stream).ReadAsync(TestContext.CancellationToken));
@@ -258,10 +249,7 @@ public sealed class ItpFrameCodecTests
     [TestMethod]
     public async Task TestRead_TransportErrorWithInvalidUtf8_IsInvalidFrameAsync()
     {
-        byte[] frame = ItpTestFrame.Build(
-            ItpPacketType.TransportError,
-            [0x00, 0x07, 0x00, 0x01, 0xFF],
-            payloadFormat: ItpPayloadFormat.None);
+        byte[] frame = ItpTestFrame.Build(ItpPacketType.TransportError, [0x00, 0x07, 0x00, 0x01, 0xFF], payloadFormat: ItpPayloadFormat.None);
         using MemoryStream stream = new(frame);
 
         ItpException exception = await Assert.ThrowsExactlyAsync<ItpException>(async () =>
@@ -350,11 +338,7 @@ file sealed class OneByteReadStream(byte[] data) : Stream
 
 file static class ItpTestFrame
 {
-    public static byte[] Build(
-        ItpPacketType packetType,
-        ReadOnlySpan<byte> payload,
-        byte version = ItpConstants.VERSION,
-        ItpPayloadFormat? payloadFormat = null)
+    public static byte[] Build(ItpPacketType packetType, ReadOnlySpan<byte> payload, byte version = ItpConstants.VERSION, ItpPayloadFormat? payloadFormat = null)
     {
         ItpPayloadFormat effectivePayloadFormat = payloadFormat ?? (packetType == ItpPacketType.ApplicationData
             ? ItpPayloadFormat.IpcJson

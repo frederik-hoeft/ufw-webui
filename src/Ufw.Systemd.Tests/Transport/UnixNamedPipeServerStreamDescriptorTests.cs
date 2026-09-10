@@ -1,9 +1,9 @@
 ﻿using System.IO.Pipes;
 using Ufw.Systemd.Configuration.Model;
-using DaemonPipeOptions = Ufw.Systemd.Configuration.Model.PipeOptions;
-using SystemPipeOptions = System.IO.Pipes.PipeOptions;
 using Ufw.Systemd.Tests.TestSupport;
 using Ufw.Systemd.Transport.Pipes.Unix;
+using DaemonPipeOptions = Ufw.Systemd.Configuration.Model.PipeOptions;
+using SystemPipeOptions = System.IO.Pipes.PipeOptions;
 
 namespace Ufw.Systemd.Tests.Transport;
 
@@ -11,7 +11,7 @@ namespace Ufw.Systemd.Tests.Transport;
 public sealed class UnixNamedPipeServerStreamDescriptorTests
 {
     [TestMethod]
-    public async Task ServeAsync_CreatesGroupReadableAndWritableSocketOnUnix()
+    public async Task ServeCreatesGroupReadableAndWritableSocketOnUnixAsync()
     {
         if (OperatingSystem.IsWindows())
         {
