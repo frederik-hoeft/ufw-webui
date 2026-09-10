@@ -221,8 +221,14 @@ internal sealed class UfwCommandExecutor(UfwGlobalOptions options)
         });
     });
 
-    public int Add(FirewallAction action, IReadOnlyList<string> arguments, bool routed) =>
-        Execute(() => MutateRule(action, arguments, routed, RulePlacement.Append, null));
+    public int Add(FirewallAction action, IReadOnlyList<string> arguments, bool routed) => Execute(() =>
+    {
+        if (options.Force)
+        {
+            throw Error("Invalid syntax");
+        }
+        return MutateRule(action, arguments, routed, RulePlacement.Append, null);
+    });
 
     public int Insert(IReadOnlyList<string> arguments, bool routed) => Execute(() =>
     {

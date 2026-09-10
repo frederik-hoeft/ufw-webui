@@ -56,7 +56,6 @@ public sealed class UfwCliBlackboxTests
     public async Task SystemdStyleRuleArgumentsMaterializeIpv4AndIpv6RowsAsync()
     {
         CommandResult add = await InvokeAsync(
-            "--force",
             "allow",
             "in",
             "from",
@@ -80,6 +79,30 @@ public sealed class UfwCliBlackboxTests
         StringAssert.Contains(status.StdOut, "[ 2] 22/tcp (v6)");
         StringAssert.Contains(status.StdOut, "Anywhere (v6) # ssh");
         Assert.IsFalse(status.StdOut.Contains("Anywhere/tcp", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task ForceIsRejectedForAddRuleSyntaxWithoutChangingStateAsync()
+    {
+        CommandResult add = await InvokeAsync(
+            "--force",
+            "allow",
+            "in",
+            "from",
+            "any",
+            "to",
+            "any",
+            "port",
+            "22",
+            "proto",
+            "tcp");
+
+        Assert.AreEqual(1, add.ExitCode);
+        Assert.AreEqual(string.Empty, add.StdOut);
+        Assert.AreEqual("ERROR: Invalid syntax", add.StdErr);
+
+        CommandResult added = await InvokeAsync("show", "added");
+        Assert.IsFalse(added.StdOut.Contains("22", StringComparison.Ordinal));
     }
 
     [TestMethod]

@@ -33,13 +33,17 @@ The browser treats each successful rule-list response as the current authoritati
 
 Its JWT and refresh-token system protects the HTTP session boundary. It does not make the web process a firewall mutation authority. A compromised `Ufw.Web` can observe, suppress, replay, alter, or manufacture IPC requests, but it cannot produce a new accepted mutation without a valid signature from a daemon-authorized key.
 
+The browser-delivered signing client is also security-sensitive: if an attacker can replace the frontend, they can attempt to capture an administrator's private signing key before creating an otherwise valid intent. Production therefore serves frontend assets from an independently built read-only nginx image. ASP receives neither that image's filesystem nor its TLS key, and it has no Docker socket with which to replace the frontend container.
+
 The web process may eventually store metadata or computed analysis around firewall rules. Such state cannot override UFW state and cannot modify the daemon's authorized-key set, deployment identity, or replay state.
 
 ### Local IPC boundary
 
-The daemon accepts requests through the configured local named-pipe/Unix-domain endpoint; it does not expose a TCP listener. Filesystem/pipe permissions restrict which local principals can connect and therefore reduce local attack surface.
+The daemon accepts requests through the configured local named-pipe/Unix-domain endpoint; it does not expose a TCP listener. Filesystem/pipe permissions restrict which local principals can connect and therefore reduce local attack surface. The production Unix deployment creates `/run/ufw-manager` as a `0750` root/group runtime directory and the daemon forces its socket to `0660`, inheriting the systemd service's configured IPC group. The ASP container receives only a read-only bind mount of that runtime directory plus the minimum supplemental group mapping required to connect. It does not receive the daemon configuration, authorized keys, replay state, deployment identity, UFW files, Docker socket, or host network capabilities.
 
 TLS can optionally wrap this stream. Server authentication is required whenever TLS is enabled, and optional client-certificate validation provides mTLS. These controls authenticate and protect the transport peer, but `Ufw.Web` is an expected peer and is explicitly included in the compromise model. Transport authentication therefore cannot substitute for end-user intent authorization.
+
+Production frontend delivery and ASP are separate trust domains. A hardened non-root nginx container is the only public endpoint, terminates TLS, serves the independently built `Ufw.Client` static assets, and proxies only `/api/*` through a Docker-volume Unix-domain socket. `Ufw.Web` has no TCP listener and no copy of the frontend assets. nginx receives the socket volume read-only while ASP owns the write side; PostgreSQL does not receive it. Because the browser code handles administrator signing private keys, this separation prevents an ASP compromise from directly replacing the WebAssembly/JavaScript signing client with key-capture code. ASP's forwarded-header configuration trusts the nginx-provided HTTPS scheme; that trust is constrained by the Unix-socket peer boundary. This transport/proxy assumption is not itself a firewall-mutation authorization mechanism.
 
 ### Ufw.Systemd
 

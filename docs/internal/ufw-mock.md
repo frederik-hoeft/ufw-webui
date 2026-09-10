@@ -32,7 +32,7 @@ The command categories are:
 - routed rule commands below `route`;
 - application-profile commands below `app`.
 
-Global `--dry-run` and `--force` are defined as CAF global options so their placement and availability match UFW. CAF provides `-h`/`--help` and `--version`; the mock overrides the displayed version string to identify its UFW 0.36.2 compatibility target.
+Global `--dry-run` and `--force` are defined as CAF global options so accepted placements can be normalized consistently. Command execution still enforces UFW's command-specific option semantics; in particular, `--force` is rejected for rule additions rather than being treated as a universally valid rule option. CAF provides `-h`/`--help` and `--version`; the mock overrides the displayed version string to identify its UFW 0.36.2 compatibility target.
 
 ## State and persistence
 

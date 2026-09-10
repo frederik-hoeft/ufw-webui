@@ -94,5 +94,10 @@ src/Ufw.Systemd/appsettings.json
 src/Ufw.Web/appsettings.json
 *.pem
 
+# Deployment-local state and secrets
+deploy/docker/.env
+deploy/docker/backups/
+*.dump
+
 # Generated frontend assets
 src/Ufw.Client/wwwroot/css/app.css

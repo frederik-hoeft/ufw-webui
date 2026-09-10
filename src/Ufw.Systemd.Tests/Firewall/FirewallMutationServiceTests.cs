@@ -62,8 +62,8 @@ public sealed class FirewallMutationServiceTests
             static runner => runner.RunAsync(
                 It.Is<ChildProcessRequest>(request =>
                     request.Command == "/usr/sbin/ufw"
-                    && request.Arguments[0] == "--force"
-                    && request.Arguments[1] == "allow"
+                    && request.Arguments[0] == "allow"
+                    && !request.Arguments.Contains("--force")
                     && !request.Arguments.Contains("status")),
                 It.IsAny<CancellationToken>()),
             Times.Once);

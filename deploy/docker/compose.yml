@@ -1,0 +1,137 @@
+services:
+  frontend:
+    image: ${UFW_FRONTEND_IMAGE:-ufw-webui-frontend:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      - asp
+    group_add:
+      # Rootless Docker: container GID 0 maps to the rootless Docker user's
+      # primary host GID. Rootful Docker: set this to the numeric GID that owns
+      # the mounted TLS key.
+      - "${UFW_TLS_CONTAINER_GID:-0}"
+      # Internal group shared with ASP for the nginx -> Kestrel Unix socket.
+      # This is a container-internal GID and must match Dockerfile.asp APP_GID.
+      - "1654"
+    ports:
+      # nginx itself terminates TLS on an unprivileged container port. Binding a
+      # rootless Docker deployment to host port 443 may require host preparation;
+      # the runbook documents the 8443 default and optional 443 setup.
+      - "${UFW_HTTPS_BIND_ADDRESS:-0.0.0.0}:${UFW_HTTPS_PORT:-8443}:8443"
+    volumes:
+      - type: bind
+        source: ${UFW_TLS_HOST_DIR:?set UFW_TLS_HOST_DIR in .env}
+        target: /run/tls
+        read_only: true
+      - type: volume
+        source: api-socket
+        target: /run/ufw-web-api
+        read_only: true
+    networks:
+      - public
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+
+  asp:
+    image: ${UFW_ASP_IMAGE:-ufw-webui-asp:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.asp
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    group_add:
+      # Host group allowed to connect to the privileged daemon socket.
+      # Rootless Docker normally maps this through container GID 0.
+      - "${UFW_IPC_CONTAINER_GID:-0}"
+      # Keep JWT-key read access separate from daemon IPC membership in rootful
+      # deployments. Rootless Docker can map both through container GID 0.
+      - "${UFW_JWT_CONTAINER_GID:-0}"
+    environment:
+      # nginx is the sole HTTP peer and reaches Kestrel over the shared Unix
+      # socket. It terminates HTTPS and supplies the forwarded scheme/host
+      # information ASP needs for Secure cookies and HTTPS-aware behavior.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      Kestrel__Endpoints__Http__Url: "http://unix:/run/ufw-web-api/socket/asp.sock"
+      DetailedErrors: "false"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-ufw_webui};Username=${POSTGRES_USER:-ufw_webui};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      Auth__Jwt__Issuer: "${UFW_JWT_ISSUER:-ufw-webui}"
+      Auth__Jwt__Audience: "${UFW_JWT_AUDIENCE:-ufw-webui-client}"
+      Auth__Jwt__SigningKeyPath: "/run/secrets/ufw-web-jwt.pem"
+      Auth__Bootstrap__Users__0__Email: "${UFW_BOOTSTRAP_EMAIL:?set UFW_BOOTSTRAP_EMAIL in .env}"
+      Auth__Bootstrap__Users__0__UserName: "${UFW_BOOTSTRAP_USERNAME:-admin}"
+      Auth__Bootstrap__Users__0__Password: "${UFW_BOOTSTRAP_PASSWORD:-}"
+      Auth__Bootstrap__Users__0__EmailConfirmed: "true"
+      IpcOptions__Endpoint: "/run/ufw-manager/ufw-systemd.sock"
+      IpcOptions__TlsEnabled: "false"
+      IpcOptions__RequestTimeout: "00:00:30"
+      Logging__Console__FormatterName: "json"
+    volumes:
+      - type: bind
+        source: ${UFW_IPC_HOST_DIR:-/var/lib/ufw-webui/ipc}
+        target: /run/ufw-manager
+        read_only: true
+      - type: bind
+        source: ${UFW_WEB_JWT_KEY_PATH:?set UFW_WEB_JWT_KEY_PATH in .env}
+        target: /run/secrets/ufw-web-jwt.pem
+        read_only: true
+      - type: volume
+        source: asp-state
+        target: /var/lib/ufw-webui
+      - type: volume
+        source: api-socket
+        target: /run/ufw-web-api
+    networks:
+      - database
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+
+  postgres:
+    image: postgres:18.6-bookworm
+    restart: unless-stopped
+    # Use the official image lifecycle: its entrypoint may perform storage setup
+    # as container root, then execs the PostgreSQL server as the unprivileged
+    # `postgres` account. Do not override the image user.
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-ufw_webui}"
+      POSTGRES_USER: "${POSTGRES_USER:-ufw_webui}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - "${POSTGRES_DATA_SOURCE:-postgres-data}:/var/lib/postgresql"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"${POSTGRES_USER:-ufw_webui}\" -d \"${POSTGRES_DB:-ufw_webui}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  # Only nginx has a normal network. ASP has no TCP listener and joins only the
+  # isolated PostgreSQL network; nginx -> ASP uses the api-socket volume.
+  public:
+  database:
+    internal: true
+
+volumes:
+  postgres-data:
+  asp-state:
+  api-socket:

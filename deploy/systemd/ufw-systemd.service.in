@@ -1,0 +1,27 @@
+[Unit]
+Description=UFW WebUI privileged firewall daemon
+Documentation=file:/usr/local/share/doc/ufw-webui/deployment.md
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+Group=@IPC_GROUP@
+ExecStart=/usr/local/lib/ufw-webui/ufw-systemd serve --config /etc/ufw-manager/settings.json
+Restart=on-failure
+RestartSec=2s
+
+# /var/lib/ufw-webui/ipc is provisioned by install.sh as root:@IPC_GROUP@
+# mode 0750. It intentionally lives outside /run so rootless Docker can bind
+# mount the host directory into ASP. Ufw.Systemd creates the socket as 0660.
+
+# Replay state and deployment identity stay daemon/root-only.
+StateDirectory=ufw-manager
+StateDirectoryMode=0700
+
+UMask=0007
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

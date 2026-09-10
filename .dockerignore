@@ -1,0 +1,12 @@
+.git
+.github
+artifacts
+**/bin
+**/obj
+**/*.pem
+src/Ufw.Systemd/appsettings.json
+src/Ufw.Web/appsettings.json
+deploy/docker/.env
+deploy/docker/backups
+*.patch
+*.zip

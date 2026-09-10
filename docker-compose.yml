@@ -1,3 +1,4 @@
+# Development-only PostgreSQL helper. Production deployment lives in deploy/docker/compose.yml.
 services:
   postgres:
     image: postgres:18.6
