@@ -4,6 +4,7 @@ using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.Api;
 
@@ -53,9 +54,9 @@ internal sealed class UfwApiClient(HttpClient httpClient, IIntentSigningService 
     private async Task<IntentContextResponse> GetCompatibleIntentContextAsync(CancellationToken cancellationToken)
     {
         IntentContextResponse context = await GetIntentContextAsync(cancellationToken);
-        if (context.ProtocolVersion != Ufw.Shared.Security.Intent.IntentProtocol.VERSION)
+        if (context.ProtocolVersion != IntentProtocol.VERSION)
         {
-            throw new ApiProtocolException($"Intent protocol mismatch. Client supports version " + $"{Ufw.Shared.Security.Intent.IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
+            throw new ApiProtocolException($"Intent protocol mismatch. Client supports version {IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
         }
 
         return context;

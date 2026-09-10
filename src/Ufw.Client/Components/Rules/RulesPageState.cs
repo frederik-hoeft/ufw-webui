@@ -66,15 +66,11 @@ internal sealed record RulesPageState
 
     public static RulesPageState Initial { get; } = new(RulesPageStatus.NotLoaded, snapshot: null, error: null, refreshReason: null, staleReason: null);
 
-    public RulesPageState BeginRefresh(RuleRefreshReason reason)
-    {
-        return new(Snapshot is null ? RulesPageStatus.Loading : RulesPageStatus.Refreshing, Snapshot, error: null, refreshReason: reason, staleReason: StaleReason);
-    }
+    public RulesPageState BeginRefresh(RuleRefreshReason reason) =>
+        new(Snapshot is null ? RulesPageStatus.Loading : RulesPageStatus.Refreshing, Snapshot, error: null, refreshReason: reason, staleReason: StaleReason);
 
-    public static RulesPageState CompleteRefresh(RuleListResponse response)
-    {
-        return new(RulesPageStatus.Current, RuleSnapshot.FromResponse(response), error: null, refreshReason: null, staleReason: null);
-    }
+    public static RulesPageState CompleteRefresh(RuleListResponse response) =>
+        new(RulesPageStatus.Current, RuleSnapshot.FromResponse(response), error: null, refreshReason: null, staleReason: null);
 
     public RulesPageState FailRefresh(ClientError error)
     {

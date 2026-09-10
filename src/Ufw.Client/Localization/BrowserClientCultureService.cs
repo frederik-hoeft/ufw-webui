@@ -1,16 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using System.Globalization;
 using Ufw.Client.Storage;
 
 namespace Ufw.Client.Localization;
 
-internal sealed partial class BrowserClientCultureService(
+internal sealed partial class BrowserClientCultureService
+(
     ClientLocalizationOptions options,
     ILocalStorage localStorage,
     NavigationManager navigation,
-    ILogger<BrowserClientCultureService> logger) : IClientCultureService
+    ILogger<BrowserClientCultureService> logger
+) : IClientCultureService
 {
     public CultureInfo CurrentCulture
     {

@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace Ufw.Client.Localization;
+﻿namespace Ufw.Client.Localization;
 
 internal static class ClientLocalizationServiceCollectionExtensions
 {

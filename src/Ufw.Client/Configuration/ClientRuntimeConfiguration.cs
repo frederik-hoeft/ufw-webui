@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-
-namespace Ufw.Client.Configuration;
+﻿namespace Ufw.Client.Configuration;
 
 internal static class ClientRuntimeConfiguration
 {

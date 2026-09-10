@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 using System.Text.Json;
 using Ufw.Client.Errors;
 using Ufw.Shared.Firewall;
@@ -9,10 +8,12 @@ using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.Intent;
 
-internal sealed partial class BrowserIntentSigningService(
+internal sealed partial class BrowserIntentSigningService
+(
     IJSRuntime jsRuntime,
     TimeProvider timeProvider,
-    ILogger<BrowserIntentSigningService> logger) : IIntentSigningService, IAsyncDisposable
+    ILogger<BrowserIntentSigningService> logger
+) : IIntentSigningService, IAsyncDisposable
 {
     private const string MODULE_PATH = "./js/intentSigning.js";
     private readonly SemaphoreSlim _operationLock = new(1, 1);
@@ -25,70 +26,63 @@ internal sealed partial class BrowserIntentSigningService(
         ArgumentNullException.ThrowIfNull(rule);
         ValidatePrivateKey(privateKey);
 
-        return RunWithModuleAsync(
-            async module =>
+        return RunWithModuleAsync(async module =>
+        {
+            string keyId = await module.InvokeAsync<string>("getKeyId", cancellationToken, privateKey);
+            string nonce = await module.InvokeAsync<string>("createNonce", cancellationToken, IntentProtocol.NONCE_SIZE_BYTES);
+            AddRulePayload payload = new() { Rule = RuleSpecificationNormalizer.Normalize(rule) };
+
+            AddRuleRequest unsignedRequest = new()
             {
-                string keyId = await module.InvokeAsync<string>("getKeyId", cancellationToken, privateKey);
-                string nonce = await module.InvokeAsync<string>("createNonce", cancellationToken, IntentProtocol.NONCE_SIZE_BYTES);
-                AddRulePayload payload = new() { Rule = RuleSpecificationNormalizer.Normalize(rule) };
+                DeploymentId = deploymentId,
+                KeyId = keyId,
+                IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+                Nonce = nonce,
+                Operation = IntentOperations.ADD_RULE,
+                Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.AddRulePayload),
+                Signature = string.Empty,
+            };
 
-                AddRuleRequest unsignedRequest = new()
-                {
-                    DeploymentId = deploymentId,
-                    KeyId = keyId,
-                    IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
-                    Nonce = nonce,
-                    Operation = IntentOperations.ADD_RULE,
-                    Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.AddRulePayload),
-                    Signature = string.Empty,
-                };
-
-                byte[] canonical = IntentCanonicalizer.CanonicalizeAdd(unsignedRequest, payload);
-                string signature = await module.InvokeAsync<string>("sign", cancellationToken, privateKey, canonical);
-                return unsignedRequest with { Signature = signature };
-            },
-            cancellationToken);
+            byte[] canonical = IntentCanonicalizer.CanonicalizeAdd(unsignedRequest, payload);
+            string signature = await module.InvokeAsync<string>("sign", cancellationToken, privateKey, canonical);
+            return unsignedRequest with { Signature = signature };
+        },
+        cancellationToken);
     }
 
-    public Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(
-        string deploymentId,
-        string ruleId,
-        FirewallRuleSpecification rule,
-        string privateKey,
-        CancellationToken cancellationToken = default)
+    public Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(string deploymentId, string ruleId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(rule);
         ValidatePrivateKey(privateKey);
 
-        return RunWithModuleAsync(
-            async module =>
+        return RunWithModuleAsync(async module =>
+        {
+            string keyId = await module.InvokeAsync<string>("getKeyId", cancellationToken, privateKey);
+            string nonce = await module.InvokeAsync<string>("createNonce", cancellationToken, IntentProtocol.NONCE_SIZE_BYTES);
+            DeleteRulePayload payload = new()
             {
-                string keyId = await module.InvokeAsync<string>("getKeyId", cancellationToken, privateKey);
-                string nonce = await module.InvokeAsync<string>("createNonce", cancellationToken, IntentProtocol.NONCE_SIZE_BYTES);
-                DeleteRulePayload payload = new()
-                {
-                    RuleId = ruleId,
-                    Rule = RuleSpecificationNormalizer.Normalize(rule),
-                };
+                RuleId = ruleId,
+                Rule = RuleSpecificationNormalizer.Normalize(rule),
+            };
 
-                DeleteRuleRequest unsignedRequest = new()
-                {
-                    DeploymentId = deploymentId,
-                    KeyId = keyId,
-                    IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
-                    Nonce = nonce,
-                    Operation = IntentOperations.DELETE_RULE,
-                    Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.DeleteRulePayload),
-                    Signature = string.Empty,
-                };
+            DeleteRuleRequest unsignedRequest = new()
+            {
+                DeploymentId = deploymentId,
+                KeyId = keyId,
+                IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+                Nonce = nonce,
+                Operation = IntentOperations.DELETE_RULE,
+                Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.DeleteRulePayload),
+                Signature = string.Empty,
+            };
 
-                byte[] canonical = IntentCanonicalizer.CanonicalizeDelete(unsignedRequest, payload);
-                string signature = await module.InvokeAsync<string>("sign", cancellationToken, privateKey, canonical);
-                return unsignedRequest with { Signature = signature };
-            },
-            cancellationToken);
+            byte[] canonical = IntentCanonicalizer.CanonicalizeDelete(unsignedRequest, payload);
+            string signature = await module.InvokeAsync<string>("sign", cancellationToken, privateKey, canonical);
+            return unsignedRequest with { Signature = signature };
+        },
+        cancellationToken);
     }
 
     public async ValueTask DisposeAsync()

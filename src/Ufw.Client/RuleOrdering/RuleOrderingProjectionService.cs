@@ -44,9 +44,7 @@ internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesString
         List<RuleMoveRequest> moves = currentPreview is null ? [] : [.. currentPreview.Moves];
         moves.Add(request);
 
-        ListedFirewallRule[] renumbered = ordered
-            .Select((rule, index) => CopyWithDisplayNumber(rule, index + 1))
-            .ToArray();
+        ListedFirewallRule[] renumbered = [.. ordered.Select((rule, index) => CopyWithDisplayNumber(rule, index + 1))];
 
         return new RuleOrderingPreview(renumbered, originalPositions, directlyMovedRuleIds, moves);
     }

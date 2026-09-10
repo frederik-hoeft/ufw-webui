@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using System.Net;
 using Ufw.Client.Api;

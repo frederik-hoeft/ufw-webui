@@ -33,6 +33,7 @@ internal sealed class NetworkInterfaceApiClient(HttpClient httpClient) : INetwor
         using HttpResponseMessage response = await httpClient.PutAsync(uri, content, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.NetworkInterfaceInventoryResponse, cancellationToken);
     }
+
     public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(Guid interfaceId, bool isVisible, CancellationToken cancellationToken = default)
     {
         if (interfaceId == Guid.Empty)

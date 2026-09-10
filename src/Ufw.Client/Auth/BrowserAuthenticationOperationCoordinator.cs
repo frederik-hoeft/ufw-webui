@@ -1,12 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 using Ufw.Client.Errors;
 
 namespace Ufw.Client.Auth;
 
-internal sealed partial class BrowserAuthenticationOperationCoordinator(
+internal sealed partial class BrowserAuthenticationOperationCoordinator
+(
     IJSRuntime jsRuntime,
-    ILogger<BrowserAuthenticationOperationCoordinator> logger) : IAuthenticationOperationCoordinator, IAsyncDisposable
+    ILogger<BrowserAuthenticationOperationCoordinator> logger
+) : IAuthenticationOperationCoordinator, IAsyncDisposable
 {
     private const string LOCK_NAME = "ufw-webui-auth-session";
     private const string MODULE_PATH = "./js/authCoordination.js";

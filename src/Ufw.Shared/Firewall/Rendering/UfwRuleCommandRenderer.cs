@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using Ufw.Shared.Firewall;
 
 namespace Ufw.Shared.Firewall.Rendering;
 

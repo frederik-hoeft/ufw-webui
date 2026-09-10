@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 using Ufw.Client.Storage;
 
 namespace Ufw.Client.Theming;

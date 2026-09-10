@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Ufw.Client.Localization;
 
@@ -27,12 +26,14 @@ internal sealed class ClientLocalizationOptions
         IConfigurationSection section = configuration.GetSection(SECTION_NAME);
         string defaultCultureName = RequireValue(section["DefaultCulture"], "Localization:DefaultCulture");
         string storageKey = RequireValue(section["StorageKey"], "Localization:StorageKey");
-        string[] supportedCultureNames = section.GetSection("SupportedCultures")
+        string[] supportedCultureNames =
+        [
+            .. section.GetSection("SupportedCultures")
             .GetChildren()
             .Select(static child => child.Value)
             .Where(static value => !string.IsNullOrWhiteSpace(value))
             .Cast<string>()
-            .ToArray();
+        ];
 
         if (supportedCultureNames.Length == 0)
         {

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Ufw.Shared.Firewall;
 
 namespace Ufw.Shared.Firewall.Rendering;
 

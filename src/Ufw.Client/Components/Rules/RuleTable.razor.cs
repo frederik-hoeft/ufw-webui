@@ -193,7 +193,7 @@ public sealed partial class RuleTable
             return;
         }
 
-        DialogParameters<MoveRuleDialog> parameters = new();
+        DialogParameters<MoveRuleDialog> parameters = [];
         parameters.Add(component => component.CurrentPosition, currentPosition);
         parameters.Add(component => component.RuleCount, Rules.Count);
 

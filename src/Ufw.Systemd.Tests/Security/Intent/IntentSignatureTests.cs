@@ -5,7 +5,6 @@ using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
-using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 
