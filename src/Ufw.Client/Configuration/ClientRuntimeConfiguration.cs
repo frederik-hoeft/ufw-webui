@@ -18,11 +18,12 @@ internal static class ClientRuntimeConfiguration
         }
 
         Uri? address;
-        if (Uri.TryCreate(configuredValue, UriKind.Absolute, out Uri? absoluteAddress))
+        if (Uri.IsWellFormedUriString(configuredValue, UriKind.Absolute) 
+            && Uri.TryCreate(configuredValue, UriKind.Absolute, out Uri? absoluteAddress))
         {
             address = absoluteAddress;
         }
-        else if (Uri.TryCreate(configuredValue, UriKind.Relative, out _)
+        else if (Uri.IsWellFormedUriString(configuredValue, UriKind.Relative)
             && !configuredValue.StartsWith("//", StringComparison.Ordinal)
             && Uri.TryCreate(applicationBaseAddress, configuredValue, out Uri? relativeAddress))
         {
