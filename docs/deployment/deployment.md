@@ -181,6 +181,24 @@ sudo stat -c '%A %U:%G %n' \
 
 Expected socket mode is `srw-rw----`; the directory is group-traversable but not writable by ASP. The daemon's private replay/deployment state remains separately protected below `/var/lib/ufw-manager`.
 
+### Uninstall the daemon
+
+To remove the host daemon while preserving its security/configuration state for a later reinstall:
+
+```bash
+sudo ./deploy/systemd/uninstall.sh
+```
+
+The uninstaller stops and disables `ufw-systemd.service`, removes the installed unit, native daemon binary, installed deployment documentation, and the ephemeral `/var/lib/ufw-webui/ipc` tree, then reloads systemd. It does **not** alter existing UFW firewall rules and does not remove the IPC group because that group may be administrator-owned or, for rootless Docker, the Docker user's primary group.
+
+By default `/etc/ufw-manager` and `/var/lib/ufw-manager` are retained. This preserves daemon configuration, `authorized_keys`, replay state, and deployment identity. To deliberately remove that state as well:
+
+```bash
+sudo ./deploy/systemd/uninstall.sh --purge
+```
+
+`--purge` is destructive to daemon authorization/replay/deployment state, but still does not modify UFW rules. Container teardown and PostgreSQL removal are separate operations and are not performed by the systemd-daemon uninstaller.
+
 ## 2. Provision daemon mutation authority
 
 Generate the browser/admin P-256 signing key outside the container stack:
