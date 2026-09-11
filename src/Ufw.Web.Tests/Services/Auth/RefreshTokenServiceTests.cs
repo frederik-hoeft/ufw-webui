@@ -100,5 +100,4 @@ public sealed class RefreshTokenServiceTests
                 token => token.RevokedAt == null,
                 TestContext.CancellationToken));
     }
-
 }

@@ -1,10 +1,11 @@
 ﻿using Jab;
+using Ufw.Roslyn.Controllers.Mapping;
+using Ufw.Roslyn.Json;
 using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Roslyn.Controllers.Mapping;
-using Ufw.Roslyn.Json;
 using Ufw.Systemd.Api.Controllers;
+using Ufw.Systemd.Api.Framework;
 using Ufw.Systemd.Api.Middleware;
 
 namespace Ufw.Systemd.Api;
@@ -17,6 +18,7 @@ namespace Ufw.Systemd.Api;
 [Singleton<AotJsonSerializerContext>(Factory = nameof(GetAotJsonSerializerContext))]
 [Singleton<ItpOptions>(Factory = nameof(GetItpOptions))]
 [Singleton<IMessageSerializer, JsonMessageSerializer>]
+[Singleton<IApiExceptionMapper, ApiExceptionMapper>]
 [Singleton<IRequestMiddleware, RequestLoggingMiddleware>]
 [Singleton<IRequestMiddleware, EndpointInvocationMiddleware>]
 [Singleton<IRequestResponsePipeline, RequestResponsePipeline>]

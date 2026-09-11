@@ -3,10 +3,11 @@ using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using Ufw.Ipc.Client.Configuration;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Configuration.Swagger;
 using Ufw.Web.Data;
@@ -25,10 +26,7 @@ internal sealed class Startup : IAsyncStartupScript
 {
     internal const string BLAZOR_CORS_POLICY = "BlazorClient";
 
-    public static ValueTask ConfigureServicesAsync(
-        IServiceCollection services,
-        IConfiguration configuration,
-        CancellationToken cancellationToken = default)
+    public static ValueTask ConfigureServicesAsync(IServiceCollection services, IConfiguration configuration, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
         string connectionString = configuration.GetConnectionString("DefaultConnection")
@@ -73,8 +71,12 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IAuthenticationFlowService, AuthenticationFlowService>();
         services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
+        services.AddScoped<IDaemonNetworkInterfaceSource, DaemonNetworkInterfaceSource>();
+        services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();
+        services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
 
         services.AddAuthentication(options =>
@@ -168,9 +170,7 @@ internal sealed class Startup : IAsyncStartupScript
         return ValueTask.CompletedTask;
     }
 
-    public static async ValueTask ConfigureAsync(
-        WebApplication app,
-        CancellationToken cancellationToken = default)
+    public static async ValueTask ConfigureAsync(WebApplication app, CancellationToken cancellationToken = default)
     {
         _ = app.Services.GetRequiredService<IJwtSigningKeyProvider>();
 

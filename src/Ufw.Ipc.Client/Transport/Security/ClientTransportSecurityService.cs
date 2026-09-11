@@ -2,18 +2,14 @@
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Transport.Security.CertificateValidation;
+using Ufw.Shared.Ipc.Transport.Security;
 using Ufw.Shared.Security.Certificates;
 using Ufw.Shared.Threading;
-using Ufw.Shared.Ipc.Transport.Security;
 
 namespace Ufw.Ipc.Client.Transport.Security;
 
 internal sealed class ClientTransportSecurityService
-(
-    IRemoteCertificateValidationHandler certificateValidationHandler,
-    ICertificateLoader certificateLoader,
-    UfwClientOptions options
-) : ITransportSecurityService, IDisposable
+(IRemoteCertificateValidationHandler certificateValidationHandler, ICertificateLoader certificateLoader, UfwClientOptions options) : ITransportSecurityService, IDisposable
 {
     private readonly AsyncLock _certificateLock = new();
     private X509Certificate2? _clientCertificate;
@@ -66,10 +62,7 @@ internal sealed class ClientTransportSecurityService
                 return certificate;
             }
 
-            X509Certificate2 loaded = await certificateLoader.LoadCertificateAsync(
-                options.ClientCertificatePath,
-                options.ClientCertificateKeyPath,
-                ct);
+            X509Certificate2 loaded = await certificateLoader.LoadCertificateAsync(options.ClientCertificatePath, options.ClientCertificateKeyPath, ct);
             Volatile.Write(ref _clientCertificate, loaded);
             return loaded;
         }, cancellationToken);

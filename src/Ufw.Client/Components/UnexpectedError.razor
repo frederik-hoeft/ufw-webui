@@ -30,10 +30,3 @@
         </Actions>
     </StandalonePanel>
 </main>
-
-@code {
-    [Parameter, EditorRequired]
-    public ClientError Error { get; set; } = null!;
-
-    private void Reload() => Navigation.Refresh(forceReload: true);
-}

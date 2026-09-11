@@ -7,9 +7,10 @@ namespace Ufw.Shared.Ipc.Model;
 
 public readonly struct RequestMethod : IEquatable<RequestMethod>, IEqualityOperators<RequestMethod, RequestMethod, bool>
 {
-    private readonly Value _value;
     private static readonly FrozenDictionary<RequestMethod, string> s_forwardBindings;
     private static readonly FrozenDictionary<string, RequestMethod> s_reverseBindings;
+
+    private readonly Value _value;
 
     static RequestMethod()
     {
@@ -23,6 +24,7 @@ public readonly struct RequestMethod : IEquatable<RequestMethod>, IEqualityOpera
         s_forwardBindings = source.ToFrozenDictionary(binding => binding.Key, binding => binding.Value);
         s_reverseBindings = source.ToFrozenDictionary(binding => binding.Value, binding => binding.Key);
     }
+
     private RequestMethod(Value value) => _value = value;
 
     public static RequestMethod Get => new(Value.Get);

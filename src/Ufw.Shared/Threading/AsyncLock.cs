@@ -28,10 +28,10 @@ public sealed partial class AsyncLock()
     public Task<TResult> RunAsync<TResult>(Func<TResult> synchronizedAction, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(synchronizedAction);
-        return RunCoreAsync(Wrapper, cancellationToken);
+        return RunCoreAsync(WrapperAsync, cancellationToken);
 
         [DebuggerStepThrough]
-        Task<TResult> Wrapper(CancellationToken _) => Task.FromResult(synchronizedAction());
+        Task<TResult> WrapperAsync(CancellationToken _) => Task.FromResult(synchronizedAction());
     }
 
     /// <summary>
@@ -46,10 +46,10 @@ public sealed partial class AsyncLock()
     public Task RunAsync(Action synchronizedAction, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(synchronizedAction);
-        return RunCoreAsync(Wrapper, cancellationToken);
+        return RunCoreAsync(WrapperAsync, cancellationToken);
 
         [DebuggerStepThrough]
-        Task<bool> Wrapper(CancellationToken _)
+        Task<bool> WrapperAsync(CancellationToken _)
         {
             synchronizedAction();
             return s_completedDummyTask;
@@ -68,10 +68,10 @@ public sealed partial class AsyncLock()
     public Task<AsyncLockResult<TResult>> TryRunAsync<TResult>(Func<TResult> synchronizedAction, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(synchronizedAction);
-        return TryRunCoreAsync(Wrapper, cancellationToken);
+        return TryRunCoreAsync(WrapperAsync, cancellationToken);
 
         [DebuggerStepThrough]
-        Task<TResult> Wrapper(CancellationToken _) => Task.FromResult(synchronizedAction());
+        Task<TResult> WrapperAsync(CancellationToken _) => Task.FromResult(synchronizedAction());
     }
 
     /// <summary>
@@ -85,10 +85,10 @@ public sealed partial class AsyncLock()
     public Task<AsyncLockResult> TryRunAsync(Action synchronizedAction, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(synchronizedAction);
-        return TryRunCoreWithoutResultAsync(Wrapper, cancellationToken);
+        return TryRunCoreWithoutResultAsync(WrapperAsync, cancellationToken);
 
         [DebuggerStepThrough]
-        Task<bool> Wrapper(CancellationToken _)
+        Task<bool> WrapperAsync(CancellationToken _)
         {
             synchronizedAction();
             return s_completedDummyTask;
@@ -107,10 +107,10 @@ public sealed partial class AsyncLock()
     public Task RunTaskAsync(Func<CancellationToken, Task> synchronizedTask, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(synchronizedTask);
-        return RunCoreAsync(Wrapper, cancellationToken);
+        return RunCoreAsync(WrapperAsync, cancellationToken);
 
         [DebuggerStepThrough]
-        async Task<bool> Wrapper(CancellationToken ct)
+        async Task<bool> WrapperAsync(CancellationToken ct)
         {
             await synchronizedTask(ct);
             return true;
@@ -144,10 +144,10 @@ public sealed partial class AsyncLock()
     public Task<AsyncLockResult> TryRunTaskAsync(Func<CancellationToken, Task> synchronizedTask, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(synchronizedTask);
-        return TryRunCoreWithoutResultAsync(Wrapper, cancellationToken);
+        return TryRunCoreWithoutResultAsync(WrapperAsync, cancellationToken);
 
         [DebuggerStepThrough]
-        async Task<bool> Wrapper(CancellationToken ct)
+        async Task<bool> WrapperAsync(CancellationToken ct)
         {
             await synchronizedTask(ct);
             return true;

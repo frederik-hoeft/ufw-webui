@@ -1,6 +1,6 @@
 [Unit]
 Description=UFW WebUI privileged firewall daemon
-Documentation=file:/usr/local/share/doc/ufw-webui/deployment.md
+Documentation=file:/usr/local/share/doc/ufw-webui/deployment/deployment.md
 After=local-fs.target
 
 [Service]

@@ -3,12 +3,7 @@
 namespace Ufw.Shared.Ipc.Serialization;
 
 internal sealed class ResponseMessage
-(
-    int protocolVersion,
-    int statusCode,
-    string payloadType,
-    IMessageBlob payload
-) : MessageBase(ApplicationMessageKind.Response, protocolVersion, payloadType, payload), IResponseMessage
+(int protocolVersion, int statusCode, string payloadType, IMessageBlob payload) : MessageBase(ApplicationMessageKind.Response, protocolVersion, payloadType, payload), IResponseMessage
 {
     public int StatusCode
     {

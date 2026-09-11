@@ -1,0 +1,11 @@
+﻿namespace Ufw.Systemd.Interop.Output.Parsers;
+
+internal sealed class Sequence<T1, T2, T3, T4, T5>(string? name = null) : Sequence
+(
+    parsers: [T1.Instance, T2.Instance, T3.Instance, T4.Instance, T5.Instance],
+    name
+), IParser<Sequence<T1, T2, T3, T4, T5>> where T1 : class, IParser<T1> where T2 : class, IParser<T2> where T3 : class, IParser<T3> where T4 : class, IParser<T4>
+    where T5 : class, IParser<T5>
+{
+    public static Sequence<T1, T2, T3, T4, T5> Instance { get; } = new();
+}

@@ -1,4 +1,4 @@
-namespace Ufw.Client.Auth;
+﻿namespace Ufw.Client.Auth;
 
 public interface IAuthenticationSession
 {

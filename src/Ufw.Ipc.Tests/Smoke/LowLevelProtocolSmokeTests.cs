@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
+using Ufw.Ipc.Tests.Adapter;
+using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
@@ -10,8 +12,6 @@ using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Transport;
 using Ufw.Shared.Ipc.Transport.Itp;
 using Ufw.Shared.Ipc.Transport.Security;
-using Ufw.Ipc.Tests.Adapter;
-using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Systemd.Transport;
 
 namespace Ufw.Ipc.Tests.Smoke;
@@ -27,19 +27,14 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
 
     protected override ValueTask ConfigureEndpointsAsync(ITestEndpointMapBuilder endpoints, CancellationToken cancellationToken)
     {
-        endpoints.MapGet(
-            "/api/v1/raw-ok",
-            static _ => ValueTask.FromResult(new OkResponse()));
+        endpoints.MapGet("/api/v1/raw-ok", static _ => ValueTask.FromResult(new OkResponse()));
         return ValueTask.CompletedTask;
     }
 
     [TestMethod]
-    public Task TestExchangeRaw_UsesProductionFraming() => RunAsync(async (context, cancellationToken) =>
+    public Task TestExchangeRaw_UsesProductionFramingAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
-            route: "/api/v1/raw-ok",
-            method: RequestMethod.Get.ToString(),
-            cancellationToken);
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(route: "/api/v1/raw-ok", method: RequestMethod.Get.ToString(), cancellationToken);
 
         await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
 
@@ -47,7 +42,7 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestMissingMethod_ApplicationDecoder_ReturnsBadRequest() => RunAsync(async (context, cancellationToken) =>
+    public Task TestMissingMethod_ApplicationDecoder_ReturnsBadRequestAsync() => RunAsync(async (context, cancellationToken) =>
     {
         ReadOnlyMemory<byte> request =
             """{"protocolVersion":1,"kind":"request","route":"/api/v1/raw-ok","payloadType":"empty"}"""u8.ToArray();
@@ -62,7 +57,7 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestMalformedHeaderBytes_DoesNotTerminateProductionWorker() => RunAsync(async (context, cancellationToken) =>
+    public Task TestMalformedHeaderBytes_DoesNotTerminateProductionWorkerAsync() => RunAsync(async (context, cancellationToken) =>
     {
         ReadOnlyMemory<byte> garbage = Encoding.UTF8.GetBytes("{not-json\n{}\n");
 
@@ -100,15 +95,15 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task TestTransportIoFailure_DoesNotTerminateProductionWorker() =>
+    public Task TestTransportIoFailure_DoesNotTerminateProductionWorkerAsync() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new IOException("Simulated connection I/O failure."));
 
     [TestMethod]
-    public Task TestTransportSocketFailure_DoesNotTerminateProductionWorker() =>
+    public Task TestTransportSocketFailure_DoesNotTerminateProductionWorkerAsync() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new SocketException((int)SocketError.ConnectionReset));
 
     [TestMethod]
-    public Task TestTransportAuthenticationFailure_DoesNotTerminateProductionWorker() =>
+    public Task TestTransportAuthenticationFailure_DoesNotTerminateProductionWorkerAsync() =>
         ConnectionFailureDoesNotTerminateProductionWorkerAsync(new AuthenticationException("Simulated TLS authentication failure."));
 
     private Task ConnectionFailureDoesNotTerminateProductionWorkerAsync(Exception connectionFailure) => RunAsync(

@@ -8,8 +8,3 @@ internal interface IUfwCommand
 
     void SetOutput(string output);
 }
-
-internal interface IUfwCommand<TResult> : IUfwCommand
-{
-    ValueTask<TResult?> GetResultAsync(CancellationToken cancellationToken);
-}

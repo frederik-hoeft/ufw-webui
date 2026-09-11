@@ -1,6 +1,6 @@
 # Open tasks
 
-This file tracks only open project work. Remove an item when the corresponding work is completed and merged into the approved baseline.
+This file is temporary, non-normative working storage for unresolved design and implementation work. Remove completed items after they reach the approved baseline; steady-state behavior belongs in the permanent architecture, protocol, deployment, development, or testing documentation.
 
 ## Firewall rule ordering backend and signed mutation contract
 
@@ -45,10 +45,6 @@ The initial design should cover:
 - Keep the feature independent of daemon inventory/reconciliation unless a separate host-discovery requirement is introduced later. Unlike network interfaces, these records are intentionally ASP-owned rather than a cache of daemon-owned state.
 
 Consider whether a visibility/show-in-suggestions flag is useful for parity with network-interface authoring, but do not make hidden entries affect firewall validity: visibility would be a presentation preference only.
-
-## Replace static helpers with DI services
-
-Review reusable static helper classes, especially in shared libraries, and convert stateful, policy-bearing, or extensible behavior to injected services where doing so improves testability and substitution. Keep genuinely pure constants/trivial value helpers static where DI would add ceremony without a useful seam.
 
 ## Frontend follow-ups after visual polish
 

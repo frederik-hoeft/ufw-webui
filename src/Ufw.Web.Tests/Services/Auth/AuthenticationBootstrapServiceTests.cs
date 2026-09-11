@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,9 +20,7 @@ public sealed class AuthenticationBootstrapServiceTests
     public async Task ApplyAsync_MissingUser_CreatesConfirmedUserAsync()
     {
         await using TestIdentityHost host = await TestIdentityHost.CreateAsync(TestContext.CancellationToken);
-        AuthenticationBootstrapOptions options = CreateOptions(
-            email: "bootstrap@example.invalid",
-            password: "BootstrapPassword123");
+        AuthenticationBootstrapOptions options = CreateOptions(email: "bootstrap@example.invalid", password: "BootstrapPassword123");
 
         await host.ApplyAsync(options, TestContext.CancellationToken);
 
@@ -38,16 +36,10 @@ public sealed class AuthenticationBootstrapServiceTests
     public async Task ApplyAsync_ExistingUser_DoesNotResetPasswordAsync()
     {
         await using TestIdentityHost host = await TestIdentityHost.CreateAsync(TestContext.CancellationToken);
-        AuthenticationBootstrapOptions initialOptions = CreateOptions(
-            email: "bootstrap@example.invalid",
-            password: "InitialPassword1234",
-            emailConfirmed: false);
+        AuthenticationBootstrapOptions initialOptions = CreateOptions(email: "bootstrap@example.invalid", password: "InitialPassword1234", emailConfirmed: false);
         await host.ApplyAsync(initialOptions, TestContext.CancellationToken);
 
-        AuthenticationBootstrapOptions secondOptions = CreateOptions(
-            email: "bootstrap@example.invalid",
-            password: "ReplacementPassword123",
-            emailConfirmed: true);
+        AuthenticationBootstrapOptions secondOptions = CreateOptions(email: "bootstrap@example.invalid", password: "ReplacementPassword123", emailConfirmed: true);
         await host.ApplyAsync(secondOptions, TestContext.CancellationToken);
 
         IdentityUser? user = await host.UserManager.FindByEmailAsync("bootstrap@example.invalid");
@@ -61,16 +53,10 @@ public sealed class AuthenticationBootstrapServiceTests
     public async Task ApplyAsync_ExistingUser_DoesNotRequireConfiguredPasswordAsync()
     {
         await using TestIdentityHost host = await TestIdentityHost.CreateAsync(TestContext.CancellationToken);
-        AuthenticationBootstrapOptions initialOptions = CreateOptions(
-            email: "bootstrap@example.invalid",
-            password: "InitialPassword1234",
-            emailConfirmed: false);
+        AuthenticationBootstrapOptions initialOptions = CreateOptions(email: "bootstrap@example.invalid", password: "InitialPassword1234", emailConfirmed: false);
         await host.ApplyAsync(initialOptions, TestContext.CancellationToken);
 
-        AuthenticationBootstrapOptions secondOptions = CreateOptions(
-            email: "bootstrap@example.invalid",
-            password: null,
-            emailConfirmed: true);
+        AuthenticationBootstrapOptions secondOptions = CreateOptions(email: "bootstrap@example.invalid", password: null, emailConfirmed: true);
         await host.ApplyAsync(secondOptions, TestContext.CancellationToken);
 
         IdentityUser? user = await host.UserManager.FindByEmailAsync("bootstrap@example.invalid");
@@ -82,9 +68,7 @@ public sealed class AuthenticationBootstrapServiceTests
     public async Task ApplyAsync_MissingUserWithoutPassword_ThrowsAsync()
     {
         await using TestIdentityHost host = await TestIdentityHost.CreateAsync(TestContext.CancellationToken);
-        AuthenticationBootstrapOptions options = CreateOptions(
-            email: "bootstrap@example.invalid",
-            password: null);
+        AuthenticationBootstrapOptions options = CreateOptions(email: "bootstrap@example.invalid", password: null);
 
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
             () => host.ApplyAsync(options, TestContext.CancellationToken));
@@ -107,10 +91,7 @@ public sealed class AuthenticationBootstrapServiceTests
         Assert.IsFalse(options.IsValid());
     }
 
-    private static AuthenticationBootstrapOptions CreateOptions(
-        string email,
-        string? password,
-        bool emailConfirmed = true)
+    private static AuthenticationBootstrapOptions CreateOptions(string email, string? password, bool emailConfirmed = true)
     {
         AuthenticationBootstrapOptions options = new();
         options.Users.Add(new BootstrapUserOptions
@@ -128,11 +109,7 @@ public sealed class AuthenticationBootstrapServiceTests
         private readonly ServiceProvider _serviceProvider;
         private readonly AsyncServiceScope _scope;
 
-        private TestIdentityHost(
-            SqliteConnection connection,
-            ServiceProvider serviceProvider,
-            AsyncServiceScope scope,
-            UserManager<IdentityUser> userManager)
+        private TestIdentityHost(SqliteConnection connection, ServiceProvider serviceProvider, AsyncServiceScope scope, UserManager<IdentityUser> userManager)
         {
             _connection = connection;
             _serviceProvider = serviceProvider;
@@ -173,10 +150,7 @@ public sealed class AuthenticationBootstrapServiceTests
 
         public Task ApplyAsync(AuthenticationBootstrapOptions options, CancellationToken cancellationToken)
         {
-            AuthenticationBootstrapService service = new(
-                UserManager,
-                Options.Create(options),
-                NullLogger<AuthenticationBootstrapService>.Instance);
+            AuthenticationBootstrapService service = new(UserManager, Options.Create(options), NullLogger<AuthenticationBootstrapService>.Instance);
             return service.ApplyAsync(cancellationToken);
         }
 

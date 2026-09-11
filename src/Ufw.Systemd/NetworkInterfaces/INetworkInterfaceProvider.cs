@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.NetworkInterfaces;
+﻿namespace Ufw.Systemd.NetworkInterfaces;
 
 internal interface INetworkInterfaceProvider
 {

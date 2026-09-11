@@ -1,4 +1,4 @@
-using MudBlazor;
+﻿using MudBlazor;
 
 namespace Ufw.Client.Theming;
 

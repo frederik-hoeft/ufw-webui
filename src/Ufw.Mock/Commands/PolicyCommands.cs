@@ -1,12 +1,13 @@
 ﻿using ConsoleAppFramework;
+using Ufw.Mock.Services;
 
 namespace Ufw.Mock.Commands;
 
-internal sealed class PolicyCommands
+internal sealed class PolicyCommands(UfwPolicyService policies)
 {
-    public int Default(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).SetDefault(arguments);
+    public int Default([Argument] params string[] arguments) =>
+        policies.SetDefault(arguments);
 
-    public int Logging(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).SetLogging(arguments);
+    public int Logging([Argument] params string[] arguments) =>
+        policies.SetLogging(arguments);
 }

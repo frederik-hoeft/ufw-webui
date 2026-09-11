@@ -1,43 +1,34 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 
 namespace Ufw.Client.Auth;
 
-internal sealed class AuthenticationService(
+internal sealed class AuthenticationService
+(
     IAuthApiClient authApiClient,
     IAuthenticationSession session,
     IAuthenticationOperationCoordinator operationCoordinator,
-    TimeProvider timeProvider) : IAuthenticationService
+    TimeProvider timeProvider
+) : IAuthenticationService
 {
     private static readonly TimeSpan s_refreshLeadTime = TimeSpan.FromSeconds(30);
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
-    {
-        await RefreshAsync(rejectedAccessToken: null, cancellationToken);
-    }
+    public Task InitializeAsync(CancellationToken cancellationToken = default) => RefreshAsync(rejectedAccessToken: null, cancellationToken);
 
-    public async Task LoginAsync(string email, string password, CancellationToken cancellationToken = default)
-    {
-        await operationCoordinator.RunExclusiveAsync(
-            async operationCancellationToken =>
-            {
-                AuthTokenResponse token = await authApiClient.LoginAsync(
-                    new LoginRequest(email, password),
-                    operationCancellationToken);
-                session.SetToken(token.AccessToken, token.ExpiresAt);
-            },
-            cancellationToken);
-    }
+    public Task LoginAsync(string email, string password, CancellationToken cancellationToken = default) => operationCoordinator.RunExclusiveAsync(
+        async operationCancellationToken =>
+        {
+            AuthTokenResponse token = await authApiClient.LoginAsync(new LoginRequest(email, password), operationCancellationToken);
+            session.SetToken(token.AccessToken, token.ExpiresAt);
+        },
+        cancellationToken);
 
-    public async Task LogoutAsync(CancellationToken cancellationToken = default)
-    {
-        await operationCoordinator.RunExclusiveAsync(
-            async operationCancellationToken =>
-            {
-                await authApiClient.LogoutAsync(operationCancellationToken);
-                session.Clear();
-            },
-            cancellationToken);
-    }
+    public Task LogoutAsync(CancellationToken cancellationToken = default) => operationCoordinator.RunExclusiveAsync(
+        async operationCancellationToken =>
+        {
+            await authApiClient.LogoutAsync(operationCancellationToken);
+            session.Clear();
+        },
+        cancellationToken);
 
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
@@ -50,9 +41,7 @@ internal sealed class AuthenticationService(
         return await RefreshAsync(rejectedAccessToken: null, cancellationToken);
     }
 
-    public Task<string?> RefreshAfterUnauthorizedAsync(
-        string rejectedAccessToken,
-        CancellationToken cancellationToken = default)
+    public Task<string?> RefreshAfterUnauthorizedAsync(string rejectedAccessToken, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rejectedAccessToken);
         return RefreshAsync(rejectedAccessToken, cancellationToken);
@@ -64,43 +53,36 @@ internal sealed class AuthenticationService(
         session.ClearIfCurrent(rejectedAccessToken);
     }
 
-    private async Task<string?> RefreshAsync(string? rejectedAccessToken, CancellationToken cancellationToken)
-    {
-        return await operationCoordinator.RunExclusiveAsync(
-            async operationCancellationToken =>
+    private Task<string?> RefreshAsync(string? rejectedAccessToken, CancellationToken cancellationToken) => operationCoordinator.RunExclusiveAsync(
+        async operationCancellationToken =>
+        {
+            (string AccessToken, DateTimeOffset ExpiresAt)? current = session.Token;
+            if (rejectedAccessToken is null)
             {
-                (string AccessToken, DateTimeOffset ExpiresAt)? current = session.Token;
-                if (rejectedAccessToken is null)
-                {
-                    if (current is { } currentToken && IsFresh(currentToken, s_refreshLeadTime))
-                    {
-                        return currentToken.AccessToken;
-                    }
-                }
-                else if (current is { } currentToken
-                    && !string.Equals(currentToken.AccessToken, rejectedAccessToken, StringComparison.Ordinal)
-                    && IsFresh(currentToken, TimeSpan.Zero))
+                if (current is { } currentToken && IsFresh(currentToken, s_refreshLeadTime))
                 {
                     return currentToken.AccessToken;
                 }
+            }
+            else if (current is { } currentToken
+                && !string.Equals(currentToken.AccessToken, rejectedAccessToken, StringComparison.Ordinal)
+                && IsFresh(currentToken, TimeSpan.Zero))
+            {
+                return currentToken.AccessToken;
+            }
 
-                AuthTokenResponse? token = await authApiClient.TryRefreshAsync(operationCancellationToken);
-                if (token is null)
-                {
-                    session.Clear();
-                    return null;
-                }
+            AuthTokenResponse? token = await authApiClient.TryRefreshAsync(operationCancellationToken);
+            if (token is null)
+            {
+                session.Clear();
+                return null;
+            }
 
-                session.SetToken(token.AccessToken, token.ExpiresAt);
-                return token.AccessToken;
-            },
-            cancellationToken);
-    }
+            session.SetToken(token.AccessToken, token.ExpiresAt);
+            return token.AccessToken;
+        },
+        cancellationToken);
 
-    private bool IsFresh(
-        (string AccessToken, DateTimeOffset ExpiresAt) token,
-        TimeSpan requiredRemainingLifetime)
-    {
-        return token.ExpiresAt > timeProvider.GetUtcNow().Add(requiredRemainingLifetime);
-    }
+    private bool IsFresh((string AccessToken, DateTimeOffset ExpiresAt) token, TimeSpan requiredRemainingLifetime) =>
+        token.ExpiresAt > timeProvider.GetUtcNow().Add(requiredRemainingLifetime);
 }

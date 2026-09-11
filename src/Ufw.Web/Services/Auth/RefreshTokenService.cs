@@ -10,10 +10,7 @@ using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Services.Auth;
 
-internal sealed class RefreshTokenService(
-    ApplicationDbContext context,
-    IOptions<RefreshTokenOptions> options,
-    TimeProvider timeProvider) : IRefreshTokenService
+internal sealed class RefreshTokenService(ApplicationDbContext context, IOptions<RefreshTokenOptions> options, TimeProvider timeProvider) : IRefreshTokenService
 {
     private readonly RefreshTokenOptions _options = options.Value;
 

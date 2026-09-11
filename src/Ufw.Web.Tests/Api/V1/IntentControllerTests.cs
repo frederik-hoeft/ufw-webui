@@ -5,6 +5,7 @@ using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Api.V1.Errors;
 
 namespace Ufw.Web.Tests.Api.V1;
 
@@ -46,7 +47,7 @@ public sealed class IntentControllerTests
 
     private static IntentController CreateController(IUfwClient client)
     {
-        IntentController controller = new(client)
+        IntentController controller = new(client, new DaemonApiErrorMapper())
         {
             ControllerContext = new ControllerContext
             {

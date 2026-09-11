@@ -18,19 +18,13 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
         return Current;
     }
 
-    public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(
-        Guid interfaceId,
-        string? comment,
-        CancellationToken cancellationToken = default)
+    public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(Guid interfaceId, string? comment, CancellationToken cancellationToken = default)
     {
         Current = Normalize(await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken));
         return Current;
     }
 
-    public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(
-        Guid interfaceId,
-        bool isVisible,
-        CancellationToken cancellationToken = default)
+    public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(Guid interfaceId, bool isVisible, CancellationToken cancellationToken = default)
     {
         Current = Normalize(await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken));
         return Current;
@@ -50,7 +44,9 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
             throw new ApiProtocolException("Network-interface inventory response contains an invalid interface entry.");
         }
 
-        NetworkInterfaceInventoryItem[] interfaces = response.Interfaces
+        NetworkInterfaceInventoryItem[] interfaces =
+        [
+            .. response.Interfaces
             .Select(static entry => new NetworkInterfaceInventoryItem
             {
                 Id = entry.Id,
@@ -60,7 +56,7 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
             })
             .OrderByDescending(static entry => entry.IsVisible)
             .ThenBy(static entry => entry.Name, StringComparer.Ordinal)
-            .ToArray();
+        ];
 
         if (interfaces.Select(static entry => entry.Id).Distinct().Count() != interfaces.Length
             || interfaces.Select(static entry => entry.Name).Distinct(StringComparer.Ordinal).Count() != interfaces.Length)

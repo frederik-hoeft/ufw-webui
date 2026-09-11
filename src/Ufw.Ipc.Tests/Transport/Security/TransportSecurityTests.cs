@@ -1,14 +1,12 @@
 ﻿using System.Net.Security;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Transport.Security;
-using Ufw.Shared.Security.Certificates;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.Transport;
+using Ufw.Shared.Security.Certificates;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Transport.Security;
 using ClientCertificateValidationHandler = Ufw.Ipc.Client.Transport.Security.CertificateValidation.IRemoteCertificateValidationHandler;
@@ -330,7 +328,15 @@ public sealed class TransportSecurityTests
         }
     }
 
-    private sealed class TlsConnection(SslStream client, SslStream server, ClientTransportSecurityService clientSecurity, ServerTransportSecurityService serverSecurity, Stream clientInner, Stream serverInner) : IAsyncDisposable
+    private sealed class TlsConnection
+    (
+        SslStream client,
+        SslStream server,
+        ClientTransportSecurityService clientSecurity,
+        ServerTransportSecurityService serverSecurity,
+        Stream clientInner,
+        Stream serverInner
+    ) : IAsyncDisposable
     {
         public SslStream Client { get; } = client;
 

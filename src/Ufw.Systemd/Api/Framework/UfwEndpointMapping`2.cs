@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Shared.Ipc.Protocol;
-using Ufw.Shared.Ipc.Serialization;
 using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
+using Ufw.Shared.Ipc.Protocol;
+using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Systemd.Api.Framework;
 
@@ -44,7 +44,8 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
         }
         catch (Exception e)
         {
-            return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);
+            IApiExceptionMapper exceptionMapper = serviceProvider.GetRequiredService<IApiExceptionMapper>();
+            return await messageSerializer.SerializeResponseAsync(exceptionMapper.Map(e), cancellationToken);
         }
         return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
     }

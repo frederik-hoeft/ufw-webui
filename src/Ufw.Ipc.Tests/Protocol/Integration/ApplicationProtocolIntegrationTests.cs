@@ -1,10 +1,10 @@
 ﻿using Ufw.Ipc.Client;
+using Ufw.Ipc.Tests.Adapter;
+using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
-using Ufw.Ipc.Tests.Adapter;
-using Ufw.Ipc.Tests.Adapter.Endpoints;
 
 namespace Ufw.Ipc.Tests.Protocol.Integration;
 
@@ -14,9 +14,7 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     protected override ValueTask ConfigureEndpointsAsync(ITestEndpointMapBuilder endpoints, CancellationToken cancellationToken)
     {
         endpoints.MapGet("/api/v1/ping", static _ => ValueTask.FromResult(new OkResponse()));
-        endpoints.MapPost<EchoRequest, EchoResponse>(
-            "/api/v1/echo",
-            static (request, _) => ValueTask.FromResult(new EchoResponse(request.Message)));
+        endpoints.MapPost<EchoRequest, EchoResponse>("/api/v1/echo", static (request, _) => ValueTask.FromResult(new EchoResponse(request.Message)));
         endpoints.MapPost<EchoRequest, OkResponse>(
             "/api/v1/validate",
             static (request, _) =>
@@ -32,25 +30,21 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }
 
     [TestMethod]
-    public Task TestTypedPing_StillReturnsOk() => RunAsync(async (context, cancellationToken) =>
+    public Task TestTypedPing_StillReturnsOkAsync() => RunAsync(async (context, cancellationToken) =>
     {
         OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/ping", cancellationToken);
         Assert.IsNotNull(response);
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestTypedEcho_StillRoundTrips() => RunAsync(async (context, cancellationToken) =>
+    public Task TestTypedEcho_StillRoundTripsAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        EchoResponse response = await context.SendAsync<EchoRequest, EchoResponse>(
-            RequestMethod.Post,
-            "/api/v1/echo",
-            new EchoRequest("itp"),
-            cancellationToken);
+        EchoResponse response = await context.SendAsync<EchoRequest, EchoResponse>(RequestMethod.Post, "/api/v1/echo", new EchoRequest("itp"), cancellationToken);
         Assert.AreEqual("itp", response.Message);
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestUnknownRoute_StillReturns404ErrorPayload() => RunAsync(async (context, cancellationToken) =>
+    public Task TestUnknownRoute_StillReturns404ErrorPayloadAsync() => RunAsync(async (context, cancellationToken) =>
     {
         UfwIpcException exception = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
             _ = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/missing", cancellationToken));
@@ -59,7 +53,7 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestGeneric400AndValidation400_AreDistinctOnTheWire() => RunAsync(async (context, cancellationToken) =>
+    public Task TestGeneric400AndValidation400_AreDistinctOnTheWireAsync() => RunAsync(async (context, cancellationToken) =>
     {
         ReadOnlyMemory<byte> missingMethod =
             """{"protocolVersion":1,"kind":"request","route":"/api/v1/ping","payloadType":"empty"}"""u8.ToArray();
@@ -75,7 +69,7 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestResponseOnlyRepresentationOnRequest_IsRejectedBeforeRouting() => RunAsync(async (context, cancellationToken) =>
+    public Task TestResponseOnlyRepresentationOnRequest_IsRejectedBeforeRoutingAsync() => RunAsync(async (context, cancellationToken) =>
     {
         ReadOnlyMemory<byte> invalidRequest =
             """{"protocolVersion":1,"kind":"request","method":"GET","route":"/api/v1/ping","payloadType":"error","payload":{"message":"x"}}"""u8.ToArray();
@@ -86,12 +80,9 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestRawExchange_OkHasEmptyPayloadType() => RunAsync(async (context, cancellationToken) =>
+    public Task TestRawExchange_OkHasEmptyPayloadTypeAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
-            "/api/v1/ping",
-            RequestMethod.Get.ToString(),
-            cancellationToken);
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync("/api/v1/ping", RequestMethod.Get.ToString(), cancellationToken);
         await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
         Assert.AreEqual(ApplicationMessageKind.Response, response.Kind);
         Assert.AreEqual(200, response.StatusCode);
@@ -100,13 +91,9 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestRawExchange_ResponsePayloadRemainsReadableAfterTransportIsReleased() => RunAsync(async (context, cancellationToken) =>
+    public Task TestRawExchange_ResponsePayloadRemainsReadableAfterTransportIsReleasedAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync(
-            "/api/v1/echo",
-            RequestMethod.Post.ToString(),
-            new EchoRequest("buffered"),
-            cancellationToken);
+        await using IRequestMessage request = await context.MessageSerializer.SerializeRequestAsync("/api/v1/echo", RequestMethod.Post.ToString(), new EchoRequest("buffered"), cancellationToken);
 
         await using IResponseMessage response = await context.ExchangeRawAsync(request, cancellationToken);
 
@@ -115,7 +102,7 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestCancellation_UnblocksClient() => RunAsync(async (context, cancellationToken) =>
+    public Task TestCancellation_UnblocksClientAsync() => RunAsync(async (context, cancellationToken) =>
     {
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         await cts.CancelAsync();
@@ -124,7 +111,7 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestValidationErrorResponse_IsNotTreatedAsGenericBadRequest() => RunAsync(
+    public Task TestValidationErrorResponse_IsNotTreatedAsGenericBadRequestAsync() => RunAsync(
         configureEndpoints: static endpoints => endpoints
             .MapPost<EchoRequest, ModelValidationErrorResponse>("/api/v1/reject", static (_, _) =>
                 ValueTask.FromResult(new ModelValidationErrorResponse([new ModelValidationError("message", "required")]))),

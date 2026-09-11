@@ -1,11 +1,10 @@
 ﻿using System.Security.Cryptography;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses;
-using Ufw.Shared.Security.Intent;
 using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Systemd.Firewall;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 
@@ -220,16 +219,9 @@ public sealed class IntentSignatureTests
                 DestinationPorts = "22,80",
             }
         };
-        AddRuleRequest request = IntentRequestFactory.CreateAddRequest(
-            key,
-            DEPLOYMENT_ID,
-            left,
-            MessageJsonSerializerContext.Default.AddRulePayload,
-            clock);
+        AddRuleRequest request = IntentRequestFactory.CreateAddRequest(key, DEPLOYMENT_ID, left, MessageJsonSerializerContext.Default.AddRulePayload, clock);
 
-        CollectionAssert.AreEqual(
-            IntentCanonicalizer.CanonicalizeAdd(request, left),
-            IntentCanonicalizer.CanonicalizeAdd(request, right));
+        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeAdd(request, left), IntentCanonicalizer.CanonicalizeAdd(request, right));
     }
 
     [TestMethod]
@@ -257,12 +249,7 @@ public sealed class IntentSignatureTests
                 DestinationPorts = "22",
             }
         };
-        AddRuleRequest request = IntentRequestFactory.CreateAddRequest(
-            key,
-            DEPLOYMENT_ID,
-            ipv4,
-            MessageJsonSerializerContext.Default.AddRulePayload,
-            clock);
+        AddRuleRequest request = IntentRequestFactory.CreateAddRequest(key, DEPLOYMENT_ID, ipv4, MessageJsonSerializerContext.Default.AddRulePayload, clock);
 
         Assert.IsFalse(IntentCanonicalizer.CanonicalizeAdd(request, ipv4)
             .SequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, ipv6)));
@@ -290,12 +277,7 @@ public sealed class IntentSignatureTests
     {
         StaticAuthorizedKeyStore keys = new(authorizedKey);
         TestConfiguration configuration = new(TestAppSettingsFactory.Create());
-        return new IntentVerifier(
-            keys,
-            new StaticDeploymentIdentityProvider(deploymentId),
-            configuration,
-            clock,
-            MessageJsonSerializerContext.Default);
+        return new IntentVerifier(keys, new StaticDeploymentIdentityProvider(deploymentId), configuration, clock, MessageJsonSerializerContext.Default);
     }
 
     private static void AssertRejected<TResponse>(IntentVerificationResult result) where TResponse : IResponsePayload

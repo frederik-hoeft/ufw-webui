@@ -1,14 +1,15 @@
 ﻿using ConsoleAppFramework;
+using Ufw.Mock.Services;
 
 namespace Ufw.Mock.Commands;
 
-internal sealed class LifecycleCommands
+internal sealed class LifecycleCommands(UfwLifecycleService lifecycle)
 {
-    public int Enable(ConsoleAppContext context, [Argument] params string[] arguments) => CommandRuntime.Create(context).Enable(arguments);
+    public int Enable([Argument] params string[] arguments) => lifecycle.Enable(arguments);
 
-    public int Disable(ConsoleAppContext context, [Argument] params string[] arguments) => CommandRuntime.Create(context).Disable(arguments);
+    public int Disable([Argument] params string[] arguments) => lifecycle.Disable(arguments);
 
-    public int Reload(ConsoleAppContext context, [Argument] params string[] arguments) => CommandRuntime.Create(context).Reload(arguments);
+    public int Reload([Argument] params string[] arguments) => lifecycle.Reload(arguments);
 
-    public int Reset(ConsoleAppContext context, [Argument] params string[] arguments) => CommandRuntime.Create(context).Reset(arguments);
+    public int Reset([Argument] params string[] arguments) => lifecycle.Reset(arguments);
 }

@@ -92,12 +92,7 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
             return null;
         }
 
-        return new ApiMappingClassInfo(
-            classSymbol,
-            factoryType,
-            requestEnvelopeType,
-            responseEnvelopeType,
-            [.. controllerRegistrations]);
+        return new ApiMappingClassInfo(classSymbol, factoryType, requestEnvelopeType, responseEnvelopeType, [.. controllerRegistrations]);
     }
 
     private static void Execute(Compilation compilation, ImmutableArray<ApiMappingClassInfo> mappingClasses, SourceProductionContext context)
@@ -107,10 +102,7 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
         {
             if (mappingClass.ControllerRegistrations.Length == 0)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.MissingControllerRegistrations,
-                    mappingClass.ClassSymbol.Locations.FirstOrDefault(),
-                    mappingClass.ClassSymbol.Name));
+                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.MissingControllerRegistrations, mappingClass.ClassSymbol.Locations.FirstOrDefault(), mappingClass.ClassSymbol.Name));
             }
             BindingClassProcessor mappingClassProcessor = new(context, compilation, mappingClass);
             BindingClassProcessorResult result = mappingClassProcessor.Process();

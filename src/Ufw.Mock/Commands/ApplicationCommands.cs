@@ -1,17 +1,18 @@
 ﻿using ConsoleAppFramework;
+using Ufw.Mock.Services;
 
 namespace Ufw.Mock.Commands;
 
-internal sealed class ApplicationCommands
+internal sealed class ApplicationCommands(UfwApplicationService applications)
 {
-    public int List(ConsoleAppContext context, [Argument] params string[] arguments) => CommandRuntime.Create(context).AppList(arguments);
+    public int List([Argument] params string[] arguments) => applications.List(arguments);
 
-    public int Info(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).AppInfo(arguments);
+    public int Info([Argument] params string[] arguments) =>
+        applications.Info(arguments);
 
-    public int Default(ConsoleAppContext context, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).AppDefault(arguments);
+    public int Default([Argument] params string[] arguments) =>
+        applications.SetDefault(arguments);
 
-    public int Update(ConsoleAppContext context, bool addNew = false, [Argument] params string[] arguments) =>
-        CommandRuntime.Create(context).AppUpdate(addNew, arguments);
+    public int Update(bool addNew = false, [Argument] params string[] arguments) =>
+        applications.Update(addNew, arguments);
 }

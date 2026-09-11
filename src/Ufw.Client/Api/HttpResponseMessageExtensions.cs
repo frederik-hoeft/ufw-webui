@@ -1,4 +1,5 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Ufw.Client.Serialization;
 
@@ -6,10 +7,7 @@ namespace Ufw.Client.Api;
 
 internal static class HttpResponseMessageExtensions
 {
-    public static async Task<T> ReadRequiredAsync<T>(
-        this HttpResponseMessage response,
-        JsonTypeInfo<T> jsonTypeInfo,
-        CancellationToken cancellationToken)
+    public static async Task<T> ReadRequiredAsync<T>(this HttpResponseMessage response, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken)
     {
         if (!response.IsSuccessStatusCode)
         {
@@ -21,22 +19,18 @@ internal static class HttpResponseMessageExtensions
             T? value = await response.Content.ReadFromJsonAsync(jsonTypeInfo, cancellationToken);
             return value ?? throw new ApiProtocolException("The management API returned an empty response.");
         }
-        catch (Exception exception) when (exception is NotSupportedException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is NotSupportedException or JsonException)
         {
             throw new ApiProtocolException("The management API returned an invalid JSON response.", exception);
         }
     }
 
-    public static async Task<ApiRequestException> CreateExceptionAsync(
-        this HttpResponseMessage response,
-        CancellationToken cancellationToken)
+    public static async Task<ApiRequestException> CreateExceptionAsync(this HttpResponseMessage response, CancellationToken cancellationToken)
     {
         string message = $"The API request failed with status {(int)response.StatusCode}.";
         try
         {
-            ApiProblemDetails? problem = await response.Content.ReadFromJsonAsync(
-                ClientJsonSerializerContext.Default.ApiProblemDetails,
-                cancellationToken);
+            ApiProblemDetails? problem = await response.Content.ReadFromJsonAsync(ClientJsonSerializerContext.Default.ApiProblemDetails, cancellationToken);
             if (problem is not null)
             {
                 if (problem.Errors is { Count: > 0 })
@@ -58,15 +52,11 @@ internal static class HttpResponseMessageExtensions
                 }
             }
         }
-        catch (Exception exception) when (exception is HttpRequestException or NotSupportedException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or NotSupportedException or JsonException)
         {
             // Preserve the status-based fallback for non-problem responses.
         }
 
-        return new ApiRequestException(
-            response.StatusCode,
-            message,
-            response.RequestMessage?.Method,
-            response.RequestMessage?.RequestUri);
+        return new ApiRequestException(response.StatusCode, message, response.RequestMessage?.Method, response.RequestMessage?.RequestUri);
     }
 }

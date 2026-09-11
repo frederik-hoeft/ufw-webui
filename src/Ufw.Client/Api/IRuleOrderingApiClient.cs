@@ -1,4 +1,4 @@
-namespace Ufw.Client.Api;
+﻿namespace Ufw.Client.Api;
 
 /// <summary>
 /// Browser-facing boundary for confirmed firewall rule ordering mutations.

@@ -1,5 +1,4 @@
-﻿using Wkg.EntityFrameworkCore.Configuration;
-using Wkg.EntityFrameworkCore.Discovery.SourceGeneration;
+﻿using Wkg.EntityFrameworkCore.Discovery.SourceGeneration;
 
 namespace Ufw.Web.Data;
 

@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Configuration;
-
-namespace Ufw.Client.Configuration;
+﻿namespace Ufw.Client.Configuration;
 
 internal static class ClientRuntimeConfiguration
 {
@@ -18,7 +16,7 @@ internal static class ClientRuntimeConfiguration
         }
 
         Uri? address;
-        if (Uri.IsWellFormedUriString(configuredValue, UriKind.Absolute) 
+        if (Uri.IsWellFormedUriString(configuredValue, UriKind.Absolute)
             && Uri.TryCreate(configuredValue, UriKind.Absolute, out Uri? absoluteAddress))
         {
             address = absoluteAddress;

@@ -2,7 +2,7 @@
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints.Analyzers;
 
-internal class EndpointSignatureAnalyzerContext
+internal sealed class EndpointSignatureAnalyzerContext
 {
     public INamedTypeSymbol? ReturnType { get; set; }
 

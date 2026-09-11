@@ -13,6 +13,7 @@ readonly IPC_SOCKET="$IPC_DIR/ufw-systemd.sock"
 readonly LEGACY_IPC_SOCKET="/run/ufw-manager/ufw-systemd.sock"
 readonly UNIT_TARGET="/etc/systemd/system/ufw-systemd.service"
 readonly DOC_DIR="/usr/local/share/doc/ufw-webui"
+readonly DOC_SOURCE_DIR="$SCRIPT_DIR/../../docs"
 
 BINARY_SOURCE=""
 SETTINGS_SOURCE=""
@@ -129,9 +130,16 @@ fi
 sed "s/@IPC_GROUP@/$IPC_GROUP/g" "$SCRIPT_DIR/ufw-systemd.service.in" \
     | install -o root -g root -m 0644 /dev/stdin "$UNIT_TARGET"
 
-if [[ -f "$SCRIPT_DIR/../../docs/deployment/deployment.md" ]]; then
-    install -o root -g root -m 0644 "$SCRIPT_DIR/../../docs/deployment/deployment.md" "$DOC_DIR/deployment.md"
-fi
+for section in architecture deployment protocols; do
+    source_dir="$DOC_SOURCE_DIR/$section"
+    [[ -d "$source_dir" ]] || continue
+
+    install -d -o root -g root -m 0755 "$DOC_DIR/$section"
+    for doc in "$source_dir"/*.md; do
+        [[ -f "$doc" ]] || continue
+        install -o root -g root -m 0644 "$doc" "$DOC_DIR/$section/$(basename "$doc")"
+    done
+done
 
 systemctl daemon-reload
 if [[ "$START_SERVICE" == true ]]; then

@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
 
 namespace Ufw.Shared.Tests.Firewall.Rendering;
@@ -140,5 +140,4 @@ public sealed class UfwRuleCommandRendererTests
         Assert.IsFalse(rendered);
         Assert.IsNull(result);
     }
-
 }

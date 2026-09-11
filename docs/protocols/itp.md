@@ -1,195 +1,135 @@
 # IPC Transport Protocol (ITP) v1
 
-ITP is the wire-level framing protocol used between `Ufw.Web` and
-`Ufw.Systemd`. It is versioned independently of the HTTP API and independently
-of the application-level IPC protocol.
+ITP is the framing protocol used on the local stream between the web application and daemon. It establishes wire compatibility before application decoding, bounds allocation from untrusted lengths, reassembles frames from arbitrary stream fragments, and provides a small transport-error vocabulary when a v1 peer can be identified safely.
 
-ITP exists so a receiving peer can establish wire compatibility before parsing
-a version-specific frame, reassemble frames from arbitrary stream fragments,
-reject unsafe lengths and unsupported packet metadata before application
-decoding, and report recognized v1 framing failures as structured transport
-errors.
+ITP does not define application routes, JSON semantics, authentication, sessions, multiplexing, or mutation authorization. A connection carries at most one application exchange.
 
-ITP owns only wire framing and transport-level classification. It does not
-implement protocol negotiation, sessions, multiplexing, request correlation, or
-application routing. A connection carries at most one application exchange.
+The requirement words in this document describe interoperability requirements for UFW WebUI implementations; they are not a claim of external standardization.
 
-## Layering
+## Stable bootstrap
 
-```text
- application protocol bytes
-          |
-          v
- ITP: [ stable preamble | v1 header | opaque payload ]
-          |
-          v
- Stream (named pipe / Unix socket / TLS / in-process duplex)
-```
+Every frame begins with a four-byte preamble that is independent of the version-specific frame format.
 
-For `ApplicationData`, ITP classifies the upper-layer payload format but does
-not inspect the payload bytes themselves. The only application format currently
-recognized is `IpcJson`.
+| Offset | Size | Field | v1 value |
+| ---: | ---: | --- | --- |
+| `0` | 3 | magic | ASCII `ITP` (`49 54 50` hex) |
+| `3` | 1 | version | `01` hex |
 
-## Version bootstrap
+A receiver MUST read and validate only this preamble before selecting a version-specific parser.
 
-Every ITP frame begins with a four-byte, version-independent preamble:
+If the magic is invalid, the receiver MUST close the connection and MUST NOT send a transport-error frame because the peer has not been established as an ITP peer.
 
-```text
- Offset  Size  Field
- 0       3     Magic      0x49 0x54 0x50 ("ITP")
- 3       1     Version
-```
-
-A receiver reads only this preamble before selecting a version-specific parser.
-The current wire version is `1`.
-
-If the magic is invalid, the receiver reports `InvalidMagic` locally and closes
-the connection. The peer may not speak ITP, so no transport-error frame is
-sent.
-
-If the version is unsupported, the receiver reports `VersionMismatch` locally
-and closes the connection without parsing any further bytes. It does not assume
-that another version understands the v1 header or v1 transport-error format.
-This keeps future versions free to change everything after the stable preamble.
+If the version is unsupported, the receiver MUST close the connection without interpreting any version-specific bytes. A v1 implementation MUST NOT assume that another version understands the v1 error-frame format.
 
 There is no version negotiation or fallback handshake.
 
 ## Version 1 frame
 
-After the stable preamble, v1 adds a six-byte header followed by the declared
-payload. All multi-byte integers are unsigned and big-endian.
+After the stable preamble, v1 appends a six-byte header followed by the declared payload. Multi-byte integers use network byte order (big-endian).
 
-```text
- Offset  Size  Field
- 0       3     Magic          "ITP"
- 3       1     Version        0x01
- 4       1     PacketType
- 5       1     PayloadFormat
- 6       4     PayloadLength  uint32
- 10      N     Payload        N = PayloadLength
-```
+| Offset | Size | Field | Encoding |
+| ---: | ---: | --- | --- |
+| `0` | 3 | magic | ASCII `ITP` |
+| `3` | 1 | version | unsigned byte, `1` |
+| `4` | 1 | packet type | registry below |
+| `5` | 1 | payload format | registry below |
+| `6` | 4 | payload length | unsigned 32-bit big-endian |
+| `10` | N | payload | exactly `payload length` bytes |
 
-The v1 header is 10 bytes total. There is no trailer, checksum, flags field, or
-reserved extension area.
+The fixed v1 header is 10 bytes. v1 has no flags, trailer, checksum, or reserved extension bytes.
 
-`PayloadLength` is untrusted. It is compared against the configured maximum
-before allocating or reading the payload. The default maximum is 16 MiB.
-Partial `Stream.Read` results are normal; the receiver accumulates bytes until
-each required portion is complete.
+`payload length` is untrusted. A receiver MUST reject a value above its configured limit before allocating or reading the payload. The project default limit is 16 MiB.
 
-ITP relies on the underlying ordered stream for reliable delivery. CRC-32 is
-not used because it would not authenticate a hostile local peer and provides no
-material protocol guarantee for the supported transports.
+A stream read is not required to return all requested bytes. Receivers MUST continue reading until each fixed field and the declared payload are complete or the stream ends/cancels.
 
-## Packet types and payload formats
+ITP relies on the ordered stream for reliable delivery. It does not add a checksum; a CRC would neither authenticate a hostile local peer nor add a useful guarantee for the supported transports.
 
-Two packet types exist:
+## Packet and payload registries
 
-| Value | Name | Payload format | Payload |
-| --- | --- | --- | --- |
-| `0x01` | `ApplicationData` | `0x01` (`IpcJson`) | Opaque application-protocol bytes |
-| `0x02` | `TransportError` | `0x00` (`None`) | Structured ITP error |
+v1 defines two packet types.
+
+| Value | Name | Required payload format | Meaning |
+| ---: | --- | ---: | --- |
+| `0x01` | `ApplicationData` | `0x01` (`IpcJson`) | opaque application-protocol bytes |
+| `0x02` | `TransportError` | `0x00` (`None`) | structured ITP failure |
 
 Any other packet type is `UnsupportedPacketType`.
 
-`ApplicationData` must identify a recognized application payload format. An
-unknown value is `UnsupportedPayloadFormat`, and the payload body is not read
-or passed to the application decoder. An empty `ApplicationData` payload is
-`EmptyApplicationPayload`.
+`ApplicationData` MUST use a recognized non-`None` application payload format. v1 recognizes only `IpcJson`. A receiver MUST reject an unknown payload format before passing any bytes to the application decoder. A zero-length `ApplicationData` payload is `EmptyApplicationPayload`.
 
-`TransportError` is an ITP message rather than application data, so its
-`PayloadFormat` must be `None`. Any other value is an invalid v1 frame.
+`TransportError` MUST use the `None` payload format. Any other combination is `InvalidFrame`.
 
-## Transport error payload
+## Transport-error payload
 
-The v1 `TransportError` payload is also big-endian:
+A v1 `TransportError` payload has this layout:
 
-```text
- Offset  Size  Field
- 0       2     ErrorCode      uint16
- 2       2     MessageLength  uint16
- 4       M     Message        UTF-8, M = MessageLength
-```
+| Offset | Size | Field | Encoding |
+| ---: | ---: | --- | --- |
+| `0` | 2 | error code | unsigned 16-bit big-endian |
+| `2` | 2 | message length | unsigned 16-bit big-endian |
+| `4` | M | message | UTF-8 diagnostic text |
 
-`Message` is diagnostic only. Receivers do not parse it as a protocol token.
-Its encoded UTF-8 form is limited to 1024 bytes; senders truncate longer
-diagnostics at a valid character boundary. `MessageLength` must exactly match
-the remaining payload length, remain within that bound, and name valid UTF-8.
-A violation is `InvalidFrame`.
+The UTF-8 message is diagnostic only and MUST NOT be interpreted as a protocol token. Its encoded size is limited to 1024 bytes. Senders truncate longer diagnostics at a valid UTF-8 character boundary.
+
+`message length` MUST equal the exact number of remaining bytes, MUST remain within the 1024-byte limit, and MUST identify valid UTF-8. Violations are `InvalidFrame`.
 
 ### Error codes
 
 | Code | Name | Meaning |
-| --- | --- | --- |
-| `0x0001` | `InvalidMagic` | Stable preamble does not begin with `ITP` |
-| `0x0002` | `VersionMismatch` | Stable preamble names an unsupported ITP version |
+| ---: | --- | --- |
+| `0x0001` | `InvalidMagic` | stable preamble does not begin with `ITP` |
+| `0x0002` | `VersionMismatch` | preamble names an unsupported ITP version |
 | `0x0003` | `UnsupportedPacketType` | v1 packet type is unknown |
-| `0x0004` | `UnsupportedPayloadFormat` | `ApplicationData` names an unsupported upper-layer format |
-| `0x0005` | `IncompleteFrame` | EOF before the required preamble, header, or payload completes |
-| `0x0006` | `PayloadTooLarge` | Declared payload exceeds the configured maximum |
-| `0x0007` | `InvalidFrame` | Another v1 framing constraint is violated |
-| `0x0008` | `EmptyApplicationPayload` | `ApplicationData` declares zero payload bytes |
+| `0x0004` | `UnsupportedPayloadFormat` | `ApplicationData` names an unsupported application format |
+| `0x0005` | `IncompleteFrame` | EOF occurs before the required frame bytes are complete |
+| `0x0006` | `PayloadTooLarge` | declared payload exceeds the configured limit |
+| `0x0007` | `InvalidFrame` | another v1 framing invariant is violated |
+| `0x0008` | `EmptyApplicationPayload` | `ApplicationData` contains zero payload bytes |
 
-A locally detected v1 failure is written back as `TransportError` only after
-the receiver has enough valid context to know that the peer speaks v1 and that
-the incoming packet is not itself a `TransportError`. Preamble failures and an
-incomplete v1 header therefore close the connection without a protocol reply.
-Failures in a recognized `ApplicationData` frame may return a structured error
-when the stream remains usable.
+## Error reply rules
 
-A received `TransportError`, including one with a malformed transport-error
-payload, never triggers another `TransportError`. A valid peer error is surfaced
-to the local caller as an `ItpException` with `IsPeerReported = true`; malformed
-peer-error payloads are local `InvalidFrame` failures. Neither reaches the
-application decoder.
+A receiver MAY return a `TransportError` only after it has enough valid context to know that the peer speaks v1 and that replying with a v1 frame is safe.
 
-## Receiver algorithm
+The following failures therefore close the connection without a protocol reply:
 
-1. Read exactly the four-byte stable preamble, tolerating fragmented reads.
-2. Validate `Magic`.
-3. Inspect `Version` and select its parser. Unsupported versions stop here.
-4. For v1, read exactly the remaining six header bytes.
-5. Parse `PacketType`, `PayloadFormat`, and `PayloadLength`.
-6. Reject a declared length above the configured maximum before allocating or
-   reading the payload.
-7. Validate the packet type and its payload-format combination. Unsupported
-   application formats stop here, before the body is read.
-8. Read exactly `PayloadLength` bytes.
-9. Surface `TransportError` as a transport failure, or deliver recognized
-   `ApplicationData` bytes to the application codec.
+- invalid magic;
+- unsupported version;
+- EOF before the complete v1 header is available.
 
-No application JSON parsing occurs until all ITP validation for the frame has
-succeeded.
+A failure detected in a recognized incoming `ApplicationData` frame MAY be returned as a structured `TransportError` if the stream remains usable.
+
+An incoming `TransportError` is terminal. A receiver MUST NOT answer it with another `TransportError`, even when the peer's error payload is malformed. A valid peer error is surfaced locally as a peer-reported transport failure; a malformed peer-error payload is a local `InvalidFrame` failure.
+
+## Receiver procedure
+
+A conforming v1 receiver performs these checks in order:
+
+1. read exactly the four-byte stable preamble;
+2. validate magic;
+3. select the parser for the declared version;
+4. read the remaining six v1 header bytes;
+5. parse packet type, payload format, and declared length;
+6. reject a length above the configured maximum before allocation;
+7. validate the packet-type/payload-format combination;
+8. read exactly the declared payload bytes;
+9. surface `TransportError`, or deliver recognized `ApplicationData` bytes to the application codec.
+
+Application JSON MUST NOT be decoded before the complete ITP frame passes these checks.
+
+## Connection and lifetime rules
+
+The client opens a connection, writes one `ApplicationData` frame, reads one response frame, and closes the connection. The daemon accepts a connection, reads one frame, optionally writes one frame, and closes the connection.
+
+ITP stores no state across connections.
+
+Stream security, when configured, wraps the stream below ITP. ITP does not know whether the underlying bytes are carried by a Unix-domain socket, Windows named pipe, in-process test transport, or TLS-wrapped stream.
 
 ## Timeouts and cancellation
 
-ITP has no timeout field. `TimedStream` applies an idle timeout independently
-to each asynchronous read and write operation. Successful I/O starts the next
-operation with a fresh idle window, so this bound detects a peer that stops
-making progress rather than measuring the total frame duration.
+ITP has no timeout or cancellation fields.
 
-The connection owner also applies an overall request/response deadline around
-the transaction. That deadline is not reset by partial reads or writes, so a
-peer cannot keep a connection alive indefinitely by trickling bytes within the
-I/O timeout. Client cancellation and daemon shutdown cancellation are kept
-distinct from expiration of this internal deadline. Either configured timeout
-may be explicitly disabled with `Timeout.InfiniteTimeSpan`. A timed-out,
-cancelled, or truncated read is not a valid frame and the connection is
-abandoned.
+Connection owners apply a per-operation idle timeout to asynchronous reads and writes. A successful I/O operation starts a fresh idle window for the next operation. This detects a peer that stops making progress.
 
-## Connection model
+An independent request deadline bounds the complete exchange, including application processing, and is not reset by partial progress. These deadlines are connection policy supplied by the owning application rather than values negotiated by ITP.
 
-The daemon accepts a connection, reads one frame, optionally writes one frame,
-and disposes the connection. The client connects, writes one `ApplicationData`
-frame, reads one frame, and disposes the connection. A second request uses a
-new connection.
-
-ITP stores no session state between connections.
-
-## Layer boundary
-
-Stream security, when configured, wraps the stream below ITP. Methods, routes,
-statuses, DTO representations, and JSON semantics belong to the application
-protocol and routing layers above it. Keeping those responsibilities separate
-allows ITP to reject framing incompatibility without invoking application JSON
-decoding.
+Timeout, cancellation, or EOF before a complete frame is available means no valid frame was received. The connection is abandoned rather than reused.

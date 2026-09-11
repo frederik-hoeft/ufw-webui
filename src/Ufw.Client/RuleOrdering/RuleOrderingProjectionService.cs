@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 using Ufw.Client.Api;
 using Ufw.Client.Localization;
 using Ufw.Shared.Firewall;
@@ -7,10 +7,7 @@ namespace Ufw.Client.RuleOrdering;
 
 internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesStrings> rulesText) : IRuleOrderingProjectionService
 {
-    public RuleOrderingPreview Move(
-        IReadOnlyList<ListedFirewallRule> authoritativeRules,
-        RuleOrderingPreview? currentPreview,
-        RuleMoveRequest request)
+    public RuleOrderingPreview Move(IReadOnlyList<ListedFirewallRule> authoritativeRules, RuleOrderingPreview? currentPreview, RuleMoveRequest request)
     {
         ArgumentNullException.ThrowIfNull(authoritativeRules);
         ArgumentNullException.ThrowIfNull(request);
@@ -47,9 +44,7 @@ internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesString
         List<RuleMoveRequest> moves = currentPreview is null ? [] : [.. currentPreview.Moves];
         moves.Add(request);
 
-        ListedFirewallRule[] renumbered = ordered
-            .Select((rule, index) => CopyWithDisplayNumber(rule, index + 1))
-            .ToArray();
+        ListedFirewallRule[] renumbered = [.. ordered.Select((rule, index) => CopyWithDisplayNumber(rule, index + 1))];
 
         return new RuleOrderingPreview(renumbered, originalPositions, directlyMovedRuleIds, moves);
     }

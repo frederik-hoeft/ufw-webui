@@ -16,9 +16,7 @@ public sealed class UfwClientBuilderTests
         UfwClientOptions options = builder.ConnectTo(TestEndpoint).Build();
 
         Assert.AreEqual(".", options.ServerName);
-        Assert.AreEqual(
-            OperatingSystem.IsWindows() ? "ufw-client-builder-tests.pipe" : TestEndpoint,
-            options.PipeName);
+        Assert.AreEqual(OperatingSystem.IsWindows() ? "ufw-client-builder-tests.pipe" : TestEndpoint, options.PipeName);
     }
 
     [TestMethod]

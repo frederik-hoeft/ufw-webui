@@ -11,6 +11,7 @@
     <File Path="restore.sh" />
   </Folder>
   <Project Path="Ufw.Client/Ufw.Client.csproj" />
+  <Project Path="Ufw.Client.Tests/Ufw.Client.Tests.csproj" />
   <Project Path="Ufw.Shared.Tests/Ufw.Shared.Tests.csproj" />
   <Project Path="Ufw.Ipc.Client/Ufw.Ipc.Client.csproj" />
   <Project Path="Ufw.Shared/Ufw.Shared.csproj" />
@@ -21,6 +22,7 @@
   <Project Path="Ufw.Roslyn/Ufw.Roslyn.csproj" />
   <Project Path="Ufw.Systemd.Tests/Ufw.Systemd.Tests.csproj" />
   <Project Path="Ufw.Systemd/Ufw.Systemd.csproj" />
+  <Project Path="Ufw.Web.Tests.Integration/Ufw.Web.Tests.Integration.csproj" />
   <Project Path="Ufw.Web.Tests/Ufw.Web.Tests.csproj" />
   <Project Path="Ufw.Web/Ufw.Web.csproj" />
 </Solution>

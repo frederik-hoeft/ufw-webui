@@ -1,29 +1,23 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.RuleOrdering;
 
 public sealed class RuleOrderingPreview
+(
+    IReadOnlyList<ListedFirewallRule> rules,
+    IReadOnlyDictionary<string, int> originalPositions,
+    IReadOnlySet<string> directlyMovedRuleIds,
+    IReadOnlyList<RuleMoveRequest> moves
+)
 {
-    public RuleOrderingPreview(
-        IReadOnlyList<ListedFirewallRule> rules,
-        IReadOnlyDictionary<string, int> originalPositions,
-        IReadOnlySet<string> directlyMovedRuleIds,
-        IReadOnlyList<RuleMoveRequest> moves)
-    {
-        Rules = rules;
-        OriginalPositions = originalPositions;
-        DirectlyMovedRuleIds = directlyMovedRuleIds;
-        Moves = moves;
-    }
+    public IReadOnlyList<ListedFirewallRule> Rules { get; } = rules;
 
-    public IReadOnlyList<ListedFirewallRule> Rules { get; }
+    public IReadOnlyDictionary<string, int> OriginalPositions { get; } = originalPositions;
 
-    public IReadOnlyDictionary<string, int> OriginalPositions { get; }
+    public IReadOnlySet<string> DirectlyMovedRuleIds { get; } = directlyMovedRuleIds;
 
-    public IReadOnlySet<string> DirectlyMovedRuleIds { get; }
-
-    public IReadOnlyList<RuleMoveRequest> Moves { get; }
+    public IReadOnlyList<RuleMoveRequest> Moves { get; } = moves;
 
     public int? GetOriginalPosition(ListedFirewallRule rule)
     {

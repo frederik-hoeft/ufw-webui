@@ -38,10 +38,7 @@ internal sealed class EndpointVerbProcessor(SourceProductionContext context)
             {
                 if (verbAttribute is not null)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        DiagnosticDescriptors.MultipleHttpVerbAttributes,
-                        method.Locations.FirstOrDefault(),
-                        method.Name));
+                    context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.MultipleHttpVerbAttributes, method.Locations.FirstOrDefault(), method.Name));
                     return null;
                 }
                 verbAttribute = attribute;
@@ -54,10 +51,7 @@ internal sealed class EndpointVerbProcessor(SourceProductionContext context)
 
         if (method.DeclaredAccessibility != Accessibility.Public || method.IsStatic)
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.InvalidMethodVisibility,
-                method.Locations.FirstOrDefault(),
-                method.Name));
+            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.InvalidMethodVisibility, method.Locations.FirstOrDefault(), method.Name));
             return null;
         }
 
@@ -66,11 +60,7 @@ internal sealed class EndpointVerbProcessor(SourceProductionContext context)
         string? methodRoute = GetMethodRoute(verbAttribute);
         int? methodPriority = GetMethodPriority(verbAttribute);
 
-        return new EndpointVerbProcessorResult(
-            verbAttribute,
-            verb!,
-            methodRoute,
-            methodPriority);
+        return new EndpointVerbProcessorResult(verbAttribute, verb!, methodRoute, methodPriority);
     }
 
     private static string? GetMethodRoute(AttributeData httpAttr) => httpAttr.ConstructorArguments.FirstOrDefault().Value?.ToString();

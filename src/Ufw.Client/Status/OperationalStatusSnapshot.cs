@@ -1,4 +1,4 @@
-using Ufw.Client.Errors;
+﻿using Ufw.Client.Errors;
 
 namespace Ufw.Client.Status;
 

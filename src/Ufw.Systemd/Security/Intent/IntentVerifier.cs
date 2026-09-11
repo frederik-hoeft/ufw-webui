@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
-using Ufw.Shared.Security.Intent;
 using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Configuration;
 
 namespace Ufw.Systemd.Security.Intent;

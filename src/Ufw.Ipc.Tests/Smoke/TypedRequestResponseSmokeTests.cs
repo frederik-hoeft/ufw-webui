@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Shared.Ipc.Model;
-using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
+using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Systemd.Network;
 
 namespace Ufw.Ipc.Tests.Smoke;
@@ -12,26 +12,22 @@ public sealed class TypedRequestResponseSmokeTests : IpcProtocolTestBase
 {
     protected override ValueTask ConfigureEndpointsAsync(ITestEndpointMapBuilder endpoints, CancellationToken cancellationToken)
     {
-        endpoints.MapGet(
-            "/api/v1/ping",
-            static _ => ValueTask.FromResult(new OkResponse()));
+        endpoints.MapGet("/api/v1/ping", static _ => ValueTask.FromResult(new OkResponse()));
 
-        endpoints.MapPost<EchoRequest, EchoResponse>(
-            "/api/v1/echo",
-            static (request, _) => ValueTask.FromResult(new EchoResponse(request.Message)));
+        endpoints.MapPost<EchoRequest, EchoResponse>("/api/v1/echo", static (request, _) => ValueTask.FromResult(new EchoResponse(request.Message)));
 
         return ValueTask.CompletedTask;
     }
 
     [TestMethod]
-    public Task Get_Ping_ReturnsOk() => RunAsync(async (context, cancellationToken) =>
+    public Task Get_Ping_ReturnsOkAsync() => RunAsync(async (context, cancellationToken) =>
     {
         OkResponse response = await context.SendAsync<OkResponse>(RequestMethod.Get, "/api/v1/ping", cancellationToken);
         Assert.IsNotNull(response);
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task DefaultHost_UsesProductionNetworkApplication() => RunAsync((context, _) =>
+    public Task DefaultHost_UsesProductionNetworkApplicationAsync() => RunAsync((context, _) =>
     {
         INetworkApplication application = context.ServerServices.GetRequiredService<INetworkApplication>();
         INetworkApplicationWorker worker = context.ServerServices.GetRequiredService<INetworkApplicationWorker>();
@@ -42,13 +38,9 @@ public sealed class TypedRequestResponseSmokeTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task Post_Echo_RoundTripsPayload() => RunAsync(async (context, cancellationToken) =>
+    public Task Post_Echo_RoundTripsPayloadAsync() => RunAsync(async (context, cancellationToken) =>
     {
-        EchoResponse response = await context.SendAsync<EchoRequest, EchoResponse>(
-            RequestMethod.Post,
-            "/api/v1/echo",
-            new EchoRequest("hello-ipc"),
-            cancellationToken);
+        EchoResponse response = await context.SendAsync<EchoRequest, EchoResponse>(RequestMethod.Post, "/api/v1/echo", new EchoRequest("hello-ipc"), cancellationToken);
 
         Assert.AreEqual("hello-ipc", response.Message);
     }, cancellationToken: TestContext.CancellationToken).AsTask();

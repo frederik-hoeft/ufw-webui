@@ -1,17 +1,22 @@
 ﻿using ConsoleAppFramework;
+using Microsoft.Extensions.DependencyInjection;
+using Ufw.Mock.Cli;
 using Ufw.Mock.Commands;
+using Ufw.Mock.Rules;
+using Ufw.Mock.Services;
+using Ufw.Mock.State;
 
 namespace Ufw.Mock;
 
 public static class UfwMockApplication
 {
+    public const string COMPATIBILITY_VERSION = "0.36.2";
+
     private static readonly HashSet<string> s_rootCommands = new(StringComparer.OrdinalIgnoreCase)
     {
         "enable", "disable", "reload", "reset", "default", "logging", "status", "show",
         "allow", "deny", "reject", "limit", "delete", "insert", "prepend", "rule", "route", "app",
     };
-
-    public const string COMPATIBILITY_VERSION = "0.36.2";
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -29,6 +34,27 @@ public static class UfwMockApplication
                 bool dryRun = builder.AddGlobalOption<bool>("--dry-run");
                 bool force = builder.AddGlobalOption<bool>("--force");
                 return new UfwGlobalOptions(dryRun, force);
+            });
+            app.ConfigureServices((context, _, services) =>
+            {
+                if (context.GlobalOptions is not UfwGlobalOptions options)
+                {
+                    throw new InvalidOperationException("UFW global options were not configured.");
+                }
+
+                services.AddSingleton(options);
+                services.AddSingleton<UfwStateStore>();
+                services.AddSingleton<UfwRuleParser>();
+                services.AddSingleton<UfwCommandExecutionService>();
+                services.AddSingleton<UfwConfirmationService>();
+                services.AddSingleton<UfwLifecycleService>();
+                services.AddSingleton<UfwPolicyService>();
+                services.AddSingleton<UfwStatusService>();
+                services.AddSingleton<UfwRuleMutationService>();
+                services.AddSingleton<UfwRuleMutationCoordinator>();
+                services.AddSingleton<UfwRuleMutationReporter>();
+                services.AddSingleton<UfwRuleService>();
+                services.AddSingleton<UfwApplicationService>();
             });
 
             UfwCommandBuilder builder = new(app);

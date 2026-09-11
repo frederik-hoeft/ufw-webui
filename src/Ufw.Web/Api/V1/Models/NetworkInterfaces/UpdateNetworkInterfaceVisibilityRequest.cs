@@ -1,4 +1,4 @@
-namespace Ufw.Web.Api.V1.Models.NetworkInterfaces;
+﻿namespace Ufw.Web.Api.V1.Models.NetworkInterfaces;
 
 public sealed class UpdateNetworkInterfaceVisibilityRequest
 {

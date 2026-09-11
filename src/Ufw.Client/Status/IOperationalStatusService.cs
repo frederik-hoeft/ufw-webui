@@ -1,4 +1,4 @@
-namespace Ufw.Client.Status;
+﻿namespace Ufw.Client.Status;
 
 internal interface IOperationalStatusService
 {

@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model.Responses;
+﻿using Ufw.Shared.Ipc.Model.Responses;
 
 namespace Ufw.Client.Components.Rules;
 

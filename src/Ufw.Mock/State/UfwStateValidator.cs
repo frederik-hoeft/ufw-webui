@@ -1,5 +1,5 @@
-﻿using Ufw.Shared.Firewall;
-using Ufw.Mock.Cli;
+﻿using Ufw.Mock.Cli;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.State;
 

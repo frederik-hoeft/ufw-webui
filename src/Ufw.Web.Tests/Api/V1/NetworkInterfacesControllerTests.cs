@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Api.V1.Models.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
@@ -50,9 +51,7 @@ public sealed class NetworkInterfacesControllerTests
     {
         Mock<INetworkInterfaceInventoryService> inventory = new();
         Guid id = Guid.CreateVersion7();
-        NetworkInterfaceInventoryResponse expected = new(
-            [new NetworkInterfaceInventoryItem(id, "docker0", null, IsVisible: false)],
-            new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
+        NetworkInterfaceInventoryResponse expected = new([new NetworkInterfaceInventoryItem(id, "docker0", null, IsVisible: false)], new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
         inventory
             .Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
@@ -68,7 +67,7 @@ public sealed class NetworkInterfacesControllerTests
     }
 
     private static NetworkInterfacesController CreateController(INetworkInterfaceInventoryService inventory) =>
-        new(inventory)
+        new(inventory, new DaemonApiErrorMapper())
         {
             ControllerContext = new ControllerContext
             {

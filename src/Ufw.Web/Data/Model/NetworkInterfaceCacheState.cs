@@ -1,4 +1,4 @@
-namespace Ufw.Web.Data.Model;
+﻿namespace Ufw.Web.Data.Model;
 
 internal sealed partial class NetworkInterfaceCacheState
 {

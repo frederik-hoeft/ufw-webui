@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using Ufw.Client.Serialization;
 
@@ -12,11 +12,7 @@ internal sealed class AuthApiClient(HttpClient httpClient) : IAuthApiClient
 
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-            s_loginUri,
-            request,
-            ClientJsonSerializerContext.Default.LoginRequest,
-            cancellationToken);
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(s_loginUri, request, ClientJsonSerializerContext.Default.LoginRequest, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.AuthTokenResponse, cancellationToken);
     }
 

@@ -16,10 +16,7 @@ internal sealed class UfwListCommandResultGrammar
     {
         IParser address = Alternative<Ipv4Cidr, Ipv6Cidr>.Instance;
         IParser endpoint = Grammar.Sequence(
-            Grammar.Alternative(
-                Anywhere.Instance,
-                Grammar.Sequence(address, Grammar.Optional(Grammar.Sequence(Whitespace.Instance, PortSegment.Instance))),
-                PortSegment.Instance),
+            Grammar.Alternative(Anywhere.Instance, Grammar.Sequence(address, Grammar.Optional(Grammar.Sequence(Whitespace.Instance, PortSegment.Instance))), PortSegment.Instance),
             Grammar.Optional(Protocol.Instance),
             Grammar.Optional(Grammar.Sequence(Whitespace.Instance, V6Hint.Instance)),
             Grammar.Optional(Grammar.Sequence(Whitespace.Instance, NetworkInterface.Instance)),

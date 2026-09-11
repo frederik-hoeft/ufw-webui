@@ -324,7 +324,8 @@ public sealed partial class AsyncLock : IDisposable
     /// Logically disposes the lock, cancels pending waiters, and releases its resources once admitted users have quiesced.
     /// </summary>
     /// <remarks>
-    /// This method is thread-safe and non-blocking with respect to pending asynchronous lock operations. An already admitted or executing delegate is allowed to finish; waiters that have not crossed the execution-admission point and future acquisitions do not start caller code.
+    /// This method is thread-safe and non-blocking with respect to pending asynchronous lock operations. An already admitted or executing delegate is allowed to finish;
+    /// waiters that have not crossed the execution-admission point and future acquisitions do not start caller code.
     /// </remarks>
     public void Dispose()
     {

@@ -2,7 +2,7 @@
 
 namespace Ufw.Roslyn.SourceGen.Json;
 
-internal class JsonSerializableAttributeParser(SourceProductionContext context)
+internal sealed class JsonSerializableAttributeParser(SourceProductionContext context)
 {
     public INamedTypeSymbol? GetTargetType(AttributeData jsonSerializableAttribute)
     {

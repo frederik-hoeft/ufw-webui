@@ -1,35 +1,37 @@
-# Docker deployment
+# Production Docker stack
 
-The production Compose stack lives in this directory. It deliberately builds two
-independent application images:
+This directory contains the containerized portion of the supported production deployment. The privileged firewall daemon is **not** a container; `Ufw.Systemd` runs on the host and is reached through its restricted Unix-domain socket.
 
-- `Dockerfile.frontend` publishes `Ufw.Client` and copies only its static output
-  into a hardened, non-root nginx runtime. nginx is the only public service,
-  terminates TLS, serves the WASM application, and proxies `/api/*` to ASP over
-  a shared Unix-domain socket volume.
-- `Dockerfile.asp` publishes only `Ufw.Web`. Kestrel listens only on that Unix
-  socket; ASP has no frontend files and no TCP listener.
+The Compose stack contains three services:
 
-The frontend image treats .NET 10's generated import map as part of the immutable
-frontend artifact. During the image build it computes the CSP SHA-256 source hash
-for that exact inline import map and renders it into nginx's security headers.
-Missing files under `/_framework/`, `/_content/`, and the application-owned static
-asset trees return `404` directly; they must never use the SPA fallback to
-`index.html`.
+- `frontend`: non-root nginx, the only public service. It terminates browser TLS, serves the immutable Blazor WebAssembly build, and proxies `/api/*` to ASP over a private Unix socket.
+- `asp`: non-root `Ufw.Web`, with no published TCP port. It owns web authentication/application state and reaches the host daemon through a read-only bind mount of the daemon socket directory.
+- `postgres`: PostgreSQL on an internal network reachable only by ASP.
 
-PostgreSQL is reachable only from ASP on a separate internal network. The
-privileged `Ufw.Systemd` daemon remains a host systemd service reached through
-its group-restricted Unix socket.
+Frontend and ASP are built as independent images. This is a security boundary: compromising the server-side application must not make ASP's writable filesystem the source of browser-delivered mutation-signing code.
 
-See [`../../docs/deployment/deployment.md`](../../docs/deployment/deployment.md)
-for the complete deployment, TLS, permission, backup, update, and rollback
-runbook.
+## Before using Compose
 
-Quick start after completing the host/daemon/TLS preparation from the runbook:
+Choose the deployment guide that matches the host Docker mode:
+
+- [Rootful Docker](../../docs/deployment/rootful-docker.md)
+- [Rootless Docker](../../docs/deployment/rootless-docker.md)
+
+The two modes use the same Compose file but **different host ownership/group mappings**. Do not mix their permission instructions.
+
+After the host daemon, TLS material, JWT key, and mode-specific permissions are prepared:
 
 ```bash
 cp deploy/docker/.env.example deploy/docker/.env
 chmod 0600 deploy/docker/.env
-# edit .env
-docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml up -d --build
+$EDITOR deploy/docker/.env
+
+docker compose \
+  --env-file deploy/docker/.env \
+  -f deploy/docker/compose.yml \
+  up -d --build
 ```
+
+See [Deployment](../../docs/deployment/deployment.md) for the mode selector, [Configuration](../../docs/deployment/configuration.md) for environment/settings reference, and [Operations](../../docs/deployment/operations.md) for backup and lifecycle procedures.
+
+The repository-root `docker-compose.yml` is a development-only PostgreSQL helper and is not part of this production stack.

@@ -34,9 +34,7 @@ public sealed class ItpConnection
             return version switch
             {
                 ItpConstants.VERSION => await ReadVersion1Async(cancellationToken).ConfigureAwait(false),
-                _ => throw ItpException.Local(
-                    ItpErrorCode.VersionMismatch,
-                    $"Unsupported ITP version {version}; this peer speaks version {ItpConstants.VERSION}."),
+                _ => throw ItpException.Local(ItpErrorCode.VersionMismatch, $"Unsupported ITP version {version}; this peer speaks version {ItpConstants.VERSION}."),
             };
         }
         finally
@@ -49,9 +47,7 @@ public sealed class ItpConnection
     {
         if (payload.Length == 0)
         {
-            throw ItpException.Local(
-                ItpErrorCode.EmptyApplicationPayload,
-                "Refusing to write an ApplicationData frame with an empty payload.");
+            throw ItpException.Local(ItpErrorCode.EmptyApplicationPayload, "Refusing to write an ApplicationData frame with an empty payload.");
         }
 
         return WriteVersion1FrameAsync(ItpPacketType.ApplicationData, ItpPayloadFormat.IpcJson, payload, cancellationToken);
