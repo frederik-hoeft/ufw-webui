@@ -11,3 +11,9 @@ using System.Diagnostics.CodeAnalysis;
     Justification = "Test project types need to be public to be discovered by the test framework",
     Scope = "namespaceanddescendants",
     Target = "~N:Ufw.Web.Tests")]
+
+[assembly: SuppressMessage(
+    "Performance",
+    "CA1861:Avoid constant arrays as arguments",
+    Justification = "Small immutable expected-value arrays keep unit-test assertions local and readable.",
+    Scope = "module")]
