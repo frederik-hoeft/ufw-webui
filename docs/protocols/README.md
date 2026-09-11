@@ -1,113 +1,71 @@
-# IPC protocol architecture
+# IPC Protocols
 
-`Ufw.Web` communicates with the privileged `Ufw.Systemd` daemon through a local,
-connection-oriented IPC channel. Each connection carries exactly one application
-request and, when the request can be processed far enough to produce one, one
-response. The connection is then closed.
+`Ufw.Web` and `Ufw.Systemd` communicate over a local, connection-oriented stream. The protocol stack deliberately separates byte framing, application envelopes, route contracts, and privileged mutation authorization so each layer can reject incompatibility without guessing about the layer above it.
 
-The IPC stack deliberately separates stream transport, wire framing, application
-message semantics, and daemon routing. Each layer validates only the contract it
-owns and passes a fully validated unit to the layer above it.
+These documents describe project protocols, not external standards. The words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are used pragmatically to distinguish required interoperability behavior from implementation choices.
 
 ## Protocol stack
 
-| Layer | Unit | Responsibility |
+| Layer | Unit | Contract |
 | --- | --- | --- |
-| Local stream / stream security | bytes | Connection establishment, ordered byte delivery, optional stream-security wrapping, I/O cancellation |
-| [ITP](itp.md) | frame | Wire-version bootstrap, framing, packet kind, application payload format, size limits, structured transport errors |
-| [Application protocol](application-protocol.md) | UTF-8 JSON document | Request/response direction, method/route or status, representation identifier, payload presence |
-| Daemon routing and binding | typed request | Route selection, request DTO binding, controller invocation, response DTO production |
+| Local stream and optional TLS | bytes | ordered transport, peer connection, I/O cancellation |
+| [IPC Transport Protocol (ITP) v1](itp.md) | frame | version bootstrap, bounded framing, packet kind, payload format, transport errors |
+| [Application IPC protocol v1](application-protocol.md) | JSON document | request/response direction, route/method or status, payload representation |
+| Daemon routing | typed request/response | route selection, request binding, endpoint invocation |
+| [Signed mutation intent v2](signed-intent.md) | signed mutation envelope | administrator authorization for privileged firewall changes |
 
-ITP treats application data as opaque bytes after classifying its payload format.
-The JSON application codec works only with complete application-document bytes and
-has no stream or ITP dependency. Routing sees only a valid application request;
-malformed framing and malformed application envelopes never reach controller code.
+ITP treats application payload bytes as opaque after identifying their registered format. The application protocol operates only on complete payload bytes. Routing receives only a structurally valid request envelope. Signed-intent verification applies only to routes that mutate privileged firewall state.
 
-## Independent version domains
+## Version domains
 
-Four different version identifiers exist because they answer different
-compatibility questions:
+The stack has independent versions because each version answers a different compatibility question.
 
-| Version domain | Example | Governs |
-| --- | --- | --- |
-| ITP wire version | ITP `1` | How bytes after the stable ITP preamble are framed and interpreted |
-| Application IPC protocol version | `protocolVersion: 1` | Request/response envelope and representation semantics |
-| API route version | `/api/v1/rules` | Daemon endpoint/controller contract |
-| Signed-intent version | intent `version: 2` | Canonical mutation authorization and rule-signing semantics |
+| Version | Current value | Governs |
+| --- | ---: | --- |
+| ITP wire version | `1` | bytes after the stable ITP preamble |
+| Application protocol | `1` | JSON request/response envelope and payload representations |
+| Daemon route version | `/api/v1/...` | typed endpoint contract |
+| Signed-intent protocol | `2` | canonical mutation authorization and rule semantics |
 
-These versions are intentionally independent. ITP does not negotiate application
-versions, and an API route version is not a substitute for a wire or signing
-protocol version. A peer must understand the ITP wire version before it can obtain
-an application document, and it must understand the application protocol version
-before routing the request. Signed-intent versioning applies only to mutation
-authorization carried inside otherwise valid application requests.
+A peer MUST reject an unsupported version at the layer that owns it. There is no negotiation or fallback between versions.
 
-There is no protocol negotiation or fallback. An unsupported version fails at
-the layer that owns it.
+A route version does not imply a wire version, and an application-protocol version does not imply a signed-intent version. In particular, unsigned read routes and signed mutation routes can coexist inside the same application-protocol version.
 
-## Exchange lifecycle
+## Connection lifecycle
 
-A normal request follows one ownership path:
+Each connection carries one request/response exchange:
 
-1. The client application codec creates a request document from the method,
-   route, and optional typed payload.
-2. ITP writes that document as one `ApplicationData` frame over the secured
-   local stream.
-3. The daemon validates and fully buffers the ITP frame before passing its
-   application bytes upward.
-4. The application codec validates the JSON envelope and produces an
-   `IRequestMessage` with explicit payload presence.
-5. Routing selects an endpoint. Body-taking endpoints bind the buffered payload
-   to the routed request type before controller code is invoked.
-6. The endpoint response is encoded as an application response document and
-   written as one ITP `ApplicationData` frame.
-7. The client fully reads and decodes the response before releasing the
-   transport connection. Response payloads remain readable from their buffered
-   application bytes after the stream is closed.
+1. the client serializes one application request;
+2. ITP sends it in one `ApplicationData` frame;
+3. the daemon validates the complete frame before decoding application JSON;
+4. the application codec validates the envelope before routing;
+5. routing binds the payload to the selected endpoint contract;
+6. the daemon serializes at most one application response and sends it in one `ApplicationData` frame;
+7. the connection is closed.
 
-A connection carries no reusable ITP session state and no request correlation
-identifier because only one exchange is allowed per connection.
+There is no reusable session state, multiplexing, or request correlation identifier at the IPC layer. A second request uses a new connection.
 
-## Failure boundaries
+## Failure ownership
 
-Failures remain scoped to the layer that can classify them:
+Failures stay with the layer that can classify them reliably.
 
-- ITP rejects invalid magic, unsupported wire versions, truncated frames,
-  unknown packet kinds or application payload formats, and unsafe lengths before
-  application decoding.
-- A recognized v1 framing failure may be returned as `TransportError` only when
-  enough framing context exists to know that a v1 reply is safe. Incoming
-  `TransportError` frames are terminal notifications and are never answered with
-  another transport error.
-- The application codec rejects malformed JSON, incompatible application
-  versions, illegal request/response field combinations, and invalid
-  representation semantics.
-- Route-specific binding failures are application `400` responses and do not
-  invoke the endpoint.
-- Expected peer, transport, timeout, and protocol failures terminate only the
-  current daemon connection. Unexpected daemon/framework failures remain
-  observable by faulting the worker/application rather than being absorbed as
-  connection errors.
+ITP owns malformed framing, unsupported wire versions, unsafe lengths, packet kinds, and payload formats. The application protocol owns malformed JSON envelopes and representation invariants. Routing owns unknown routes, unsupported methods, and route-specific binding failures. Signed-intent verification owns privileged mutation authorization.
 
-## Time bounds and cancellation
+Expected peer, I/O, timeout, stream-security, and protocol failures are connection-scoped. They must not terminate a daemon worker that can safely accept a later peer. Unexpected daemon/framework failures are not reclassified as peer errors and remain observable by faulting the owning worker/application.
 
-Timeouts are connection policy rather than wire fields. Both peers distinguish a
-per-I/O idle timeout from an overall request deadline. The idle timeout releases a
-connection whose current read or write stops making progress; the request deadline
-bounds the complete exchange even if a peer continuously trickles data within the
-idle window.
+## Time bounds
 
-External client cancellation and daemon shutdown remain cancellation. Internal
-deadline expiry is reported as a timeout. Either configured timeout can be
-explicitly disabled with `Timeout.InfiniteTimeSpan`.
+Timeouts are connection policy rather than protocol fields. Both peers distinguish:
 
-## Detailed protocol references
+- a per-I/O idle timeout, which bounds an individual read or write that stops making progress;
+- an overall request deadline, which bounds the complete exchange even while partial I/O continues.
 
-- [ITP v1](itp.md) defines the stable bootstrap, v1 frame layout, packet kinds,
-  payload-format registry, transport-error format, and framing failure rules.
-- [Application IPC protocol v1](application-protocol.md) defines the JSON
-  envelope, representation identifiers, payload-presence contract, typed binding,
-  response semantics, and application-level failures.
-- [Signed mutation intent v2](signed-intent.md) defines deployment-scoped user
-  authorization for AddRule and DeleteRule, canonicalization, replay protection,
-  and semantic rule identity.
+Caller cancellation and daemon shutdown remain cancellation signals. They are not encoded as protocol messages or converted into internal timeout semantics.
+
+## Protocol documents
+
+- [ITP v1](itp.md) defines the stable bootstrap, v1 frame layout, packet registry, transport errors, and receiver requirements.
+- [Application IPC protocol v1](application-protocol.md) defines the JSON envelope, payload representations, typed binding rules, and application-level errors.
+- [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for add and delete operations, including canonicalization, replay protection, and semantic rule identity.
+
+For the architectural role of IPC, see [UFW WebUI Architecture](../architecture/architecture-overview.md). For production socket ownership and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).

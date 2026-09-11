@@ -1,6 +1,6 @@
 # Open tasks
 
-This file tracks only open project work. Remove an item when the corresponding work is completed and merged into the approved baseline.
+This file is temporary, non-normative working storage for unresolved design and implementation work. Remove completed items after they reach the approved baseline; steady-state behavior belongs in the permanent architecture, protocol, deployment, development, or testing documentation.
 
 ## Firewall rule ordering backend and signed mutation contract
 

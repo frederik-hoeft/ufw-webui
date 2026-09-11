@@ -1,118 +1,98 @@
 # UFW WebUI
 
-UFW WebUI separates network-facing firewall-management concerns from privileged host firewall execution.
+UFW WebUI is a browser-based management interface for UFW that keeps privileged firewall execution outside the web application. The browser and ASP.NET application handle presentation, authentication, and management workflows; a small host daemon is the only component allowed to execute UFW commands.
 
-The solution contains:
+The design is intended for a Linux host where UFW remains the firewall authority and where the web tier should not become a privileged firewall process. Rules created outside UFW WebUI remain visible, and supported rules can be addressed by their semantics rather than by unstable `ufw status numbered` positions.
 
-- `Ufw.Client`: Blazor WebAssembly frontend using MudBlazor, with in-memory access-token state and browser-side signed-intent creation;
-- `Ufw.Web`: ASP.NET Core REST API with Identity, EF Core/PostgreSQL, request-scoped transactions, JWT access tokens, rotating refresh tokens, API versioning, CORS/Swagger infrastructure, and the local IPC client;
-- `Ufw.Systemd`: privileged host daemon responsible for authoritative UFW state, signed mutation authorization, semantic rule handling, and UFW subprocess execution;
-- `Ufw.Shared`: shared firewall semantics and rendering, signed-intent/security primitives, cross-cutting utilities, and the `Ufw.Shared.Ipc` protocol/serialization/transport contract;
-- `Ufw.Ipc.Client`: the local IPC client built on `Ufw.Shared.Ipc`;
-- `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen`: source-generated routing support used by the daemon-side IPC API;
-- `Ufw.Mock`: a development-only, platform-neutral `ufw` CLI substitute that persists firewall state locally instead of modifying the host firewall.
+## What it provides
 
-`Ufw.Client` consumes the versioned REST API. Its modular Sass styles are rooted at `src/Ufw.Client/Styles/app.scss` (see `src/Ufw.Client/Styles/README.md`) and compiled to `src/Ufw.Client/wwwroot/css/app.css` during build/publish by `AspNetCore.SassCompiler`; the generated CSS is not committed. The client exposes MudBlazor's default light/dark palettes and stores only that non-sensitive theme preference in browser local storage. Access JWTs remain in memory, refresh-token cookies remain inaccessible to application JavaScript, and firewall mutations are signed in the browser with the shared v2 intent contract. Refresh-cookie mutations are serialized across same-origin tabs with the browser Web Locks API, so the client must run in a secure browser context. Because the refresh cookie is `Secure` and `SameSite=Strict` while Web Locks are origin-scoped, production deployments must serve the client over HTTPS, keep it same-site with the API, and use one consistent client origin for tabs that share the API refresh cookie. The initial signing UX asks for an unencrypted PKCS#8 P-256 private key for each mutation and does not persist it. A single-line `data:application/pkcs8;base64,...` value is the preferred entry format because it avoids PEM newline handling and can be stored in password managers; PKCS#8 PEM and raw base64 DER remain accepted.
+The management surface includes:
 
-## Architecture
+- authoritative UFW rule listing;
+- browser-signed add and delete operations;
+- host network-interface discovery with application-owned comments and visibility metadata;
+- ASP.NET Core Identity authentication with short-lived access tokens and rotating refresh tokens;
+- a platform-neutral UFW mock for development on systems without UFW, including Windows;
+- a local typed IPC protocol between the web application and privileged daemon.
 
-See [docs/architecture.md](docs/architecture.md) for component responsibilities and request/data flow, [docs/protocols/README.md](docs/protocols/README.md) for IPC protocol boundaries, [docs/protocols/signed-intent.md](docs/protocols/signed-intent.md) for the mutation wire/signing contract, and [security/architecture-baseline.md](security/architecture-baseline.md) for trust boundaries and security invariants.
+Rule reordering and ordered insertion have UI groundwork but are not part of the signed backend mutation contract.
 
-## Development setup
+## Security model in brief
 
-The solution targets .NET 10.
+A normal authenticated web session is not sufficient authority to modify the firewall. Mutations carry a separate ECDSA P-256 signature created by the administrator's browser and verified independently by `Ufw.Systemd` against daemon-managed authorized public keys. The signature binds the exact operation, normalized rule semantics, daemon deployment identity, timestamp, and nonce. The daemon also persists replay state before starting a privileged mutation.
+
+Production deployment separates frontend delivery from ASP.NET. A non-root nginx container owns the immutable browser assets and proxies `/api/*` to a private `Ufw.Web` container. This matters because browser code handles mutation-signing keys: compromising ASP must not give an attacker a direct way to replace the signing client with key-capture code.
+
+UFW remains authoritative. PostgreSQL stores users, refresh-token state, and application metadata, but it is not a shadow firewall database.
+
+See [Security architecture](docs/architecture/security.md) for the complete trust model.
+
+## Production topology
+
+A supported production deployment consists of:
+
+- a privileged `Ufw.Systemd` service on the firewall host;
+- a public non-root nginx container serving `Ufw.Client` and terminating browser TLS;
+- a private non-root `Ufw.Web` container reachable from nginx only through a Unix-domain socket;
+- PostgreSQL on an internal container network reachable only by `Ufw.Web`.
+
+Rootful and rootless Docker use the same application topology but require different host ownership and group mappings. Start with the [deployment guide](docs/deployment/deployment.md) and choose the runbook for the Docker mode actually used on the host.
+
+## Local development
+
+The solution targets .NET 10. A normal source build is:
 
 ```bash
 dotnet restore src/Ufw.slnx
-dotnet build src/Ufw.slnx
-dotnet test src/Ufw.slnx
+dotnet build src/Ufw.slnx --no-restore
+dotnet test src/Ufw.slnx --no-restore --no-build
 ```
 
-For local Linux or Windows development, `scripts/setup-dev.sh` generates a development CA, daemon/server and web/client mTLS credentials, a P-256 ECDSA JWT-signing key, a browser P-256 intent-signing keypair plus a password-manager-friendly `intent-key.data-uri.txt`, the daemon `authorized_keys` file, and matching gitignored `src/Ufw.Systemd/appsettings.json` and `src/Ufw.Web/appsettings.json` files. On Windows, run the same script from Git Bash/MSYS; it writes native Windows paths into .NET configuration, uses a local Windows named pipe, and protects generated private keys/configuration with Windows ACLs. It never installs the generated CA into the host trust store unless `--install-ca` is passed.
-
-```bash
-./scripts/setup-dev.sh
-# or, on a disposable development host where system trust modification is desired:
-./scripts/setup-dev.sh --install-ca
-```
-
-Run `./scripts/setup-dev.sh --help` for overwrite options. The generated credentials live under `artifacts/dev` and are development-only. If the CA is not installed by the script, it must be trusted manually before IPC TLS/mTLS can pass normal .NET certificate-chain validation. On Windows, `--install-ca` uses `certutil` to add the CA to the current user's Root store and therefore does not require an elevated Git Bash. Because native UFW is not available on Windows, set `UFW_PATH` to the Windows-compatible UFW mock/executable when it is not already on `PATH`; the script automatically uses `src/artifacts/bin/Ufw.Mock/debug/Ufw.Mock.exe` when that build output exists.
-
-`Ufw.Web` follows the same local-configuration convention as `Ufw.Systemd`. `src/Ufw.Web/appsettings.default.json` is the committed template/reference, while `src/Ufw.Web/appsettings.json` is gitignored and is the only local JSON configuration file loaded by the application. Normal environment variables and command-line arguments override it, so containers can use environment-only configuration without creating a file. Environment-specific `appsettings.{Environment}.json` files and ASP.NET Core user secrets are intentionally not part of the configuration model. The local `appsettings.json` is excluded from `dotnet publish`; deployments that use file-based configuration should mount/provide their runtime file explicitly rather than baking a developer-local file into the image.
-
-The committed default is development-oriented and includes the local HTTPS client origin plus the bootstrap account `admin@home.arpa` / `admin`. Do not use those credentials unchanged in a deployed environment. The corresponding default Identity password policy is deliberately permissive enough for this bootstrap account; deployments should override `Auth:Identity` and bootstrap credentials through their local `appsettings.json` or environment variables.
-
-For deployments or manual setup, `Ufw.Web` requires a P-256 ECDSA private key in PKCS#8 PEM format for JWT signing. Set `Auth:Jwt:SigningKeyPath` in the local config or through the standard ASP.NET Core environment-variable mapping, for example `Auth__Jwt__SigningKeyPath=/run/secrets/ufw-web-jwt.pem`.
-
-`Ufw.Web` uses PostgreSQL and applies EF Core migrations at startup. The top-level `docker-compose.yml` is development-only and starts the PostgreSQL instance expected by `appsettings.default.json`:
+Local development also needs PostgreSQL plus matching development credentials/configuration for the web application and daemon. The repository provides both:
 
 ```bash
 docker compose up -d postgres
+./scripts/setup-dev.sh
 ```
 
-The compose credentials are development-only. Production deployments use the separate stack under `deploy/docker`; see [the deployment runbook](docs/deployment/deployment.md). `Ufw.Web` and `Ufw.Systemd` must be configured for the same local IPC endpoint. Production builds deliberately separate the browser and API runtime images: a hardened non-root nginx container serves the independently published `Ufw.Client` assets and proxies only `/api/*` to a private `Ufw.Web` container. The committed client configuration therefore uses the current HTTPS origin for REST calls. `appsettings.Development.json` overrides that with the standalone local `Ufw.Web` HTTPS profile at `https://localhost:7259`. Cross-origin development CORS remains configured for the standalone client at `https://localhost:7298`.
+On Windows, build `Ufw.Mock` first and point the generated daemon configuration at the mock instead of native UFW. See [Local development](docs/development/local-development.md) for the complete setup and run sequence.
 
-Console formatting is configuration-driven as well. The committed default uses the normal human-readable `simple` formatter; container deployments can switch to structured JSON without a code change, for example with `Logging__Console__FormatterName=json`.
+## Documentation
 
-## Production deployment
+Start with the document that matches what you are trying to understand:
 
-Production deployment keeps `Ufw.Systemd` as a privileged host systemd service while running three isolated Docker services: a public nginx TLS/static-frontend container, a private ASP REST API container, and PostgreSQL on its own private network. Separating the frontend runtime from ASP prevents a compromised ASP process from replacing browser-delivered mutation-signing code. The supported rootful/rootless ownership models, Unix-socket group mapping, daemon AOT build/install flow, TLS setup, backup procedure, and update/rollback flow are documented in [docs/deployment/deployment.md](docs/deployment/deployment.md).
+- [Architecture overview](docs/architecture/architecture-overview.md) explains the system model, component boundaries, state ownership, and major request flows.
+- [Firewall model](docs/architecture/firewall-model.md) explains authoritative UFW state, normalization, semantic rule identity, and mutation reconciliation.
+- [Security architecture](docs/architecture/security.md) explains trust boundaries, browser signing, replay protection, web authentication, and privileged execution.
+- [IPC protocols](docs/protocols/README.md) describes the versioned wire, application-envelope, and signed-intent contracts.
+- [Deployment](docs/deployment/deployment.md) selects between the rootful and rootless production runbooks and links operational/configuration reference material.
+- [IPC test adapter](docs/testing/ipc-test-adapter.md) documents the production-equivalent in-process test harness.
+- [UFW mock](docs/development/ufw-mock.md) documents the development substitute used when native UFW is unavailable.
 
-The production Compose stack is intentionally distinct from the top-level development PostgreSQL compose file:
+`docs/internal` is reserved for temporary maintainer notes and open work. It is not part of the steady-state project documentation.
 
-```bash
-cp deploy/docker/.env.example deploy/docker/.env
-chmod 0600 deploy/docker/.env
-# complete daemon/socket/key setup from the runbook first
-docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml up -d --build
-```
+## Source layout
 
-Do not expose the privileged daemon through TCP or mount UFW/daemon security state into an application container. Only ASP receives the group-restricted Unix-domain socket under `/run/ufw-manager`; nginx receives neither the socket nor ASP/PostgreSQL secrets.
+The production code is split by trust and deployment boundary rather than by one monolithic application:
 
-No public user-registration endpoint is provided. Initial accounts can instead be provisioned through the `Auth:Bootstrap:Users` configuration section. Bootstrap is idempotent across restarts: missing accounts are created through ASP.NET Core Identity, while existing passwords are never reset from bootstrap configuration. `EmailConfirmed` defaults to `true` and is reconciled for existing configured accounts. Removing an entry does not delete the corresponding user.
+| Project | Role |
+| --- | --- |
+| `Ufw.Client` | Blazor WebAssembly browser application |
+| `Ufw.Web` | ASP.NET Core REST API, authentication, PostgreSQL-backed application state, daemon IPC client |
+| `Ufw.Systemd` | privileged host daemon and UFW execution boundary |
+| `Ufw.Shared` | cross-process firewall semantics, security primitives, and IPC contracts |
+| `Ufw.Ipc.Client` | typed client for the daemon IPC protocol |
+| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | daemon routing and serialization source-generation support |
+| `Ufw.Mock` | development-only UFW-compatible command substitute |
 
-```text
-Auth__Bootstrap__Users__0__Email=admin@example.invalid
-Auth__Bootstrap__Users__0__Password=<secret>
-Auth__Bootstrap__Users__0__EmailConfirmed=true
-# Optional; defaults to the email address when the account is first created.
-Auth__Bootstrap__Users__0__UserName=admin
-```
+Test projects live beside the production projects in `src/` and exercise shared semantics, IPC, daemon behavior, ASP services, and the mock CLI.
 
-The password is required only if the configured account does not yet exist. After initial provisioning it can be removed from configuration; subsequent starts still reconcile non-secret bootstrap state without changing the user's password. Invalid or conflicting bootstrap entries fail application startup with an actionable error rather than silently overwriting existing identity state. Longer-term interactive user administration remains a separate API/UI concern.
+## Contributing
 
-### Development UFW mock
+Follow [`code-style.md`](code-style.md) for source conventions. Architectural changes should preserve the core ownership boundaries described in the architecture documentation: the web tier does not become firewall authority, privileged mutations remain independently authorized by the daemon, and unsupported UFW state remains visible rather than being guessed into a mutable model.
 
-`Ufw.Mock` implements the UFW 0.36.2 command-line surface used by the daemon without requiring Linux, elevated privileges, or a real firewall. It stores its state in a per-user application-data file; set `UFW_MOCK_STATE_PATH` to isolate a development or test instance.
+Before submitting changes, run the full solution build and test suite. Changes to IPC or mutation authorization should also update the corresponding protocol document when the wire contract changes.
 
-Build an executable apphost and point the daemon's `ufw_path` setting at it:
+## License
 
-```bash
-dotnet build src/Ufw.Mock/Ufw.Mock.csproj
-```
-
-The mock is not part of the production execution path. `Ufw.Systemd` still constructs normal UFW arguments and parses normal UFW status output, so substituting the executable exercises the same daemon integration boundary while keeping host networking untouched.
-
-
-## Firewall mutations
-
-`GET /api/v1/rules` and `GET /api/v1/intent/context` are unsigned at the mutation-protocol layer. Add and Delete require a signed intent that `Ufw.Systemd` verifies against its daemon-local authorized-key set.
-
-Generate a P-256 signing keypair for development with:
-
-```bash
-openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out intent-key.pem
-openssl pkey -in intent-key.pem -pubout -out intent-key.pub.pem
-```
-
-Keep the private key with the signing client and place only the public-key PEM in the daemon's `security.authorized_keys_path` file. The daemon also persists replay state and a stable deployment identifier under its configured `security` paths. See [the signed-intent protocol](docs/protocols/signed-intent.md) for the exact v2 contract.
-
-## IPC TLS and mTLS
-
-IPC uses a local named pipe/Unix-domain socket. TLS is optional defense in depth and is configured independently from mutation authorization.
-
-On `Ufw.Web`, `IpcOptions:TlsEnabled=true` enables TLS and requires `IpcOptions:TlsServerName` for server-certificate identity validation. `IpcOptions:SslProtocols=None` keeps .NET's automatic protocol-selection behavior; an explicit protocol set may be configured when required. `ClientCertificatePath` and `ClientCertificateKeyPath` optionally configure the client certificate used for mTLS.
-
-On `Ufw.Systemd`, `pipe.tls_enabled=true` requires `server_certificate_path` and `server_certificate_key_path`. `pipe.ssl_protocols=none` likewise delegates protocol selection to .NET/the OS. Configuring `pipe.remote_certificate_validation` enables client-certificate validation and therefore requires mTLS; omitting it keeps client certificates optional/not required.
-
-mTLS authenticates the IPC peer, not the end user's firewall intent. Signed-intent verification remains mandatory for every mutation regardless of transport mode.
+UFW WebUI is licensed under the [MIT License](LICENSE).

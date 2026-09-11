@@ -11,7 +11,6 @@ readonly IPC_DIR="$IPC_ROOT/ipc"
 readonly LEGACY_IPC_DIR="/run/ufw-manager"
 readonly UNIT_TARGET="/etc/systemd/system/$SERVICE_NAME"
 readonly DOC_DIR="/usr/local/share/doc/ufw-webui"
-readonly DOC_TARGET="$DOC_DIR/deployment.md"
 
 PURGE=false
 
@@ -72,8 +71,7 @@ rm -f -- "$UNIT_TARGET"
 rm -f -- "$BINARY_TARGET"
 rmdir -- "$INSTALL_ROOT" 2>/dev/null || true
 
-rm -f -- "$DOC_TARGET"
-rmdir -- "$DOC_DIR" 2>/dev/null || true
+rm -rf -- "$DOC_DIR"
 
 # The IPC tree is installer-owned ephemeral runtime state. Remove it after the
 # service has stopped, then remove the parent only when nothing else uses it.

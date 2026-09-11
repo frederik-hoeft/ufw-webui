@@ -1,12 +1,14 @@
-# Signed mutation intent v2
+# Signed Mutation Intent v2
 
-The signed-intent protocol authorizes privileged firewall mutations independently of JWT state and IPC peer identity. `Ufw.Web` forwards signed envelopes, while `Ufw.Systemd` reconstructs the canonical bytes and verifies them against daemon-owned trust state.
+Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` forwards it; `Ufw.Systemd` reconstructs the canonical bytes and verifies them against daemon-owned trust state before any privileged UFW mutation can begin.
 
-Rule listing and intent-context reads are unsigned at the mutation-protocol layer. They remain subject to the surrounding HTTP/API authorization policy when accessed through `Ufw.Web`.
+This document defines the project contract for `rules.add` and `rules.delete`. The requirement words describe interoperability and security requirements for UFW WebUI implementations.
+
+Read-only rule listing, network-interface discovery, and intent-context retrieval are unsigned at this protocol layer. They may still require authentication at surrounding layers.
 
 ## Intent context
 
-A client obtains the current signing context from:
+Before signing, a client obtains the daemon context from the authenticated REST endpoint:
 
 ```text
 GET /api/v1/intent/context
@@ -21,11 +23,11 @@ The response contains:
 }
 ```
 
-`deploymentId` is a stable random identifier persisted by the daemon. It scopes signatures to one daemon deployment and must be copied into the signed envelope exactly as returned.
+`deploymentId` is a stable random identifier persisted by the daemon. A client MUST copy it exactly into the signed envelope. A daemon MUST reject an intent whose deployment identifier does not match its own current deployment.
 
 ## Envelope
 
-AddRule and DeleteRule use the same envelope fields:
+Add and delete use the same outer envelope:
 
 ```json
 {
@@ -33,20 +35,31 @@ AddRule and DeleteRule use the same envelope fields:
   "deploymentId": "<daemon deployment id>",
   "keyId": "sha256:<base64url SPKI digest>",
   "issuedAtUnix": 1711972800,
-  "nonce": "<base64url 16+ random bytes>",
+  "nonce": "<base64url random bytes>",
   "operation": "rules.add",
-  "payload": { },
-  "signature": "<base64url IEEE P1363 ECDSA-SHA256>"
+  "payload": {},
+  "signature": "<base64url IEEE-P1363 ECDSA signature>"
 }
 ```
 
-`operation` is currently `rules.add` or `rules.delete`. Future mutation types can reuse the envelope but require a canonical payload definition before they can be authorized safely.
+| Field | Requirement |
+| --- | --- |
+| `version` | MUST equal `2` |
+| `deploymentId` | MUST match the current daemon intent context |
+| `keyId` | MUST identify an authorized P-256 public key |
+| `issuedAtUnix` | Unix timestamp used for freshness validation |
+| `nonce` | base64url random value decoding to at least 16 bytes; the project signer emits 16 bytes |
+| `operation` | MUST be `rules.add` or `rules.delete` for the mutation endpoints defined by this protocol version |
+| `payload` | operation-specific payload defined below |
+| `signature` | base64url ECDSA P-256/SHA-256 signature in IEEE P1363 `r || s` form |
 
-`keyId` is `sha256:` followed by the base64url-encoded SHA-256 digest of the signer's SubjectPublicKeyInfo. The daemon authorizes the corresponding ECDSA P-256 public key from its local authorized-key file.
+`keyId` is the string `sha256:` followed by the base64url-encoded SHA-256 digest of the signer's SubjectPublicKeyInfo. The corresponding public key MUST be present in the daemon's authorized-key store.
+
+A future mutation operation MAY reuse the envelope only after defining its own canonical payload semantics. Unknown operations MUST be rejected.
 
 ## Rule specification
 
-The canonical rule specification contains these semantic fields:
+Both operations sign a normalized structural firewall rule. The JSON representation follows the shared protocol serializer, for example:
 
 ```json
 {
@@ -64,13 +77,15 @@ The canonical rule specification contains these semantic fields:
 }
 ```
 
-The JSON enum names follow the source-generated protocol serializer. Signatures do not cover this JSON text; the daemon normalizes the semantic values and reconstructs the canonical field representation described below.
+The signature does not cover this JSON text directly. The daemon validates and normalizes the semantic values and rebuilds the canonical signed bytes defined below.
 
-`addressFamily` may be family-neutral for AddRule. A family-neutral add can materialize as separate concrete IPv4 and IPv6 rows in UFW. Listed rules use concrete IPv4/IPv6 families, and DeleteRule requires that concrete family-specific specification.
+A family-neutral rule is allowed for add when the rule semantics do not force IPv4 or IPv6. UFW may materialize that add as separate concrete family rows. Delete MUST carry a concrete IPv4 or IPv6 rule.
 
-Interface meaning follows UFW direction semantics: inbound rules may specify the inbound/destination-side interface, outbound rules the outbound/source-side interface, and forward rules may specify both ingress and egress interfaces. Combinations that would require fallback or precedence interpretation are rejected.
+Interface fields follow UFW direction semantics. Inbound rules may use the inbound/destination-side interface, outbound rules may use the outbound/source-side interface, and forward rules may use both ingress and egress interfaces. Ambiguous combinations that would require precedence or fallback interpretation MUST be rejected.
 
-### Add payload
+## Operation payloads
+
+### `rules.add`
 
 ```json
 {
@@ -78,9 +93,9 @@ Interface meaning follows UFW direction semantics: inbound rules may specify the
 }
 ```
 
-The signed rule is normalized and checked for a semantically identical current rule before UFW execution.
+The daemon MUST normalize and validate the rule. Under the execution gate it MUST reject a currently observed semantically identical rule before starting UFW.
 
-### Delete payload
+### `rules.delete`
 
 ```json
 {
@@ -89,79 +104,95 @@ The signed rule is normalized and checked for a semantically identical current r
 }
 ```
 
-`ruleId` must equal the daemon-computed identity of the supplied normalized rule. The rule must have a concrete IPv4 or IPv6 family. The daemon rejects a mismatch rather than trusting either field alone.
+The rule MUST have a concrete address family. `ruleId` MUST equal the daemon-computed identity of the normalized `rule`. The daemon MUST reject a mismatch rather than trusting either field independently.
+
+At execution time the daemon resolves that semantic identity against a fresh UFW snapshot and requires exactly one current match.
+
+## Normalization
+
+Before canonical signing bytes or semantic identity are produced, rule values are normalized according to the shared firewall model. At minimum:
+
+- blank, `Anywhere`, and all-addresses forms normalize to `any`;
+- IPv4 and IPv6 CIDRs normalize to their canonical network address and prefix;
+- concrete addresses constrain address family consistently;
+- port lists/ranges are sorted, deduplicated, and merged when overlapping or adjacent;
+- interfaces and comments are trimmed;
+- invalid direction/interface, family, protocol, address, or port combinations are rejected.
+
+Both signing and verification MUST use the same normalization rules. A daemon MUST verify the semantic payload before computing canonical bytes.
 
 ## Canonical signed bytes
 
-The signature covers UTF-8 text with a fixed field order. JSON property order, JSON whitespace, and JSON spelling choices are not signed inputs.
+The v2 signature covers UTF-8 text with fixed field names, fixed field order, and normalized lower-case semantic values. JSON property ordering and whitespace are not signature inputs.
 
-For v2 the canonical representation is:
+For add, the canonical form is:
 
 ```text
 ufw-intent/2
-deploymentId=...
-keyId=...
-issuedAtUnix=...
-nonce=...
-operation=...
+deploymentId=<deployment id>
+keyId=<key id>
+issuedAtUnix=<unix seconds>
+nonce=<nonce>
+operation=rules.add
 payload:
-[ruleId=... only for delete]
-action=allow
-addressFamily=ipv4
-comment=ssh
-destination=any
-destinationInterface=eth0
-destinationPorts=22
-direction=in
-protocol=tcp
-source=any
-sourceInterface=
-sourcePorts=
+action=<normalized action>
+addressFamily=<normalized family>
+comment=<normalized comment or empty>
+destination=<normalized destination>
+destinationInterface=<normalized interface or empty>
+destinationPorts=<normalized ports or empty>
+direction=<normalized direction>
+protocol=<normalized protocol>
+source=<normalized source>
+sourceInterface=<normalized interface or empty>
+sourcePorts=<normalized ports or empty>
 ```
 
-Before this representation is built, rule semantics are normalized:
+Delete uses the same form but inserts `ruleId=<normalized semantic identity>` immediately after `payload:`.
 
-- blank/`Anywhere`/all-addresses forms normalize to `any`;
-- IPv4 and IPv6 CIDRs normalize to their canonical network address and prefix;
-- address family is resolved consistently with concrete source/destination addresses;
-- port lists/ranges are sorted, deduplicated, and merged when overlapping or adjacent;
-- interfaces and comments are trimmed;
-- invalid direction/interface, address-family, protocol, address, or port combinations are rejected.
+Each line ends with LF (`0x0A`) in the canonical byte sequence. Implementations MUST NOT substitute platform-specific line endings.
 
-Signatures use ECDSA P-256 with SHA-256 and IEEE P1363 fixed-field concatenation (`r || s`). `IntentRequestFactory`, `IntentCanonicalizer`, and `IntentSigner` in `Ufw.Shared.Security.Intent` implement the shared canonicalization/signing contract used by tests and future clients.
+The signature algorithm is ECDSA over P-256 with SHA-256. The signature value uses the fixed-width IEEE P1363 concatenation of `r` and `s`, then base64url encoding in the JSON envelope.
 
-## Rule identity
+## Semantic rule identity
 
-Rule identity has its own versioned canonical domain (`rule-identity/2`) and is the SHA-256 hash of normalized firewall semantics:
+Rule identity uses a separate canonical domain, `rule-identity/2`, and is the base64url-encoded SHA-256 digest of this UTF-8 representation:
 
-- action;
-- address family;
-- direction;
-- protocol;
-- source/destination addresses;
-- source/destination ports;
-- directionally meaningful interfaces.
+```text
+rule-identity/2
+action=<normalized action>
+addressFamily=<normalized concrete family>
+destination=<normalized destination>
+destinationInterface=<normalized interface or empty>
+destinationPorts=<normalized ports or empty>
+direction=<normalized direction>
+protocol=<normalized protocol>
+source=<normalized source>
+sourceInterface=<normalized interface or empty>
+sourcePorts=<normalized ports or empty>
+```
 
-Comments and UFW display numbers are excluded. Equivalent supported textual forms therefore map to the same semantic identity, while IPv4 and IPv6 rows remain distinct.
+Each line ends with LF. The externally visible identifier is `sha256:` followed by the base64url digest. Comments and UFW display numbers are excluded.
 
-`GET /api/v1/rules` returns the semantic `ruleId`, parsed specification, current display number, and raw UFW line for supported rows. A row receives a `ruleId` only when the parser consumes the complete row and the resulting semantic model passes mutation validation. Unsupported or malformed rows remain visible with no mutable identity.
+The daemon assigns a mutable `ruleId` only to rows that it can parse completely and validate as supported semantics. Opaque or malformed rows remain visible through rule listing but MUST NOT be addressable by delete.
 
-DeleteRule never treats the display number as a stable address. Under the UFW execution gate, the daemon re-lists current state, resolves the signed semantic identity, requires exactly one current match, and only then uses that match's current UFW number for the subprocess call.
+Delete MUST NOT accept a UFW display number as the durable mutation target. Under the execution gate, the daemon re-lists current state, resolves the signed semantic identity, and uses the current display number only as the final subprocess argument after unique resolution succeeds.
 
-## Verification and execution lifecycle
+## Verification requirements
 
-The daemon processes a mutation in two stages.
+Before entering the privileged mutation boundary, the daemon verifies:
 
-Before entering the privileged mutation boundary it verifies:
-
-1. intent protocol version and required envelope fields;
+1. intent version and required fields;
 2. deployment identity;
-3. operation/endpoint match;
+3. operation and endpoint agreement;
 4. nonce encoding and minimum size;
-5. payload shape and semantic rule validation;
-6. normalization and DeleteRule identity match;
-7. signature against the daemon-local authorized-key set;
-8. issued-at freshness and clock-skew limits.
+5. operation payload shape;
+6. rule normalization and semantic validation;
+7. delete identity consistency, when applicable;
+8. signature against the daemon-local authorized-key set;
+9. issuance time against configured clock skew and maximum age.
+
+A timestamp too far in the future MUST be rejected. An expired intent MUST be rejected.
 
 Intent validity ends at the half-open boundary:
 
@@ -169,42 +200,33 @@ Intent validity ends at the half-open boundary:
 issuedAtUnix + max_intent_age + clock_skew
 ```
 
-A timestamp too far in the future is also rejected using the configured `clock_skew`.
+## Replay protection and execution boundary
 
-After verification, mutation execution is serialized under the daemon UFW execution gate:
+Signature verification alone does not make an intent reusable. After successful verification, mutation execution is serialized under the daemon's UFW execution gate.
 
-1. durably consume the nonce;
-2. read authoritative UFW state;
-3. apply duplicate or delete-target checks;
-4. construct validated UFW argv and execute the child process without a shell;
-5. retain ownership of the child through exit or cancellation cleanup;
-6. re-read UFW and confirm the expected semantic postcondition before returning success.
+Before a UFW child process can start, the daemon MUST durably consume the nonce. Replay state is persisted across daemon restart and retained until the same expiry boundary used for freshness validation. If replay state cannot be read or persisted safely, the daemon MUST fail closed.
 
-The replay store retains a consumed nonce until the same expiry boundary used by intent validation and is persisted across daemon restarts. Corrupt or unwritable replay state fails closed. Consequently, a still-valid signed intent cannot be accepted twice through sequential replay, concurrent submission, or daemon restart.
+After nonce consumption, the daemon:
 
-## Operator configuration
+1. reads authoritative UFW state;
+2. performs operation-specific duplicate or target-resolution checks;
+3. renders validated argv and executes UFW without a shell;
+4. retains ownership of the child through completion or cancellation cleanup;
+5. re-reads UFW and confirms the expected semantic postcondition before returning success.
 
-Daemon intent security is configured under `security`:
+A still-valid intent therefore cannot be accepted twice through sequential replay, concurrent submission, or daemon restart.
 
-```json
-{
-  "security": {
-    "authorized_keys_path": "/etc/ufw-manager/authorized_keys",
-    "nonce_store_path": "/var/lib/ufw-manager/intent-nonces",
-    "deployment_id_path": "/var/lib/ufw-manager/deployment-id",
-    "max_intent_age": "00:05:00",
-    "clock_skew": "00:00:30"
-  }
-}
-```
+## Authorized keys and operator state
 
-The authorized-key file may contain comments and one or more ECDSA P-256 `PUBLIC KEY` PEM blocks. Private-key PEM blocks and unsupported key types are rejected.
+The daemon authorized-key file may contain comments and one or more ECDSA P-256 `PUBLIC KEY` PEM blocks. Private-key PEM blocks and unsupported key types MUST be rejected.
 
-A test keypair can be generated with:
+A signing key can be generated with:
 
 ```bash
-openssl ecparam -name prime256v1 -genkey -noout -out intent-key.pem
-openssl ec -in intent-key.pem -pubout -out intent-key.pub.pem
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out intent-key.pem
+openssl pkey -in intent-key.pem -pubout -out intent-key.pub.pem
 ```
 
-The private key belongs to the signing client. Only the public-key PEM belongs in the daemon authorized-key file.
+The private key belongs to the signing client. Only the public key belongs on the daemon.
+
+Paths for authorized keys, nonce state, deployment identity, and freshness policy are deployment configuration rather than wire fields. See [Deployment configuration](../deployment/configuration.md).
