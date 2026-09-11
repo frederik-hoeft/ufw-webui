@@ -25,6 +25,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         cancellationToken.ThrowIfCancellationRequested();
 
         services.AddLogging();
+        services.AddControllers();
         services.AddSingleton<IModelLoader, ApplicationModelLoader>();
         services.AddSingleton(static _ => new SqliteConnection("Data Source=:memory:"));
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
@@ -63,6 +64,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
         services.AddScoped<AuthenticationFlowService>();
+        services.AddScoped<AuthController>();
         services.AddScoped<IAuthenticationFlowService>(static serviceProvider => serviceProvider.GetRequiredService<AuthenticationFlowService>());
 
         services.AddScoped<IntegrationDaemonNetworkInterfaceSource>();

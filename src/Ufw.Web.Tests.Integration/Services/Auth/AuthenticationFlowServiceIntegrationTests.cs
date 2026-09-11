@@ -9,7 +9,7 @@ using Ufw.Web.Tests.Integration.Support;
 namespace Ufw.Web.Tests.Integration.Services.Auth;
 
 [TestClass]
-public sealed class AuthenticationFlowServiceIntegrationTests : ComponentIntegrationTest<AuthenticationFlowService>
+public sealed class AuthenticationFlowServiceIntegrationTests : ComponentIntegrationTest<AuthenticationFlowTestComponent>
 {
     private const string EMAIL = "operator@example.invalid";
     private const string PASSWORD = "correct-password";

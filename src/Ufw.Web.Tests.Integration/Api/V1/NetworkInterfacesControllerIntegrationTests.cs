@@ -10,7 +10,7 @@ using Ufw.Web.Tests.Integration.Support;
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class NetworkInterfacesControllerIntegrationTests : ComponentIntegrationTest<NetworkInterfacesController>
+public sealed class NetworkInterfacesControllerIntegrationTests : ControllerIntegrationTest<NetworkInterfacesController>
 {
     public required TestContext TestContext { get; set; }
 
