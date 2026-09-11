@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Buffers.Text;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace Ufw.Client.Auth;
@@ -13,7 +14,7 @@ internal sealed class AccessTokenPrincipalFactory : IAccessTokenPrincipalFactory
             throw new InvalidOperationException("The API returned an invalid access token.");
         }
 
-        byte[] payloadBytes = DecodeBase64Url(segments[1]);
+        byte[] payloadBytes = Base64Url.DecodeFromChars(segments[1]);
         using JsonDocument document = JsonDocument.Parse(payloadBytes);
         List<Claim> claims = [];
         foreach (JsonProperty property in document.RootElement.EnumerateObject())
@@ -51,18 +52,5 @@ internal sealed class AccessTokenPrincipalFactory : IAccessTokenPrincipalFactory
                 claims.Add(new Claim(name, text));
             }
         }
-    }
-
-    private static byte[] DecodeBase64Url(string value)
-    {
-        string normalized = value.Replace('-', '+').Replace('_', '/');
-        normalized += (normalized.Length % 4) switch
-        {
-            0 => string.Empty,
-            2 => "==",
-            3 => "=",
-            _ => throw new InvalidOperationException("The API returned an invalid access token."),
-        };
-        return Convert.FromBase64String(normalized);
     }
 }
