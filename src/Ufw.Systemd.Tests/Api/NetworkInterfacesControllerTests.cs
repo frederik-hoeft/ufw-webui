@@ -20,7 +20,8 @@ public sealed class NetworkInterfacesControllerTests
         Mock<INetworkInterfaceProvider> provider = new();
         string[] names = ["eno1", "enp4s0f2.1100", "lo"];
         provider.Setup(static service => service.GetInterfaceNames()).Returns(names);
-        NetworkInterfacesController controller = new(provider.Object, new ConsoleLogger());
+        NetworkInterfaceSnapshotService snapshots = new(provider.Object, new ConsoleLogger());
+        NetworkInterfacesController controller = new(snapshots);
 
         IResponsePayload response = await controller.GetNetworkInterfacesAsync(TestContext.CancellationToken);
 
@@ -35,7 +36,8 @@ public sealed class NetworkInterfacesControllerTests
         provider
             .Setup(static service => service.GetInterfaceNames())
             .Throws(new NetworkInformationException());
-        NetworkInterfacesController controller = new(provider.Object, new ConsoleLogger());
+        NetworkInterfaceSnapshotService snapshots = new(provider.Object, new ConsoleLogger());
+        NetworkInterfacesController controller = new(snapshots);
 
         IResponsePayload response = await controller.GetNetworkInterfacesAsync(TestContext.CancellationToken);
 

@@ -2,7 +2,8 @@
 @page "/rules/create"
 @attribute [Authorize]
 @implements IDisposable
-@inject IUfwApiClient UfwApiClient
+@inject IRuleApiClient RuleApiClient
+@inject IRuleMutationService RuleMutations
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors

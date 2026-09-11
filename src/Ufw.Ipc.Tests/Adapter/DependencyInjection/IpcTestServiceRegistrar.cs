@@ -47,7 +47,8 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton<ITransportSecurityService, NoTransportSecurityService>();
         services.AddSingleton<ServerTransport.ITransportLayerService, InProcessServerTransportService>();
         services.AddSingleton<INetworkApplication, NetworkApplication>();
-        services.AddTransient<INetworkApplicationWorker, NetworkApplicationWorker>();
+        services.AddSingleton<INetworkConnectionProcessor, NetworkConnectionProcessor>();
+        services.AddSingleton<INetworkApplicationWorker, NetworkApplicationWorker>();
         return services;
     }
 
@@ -67,18 +68,11 @@ internal static class IpcTestServiceRegistrar
             IoTimeout: options.ClientIoTimeout ?? options.IoTimeout,
             RequestTimeout: options.ClientRequestTimeout ?? options.RequestTimeout));
         services.AddSingleton(broker);
-        services.AddSingleton(MessageJsonSerializerContext.Default);
+        services.AddUfwClientCoreServices();
         services.AddSingleton(HybridMessageJsonSerializerContext.CreateDefault());
         services.AddSingleton<AotJsonSerializerContext>(static sp => sp.GetRequiredService<HybridMessageJsonSerializerContext>());
-        services.AddSingleton(ItpOptions.Default);
-        services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
-        services.AddSingleton<IResponseMessageHandler, BadRequestResponseHandler>();
-        services.AddSingleton<IResponseMessageHandler, ErrorResponseHandler>();
-        services.AddSingleton<IResponseMessageHandler, DataResponseHandler>();
-        services.AddSingleton<IResponseMessageHandler, ResponseProtocolErrorHandler>();
         services.AddSingleton<ITransportSecurityService, NoTransportSecurityService>();
         services.AddSingleton<ITransportLayerService, InProcessClientTransportService>();
-        services.AddScoped<IUfwClient, UfwClient>();
         return services;
     }
 }

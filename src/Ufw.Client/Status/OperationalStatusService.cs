@@ -5,7 +5,13 @@ using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.Status;
 
-internal sealed class OperationalStatusService(IUfwApiClient apiClient, IClientErrorMapper clientErrors, TimeProvider timeProvider) : IOperationalStatusService, IDisposable
+internal sealed class OperationalStatusService
+(
+    IRuleApiClient rulesApiClient,
+    IIntentContextApiClient intentContextApiClient,
+    IClientErrorMapper clientErrors,
+    TimeProvider timeProvider
+) : IOperationalStatusService, IDisposable
 {
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
 
@@ -24,8 +30,8 @@ internal sealed class OperationalStatusService(IUfwApiClient apiClient, IClientE
             Changed?.Invoke();
 
             long startedAt = timeProvider.GetTimestamp();
-            Task<IntentContextResponse> intentContextTask = apiClient.GetIntentContextAsync(cancellationToken);
-            Task<RuleListResponse> rulesTask = apiClient.GetRulesAsync(cancellationToken);
+            Task<IntentContextResponse> intentContextTask = intentContextApiClient.GetAsync(cancellationToken);
+            Task<RuleListResponse> rulesTask = rulesApiClient.GetRulesAsync(cancellationToken);
 
             try
             {

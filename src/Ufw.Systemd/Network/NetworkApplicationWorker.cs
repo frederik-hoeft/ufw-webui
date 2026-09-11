@@ -1,154 +1,58 @@
 ﻿using System.Net.Sockets;
 using System.Security.Authentication;
-using Ufw.Shared.Ipc.Model.Responses;
-using Ufw.Shared.Ipc.Protocol;
-using Ufw.Shared.Ipc.Serialization;
-using Ufw.Shared.Ipc.Transport;
-using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Shared.Ipc.Transport.Security;
-using Ufw.Systemd.Api.Middleware;
-using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Transport;
 
 namespace Ufw.Systemd.Network;
 
-internal sealed class NetworkApplicationWorker
-(
+internal sealed class NetworkApplicationWorker(
     ITransportLayerService transportLayerService,
-    ITransportSecurityService transportSecurityService,
-    IMessageSerializer messageSerializer,
-    IRequestResponsePipeline requestResponsePipeline,
-    IConfiguration configuration,
-    ItpOptions itpOptions,
-    ILogger logger
-) : INetworkApplicationWorker
+    INetworkConnectionProcessor connectionProcessor,
+    ILogger logger) : INetworkApplicationWorker
 {
-    private readonly Guid _workerId = Guid.CreateVersion7();
-
-    public async Task ServeAsync(INetworkApplication manager, CancellationToken cancellationToken)
+    public async Task ServeAsync(CancellationToken cancellationToken)
     {
-        logger.Scoped(this).LogInformation($"Worker {_workerId}: started");
+        Guid workerId = Guid.CreateVersion7();
+        logger.Scoped(this).LogInformation($"Worker {workerId}: started");
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                await using ITransportLayerConnection connection = await transportLayerService.ServeAsync(cancellationToken);
-                await ProcessAcceptedConnectionAsync(connection, cancellationToken);
+                await using Shared.Ipc.Transport.ITransportLayerConnection connection = await transportLayerService.ServeAsync(cancellationToken);
+                await connectionProcessor.ProcessAsync(connection, workerId, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 break;
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException exception)
             {
-                LogConnectionFailure(ex);
+                LogConnectionFailure(workerId, exception);
             }
-            catch (SocketException ex)
+            catch (SocketException exception)
             {
-                LogConnectionFailure(ex);
+                LogConnectionFailure(workerId, exception);
             }
-            catch (InvalidDataException ex)
+            catch (InvalidDataException exception)
             {
-                LogConnectionFailure(ex);
+                LogConnectionFailure(workerId, exception);
             }
-            catch (AuthenticationException ex)
+            catch (AuthenticationException exception)
             {
-                LogConnectionFailure(ex);
+                LogConnectionFailure(workerId, exception);
             }
-            catch (TimeoutException ex)
+            catch (TimeoutException exception)
             {
-                LogConnectionFailure(ex);
+                LogConnectionFailure(workerId, exception);
             }
-            catch (IOException ex)
+            catch (IOException exception)
             {
-                LogConnectionFailure(ex);
+                LogConnectionFailure(workerId, exception);
             }
         }
-        logger.Scoped(this).LogInformation($"Worker {_workerId}: stopping");
+        logger.Scoped(this).LogInformation($"Worker {workerId}: stopping");
     }
 
-    private async Task ProcessAcceptedConnectionAsync(ITransportLayerConnection connection, CancellationToken cancellationToken)
-    {
-        TimeSpan requestTimeout = configuration.Settings.Network.RequestTimeout;
-        using CancellationTokenSource? requestTimeoutSource = CreateRequestTimeoutSource(requestTimeout, cancellationToken);
-        CancellationToken requestToken = requestTimeoutSource?.Token ?? cancellationToken;
-
-        try
-        {
-            TimeSpan ioTimeout = configuration.Settings.Network.IoTimeout;
-            await using Stream networkStream = connection.GetStream(readTimeout: ioTimeout, writeTimeout: ioTimeout);
-            await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(networkStream, requestToken);
-            await ProcessConnectionAsync(secureStream, requestToken);
-        }
-        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && requestTimeoutSource?.IsCancellationRequested == true)
-        {
-            throw new TimeoutException("The IPC transaction exceeded the configured request timeout.", ex);
-        }
-    }
-
-    private async Task ProcessConnectionAsync(Stream secureStream, CancellationToken cancellationToken)
-    {
-        ItpConnection itp = new(secureStream, itpOptions);
-        ItpFrame frame;
-        try
-        {
-            frame = await itp.ReadAsync(cancellationToken);
-        }
-        catch (ItpException ex) when (ex.IsPeerReported)
-        {
-            logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: peer reported ITP failure {ex.ErrorCode}.");
-            return;
-        }
-        catch (ItpException ex)
-        {
-            logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: ITP framing failure {ex.ErrorCode}.");
-            if (ex.CanReplyWithTransportError)
-            {
-                await ItpConnection.TryWriteTransportErrorAsync(secureStream, itpOptions, ex.ErrorCode, ex.Message, cancellationToken);
-            }
-            return;
-        }
-
-        IMessage decoded;
-        try
-        {
-            decoded = messageSerializer.Decode(frame.Payload);
-        }
-        catch (ApplicationProtocolException ex)
-        {
-            logger.Scoped(this).LogWarning(ex, $"Worker {_workerId}: application protocol error {ex.Error}.");
-            await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(new BadRequestResponse(ex.Message), cancellationToken);
-            await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
-            return;
-        }
-
-        await using (decoded)
-        {
-            if (decoded is not IRequestMessage request)
-            {
-                await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(new BadRequestResponse("Expected an application request document."), cancellationToken);
-                await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
-                return;
-            }
-
-            await using IResponseMessage response = await requestResponsePipeline.ProcessMessageAsync(request, cancellationToken);
-            await itp.WriteApplicationDataAsync(messageSerializer.Encode(response), cancellationToken);
-        }
-    }
-
-    private static CancellationTokenSource? CreateRequestTimeoutSource(TimeSpan timeout, CancellationToken cancellationToken)
-    {
-        if (timeout == Timeout.InfiniteTimeSpan)
-        {
-            return null;
-        }
-
-        CancellationTokenSource source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        source.CancelAfter(timeout);
-        return source;
-    }
-
-    private void LogConnectionFailure(Exception exception) =>
-        logger.Scoped(this).LogWarning(exception, $"Worker {_workerId}: connection failed; continuing to serve requests.");
+    private void LogConnectionFailure(Guid workerId, Exception exception) =>
+        logger.Scoped(this).LogWarning(exception, $"Worker {workerId}: connection failed; continuing to serve requests.");
 }

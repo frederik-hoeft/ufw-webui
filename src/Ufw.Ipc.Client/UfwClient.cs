@@ -5,22 +5,16 @@ using Ufw.Ipc.Client.Transport;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Pipelines;
-using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
-using Ufw.Shared.Ipc.Transport;
-using Ufw.Shared.Ipc.Transport.Itp;
-using Ufw.Shared.Ipc.Transport.Security;
 
 namespace Ufw.Ipc.Client;
 
 internal sealed class UfwClient
 (
     IMessageSerializer messageSerializer,
-    ITransportLayerService transportLayerService,
-    ITransportSecurityService transportSecurityService,
+    IClientMessageExchange messageExchange,
     IEnumerable<IResponseMessageHandler> handlers,
-    UfwClientOptions options,
-    ItpOptions itpOptions
+    UfwClientOptions options
 ) : IUfwClient
 {
     private readonly ImmutableArray<IResponseMessageHandler> _handlerPipeline = handlers.CreatePipeline();
@@ -97,20 +91,7 @@ internal sealed class UfwClient
 
         try
         {
-            await using ITransportLayerConnection connection = await transportLayerService.ConnectAsync(requestToken);
-            await using Stream stream = connection.GetStream(options.IoTimeout, options.IoTimeout);
-            await using Stream secureStream = await transportSecurityService.OpenSecureStreamAsync(stream, requestToken);
-
-            ItpConnection itp = new(secureStream, itpOptions);
-            await itp.WriteApplicationDataAsync(messageSerializer.Encode(message), requestToken);
-
-            ItpFrame frame = await itp.ReadAsync(requestToken);
-            await using IMessage decoded = messageSerializer.Decode(frame.Payload);
-            if (decoded is not IResponseMessage response)
-            {
-                throw new ApplicationProtocolException(ApplicationProtocolError.InvalidKind, "Peer returned an application document that is not a response.");
-            }
-
+            await using IResponseMessage response = await messageExchange.ExchangeAsync(message, requestToken);
             foreach (IResponseMessageHandler handler in _handlerPipeline)
             {
                 if (handler.CanHandle(response))

@@ -95,7 +95,7 @@ public sealed partial class Rules
         _state = _state.BeginRefresh(reason);
         try
         {
-            Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -160,7 +160,7 @@ public sealed partial class Rules
         _deleting = true;
         try
         {
-            await UfwApiClient.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
+            await RuleMutations.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
             _deleting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
         }

@@ -14,7 +14,9 @@ public sealed partial class UfwClientBuilder : IDisposable
     private string? _clientCertificatePath;
     private string? _clientCertificateKeyPath;
 
-    internal UfwClientBuilder() => Pass();
+    internal UfwClientBuilder()
+    {
+    }
 
     public UfwClientBuilder ConnectTo(string endpoint)
     {

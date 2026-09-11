@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Api.V1.Models.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
@@ -66,7 +67,7 @@ public sealed class NetworkInterfacesControllerTests
     }
 
     private static NetworkInterfacesController CreateController(INetworkInterfaceInventoryService inventory) =>
-        new(inventory)
+        new(inventory, new DaemonApiErrorMapper())
         {
             ControllerContext = new ControllerContext
             {

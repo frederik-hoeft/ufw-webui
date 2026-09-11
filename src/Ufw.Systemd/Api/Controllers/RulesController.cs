@@ -5,14 +5,14 @@ using Ufw.Systemd.Firewall;
 
 namespace Ufw.Systemd.Api.Controllers;
 
-internal sealed partial class RulesController(IFirewallMutationService firewall) : ControllerBase
+internal sealed partial class RulesController(IFirewallRuleQueryService firewallRules, IFirewallMutationService firewallMutations) : ControllerBase
 {
     public partial ValueTask<IResponsePayload> GetRulesAsync(CancellationToken cancellationToken) =>
-        firewall.ListAsync(cancellationToken);
+        firewallRules.ListAsync(cancellationToken);
 
     public partial ValueTask<IResponsePayload> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken) =>
-        firewall.AddAsync(request, cancellationToken);
+        firewallMutations.AddAsync(request, cancellationToken);
 
     public partial ValueTask<IResponsePayload> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken) =>
-        firewall.DeleteAsync(request, cancellationToken);
+        firewallMutations.DeleteAsync(request, cancellationToken);
 }

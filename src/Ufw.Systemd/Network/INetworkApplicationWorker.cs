@@ -2,5 +2,5 @@
 
 internal interface INetworkApplicationWorker
 {
-    Task ServeAsync(INetworkApplication manager, CancellationToken cancellationToken);
+    Task ServeAsync(CancellationToken cancellationToken);
 }

@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Api.V1.Models.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class NetworkInterfacesController(INetworkInterfaceInventoryService inventory) : ControllerBase
+public sealed partial class NetworkInterfacesController(INetworkInterfaceInventoryService inventory, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
     public async partial Task<ActionResult<NetworkInterfaceInventoryResponse>> GetAsync(CancellationToken cancellationToken)
     {
@@ -22,11 +23,13 @@ public sealed partial class NetworkInterfacesController(INetworkInterfaceInvento
         }
         catch (UfwIpcException exception)
         {
-            return MapDaemonError(exception);
+            DaemonApiError error = daemonErrors.MapUnavailable(exception);
+            return StatusCode(error.StatusCode, error.Problem);
         }
         catch (InvalidDataException exception)
         {
-            return Problem(statusCode: StatusCodes.Status502BadGateway, detail: exception.Message);
+            DaemonApiError error = daemonErrors.MapInvalidResponse(exception);
+            return StatusCode(error.StatusCode, error.Problem);
         }
     }
 
@@ -43,6 +46,4 @@ public sealed partial class NetworkInterfacesController(INetworkInterfaceInvento
         NetworkInterfaceInventoryResponse? response = await inventory.UpdateVisibilityAsync(id, request.IsVisible, cancellationToken);
         return response is null ? NotFound() : Ok(response);
     }
-
-    private ObjectResult MapDaemonError(UfwIpcException exception) => Problem(statusCode: StatusCodes.Status502BadGateway, detail: exception.ResponseMessage);
 }

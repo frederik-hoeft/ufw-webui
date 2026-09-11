@@ -90,7 +90,7 @@ public sealed partial class CreateRule
         _state = _state.BeginRefresh(reason);
         try
         {
-            RuleListResponse response = await UfwApiClient.GetRulesAsync(_lifetime.Token);
+            RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
 
             if (_mutationMayHaveCompleted)
@@ -131,7 +131,7 @@ public sealed partial class CreateRule
         _submitting = true;
         try
         {
-            RuleMutationResponse mutation = await UfwApiClient.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
+            RuleMutationResponse mutation = await RuleMutations.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
             _reconciliationRuleIdentity = GetRuleIdentity(mutation.Rule) ?? _reconciliationRuleIdentity;
             _mutationMayHaveCompleted = true;
             _submitting = false;

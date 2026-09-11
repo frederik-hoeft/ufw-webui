@@ -37,6 +37,7 @@ public static class Program
         builder.Services.AddScoped<IFirewallRuleText, FirewallRuleText>();
         builder.Services.AddScoped<IRuleValidationMessageLocalizer, RuleValidationMessageLocalizer>();
 
+        builder.Services.AddSingleton<IAccessTokenPrincipalFactory, AccessTokenPrincipalFactory>();
         builder.Services.AddScoped<AuthenticationSession>();
         builder.Services.AddScoped<IAuthenticationSession>(static services => services.GetRequiredService<AuthenticationSession>());
         builder.Services.AddScoped<AuthenticationStateProvider>(static services => services.GetRequiredService<AuthenticationSession>());
@@ -45,7 +46,9 @@ public static class Program
         builder.Services.AddScoped<BearerTokenHandler>();
         builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<IClientErrorMapper, ClientErrorMapper>();
+        builder.Services.AddScoped<IBrowserIntentCryptoService, BrowserIntentCryptoService>();
         builder.Services.AddScoped<IIntentSigningService, BrowserIntentSigningService>();
+        builder.Services.AddScoped<IRuleMutationService, RuleMutationService>();
         builder.Services.AddScoped<IClientThemeService, BrowserClientThemeService>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingApiClient, MockRuleOrderingApiClient>();
@@ -55,7 +58,10 @@ public static class Program
         builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         // Keep browser credentials inside the bearer handler so a one-time 401 replay reapplies cookie credentials.
-        builder.Services.AddHttpClient<IUfwApiClient, UfwApiClient>(client => client.BaseAddress = apiBaseAddress)
+        builder.Services.AddHttpClient<IIntentContextApiClient, IntentContextApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleApiClient, RuleApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<INetworkInterfaceApiClient, NetworkInterfaceApiClient>(client => client.BaseAddress = apiBaseAddress)

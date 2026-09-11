@@ -2,10 +2,11 @@
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Api.V1.Errors;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class IntentController(IUfwClient ufwClient) : ControllerBase
+public sealed partial class IntentController(IUfwClient ufwClient, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
     public async partial Task<ActionResult<IntentContextResponse>> GetContextAsync(CancellationToken cancellationToken)
     {
@@ -16,10 +17,8 @@ public sealed partial class IntentController(IUfwClient ufwClient) : ControllerB
         }
         catch (UfwIpcException exception)
         {
-            int statusCode = exception.StatusCode is >= 400 and <= 599
-                ? exception.StatusCode
-                : StatusCodes.Status502BadGateway;
-            return Problem(statusCode: statusCode, detail: exception.ResponseMessage);
+            DaemonApiError error = daemonErrors.MapProxyFailure(exception);
+            return StatusCode(error.StatusCode, error.Problem);
         }
     }
 }

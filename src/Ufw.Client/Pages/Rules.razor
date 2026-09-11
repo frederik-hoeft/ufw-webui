@@ -1,7 +1,8 @@
 @page "/rules"
 @attribute [Authorize]
 @implements IDisposable
-@inject IUfwApiClient UfwApiClient
+@inject IRuleApiClient RuleApiClient
+@inject IRuleMutationService RuleMutations
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors

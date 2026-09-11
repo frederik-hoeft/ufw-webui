@@ -15,6 +15,10 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>]
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
+[Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]
+[Singleton<IFirewallRuleQueryService, FirewallRuleQueryService>]
+[Singleton<IFirewallRuleInterfaceValidator, FirewallRuleInterfaceValidator>]
+[Singleton<IFirewallMutationExecutor, FirewallMutationExecutor>]
 [Singleton<IFirewallMutationService, FirewallMutationService>]
 internal interface IFirewallModule
 {

@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 namespace Ufw.Shared.Firewall;
 
@@ -28,25 +27,6 @@ public static class RuleSpecificationNormalizer
             DestinationInterface = NormalizeInterface(specification.DestinationInterface),
             Comment = NormalizeComment(specification.Comment),
         };
-    }
-
-    public static string CanonicalizeIdentity(FirewallRuleSpecification specification)
-    {
-        ArgumentNullException.ThrowIfNull(specification);
-        FirewallRuleSpecification normalized = Normalize(specification);
-        StringBuilder builder = new();
-        builder.Append("rule-identity/2\n");
-        AppendField(builder, "action", FormatAction(normalized.Action));
-        AppendField(builder, "addressFamily", FormatAddressFamily(normalized.AddressFamily));
-        AppendField(builder, "destination", normalized.Destination ?? ANY);
-        AppendField(builder, "destinationInterface", normalized.DestinationInterface ?? string.Empty);
-        AppendField(builder, "destinationPorts", normalized.DestinationPorts ?? string.Empty);
-        AppendField(builder, "direction", FormatDirection(normalized.Direction));
-        AppendField(builder, "protocol", FormatProtocol(normalized.Protocol));
-        AppendField(builder, "source", normalized.Source ?? ANY);
-        AppendField(builder, "sourceInterface", normalized.SourceInterface ?? string.Empty);
-        AppendField(builder, "sourcePorts", normalized.SourcePorts ?? string.Empty);
-        return builder.ToString();
     }
 
     public static string FormatAction(FirewallAction action) => action switch
@@ -293,13 +273,5 @@ public static class RuleSpecificationNormalizer
             bytes[index] = 0;
         }
         return new IPAddress(bytes);
-    }
-
-    private static void AppendField(StringBuilder builder, string name, string value)
-    {
-        builder.Append(name);
-        builder.Append('=');
-        builder.Append(value);
-        builder.Append('\n');
     }
 }

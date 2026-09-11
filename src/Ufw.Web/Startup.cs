@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using Ufw.Ipc.Client.Configuration;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Configuration.Swagger;
 using Ufw.Web.Data;
@@ -70,8 +71,12 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IAuthenticationFlowService, AuthenticationFlowService>();
         services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
+        services.AddScoped<IDaemonNetworkInterfaceSource, DaemonNetworkInterfaceSource>();
+        services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();
+        services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
 
         services.AddAuthentication(options =>

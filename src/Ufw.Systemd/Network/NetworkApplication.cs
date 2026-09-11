@@ -1,10 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Systemd.Configuration;
+﻿using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Network;
 
-internal sealed class NetworkApplication(IConfiguration configuration, IServiceProvider serviceProvider, ILogger logger) : INetworkApplication
+internal sealed class NetworkApplication(IConfiguration configuration, INetworkApplicationWorker worker, ILogger logger) : INetworkApplication
 {
     private readonly int _maxWorkers = configuration.Settings.Network.MaxConnections;
 
@@ -14,8 +13,7 @@ internal sealed class NetworkApplication(IConfiguration configuration, IServiceP
         List<Task> workerTasks = new(_maxWorkers);
         for (int i = 0; i < _maxWorkers; i++)
         {
-            INetworkApplicationWorker worker = serviceProvider.GetRequiredService<INetworkApplicationWorker>();
-            Task workerTask = worker.ServeAsync(this, cancellationToken);
+            Task workerTask = worker.ServeAsync(cancellationToken);
             workerTasks.Add(workerTask);
         }
         await Task.WhenAll(workerTasks);

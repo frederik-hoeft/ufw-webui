@@ -28,7 +28,8 @@ internal sealed record UfwEndpointMapping<TResponse>(string Method, string Route
         }
         catch (Exception e)
         {
-            return await messageSerializer.SerializeResponseAsync(InternalServerError(e, serviceProvider), cancellationToken);
+            IApiExceptionMapper exceptionMapper = serviceProvider.GetRequiredService<IApiExceptionMapper>();
+            return await messageSerializer.SerializeResponseAsync(exceptionMapper.Map(e), cancellationToken);
         }
         return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
     }

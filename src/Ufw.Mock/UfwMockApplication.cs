@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Ufw.Mock.Cli;
 using Ufw.Mock.Commands;
 using Ufw.Mock.Rules;
+using Ufw.Mock.Services;
 using Ufw.Mock.State;
 
 namespace Ufw.Mock;
@@ -44,7 +45,16 @@ public static class UfwMockApplication
                 services.AddSingleton(options);
                 services.AddSingleton<UfwStateStore>();
                 services.AddSingleton<UfwRuleParser>();
-                services.AddSingleton<UfwCommandExecutor>();
+                services.AddSingleton<UfwCommandExecutionService>();
+                services.AddSingleton<UfwConfirmationService>();
+                services.AddSingleton<UfwLifecycleService>();
+                services.AddSingleton<UfwPolicyService>();
+                services.AddSingleton<UfwStatusService>();
+                services.AddSingleton<UfwRuleMutationService>();
+                services.AddSingleton<UfwRuleMutationCoordinator>();
+                services.AddSingleton<UfwRuleMutationReporter>();
+                services.AddSingleton<UfwRuleService>();
+                services.AddSingleton<UfwApplicationService>();
             });
 
             UfwCommandBuilder builder = new(app);

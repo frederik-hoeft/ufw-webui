@@ -21,7 +21,9 @@ The mock references `Ufw.Shared.Firewall` for the rule concepts already shared w
 
 ## Component model
 
-`Ufw.Mock` is a normal .NET 10 console application built on ConsoleAppFramework. The entrypoint creates one `ConsoleAppBuilder`, configures the UFW global options, registers invocation-scoped runtime dependencies through CAF's dependency-injection integration, and registers command-category classes with chained `Add<T>()` calls. Command categories only translate CAF dispatch into `UfwCommandExecutor`; the executor receives the parsed global options, state store, and rule parser through constructor injection. UFW's rule grammar remains in the dedicated parser rather than being encoded as a large set of CAF method parameters.
+`Ufw.Mock` is a normal .NET 10 console application built on ConsoleAppFramework. The entrypoint creates one `ConsoleAppBuilder`, configures the UFW global options, registers invocation-scoped runtime dependencies through CAF's dependency-injection integration, and registers command-category classes with chained `Add<T>()` calls. Command categories are thin CAF adapters and depend only on the service for their command family. Lifecycle, policy, status/reporting, application-profile handling, and rule-command behavior are separate services rather than one cross-domain command executor.
+
+Rule commands are further separated from mutation mechanics. `UfwRuleService` owns CLI-level rule dispatch such as positional insertion, confirmation, and action selection; `UfwRuleMutationCoordinator` owns the atomic state-store transaction, state-dependent parsing, and dry-run semantics; `UfwRuleMutationService` mutates an already-loaded rule collection from an already parsed request; and `UfwRuleMutationReporter` owns UFW-compatible mutation messages. Application-profile updates reuse the mutation coordinator directly rather than depending on the rule CLI facade. UFW's rule grammar remains in the dedicated `UfwRuleParser` rather than being encoded as a large set of CAF method parameters.
 
 The command categories are:
 

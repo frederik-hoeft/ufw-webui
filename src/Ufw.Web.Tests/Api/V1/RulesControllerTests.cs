@@ -8,6 +8,7 @@ using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Api.V1.Errors;
 
 namespace Ufw.Web.Tests.Api.V1;
 
@@ -104,7 +105,7 @@ public sealed class RulesControllerTests
 
     private static RulesController CreateController(IUfwClient client)
     {
-        RulesController controller = new(client)
+        RulesController controller = new(client, new DaemonApiErrorMapper())
         {
             ControllerContext = new ControllerContext
             {

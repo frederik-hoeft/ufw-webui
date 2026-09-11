@@ -4,5 +4,6 @@ namespace Ufw.Systemd.Network;
 
 [ServiceProviderModule]
 [Singleton<INetworkApplication, NetworkApplication>]
-[Transient<INetworkApplicationWorker, NetworkApplicationWorker>]
+[Singleton<INetworkConnectionProcessor, NetworkConnectionProcessor>]
+[Singleton<INetworkApplicationWorker, NetworkApplicationWorker>]
 internal interface INetworkModule;

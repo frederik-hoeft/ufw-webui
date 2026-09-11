@@ -2,13 +2,13 @@
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
+using Ufw.Web.Api.V1.Errors;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RulesController(IUfwClient ufwClient) : ControllerBase
+public sealed partial class RulesController(IUfwClient ufwClient, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
     public async partial Task<ActionResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken)
     {
@@ -61,27 +61,9 @@ public sealed partial class RulesController(IUfwClient ufwClient) : ControllerBa
         }
     }
 
-    private ActionResult MapDaemonError(UfwIpcException exception)
+    private ObjectResult MapDaemonError(UfwIpcException exception)
     {
-        int statusCode = exception.StatusCode is >= 400 and <= 599
-            ? exception.StatusCode
-            : StatusCodes.Status502BadGateway;
-
-        if (exception.ValidationErrors is { Length: > 0 })
-        {
-            ValidationProblemDetails details = new()
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = exception.ResponseMessage ?? "One or more validation errors occurred.",
-            };
-            foreach (ModelValidationError error in exception.ValidationErrors)
-            {
-                details.Errors[error.PropertyName] = [error.ErrorMessage];
-            }
-
-            return ValidationProblem(details);
-        }
-
-        return Problem(statusCode: statusCode, detail: exception.ResponseMessage);
+        DaemonApiError error = daemonErrors.MapProxyFailure(exception);
+        return StatusCode(error.StatusCode, error.Problem);
     }
 }
