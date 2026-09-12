@@ -151,6 +151,7 @@ The current application-v1 daemon routes are:
 | `GET` | `/api/v1/network-interfaces` | enumerate current host interface names | no |
 | `GET` | `/api/v1/rules` | read authoritative UFW state | no |
 | `POST` | `/api/v1/rules` | add a rule | yes, `rules.add` |
+| `PUT` | `/api/v1/rules/order` | reorder the exact reviewed rule snapshot | yes, `rules.reorder` |
 | `DELETE` | `/api/v1/rules` | delete a concrete rule | yes, `rules.delete` |
 
 The interface route carries host-observed names only. ASP-owned UUIDs, comments, and visibility metadata are intentionally outside IPC.
@@ -188,7 +189,7 @@ A model-validation failure uses the distinct `validation-error` representation:
 }
 ```
 
-The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status.
+The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status. A verified `rules.reorder` transaction is always returned over IPC as a typed `data` result, including stale-baseline, partial-completion, recovery-failure, and state-uncertain outcomes. This preserves its authoritative final snapshot and operation report across the daemon boundary. Signature, replay, malformed-intent, and other authorization failures remain ordinary application errors.
 
 ## Failures and cancellation
 

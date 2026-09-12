@@ -19,36 +19,23 @@ internal sealed class IntentVerifier
 {
     public IntentVerificationResult VerifyAdd(ISignedIntent intent) => Verify(
         intent,
-        expectedOperation: IntentOperations.ADD_RULE,
-        payloadFactory: static (signed, context) =>
-        {
-            AddRulePayload? payload = signed.Payload.Deserialize(context.AddRulePayload);
-            if (payload?.Rule is null)
-            {
-                return (null, null, new BadRequestResponse("Add-rule payload is missing a rule specification."));
-            }
-
-            return (payload.Rule, null, null);
-        });
+        IntentOperations.ADD_RULE,
+        ParseAddPayload);
 
     public IntentVerificationResult VerifyDelete(ISignedIntent intent) => Verify(
         intent,
-        expectedOperation: IntentOperations.DELETE_RULE,
-        payloadFactory: static (signed, context) =>
-        {
-            DeleteRulePayload? payload = signed.Payload.Deserialize(context.DeleteRulePayload);
-            if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.RuleId))
-            {
-                return (null, null, new BadRequestResponse("Delete-rule payload must include ruleId and a rule specification."));
-            }
+        IntentOperations.DELETE_RULE,
+        ParseDeletePayload);
 
-            return (payload.Rule, payload.RuleId, null);
-        });
+    public IntentVerificationResult VerifyReorder(ISignedIntent intent) => Verify(
+        intent,
+        IntentOperations.REORDER_RULES,
+        ParseReorderPayload);
 
     private IntentVerificationResult Verify(
         ISignedIntent intent,
         string expectedOperation,
-        Func<ISignedIntent, MessageJsonSerializerContext, (FirewallRuleSpecification? Rule, string? RuleId, IResponsePayload? Error)> payloadFactory)
+        Func<ISignedIntent, PayloadVerification> payloadVerifier)
     {
         ArgumentNullException.ThrowIfNull(intent);
         if (intent.Version != IntentProtocol.VERSION)
@@ -82,12 +69,10 @@ internal sealed class IntentVerifier
             return Reject(new BadRequestResponse("Intent nonce is not a valid base64url value of sufficient length."));
         }
 
-        FirewallRuleSpecification? rule;
-        string? ruleId;
-        IResponsePayload? payloadError;
+        PayloadVerification payloadVerification;
         try
         {
-            (rule, ruleId, payloadError) = payloadFactory(intent, jsonContext);
+            payloadVerification = payloadVerifier(intent);
         }
         catch (JsonException)
         {
@@ -97,47 +82,17 @@ internal sealed class IntentVerifier
         {
             return Reject(new BadRequestResponse("Signed intent payload has an unsupported shape."));
         }
-        if (payloadError is not null)
+        if (payloadVerification.Error is not null)
         {
-            return Reject(payloadError);
+            return Reject(payloadVerification.Error);
         }
-
-        if (rule is null)
-        {
-            return Reject(new BadRequestResponse("Signed intent payload could not be read."));
-        }
-
-        if (!RuleSpecificationValidator.TryValidate(rule, out ModelValidationErrorResponse? validationError))
-        {
-            return Reject(validationError);
-        }
-
-        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(rule);
-        if (ruleId is not null)
-        {
-            if (normalized.AddressFamily == FirewallAddressFamily.Any)
-            {
-                return Reject(new BadRequestResponse(
-                    "Delete-rule specifications must use a concrete address family from the current rule listing."));
-            }
-
-            string computed = RuleIdentity.Compute(normalized);
-            if (!string.Equals(computed, ruleId, StringComparison.Ordinal))
-            {
-                return Reject(new BadRequestResponse("Delete ruleId does not match the supplied rule specification."));
-            }
-        }
-
-        byte[] canonical = ruleId is null
-            ? IntentCanonicalizer.CanonicalizeAdd(intent, new AddRulePayload { Rule = normalized })
-            : IntentCanonicalizer.CanonicalizeDelete(intent, new DeleteRulePayload { RuleId = ruleId, Rule = normalized });
 
         if (!authorizedKeys.TryGetKey(intent.KeyId, out System.Security.Cryptography.ECDsa? key))
         {
             return Reject(new ForbiddenResponse("Intent was not signed by an authorized key."));
         }
 
-        if (!IntentSigner.Verify(key, canonical, intent.Signature))
+        if (!IntentSigner.Verify(key, payloadVerification.Canonical!, intent.Signature))
         {
             return Reject(new ForbiddenResponse("Intent signature is invalid."));
         }
@@ -175,7 +130,103 @@ internal sealed class IntentVerifier
             return Reject(new ForbiddenResponse("Intent has expired."));
         }
 
-        return new IntentVerificationResult.Accepted(intent.KeyId, intent.Nonce, expiresAtUnix, normalized, ruleId);
+        return payloadVerification.CreateAccepted!(intent.KeyId, intent.Nonce, expiresAtUnix);
+    }
+
+    private PayloadVerification ParseAddPayload(ISignedIntent intent)
+    {
+        AddRulePayload? payload = intent.Payload.Deserialize(jsonContext.AddRulePayload);
+        if (payload?.Rule is null)
+        {
+            return PayloadVerification.Reject(new BadRequestResponse("Add-rule payload is missing a rule specification."));
+        }
+
+        if (!RuleSpecificationValidator.TryValidate(payload.Rule, out ModelValidationErrorResponse? validationError))
+        {
+            return PayloadVerification.Reject(validationError);
+        }
+
+        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(payload.Rule);
+        AddRulePayload normalizedPayload = new() { Rule = normalized };
+        byte[] canonical = IntentCanonicalizer.CanonicalizeAdd(intent, normalizedPayload);
+        return PayloadVerification.Accept(
+            canonical,
+            (keyId, nonce, expiresAtUnix) => new IntentVerificationResult.AcceptedRuleMutation(
+                keyId,
+                nonce,
+                expiresAtUnix,
+                normalized,
+                null));
+    }
+
+    private PayloadVerification ParseDeletePayload(ISignedIntent intent)
+    {
+        DeleteRulePayload? payload = intent.Payload.Deserialize(jsonContext.DeleteRulePayload);
+        if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.RuleId))
+        {
+            return PayloadVerification.Reject(
+                new BadRequestResponse("Delete-rule payload must include ruleId and a rule specification."));
+        }
+
+        if (!RuleSpecificationValidator.TryValidate(payload.Rule, out ModelValidationErrorResponse? validationError))
+        {
+            return PayloadVerification.Reject(validationError);
+        }
+
+        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(payload.Rule);
+        if (normalized.AddressFamily == FirewallAddressFamily.Any)
+        {
+            return PayloadVerification.Reject(new BadRequestResponse(
+                "Delete-rule specifications must use a concrete address family from the current rule listing."));
+        }
+
+        string computed = RuleIdentity.Compute(normalized);
+        if (!string.Equals(computed, payload.RuleId, StringComparison.Ordinal))
+        {
+            return PayloadVerification.Reject(new BadRequestResponse("Delete ruleId does not match the supplied rule specification."));
+        }
+
+        DeleteRulePayload normalizedPayload = new() { RuleId = payload.RuleId, Rule = normalized };
+        byte[] canonical = IntentCanonicalizer.CanonicalizeDelete(intent, normalizedPayload);
+        return PayloadVerification.Accept(
+            canonical,
+            (keyId, nonce, expiresAtUnix) => new IntentVerificationResult.AcceptedRuleMutation(
+                keyId,
+                nonce,
+                expiresAtUnix,
+                normalized,
+                payload.RuleId));
+    }
+
+    private PayloadVerification ParseReorderPayload(ISignedIntent intent)
+    {
+        ReorderRulesPayload? payload = intent.Payload.Deserialize(jsonContext.ReorderRulesPayload);
+        if (payload is null
+            || string.IsNullOrWhiteSpace(payload.BaselineFingerprint)
+            || payload.DesiredOrder is null)
+        {
+            return PayloadVerification.Reject(
+                new BadRequestResponse("Reorder payload must include a baseline fingerprint and desired order."));
+        }
+
+        if (!FirewallRuleSnapshotFingerprint.IsValid(payload.BaselineFingerprint))
+        {
+            return PayloadVerification.Reject(new BadRequestResponse("Reorder baseline fingerprint is malformed."));
+        }
+
+        ReorderRulesPayload verifiedPayload = new()
+        {
+            BaselineFingerprint = payload.BaselineFingerprint,
+            DesiredOrder = [.. payload.DesiredOrder],
+        };
+        byte[] canonical = IntentCanonicalizer.CanonicalizeReorder(intent, verifiedPayload);
+        return PayloadVerification.Accept(
+            canonical,
+            (keyId, nonce, expiresAtUnix) => new IntentVerificationResult.AcceptedReorder(
+                keyId,
+                nonce,
+                expiresAtUnix,
+                verifiedPayload));
     }
 
     private SecurityOptionsSnapshot? ReadSecurity()
@@ -190,6 +241,19 @@ internal sealed class IntentVerifier
     }
 
     private static IntentVerificationResult.Rejected Reject(IResponsePayload response) => new(response);
+
+    private sealed record PayloadVerification(
+        byte[]? Canonical,
+        Func<string, string, long, IntentVerificationResult.Accepted>? CreateAccepted,
+        IResponsePayload? Error)
+    {
+        public static PayloadVerification Accept(
+            byte[] canonical,
+            Func<string, string, long, IntentVerificationResult.Accepted> createAccepted) =>
+            new(canonical, createAccepted, null);
+
+        public static PayloadVerification Reject(IResponsePayload error) => new(null, null, error);
+    }
 
     private readonly record struct SecurityOptionsSnapshot(TimeSpan MaxIntentAge, TimeSpan ClockSkew);
 }

@@ -21,6 +21,9 @@ public sealed class SecurityOptionsTests
 
             SecurityOptions deploymentId = new() { DeploymentIdPath = directory };
             Assert.ThrowsExactly<InvalidOperationException>(() => deploymentId.AssertIsValid());
+
+            SecurityOptions reorderRecovery = new() { ReorderRecoveryJournalPath = directory };
+            Assert.ThrowsExactly<InvalidOperationException>(() => reorderRecovery.AssertIsValid());
         }
         finally
         {

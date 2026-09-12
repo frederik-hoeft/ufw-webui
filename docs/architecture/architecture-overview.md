@@ -74,6 +74,7 @@ The architecture distinguishes authoritative state from caches and presentation 
 | Current host network interfaces | Host OS, observed through `Ufw.Systemd` | Re-read for add-rule validation |
 | Authorized mutation public keys | `Ufw.Systemd` operator state | Not writable through the web API |
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
+| Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
 | Users, refresh-token families, interface metadata | `Ufw.Web` / PostgreSQL | Application state only |
 | Access token | Browser memory | Short-lived bearer credential |
 | Mutation private key | Administrator/browser signing workflow | Never sent to the server or persisted by the application |
@@ -93,7 +94,7 @@ The browser treats each successful response as an authoritative snapshot. If a l
 
 A firewall mutation uses two independent authorization layers. The HTTP request requires a valid web session, and the mutation body carries a browser-created signature that the daemon verifies independently.
 
-The browser first obtains the daemon's intent context, builds the normalized add/delete payload, and signs the canonical intent with an authorized P-256 key. `Ufw.Web` forwards that envelope unchanged. The daemon verifies deployment scope, operation, payload semantics, signature, and freshness before entering the serialized mutation boundary. It then durably consumes the nonce, checks current UFW state, executes validated argv without a shell, and re-reads UFW before reporting success.
+The browser first obtains the daemon's intent context and signs an operation-specific canonical payload with an authorized P-256 key. Add and delete bind normalized rule semantics; delete also binds the semantic rule identity. Reorder binds a SHA-256 fingerprint of the exact ordered snapshot displayed by the browser plus the complete desired permutation of snapshot-local occurrences. `Ufw.Web` forwards the signed envelope without becoming mutation authority. The daemon verifies deployment scope, operation, payload semantics, signature, and freshness before entering the serialized mutation boundary, then durably consumes the nonce and reconciles every privileged UFW effect against fresh authoritative state.
 
 See [Firewall model](firewall-model.md) for state reconciliation and [Signed mutation intent v2](../protocols/signed-intent.md) for the exact signed contract.
 

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -264,8 +264,8 @@
   <data name="MoveDescription" xml:space="preserve">
     <value>Choose the one-based position this rule should occupy in the ordered firewall list.</value>
   </data>
-  <data name="MoveMockNotice" xml:space="preserve">
-    <value>Rule ordering is currently a frontend prototype. This move is sent only to the mock ASP boundary and updates a local preview; it does not change UFW and does not perform intent signing.</value>
+  <data name="MovePreviewNotice" xml:space="preserve">
+    <value>This move changes only the local preview. UFW is updated only after the complete preview is reviewed, signed, and applied.</value>
   </data>
   <data name="TargetPosition" xml:space="preserve">
     <value>Target position</value>
@@ -340,10 +340,7 @@
     <value>Ordering</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>Drag a rule by its handle or use "Move to position..." to stage a new order. Confirm the preview before the mocked ASP boundary is invoked. Insert-before/after actions open rule creation with the selected position context.</value>
-  </data>
-  <data name="MockApi" xml:space="preserve">
-    <value>Mock API</value>
+    <value>Drag a rule by its handle or use "Move to position..." to stage a new order. Applying the preview signs the complete desired ordering against the displayed authoritative snapshot. Insert-before/after actions open rule creation with the selected position context.</value>
   </data>
   <data name="ActionsForRule" xml:space="preserve">
     <value>Actions for firewall rule {0}</value>
@@ -357,14 +354,11 @@
   <data name="DragRule" xml:space="preserve">
     <value>Drag firewall rule to reorder</value>
   </data>
-  <data name="CannotOrderAmbiguous" xml:space="preserve">
-    <value>This rule cannot be addressed unambiguously for ordering.</value>
-  </data>
-  <data name="DragMockTitle" xml:space="preserve">
-    <value>Drag to stage a new order. Nothing is sent to the mock until you confirm the preview.</value>
+  <data name="CannotOrderReadOnly" xml:space="preserve">
+    <value>This rule cannot be moved because it is not represented safely enough for reordering.</value>
   </data>
   <data name="DragRealTitle" xml:space="preserve">
-    <value>Drag to reorder this firewall rule.</value>
+    <value>Drag to stage a new ordering preview. UFW is not changed until the preview is signed and applied.</value>
   </data>
   <data name="AnyFamily" xml:space="preserve">
     <value>Any family</value>
@@ -408,8 +402,8 @@
   <data name="OrderingTargetRange" xml:space="preserve">
     <value>Target position must be between 1 and {0}.</value>
   </data>
-  <data name="OrderingAmbiguous" xml:space="preserve">
-    <value>The rule ID is ambiguous in the current snapshot.</value>
+  <data name="OrderingBaselineChanged" xml:space="preserve">
+    <value>The ordering preview no longer matches the authoritative baseline. Refresh and start a new preview.</value>
   </data>
   <data name="OrderingMissing" xml:space="preserve">
     <value>The rule is not present in the current snapshot.</value>
@@ -503,5 +497,59 @@
   </data>
   <data name="UnknownInterfacesWarning" xml:space="preserve">
     <value>One or more entered interface names are not present in the cached host-interface inventory. The daemon verifies interface existence before applying the rule, so the rule may be rejected.</value>
+  </data>
+  <data name="OrderingApplied" xml:space="preserve">
+    <value>Firewall rule ordering applied.</value>
+  </data>
+  <data name="OrderingResult" xml:space="preserve">
+    <value>Rule ordering result</value>
+  </data>
+  <data name="OrderingResultCompleted" xml:space="preserve">
+    <value>Rule ordering completed</value>
+  </data>
+  <data name="OrderingResultStale" xml:space="preserve">
+    <value>Rule ordering was not applied because the firewall changed</value>
+  </data>
+  <data name="OrderingResultPrecondition" xml:space="preserve">
+    <value>Rule ordering could not be applied safely</value>
+  </data>
+  <data name="OrderingResultPartial" xml:space="preserve">
+    <value>Rule ordering was partially applied</value>
+  </data>
+  <data name="OrderingResultRecoveryFailed" xml:space="preserve">
+    <value>Rule ordering recovery failed</value>
+  </data>
+  <data name="OrderingResultUncertain" xml:space="preserve">
+    <value>Rule ordering state is uncertain</value>
+  </data>
+  <data name="OrderingCompletedOperations" xml:space="preserve">
+    <value>Operations performed</value>
+  </data>
+  <data name="OrderingPendingOperations" xml:space="preserve">
+    <value>Safe pending operations</value>
+  </data>
+  <data name="OrderingBlockedOperations" xml:space="preserve">
+    <value>Blocked operations from the reviewed plan</value>
+  </data>
+  <data name="OrderingOperationReport" xml:space="preserve">
+    <value>Baseline rule {0} to position {1}: {2}</value>
+  </data>
+  <data name="OrderingPendingMove" xml:space="preserve">
+    <value>Baseline rule {0} to position {1}</value>
+  </data>
+  <data name="OrderingOperationApplied" xml:space="preserve">
+    <value>applied</value>
+  </data>
+  <data name="OrderingOperationAppliedAfterFailure" xml:space="preserve">
+    <value>applied despite a subprocess failure</value>
+  </data>
+  <data name="OrderingOperationRestored" xml:space="preserve">
+    <value>failed and the rule was restored</value>
+  </data>
+  <data name="OrderingOperationPresenceConfirmed" xml:space="preserve">
+    <value>interrupted; rule presence was confirmed</value>
+  </data>
+  <data name="OrderingOperationRecoveryFailed" xml:space="preserve">
+    <value>recovery failed</value>
   </data>
 </root>

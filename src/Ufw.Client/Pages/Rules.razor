@@ -1,4 +1,4 @@
-@page "/rules"
+﻿@page "/rules"
 @attribute [Authorize]
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
@@ -6,7 +6,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
-@inject IRuleOrderingApiClient RuleOrderingApiClient
+@inject IRuleOrderingService RuleOrdering
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
@@ -121,6 +121,9 @@ else if (_state.Snapshot is { })
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5 rule-ordering-preview-alert" role="status" aria-live="polite">
             <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LocalOrderingPreview"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-3">@RulesText["LocalOrderingPreviewDescription"]</MudText>
+            <div class="mb-3">
+                <MutationAuthorizationField @bind-Value="_orderingPrivateKey" Disabled="@_reordering" />
+            </div>
             <div class="rule-ordering-preview-actions">
                 <MudButton Variant="Variant.Text" Disabled="@_reordering" OnClick="DiscardOrderingPreview">
                     @RulesText["DiscardPreview"]
@@ -133,11 +136,52 @@ else if (_state.Snapshot is { })
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
-                           Disabled="@_reordering"
+                           Disabled="@(_reordering || string.IsNullOrWhiteSpace(_orderingPrivateKey))"
                            OnClick="ApplyOrderingPreviewAsync">
                     @(_reordering ? RulesText["ApplyingReordering"] : RulesText["ApplyReordering"])
                 </MudButton>
             </div>
+        </MudAlert>
+    }
+
+    @if (_orderingResult is { } orderingResult)
+    {
+        <MudAlert Severity="@OrderingResultSeverity" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@DescribeOrderingResultTitle()</MudText>
+            @if (!string.IsNullOrWhiteSpace(orderingResult.Diagnostic))
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@orderingResult.Diagnostic</MudText>
+            }
+            @if (orderingResult.Operations.Length > 0)
+            {
+                <MudText Typo="Typo.body2"><strong>@RulesText["OrderingCompletedOperations"]</strong></MudText>
+                <ul class="mb-3">
+                    @foreach (RuleReorderOperationResponse operation in orderingResult.Operations)
+                    {
+                        <li>@DescribeOrderingOperation(operation)</li>
+                    }
+                </ul>
+            }
+            @if (orderingResult.PendingOperations.Length > 0)
+            {
+                <MudText Typo="Typo.body2"><strong>@RulesText["OrderingPendingOperations"]</strong></MudText>
+                <ul class="mb-3">
+                    @foreach (RuleReorderMoveResponse move in orderingResult.PendingOperations)
+                    {
+                        <li>@DescribeOrderingMove(move)</li>
+                    }
+                </ul>
+            }
+            @if (orderingResult.BlockedOperations.Length > 0)
+            {
+                <MudText Typo="Typo.body2"><strong>@RulesText["OrderingBlockedOperations"]</strong></MudText>
+                <ul>
+                    @foreach (RuleReorderMoveResponse move in orderingResult.BlockedOperations)
+                    {
+                        <li>@DescribeOrderingMove(move)</li>
+                    }
+                </ul>
+            }
         </MudAlert>
     }
 
@@ -147,7 +191,6 @@ else if (_state.Snapshot is { })
                Disabled="@(!CanMutateFirewall)"
                OrderingDisabled="@(!CanPreviewOrdering)"
                InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
-               OrderingUsesMockData="@RuleOrderingApiClient.UsesMockData"
                DeleteRequested="BeginDeleteAsync"
                MoveRequested="MoveRuleAsync" />
 }

@@ -51,7 +51,7 @@ public static class Program
         builder.Services.AddScoped<IRuleMutationService, RuleMutationService>();
         builder.Services.AddScoped<IClientThemeService, BrowserClientThemeService>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
-        builder.Services.AddScoped<IRuleOrderingApiClient, MockRuleOrderingApiClient>();
+        builder.Services.AddScoped<IRuleOrderingService, RuleOrderingService>();
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
 

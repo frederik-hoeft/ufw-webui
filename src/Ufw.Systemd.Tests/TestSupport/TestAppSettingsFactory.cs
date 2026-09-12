@@ -4,7 +4,11 @@ namespace Ufw.Systemd.Tests.TestSupport;
 
 internal static class TestAppSettingsFactory
 {
-    public static AppSettings Create(string? authorizedKeysPath = null, string? nonceStorePath = null, string? deploymentIdPath = null) =>
+    public static AppSettings Create(
+        string? authorizedKeysPath = null,
+        string? nonceStorePath = null,
+        string? deploymentIdPath = null,
+        string? reorderRecoveryJournalPath = null) =>
         new()
         {
             DebugMode = true,
@@ -20,6 +24,7 @@ internal static class TestAppSettingsFactory
                 AuthorizedKeysPath = authorizedKeysPath ?? "/nonexistent/authorized_keys",
                 NonceStorePath = nonceStorePath ?? "/nonexistent/intent-nonces",
                 DeploymentIdPath = deploymentIdPath ?? "/nonexistent/deployment-id",
+                ReorderRecoveryJournalPath = reorderRecoveryJournalPath ?? "/nonexistent/reorder-recovery.json",
                 MaxIntentAge = TimeSpan.FromMinutes(5),
                 ClockSkew = TimeSpan.FromSeconds(30),
             },

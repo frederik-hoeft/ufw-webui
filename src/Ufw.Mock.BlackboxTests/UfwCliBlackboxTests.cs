@@ -205,6 +205,68 @@ public sealed class UfwCliBlackboxTests
     }
 
     [TestMethod]
+    public async Task RouteInsertControlsObservableRoutedRuleOrderAsync()
+    {
+        _ = await InvokeAsync("route", "allow", "in", "on", "eth0", "out", "on", "eth1", "from", "10.0.0.0/8", "to", "192.168.0.0/16", "port", "80", "proto", "tcp");
+        _ = await InvokeAsync("route", "allow", "in", "on", "eth0", "out", "on", "eth1", "from", "10.0.0.0/8", "to", "192.168.0.0/16", "port", "443", "proto", "tcp");
+
+        CommandResult inserted = await InvokeAsync(
+            "route",
+            "insert",
+            "2",
+            "deny",
+            "in",
+            "on",
+            "eth0",
+            "out",
+            "on",
+            "eth1",
+            "from",
+            "10.0.0.0/8",
+            "to",
+            "192.168.0.0/16",
+            "port",
+            "22",
+            "proto",
+            "tcp");
+        Assert.AreEqual(0, inserted.ExitCode);
+        _ = await InvokeAsync("--force", "enable");
+
+        CommandResult status = await InvokeAsync("status", "numbered");
+        int http = status.StdOut.IndexOf("80/tcp", StringComparison.Ordinal);
+        int ssh = status.StdOut.IndexOf("22/tcp", StringComparison.Ordinal);
+        int https = status.StdOut.IndexOf("443/tcp", StringComparison.Ordinal);
+        Assert.IsTrue(http >= 0);
+        Assert.IsTrue(ssh > http);
+        Assert.IsTrue(https > ssh);
+        StringAssert.Contains(status.StdOut, "DENY FWD");
+    }
+
+    [TestMethod]
+    public async Task ProtocolOnlyRulesRetainProtocolInNumberedStatusAsync()
+    {
+        CommandResult tcp = await InvokeAsync("allow", "proto", "tcp", "from", "any", "to", "any");
+        Assert.AreEqual(0, tcp.ExitCode);
+        CommandResult udp = await InvokeAsync(
+            "route",
+            "reject",
+            "from",
+            "0.0.0.0/0",
+            "to",
+            "10.100.200.2",
+            "proto",
+            "udp");
+        Assert.AreEqual(0, udp.ExitCode);
+        _ = await InvokeAsync("--force", "enable");
+
+        CommandResult status = await InvokeAsync("status", "numbered");
+
+        StringAssert.Contains(status.StdOut, "Anywhere/tcp");
+        StringAssert.Contains(status.StdOut, "10.100.200.2/udp");
+        StringAssert.Contains(status.StdOut, "REJECT FWD");
+    }
+
+    [TestMethod]
     public async Task InsertUsesGlobalNumberingForExplicitIpv6RulesAsync()
     {
         _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp");

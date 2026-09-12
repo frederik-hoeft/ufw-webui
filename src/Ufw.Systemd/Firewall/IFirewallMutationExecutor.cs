@@ -5,7 +5,7 @@ namespace Ufw.Systemd.Firewall;
 
 internal interface IFirewallMutationExecutor
 {
-    Task<IResponsePayload> AddAsync(IntentVerificationResult.Accepted intent, CancellationToken cancellationToken);
+    Task<IResponsePayload> AddAsync(IntentVerificationResult.AcceptedRuleMutation intent, CancellationToken cancellationToken);
 
-    Task<IResponsePayload> DeleteAsync(IntentVerificationResult.Accepted intent, CancellationToken cancellationToken);
+    Task<IResponsePayload> DeleteAsync(IntentVerificationResult.AcceptedRuleMutation intent, CancellationToken cancellationToken);
 }

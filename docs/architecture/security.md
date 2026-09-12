@@ -30,20 +30,15 @@ Both checks normally apply to a browser mutation. Passing only one is insufficie
 
 ## Signed mutation authorization
 
-Add and delete use the versioned signed-intent protocol defined in [Signed mutation intent v2](../protocols/signed-intent.md). The signed bytes bind:
+Add, delete, and reorder use the versioned signed-intent protocol defined in [Signed mutation intent v2](../protocols/signed-intent.md). Every signed intent binds the protocol domain, daemon deployment identity, authorized-key identifier, issuance time, random nonce, and operation name. The operation-specific payload then binds:
 
-- the intent protocol version and domain;
-- daemon deployment identity;
-- authorized-key identifier;
-- issuance time;
-- random nonce;
-- operation name;
-- the complete normalized rule semantics;
-- the semantic rule identity for delete.
+- the complete normalized rule semantics for add;
+- the normalized rule plus semantic rule identity for delete;
+- the SHA-256 fingerprint of the exact reviewed rule snapshot plus the complete desired occurrence permutation for reorder.
 
-JSON formatting is not an authorization input. The daemon validates and normalizes the semantic payload, reconstructs the canonical byte representation, and verifies an ECDSA P-256/SHA-256 signature against its local authorized-key store.
+JSON formatting is not an authorization input. The daemon validates the operation payload, reconstructs the canonical byte representation, and verifies an ECDSA P-256/SHA-256 signature against its local authorized-key store.
 
-The deployment identifier prevents a request signed for one daemon installation from being replayed against another. The operation field prevents cross-operation substitution. Binding the normalized rule prevents ASP or any intermediary from changing the material firewall semantics without invalidating the signature.
+The deployment identifier prevents a request signed for one daemon installation from being replayed against another. The operation field prevents cross-operation substitution. Operation-specific canonicalization prevents ASP or any intermediary from changing either the rule being mutated or the snapshot/order approved by the browser without invalidating the signature.
 
 ## Replay and freshness
 
@@ -61,17 +56,21 @@ UFW row numbers are presentation state, not mutation authority. They change when
 
 Delete therefore signs a normalized concrete rule plus its semantic identity. The daemon verifies that the identity matches the rule, re-lists UFW while holding its execution gate, and requires exactly one current match. Only then does it use that match's current number for the UFW subprocess.
 
-Rules that cannot be parsed and semantically validated completely remain visible but have no mutable identity. This prevents partial parser understanding from becoming deletion authority.
+Reorder has a different identity requirement. The browser fingerprints the complete ordered snapshot it actually reviewed and addresses rows by zero-based occurrence within that snapshot. The fingerprint cryptographically binds what those occurrence numbers mean, so duplicate semantic rules remain distinct without turning row numbers into durable identities. The daemon requires its fresh authoritative snapshot to match that signed fingerprint before it interprets the desired permutation.
+
+Rules that cannot be parsed and semantically validated completely remain visible but have no mutable delete identity. For reorder they may remain immutable anchors in the signed snapshot, but the daemon will not delete/reinsert a row unless it can reconstruct that row losslessly. This prevents partial parser understanding from becoming mutation authority.
 
 See [Firewall state and rule model](firewall-model.md) for the complete identity and reconciliation model.
 
 ## Privileged process boundary
 
-Signed authorization grants permission only for the supported semantic operation. The daemon validates the structural rule and renders argv directly; user-controlled rule text is never interpolated into a shell command.
+Signed authorization grants permission only for the supported semantic operation. Add/delete validate structural rule semantics, while reorder validates the signed snapshot/permutation and derives its own move plan. Every resulting UFW command is rendered as validated argv; user-controlled rule text is never interpolated into a shell command.
 
 For add, referenced interfaces must also exist in the daemon's current host-interface snapshot. This check is independent of ASP's cached interface metadata. Delete omits the existence check so stale rules remain removable after an interface disappears.
 
-The daemon serializes UFW activity and keeps ownership of a started child until it exits or has been terminated and reaped. It verifies the authoritative UFW postcondition before returning success. Process cancellation, an ambiguous listing, or a successful exit code without the expected state transition cannot be promoted into a confirmed mutation.
+The daemon serializes UFW activity and keeps ownership of a started child until it exits or has been terminated and reaped. It verifies authoritative UFW state rather than trusting process exit codes. Reorder plans are daemon-derived from the signed final permutation; the browser and ASP never authorize individual delete/insert commands. A durable recovery journal is written before a reorder delete so an interrupted move either confirms row presence, restores the removed row, or blocks later mutations until recovery can be established safely.
+
+Process cancellation, an ambiguous listing, or a successful exit code without the expected state transition cannot be promoted into a confirmed mutation. The reorder recovery mechanism does not make sequential UFW commands packet-atomic: traffic can observe the intermediate policy between deletion and reinsertion.
 
 ## IPC transport security
 
@@ -107,6 +106,7 @@ The architecture does not claim to solve:
 - immediate revocation of already-issued access JWTs;
 - security audit/accountability logging;
 - cross-process locking against an administrator or unrelated program invoking UFW concurrently;
-- privileged mutation types beyond those with an explicitly defined signed-intent contract.
+- privileged mutation types beyond those with an explicitly defined signed-intent contract;
+- packet-level atomicity for compound reorder operations executed through sequential UFW CLI commands.
 
 Out-of-band UFW changes are supported at the state-model level, but a truly simultaneous external UFW mutation can still race a daemon operation. The daemon fails conservatively when it cannot establish a unique authoritative result.

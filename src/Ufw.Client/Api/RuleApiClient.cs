@@ -8,6 +8,7 @@ namespace Ufw.Client.Api;
 internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
 {
     private static readonly Uri s_rulesUri = new("api/v1/rules", UriKind.Relative);
+    private static readonly Uri s_ruleOrderUri = new("api/v1/rules/order", UriKind.Relative);
 
     public async Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default)
     {
@@ -31,5 +32,21 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
         };
         using HttpResponseMessage response = await httpClient.SendAsync(httpRequest, cancellationToken);
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleMutationResponse, cancellationToken);
+    }
+
+    public async Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            s_ruleOrderUri,
+            request,
+            MessageJsonSerializerContext.Default.ReorderRulesRequest,
+            cancellationToken);
+        return await response.ReadTransactionResponseAsync(
+            MessageJsonSerializerContext.Default.RuleReorderResponse,
+            static candidate => candidate.Operations is not null
+                && candidate.BlockedOperations is not null
+                && candidate.PendingOperations is not null,
+            cancellationToken);
     }
 }

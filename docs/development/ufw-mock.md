@@ -51,7 +51,7 @@ The state model covers the UFW behavior consumed during development:
 - application profiles and application-profile rule expansion;
 - `status`, `status numbered`, `status verbose`, and the UFW reports needed by the project.
 
-Family-neutral rules materialize into concrete IPv4 and IPv6 rows when IPv6 is enabled, so numbered status output exercises the same family and ordering assumptions as a real UFW installation. Duplicate and deletion behavior follows structural firewall semantics rather than assigning mock-only identities to rules.
+Family-neutral rules materialize into concrete IPv4 and IPv6 rows when IPv6 is enabled, so numbered status output exercises the same family and ordering assumptions as a real UFW installation. Positional insertion preserves the global ordering model used by daemon reordering, including routed rules. Protocol-only rules retain their protocol marker in numbered status output. Duplicate and deletion behavior follows structural firewall semantics rather than assigning mock-only identities to rules.
 
 Host-dependent reports that require inspecting real netfilter tables or live sockets are deterministic synthetic output. The mock deliberately does not inspect or alter host networking.
 

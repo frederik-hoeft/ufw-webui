@@ -8,6 +8,8 @@ internal sealed class SecurityOptions : IRequireValidation
 
     public string DeploymentIdPath { get; set; } = "/var/lib/ufw-manager/deployment-id";
 
+    public string ReorderRecoveryJournalPath { get; set; } = "/var/lib/ufw-manager/reorder-recovery.json";
+
     public TimeSpan MaxIntentAge { get; set; } = TimeSpan.FromMinutes(5);
 
     public TimeSpan ClockSkew { get; set; } = TimeSpan.FromSeconds(30);
@@ -17,6 +19,7 @@ internal sealed class SecurityOptions : IRequireValidation
         if (string.IsNullOrWhiteSpace(AuthorizedKeysPath)
             || string.IsNullOrWhiteSpace(NonceStorePath)
             || string.IsNullOrWhiteSpace(DeploymentIdPath)
+            || string.IsNullOrWhiteSpace(ReorderRecoveryJournalPath)
             || MaxIntentAge <= TimeSpan.Zero
             || ClockSkew < TimeSpan.Zero)
         {
@@ -25,7 +28,8 @@ internal sealed class SecurityOptions : IRequireValidation
 
         if (Directory.Exists(AuthorizedKeysPath)
             || Directory.Exists(NonceStorePath)
-            || Directory.Exists(DeploymentIdPath))
+            || Directory.Exists(DeploymentIdPath)
+            || Directory.Exists(ReorderRecoveryJournalPath))
         {
             throw new InvalidOperationException("security file paths must not refer to directories");
         }

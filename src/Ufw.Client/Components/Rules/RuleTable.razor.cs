@@ -40,9 +40,6 @@ public sealed partial class RuleTable
     public bool InsertionDisabled { get; set; }
 
     [Parameter]
-    public bool OrderingUsesMockData { get; set; }
-
-    [Parameter]
     public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }
 
     [Parameter]
@@ -57,12 +54,10 @@ public sealed partial class RuleTable
     {
         if (!CanOrderRule(rule))
         {
-            return RulesText["CannotOrderAmbiguous"];
+            return RulesText["CannotOrderReadOnly"];
         }
 
-        return OrderingUsesMockData
-            ? RulesText["DragMockTitle"]
-            : RulesText["DragRealTitle"];
+        return RulesText["DragRealTitle"];
     }
 
     private string DragHandleClass(ListedFirewallRule rule)
@@ -92,6 +87,16 @@ public sealed partial class RuleTable
         return string.Join(' ', classes);
     }
 
+    private string ReadOnlyRowClass(ListedFirewallRule rule)
+        => ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule)
+            ? "rule-row-readonly rule-row-drop-target"
+            : "rule-row-readonly";
+
+    private string ReadOnlyMobileCardClass(ListedFirewallRule rule)
+        => ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule)
+            ? "rule-mobile-card rule-mobile-card-readonly rule-row-drop-target"
+            : "rule-mobile-card rule-mobile-card-readonly";
+
     private string MobileCardClass(ListedFirewallRule rule)
     {
         List<string> classes = ["rule-mobile-card"];
@@ -111,7 +116,7 @@ public sealed partial class RuleTable
     private string DragEnabled(ListedFirewallRule rule)
         => !OrderingDisabled && CanOrderRule(rule) ? "true" : "false";
 
-    private bool CanOrderRule(ListedFirewallRule rule) => CanMutateRule(rule);
+    internal static bool CanOrderRule(ListedFirewallRule rule) => rule.Parsed && rule.Rule is not null;
 
     private bool CanMutateRule(ListedFirewallRule rule)
     {
@@ -143,7 +148,7 @@ public sealed partial class RuleTable
 
     private void SetDragTarget(ListedFirewallRule rule)
     {
-        if (_draggedRule is not null && CanOrderRule(rule))
+        if (_draggedRule is not null)
         {
             _dragTargetRule = rule;
         }
@@ -163,15 +168,17 @@ public sealed partial class RuleTable
             if (source is null
                 || ReferenceEquals(source, target)
                 || OrderingDisabled
-                || !CanOrderRule(target))
+                || !CanOrderRule(source))
             {
                 return;
             }
 
+            int sourcePosition = PositionOf(source);
             int targetPosition = PositionOf(target);
-            if (targetPosition > 0 && !string.IsNullOrWhiteSpace(source.RuleId))
+            if (sourcePosition > 0 && targetPosition > 0)
             {
-                await MoveRequested.InvokeAsync(new RuleMoveRequest(source.RuleId, targetPosition));
+                int occurrenceId = OrderingPreview?.GetOccurrenceId(source) ?? sourcePosition - 1;
+                await MoveRequested.InvokeAsync(new RuleMoveRequest(occurrenceId, targetPosition));
             }
         }
         finally
@@ -182,7 +189,7 @@ public sealed partial class RuleTable
 
     private async Task RequestMoveToPositionAsync(ListedFirewallRule rule)
     {
-        if (OrderingDisabled || !CanOrderRule(rule) || string.IsNullOrWhiteSpace(rule.RuleId))
+        if (OrderingDisabled || !CanOrderRule(rule))
         {
             return;
         }
@@ -201,7 +208,8 @@ public sealed partial class RuleTable
         int? targetPosition = await dialog.GetReturnValueAsync<int?>();
         if (targetPosition is not null && targetPosition.Value != currentPosition)
         {
-            await MoveRequested.InvokeAsync(new RuleMoveRequest(rule.RuleId, targetPosition.Value));
+            int occurrenceId = OrderingPreview?.GetOccurrenceId(rule) ?? currentPosition - 1;
+            await MoveRequested.InvokeAsync(new RuleMoveRequest(occurrenceId, targetPosition.Value));
         }
     }
 

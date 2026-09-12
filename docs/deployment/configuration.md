@@ -143,10 +143,11 @@ These values are connection policy, not fields in the IPC wire protocol.
 | `security.authorized_keys_path` | operator-managed P-256 public keys | `/etc/ufw-manager/authorized_keys` |
 | `security.nonce_store_path` | durable replay records | `/var/lib/ufw-manager/intent-nonces` |
 | `security.deployment_id_path` | stable deployment identity | `/var/lib/ufw-manager/deployment-id` |
+| `security.reorder_recovery_journal_path` | durable recovery record for an interrupted reorder move | `/var/lib/ufw-manager/reorder-recovery.json` |
 | `security.max_intent_age` | maximum accepted intent age | `00:05:00` |
 | `security.clock_skew` | tolerated clock skew | `00:00:30` |
 
-Private administrator mutation keys never belong in daemon configuration.
+Private administrator mutation keys never belong in daemon configuration. The reorder recovery journal is daemon-owned safety state rather than a firewall database; an outstanding record must be reconciled before later firewall mutations are allowed to proceed.
 
 ## Secret ownership
 

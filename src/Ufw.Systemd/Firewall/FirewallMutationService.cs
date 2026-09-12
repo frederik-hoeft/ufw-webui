@@ -9,6 +9,7 @@ internal sealed class FirewallMutationService(
     IIntentVerifier intentVerifier,
     INonceStore nonceStore,
     IUfwExecutionGate executionGate,
+    IFirewallMutationSafetyGuard mutationSafetyGuard,
     IFirewallMutationExecutor mutationExecutor) : IFirewallMutationService
 {
     public async ValueTask<IResponsePayload> AddAsync(AddRuleRequest request, CancellationToken cancellationToken)
@@ -20,7 +21,7 @@ internal sealed class FirewallMutationService(
             return rejected.Response;
         }
 
-        IntentVerificationResult.Accepted accepted = (IntentVerificationResult.Accepted)verification;
+        IntentVerificationResult.AcceptedRuleMutation accepted = (IntentVerificationResult.AcceptedRuleMutation)verification;
         return await executionGate.RunAsync(ct => ExecuteAddAsync(accepted, ct), cancellationToken);
     }
 
@@ -33,12 +34,13 @@ internal sealed class FirewallMutationService(
             return rejected.Response;
         }
 
-        IntentVerificationResult.Accepted accepted = (IntentVerificationResult.Accepted)verification;
+        IntentVerificationResult.AcceptedRuleMutation accepted = (IntentVerificationResult.AcceptedRuleMutation)verification;
         return await executionGate.RunAsync(ct => ExecuteDeleteAsync(accepted, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteAddAsync(IntentVerificationResult.Accepted accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteAddAsync(IntentVerificationResult.AcceptedRuleMutation accepted, CancellationToken cancellationToken)
     {
+        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {
             return new ConflictResponse("Intent nonce has already been used.");
@@ -47,8 +49,9 @@ internal sealed class FirewallMutationService(
         return await mutationExecutor.AddAsync(accepted, cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteDeleteAsync(IntentVerificationResult.Accepted accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteDeleteAsync(IntentVerificationResult.AcceptedRuleMutation accepted, CancellationToken cancellationToken)
     {
+        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {
             return new ConflictResponse("Intent nonce has already been used.");

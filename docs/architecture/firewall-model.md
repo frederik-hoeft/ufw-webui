@@ -76,9 +76,23 @@ Delete follows the same authorization, nonce, process-ownership, and reconciliat
 
 Interface existence is intentionally not revalidated for delete. A rule referencing an interface that has since disappeared must still be removable.
 
+## Reorder lifecycle
+
+Reordering is a state-conditioned mutation over one exact authoritative snapshot. The browser computes a versioned SHA-256 fingerprint from the complete ordered `RuleListResponse` it displays and assigns each row a snapshot-local occurrence ID equal to its zero-based position. The signed request binds that fingerprint and the complete desired occurrence permutation. Occurrence IDs are intentionally local to the fingerprinted snapshot; they distinguish duplicate semantic rules without pretending to be durable rule identities.
+
+Under the execution gate, the daemon re-lists UFW and requires the current fingerprint to equal the signed baseline before any reorder mutation begins. It validates that the desired order is a complete permutation, that concrete IPv4 rows remain before IPv6 rows, and that every occurrence which must move can be rendered losslessly for reinsertion. Opaque or otherwise non-reinsertable rows remain fixed anchors.
+
+For a valid baseline the planner reduces the permutation to a longest-increasing-subsequence problem. Rows in the selected subsequence remain untouched; every other movable occurrence is deleted and reinserted once, producing a globally minimal number of logical moves under the unit-cost remove/reinsert model. Safety weights choose which rows remain untouched when multiple equally minimal plans exist.
+
+Each logical move is a recovery unit. Immediately before deleting a row, the daemon re-reads UFW to ensure the expected occurrence order still holds and persists a recovery record containing the rule needed to restore that row. Once deletion may have taken effect, caller cancellation or a changed reorder plan cannot abandon the row: the daemon reconciles authoritative state and either performs the planned insertion or best-effort reinserts the removed rule before stopping. The recovery record is cleared only after row presence is confirmed. Startup and every later firewall mutation first resolve any outstanding recovery record or fail closed.
+
+A reorder response is a transaction report. It carries the final authoritative snapshot whenever that state can be read safely, the operations that were applied or recovered, the unapplied suffix of the reviewed plan, and a freshly derived residual plan only when the final state can still be mapped unambiguously to the signed baseline occurrences. Pending operations are diagnostic; continuing always requires a fresh authoritative snapshot and a newly signed request. `Ufw.Web` preserves that report body while mapping `Completed` to HTTP 200, stale or partial outcomes to 409, precondition failure to 422, recovery failure to 500, and uncertain authoritative state to 503. Signature, replay, and malformed-intent failures use the normal API error representation instead.
+
+This is transaction-level recovery around sequential UFW commands, not packet-level atomic replacement of the firewall ruleset. Packets can observe the short intermediate state between deletion and reinsertion, and an unrelated process invoking UFW can still race the daemon.
+
 ## Cancellation and uncertain outcomes
 
-Once a UFW mutation process starts, caller cancellation cannot safely mean "the mutation did not happen." The daemon therefore keeps process ownership, terminates and reaps the child if required, and performs an authoritative reconciliation read before propagating cancellation.
+Once a UFW mutation process starts, caller cancellation cannot safely mean "the mutation did not happen." The daemon therefore keeps process ownership, terminates and reaps the child if required, and performs an authoritative reconciliation read before propagating cancellation. During reordering, a delete/reinsert recovery obligation continues independently of caller cancellation until row presence is confirmed or the daemon must fail closed with the durable recovery record intact.
 
 If reconciliation cannot establish the postcondition, callers must treat their previous snapshot as stale and refresh before attempting another mutation. The browser follows that rule and disables further mutation while its displayed snapshot is known to be stale.
 
@@ -96,8 +110,8 @@ Administrators and other tools may change UFW outside UFW WebUI. The architectur
 
 A subsequent list observes those changes directly. Supported externally-created rules receive the same semantic identities as equivalent rules created through the web interface. Renumbering does not break identity. Unsupported syntax remains observable but read-only.
 
-The daemon serializes only its own UFW accesses. It does not provide a cross-process lock against an administrator or unrelated program invoking UFW concurrently, so a simultaneous external mutation can still create an unavoidable host-level race. The daemon responds conservatively when the resulting state cannot be reconciled uniquely.
+The daemon serializes only its own UFW accesses. It does not provide a cross-process lock against an administrator or unrelated program invoking UFW concurrently, so a simultaneous external mutation can still create an unavoidable host-level race. For reorder, a mismatch before the first move is reported as a stale baseline without mutation. Divergence during execution stops further planned moves after the active row has been made safe, and the transaction report describes the authoritative state and any safely derivable remaining work.
 
 ## Mutation boundary
 
-The privileged mutation contract supports append-style add and semantic delete. Rule reordering and ordered insertion are not part of the signed daemon contract. Their UI prototypes remain non-authoritative until a mutation model can define stale-order preconditions, stable addressing in the presence of duplicate or opaque rows, signed placement semantics, and safe reconciliation of compound UFW operations.
+The privileged mutation contract supports append-style add, semantic delete, and exact-snapshot reorder. Ordered rule creation is a separate future contract because it changes collection membership and placement together rather than permuting an existing snapshot.

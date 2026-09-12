@@ -193,6 +193,106 @@ public sealed class IntentSignatureTests
     }
 
     [TestMethod]
+    public void VerifyReorder_AcceptsFreshSignatureFromAuthorizedKey()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesRequest request = SignReorder(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        IntentVerificationResult.AcceptedReorder accepted =
+            Assert.IsInstanceOfType<IntentVerificationResult.AcceptedReorder>(verifier.VerifyReorder(request));
+        CollectionAssert.AreEqual(CreateReorderPayload().DesiredOrder, accepted.Payload.DesiredOrder);
+    }
+
+    [TestMethod]
+    public void VerifyReorder_RejectsTamperedBaselineFingerprint()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesRequest request = SignReorder(key, clock);
+        ReorderRulesPayload tamperedPayload = CreateReorderPayload(
+            baselineFingerprint: FirewallRuleSnapshotFingerprint.Compute(active: false, []));
+        request = request with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                tamperedPayload,
+                MessageJsonSerializerContext.Default.ReorderRulesPayload),
+        };
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        AssertRejected<ForbiddenResponse>(verifier.VerifyReorder(request));
+    }
+
+    [TestMethod]
+    public void VerifyReorder_RejectsTamperedDesiredOrder()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesRequest request = SignReorder(key, clock);
+        ReorderRulesPayload tamperedPayload = CreateReorderPayload(desiredOrder: [0, 2, 1]);
+        request = request with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                tamperedPayload,
+                MessageJsonSerializerContext.Default.ReorderRulesPayload),
+        };
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        AssertRejected<ForbiddenResponse>(verifier.VerifyReorder(request));
+    }
+
+    [TestMethod]
+    public void VerifyReorder_RejectsTamperedNonce()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesRequest request = SignReorder(key, clock) with { Nonce = IntentSigner.CreateNonce() };
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        AssertRejected<ForbiddenResponse>(verifier.VerifyReorder(request));
+    }
+
+    [TestMethod]
+    public void VerifyReorder_RejectsOperationSubstitution()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesRequest request = SignReorder(key, clock) with { Operation = IntentOperations.ADD_RULE };
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        AssertRejected<BadRequestResponse>(verifier.VerifyReorder(request));
+    }
+
+    [TestMethod]
+    public void VerifyReorder_RejectsTamperedDeploymentIdentity()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesRequest request = SignReorder(key, clock) with { DeploymentId = "deployment-b" };
+        IntentVerifier verifier = CreateVerifier(key, clock, deploymentId: "deployment-b");
+
+        AssertRejected<ForbiddenResponse>(verifier.VerifyReorder(request));
+    }
+
+    [TestMethod]
+    public void VerifyReorder_RejectsMalformedBaselineFingerprint()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReorderRulesPayload payload = CreateReorderPayload(baselineFingerprint: "sha256:not-a-digest");
+        ReorderRulesRequest request = IntentRequestFactory.CreateReorderRequest(
+            key,
+            DEPLOYMENT_ID,
+            payload,
+            MessageJsonSerializerContext.Default.ReorderRulesPayload,
+            clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        AssertRejected<BadRequestResponse>(verifier.VerifyReorder(request));
+    }
+
+    [TestMethod]
     public void Canonicalize_IsStableAcrossEquivalentRules()
     {
         using ECDsa key = IntentSigner.CreateP256();
@@ -254,6 +354,22 @@ public sealed class IntentSignatureTests
         Assert.IsFalse(IntentCanonicalizer.CanonicalizeAdd(request, ipv4)
             .SequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, ipv6)));
     }
+
+    private static ReorderRulesPayload CreateReorderPayload(
+        string? baselineFingerprint = null,
+        int[]? desiredOrder = null) => new()
+        {
+            BaselineFingerprint = baselineFingerprint ?? FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            DesiredOrder = desiredOrder ?? [2, 0, 1],
+        };
+
+    private static ReorderRulesRequest SignReorder(ECDsa key, TimeProvider clock) =>
+        IntentRequestFactory.CreateReorderRequest(
+            key,
+            DEPLOYMENT_ID,
+            CreateReorderPayload(),
+            MessageJsonSerializerContext.Default.ReorderRulesPayload,
+            clock);
 
     private static FirewallRuleSpecification CreateSshRule(
         FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()

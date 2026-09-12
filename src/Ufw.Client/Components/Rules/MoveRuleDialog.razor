@@ -1,4 +1,4 @@
-@inject IStringLocalizer<CommonStrings> CommonText
+﻿@inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <MudDialog>
@@ -8,7 +8,7 @@
         </MudText>
 
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-            @RulesText["MoveMockNotice"]
+            @RulesText["MovePreviewNotice"]
         </MudAlert>
 
         <MudNumericField T="int"

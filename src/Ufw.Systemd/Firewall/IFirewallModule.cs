@@ -1,5 +1,6 @@
 ﻿using Jab;
 using Ufw.Shared.Firewall.Rendering;
+using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
 
@@ -15,6 +16,14 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>]
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
+[Singleton<IRuleReorderPlanner, RuleReorderPlanner>]
+[Singleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>]
+[Singleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>]
+[Singleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>]
+[Singleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>]
+[Singleton<IFirewallReorderExecutor, FirewallReorderExecutor>]
+[Singleton<IFirewallReorderService, FirewallReorderService>]
+[Singleton<IFirewallReorderRecoveryService, FirewallReorderRecoveryService>]
 [Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]
 [Singleton<IFirewallRuleQueryService, FirewallRuleQueryService>]
 [Singleton<IFirewallRuleInterfaceValidator, FirewallRuleInterfaceValidator>]

@@ -1,4 +1,4 @@
-@use "../../core/tokens" as *;
+﻿@use "../../core/tokens" as *;
 
 .rule-list-section,
 .rule-table-card,
@@ -314,11 +314,6 @@
     }
 }
 
-.rule-ordering-mock-chip {
-    flex: 0 0 auto;
-    margin-left: auto;
-}
-
 .rule-ordering-preview-actions {
     display: flex;
     flex-wrap: wrap;
@@ -445,10 +440,6 @@
         align-items: flex-start;
         flex-direction: column;
         gap: 0.5rem;
-    }
-
-    .rule-ordering-mock-chip {
-        margin-left: 0;
     }
 }
 

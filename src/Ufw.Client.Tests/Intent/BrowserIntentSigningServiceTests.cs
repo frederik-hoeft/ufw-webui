@@ -50,6 +50,27 @@ public sealed class BrowserIntentSigningServiceTests
     }
 
     [TestMethod]
+    public async Task CreateReorderRulesRequestAsync_BindsDisplayedBaselineAndCompletePermutationAsync()
+    {
+        Mock<IBrowserIntentCryptoService> crypto = CreateCrypto(out CapturedSignature captured);
+        BrowserIntentSigningService service = new(crypto.Object, new MutableTimeProvider(s_now));
+        string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
+        int[] desiredOrder = [2, 0, 1];
+
+        ReorderRulesRequest request = await service.CreateReorderRulesRequestAsync(
+            "deployment",
+            fingerprint,
+            desiredOrder,
+            "private-key");
+
+        Assert.AreEqual(IntentOperations.REORDER_RULES, request.Operation);
+        Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
+        CollectionAssert.AreEqual(desiredOrder, request.Payload.GetProperty("desiredOrder").EnumerateArray().Select(static item => item.GetInt32()).ToArray());
+        ReorderRulesPayload payload = new() { BaselineFingerprint = fingerprint, DesiredOrder = desiredOrder };
+        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeReorder(request, payload), captured.Payload);
+    }
+
+    [TestMethod]
     public async Task CreateRequests_InvalidInputsFailBeforeCryptoAsync()
     {
         Mock<IBrowserIntentCryptoService> crypto = new();
@@ -58,6 +79,12 @@ public sealed class BrowserIntentSigningServiceTests
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync(" ", new FirewallRuleSpecification(), "key"));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync("deployment", new FirewallRuleSpecification(), " "));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateDeleteRuleRequestAsync("deployment", " ", new FirewallRuleSpecification(), "key"));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync("deployment", "not-a-fingerprint", [0], "key"));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync(
+            "deployment",
+            FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            [],
+            " "));
         crypto.VerifyNoOtherCalls();
     }
 

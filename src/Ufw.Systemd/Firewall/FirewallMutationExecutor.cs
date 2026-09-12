@@ -20,7 +20,7 @@ internal sealed class FirewallMutationExecutor(
 {
     private readonly ILogger<FirewallMutationExecutor> _logger = logger.Scoped<FirewallMutationExecutor>();
 
-    public async Task<IResponsePayload> AddAsync(IntentVerificationResult.Accepted intent, CancellationToken cancellationToken)
+    public async Task<IResponsePayload> AddAsync(IntentVerificationResult.AcceptedRuleMutation intent, CancellationToken cancellationToken)
     {
         IResponsePayload? interfaceError = interfaceValidator.Validate(intent.Rule);
         if (interfaceError is not null)
@@ -82,7 +82,7 @@ internal sealed class FirewallMutationExecutor(
         return new RuleMutationResponse(IntentOperations.ADD_RULE, responseRule);
     }
 
-    public async Task<IResponsePayload> DeleteAsync(IntentVerificationResult.Accepted intent, CancellationToken cancellationToken)
+    public async Task<IResponsePayload> DeleteAsync(IntentVerificationResult.AcceptedRuleMutation intent, CancellationToken cancellationToken)
     {
         string identity = intent.RuleId ?? RuleIdentity.Compute(intent.Rule);
         FirewallRuleSnapshotReadResult currentSnapshot = await snapshotReader.ReadAsync(cancellationToken);

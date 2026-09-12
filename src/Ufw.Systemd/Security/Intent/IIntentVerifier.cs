@@ -7,4 +7,6 @@ internal interface IIntentVerifier
     IntentVerificationResult VerifyAdd(ISignedIntent intent);
 
     IntentVerificationResult VerifyDelete(ISignedIntent intent);
+
+    IntentVerificationResult VerifyReorder(ISignedIntent intent);
 }
