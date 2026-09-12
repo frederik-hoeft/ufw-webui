@@ -9,6 +9,8 @@ internal sealed class MappingClassEmitter(SourceProductionContext context)
 {
     private const string API_ENDPOINT_MAPPING_FULL_NAME = "global::Ufw.Roslyn.Controllers.Mapping.ApiEndpointMapping";
     private const string ACTIVATOR_FULL_NAME = "global::Ufw.Roslyn.Controllers.Internals.Activator";
+    private const string ENDPOINT_BINDINGS_NAME = "EndpointBindings";
+    private const string ENDPOINT_BINDINGS_MEMBER_NAME = "Bindings";
 
     public void Emit(BindingClassProcessorResult result)
     {
@@ -52,7 +54,15 @@ internal sealed class MappingClassEmitter(SourceProductionContext context)
             partial class {{result.ClassName}}
             {
                 [global::{{result.CompilerGeneratedFullName}}]
-                private static readonly {{API_ENDPOINT_MAPPING_FULL_NAME}}<{{result.RequestEnvelopeFullName}}, {{result.ResponseEnvelopeFullName}}>[] {{result.MappingsFieldName}} =
+                protected override {{API_ENDPOINT_MAPPING_FULL_NAME}}<{{result.RequestEnvelopeFullName}}, {{result.ResponseEnvelopeFullName}}>[] {{result.GetMappingsMethodName}}() =>
+                    {{ENDPOINT_BINDINGS_NAME}}.{{ENDPOINT_BINDINGS_MEMBER_NAME}};
+            }
+
+            [global::{{result.CompilerGeneratedFullName}}]
+            file static class {{ENDPOINT_BINDINGS_NAME}}
+            {
+                [global::{{result.CompilerGeneratedFullName}}]
+                public static {{API_ENDPOINT_MAPPING_FULL_NAME}}<{{result.RequestEnvelopeFullName}}, {{result.ResponseEnvelopeFullName}}>[] {{ENDPOINT_BINDINGS_MEMBER_NAME}} { get; } =
                 [
             """);
 
@@ -78,10 +88,6 @@ internal sealed class MappingClassEmitter(SourceProductionContext context)
 
         sb.AppendLine($$"""
                 ];
-
-                [global::{{result.CompilerGeneratedFullName}}]
-                protected override {{API_ENDPOINT_MAPPING_FULL_NAME}}<{{result.RequestEnvelopeFullName}}, {{result.ResponseEnvelopeFullName}}>[]
-                    {{result.GetMappingsMethodName}}() => {{result.MappingsFieldName}};
             }
             """);
 
