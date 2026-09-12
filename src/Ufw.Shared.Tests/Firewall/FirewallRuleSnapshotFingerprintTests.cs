@@ -17,6 +17,18 @@ public sealed class FirewallRuleSnapshotFingerprintTests
     }
 
     [TestMethod]
+    public void IsValid_AcceptsComputedFingerprintAndRejectsMalformedValues()
+    {
+        string fingerprint = FirewallRuleSnapshotFingerprint.Compute(CreateSnapshot());
+
+        Assert.IsTrue(FirewallRuleSnapshotFingerprint.IsValid(fingerprint));
+        Assert.IsFalse(FirewallRuleSnapshotFingerprint.IsValid(null));
+        Assert.IsFalse(FirewallRuleSnapshotFingerprint.IsValid(string.Empty));
+        Assert.IsFalse(FirewallRuleSnapshotFingerprint.IsValid("sha256:not-base64url"));
+        Assert.IsFalse(FirewallRuleSnapshotFingerprint.IsValid("sha512:" + fingerprint[FirewallRuleSnapshotFingerprint.PREFIX.Length..]));
+    }
+
+    [TestMethod]
     public void Compute_SameSnapshot_IsDeterministic()
     {
         RuleListResponse snapshot = CreateSnapshot();

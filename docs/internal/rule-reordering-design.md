@@ -215,7 +215,9 @@ The report distinguishes at least:
 
 Expected high-level outcomes include complete success, stale baseline before mutation, partial completion with safe recovery, partial completion caused by state divergence, and recovery/state uncertainty.
 
-The REST layer may map these outcomes to different HTTP status classes, but it must preserve the structured reorder report instead of collapsing a partial execution into a generic conflict or server-error message. The browser uses the returned authoritative snapshot as its new source of truth and presents completed, recovered, and pending work to the administrator.
+The daemon IPC boundary carries every successfully verified/executed reorder transaction as a typed data response so the complete report survives transport even when the requested ordering was not reached. Signature, authorization, replay, and malformed-envelope failures remain normal IPC error responses.
+
+The REST layer maps transaction outcomes while preserving the report body: complete execution returns `200`, stale or partially completed execution returns `409`, a precondition failure returns `422`, recovery failure returns `500`, and state uncertainty returns `503`. This mapping distinguishes transaction outcomes from transport/security errors without discarding diagnostics. The browser uses the returned authoritative snapshot as its new source of truth and presents completed, recovered, and pending work to the administrator.
 
 A pending operation is informational. It does not carry forward the original nonce or authorize automatic retry.
 

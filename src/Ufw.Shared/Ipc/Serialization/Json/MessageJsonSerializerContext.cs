@@ -41,9 +41,11 @@ namespace Ufw.Shared.Ipc.Serialization.Json;
 [JsonSerializable(typeof(ReorderRulesPayload))]
 [JsonSerializable(typeof(AddRuleRequest))]
 [JsonSerializable(typeof(DeleteRuleRequest))]
+[JsonSerializable(typeof(ReorderRulesRequest))]
 [JsonSerializable(typeof(IntentContextResponse))]
 [JsonSerializable(typeof(NetworkInterfaceListResponse))]
 [JsonSerializable(typeof(RuleListResponse))]
 [JsonSerializable(typeof(RuleMutationResponse))]
+[JsonSerializable(typeof(RuleReorderResponse))]
 [JsonTypeInfoBindingsGenerator(GenerationMode = BindingsGenerationMode.Optimized)]
 public sealed partial class MessageJsonSerializerContext : AotJsonSerializerContext;

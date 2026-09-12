@@ -1,6 +1,9 @@
-﻿namespace Ufw.Systemd.Firewall.Ordering;
+﻿using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+
+namespace Ufw.Systemd.Firewall.Ordering;
 
 internal interface IFirewallReorderService
 {
-    Task<RuleReorderExecutionResult> ReorderAsync(RuleReorderExecutionRequest request, CancellationToken cancellationToken);
+    ValueTask<IResponsePayload> ReorderAsync(ReorderRulesRequest request, CancellationToken cancellationToken);
 }

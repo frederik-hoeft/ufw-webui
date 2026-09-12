@@ -20,6 +20,12 @@ internal sealed partial class RulesController
     public partial ValueTask<IResponsePayload> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Validates and applies an administrator-signed reorder intent.
+    /// </summary>
+    [Put]
+    public partial ValueTask<IResponsePayload> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Validates and applies an administrator-signed delete-rule intent.
     /// </summary>
     [Delete]

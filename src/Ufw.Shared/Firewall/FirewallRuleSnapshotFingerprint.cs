@@ -21,6 +21,24 @@ public static class FirewallRuleSnapshotFingerprint
         return Compute(snapshot.Active, snapshot.Rules);
     }
 
+    public static bool IsValid(string? fingerprint)
+    {
+        if (fingerprint is null || !fingerprint.StartsWith(PREFIX, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            byte[] digest = Base64Url.DecodeFromChars(fingerprint.AsSpan(PREFIX.Length));
+            return digest.Length == SHA256.HashSizeInBytes;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
     public static string Compute(bool active, IReadOnlyList<ListedFirewallRule> rules)
     {
         ArgumentNullException.ThrowIfNull(rules);

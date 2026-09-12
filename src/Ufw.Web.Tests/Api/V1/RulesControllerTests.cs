@@ -89,6 +89,100 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public async Task TestReorderRulesAsync_ForwardsSignedEnvelopeAsync()
+    {
+        Mock<IUfwClient> client = new();
+        ReorderRulesRequest request = CreateSignedReorder();
+        RuleReorderResponse expected = CreateReorderResponse(RuleReorderOutcome.Completed);
+        client
+            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
+                It.IsAny<ReorderRulesRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        RulesController controller = CreateController(client.Object);
+        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(request, TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.AreSame(expected, response.Value);
+        client.Verify(
+            c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
+                It.Is<ReorderRulesRequest>(sent => sent.DeploymentId == request.DeploymentId
+                    && sent.Nonce == request.Nonce
+                    && sent.Operation == request.Operation
+                    && sent.Payload.GetRawText() == request.Payload.GetRawText()
+                    && sent.Signature == request.Signature),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow(RuleReorderOutcome.StaleBaseline, StatusCodes.Status409Conflict)]
+    [DataRow(RuleReorderOutcome.PreconditionFailed, StatusCodes.Status422UnprocessableEntity)]
+    [DataRow(RuleReorderOutcome.PartiallyCompleted, StatusCodes.Status409Conflict)]
+    [DataRow(RuleReorderOutcome.RecoveryFailed, StatusCodes.Status500InternalServerError)]
+    [DataRow(RuleReorderOutcome.StateUncertain, StatusCodes.Status503ServiceUnavailable)]
+    public async Task TestReorderRulesAsync_PreservesStructuredNonSuccessReportAsync(
+        RuleReorderOutcome outcome,
+        int expectedStatusCode)
+    {
+        Mock<IUfwClient> client = new();
+        RuleReorderResponse expected = CreateReorderResponse(outcome);
+        client
+            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
+                It.IsAny<ReorderRulesRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(
+            CreateSignedReorder(),
+            TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(expectedStatusCode, response.StatusCode);
+        Assert.AreSame(expected, response.Value);
+    }
+
+    [TestMethod]
+    public async Task TestReorderRulesAsync_RejectsWrongOperationBeforeIpcAsync()
+    {
+        Mock<IUfwClient> client = new();
+        ReorderRulesRequest request = CreateSignedReorder() with { Operation = IntentOperations.ADD_RULE };
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(request, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
+        client.Verify(
+            static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
+                It.IsAny<ReorderRulesRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task TestReorderRulesAsync_MapsDaemonReplayConflictAsProblemDetailsAsync()
+    {
+        Mock<IUfwClient> client = new();
+        client
+            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
+                It.IsAny<ReorderRulesRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UfwIpcException(StatusCodes.Status409Conflict, "Intent nonce has already been used."));
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(
+            CreateSignedReorder(),
+            TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status409Conflict, response.StatusCode);
+        Assert.IsInstanceOfType<ProblemDetails>(response.Value);
+    }
+
+    [TestMethod]
     public async Task TestDeleteRuleAsync_MapsDaemonConflictAsync()
     {
         Mock<IUfwClient> client = new();
@@ -126,6 +220,33 @@ public sealed class RulesControllerTests
         Payload = System.Text.Json.JsonSerializer.SerializeToElement(new { rule = new { action = "allow" } }),
         Signature = "sig",
     };
+
+    private static ReorderRulesRequest CreateSignedReorder() => new()
+    {
+        Version = 1,
+        DeploymentId = "deployment-test",
+        KeyId = "sha256:test",
+        IssuedAtUnix = 1,
+        Nonce = "nonce",
+        Operation = IntentOperations.REORDER_RULES,
+        Payload = System.Text.Json.JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            desiredOrder = new[] { 1, 0 },
+        }),
+        Signature = "sig",
+    };
+
+    private static RuleReorderResponse CreateReorderResponse(RuleReorderOutcome outcome) => new(
+        outcome,
+        new RuleListResponse(Active: true, []),
+        [new RuleReorderOperationResponse(
+            new RuleReorderMoveResponse(1, 0, 0),
+            RuleReorderOperationOutcome.FailedAndRestored,
+            "diagnostic")],
+        [new RuleReorderMoveResponse(0, 1, null)],
+        [new RuleReorderMoveResponse(0, 1, null)],
+        "diagnostic");
 
     private static DeleteRuleRequest CreateSignedDelete() => new()
     {

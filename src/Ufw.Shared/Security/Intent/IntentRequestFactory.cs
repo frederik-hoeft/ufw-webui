@@ -56,4 +56,27 @@ public static class IntentRequestFactory
         byte[] canonical = IntentCanonicalizer.CanonicalizeDelete(unsigned, payload);
         return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
     }
+
+    public static ReorderRulesRequest CreateReorderRequest(ECDsa privateKey, string deploymentId, ReorderRulesPayload payload, JsonTypeInfo<ReorderRulesPayload> payloadTypeInfo, TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(payloadTypeInfo);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+
+        ReorderRulesRequest unsigned = new()
+        {
+            Version = IntentProtocol.VERSION,
+            DeploymentId = deploymentId,
+            KeyId = IntentSigner.ComputeKeyId(privateKey),
+            IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            Nonce = IntentSigner.CreateNonce(),
+            Operation = IntentOperations.REORDER_RULES,
+            Payload = JsonSerializer.SerializeToElement(payload, payloadTypeInfo),
+            Signature = string.Empty,
+        };
+        byte[] canonical = IntentCanonicalizer.CanonicalizeReorder(unsigned, payload);
+        return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
+    }
 }

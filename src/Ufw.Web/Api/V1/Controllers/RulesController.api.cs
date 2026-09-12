@@ -34,6 +34,22 @@ public sealed partial class RulesController
     public partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync([FromBody] AddRuleRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Forwards an administrator-signed reorder intent to the privileged daemon.
+    /// </summary>
+    [HttpPut]
+    [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status503ServiceUnavailable)]
+    public partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(
+        [FromBody] ReorderRulesRequest request,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Forwards an administrator-signed delete-rule intent to the privileged daemon.
     /// </summary>
     [HttpDelete]
