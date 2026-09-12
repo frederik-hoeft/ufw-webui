@@ -13,8 +13,6 @@ internal sealed record BindingClassProcessorResult(ApiMappingClassInfo MappingCl
 
     public string ClassName { get; } = MappingClass.ClassSymbol.Name;
 
-    public string MappingsFieldName { get; } = SymbolNameGenerator.MakeUnique("s_mappings");
-
     public string GetMappingsMethodName { get; } = "GetMappings";
 
     public string FactoryFullName { get; } = MappingClass.FactoryType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
