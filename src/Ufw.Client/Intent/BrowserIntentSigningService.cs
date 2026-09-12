@@ -68,6 +68,46 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
+    public async Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        int anchorOccurrenceId,
+        RuleInsertionPlacement placement,
+        FirewallRuleSpecification rule,
+        string privateKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        ArgumentNullException.ThrowIfNull(rule);
+        ValidatePrivateKey(privateKey);
+
+        InsertRulePayload payload = new()
+        {
+            BaselineFingerprint = baselineFingerprint,
+            AnchorOccurrenceId = anchorOccurrenceId,
+            Placement = placement,
+            Rule = RuleSpecificationNormalizer.Normalize(rule),
+        };
+        RuleInsertionContract.ValidatePayload(payload);
+
+        string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
+        string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
+        InsertRuleRequest unsignedRequest = new()
+        {
+            DeploymentId = deploymentId,
+            KeyId = keyId,
+            IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            Nonce = nonce,
+            Operation = IntentOperations.INSERT_RULE,
+            Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.InsertRulePayload),
+            Signature = string.Empty,
+        };
+
+        byte[] canonical = IntentCanonicalizer.CanonicalizeInsert(unsignedRequest, payload);
+        string signature = await crypto.SignAsync(privateKey, canonical, cancellationToken);
+        return unsignedRequest with { Signature = signature };
+    }
+
     public async Task<ReorderRulesRequest> CreateReorderRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,

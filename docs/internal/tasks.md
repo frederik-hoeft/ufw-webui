@@ -6,10 +6,6 @@ This file is temporary, non-normative working storage for unresolved design and 
 
 Expose the daemon's effective UFW IPv6 support/capability state through the existing operational/configuration reconciliation path, and use that authoritative capability to enable or disable IPv6 rule authoring controls in the frontend. The browser must not infer support from its own environment or assume that IPv6 is enabled merely because the structural rule model supports it. Preserve existing IPv4 behavior when IPv6 is unavailable, and keep the capability separate from per-rule address-family validation.
 
-## Ordered rule creation
-
-Implement signed insert-before/insert-after rule creation as a state-conditioned mutation contract. Reordering existing rows uses an exact baseline fingerprint plus a complete occurrence permutation; creation changes membership and placement together, so it has its own signed placement semantics and stale-state behavior rather than extending `rules.reorder`. See [Ordered Rule Insertion Implementation Plan](ordered-rule-insertion-implementation-plan.md).
-
 ## Signed UFW presentation consistency check
 
 Evaluate whether a future signed-intent protocol revision should include the canonical UFW rule text shown to the user and require the daemon to compare that signed presentation with the text rendered from the authoritative structural rule. Treat this only as a defense-in-depth consistency assertion; validated structural fields and direct argv execution remain the command-injection boundary. Any signed-intent payload/version change requires separate security design and approval.

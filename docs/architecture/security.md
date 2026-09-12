@@ -30,9 +30,10 @@ Both checks normally apply to a browser mutation. Passing only one is insufficie
 
 ## Signed mutation authorization
 
-Add, delete, and reorder use the versioned signed-intent protocol defined in [Signed mutation intent v2](../protocols/signed-intent.md). Every signed intent binds the protocol domain, daemon deployment identity, authorized-key identifier, issuance time, random nonce, and operation name. The operation-specific payload then binds:
+Add, ordered insertion, delete, and reorder use the versioned signed-intent protocol defined in [Signed mutation intent v2](../protocols/signed-intent.md). Every signed intent binds the protocol domain, daemon deployment identity, authorized-key identifier, issuance time, random nonce, and operation name. The operation-specific payload then binds:
 
-- the complete normalized rule semantics for add;
+- the complete normalized rule semantics for append add;
+- the normalized new rule, exact reviewed-snapshot fingerprint, snapshot-local anchor occurrence, and before/after placement for ordered insertion;
 - the normalized rule plus semantic rule identity for delete;
 - the SHA-256 fingerprint of the exact reviewed rule snapshot plus the complete desired occurrence permutation for reorder.
 
@@ -56,7 +57,7 @@ UFW row numbers are presentation state, not mutation authority. They change when
 
 Delete therefore signs a normalized concrete rule plus its semantic identity. The daemon verifies that the identity matches the rule, re-lists UFW while holding its execution gate, and requires exactly one current match. Only then does it use that match's current number for the UFW subprocess.
 
-Reorder has a different identity requirement. The browser fingerprints the complete ordered snapshot it actually reviewed and addresses rows by zero-based occurrence within that snapshot. The fingerprint cryptographically binds what those occurrence numbers mean, so duplicate semantic rules remain distinct without turning row numbers into durable identities. The daemon requires its fresh authoritative snapshot to match that signed fingerprint before it interprets the desired permutation.
+State-conditioned ordering operations have a different identity requirement. The browser fingerprints the complete ordered snapshot it actually reviewed and addresses rows by zero-based occurrence within that snapshot. The fingerprint cryptographically binds what those occurrence numbers mean, so duplicate semantic rules remain distinct without turning row numbers into durable identities. Ordered insertion signs one anchor occurrence plus before/after placement; reorder signs the complete desired occurrence permutation. The daemon requires its fresh authoritative snapshot to match the signed fingerprint before interpreting either form of occurrence addressing.
 
 Rules that cannot be parsed and semantically validated completely remain visible but have no mutable delete identity. For reorder they may remain immutable anchors in the signed snapshot, but the daemon will not delete/reinsert a row unless it can reconstruct that row losslessly. This prevents partial parser understanding from becoming mutation authority.
 
@@ -64,11 +65,11 @@ See [Firewall state and rule model](firewall-model.md) for the complete identity
 
 ## Privileged process boundary
 
-Signed authorization grants permission only for the supported semantic operation. Add/delete validate structural rule semantics, while reorder validates the signed snapshot/permutation and derives its own move plan. Every resulting UFW command is rendered as validated argv; user-controlled rule text is never interpolated into a shell command.
+Signed authorization grants permission only for the supported semantic operation. Append add and delete validate structural rule semantics, ordered insertion validates the new rule plus signed snapshot/anchor placement, and reorder validates the signed snapshot/permutation and derives its own move plan. Every resulting UFW command is rendered as validated argv; user-controlled rule text is never interpolated into a shell command.
 
-For add, referenced interfaces must also exist in the daemon's current host-interface snapshot. This check is independent of ASP's cached interface metadata. Delete omits the existence check so stale rules remain removable after an interface disappears.
+For append add and ordered insertion, referenced interfaces must also exist in the daemon's current host-interface snapshot. This check is independent of ASP's cached interface metadata. Delete omits the existence check so stale rules remain removable after an interface disappears. Ordered insertion additionally requires an exact baseline match and a concrete inserted family equal to the parsed anchor family before invoking UFW.
 
-The daemon serializes UFW activity and keeps ownership of a started child until it exits or has been terminated and reaped. It verifies authoritative UFW state rather than trusting process exit codes. Reorder plans are daemon-derived from the signed final permutation; the browser and ASP never authorize individual delete/insert commands. A durable recovery journal is written before a reorder delete so an interrupted move either confirms row presence, restores the removed row, or blocks later mutations until recovery can be established safely.
+The daemon serializes UFW activity and keeps ownership of a started child until it exits or has been terminated and reaped. It verifies authoritative UFW state rather than trusting process exit codes. Ordered insertion resolves the signed occurrence to a family-local UFW position and requires an exact post-state; because it removes no existing row, it needs no new recovery journal. Reorder plans are daemon-derived from the signed final permutation; the browser and ASP never authorize individual delete/insert commands. A durable recovery journal is written before a reorder delete so an interrupted move either confirms row presence, restores the removed row, or blocks later mutations until recovery can be established safely.
 
 Process cancellation, an ambiguous listing, or a successful exit code without the expected state transition cannot be promoted into a confirmed mutation. The reorder recovery mechanism does not make sequential UFW commands packet-atomic: traffic can observe the intermediate policy between deletion and reinsertion.
 

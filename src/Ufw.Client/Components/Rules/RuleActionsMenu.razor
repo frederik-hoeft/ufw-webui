@@ -1,4 +1,4 @@
-@inject IStringLocalizer<RulesStrings> RulesText
+﻿@inject IStringLocalizer<RulesStrings> RulesText
 
 <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
          Size="Size.Small"
@@ -13,12 +13,12 @@
     </MudMenuItem>
     <MudMenuItem Disabled="@(InsertionDisabled || !CanOrder)"
                  Icon="@Icons.Material.Filled.VerticalAlignTop"
-                 Href="@BuildInsertHref("before")">
+                 OnClick="@(() => RequestInsertionAsync(RuleInsertionPlacement.Before))">
         @RulesText["InsertBefore"]
     </MudMenuItem>
     <MudMenuItem Disabled="@(InsertionDisabled || !CanOrder)"
                  Icon="@Icons.Material.Filled.VerticalAlignBottom"
-                 Href="@BuildInsertHref("after")">
+                 OnClick="@(() => RequestInsertionAsync(RuleInsertionPlacement.After))">
         @RulesText["InsertAfter"]
     </MudMenuItem>
     <MudDivider />

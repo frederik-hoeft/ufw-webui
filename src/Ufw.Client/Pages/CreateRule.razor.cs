@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using System.Globalization;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Errors;
+using Ufw.Client.RuleInsertion;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -12,9 +14,13 @@ public sealed partial class CreateRule
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
     private FirewallRuleSpecification _draft = FirewallRuleDefaults.Create();
+    private OrderedRuleInsertionNavigationContext? _orderedInsertionContext;
+    private OrderedRuleInsertionContextError _orderedInsertionContextError;
+    private RuleInsertionResponse? _insertionResult;
     private string _privateKey = string.Empty;
     private string? _reconciliationRuleIdentity;
     private bool _mutationMayHaveCompleted;
+    private bool _orderedInsertionInvalidated;
     private bool _submitting;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
@@ -24,12 +30,21 @@ public sealed partial class CreateRule
         new BreadcrumbItem(RulesText["AddRuleBreadcrumb"], null, disabled: true),
     ];
 
+    private bool HasLegacyInsertionTarget
+        => !string.IsNullOrWhiteSpace(LegacyBeforeRuleId) || !string.IsNullOrWhiteSpace(LegacyAfterRuleId);
+
     private bool IsOrderedInsertionRequested
-        => !string.IsNullOrWhiteSpace(BeforeRuleId) || !string.IsNullOrWhiteSpace(AfterRuleId);
+        => HasLegacyInsertionTarget
+            || !string.IsNullOrWhiteSpace(InsertionBaselineFingerprint)
+            || !string.IsNullOrWhiteSpace(InsertionAnchorValue)
+            || !string.IsNullOrWhiteSpace(InsertionPlacementValue);
 
-    private bool CanEdit => _state.IsCurrent && !_submitting && !_mutationMayHaveCompleted;
+    private bool CanUseOrderedInsertionContext
+        => !IsOrderedInsertionRequested || !_orderedInsertionInvalidated && _orderedInsertionContext is not null;
 
-    private bool CanSubmit => CanEdit && !IsOrderedInsertionRequested;
+    private bool CanEdit => _state.IsCurrent && !_submitting && !_mutationMayHaveCompleted && CanUseOrderedInsertionContext;
+
+    private bool CanSubmit => CanEdit;
 
     private string HeaderDescription => IsOrderedInsertionRequested
         ? RulesText["CreateOrderedDescription"]
@@ -39,11 +54,20 @@ public sealed partial class CreateRule
         ? RulesText["OrderedRuleDefinitionDescription"]
         : RulesText["DefinitionDescription"];
 
+    [Parameter, SupplyParameterFromQuery(Name = "baseline")]
+    public string? InsertionBaselineFingerprint { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "anchor")]
+    public string? InsertionAnchorValue { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "placement")]
+    public string? InsertionPlacementValue { get; set; }
+
     [Parameter, SupplyParameterFromQuery(Name = "before")]
-    public string? BeforeRuleId { get; set; }
+    public string? LegacyBeforeRuleId { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "after")]
-    public string? AfterRuleId { get; set; }
+    public string? LegacyAfterRuleId { get; set; }
 
     protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
 
@@ -56,7 +80,7 @@ public sealed partial class CreateRule
 
     private string DescribeRuleCount(int count) => count == 1
         ? RulesText["CurrentRuleCountOne"]
-        : RulesText["CurrentRuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
+        : RulesText["CurrentRuleCountMany", count.ToString("N0", CultureInfo.CurrentCulture)];
 
     private string DescribeSnapshotStatus()
     {
@@ -92,6 +116,7 @@ public sealed partial class CreateRule
         {
             RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
+            ResolveOrderedInsertionContext(response);
 
             if (_mutationMayHaveCompleted)
             {
@@ -113,6 +138,56 @@ public sealed partial class CreateRule
         {
             _state = _state.FailRefresh(ClientErrors.Describe(exception));
         }
+    }
+
+    private void ResolveOrderedInsertionContext(RuleListResponse snapshot)
+    {
+        _orderedInsertionContext = null;
+        _orderedInsertionContextError = OrderedRuleInsertionContextError.None;
+        if (!IsOrderedInsertionRequested || _orderedInsertionInvalidated)
+        {
+            return;
+        }
+        if (HasLegacyInsertionTarget)
+        {
+            _orderedInsertionInvalidated = true;
+            _orderedInsertionContextError = OrderedRuleInsertionContextError.Incomplete;
+            return;
+        }
+
+        int? anchorOccurrenceId = int.TryParse(
+            InsertionAnchorValue,
+            NumberStyles.None,
+            CultureInfo.InvariantCulture,
+            out int parsedAnchor)
+                ? parsedAnchor
+                : null;
+        if (!OrderedRuleInsertionNavigation.TryResolve(
+            snapshot,
+            InsertionBaselineFingerprint,
+            anchorOccurrenceId,
+            InsertionPlacementValue,
+            out OrderedRuleInsertionNavigationContext? context,
+            out OrderedRuleInsertionContextError error))
+        {
+            _orderedInsertionContextError = error;
+            _orderedInsertionInvalidated = true;
+            return;
+        }
+
+        _orderedInsertionContext = context;
+        _draft.AddressFamily = context.AddressFamily;
+    }
+
+    private async Task SubmitRuleAsync()
+    {
+        if (IsOrderedInsertionRequested)
+        {
+            await InsertRuleAsync();
+            return;
+        }
+
+        await AddRuleAsync();
     }
 
     private async Task AddRuleAsync()
@@ -158,6 +233,69 @@ public sealed partial class CreateRule
         }
     }
 
+    private async Task InsertRuleAsync()
+    {
+        if (!CanSubmit
+            || string.IsNullOrWhiteSpace(_privateKey)
+            || _orderedInsertionContext is not { } context
+            || _state.Snapshot is not { } snapshot)
+        {
+            return;
+        }
+
+        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
+        _insertionResult = null;
+        _submitting = true;
+        try
+        {
+            RuleInsertionResponse response = await RuleMutations.InsertRuleAsync(
+                baseline,
+                context.AnchorOccurrenceId,
+                context.Placement,
+                normalized,
+                _privateKey,
+                _lifetime.Token);
+            _insertionResult = response;
+            _state = _state.AfterInsertion(response);
+
+            if (response.Outcome == RuleInsertionOutcome.Completed)
+            {
+                Snackbar.Add(RulesText["OrderedInsertionApplied"], Severity.Success);
+                Navigation.NavigateTo("/rules");
+                return;
+            }
+
+            if (MustReselectInsertionAnchor(response, context))
+            {
+                InvalidateOrderedInsertionContext();
+            }
+
+            Severity severity = response.Outcome == RuleInsertionOutcome.StateUncertain
+                ? Severity.Error
+                : Severity.Warning;
+            Snackbar.Add(response.Diagnostic ?? DescribeInsertionResultTitle(response.Outcome), severity);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            ClientError error = ClientErrors.Describe(exception);
+            _state = _state.AfterMutationFailure(error);
+            if (_state.IsStale)
+            {
+                InvalidateOrderedInsertionContext();
+            }
+            Snackbar.Add(error.Message, Severity.Error);
+        }
+        finally
+        {
+            _privateKey = string.Empty;
+            _submitting = false;
+        }
+    }
+
     private void Cancel()
     {
         if (!_submitting)
@@ -169,33 +307,82 @@ public sealed partial class CreateRule
 
     private string DescribeInsertionTarget()
     {
-        if (!string.IsNullOrWhiteSpace(BeforeRuleId) && !string.IsNullOrWhiteSpace(AfterRuleId))
+        if (_orderedInsertionContext is not { } context)
         {
-            return RulesText["BothInsertionTargets"];
+            return DescribeInsertionContextError();
         }
 
-        string? ruleId = BeforeRuleId ?? AfterRuleId;
-        if (string.IsNullOrWhiteSpace(ruleId) || _state.Snapshot is null)
-        {
-            return RulesText["InsertionTargetUnavailable"];
-        }
-
-        ListedFirewallRule[] matches = _state.Snapshot.Rules
-            .Where(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length != 1)
-        {
-            return matches.Length == 0
-                ? RulesText["InsertionTargetMissing"]
-                : RulesText["InsertionTargetAmbiguous"];
-        }
-
-        ListedFirewallRule target = matches[0];
-        string position = target.DisplayNumber is { } displayNumber
-            ? RulesText["RulePosition", displayNumber.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)]
+        string position = context.Anchor.DisplayNumber is { } displayNumber
+            ? RulesText["RulePosition", displayNumber.ToString("N0", CultureInfo.CurrentCulture)]
             : RulesText["SelectedRule"];
-        string placement = !string.IsNullOrWhiteSpace(BeforeRuleId) ? RulesText["Before"] : RulesText["After"];
+        string placement = context.Placement == RuleInsertionPlacement.Before
+            ? RulesText["Before"]
+            : RulesText["After"];
         return RulesText["InsertTargetDescription", placement, position];
+    }
+
+    private string DescribeInsertionContextError()
+    {
+        if (HasLegacyInsertionTarget)
+        {
+            return RulesText["OrderedInsertionLegacyContext"];
+        }
+
+        return _orderedInsertionContextError switch
+        {
+            OrderedRuleInsertionContextError.StaleBaseline => RulesText["InsertionBaselineStale"],
+            OrderedRuleInsertionContextError.AnchorUnavailable => RulesText["InsertionTargetMissing"],
+            OrderedRuleInsertionContextError.InvalidFingerprint
+                or OrderedRuleInsertionContextError.InvalidPlacement
+                or OrderedRuleInsertionContextError.Incomplete => RulesText["InsertionContextInvalid"],
+            _ => RulesText["InsertionTargetUnavailable"],
+        };
+    }
+
+    private string DescribeInsertionFamily() => _orderedInsertionContext is { } context
+        ? RulesText["InsertionFamilyLocked", context.AddressFamily.ToString()]
+        : string.Empty;
+
+    private Severity InsertionResultSeverity => _insertionResult?.Outcome switch
+    {
+        RuleInsertionOutcome.StaleBaseline or RuleInsertionOutcome.PreconditionFailed => Severity.Warning,
+        RuleInsertionOutcome.StateUncertain => Severity.Error,
+        _ => Severity.Info,
+    };
+
+    private string DescribeInsertionResultTitle() => _insertionResult is { } result
+        ? DescribeInsertionResultTitle(result.Outcome)
+        : RulesText["OrderedInsertionResult"];
+
+    private string DescribeInsertionResultTitle(RuleInsertionOutcome outcome) => outcome switch
+    {
+        RuleInsertionOutcome.Completed => RulesText["OrderedInsertionResultCompleted"],
+        RuleInsertionOutcome.StaleBaseline => RulesText["OrderedInsertionResultStale"],
+        RuleInsertionOutcome.PreconditionFailed => RulesText["OrderedInsertionResultPrecondition"],
+        RuleInsertionOutcome.StateUncertain => RulesText["OrderedInsertionResultUncertain"],
+        _ => RulesText["OrderedInsertionResult"],
+    };
+
+    private static bool MustReselectInsertionAnchor(
+        RuleInsertionResponse response,
+        OrderedRuleInsertionNavigationContext context)
+    {
+        if (response.Outcome is RuleInsertionOutcome.StaleBaseline or RuleInsertionOutcome.StateUncertain
+            || response.FinalSnapshot is null)
+        {
+            return true;
+        }
+
+        return !string.Equals(
+            FirewallRuleSnapshotFingerprint.Compute(response.FinalSnapshot),
+            context.BaselineFingerprint,
+            StringComparison.Ordinal);
+    }
+
+    private void InvalidateOrderedInsertionContext()
+    {
+        _orderedInsertionContext = null;
+        _orderedInsertionInvalidated = true;
     }
 
     private string DescribeStaleState() => _state.StaleReason switch

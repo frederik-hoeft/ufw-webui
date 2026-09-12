@@ -65,6 +65,18 @@ An accepted add operation follows a conservative sequence:
 
 A zero child-process exit code is therefore necessary but not sufficient for success. If UFW reports success but the authoritative post-state cannot be reconciled safely, the daemon reports uncertainty/failure rather than inventing a confirmed rule state.
 
+## Ordered insertion lifecycle
+
+Ordered insertion changes membership and placement together, so it is authorized independently from append-style add and reorder. The browser signs the normalized new rule, the fingerprint of the exact authoritative snapshot being reviewed, one zero-based snapshot-local anchor occurrence, and whether the new rule belongs before or after that anchor. Duplicate semantic anchor rows remain independently addressable because occurrence identity is meaningful only inside the signed snapshot.
+
+The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
+
+Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
+
+Snapshot occurrences use the combined UFW listing for authorization, but UFW interprets `insert N` within the concrete address-family partition. The daemon translates the signed combined-list anchor into a family-local UFW insertion position immediately before command construction. It then executes one insertion and reconciles the complete post-state. Success requires every baseline occurrence to remain in relative order, exactly one requested rule materialization to have been added, and that row to occupy the signed slot. No recovery journal is needed because ordered insertion never removes an existing row.
+
+A verified insertion returns a typed result with the final authoritative snapshot whenever it can be read safely. `Ufw.Web` maps completed execution to HTTP 200, a stale baseline to 409, a precondition failure to 422, and uncertain authoritative state to 503 while preserving the typed report body. Signature, replay, and malformed-intent failures use the normal API error representation.
+
 ## Delete lifecycle
 
 Delete follows the same authorization, nonce, process-ownership, and reconciliation rules, with target resolution replacing duplicate detection:
@@ -102,7 +114,7 @@ If reconciliation cannot establish the postcondition, callers must treat their p
 
 Host interface existence is a property of the operating system, observed by the daemon. `Ufw.Web` maintains a separate reconciled catalog only to attach application metadata such as comments and "show in suggestions" visibility.
 
-Reconciliation preserves metadata for interface names that still exist, creates entries for new names, and removes entries whose host interface disappeared. Hiding an entry changes only the rule-authoring UI. It does not make the interface invalid, and a stale cached entry cannot authorize an add because the daemon checks the signed interface name against a fresh host snapshot before execution.
+Reconciliation preserves metadata for interface names that still exist, creates entries for new names, and removes entries whose host interface disappeared. Hiding an entry changes only the rule-authoring UI. It does not make the interface invalid, and a stale cached entry cannot authorize an add or ordered insertion because the daemon checks the signed interface name against a fresh host snapshot before execution.
 
 This pattern is the intended model for future authoring metadata as well: application-owned names, comments, or search aids may improve usability, but the signed and executed rule must resolve entirely to firewall semantics understood by the daemon.
 
@@ -112,8 +124,8 @@ Administrators and other tools may change UFW outside UFW WebUI. The architectur
 
 A subsequent list observes those changes directly. Supported externally-created rules receive the same semantic identities as equivalent rules created through the web interface. Renumbering does not break identity. Unsupported syntax remains observable but read-only.
 
-The daemon serializes only its own UFW accesses. It does not provide a cross-process lock against an administrator or unrelated program invoking UFW concurrently, so a simultaneous external mutation can still create an unavoidable host-level race. For reorder, a mismatch before the first move is reported as a stale baseline without mutation. Divergence during execution stops further planned moves after the active row has been made safe, and the transaction report describes the authoritative state and any safely derivable remaining work.
+The daemon serializes only its own UFW accesses. It does not provide a cross-process lock against an administrator or unrelated program invoking UFW concurrently, so a simultaneous external mutation can still create an unavoidable host-level race. For state-conditioned insertion or reorder, a baseline mismatch before the first subprocess is reported without mutation. If ordered insertion observes anything other than its exact expected post-state after the subprocess may have run, it reports authoritative uncertainty rather than attempting a compensating mutation. Reorder divergence stops further planned moves after the active row has been made safe, and its transaction report describes the authoritative state and any safely derivable remaining work.
 
 ## Mutation boundary
 
-The privileged mutation contract supports append-style add, semantic delete, and exact-snapshot reorder. Ordered rule creation is a separate future contract because it changes collection membership and placement together rather than permuting an existing snapshot.
+The privileged mutation contract supports append-style add, exact-snapshot ordered insertion, semantic delete, and exact-snapshot reorder. Ordered insertion changes membership and placement together, so it remains a distinct signed operation rather than an extension of append add or reorder.

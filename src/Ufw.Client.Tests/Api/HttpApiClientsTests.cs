@@ -69,7 +69,8 @@ public sealed class HttpApiClientsTests
             1 => Json(HttpStatusCode.OK, "{\"active\":true,\"rules\":[]}"),
             2 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.ADD_RULE)),
             3 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
-            4 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
+            4 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
+            5 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
@@ -77,17 +78,50 @@ public sealed class HttpApiClientsTests
         await rules.GetRulesAsync();
         await rules.AddRuleAsync(AddRequest());
         await rules.DeleteRuleAsync(DeleteRequest());
+        await rules.InsertRuleAsync(InsertRequest());
         await rules.ReorderRulesAsync(ReorderRequest());
 
         CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Put },
+            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
             rulesHandler.Requests.Select(static request => request.Method).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/order" },
+            new[] { "/api/v1/rules", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
-        using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[3].Content!);
+        using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[3].Content!);
+        Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
+        using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_InsertPreservesStructuredFailureButMapsSecurityConflictAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.Conflict, InsertionResponseJson(RuleInsertionOutcome.StaleBaseline)),
+            2 => Json(HttpStatusCode.Conflict, "{\"detail\":\"Intent nonce has already been used.\"}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        RuleInsertionResponse report = await client.InsertRuleAsync(InsertRequest());
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.InsertRuleAsync(InsertRequest()));
+
+        Assert.AreEqual(RuleInsertionOutcome.StaleBaseline, report.Outcome);
+        Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
+        Assert.AreEqual("Intent nonce has already been used.", replay.Message);
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_InsertRejectsMalformedSuccessAsProtocolErrorAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, _) => Json(HttpStatusCode.OK, "{\"detail\":\"not an insertion report\"}"));
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.InsertRuleAsync(InsertRequest()));
     }
 
     [TestMethod]
@@ -169,6 +203,22 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
+    private static InsertRuleRequest InsertRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.INSERT_RULE,
+        Payload = JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            anchorOccurrenceId = 0,
+            placement = RuleInsertionPlacement.Before,
+            rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+        }),
+        Signature = "signature",
+    };
+
     private static ReorderRulesRequest ReorderRequest() => new()
     {
         DeploymentId = "deployment",
@@ -192,6 +242,23 @@ public sealed class HttpApiClientsTests
         Payload = JsonSerializer.SerializeToElement(new { ruleId = "id", rule = new FirewallRuleSpecification() }),
         Signature = "signature",
     };
+
+    private static string InsertionResponseJson(RuleInsertionOutcome outcome)
+    {
+        ListedFirewallRule? inserted = outcome == RuleInsertionOutcome.Completed
+            ? new ListedFirewallRule
+            {
+                RuleId = "inserted",
+                DisplayNumber = 1,
+                Parsed = true,
+                RawLine = "line",
+                Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+            }
+            : null;
+        return JsonSerializer.Serialize(
+            new RuleInsertionResponse(outcome, new RuleListResponse(true, inserted is null ? [] : [inserted]), inserted, Diagnostic: null),
+            MessageJsonSerializerContext.Default.RuleInsertionResponse);
+    }
 
     private static string ReorderResponseJson(RuleReorderOutcome outcome) => JsonSerializer.Serialize(
         new RuleReorderResponse(outcome, new RuleListResponse(true, []), [], [], [], Diagnostic: null),
