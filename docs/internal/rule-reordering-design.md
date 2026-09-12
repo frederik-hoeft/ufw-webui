@@ -1,6 +1,6 @@
 # Firewall Rule Reordering Design
 
-> **Status:** Approved implementation target. This document describes the intended pre-final steady-state architecture during implementation. It remains internal and may change if implementation or UFW behavior exposes a conflicting constraint.
+> **Status:** Implemented design record. Permanent steady-state behavior is documented in [Firewall state and rule model](../architecture/firewall-model.md), [Security architecture](../architecture/security.md), and [Signed mutation intent v2](../protocols/signed-intent.md). This internal document preserves the design rationale and is not normative.
 
 Firewall rule ordering is security-relevant state. UFW evaluates ordered rules using first-match semantics, while UFW WebUI deliberately allows UFW state to change outside the application. Reordering therefore cannot be modeled as a sequence of independent positional edits sent from the browser. The mutation must bind the user's reviewed ordering to an exact authoritative baseline, execute as one serialized daemon operation, and report partial progress precisely if that baseline stops being trustworthy during execution.
 
@@ -74,7 +74,7 @@ The daemon independently computes the same fingerprint from a fresh UFW read und
 
 Reordering is a distinct signed operation, `rules.reorder`. It reuses the existing signed-intent envelope and daemon-managed authorized keys, freshness policy, deployment identity, and nonce replay protection. Its operation-specific canonical payload binds the baseline fingerprint and complete desired occurrence permutation.
 
-The current signed-intent v2 format explicitly permits future operations with independently defined payload semantics, so the target design does not require an envelope-version change merely to add reordering. The protocol documentation must nevertheless be updated before implementation freezes the canonical snapshot and reorder payload formats.
+Signed-intent v2 permits operations with independently defined payload semantics, so reordering uses the existing envelope version with its own canonical snapshot and payload contract. The frozen wire representation is documented in the permanent signed-intent protocol.
 
 `Ufw.Web` authenticates the REST request and forwards the signed operation through the typed IPC boundary. It does not calculate the privileged move plan and does not reinterpret occurrence IDs.
 
@@ -130,7 +130,7 @@ A row being structurally parsed is not by itself sufficient evidence that it is 
 
 Rows that cannot meet that requirement remain part of the signed permutation but act as immutable anchors: they may shift position because other rules move around them, but the planner must never choose them for delete/reinsert. Their relative order therefore cannot change.
 
-This makes reliable UFW round-trip representation a prerequisite for enabling reorder on affected rule shapes. The existing open investigation into potentially lossy `ufw status numbered` output must be resolved for any rule semantics whose reconstruction is not known to be lossless. Reordering must not weaken semantic comparison merely to make such rows movable.
+This makes reliable UFW round-trip representation a prerequisite for enabling reorder on affected rule shapes. The implementation keeps rows immutable whenever their observed semantics cannot be reconstructed losslessly; reordering does not weaken semantic comparison merely to make such rows movable.
 
 Address-family-neutral authoring is not reconstructed during reordering. The reorder baseline consists of the concrete rows UFW actually exposes, including concrete IPv4 and IPv6 materializations. The signed permutation therefore targets the concrete authoritative list.
 
@@ -251,12 +251,4 @@ This design covers reordering existing concrete UFW rows. It does not define ord
 
 The design also does not attempt to provide kernel- or packet-level atomic replacement of the complete UFW ruleset. Achieving that guarantee would require a different mutation mechanism below the current sequential UFW CLI boundary.
 
-Before implementation freezes the protocol, the following points require validation rather than architectural redesign:
-
-- verify the authoritative UFW representation used for movable rules is lossless enough for exact reinsertion across the supported rule grammar;
-- freeze the canonical snapshot byte representation and `rules.reorder` signed payload in the protocol documentation;
-- verify positional insertion behavior in both real UFW and `Ufw.Mock`, including concrete IPv4/IPv6 rows;
-- define the persistent recovery-journal location and crash-safe write discipline using the daemon's existing operator-state conventions;
-- finalize REST status mapping and localized UX for the structured partial-execution report.
-
-These are implementation/protocol validation gates. They do not change the central model: an exact signed baseline and desired permutation, minimal occurrence-based planning, serialized execution, mandatory row recovery, and authoritative partial-result reporting.
+The implemented contract retains the central model established here: an exact signed baseline and desired permutation, minimal occurrence-based planning, serialized execution, mandatory row recovery, and authoritative partial-result reporting. Protocol details, recovery-state paths, REST behavior, and supported steady-state guarantees belong to the permanent documentation linked above.

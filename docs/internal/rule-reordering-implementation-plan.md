@@ -1,6 +1,6 @@
 # Firewall Rule Reordering Implementation Plan
 
-> **Status:** Active implementation plan. Each phase ends at a review gate and is merged independently after approval. The target architecture is described in [Firewall Rule Reordering Design](rule-reordering-design.md).
+> **Status:** Completed implementation record. The phases below document the review boundaries used to deliver the feature. Permanent behavior is documented under `docs/architecture`, `docs/protocols`, `docs/deployment`, and `docs/development`; [Firewall Rule Reordering Design](rule-reordering-design.md) preserves the internal design rationale.
 
 Implementation is split along architectural boundaries so that protocol semantics, privileged execution, transport integration, and browser behavior can be reviewed independently. A later phase may refine an earlier internal abstraction when implementation exposes a constraint, but changes to an already approved phase should remain explicit rather than being hidden inside unrelated work.
 

@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Ufw.Ipc.Client\Ufw.Ipc.Client.csproj" />
+        <ProjectReference Include="..\Ufw.Mock\Ufw.Mock.csproj" />
         <ProjectReference Include="..\Ufw.Shared\Ufw.Shared.csproj" />
         <ProjectReference Include="..\Ufw.Systemd\Ufw.Systemd.csproj" />
         <ProjectReference Include="..\Ufw.Roslyn\Ufw.Roslyn.csproj" />

@@ -52,7 +52,7 @@ Back up these non-database assets separately:
 - nginx TLS certificate/key or the external certificate-automation state needed to recreate them;
 - administrator mutation-signing private keys/password-manager entries.
 
-The daemon deployment ID and replay store under `/var/lib/ufw-manager` are host security state. Preserve the deployment ID when restoring the same logical deployment. Restoring the complete recent daemon state is safer than selectively restoring stale replay records. The socket under `/var/lib/ufw-webui/ipc` is ephemeral and must not be backed up.
+The daemon deployment ID, replay store, and any active reorder recovery journal under `/var/lib/ufw-manager` are host security/safety state. Preserve the deployment ID when restoring the same logical deployment. Restoring the complete recent daemon state is safer than selectively restoring stale replay records or discarding an active recovery record. The socket under `/var/lib/ufw-webui/ipc` is ephemeral and must not be backed up.
 
 ## Updating the daemon
 
@@ -70,6 +70,12 @@ sudo ./deploy/systemd/install.sh \
 The installer preserves existing daemon settings and `authorized_keys` unless replacement files are supplied explicitly.
 
 Review protocol/security changes before rolling out a daemon that changes IPC or signed-intent versions. The web application and browser must understand the corresponding contracts.
+
+### Interrupted reorder recovery
+
+A reorder writes `/var/lib/ufw-manager/reorder-recovery.json` before a rule may be temporarily removed. The daemon resolves that record during startup and before any later firewall mutation. If recovery cannot establish a safe authoritative state, mutations fail closed while rule listing remains available for diagnostics.
+
+Do not delete or edit an outstanding recovery journal merely to unblock mutations. Inspect daemon logs and authoritative `ufw status numbered` state first. The record exists specifically to retain enough information to confirm or restore a row whose delete/reinsert move may have been interrupted.
 
 ## Updating containers
 

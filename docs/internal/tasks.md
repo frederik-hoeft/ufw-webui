@@ -2,13 +2,9 @@
 
 This file is temporary, non-normative working storage for unresolved design and implementation work. Remove completed items after they reach the approved baseline; steady-state behavior belongs in the permanent architecture, protocol, deployment, development, or testing documentation.
 
-## Firewall rule ordering backend and signed mutation contract
+## Ordered rule creation
 
-The browser-side ordering UX remains implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the registered implementation until the production backend flow reaches the frontend phase. The approved pre-final architecture is documented in [Firewall Rule Reordering Design](rule-reordering-design.md), with phased implementation and review gates tracked in [Firewall Rule Reordering Implementation Plan](rule-reordering-implementation-plan.md).
-
-The design binds one signed desired permutation to an exact authoritative baseline fingerprint, uses snapshot-local occurrence IDs rather than semantic `ruleId` values, validates that baseline under the serialized UFW execution gate, and derives a minimal move plan using a longest-increasing-subsequence formulation. Each delete/reinsert move carries a mandatory recovery obligation with structured partial-execution reporting.
-
-Lossless reinsertion still requires validation against the authoritative UFW representation before affected rule shapes can become movable. Ordered rule creation remains a separate future mutation contract rather than an extension of the reorder request.
+Design signed insert-before/insert-after rule creation as a separate future mutation contract. Reordering existing rows uses an exact baseline fingerprint plus a complete occurrence permutation; creation changes membership and placement together, so it must define its own signed placement semantics and stale-state behavior rather than extending `rules.reorder`.
 
 ## Signed UFW presentation consistency check
 
@@ -39,7 +35,7 @@ Before implementing this, resolve how the presentation maps to UFW's single auth
 
 - determine whether the two visual tables may reorder independently or whether cross-family ordering must remain visible/preservable;
 - define how family-neutral (`Any family`) structural rules that may materialize into both IPv4 and IPv6 UFW rows are represented without implying two independently mutable rules;
-- ensure row numbering, drag/drop, insert-before/after, and future signed ordering intents still refer unambiguously to authoritative UFW ordering rather than table-local positions;
+- ensure row numbering, drag/drop, insert-before/after, and signed reorder occurrence IDs still refer unambiguously to authoritative UFW ordering rather than table-local positions;
 - decide whether unsupported/read-only rows can cause inter-family ordering constraints that make a clean split misleading.
 
 Treat this as a presentation/design task until the ordering semantics are settled. Do not silently change the signed mutation model to fit the visual grouping.

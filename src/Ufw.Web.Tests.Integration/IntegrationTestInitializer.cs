@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
+using Ufw.Ipc.Client;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
@@ -74,7 +75,10 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<NetworkInterfaceInventoryService>();
         services.AddScoped<INetworkInterfaceInventoryService>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceInventoryService>());
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
+        services.AddScoped<IntegrationUfwClient>();
+        services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
         services.AddScoped<NetworkInterfacesController>();
+        services.AddScoped<RulesController>();
 
         return ValueTask.CompletedTask;
     }

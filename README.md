@@ -9,17 +9,17 @@ The design is intended for a Linux host where UFW remains the firewall authority
 The management surface includes:
 
 - authoritative UFW rule listing;
-- browser-signed add and delete operations;
+- browser-signed add, delete, and state-conditioned rule-reordering operations;
 - host network-interface discovery with application-owned comments and visibility metadata;
 - ASP.NET Core Identity authentication with short-lived access tokens and rotating refresh tokens;
 - a platform-neutral UFW mock for development on systems without UFW, including Windows;
 - a local typed IPC protocol between the web application and privileged daemon.
 
-Rule reordering and ordered insertion have UI groundwork but are not part of the signed backend mutation contract.
+Rule reordering applies one signed desired permutation to the exact authoritative snapshot the administrator reviewed. Ordered rule creation remains a separate future mutation contract.
 
 ## Security model in brief
 
-A normal authenticated web session is not sufficient authority to modify the firewall. Mutations carry a separate ECDSA P-256 signature created by the administrator's browser and verified independently by `Ufw.Systemd` against daemon-managed authorized public keys. The signature binds the exact operation, normalized rule semantics, daemon deployment identity, timestamp, and nonce. The daemon also persists replay state before starting a privileged mutation.
+A normal authenticated web session is not sufficient authority to modify the firewall. Mutations carry a separate ECDSA P-256 signature created by the administrator's browser and verified independently by `Ufw.Systemd` against daemon-managed authorized public keys. The signature binds the exact operation, its operation-specific rule or ordering payload, daemon deployment identity, timestamp, and nonce. The daemon also persists replay state before starting a privileged mutation.
 
 Production deployment separates frontend delivery from ASP.NET. A non-root nginx container owns the immutable browser assets and proxies `/api/*` to a private `Ufw.Web` container. This matters because browser code handles mutation-signing keys: compromising ASP must not give an attacker a direct way to replace the signing client with key-capture code.
 
