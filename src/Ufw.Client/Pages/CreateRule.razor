@@ -1,4 +1,4 @@
-@using Ufw.Shared.Ipc.Model.Responses.Domain
+﻿@using Ufw.Shared.Ipc.Model.Responses.Domain
 @page "/rules/create"
 @attribute [Authorize]
 @implements IDisposable
@@ -104,13 +104,42 @@ else
 
     @if (IsOrderedInsertionRequested)
     {
-        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="note">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["OrderedInsertionPrototype"]</MudText>
-            <MudText Typo="Typo.body2" Class="mb-3">@DescribeInsertionTarget()</MudText>
-            <MudText Typo="Typo.body2" Class="mb-3">@RulesText["OrderedInsertionDescription"]</MudText>
+        <MudAlert Severity="@(_orderedInsertionContext is null ? Severity.Warning : Severity.Info)"
+                  Variant="Variant.Outlined"
+                  Class="mb-5"
+                  role="note">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["OrderedInsertionTitle"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@DescribeInsertionTarget()</MudText>
+            @if (_orderedInsertionContext is not null)
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">@DescribeInsertionFamily()</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@RulesText["OrderedInsertionDescription"]</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mb-3">@RulesText["OrderedInsertionReselect"]</MudText>
+            }
+            <MudButton Href="/rules" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mr-2">
+                @RulesText["BackToRules"]
+            </MudButton>
             <MudButton Href="/rules/create" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add">
                 @RulesText["CreateAtEndInstead"]
             </MudButton>
+        </MudAlert>
+    }
+
+    @if (_insertionResult is { } insertionResult && insertionResult.Outcome != RuleInsertionOutcome.Completed)
+    {
+        <MudAlert Severity="@InsertionResultSeverity" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@DescribeInsertionResultTitle()</MudText>
+            @if (!string.IsNullOrWhiteSpace(insertionResult.Diagnostic))
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">@insertionResult.Diagnostic</MudText>
+            }
+            @if (_orderedInsertionInvalidated)
+            {
+                <MudText Typo="Typo.body2">@RulesText["OrderedInsertionReselect"]</MudText>
+            }
         </MudAlert>
     }
 
@@ -118,12 +147,13 @@ else
                 Rule="@_draft"
                 DefinitionDescription="@RuleDefinitionDescription"
                 Disabled="@(!CanEdit)"
-                SubmitDisabled="@IsOrderedInsertionRequested"
-                ShowAuthorization="@(!IsOrderedInsertionRequested)"
-                SubmitLabel="@(IsOrderedInsertionRequested ? RulesText["OrderedInsertionPending"] : RulesText["AddSignedRule"])"
+                AddressFamilyLocked="@IsOrderedInsertionRequested"
+                SubmitDisabled="@(!CanSubmit)"
+                SubmitLabel="@(IsOrderedInsertionRequested ? RulesText["InsertSignedRule"] : RulesText["AddSignedRule"])"
+                SubmittingLabel="@(IsOrderedInsertionRequested ? RulesText["InsertingRule"] : RulesText["AddingRule"])"
                 Submitting="@_submitting"
                 @bind-PrivateKey="_privateKey"
-                OnSubmit="AddRuleAsync"
+                OnSubmit="SubmitRuleAsync"
                 OnCancel="Cancel" />
 }
 </div>

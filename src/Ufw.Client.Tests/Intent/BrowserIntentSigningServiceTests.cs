@@ -50,6 +50,37 @@ public sealed class BrowserIntentSigningServiceTests
     }
 
     [TestMethod]
+    public async Task CreateInsertRuleRequestAsync_BindsBaselineOccurrencePlacementAndNormalizedRuleAsync()
+    {
+        Mock<IBrowserIntentCryptoService> crypto = CreateCrypto(out CapturedSignature captured);
+        BrowserIntentSigningService service = new(crypto.Object, new MutableTimeProvider(s_now));
+        FirewallRuleSpecification rule = CreateNonCanonicalRule();
+        string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
+
+        InsertRuleRequest request = await service.CreateInsertRuleRequestAsync(
+            "deployment",
+            fingerprint,
+            anchorOccurrenceId: 3,
+            RuleInsertionPlacement.Before,
+            rule,
+            "private-key");
+
+        Assert.AreEqual(IntentOperations.INSERT_RULE, request.Operation);
+        Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
+        Assert.AreEqual(3, request.Payload.GetProperty("anchorOccurrenceId").GetInt32());
+        Assert.AreEqual(nameof(RuleInsertionPlacement.Before), request.Payload.GetProperty("placement").GetString());
+        Assert.AreEqual("any", request.Payload.GetProperty("rule").GetProperty("source").GetString());
+        InsertRulePayload payload = new()
+        {
+            BaselineFingerprint = fingerprint,
+            AnchorOccurrenceId = 3,
+            Placement = RuleInsertionPlacement.Before,
+            Rule = RuleSpecificationNormalizer.Normalize(rule),
+        };
+        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeInsert(request, payload), captured.Payload);
+    }
+
+    [TestMethod]
     public async Task CreateReorderRulesRequestAsync_BindsDisplayedBaselineAndCompletePermutationAsync()
     {
         Mock<IBrowserIntentCryptoService> crypto = CreateCrypto(out CapturedSignature captured);
@@ -79,6 +110,13 @@ public sealed class BrowserIntentSigningServiceTests
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync(" ", new FirewallRuleSpecification(), "key"));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync("deployment", new FirewallRuleSpecification(), " "));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateDeleteRuleRequestAsync("deployment", " ", new FirewallRuleSpecification(), "key"));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateInsertRuleRequestAsync(
+            "deployment",
+            FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            anchorOccurrenceId: 0,
+            RuleInsertionPlacement.Before,
+            new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.Any },
+            "key"));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync("deployment", "not-a-fingerprint", [0], "key"));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync(
             "deployment",

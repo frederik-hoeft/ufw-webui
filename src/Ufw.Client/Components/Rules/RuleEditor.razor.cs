@@ -47,6 +47,9 @@ public sealed partial class RuleEditor
     public bool Disabled { get; set; }
 
     [Parameter]
+    public bool AddressFamilyLocked { get; set; }
+
+    [Parameter]
     public bool SubmitDisabled { get; set; }
 
     [Parameter]

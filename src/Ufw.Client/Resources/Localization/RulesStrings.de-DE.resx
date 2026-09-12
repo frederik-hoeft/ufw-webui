@@ -31,7 +31,7 @@
     <value>Erstellen und autorisieren Sie eine neue Regel. Das aktuelle Backend hängt signierte neue Regeln an das Ende der Regelliste an.</value>
   </data>
   <data name="CreateOrderedDescription" xml:space="preserve">
-    <value>Entwerfen Sie eine Regel für die ausgewählte Position. Das Absenden bleibt deaktiviert, bis der Vertrag für Ordnungsänderungen entworfen ist.</value>
+    <value>Erstellen Sie eine signierte Regel an der ausgewählten Position im geprüften Firewall-Snapshot.</value>
   </data>
   <data name="FirewallBreadcrumb" xml:space="preserve">
     <value>Firewall</value>
@@ -87,14 +87,8 @@
   <data name="RefreshingAuthoritative" xml:space="preserve">
     <value>Autoritativer Firewallstatus wird aktualisiert...</value>
   </data>
-  <data name="OrderedInsertionPrototype" xml:space="preserve">
-    <value>Prototyp für geordnetes Einfügen</value>
-  </data>
   <data name="OrderedInsertionDescription" xml:space="preserve">
-    <value>Der Browser kann Einfügekontext aus der Regeltabelle übernehmen, geordnetes Erstellen wird jedoch noch nicht übermittelt. REST-Form, Signed-Intent-Operation, Vorbedingung für veraltete Reihenfolgen und Daemon/UFW-Einfügesemantik benötigen Designfreigabe. Der bestehende signierte Add-Endpunkt bleibt weiterhin ausschließlich anhängend.</value>
-  </data>
-  <data name="OrderedInsertionDisabled" xml:space="preserve">
-    <value>Geordnetes Einfügen wird noch nicht autorisiert oder übermittelt.</value>
+    <value>Die Regel wird zusammen mit dem geprüften Firewall-Snapshot und der exakten Davor-/Danach-Position signiert. Wenn sich der Snapshot ändert, wählen Sie die Einfügeposition erneut auf der Regelseite aus.</value>
   </data>
   <data name="DeletingRule" xml:space="preserve">
     <value>Signierte Firewallregel wird gelöscht...</value>
@@ -132,17 +126,11 @@
   <data name="LatestRefreshFailed" xml:space="preserve">
     <value>Die letzte Aktualisierung ist fehlgeschlagen. Das Erstellen von Regeln bleibt deaktiviert, bis der autoritative Firewallstatus wieder geladen werden kann.</value>
   </data>
-  <data name="BothInsertionTargets" xml:space="preserve">
-    <value>Die URL enthält sowohl ein Vorher- als auch ein Nachher-Ziel. Geordnetes Einfügen benötigt genau ein Ziel.</value>
-  </data>
   <data name="InsertionTargetUnavailable" xml:space="preserve">
     <value>Das ausgewählte Einfügeziel ist nicht verfügbar.</value>
   </data>
   <data name="InsertionTargetMissing" xml:space="preserve">
     <value>Das ausgewählte Einfügeziel ist im autoritativen Firewallstatus nicht mehr vorhanden.</value>
-  </data>
-  <data name="InsertionTargetAmbiguous" xml:space="preserve">
-    <value>Das ausgewählte Einfügeziel ist im autoritativen Firewallstatus mehrdeutig.</value>
   </data>
   <data name="SelectedRule" xml:space="preserve">
     <value>die ausgewählte Regel</value>
@@ -471,11 +459,8 @@
   <data name="CreateAtEndInstead" xml:space="preserve">
     <value>Stattdessen am Ende erstellen</value>
   </data>
-  <data name="OrderedInsertionPending" xml:space="preserve">
-    <value>Geordnetes Einfügen ausstehend</value>
-  </data>
   <data name="OrderedRuleDefinitionDescription" xml:space="preserve">
-    <value>Definieren Sie die Regel für die ausgewählte Position. Das Absenden bleibt deaktiviert, bis der Vertrag für geordnetes Hinzufügen freigegeben ist.</value>
+    <value>Definieren Sie die Regel für die ausgewählte Position. Die Adressfamilie wird durch die ausgewählte Ankerregel festgelegt.</value>
   </data>
   <data name="CurrentRuleCountOne" xml:space="preserve">
     <value>1 aktuelle Regel</value>
@@ -551,5 +536,47 @@
   </data>
   <data name="OrderingOperationRecoveryFailed" xml:space="preserve">
     <value>Wiederherstellung fehlgeschlagen</value>
+  </data>
+  <data name="OrderedInsertionTitle" xml:space="preserve">
+    <value>Geordnetes Einfügen einer Regel</value>
+  </data>
+  <data name="OrderedInsertionReselect" xml:space="preserve">
+    <value>Diese Einfügeposition kann nicht sicher wiederverwendet werden. Kehren Sie zur Regelseite zurück und wählen Sie die Position erneut aus.</value>
+  </data>
+  <data name="OrderedInsertionLegacyContext" xml:space="preserve">
+    <value>Dieser Link zum geordneten Einfügen verwendet ein veraltetes Regel-ID-Ziel und kann nicht sicher angewendet werden.</value>
+  </data>
+  <data name="InsertionBaselineStale" xml:space="preserve">
+    <value>Die Firewall hat sich geändert, seit diese Einfügeposition ausgewählt wurde.</value>
+  </data>
+  <data name="InsertionContextInvalid" xml:space="preserve">
+    <value>Der Kontext für das geordnete Einfügen ist unvollständig oder ungültig.</value>
+  </data>
+  <data name="InsertionFamilyLocked" xml:space="preserve">
+    <value>Die Adressfamilie ist durch die ausgewählte Ankerregel auf {0} festgelegt.</value>
+  </data>
+  <data name="InsertSignedRule" xml:space="preserve">
+    <value>Signierte Regel einfügen</value>
+  </data>
+  <data name="InsertingRule" xml:space="preserve">
+    <value>Regel wird eingefügt...</value>
+  </data>
+  <data name="OrderedInsertionApplied" xml:space="preserve">
+    <value>Die Regel wurde an der ausgewählten Position eingefügt.</value>
+  </data>
+  <data name="OrderedInsertionResult" xml:space="preserve">
+    <value>Ergebnis des geordneten Einfügens</value>
+  </data>
+  <data name="OrderedInsertionResultCompleted" xml:space="preserve">
+    <value>Regel eingefügt</value>
+  </data>
+  <data name="OrderedInsertionResultStale" xml:space="preserve">
+    <value>Einfügeposition ist veraltet</value>
+  </data>
+  <data name="OrderedInsertionResultPrecondition" xml:space="preserve">
+    <value>Regel konnte nicht eingefügt werden</value>
+  </data>
+  <data name="OrderedInsertionResultUncertain" xml:space="preserve">
+    <value>Ergebnis des Einfügens ist ungewiss</value>
   </data>
 </root>

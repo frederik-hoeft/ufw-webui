@@ -26,7 +26,7 @@ public sealed class FileReorderRecoveryJournalTests
             ReorderRecoveryJournalEntry? actual = await reader.ReadAsync(TestContext.CancellationToken);
             Assert.IsNotNull(actual);
             Assert.AreEqual(expected.FormatVersion, actual.FormatVersion);
-            Assert.AreEqual(expected.OriginalDisplayNumber, actual.OriginalDisplayNumber);
+            Assert.AreEqual(expected.OriginalFamilyPosition, actual.OriginalFamilyPosition);
             Assert.AreEqual(expected.ExpectedMultiplicity, actual.ExpectedMultiplicity);
             AssertRuleEqual(expected.Rule, actual.Rule);
             Assert.IsNotNull(actual.PreviousAnchor?.Rule);
@@ -77,7 +77,7 @@ public sealed class FileReorderRecoveryJournalTests
             FileReorderRecoveryJournal journal = new(configuration);
             await journal.WriteAsync(CreateEntry(), TestContext.CancellationToken);
             string persisted = await File.ReadAllTextAsync(path, TestContext.CancellationToken);
-            persisted = persisted.Replace("\"formatVersion\": 1", "\"formatVersion\": 99", StringComparison.Ordinal);
+            persisted = persisted.Replace($"\"formatVersion\": {ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION}", "\"formatVersion\": 99", StringComparison.Ordinal);
             await File.WriteAllTextAsync(path, persisted, TestContext.CancellationToken);
 
             InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(async () =>

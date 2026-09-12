@@ -57,6 +57,30 @@ public static class IntentRequestFactory
         return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
     }
 
+    public static InsertRuleRequest CreateInsertRequest(ECDsa privateKey, string deploymentId, InsertRulePayload payload, JsonTypeInfo<InsertRulePayload> payloadTypeInfo, TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(payloadTypeInfo);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+
+        RuleInsertionContract.ValidatePayload(payload);
+        InsertRuleRequest unsigned = new()
+        {
+            Version = IntentProtocol.VERSION,
+            DeploymentId = deploymentId,
+            KeyId = IntentSigner.ComputeKeyId(privateKey),
+            IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            Nonce = IntentSigner.CreateNonce(),
+            Operation = IntentOperations.INSERT_RULE,
+            Payload = JsonSerializer.SerializeToElement(payload, payloadTypeInfo),
+            Signature = string.Empty,
+        };
+        byte[] canonical = IntentCanonicalizer.CanonicalizeInsert(unsigned, payload);
+        return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
+    }
+
     public static ReorderRulesRequest CreateReorderRequest(ECDsa privateKey, string deploymentId, ReorderRulesPayload payload, JsonTypeInfo<ReorderRulesPayload> payloadTypeInfo, TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);

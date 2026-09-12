@@ -2,9 +2,9 @@
 
 This file is temporary, non-normative working storage for unresolved design and implementation work. Remove completed items after they reach the approved baseline; steady-state behavior belongs in the permanent architecture, protocol, deployment, development, or testing documentation.
 
-## Ordered rule creation
+## Reconcile IPv6 support into frontend capabilities
 
-Design signed insert-before/insert-after rule creation as a separate future mutation contract. Reordering existing rows uses an exact baseline fingerprint plus a complete occurrence permutation; creation changes membership and placement together, so it must define its own signed placement semantics and stale-state behavior rather than extending `rules.reorder`.
+Expose the daemon's effective UFW IPv6 support/capability state through the existing operational/configuration reconciliation path, and use that authoritative capability to enable or disable IPv6 rule authoring controls in the frontend. The browser must not infer support from its own environment or assume that IPv6 is enabled merely because the structural rule model supports it. Preserve existing IPv4 behavior when IPv6 is unavailable, and keep the capability separate from per-rule address-family validation.
 
 ## Signed UFW presentation consistency check
 

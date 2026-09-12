@@ -150,7 +150,8 @@ The current application-v1 daemon routes are:
 | `GET` | `/api/v1/intent/context` | read deployment identity and signed-intent protocol version | no |
 | `GET` | `/api/v1/network-interfaces` | enumerate current host interface names | no |
 | `GET` | `/api/v1/rules` | read authoritative UFW state | no |
-| `POST` | `/api/v1/rules` | add a rule | yes, `rules.add` |
+| `POST` | `/api/v1/rules` | append a rule | yes, `rules.add` |
+| `POST` | `/api/v1/rules/insert` | insert a concrete-family rule before or after an occurrence in the exact reviewed snapshot | yes, `rules.insert` |
 | `PUT` | `/api/v1/rules/order` | reorder the exact reviewed rule snapshot | yes, `rules.reorder` |
 | `DELETE` | `/api/v1/rules` | delete a concrete rule | yes, `rules.delete` |
 
@@ -189,7 +190,7 @@ A model-validation failure uses the distinct `validation-error` representation:
 }
 ```
 
-The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status. A verified `rules.reorder` transaction is always returned over IPC as a typed `data` result, including stale-baseline, partial-completion, recovery-failure, and state-uncertain outcomes. This preserves its authoritative final snapshot and operation report across the daemon boundary. Signature, replay, malformed-intent, and other authorization failures remain ordinary application errors.
+The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status. Verified `rules.insert` and `rules.reorder` transactions are returned over IPC as typed `data` results even when their state-conditioned goal was not reached. Insertion preserves completed, stale-baseline, precondition-failed, and state-uncertain outcomes; reorder additionally preserves partial-completion and recovery outcomes. This keeps authoritative final snapshots and operation reports intact across the daemon boundary. Signature, replay, malformed-intent, and other authorization failures remain ordinary application errors.
 
 ## Failures and cancellation
 

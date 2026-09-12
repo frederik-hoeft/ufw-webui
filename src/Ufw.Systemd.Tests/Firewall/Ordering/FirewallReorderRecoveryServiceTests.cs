@@ -19,6 +19,9 @@ public sealed class FirewallReorderRecoveryServiceTests
     private static readonly string[] s_recoveryInsertArguments =
         ["insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"];
 
+    private static readonly string[] s_ipv6RecoveryInsertArguments =
+        ["insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"];
+
     public TestContext TestContext { get; set; }
 
     [TestMethod]
@@ -78,6 +81,60 @@ public sealed class FirewallReorderRecoveryServiceTests
     }
 
     [TestMethod]
+    public async Task RecoverAsync_Ipv6FallbackPosition_UsesFamilyLocalNumberingAsync()
+    {
+        string directory = CreateTemporaryDirectory();
+        string path = Path.Combine(directory, "reorder-recovery.json");
+        try
+        {
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
+            FileReorderRecoveryJournal journal = new(configuration);
+            RuleListResponse original = ToResponse(SnapshotTokens("80", "443", "80v6", "22v6", "443v6"));
+            ReorderRecoveryJournalEntry entry = new(
+                ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION,
+                original.Rules[3].Rule!,
+                2,
+                1,
+                null,
+                null);
+            await journal.WriteAsync(entry, TestContext.CancellationToken);
+
+            Queue<FirewallRuleSnapshotReadResult> snapshots = new([
+                ReadResult(SnapshotTokens("80", "443", "80v6", "443v6")),
+                ReadResult(SnapshotTokens("80", "443", "80v6", "22v6", "443v6")),
+            ]);
+            Mock<IFirewallRuleSnapshotReader> snapshotReader = new(MockBehavior.Strict);
+            snapshotReader.Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(() => snapshots.Dequeue());
+            List<string[]> commands = [];
+            Mock<IUfwRunner> runner = new(MockBehavior.Strict);
+            runner.Setup(candidate => candidate.ExecuteAsync(It.IsAny<IUfwCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IUfwCommand command, CancellationToken _) =>
+                {
+                    ImmutableArray<string> arguments = command.BuildArguments();
+                    commands.Add(arguments.ToArray());
+                    return new UfwProcessResult(0, string.Empty, string.Empty, arguments, false);
+                });
+            RuleReorderRecoveryCoordinator coordinator = new(
+                snapshotReader.Object,
+                runner.Object,
+                new UfwRuleCommandRenderer(),
+                journal,
+                new ConsoleLogger());
+
+            RuleRecoveryResult result = await coordinator.EnsurePresentAsync(entry, null, TestContext.CancellationToken);
+
+            Assert.IsTrue(result.PresenceConfirmed);
+            Assert.IsTrue(result.InsertionAttempted);
+            CollectionAssert.AreEqual(s_ipv6RecoveryInsertArguments, commands.Single());
+            Assert.IsNull(await journal.ReadAsync(TestContext.CancellationToken));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public async Task RecoverAsync_WhenPresenceCannotBeConfirmed_FailsClosedAndKeepsJournalAsync()
     {
         string directory = CreateTemporaryDirectory();
@@ -124,6 +181,19 @@ public sealed class FirewallReorderRecoveryServiceTests
         string[] rows = ports
             .Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")
             .ToArray();
+        return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
+    }
+
+    private static UfwStatusSnapshot SnapshotTokens(params string[] tokens)
+    {
+        string[] rows = tokens.Select(static (token, index) =>
+        {
+            bool v6 = token.EndsWith("v6", StringComparison.Ordinal);
+            string port = v6 ? token[..^2] : token;
+            return v6
+                ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
+                : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
+        }).ToArray();
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 

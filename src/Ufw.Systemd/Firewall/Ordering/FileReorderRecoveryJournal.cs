@@ -75,7 +75,7 @@ internal sealed class FileReorderRecoveryJournal(IConfiguration configuration) :
         {
             throw new InvalidDataException($"Unsupported reorder recovery journal format version {entry.FormatVersion}.");
         }
-        if (entry.Rule is null || entry.OriginalDisplayNumber <= 0 || entry.ExpectedMultiplicity <= 0)
+        if (entry.Rule is null || entry.OriginalFamilyPosition <= 0 || entry.ExpectedMultiplicity <= 0)
         {
             throw new InvalidDataException("Reorder recovery journal contains invalid recovery state.");
         }

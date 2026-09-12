@@ -2,7 +2,7 @@
 
 Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` forwards it; `Ufw.Systemd` reconstructs the canonical bytes and verifies them against daemon-owned trust state before any privileged UFW mutation can begin.
 
-This document defines the project contract for `rules.add`, `rules.delete`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFW WebUI implementations.
+This document defines the project contract for `rules.add`, `rules.insert`, `rules.delete`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFW WebUI implementations.
 
 Read-only rule listing, network-interface discovery, and intent-context retrieval are unsigned at this protocol layer. They may still require authentication at surrounding layers.
 
@@ -49,7 +49,7 @@ All defined mutation operations use the same outer envelope:
 | `keyId` | MUST identify an authorized P-256 public key |
 | `issuedAtUnix` | Unix timestamp used for freshness validation |
 | `nonce` | base64url random value decoding to at least 16 bytes; the project signer emits 16 bytes |
-| `operation` | MUST be `rules.add`, `rules.delete`, or `rules.reorder` for the mutation endpoints defined here |
+| `operation` | MUST be `rules.add`, `rules.insert`, `rules.delete`, or `rules.reorder` for the mutation endpoints defined here |
 | `payload` | operation-specific payload defined below |
 | `signature` | base64url ECDSA P-256/SHA-256 signature in IEEE P1363 `r || s` form |
 
@@ -59,7 +59,7 @@ An additional mutation operation MAY reuse the envelope only after defining its 
 
 ## Rule specification
 
-Add and delete sign a normalized structural firewall rule. The JSON representation follows the shared protocol serializer, for example:
+Add, ordered insertion, and delete sign a normalized structural firewall rule. The JSON representation follows the shared protocol serializer, for example:
 
 ```json
 {
@@ -79,7 +79,7 @@ Add and delete sign a normalized structural firewall rule. The JSON representati
 
 The signature does not cover this JSON text directly. The daemon validates and normalizes the semantic values and rebuilds the canonical signed bytes defined below.
 
-A family-neutral rule is allowed for add when the rule semantics do not force IPv4 or IPv6. UFW may materialize that add as separate concrete family rows. Delete MUST carry a concrete IPv4 or IPv6 rule.
+A family-neutral rule is allowed for append add when the rule semantics do not force IPv4 or IPv6. UFW may materialize that add as separate concrete family rows. Ordered insertion and delete MUST carry a concrete IPv4 or IPv6 rule.
 
 Interface fields follow UFW direction semantics. Inbound rules may use the inbound/destination-side interface, outbound rules may use the outbound/source-side interface, and forward rules may use both ingress and egress interfaces. Ambiguous combinations that would require precedence or fallback interpretation MUST be rejected.
 
@@ -94,6 +94,21 @@ Interface fields follow UFW direction semantics. Inbound rules may use the inbou
 ```
 
 The daemon MUST normalize and validate the rule. Under the execution gate it MUST reject a currently observed semantically identical rule before starting UFW.
+
+### `rules.insert`
+
+```json
+{
+  "baselineFingerprint": "sha256:<base64url snapshot digest>",
+  "anchorOccurrenceId": 3,
+  "placement": "Before",
+  "rule": { }
+}
+```
+
+`baselineFingerprint` identifies the exact ordered `RuleListResponse` reviewed by the signer. `anchorOccurrenceId` is the zero-based occurrence of the selected row in that baseline, and `placement` is `Before` or `After`. Occurrence IDs are snapshot-local rather than semantic identities, so duplicate semantic anchor rows remain independently addressable.
+
+The inserted rule MUST have a concrete address family equal to the parsed anchor's concrete family. Family-neutral ordered insertion is rejected because one signed occurrence identifies one concrete ordered position while a family-neutral UFW add may materialize into multiple family-specific rows. Under the serialized execution boundary, the daemon MUST require a fresh authoritative snapshot matching `baselineFingerprint` before interpreting the occurrence.
 
 ### `rules.delete`
 
@@ -123,7 +138,7 @@ The daemon MUST reject a malformed fingerprint. After authorization and nonce co
 
 ## Rule normalization
 
-Before add/delete canonical signing bytes or semantic identity are produced, rule values are normalized according to the shared firewall model. At minimum:
+Before add/insert/delete canonical signing bytes or semantic identity are produced, rule values are normalized according to the shared firewall model. At minimum:
 
 - blank, `Anywhere`, and all-addresses forms normalize to `any`;
 - IPv4 and IPv6 CIDRs normalize to their canonical network address and prefix;
@@ -166,7 +181,26 @@ sourceInterface=<normalized interface or empty>
 sourcePorts=<normalized ports or empty>
 ```
 
-Delete uses the same rule form but inserts this line immediately after `payload:`:
+Ordered insertion prefixes the same normalized rule fields with its exact placement context:
+
+```text
+baselineFingerprint=<snapshot fingerprint>
+anchorOccurrenceId=<zero-based occurrence id>
+placement=before|after
+action=<normalized action>
+addressFamily=<normalized concrete family>
+comment=<normalized comment or empty>
+destination=<normalized destination>
+destinationInterface=<normalized interface or empty>
+destinationPorts=<normalized ports or empty>
+direction=<normalized direction>
+protocol=<normalized protocol>
+source=<normalized source>
+sourceInterface=<normalized interface or empty>
+sourcePorts=<normalized ports or empty>
+```
+
+Delete uses the same rule form as add but inserts this line immediately after `payload:`:
 
 ```text
 ruleId=<normalized semantic identity>
@@ -210,9 +244,9 @@ The daemon assigns a mutable `ruleId` only to rows that it can parse completely 
 
 Delete MUST NOT accept a UFW display number as the durable mutation target. Under the execution gate, the daemon re-lists current state, resolves the signed semantic identity, and uses the current display number only as the final subprocess argument after unique resolution succeeds.
 
-## Reorder snapshot fingerprint
+## Authoritative snapshot fingerprint
 
-Reorder uses a separate versioned fingerprint domain:
+Ordered insertion and reorder use a shared versioned fingerprint domain:
 
 ```text
 ufw-webui/firewall-rule-snapshot/1
@@ -234,7 +268,7 @@ The fingerprint commits to the exact authoritative list representation displayed
 
 Strings are encoded as a four-byte big-endian byte length followed by UTF-8 bytes. Integers are four-byte big-endian values. Booleans are one byte (`0` or `1`). Nullable fields are preceded by a boolean presence marker. The SHA-256 digest of this binary representation is base64url encoded and exposed as `sha256:<digest>`.
 
-Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable for reorder without creating a false durable identity. A signer MUST compute the fingerprint from the exact authoritative snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible state.
+Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable for insertion anchors and reorder without creating a false durable identity. A signer MUST compute the fingerprint from the exact authoritative snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible state.
 
 ## Verification requirements
 
@@ -245,11 +279,12 @@ Before an intent is accepted for privileged execution, the daemon verifies:
 3. operation and endpoint agreement;
 4. nonce encoding and minimum size;
 5. operation payload shape;
-6. add/delete rule normalization and semantic validation, when applicable;
-7. delete identity consistency, when applicable;
-8. reorder fingerprint syntax and desired-order presence, when applicable;
-9. signature against the daemon-local authorized-key set;
-10. issuance time against configured clock skew and maximum age.
+6. add/insert/delete rule normalization and semantic validation, when applicable;
+7. insertion fingerprint, occurrence, placement, and concrete-family payload shape, when applicable;
+8. delete identity consistency, when applicable;
+9. reorder fingerprint syntax and desired-order presence, when applicable;
+10. signature against the daemon-local authorized-key set;
+11. issuance time against configured clock skew and maximum age.
 
 A timestamp too far in the future MUST be rejected. An expired intent MUST be rejected.
 
@@ -259,7 +294,7 @@ Intent validity ends at the half-open boundary:
 issuedAtUnix + max_intent_age + clock_skew
 ```
 
-Reorder permutation validity, exact baseline equality, reinsertability, and move planning depend on current authoritative state and are therefore checked inside the serialized execution boundary rather than during signature parsing.
+Insertion anchor validity/exact baseline equality and reorder permutation validity/exact baseline equality/reinsertability/move planning depend on current authoritative state and are therefore checked inside the serialized execution boundary rather than during signature parsing.
 
 ## Replay protection and execution boundary
 
@@ -267,7 +302,9 @@ Signature verification alone does not make an intent reusable. After successful 
 
 Before a UFW child process can start, the daemon MUST durably consume the nonce. Replay state is persisted across daemon restart and retained until the same expiry boundary used for freshness validation. If replay state cannot be read or persisted safely, the daemon MUST fail closed.
 
-Add and delete then resolve their operation-specific preconditions, execute validated argv without a shell, retain ownership of the child through completion or cancellation cleanup, and re-read UFW before confirming success.
+Append add and delete then resolve their operation-specific preconditions, execute validated argv without a shell, retain ownership of the child through completion or cancellation cleanup, and re-read UFW before confirming success.
+
+Ordered insertion requires its fresh authoritative snapshot to match `baselineFingerprint`, resolves the signed anchor occurrence, verifies concrete-family compatibility plus add-style interface/duplicate preconditions, and translates before/after placement into UFW's family-local insertion position. It executes one UFW mutation and confirms success only if the complete authoritative post-state equals the expected baseline-plus-one-row state. Because it does not delete an existing row, it creates no insertion recovery journal. A verified insertion returns a typed result for completed, stale-baseline, precondition-failed, or state-uncertain outcomes; continuing after a stale or uncertain result requires a fresh baseline and new signature.
 
 Reorder additionally requires its fresh authoritative snapshot to match `baselineFingerprint`. It derives a minimal move plan from the signed occurrence permutation. Each logical move is reconciled against authoritative state, and a durable recovery record is persisted before a delete that may require reinsertion. Once such a delete may have taken effect, the daemon MUST confirm or restore row presence before it can safely abandon that move. An outstanding recovery record blocks later firewall mutations until recovery succeeds or the operator resolves the underlying state.
 

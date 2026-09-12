@@ -192,9 +192,10 @@ internal sealed class FirewallReorderExecutor(
                 "The move target no longer has a usable UFW rule number.");
         }
 
+        int originalFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(preMoveSnapshot.Rules, currentIndex);
         ReorderRecoveryJournalEntry journalEntry = CreateJournalEntry(
             classification.Specification,
-            displayNumber,
+            originalFamilyPosition,
             baseline,
             preMoveOrder,
             currentIndex);
@@ -306,9 +307,8 @@ internal sealed class FirewallReorderExecutor(
         if (move.BeforeOccurrenceId is int beforeOccurrenceId)
         {
             int beforeIndex = IndexOf(afterDeleteOrder, beforeOccurrenceId);
-            int displayNumber = afterDelete.Rules[beforeIndex].DisplayNumber
-                ?? throw new InvalidOperationException("The insertion anchor no longer has a UFW rule number.");
-            return new UfwInsertRuleCommand(displayNumber, specification, renderer);
+            int familyPosition = UfwRulePositionResolver.GetFamilyPosition(afterDelete.Rules, beforeIndex);
+            return new UfwInsertRuleCommand(familyPosition, specification, renderer);
         }
 
         return new UfwAddRuleCommand(specification, renderer);
@@ -316,7 +316,7 @@ internal sealed class FirewallReorderExecutor(
 
     private ReorderRecoveryJournalEntry CreateJournalEntry(
         FirewallRuleSpecification specification,
-        int displayNumber,
+        int originalFamilyPosition,
         RuleListResponse baseline,
         IReadOnlyList<int> preMoveOrder,
         int currentIndex)
@@ -331,7 +331,7 @@ internal sealed class FirewallReorderExecutor(
         return new ReorderRecoveryJournalEntry(
             ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION,
             specification,
-            displayNumber,
+            originalFamilyPosition,
             expectedMultiplicity,
             previous,
             next);

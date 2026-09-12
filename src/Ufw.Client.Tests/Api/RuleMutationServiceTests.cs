@@ -82,12 +82,81 @@ public sealed class RuleMutationServiceTests
         Assert.AreSame(expected, actual);
     }
 
+    [TestMethod]
+    public async Task InsertRuleAsync_BindsDisplayedBaselineOccurrencePlacementAndRuleAsync()
+    {
+        TestHost host = new();
+        ListedFirewallRule anchor = new()
+        {
+            Parsed = true,
+            RuleId = "anchor",
+            Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+        };
+        RuleListResponse baseline = new(Active: true, [anchor]);
+        FirewallRuleSpecification rule = new()
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+        };
+        InsertRuleRequest signed = CreateInsertRequest();
+        RuleInsertionResponse expected = new(RuleInsertionOutcome.Completed, baseline, anchor, Diagnostic: null);
+        host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
+        host.Signer.Setup(service => service.CreateInsertRuleRequestAsync(
+                "deployment",
+                FirewallRuleSnapshotFingerprint.Compute(baseline),
+                0,
+                RuleInsertionPlacement.After,
+                rule,
+                "key",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(signed);
+        host.Rules.Setup(client => client.InsertRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+
+        RuleInsertionResponse actual = await host.Service.InsertRuleAsync(
+            baseline,
+            anchorOccurrenceId: 0,
+            RuleInsertionPlacement.After,
+            rule,
+            "key");
+
+        Assert.AreSame(expected, actual);
+    }
+
+    [TestMethod]
+    public async Task InsertRuleAsync_ProtocolMismatchStopsBeforeSigningOrMutationAsync()
+    {
+        TestHost host = new();
+        host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION + 1, "deployment"));
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => host.Service.InsertRuleAsync(
+            new RuleListResponse(Active: true, []),
+            anchorOccurrenceId: 0,
+            RuleInsertionPlacement.Before,
+            new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+            "key"));
+
+        host.Signer.VerifyNoOtherCalls();
+        host.Rules.VerifyNoOtherCalls();
+    }
+
     private static AddRuleRequest CreateAddRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
         Nonce = "nonce",
         Operation = IntentOperations.ADD_RULE,
+        Payload = default,
+        Signature = "signature",
+    };
+
+    private static InsertRuleRequest CreateInsertRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.INSERT_RULE,
         Payload = default,
         Signature = "signature",
     };

@@ -9,6 +9,15 @@ public interface IIntentSigningService
 
     Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(string deploymentId, string ruleId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
 
+    Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        int anchorOccurrenceId,
+        RuleInsertionPlacement placement,
+        FirewallRuleSpecification rule,
+        string privateKey,
+        CancellationToken cancellationToken = default);
+
     Task<ReorderRulesRequest> CreateReorderRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,

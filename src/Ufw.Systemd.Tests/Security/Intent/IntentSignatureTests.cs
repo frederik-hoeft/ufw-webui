@@ -193,6 +193,91 @@ public sealed class IntentSignatureTests
     }
 
     [TestMethod]
+    public void VerifyInsert_AcceptsFreshSignatureFromAuthorizedKey()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        InsertRuleRequest request = SignInsert(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        IntentVerificationResult.AcceptedInsertion accepted =
+            Assert.IsInstanceOfType<IntentVerificationResult.AcceptedInsertion>(verifier.VerifyInsert(request));
+        Assert.AreEqual(CreateInsertPayload().BaselineFingerprint, accepted.Payload.BaselineFingerprint);
+        Assert.AreEqual(1, accepted.Payload.AnchorOccurrenceId);
+        Assert.AreEqual(RuleInsertionPlacement.After, accepted.Payload.Placement);
+        Assert.AreEqual(FirewallAddressFamily.IPv4, accepted.Payload.Rule.AddressFamily);
+    }
+
+    [TestMethod]
+    public void VerifyInsert_RejectsTamperedStateConditionOrRule()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        InsertRuleRequest signed = SignInsert(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+        InsertRulePayload baseline = CreateInsertPayload();
+        InsertRulePayload[] tampered =
+        [
+            CreateInsertPayload(baselineFingerprint: FirewallRuleSnapshotFingerprint.Compute(active: false, [])),
+            CreateInsertPayload(anchorOccurrenceId: 2),
+            CreateInsertPayload(placement: RuleInsertionPlacement.Before),
+            CreateInsertPayload(rule: CreateRule(FirewallAddressFamily.IPv4, "443")),
+        ];
+
+        foreach (InsertRulePayload payload in tampered)
+        {
+            InsertRuleRequest request = signed with
+            {
+                Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                    payload,
+                    MessageJsonSerializerContext.Default.InsertRulePayload),
+            };
+            AssertRejected<ForbiddenResponse>(verifier.VerifyInsert(request));
+        }
+    }
+
+    [TestMethod]
+    public void VerifyInsert_RejectsOperationSubstitutionAndTamperedDeployment()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        InsertRuleRequest request = SignInsert(key, clock);
+
+        AssertRejected<BadRequestResponse>(
+            CreateVerifier(key, clock).VerifyInsert(request with { Operation = IntentOperations.ADD_RULE }));
+        AssertRejected<ForbiddenResponse>(
+            CreateVerifier(key, clock, deploymentId: "deployment-b")
+                .VerifyInsert(request with { DeploymentId = "deployment-b" }));
+    }
+
+    [TestMethod]
+    public void VerifyInsert_RejectsMalformedOrFamilyNeutralPayloadBeforeSignatureVerification()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        InsertRuleRequest request = SignInsert(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        InsertRulePayload malformedFingerprint = CreateInsertPayload(baselineFingerprint: "sha256:not-a-digest");
+        request = request with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                malformedFingerprint,
+                MessageJsonSerializerContext.Default.InsertRulePayload),
+        };
+        AssertRejected<BadRequestResponse>(verifier.VerifyInsert(request));
+
+        InsertRulePayload familyNeutral = CreateInsertPayload(rule: CreateRule(FirewallAddressFamily.Any, "22"));
+        request = request with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                familyNeutral,
+                MessageJsonSerializerContext.Default.InsertRulePayload),
+        };
+        AssertRejected<BadRequestResponse>(verifier.VerifyInsert(request));
+    }
+
+    [TestMethod]
     public void VerifyReorder_AcceptsFreshSignatureFromAuthorizedKey()
     {
         using ECDsa key = IntentSigner.CreateP256();
@@ -354,6 +439,35 @@ public sealed class IntentSignatureTests
         Assert.IsFalse(IntentCanonicalizer.CanonicalizeAdd(request, ipv4)
             .SequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, ipv6)));
     }
+
+    private static InsertRulePayload CreateInsertPayload(
+        string? baselineFingerprint = null,
+        int anchorOccurrenceId = 1,
+        RuleInsertionPlacement placement = RuleInsertionPlacement.After,
+        FirewallRuleSpecification? rule = null) => new()
+        {
+            BaselineFingerprint = baselineFingerprint ?? FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            AnchorOccurrenceId = anchorOccurrenceId,
+            Placement = placement,
+            Rule = rule ?? CreateRule(FirewallAddressFamily.IPv4, "22"),
+        };
+
+    private static InsertRuleRequest SignInsert(ECDsa key, TimeProvider clock) =>
+        IntentRequestFactory.CreateInsertRequest(
+            key,
+            DEPLOYMENT_ID,
+            CreateInsertPayload(),
+            MessageJsonSerializerContext.Default.InsertRulePayload,
+            clock);
+
+    private static FirewallRuleSpecification CreateRule(FirewallAddressFamily family, string port) => new()
+    {
+        Action = FirewallAction.Allow,
+        AddressFamily = family,
+        Direction = FirewallDirection.In,
+        Protocol = FirewallProtocol.Tcp,
+        DestinationPorts = port,
+    };
 
     private static ReorderRulesPayload CreateReorderPayload(
         string? baselineFingerprint = null,

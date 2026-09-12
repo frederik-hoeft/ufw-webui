@@ -2,6 +2,7 @@
 using Ufw.Client.Api;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Errors;
+using Ufw.Client.RuleInsertion;
 using Ufw.Client.RuleOrdering;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -181,6 +182,43 @@ public sealed partial class Rules
         {
             _deleting = false;
         }
+    }
+
+    private Task BeginOrderedInsertionAsync(RuleInsertionActionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!CanMutateFirewall || _state.Snapshot is not { } snapshot)
+        {
+            return Task.CompletedTask;
+        }
+
+        int occurrenceId = -1;
+        for (int index = 0; index < snapshot.Rules.Count; index++)
+        {
+            if (ReferenceEquals(snapshot.Rules[index], request.Rule))
+            {
+                occurrenceId = index;
+                break;
+            }
+        }
+        if (occurrenceId < 0)
+        {
+            Snackbar.Add(RulesText["InsertionTargetUnavailable"], Severity.Warning);
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+            string uri = OrderedRuleInsertionNavigation.BuildUri(baseline, occurrenceId, request.Placement);
+            Navigation.NavigateTo(uri);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            Snackbar.Add(exception.Message, Severity.Warning);
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task MoveRuleAsync(RuleMoveRequest request)

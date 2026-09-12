@@ -86,6 +86,27 @@ internal sealed record RulesPageState
         return new(RulesPageStatus.Stale, Snapshot, error, refreshReason: null, staleReason);
     }
 
+    public RulesPageState AfterInsertion(RuleInsertionResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (response.FinalSnapshot is not null)
+        {
+            return CompleteRefresh(response.FinalSnapshot);
+        }
+
+        if (Snapshot is null)
+        {
+            throw new InvalidOperationException("An insertion response cannot replace an unloaded rule snapshot.");
+        }
+
+        return new RulesPageState(
+            RulesPageStatus.Stale,
+            Snapshot,
+            error: null,
+            refreshReason: null,
+            staleReason: RuleSnapshotStaleReason.MutationOutcomeUnknown);
+    }
+
     public RulesPageState AfterReorder(RuleReorderResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);

@@ -247,7 +247,7 @@ The planner should remain separate from UFW subprocess execution. It consumes oc
 
 ## Scope boundaries and follow-up design
 
-This design covers reordering existing concrete UFW rows. It does not define ordered rule creation. Insert-before/insert-after authoring should reuse the same snapshot-precondition concepts where useful, but it requires a separate signed operation because creation changes the rule set rather than permuting an existing one.
+This design covers reordering existing concrete UFW rows. Ordered rule creation is defined separately by the steady-state firewall model and signed-intent protocol because creation changes the rule set rather than permuting an existing one; it reuses the exact-snapshot occurrence model without becoming part of `rules.reorder`.
 
 The design also does not attempt to provide kernel- or packet-level atomic replacement of the complete UFW ruleset. Achieving that guarantee would require a different mutation mechanism below the current sequential UFW CLI boundary.
 

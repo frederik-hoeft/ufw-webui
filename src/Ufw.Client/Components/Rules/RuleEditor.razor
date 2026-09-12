@@ -1,4 +1,4 @@
-@using Ufw.Shared.Ipc.Model.Responses
+﻿@using Ufw.Shared.Ipc.Model.Responses
 @inject INetworkInterfaceInventoryService NetworkInterfaces
 @inject IClientErrorMapper ClientErrors
 @inject IFirewallRuleText RuleText
@@ -59,6 +59,7 @@
                 <MudSelect T="FirewallAddressFamily"
                            Label="@(RulesText["AddressFamily"])"
                            @bind-Value="Rule.AddressFamily"
+                           Disabled="@AddressFamilyLocked"
                            For="@(() => Rule.AddressFamily)">
                     @foreach (FirewallAddressFamily value in Enum.GetValues<FirewallAddressFamily>())
                     {

@@ -7,7 +7,11 @@ namespace Ufw.Web.Tests.Integration.Support;
 
 internal sealed class IntegrationUfwClient : IUfwClient
 {
+    public InsertRuleRequest? LastInsertRequest { get; private set; }
+
     public ReorderRulesRequest? LastReorderRequest { get; private set; }
+
+    public RuleInsertionResponse? InsertResponse { get; set; }
 
     public RuleReorderResponse? ReorderResponse { get; set; }
 
@@ -16,6 +20,12 @@ internal sealed class IntegrationUfwClient : IUfwClient
         where TResponse : IEquatable<TResponse>
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (request is InsertRuleRequest insert
+            && InsertResponse is TResponse insertResponse)
+        {
+            LastInsertRequest = insert;
+            return Task.FromResult(insertResponse);
+        }
         if (request is ReorderRulesRequest reorder
             && ReorderResponse is TResponse response)
         {

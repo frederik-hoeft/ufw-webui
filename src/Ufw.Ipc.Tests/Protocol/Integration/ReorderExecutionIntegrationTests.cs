@@ -18,6 +18,7 @@ using Ufw.Systemd.Api;
 using Ufw.Systemd.Api.Controllers;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Firewall;
+using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
@@ -97,6 +98,9 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
         services.AddSingleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>();
         services.AddSingleton<IFirewallReorderExecutor, FirewallReorderExecutor>();
         services.AddSingleton<IFirewallReorderService, FirewallReorderService>();
+        services.AddSingleton<IFirewallRuleInterfaceValidator, AlwaysValidInterfaceValidator>();
+        services.AddSingleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>();
+        services.AddSingleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>();
         services.AddSingleton<IFirewallRuleQueryService, FirewallRuleQueryService>();
         services.AddSingleton<IFirewallMutationService, UnsupportedMutationService>();
         services.AddScoped<IntentController>();
@@ -290,6 +294,11 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
 
     private static bool SameRule(ListedFirewallRule left, ListedFirewallRule right) =>
         FirewallRuleSemanticComparer.Equals(left, right);
+
+    private sealed class AlwaysValidInterfaceValidator : IFirewallRuleInterfaceValidator
+    {
+        public IResponsePayload? Validate(FirewallRuleSpecification rule) => null;
+    }
 
     private sealed class UnsupportedMutationService : IFirewallMutationService
     {

@@ -89,6 +89,96 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public void InsertRuleAsync_UsesDedicatedInsertSubresource()
+    {
+        System.Reflection.MethodInfo? method = typeof(RulesController).GetMethod(nameof(RulesController.InsertRuleAsync));
+        Assert.IsNotNull(method);
+        object[] attributes = method.GetCustomAttributes(typeof(HttpPostAttribute), inherit: false);
+        Assert.HasCount(1, attributes);
+        HttpPostAttribute attribute = Assert.IsInstanceOfType<HttpPostAttribute>(attributes[0]);
+        Assert.AreEqual("insert", attribute.Template);
+    }
+
+    [TestMethod]
+    public async Task TestInsertRuleAsync_ForwardsSignedEnvelopeAsync()
+    {
+        Mock<IUfwClient> client = new();
+        InsertRuleRequest request = CreateSignedInsert();
+        RuleInsertionResponse expected = CreateInsertionResponse(RuleInsertionOutcome.Completed);
+        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
+                It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(request, TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.AreSame(expected, response.Value);
+        client.Verify(c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
+            It.Is<InsertRuleRequest>(sent => sent.DeploymentId == request.DeploymentId
+                && sent.Nonce == request.Nonce
+                && sent.Operation == request.Operation
+                && sent.Payload.GetRawText() == request.Payload.GetRawText()
+                && sent.Signature == request.Signature),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow(RuleInsertionOutcome.StaleBaseline, StatusCodes.Status409Conflict)]
+    [DataRow(RuleInsertionOutcome.PreconditionFailed, StatusCodes.Status422UnprocessableEntity)]
+    [DataRow(RuleInsertionOutcome.StateUncertain, StatusCodes.Status503ServiceUnavailable)]
+    public async Task TestInsertRuleAsync_PreservesStructuredNonSuccessReportAsync(
+        RuleInsertionOutcome outcome,
+        int expectedStatusCode)
+    {
+        Mock<IUfwClient> client = new();
+        RuleInsertionResponse expected = CreateInsertionResponse(outcome);
+        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
+                It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(
+            CreateSignedInsert(), TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(expectedStatusCode, response.StatusCode);
+        Assert.AreSame(expected, response.Value);
+    }
+
+    [TestMethod]
+    public async Task TestInsertRuleAsync_RejectsWrongOperationBeforeIpcAsync()
+    {
+        Mock<IUfwClient> client = new();
+        InsertRuleRequest request = CreateSignedInsert() with { Operation = IntentOperations.ADD_RULE };
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(request, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
+        client.Verify(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
+            It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task TestInsertRuleAsync_MapsDaemonReplayConflictAsProblemDetailsAsync()
+    {
+        Mock<IUfwClient> client = new();
+        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
+                It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UfwIpcException(StatusCodes.Status409Conflict, "Intent nonce has already been used."));
+        RulesController controller = CreateController(client.Object);
+
+        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(
+            CreateSignedInsert(), TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status409Conflict, response.StatusCode);
+        Assert.IsInstanceOfType<ProblemDetails>(response.Value);
+    }
+
+    [TestMethod]
     public void ReorderRulesAsync_UsesDedicatedOrderSubresource()
     {
         System.Reflection.MethodInfo? method = typeof(RulesController).GetMethod(nameof(RulesController.ReorderRulesAsync));
@@ -231,6 +321,30 @@ public sealed class RulesControllerTests
         Payload = System.Text.Json.JsonSerializer.SerializeToElement(new { rule = new { action = "allow" } }),
         Signature = "sig",
     };
+
+    private static InsertRuleRequest CreateSignedInsert() => new()
+    {
+        Version = 1,
+        DeploymentId = "deployment-test",
+        KeyId = "sha256:test",
+        IssuedAtUnix = 1,
+        Nonce = "nonce",
+        Operation = IntentOperations.INSERT_RULE,
+        Payload = System.Text.Json.JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            anchorOccurrenceId = 0,
+            placement = "Before",
+            rule = new { action = "Allow", addressFamily = "IPv4", direction = "In", protocol = "Tcp", destinationPorts = "22" },
+        }),
+        Signature = "sig",
+    };
+
+    private static RuleInsertionResponse CreateInsertionResponse(RuleInsertionOutcome outcome) => new(
+        outcome,
+        new RuleListResponse(Active: true, []),
+        null,
+        "diagnostic");
 
     private static ReorderRulesRequest CreateSignedReorder() => new()
     {

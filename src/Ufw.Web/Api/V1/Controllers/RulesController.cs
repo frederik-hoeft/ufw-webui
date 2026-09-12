@@ -42,6 +42,25 @@ public sealed partial class RulesController(IUfwClient ufwClient, IDaemonApiErro
         }
     }
 
+    public async partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!string.Equals(request.Operation, IntentOperations.INSERT_RULE, StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "Request operation must be 'rules.insert'." });
+        }
+
+        try
+        {
+            RuleInsertionResponse response = await ufwClient.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
+            return InsertionResult(response);
+        }
+        catch (UfwIpcException exception)
+        {
+            return MapDaemonError(exception);
+        }
+    }
+
     public async partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -78,6 +97,19 @@ public sealed partial class RulesController(IUfwClient ufwClient, IDaemonApiErro
         {
             return MapDaemonError(exception);
         }
+    }
+
+    private ActionResult<RuleInsertionResponse> InsertionResult(RuleInsertionResponse response)
+    {
+        int statusCode = response.Outcome switch
+        {
+            RuleInsertionOutcome.Completed => StatusCodes.Status200OK,
+            RuleInsertionOutcome.StaleBaseline => StatusCodes.Status409Conflict,
+            RuleInsertionOutcome.PreconditionFailed => StatusCodes.Status422UnprocessableEntity,
+            RuleInsertionOutcome.StateUncertain => StatusCodes.Status503ServiceUnavailable,
+            _ => throw new ArgumentOutOfRangeException(nameof(response), response.Outcome, "Unknown insertion outcome."),
+        };
+        return StatusCode(statusCode, response);
     }
 
     private ActionResult<RuleReorderResponse> ReorderResult(RuleReorderResponse response)

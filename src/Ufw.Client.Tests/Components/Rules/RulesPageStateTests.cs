@@ -8,6 +8,43 @@ namespace Ufw.Client.Tests.Components.Rules;
 public sealed class RulesPageStateTests
 {
     [TestMethod]
+    public void AfterInsertion_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));
+        RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")]);
+        RuleInsertionResponse report = new(
+            RuleInsertionOutcome.PreconditionFailed,
+            finalSnapshot,
+            InsertedRule: null,
+            Diagnostic: "rejected");
+
+        RulesPageState updated = state.AfterInsertion(report);
+
+        Assert.IsTrue(updated.IsCurrent);
+        Assert.IsNotNull(updated.Snapshot);
+        Assert.IsFalse(updated.Snapshot.FirewallActive);
+        Assert.HasCount(2, updated.Snapshot.Rules);
+        Assert.AreEqual("inserted", updated.Snapshot.Rules[1].RuleId);
+    }
+
+    [TestMethod]
+    public void AfterInsertion_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));
+        RuleInsertionResponse report = new(
+            RuleInsertionOutcome.StateUncertain,
+            FinalSnapshot: null,
+            InsertedRule: null,
+            Diagnostic: "unreadable");
+
+        RulesPageState updated = state.AfterInsertion(report);
+
+        Assert.IsTrue(updated.IsStale);
+        Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
+        Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
+    }
+
+    [TestMethod]
     public void AfterReorder_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
         RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));

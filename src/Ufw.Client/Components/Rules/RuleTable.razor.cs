@@ -43,6 +43,9 @@ public sealed partial class RuleTable
     public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }
 
     [Parameter]
+    public EventCallback<RuleInsertionActionRequest> InsertionRequested { get; set; }
+
+    [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
 
     private string DragHandleLabel(ListedFirewallRule rule)

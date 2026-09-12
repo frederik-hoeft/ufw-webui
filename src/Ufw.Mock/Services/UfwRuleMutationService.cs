@@ -67,8 +67,10 @@ internal sealed class UfwRuleMutationService
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(request);
         IReadOnlyList<UfwMockRule> concreteRules = request.Materialize(state.IPv6Enabled);
-        bool spansAddressFamilies = concreteRules.Count > 1;
-        InsertPlacementContext? insertContext = placement == RulePlacement.Insert ? CreateInsertPlacementContext(state.Rules, insertNumber) : null;
+        if (placement == RulePlacement.Insert && (insertNumber is null || insertNumber <= 0))
+        {
+            throw new UfwCliException($"Invalid position '{insertNumber}'.");
+        }
 
         List<UfwRuleMutationResult> mutationResults = [];
         foreach (UfwMockRule rule in concreteRules)
@@ -88,35 +90,18 @@ internal sealed class UfwRuleMutationService
                 continue;
             }
 
-            InsertRule(state.Rules, rule, placement, insertContext, spansAddressFamilies);
+            InsertRule(state.Rules, rule, placement, insertNumber);
             mutationResults.Add(new UfwRuleMutationResult(rule, placement == RulePlacement.Insert ? UfwRuleMutationKind.Inserted : UfwRuleMutationKind.Added));
         }
         return mutationResults;
     }
 
-    private static InsertPlacementContext CreateInsertPlacementContext(List<UfwMockRule> rules, int? insertNumber)
-    {
-        ArgumentNullException.ThrowIfNull(rules);
-        if (insertNumber is null || insertNumber <= 0 || insertNumber > rules.Count)
-        {
-            throw new UfwCliException($"Invalid position '{insertNumber}'.");
-        }
-
-        UfwMockRule target = rules[insertNumber.Value - 1];
-        FirewallAddressFamily otherFamily = target.Specification.AddressFamily == FirewallAddressFamily.IPv4 ? FirewallAddressFamily.IPv6 : FirewallAddressFamily.IPv4;
-        UfwMockRule? counterpart = rules.FirstOrDefault(candidate =>
-            candidate.Specification.AddressFamily == otherFamily
-            && UfwRuleComparer.SemanticallyEqualIgnoringAddressFamily(candidate, target));
-
-        return target.Specification.AddressFamily == FirewallAddressFamily.IPv4
-            ? new InsertPlacementContext(insertNumber.Value, FirewallAddressFamily.IPv4, target, counterpart)
-            : new InsertPlacementContext(insertNumber.Value, FirewallAddressFamily.IPv6, counterpart, target);
-    }
-
-    private static void InsertRule(List<UfwMockRule> rules, UfwMockRule rule, RulePlacement placement, InsertPlacementContext? insertContext, bool spansAddressFamilies)
+    private static void InsertRule(List<UfwMockRule> rules, UfwMockRule rule, RulePlacement placement, int? insertNumber)
     {
         FirewallAddressFamily family = rule.Specification.AddressFamily;
-        int familyStart = family == FirewallAddressFamily.IPv6 ? rules.FindIndex(static candidate => candidate.Specification.AddressFamily == FirewallAddressFamily.IPv6) : 0;
+        int familyStart = family == FirewallAddressFamily.IPv6
+            ? rules.FindIndex(static candidate => candidate.Specification.AddressFamily == FirewallAddressFamily.IPv6)
+            : 0;
         if (familyStart < 0)
         {
             familyStart = rules.Count;
@@ -127,46 +112,20 @@ internal sealed class UfwRuleMutationService
         {
             RulePlacement.Append => familyStart + familyCount,
             RulePlacement.Prepend => familyStart,
-            RulePlacement.Insert => ResolveInsertIndex(rules, rule, insertContext, spansAddressFamilies),
+            RulePlacement.Insert => ResolveInsertIndex(familyStart, familyCount, insertNumber),
             _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
         };
         rules.Insert(index, rule);
     }
 
-    private static int ResolveInsertIndex(List<UfwMockRule> rules, UfwMockRule rule, InsertPlacementContext? context, bool spansAddressFamilies)
+    private static int ResolveInsertIndex(int familyStart, int familyCount, int? insertNumber)
     {
-        if (context is null)
+        if (insertNumber is null || insertNumber <= 0 || insertNumber > familyCount)
         {
-            throw new InvalidOperationException("Insert placement context is required for inserted rules.");
+            throw new UfwCliException($"Invalid position '{insertNumber}'.");
         }
 
-        FirewallAddressFamily family = rule.Specification.AddressFamily;
-        UfwMockRule? familyTarget = family switch
-        {
-            FirewallAddressFamily.IPv4 => context.IPv4Target,
-            FirewallAddressFamily.IPv6 => context.IPv6Target,
-            _ => throw new InvalidOperationException("Inserted mock rules must have a concrete address family."),
-        };
-
-        if (!spansAddressFamilies && context.UserTargetFamily != family)
-        {
-            throw new UfwCliException($"Invalid position '{context.UserPosition}'.");
-        }
-        if (familyTarget is not null)
-        {
-            int targetIndex = rules.IndexOf(familyTarget);
-            if (targetIndex >= 0)
-            {
-                return targetIndex;
-            }
-        }
-        if (family == FirewallAddressFamily.IPv4)
-        {
-            int firstIpv6 = rules.FindIndex(static candidate => candidate.Specification.AddressFamily == FirewallAddressFamily.IPv6);
-            return firstIpv6 < 0 ? rules.Count : firstIpv6;
-        }
-
-        return rules.Count;
+        return familyStart + insertNumber.Value - 1;
     }
 
     private enum RulePlacement
@@ -175,6 +134,4 @@ internal sealed class UfwRuleMutationService
         Insert,
         Prepend,
     }
-
-    private sealed record InsertPlacementContext(int UserPosition, FirewallAddressFamily UserTargetFamily, UfwMockRule? IPv4Target, UfwMockRule? IPv6Target);
 }

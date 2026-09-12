@@ -70,24 +70,30 @@ internal sealed class RuleReorderRecoveryCoordinator(
     private IUfwCommand CreateRecoveryCommand(ReorderRecoveryJournalEntry entry, RuleListResponse snapshot)
     {
         int? nextIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.NextAnchor);
-        if (nextIndex.HasValue && snapshot.Rules[nextIndex.Value].DisplayNumber is int nextDisplayNumber)
+        if (nextIndex.HasValue && snapshot.Rules[nextIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            return new UfwInsertRuleCommand(nextDisplayNumber, entry.Rule, renderer);
+            int nextFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(snapshot.Rules, nextIndex.Value);
+            return new UfwInsertRuleCommand(nextFamilyPosition, entry.Rule, renderer);
         }
 
         int? previousIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.PreviousAnchor);
-        if (previousIndex.HasValue && snapshot.Rules[previousIndex.Value].DisplayNumber is int previousDisplayNumber)
+        if (previousIndex.HasValue && snapshot.Rules[previousIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            int insertionNumber = previousDisplayNumber + 1;
-            if (insertionNumber <= snapshot.Rules.Count)
+            int previousFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(snapshot.Rules, previousIndex.Value);
+            int familyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
+            int insertionPosition = previousFamilyPosition + 1;
+            if (insertionPosition <= familyCount)
             {
-                return new UfwInsertRuleCommand(insertionNumber, entry.Rule, renderer);
+                return new UfwInsertRuleCommand(insertionPosition, entry.Rule, renderer);
             }
+
+            return new UfwAddRuleCommand(entry.Rule, renderer);
         }
 
-        if (entry.OriginalDisplayNumber <= snapshot.Rules.Count)
+        int currentFamilyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
+        if (entry.OriginalFamilyPosition <= currentFamilyCount)
         {
-            return new UfwInsertRuleCommand(entry.OriginalDisplayNumber, entry.Rule, renderer);
+            return new UfwInsertRuleCommand(entry.OriginalFamilyPosition, entry.Rule, renderer);
         }
 
         return new UfwAddRuleCommand(entry.Rule, renderer);

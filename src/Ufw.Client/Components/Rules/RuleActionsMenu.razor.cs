@@ -29,12 +29,13 @@ public sealed partial class RuleActionsMenu
     [Parameter]
     public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }
 
+    [Parameter]
+    public EventCallback<RuleInsertionActionRequest> InsertionRequested { get; set; }
+
     private string ActionsLabel => Rule.DisplayNumber is { } number
         ? RulesText["ActionsForRule", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
         : RulesText["RuleActions"];
 
-    private string BuildInsertHref(string placement)
-        => string.IsNullOrWhiteSpace(Rule.RuleId)
-            ? "/rules/create"
-            : $"/rules/create?{placement}={Uri.EscapeDataString(Rule.RuleId)}";
+    private Task RequestInsertionAsync(RuleInsertionPlacement placement)
+        => InsertionRequested.InvokeAsync(new RuleInsertionActionRequest(Rule, placement));
 }

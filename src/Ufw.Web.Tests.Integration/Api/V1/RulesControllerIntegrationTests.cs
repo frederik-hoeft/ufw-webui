@@ -18,6 +18,29 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
+    public Task InsertRuleAsync_PreservesStructuredUncertainReportThroughControllerPipelineAsync() =>
+        UsingComponentAsync(CreateInsertRequest(), async (controller, request, serviceProvider, cancellationToken) =>
+        {
+            IntegrationUfwClient daemon = serviceProvider.GetRequiredService<IntegrationUfwClient>();
+            RuleListResponse finalSnapshot = new(Active: true, [Listed("existing", 1)]);
+            daemon.InsertResponse = new RuleInsertionResponse(
+                RuleInsertionOutcome.StateUncertain,
+                finalSnapshot,
+                InsertedRule: null,
+                Diagnostic: "state diverged");
+
+            ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(request, cancellationToken);
+
+            ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+            Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, response.StatusCode);
+            RuleInsertionResponse report = Assert.IsInstanceOfType<RuleInsertionResponse>(response.Value);
+            Assert.AreSame(daemon.InsertResponse, report);
+            Assert.AreSame(request, daemon.LastInsertRequest);
+            Assert.AreSame(finalSnapshot, report.FinalSnapshot);
+            Assert.IsNull(report.InsertedRule);
+        }, TestContext.CancellationToken);
+
+    [TestMethod]
     public Task ReorderRulesAsync_PreservesStructuredPartialReportThroughControllerPipelineAsync() =>
         UsingComponentAsync(CreateRequest(), async (controller, request, serviceProvider, cancellationToken) =>
         {
@@ -45,6 +68,51 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             Assert.HasCount(1, report.Operations);
             Assert.HasCount(1, report.BlockedOperations);
         }, TestContext.CancellationToken);
+
+    private static InsertRuleRequest CreateInsertRequest()
+    {
+        InsertRulePayload payload = new()
+        {
+            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, [Listed("existing", 1)]),
+            AnchorOccurrenceId = 0,
+            Placement = RuleInsertionPlacement.Before,
+            Rule = new FirewallRuleSpecification
+            {
+                Action = FirewallAction.Allow,
+                AddressFamily = FirewallAddressFamily.IPv4,
+                Direction = FirewallDirection.In,
+                Protocol = FirewallProtocol.Tcp,
+                DestinationPorts = "22",
+            },
+        };
+        return new InsertRuleRequest
+        {
+            Version = IntentProtocol.VERSION,
+            DeploymentId = "deployment",
+            KeyId = "sha256:key",
+            IssuedAtUnix = 1,
+            Nonce = "nonce-insert",
+            Operation = IntentOperations.INSERT_RULE,
+            Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.InsertRulePayload),
+            Signature = "signature",
+        };
+    }
+
+    private static ListedFirewallRule Listed(string id, int displayNumber) => new()
+    {
+        RuleId = id,
+        DisplayNumber = displayNumber,
+        Parsed = true,
+        RawLine = id,
+        Rule = new FirewallRuleSpecification
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "80",
+        },
+    };
 
     private static ReorderRulesRequest CreateRequest()
     {
