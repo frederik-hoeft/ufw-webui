@@ -267,15 +267,16 @@ public sealed class UfwCliBlackboxTests
     }
 
     [TestMethod]
-    public async Task InsertUsesGlobalNumberingForExplicitIpv6RulesAsync()
+    public async Task InsertUsesFamilyLocalNumberingForExplicitIpv6RulesAsync()
     {
         _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp");
+        _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "443", "proto", "tcp");
         _ = await InvokeAsync("allow", "from", "::/0", "to", "::/0", "port", "80", "proto", "tcp");
         _ = await InvokeAsync("allow", "from", "::/0", "to", "::/0", "port", "443", "proto", "tcp");
 
         CommandResult inserted = await InvokeAsync(
             "insert",
-            "3",
+            "2",
             "deny",
             "from",
             "::/0",
@@ -287,9 +288,9 @@ public sealed class UfwCliBlackboxTests
             "tcp");
         Assert.AreEqual(0, inserted.ExitCode);
 
-        CommandResult wrongFamily = await InvokeAsync(
+        CommandResult outOfRange = await InvokeAsync(
             "insert",
-            "1",
+            "4",
             "deny",
             "from",
             "::/0",
@@ -299,8 +300,8 @@ public sealed class UfwCliBlackboxTests
             "25",
             "proto",
             "tcp");
-        Assert.AreEqual(1, wrongFamily.ExitCode);
-        StringAssert.Contains(wrongFamily.StdErr, "Invalid position '1'");
+        Assert.AreEqual(1, outOfRange.ExitCode);
+        StringAssert.Contains(outOfRange.StdErr, "Invalid position '4'");
 
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
@@ -313,25 +314,23 @@ public sealed class UfwCliBlackboxTests
     }
 
     [TestMethod]
-    public async Task FamilyNeutralInsertAlignsWithCounterpartAcrossAddressFamiliesAsync()
+    public async Task FamilyNeutralInsertUsesSameFamilyLocalPositionInBothPartitionsAsync()
     {
         _ = await InvokeAsync("allow", "80/tcp");
-        _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "443", "proto", "tcp");
+        _ = await InvokeAsync("allow", "443/tcp");
 
-        CommandResult inserted = await InvokeAsync("insert", "3", "deny", "22/tcp");
+        CommandResult inserted = await InvokeAsync("insert", "1", "deny", "22/tcp");
         Assert.AreEqual(0, inserted.ExitCode);
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "numbered");
         int sshV4 = status.StdOut.IndexOf("22/tcp", StringComparison.Ordinal);
         int httpV4 = status.StdOut.IndexOf("80/tcp", StringComparison.Ordinal);
-        int httpsV4 = status.StdOut.IndexOf("443/tcp", StringComparison.Ordinal);
         int sshV6 = status.StdOut.IndexOf("22/tcp (v6)", StringComparison.Ordinal);
         int httpV6 = status.StdOut.IndexOf("80/tcp (v6)", StringComparison.Ordinal);
         Assert.IsTrue(sshV4 >= 0);
         Assert.IsTrue(httpV4 > sshV4);
-        Assert.IsTrue(httpsV4 > httpV4);
-        Assert.IsTrue(sshV6 > httpsV4);
+        Assert.IsTrue(sshV6 > httpV4);
         Assert.IsTrue(httpV6 > sshV6);
     }
 

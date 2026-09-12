@@ -77,6 +77,26 @@ public sealed class FirewallReorderExecutorTests
     }
 
     [TestMethod]
+    public async Task ExecuteAsync_Ipv6Move_UsesFamilyLocalInsertionNumberAsync()
+    {
+        using ReorderHarness harness = new(
+            SnapshotTokens("80", "443", "22v6", "80v6", "443v6"),
+            SnapshotTokens("80", "443", "80v6", "443v6"),
+            SnapshotTokens("80", "443", "80v6", "22v6", "443v6"));
+
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(
+            harness.Request([0, 1, 3, 2, 4]),
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
+        Assert.HasCount(2, harness.Commands);
+        CollectionAssert.AreEqual(new[] { "--force", "delete", "3" }, harness.Commands[0]);
+        CollectionAssert.AreEqual(
+            new[] { "insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
+            harness.Commands[1]);
+    }
+
+    [TestMethod]
     public async Task ExecuteAsync_StaleBaseline_PerformsNoMutationAsync()
     {
         using ReorderHarness harness = new(Snapshot("22", "80"));
@@ -385,6 +405,19 @@ public sealed class FirewallReorderExecutorTests
         string[] rows = ports
             .Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")
             .ToArray();
+        return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
+    }
+
+    private static UfwStatusSnapshot SnapshotTokens(params string[] tokens)
+    {
+        string[] rows = tokens.Select(static (token, index) =>
+        {
+            bool v6 = token.EndsWith("v6", StringComparison.Ordinal);
+            string port = v6 ? token[..^2] : token;
+            return v6
+                ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
+                : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
+        }).ToArray();
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 

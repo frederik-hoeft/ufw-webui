@@ -1,6 +1,6 @@
 # Ordered Rule Insertion Implementation Plan
 
-> **Status:** Planned implementation record. This document defines the review boundaries for the ordered rule insertion feature while implementation is in progress. Permanent behavior belongs in `docs/architecture`, `docs/protocols`, `docs/security`, and `docs/deployment` after the feature reaches its approved steady state.
+> **Status:** Implementation in progress. Phase 1 is approved; Phase 2 is at its review gate. This document defines the review boundaries for the ordered rule insertion feature while implementation is in progress. Permanent behavior belongs in `docs/architecture`, `docs/protocols`, `docs/security`, and `docs/deployment` after the feature reaches its approved steady state.
 
 Ordered insertion reuses the exact-snapshot authority model established for rule reordering but remains a distinct mutation. The browser signs both the new structural rule and its placement relative to one occurrence in an exact authoritative baseline. The daemon independently validates that baseline and placement before executing one UFW insertion. It does not reinterpret ordered insertion as a reorder followed by an append, and the Web layer never gains mutation-planning authority.
 
@@ -29,7 +29,7 @@ The phase does not expose a daemon route, invoke UFW, or enable the existing ord
 
 Implement the privileged single-mutation transaction under the existing UFW execution gate.
 
-The daemon verifies the exact baseline, validates interfaces and duplicate semantics using the existing add-rule machinery, resolves the signed occurrence placement into a concrete UFW insertion command, executes one mutation, and reconciles the complete authoritative post-state. `before` inserts at the selected occurrence. `after` inserts before the next occurrence in the same address-family partition, or appends that concrete-family rule when the selected occurrence is the last rule in its family.
+The daemon verifies the exact baseline, validates interfaces and duplicate semantics using the existing add-rule machinery, resolves the signed combined-snapshot occurrence into UFW's concrete family-local insertion number, executes one mutation, and reconciles the complete authoritative post-state. `before` inserts at the selected occurrence. `after` inserts before the next occurrence in the same address-family partition, or appends that concrete-family rule when the selected occurrence is the last rule in its family.
 
 The existing reorder mutation-safety guard runs before ordered insertion so an unresolved delete/reinsert recovery obligation blocks all later mutations. Ordered insertion itself needs no recovery journal because it never removes an existing row.
 
