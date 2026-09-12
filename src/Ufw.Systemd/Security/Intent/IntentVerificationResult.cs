@@ -19,6 +19,12 @@ internal abstract record IntentVerificationResult
         FirewallRuleSpecification Rule,
         string? RuleId) : Accepted(KeyId, Nonce, ExpiresAtUnix);
 
+    internal sealed record AcceptedInsertion(
+        string KeyId,
+        string Nonce,
+        long ExpiresAtUnix,
+        InsertRulePayload Payload) : Accepted(KeyId, Nonce, ExpiresAtUnix);
+
     internal sealed record AcceptedReorder(
         string KeyId,
         string Nonce,

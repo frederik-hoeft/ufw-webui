@@ -27,6 +27,11 @@ internal sealed class IntentVerifier
         IntentOperations.DELETE_RULE,
         ParseDeletePayload);
 
+    public IntentVerificationResult VerifyInsert(ISignedIntent intent) => Verify(
+        intent,
+        IntentOperations.INSERT_RULE,
+        ParseInsertPayload);
+
     public IntentVerificationResult VerifyReorder(ISignedIntent intent) => Verify(
         intent,
         IntentOperations.REORDER_RULES,
@@ -196,6 +201,46 @@ internal sealed class IntentVerifier
                 expiresAtUnix,
                 normalized,
                 payload.RuleId));
+    }
+
+    private PayloadVerification ParseInsertPayload(ISignedIntent intent)
+    {
+        InsertRulePayload? payload = intent.Payload.Deserialize(jsonContext.InsertRulePayload);
+        if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.BaselineFingerprint))
+        {
+            return PayloadVerification.Reject(
+                new BadRequestResponse("Insert-rule payload must include a baseline fingerprint and rule specification."));
+        }
+
+        if (!RuleSpecificationValidator.TryValidate(payload.Rule, out ModelValidationErrorResponse? validationError))
+        {
+            return PayloadVerification.Reject(validationError);
+        }
+
+        InsertRulePayload verifiedPayload = new()
+        {
+            BaselineFingerprint = payload.BaselineFingerprint,
+            AnchorOccurrenceId = payload.AnchorOccurrenceId,
+            Placement = payload.Placement,
+            Rule = RuleSpecificationNormalizer.Normalize(payload.Rule),
+        };
+        try
+        {
+            RuleInsertionContract.ValidatePayload(verifiedPayload);
+        }
+        catch (ArgumentException exception)
+        {
+            return PayloadVerification.Reject(new BadRequestResponse(exception.Message));
+        }
+
+        byte[] canonical = IntentCanonicalizer.CanonicalizeInsert(intent, verifiedPayload);
+        return PayloadVerification.Accept(
+            canonical,
+            (keyId, nonce, expiresAtUnix) => new IntentVerificationResult.AcceptedInsertion(
+                keyId,
+                nonce,
+                expiresAtUnix,
+                verifiedPayload));
     }
 
     private PayloadVerification ParseReorderPayload(ISignedIntent intent)

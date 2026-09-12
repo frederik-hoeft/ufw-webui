@@ -1,8 +1,9 @@
-﻿using Ufw.Shared.Security.Intent;
+﻿using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
 
 namespace Ufw.Systemd.Firewall.Insertion;
 
 internal interface IFirewallOrderedInsertionService
 {
-    ValueTask<RuleInsertionExecutionResult> InsertAsync(InsertRulePayload payload, CancellationToken cancellationToken);
+    ValueTask<IResponsePayload> InsertAsync(InsertRuleRequest request, CancellationToken cancellationToken);
 }

@@ -39,10 +39,12 @@ public sealed class ProductionSerializationTests
         Assert.IsNotNull(context.GetTypeInfoOrDefault<FirewallAddressFamily>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<AddRuleRequest>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<DeleteRuleRequest>());
+        Assert.IsNotNull(context.GetTypeInfoOrDefault<InsertRuleRequest>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<ReorderRulesRequest>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<IntentContextResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<RuleListResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<RuleMutationResponse>());
+        Assert.IsNotNull(context.GetTypeInfoOrDefault<RuleInsertionResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<RuleReorderResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<ConflictResponse>());
         Assert.IsNotNull(context.GetTypeInfoOrDefault<ForbiddenResponse>());

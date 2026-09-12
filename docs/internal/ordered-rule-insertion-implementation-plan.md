@@ -1,6 +1,6 @@
 # Ordered Rule Insertion Implementation Plan
 
-> **Status:** Implementation in progress. Phase 1 is approved; Phase 2 is at its review gate. This document defines the review boundaries for the ordered rule insertion feature while implementation is in progress. Permanent behavior belongs in `docs/architecture`, `docs/protocols`, `docs/security`, and `docs/deployment` after the feature reaches its approved steady state.
+> **Status:** Implementation in progress. Phases 1 and 2 are approved; Phase 3 is at its review gate. This document defines the review boundaries for the ordered rule insertion feature while implementation is in progress. Permanent behavior belongs in `docs/architecture`, `docs/protocols`, `docs/security`, and `docs/deployment` after the feature reaches its approved steady state.
 
 Ordered insertion reuses the exact-snapshot authority model established for rule reordering but remains a distinct mutation. The browser signs both the new structural rule and its placement relative to one occurrence in an exact authoritative baseline. The daemon independently validates that baseline and placement before executing one UFW insertion. It does not reinterpret ordered insertion as a reorder followed by an append, and the Web layer never gains mutation-planning authority.
 
