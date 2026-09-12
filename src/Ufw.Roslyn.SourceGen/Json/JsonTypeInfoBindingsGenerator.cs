@@ -4,114 +4,157 @@ using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Ufw.Roslyn.SourceGen.Contracts;
 
 namespace Ufw.Roslyn.SourceGen.Json;
 
 [Generator(LanguageNames.CSharp)]
 public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
 {
-    private const string GENERIC_JSON_TYPE_INFO_BINDINGS_ATTRIBUTE_FULL_NAME = "Ufw.Roslyn.Json.JsonTypeInfoBindingsGeneratorAttribute";
-    private const string AOT_JSON_SERIALIZER_CONTEXT_FULL_NAME = "Ufw.Roslyn.Json.AotJsonSerializerContext";
-    private const string JSON_SERIALIZABLE_ATTRIBUTE_FULL_NAME = "System.Text.Json.Serialization.JsonSerializableAttribute";
-    private const string JSON_TYPE_INFO_FULL_NAME = "System.Text.Json.Serialization.Metadata.JsonTypeInfo";
     private static readonly SymbolDisplayFormat s_fullyQualifiedDisplayFormat = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<Model> pipeline = context.SyntaxProvider.ForAttributeWithMetadataName(
-            fullyQualifiedMetadataName: GENERIC_JSON_TYPE_INFO_BINDINGS_ATTRIBUTE_FULL_NAME,
-            predicate: static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax,
-            transform: static (context, _) =>
-            {
-                ISymbol targetClass = context.TargetSymbol;
-                ImmutableArray<AttributeData> attributes = targetClass.GetAttributes();
-                AttributeData jsonTypeInfoBindingsGeneratorAttribute = attributes
-                    .FirstOrDefault(static attr =>
-                        attr.AttributeClass?.ToDisplayString(s_fullyQualifiedDisplayFormat) is GENERIC_JSON_TYPE_INFO_BINDINGS_ATTRIBUTE_FULL_NAME)
-                    ?? throw new InvalidOperationException($"{nameof(JsonTypeInfoBindingsGenerator)} requires JsonTypeInfoBindingsGeneratorAttribute to be applied to the class");
-                ImmutableArray<AttributeData> jsonSerializables =
-                [
-                    .. attributes.Where(static attr => attr.AttributeClass?.ToDisplayString(s_fullyQualifiedDisplayFormat) is JSON_SERIALIZABLE_ATTRIBUTE_FULL_NAME)
-                ];
-                return new Model(
-                    Namespace: targetClass.ContainingNamespace.ToDisplayString(s_fullyQualifiedDisplayFormat),
-                    Class: targetClass,
-                    GeneratorAttribute: jsonTypeInfoBindingsGeneratorAttribute,
-                    JsonSerializableAttributes: jsonSerializables);
-            }
-        );
-        context.RegisterSourceOutput(pipeline, static (context, model) =>
-        {
-            JsonSerializableAttributeParser parser = new(context);
-            string? overrideModifier = GetOptionalOverrideModifier(model);
+        IncrementalValuesProvider<INamedTypeSymbol> candidateClasses = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax { AttributeLists.Count: > 0 },
+                transform: static (generatorContext, _) => GetCandidateClass(generatorContext))
+            .Where(static classSymbol => classSymbol is not null)
+            .Select(static (classSymbol, _) => classSymbol!);
 
-            StringBuilder sourceBuilder = new(
-                $$"""
-                #nullable enable
-
-                namespace {{model.Namespace}};
-
-                partial class {{model.Class.Name}}
-                {
-                    // the JIT will optimize this switch statement away
-                    public {{overrideModifier}}global::{{JSON_TYPE_INFO_FULL_NAME}}<T>? GetTypeInfoOrDefault<T>() => (object?)null switch
-                    {
-
-                """);
-
-            string indent = new(' ', 2 * 4);
-            // 1 = Optimized, 0 = Boxed Cast
-            bool useFastTypeCast = model.GeneratorAttribute.NamedArguments.Any(static arg => arg is { Key: "GenerationMode", Value.Value: 1 });
-
-            foreach (AttributeData jsonSerializable in model.JsonSerializableAttributes)
-            {
-                INamedTypeSymbol? type = parser.GetTargetType(jsonSerializable);
-                if (type is null)
-                {
-                    continue;
-                }
-                sourceBuilder.Append(indent)
-                    .Append($"_ when typeof(T) == typeof({type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}) => ");
-                if (useFastTypeCast)
-                {
-                    sourceBuilder.AppendLine($"global::{typeof(Unsafe).FullName}.{nameof(Unsafe.As)}<global::{JSON_TYPE_INFO_FULL_NAME}<T>>({type.Name}),");
-                }
-                else
-                {
-                    sourceBuilder.AppendLine($"(global::{JSON_TYPE_INFO_FULL_NAME}<T>)(object?){type.Name},");
-                }
-            }
-            sourceBuilder.Append(
-                """
-                        _ => null,
-                    };
-                }
-                """);
-
-            SourceText sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
-
-            context.AddSource($"{model.Class.Name}.JsonTypeInfoBindings.g.cs", sourceText);
-        });
+        IncrementalValueProvider<(Compilation, ImmutableArray<INamedTypeSymbol>)> compilationAndClasses =
+            context.CompilationProvider.Combine(candidateClasses.Collect());
+        context.RegisterSourceOutput(compilationAndClasses, static (sourceContext, source) =>
+            Execute(source.Item1, source.Item2, sourceContext));
     }
 
-    private static string? GetOptionalOverrideModifier(Model model)
+    private static INamedTypeSymbol? GetCandidateClass(GeneratorSyntaxContext context)
     {
-        // if the class inherits from AotJsonSerializerContext, then we need to generate an override for GetTypeInfoOrDefault<T>
-        string? overrideModifier = null;
-
-        // traverse the inheritance hierarchy to see if the class inherits from AotJsonSerializerContext
-        for (INamedTypeSymbol? namedTypeSymbol = model.Class as INamedTypeSymbol; namedTypeSymbol is not null; namedTypeSymbol = namedTypeSymbol.BaseType)
+        if (context.Node is not ClassDeclarationSyntax classDeclaration)
         {
-            if (namedTypeSymbol.ToDisplayString(s_fullyQualifiedDisplayFormat) is AOT_JSON_SERIALIZER_CONTEXT_FULL_NAME)
+            return null;
+        }
+
+        return context.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
+    }
+
+    private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> candidateClasses, SourceProductionContext context)
+    {
+        if (candidateClasses.IsDefaultOrEmpty || GeneratorContracts.TryResolve(compilation, context, out GeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
+        {
+            return;
+        }
+
+        GeneratorContracts contracts = resolvedContracts;
+        HashSet<ISymbol> processedClasses = new(SymbolEqualityComparer.Default);
+        foreach (INamedTypeSymbol candidateClass in candidateClasses)
+        {
+            if (!processedClasses.Add(candidateClass))
             {
-                // include the space after the override keyword
-                overrideModifier = "override ";
-                break;
+                continue;
+            }
+
+            Model? model = TryCreateModel(candidateClass, contracts);
+            if (model is not null)
+            {
+                Generate(context, contracts, model);
+            }
+        }
+    }
+
+    private static Model? TryCreateModel(INamedTypeSymbol targetClass, GeneratorContracts contracts)
+    {
+        ImmutableArray<AttributeData> attributes = targetClass.GetAttributes();
+        AttributeData? generatorAttribute = attributes.FirstOrDefault(attribute => SymbolEqualityComparer.Default.Equals(
+            attribute.AttributeClass?.OriginalDefinition,
+            contracts.JsonTypeInfoBindingsTriggerAttribute.OriginalDefinition));
+        if (generatorAttribute is null)
+        {
+            return null;
+        }
+
+        ImmutableArray<AttributeData> jsonSerializableAttributes =
+        [
+            .. attributes.Where(attribute => SymbolEqualityComparer.Default.Equals(
+                attribute.AttributeClass?.OriginalDefinition,
+                contracts.JsonSerializableAttribute.OriginalDefinition))
+        ];
+
+        return new Model(
+            Namespace: targetClass.ContainingNamespace.ToDisplayString(s_fullyQualifiedDisplayFormat),
+            Class: targetClass,
+            GeneratorAttribute: generatorAttribute,
+            JsonSerializableAttributes: jsonSerializableAttributes);
+    }
+
+    private static void Generate(SourceProductionContext context, GeneratorContracts contracts, Model model)
+    {
+        JsonSerializableAttributeParser parser = new(context);
+        string? overrideModifier = GetOptionalOverrideModifier(model, contracts);
+        string jsonTypeInfoFullName = contracts.JsonTypeInfo.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        StringBuilder sourceBuilder = new(
+            $$"""
+            #nullable enable
+
+            namespace {{model.Namespace}};
+
+            partial class {{model.Class.Name}}
+            {
+                // the JIT will optimize this switch statement away
+                public {{overrideModifier}}{{jsonTypeInfoFullName}}? GetTypeInfoOrDefault<T>() => (object?)null switch
+                {
+
+            """);
+
+        string indent = new(' ', 2 * 4);
+        bool useFastTypeCast = model.GeneratorAttribute.NamedArguments.Any(static argument => argument is { Key: "GenerationMode", Value.Value: 1 });
+
+        foreach (AttributeData jsonSerializable in model.JsonSerializableAttributes)
+        {
+            INamedTypeSymbol? type = parser.GetTargetType(jsonSerializable);
+            if (type is null)
+            {
+                continue;
+            }
+            sourceBuilder.Append(indent)
+                .Append($"_ when typeof(T) == typeof({type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}) => ");
+            if (useFastTypeCast)
+            {
+                sourceBuilder.AppendLine($"global::{typeof(Unsafe).FullName}.{nameof(Unsafe.As)}<{jsonTypeInfoFullName}>({type.Name}),");
+            }
+            else
+            {
+                sourceBuilder.AppendLine($"({jsonTypeInfoFullName})(object?){type.Name},");
+            }
+        }
+        sourceBuilder.Append(
+            """
+                    _ => null,
+                };
+            }
+            """);
+
+        SourceText sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
+        context.AddSource($"{model.Class.Name}.JsonTypeInfoBindings.g.cs", sourceText);
+    }
+
+    private static string? GetOptionalOverrideModifier(Model model, GeneratorContracts contracts)
+    {
+        for (INamedTypeSymbol? namedTypeSymbol = model.Class; namedTypeSymbol is not null; namedTypeSymbol = namedTypeSymbol.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(namedTypeSymbol.OriginalDefinition, contracts.AotJsonSerializerContext.OriginalDefinition))
+            {
+                return "override ";
             }
         }
 
-        return overrideModifier;
+        return null;
     }
 
-    private sealed record Model(string Namespace, ISymbol Class, AttributeData GeneratorAttribute, ImmutableArray<AttributeData> JsonSerializableAttributes);
+    private sealed record Model(
+        string Namespace,
+        INamedTypeSymbol Class,
+        AttributeData GeneratorAttribute,
+        ImmutableArray<AttributeData> JsonSerializableAttributes);
 }

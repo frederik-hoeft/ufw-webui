@@ -26,6 +26,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<EmbeddedResource Include="Contracts\GeneratorContract.cs" />
+		<EmbeddedResource Include="Contracts\GeneratorContractRegistrationAttribute.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- Create nuget package as analyzer -->
 		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>

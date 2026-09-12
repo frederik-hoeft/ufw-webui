@@ -17,7 +17,4 @@ internal sealed record BindingClassProcessorResult(ApiMappingClassInfo MappingCl
 
     public string FactoryFullName { get; } = MappingClass.FactoryType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-    public string RequestEnvelopeFullName { get; } = MappingClass.RequestEnvelopeType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-    public string ResponseEnvelopeFullName { get; } = MappingClass.ResponseEnvelopeType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 }
