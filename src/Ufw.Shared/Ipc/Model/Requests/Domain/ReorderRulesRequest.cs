@@ -3,7 +3,7 @@ using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Shared.Ipc.Model.Requests.Domain;
 
-public sealed record ReorderRulesRequest() : RequestMessage(RequestMethod.Put, "/api/v1/rules"), ISignedIntent
+public sealed record ReorderRulesRequest() : RequestMessage(RequestMethod.Put, "/api/v1/rules/order"), ISignedIntent
 {
     public int Version { get; init; } = IntentProtocol.VERSION;
 

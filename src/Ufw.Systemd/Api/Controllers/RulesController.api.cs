@@ -22,7 +22,7 @@ internal sealed partial class RulesController
     /// <summary>
     /// Validates and applies an administrator-signed reorder intent.
     /// </summary>
-    [Put]
+    [Put("order")]
     public partial ValueTask<IResponsePayload> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken);
 
     /// <summary>

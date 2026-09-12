@@ -12,7 +12,7 @@ namespace Ufw.Ipc.Tests.Protocol.Integration;
 [TestClass]
 public sealed class ReorderTransportIntegrationTests : IpcProtocolTestBase
 {
-    private const string ROUTE = "/api/v1/rules";
+    private const string ROUTE = "/api/v1/rules/order";
 
     [TestMethod]
     public Task ReorderRequestAndStructuredResult_RoundTripThroughProductionProtocolAsync()

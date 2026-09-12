@@ -36,7 +36,7 @@ public sealed partial class RulesController
     /// <summary>
     /// Forwards an administrator-signed reorder intent to the privileged daemon.
     /// </summary>
-    [HttpPut]
+    [HttpPut("order")]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -89,6 +89,17 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public void ReorderRulesAsync_UsesDedicatedOrderSubresource()
+    {
+        System.Reflection.MethodInfo? method = typeof(RulesController).GetMethod(nameof(RulesController.ReorderRulesAsync));
+        Assert.IsNotNull(method);
+        object[] attributes = method.GetCustomAttributes(typeof(HttpPutAttribute), inherit: false);
+        Assert.HasCount(1, attributes);
+        HttpPutAttribute attribute = Assert.IsInstanceOfType<HttpPutAttribute>(attributes[0]);
+        Assert.AreEqual("order", attribute.Template);
+    }
+
+    [TestMethod]
     public async Task TestReorderRulesAsync_ForwardsSignedEnvelopeAsync()
     {
         Mock<IUfwClient> client = new();
