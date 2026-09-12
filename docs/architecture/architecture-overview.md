@@ -62,7 +62,7 @@ All UFW activity is serialized inside the daemon. A mutation retains the executi
 
 `Ufw.Shared` contains concepts that must mean the same thing on both sides of a process boundary: firewall rule semantics, normalization and rendering, signed-intent primitives, IPC message contracts, and protocol serialization metadata. It does not own runtime policy for either the browser, web application, or daemon.
 
-`Ufw.Ipc.Client` implements the typed daemon client used by `Ufw.Web`. The daemon route/serialization infrastructure is supported by `Ufw.Roslyn` and its source generator so production routing and protocol metadata can remain compatible with NativeAOT.
+`Ufw.Ipc.Client` implements the typed daemon client used by `Ufw.Web`. `Ufw.Roslyn` provides the runtime-facing routing and serialization abstractions, while `Ufw.Roslyn.SourceGen` resolves their compile-time contracts and emits static bindings suitable for NativeAOT. Controller routing and JSON serialization use independent contract families so their compile-time dependencies can evolve separately. See [Compile-time routing and serialization](source-generation.md) for the source-generation boundary.
 
 ## State ownership
 
@@ -138,7 +138,7 @@ The source tree follows deployment and responsibility boundaries rather than mir
 | `Ufw.Systemd` | privileged firewall daemon |
 | `Ufw.Shared` | cross-process domain/protocol contracts |
 | `Ufw.Ipc.Client` | local typed IPC client |
-| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | compile-time routing/serialization support used by the daemon stack |
+| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | runtime abstractions plus CESI/CTCD-based compile-time routing and serialization generation |
 | `Ufw.Mock` | development substitute for the external UFW executable |
 
 Tests are split along the same boundaries. Shared tests cover firewall/protocol semantics, IPC tests exercise the real client/daemon protocol stack over in-process transport, daemon tests cover authorization and UFW integration behavior, web tests cover persistence and application workflows, and mock black-box tests verify observable CLI compatibility.

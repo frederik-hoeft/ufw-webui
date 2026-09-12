@@ -2,12 +2,12 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.EndpointVerbs;
 
-internal sealed class EndpointVerbProcessor(SourceProductionContext context, GeneratorContracts contracts)
+internal sealed class EndpointVerbProcessor(SourceProductionContext context, ControllerGeneratorContracts contracts)
 {
     public EndpointVerbProcessorResult? Process(IMethodSymbol method)
     {

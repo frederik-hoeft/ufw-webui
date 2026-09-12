@@ -1,4 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
+using Ufw.Roslyn.SourceGen.Json.Contracts;
 
 namespace Ufw.Roslyn.SourceGen.Contracts;
 
@@ -9,8 +11,11 @@ public sealed class GeneratorContractBootstrapper : IIncrementalGenerator
     {
         context.RegisterPostInitializationOutput(static postInitializationContext =>
         {
-            postInitializationContext.AddSource("GeneratorContract.g.cs", EmbeddedSourceText.FromType<GeneratorContract>());
-            postInitializationContext.AddSource("GeneratorContractRegistrationAttribute.g.cs", EmbeddedSourceText.FromType<GeneratorContractRegistrationAttribute>());
+            postInitializationContext.AddSource("ControllerGeneratorContract.g.cs", EmbeddedSourceText.FromType<ControllerGeneratorContract>());
+            postInitializationContext.AddSource("JsonGeneratorContract.g.cs", EmbeddedSourceText.FromType<JsonGeneratorContract>());
+            postInitializationContext.AddSource(
+                "GeneratorContractRegistrationAttribute.g.cs",
+                EmbeddedSourceText.FromType(typeof(GeneratorContractRegistrationAttribute<>)));
         });
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 using Ufw.Roslyn.SourceGen.Controllers.Emitters;
 using Ufw.Roslyn.SourceGen.Controllers.Models;
@@ -38,7 +38,7 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
         return context.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
     }
 
-    private static ApiMappingClassInfo? GetApiMappingClassInfo(INamedTypeSymbol classSymbol, GeneratorContracts contracts)
+    private static ApiMappingClassInfo? GetApiMappingClassInfo(INamedTypeSymbol classSymbol, ControllerGeneratorContracts contracts)
     {
         AttributeData? mappingGeneratorAttribute = null;
         List<INamedTypeSymbol> controllerRegistrations = [];
@@ -70,12 +70,12 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> candidateClasses, SourceProductionContext context)
     {
-        if (candidateClasses.IsDefaultOrEmpty || GeneratorContracts.TryResolve(compilation, context, out GeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
+        if (candidateClasses.IsDefaultOrEmpty || ControllerGeneratorContracts.TryResolve(compilation, context, out ControllerGeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
         {
             return;
         }
 
-        GeneratorContracts contracts = resolvedContracts;
+        ControllerGeneratorContracts contracts = resolvedContracts;
         HashSet<ISymbol> processedClasses = new(SymbolEqualityComparer.Default);
         MappingClassEmitter emitter = new(context, contracts);
         foreach (INamedTypeSymbol candidateClass in candidateClasses)

@@ -1,6 +1,6 @@
-﻿namespace Ufw.Roslyn.SourceGen.Contracts;
+﻿namespace Ufw.Roslyn.SourceGen.Controllers.Contracts;
 
-internal enum GeneratorContract
+internal enum ControllerGeneratorContract
 {
     ApiControllerMappingTriggerAttribute = 1,
     ApiControllerRegistrationAttribute = 2,
@@ -12,8 +12,4 @@ internal enum GeneratorContract
     ApiEndpointMapping = 8,
     ControllerActivator = 9,
     IdentifiableResponse = 10,
-    JsonTypeInfoBindingsTriggerAttribute = 11,
-    AotJsonSerializerContext = 12,
-    JsonSerializableAttribute = 13,
-    JsonTypeInfo = 14,
 }

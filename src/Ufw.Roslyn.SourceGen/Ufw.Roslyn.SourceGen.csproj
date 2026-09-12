@@ -26,8 +26,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Contracts\GeneratorContract.cs" />
-		<EmbeddedResource Include="Contracts\GeneratorContractRegistrationAttribute.cs" />
+		<EmbeddedResource Include="Contracts\GeneratorContractRegistrationAttribute`1.cs" />
+		<EmbeddedResource Include="Controllers\Contracts\ControllerGeneratorContract.cs" />
+		<EmbeddedResource Include="Json\Contracts\JsonGeneratorContract.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

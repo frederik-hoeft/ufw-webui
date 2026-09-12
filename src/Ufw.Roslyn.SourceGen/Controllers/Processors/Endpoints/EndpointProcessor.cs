@@ -1,6 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Controllers;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints.Analyzers;
@@ -8,7 +8,7 @@ using Ufw.Roslyn.SourceGen.Controllers.Processors.EndpointVerbs;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
-internal sealed class EndpointProcessor(SourceProductionContext context, GeneratorContracts contracts, ControllerProcessingContext controllerContext)
+internal sealed class EndpointProcessor(SourceProductionContext context, ControllerGeneratorContracts contracts, ControllerProcessingContext controllerContext)
 {
     private readonly ImmutableArray<IEndpointSignatureAnalyzer> _signatureAnalyzers =
     [

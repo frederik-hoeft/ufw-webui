@@ -1,10 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints.Analyzers;
 
-internal sealed class EndpointReturnTypeAnalyzer(SourceProductionContext context, GeneratorContracts contracts) : IEndpointSignatureAnalyzer
+internal sealed class EndpointReturnTypeAnalyzer(SourceProductionContext context, ControllerGeneratorContracts contracts) : IEndpointSignatureAnalyzer
 {
     public bool TryAnalyze(IMethodSymbol method, EndpointSignatureAnalyzerContext analyzerContext)
     {

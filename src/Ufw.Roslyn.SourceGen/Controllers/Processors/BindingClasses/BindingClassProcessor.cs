@@ -1,5 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 using Ufw.Roslyn.SourceGen.Controllers.Models;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Controllers;
@@ -7,11 +7,11 @@ using Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.BindingClasses;
 
-internal sealed class BindingClassProcessor(SourceProductionContext context, GeneratorContracts contracts, ApiMappingClassInfo mappingClass)
+internal sealed class BindingClassProcessor(SourceProductionContext context, ControllerGeneratorContracts contracts, ApiMappingClassInfo mappingClass)
 {
     public SourceProductionContext Context { get; } = context;
 
-    public GeneratorContracts Contracts { get; } = contracts;
+    public ControllerGeneratorContracts Contracts { get; } = contracts;
 
     public ApiMappingClassInfo MappingClass { get; } = mappingClass;
 

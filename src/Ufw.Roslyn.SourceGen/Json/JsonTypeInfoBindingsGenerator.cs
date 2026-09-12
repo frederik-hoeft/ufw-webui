@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Json.Contracts;
 
 namespace Ufw.Roslyn.SourceGen.Json;
 
@@ -40,12 +40,12 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> candidateClasses, SourceProductionContext context)
     {
-        if (candidateClasses.IsDefaultOrEmpty || GeneratorContracts.TryResolve(compilation, context, out GeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
+        if (candidateClasses.IsDefaultOrEmpty || JsonGeneratorContracts.TryResolve(compilation, context, out JsonGeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
         {
             return;
         }
 
-        GeneratorContracts contracts = resolvedContracts;
+        JsonGeneratorContracts contracts = resolvedContracts;
         HashSet<ISymbol> processedClasses = new(SymbolEqualityComparer.Default);
         foreach (INamedTypeSymbol candidateClass in candidateClasses)
         {
@@ -62,7 +62,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
         }
     }
 
-    private static Model? TryCreateModel(INamedTypeSymbol targetClass, GeneratorContracts contracts)
+    private static Model? TryCreateModel(INamedTypeSymbol targetClass, JsonGeneratorContracts contracts)
     {
         ImmutableArray<AttributeData> attributes = targetClass.GetAttributes();
         AttributeData? generatorAttribute = attributes.FirstOrDefault(attribute => SymbolEqualityComparer.Default.Equals(
@@ -87,7 +87,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
             JsonSerializableAttributes: jsonSerializableAttributes);
     }
 
-    private static void Generate(SourceProductionContext context, GeneratorContracts contracts, Model model)
+    private static void Generate(SourceProductionContext context, JsonGeneratorContracts contracts, Model model)
     {
         JsonSerializableAttributeParser parser = new(context);
         string? overrideModifier = GetOptionalOverrideModifier(model, contracts);
@@ -139,7 +139,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
         context.AddSource($"{model.Class.Name}.JsonTypeInfoBindings.g.cs", sourceText);
     }
 
-    private static string? GetOptionalOverrideModifier(Model model, GeneratorContracts contracts)
+    private static string? GetOptionalOverrideModifier(Model model, JsonGeneratorContracts contracts)
     {
         for (INamedTypeSymbol? namedTypeSymbol = model.Class; namedTypeSymbol is not null; namedTypeSymbol = namedTypeSymbol.BaseType)
         {

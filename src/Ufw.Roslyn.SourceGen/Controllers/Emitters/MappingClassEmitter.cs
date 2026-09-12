@@ -1,12 +1,12 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Text;
-using Ufw.Roslyn.SourceGen.Contracts;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.BindingClasses;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Emitters;
 
-internal sealed class MappingClassEmitter(SourceProductionContext context, GeneratorContracts contracts)
+internal sealed class MappingClassEmitter(SourceProductionContext context, ControllerGeneratorContracts contracts)
 {
     private const string ENDPOINT_BINDINGS_NAME = "EndpointBindings";
     private const string ENDPOINT_BINDINGS_MEMBER_NAME = "Bindings";
