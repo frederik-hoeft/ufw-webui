@@ -4,11 +4,11 @@ This file is temporary, non-normative working storage for unresolved design and 
 
 ## Firewall rule ordering backend and signed mutation contract
 
-The browser-side ordering UX remains implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the registered implementation until the backend mutation flow is approved and implemented. The proposed steady-state architecture is documented in [Firewall Rule Reordering Design](rule-reordering-design.md).
+The browser-side ordering UX remains implemented against `IRuleOrderingApiClient`, with `MockRuleOrderingApiClient` as the registered implementation until the production backend flow reaches the frontend phase. The approved pre-final architecture is documented in [Firewall Rule Reordering Design](rule-reordering-design.md), with phased implementation and review gates tracked in [Firewall Rule Reordering Implementation Plan](rule-reordering-implementation-plan.md).
 
-The draft design settles the main architectural choices: the browser signs an exact authoritative baseline fingerprint plus the complete desired permutation; rows use snapshot-local occurrence IDs rather than semantic `ruleId` values; the daemon verifies that baseline under the serialized UFW execution gate; move planning uses a minimal longest-increasing-subsequence formulation; and each delete/reinsert move carries a mandatory recovery obligation with structured partial-execution reporting.
+The design binds one signed desired permutation to an exact authoritative baseline fingerprint, uses snapshot-local occurrence IDs rather than semantic `ruleId` values, validates that baseline under the serialized UFW execution gate, and derives a minimal move plan using a longest-increasing-subsequence formulation. Each delete/reinsert move carries a mandatory recovery obligation with structured partial-execution reporting.
 
-Implementation remains gated on maintainer approval of that design and on validating the UFW representation needed for lossless reinsertion. Ordered rule creation remains a separate future mutation contract rather than an extension of the reorder request.
+Lossless reinsertion still requires validation against the authoritative UFW representation before affected rule shapes can become movable. Ordered rule creation remains a separate future mutation contract rather than an extension of the reorder request.
 
 ## Reliable mutation reconciliation from UFW output
 

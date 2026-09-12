@@ -16,14 +16,7 @@ public static class IntentCanonicalizer
         ArgumentNullException.ThrowIfNull(rule);
 
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(rule);
-        StringBuilder builder = new();
-        builder.Append(IntentProtocol.CONTEXT);
-        builder.Append('\n');
-        AppendField(builder, "deploymentId", intent.DeploymentId);
-        AppendField(builder, "keyId", intent.KeyId);
-        AppendField(builder, "issuedAtUnix", intent.IssuedAtUnix.ToString(CultureInfo.InvariantCulture));
-        AppendField(builder, "nonce", intent.Nonce);
-        AppendField(builder, "operation", intent.Operation);
+        StringBuilder builder = CreateIntentHeader(intent);
         builder.Append("payload:\n");
         if (ruleId is not null)
         {
@@ -54,6 +47,47 @@ public static class IntentCanonicalizer
     {
         ArgumentNullException.ThrowIfNull(payload);
         return Canonicalize(intent, payload.Rule, payload.RuleId);
+    }
+
+    public static byte[] CanonicalizeReorder(ISignedIntent intent, ReorderRulesPayload payload)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(payload.DesiredOrder);
+
+        StringBuilder builder = CreateIntentHeader(intent);
+        builder.Append("payload:\n");
+        AppendField(builder, "baselineFingerprint", payload.BaselineFingerprint);
+        AppendField(builder, "desiredOrderCount", payload.DesiredOrder.Length.ToString(CultureInfo.InvariantCulture));
+        for (int index = 0; index < payload.DesiredOrder.Length; index++)
+        {
+            AppendIndexedField(builder, "desiredOrder", index, payload.DesiredOrder[index]);
+        }
+
+        return Encoding.UTF8.GetBytes(builder.ToString());
+    }
+
+    private static StringBuilder CreateIntentHeader(ISignedIntent intent)
+    {
+        StringBuilder builder = new();
+        builder.Append(IntentProtocol.CONTEXT);
+        builder.Append('\n');
+        AppendField(builder, "deploymentId", intent.DeploymentId);
+        AppendField(builder, "keyId", intent.KeyId);
+        AppendField(builder, "issuedAtUnix", intent.IssuedAtUnix.ToString(CultureInfo.InvariantCulture));
+        AppendField(builder, "nonce", intent.Nonce);
+        AppendField(builder, "operation", intent.Operation);
+        return builder;
+    }
+
+    private static void AppendIndexedField(StringBuilder builder, string name, int index, int value)
+    {
+        builder.Append(name);
+        builder.Append('[');
+        builder.Append(index.ToString(CultureInfo.InvariantCulture));
+        builder.Append("]=");
+        builder.Append(value.ToString(CultureInfo.InvariantCulture));
+        builder.Append('\n');
     }
 
     private static void AppendField(StringBuilder builder, string name, string value)

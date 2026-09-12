@@ -38,6 +38,7 @@ namespace Ufw.Shared.Ipc.Serialization.Json;
 [JsonSerializable(typeof(ListedFirewallRule))]
 [JsonSerializable(typeof(AddRulePayload))]
 [JsonSerializable(typeof(DeleteRulePayload))]
+[JsonSerializable(typeof(ReorderRulesPayload))]
 [JsonSerializable(typeof(AddRuleRequest))]
 [JsonSerializable(typeof(DeleteRuleRequest))]
 [JsonSerializable(typeof(IntentContextResponse))]

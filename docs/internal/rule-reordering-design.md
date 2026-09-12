@@ -1,6 +1,6 @@
 # Firewall Rule Reordering Design
 
-> **Status:** Draft target design for maintainer approval. This document describes the intended steady-state architecture before implementation. It is intentionally internal and may change if implementation or UFW behavior exposes a conflicting constraint.
+> **Status:** Approved implementation target. This document describes the intended pre-final steady-state architecture during implementation. It remains internal and may change if implementation or UFW behavior exposes a conflicting constraint.
 
 Firewall rule ordering is security-relevant state. UFW evaluates ordered rules using first-match semantics, while UFW WebUI deliberately allows UFW state to change outside the application. Reordering therefore cannot be modeled as a sequence of independent positional edits sent from the browser. The mutation must bind the user's reviewed ordering to an exact authoritative baseline, execute as one serialized daemon operation, and report partial progress precisely if that baseline stops being trustworthy during execution.
 
