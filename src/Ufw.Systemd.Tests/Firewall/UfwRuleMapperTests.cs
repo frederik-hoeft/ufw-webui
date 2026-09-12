@@ -30,6 +30,26 @@ public sealed class UfwRuleMapperTests
     }
 
     [TestMethod]
+    [DataRow("Anywhere                   ALLOW IN    Anywhere", FirewallProtocol.Any)]
+    [DataRow("Anywhere/tcp               ALLOW IN    Anywhere/tcp", FirewallProtocol.Tcp)]
+    [DataRow("Anywhere/udp               ALLOW IN    Anywhere/udp", FirewallProtocol.Udp)]
+    [DataRow("10.100.200.2/udp           REJECT FWD  Anywhere", FirewallProtocol.Udp)]
+    public void TestToListedRule_ProtocolOnlyRowsPreserveProtocol(string row, FirewallProtocol expectedProtocol)
+    {
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse($"Status: active\n[ 1] {row}\n");
+        Assert.IsNotNull(snapshot);
+        Assert.HasCount(1, snapshot.Rules);
+
+        ListedFirewallRule listed = UfwRuleMapper.ToListedRule(snapshot.Rules[0]);
+
+        Assert.IsTrue(listed.Parsed);
+        Assert.IsNotNull(listed.Rule);
+        Assert.AreEqual(expectedProtocol, listed.Rule.Protocol);
+        Assert.IsNull(listed.Rule.SourcePorts);
+        Assert.IsNull(listed.Rule.DestinationPorts);
+    }
+
+    [TestMethod]
     public void TestToListedRule_SemanticallyInconsistentParsedRowRemainsUnaddressable()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse("Status: active\n[ 1] 192.168.1.0/24 (v6) ALLOW IN Anywhere (v6)\n");

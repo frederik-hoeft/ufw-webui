@@ -251,7 +251,7 @@ The design also does not attempt to provide kernel- or packet-level atomic repla
 
 Before implementation freezes the protocol, the following points require validation rather than architectural redesign:
 
-- verify the authoritative UFW representation used for movable rules is lossless enough for exact reinsertion, including the existing protocol-without-ports case;
+- verify the authoritative UFW representation used for movable rules is lossless enough for exact reinsertion across the supported rule grammar;
 - freeze the canonical snapshot byte representation and `rules.reorder` signed payload in the protocol documentation;
 - verify positional insertion behavior in both real UFW and `Ufw.Mock`, including concrete IPv4/IPv6 rows;
 - define the persistent recovery-journal location and crash-safe write discipline using the daemon's existing operator-state conventions;

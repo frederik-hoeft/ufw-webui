@@ -8,11 +8,13 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
     public RuleReorderPlan Plan(
         IReadOnlyList<int> currentOrder,
         IReadOnlyList<int> desiredOrder,
-        IReadOnlySet<int> immutableOccurrences)
+        IReadOnlySet<int> immutableOccurrences,
+        IReadOnlyDictionary<int, int>? keepPriorities = null)
     {
         ArgumentNullException.ThrowIfNull(currentOrder);
         ArgumentNullException.ThrowIfNull(desiredOrder);
         ArgumentNullException.ThrowIfNull(immutableOccurrences);
+        keepPriorities ??= EmptyPriorities.Instance;
 
         ValidatePermutation(currentOrder, nameof(currentOrder));
         ValidatePermutation(desiredOrder, nameof(desiredOrder));
@@ -31,7 +33,8 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         }
 
         int[] desiredPositions = CreatePositionMap(desiredOrder);
-        HashSet<int> untouched = SelectUntouchedOccurrences(currentOrder, desiredPositions, immutableOccurrences);
+        ValidatePriorities(keepPriorities, occurrenceCount);
+        HashSet<int> untouched = SelectUntouchedOccurrences(currentOrder, desiredPositions, immutableOccurrences, keepPriorities);
         List<RuleReorderMove> moves = CreateMoves(desiredOrder, untouched);
         return new RuleReorderPlan(untouched, moves);
     }
@@ -39,7 +42,8 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
     private static HashSet<int> SelectUntouchedOccurrences(
         IReadOnlyList<int> currentOrder,
         IReadOnlyList<int> desiredPositions,
-        IReadOnlySet<int> immutableOccurrences)
+        IReadOnlySet<int> immutableOccurrences,
+        IReadOnlyDictionary<int, int> keepPriorities)
     {
         List<ImmutableAnchor> anchors = [];
         for (int currentIndex = 0; currentIndex < currentOrder.Count; currentIndex++)
@@ -78,6 +82,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
                 nextCurrentIndex,
                 previousDesiredIndex,
                 nextDesiredIndex,
+                keepPriorities,
                 untouched);
 
             previousCurrentIndex = nextCurrentIndex;
@@ -94,6 +99,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         int endIndex,
         int lowerDesiredExclusive,
         int upperDesiredExclusive,
+        IReadOnlyDictionary<int, int> keepPriorities,
         HashSet<int> untouched)
     {
         List<int> candidates = [];
@@ -112,30 +118,26 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
             return;
         }
 
-        int[] tailDesiredPositions = new int[candidates.Count];
-        int[] tailCandidateIndices = new int[candidates.Count];
         int[] predecessors = new int[candidates.Count];
         Array.Fill(predecessors, -1);
-        int length = 0;
+        WeightedLisFenwick fenwick = new(upperDesiredExclusive - lowerDesiredExclusive - 1);
 
         for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++)
         {
-            int desiredIndex = desiredPositions[candidates[candidateIndex]];
-            int insertionIndex = LowerBound(tailDesiredPositions, length, desiredIndex);
-            tailDesiredPositions[insertionIndex] = desiredIndex;
-            tailCandidateIndices[insertionIndex] = candidateIndex;
-            if (insertionIndex > 0)
-            {
-                predecessors[candidateIndex] = tailCandidateIndices[insertionIndex - 1];
-            }
-
-            if (insertionIndex == length)
-            {
-                length++;
-            }
+            int occurrenceId = candidates[candidateIndex];
+            int desiredIndex = desiredPositions[occurrenceId];
+            int localDesiredPosition = desiredIndex - lowerDesiredExclusive;
+            WeightedSequence predecessor = fenwick.Query(localDesiredPosition - 1);
+            predecessors[candidateIndex] = predecessor.CandidateIndex;
+            int keepPriority = keepPriorities.TryGetValue(occurrenceId, out int priority) ? priority : 0;
+            WeightedSequence candidate = new(
+                predecessor.Length + 1,
+                predecessor.Priority + keepPriority,
+                candidateIndex);
+            fenwick.Update(localDesiredPosition, candidate);
         }
 
-        int selectedIndex = tailCandidateIndices[length - 1];
+        int selectedIndex = fenwick.Query(fenwick.Size).CandidateIndex;
         while (selectedIndex >= 0)
         {
             untouched.Add(candidates[selectedIndex]);
@@ -174,26 +176,6 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         return positions;
     }
 
-    private static int LowerBound(IReadOnlyList<int> values, int count, int target)
-    {
-        int lower = 0;
-        int upper = count;
-        while (lower < upper)
-        {
-            int middle = lower + ((upper - lower) / 2);
-            if (values[middle] < target)
-            {
-                lower = middle + 1;
-            }
-            else
-            {
-                upper = middle;
-            }
-        }
-
-        return lower;
-    }
-
     private static void ValidatePermutation(IReadOnlyList<int> order, string parameterName)
     {
         bool[] seen = new bool[order.Count];
@@ -207,6 +189,92 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
 
             seen[occurrenceId] = true;
         }
+    }
+
+    private static void ValidatePriorities(IReadOnlyDictionary<int, int> keepPriorities, int occurrenceCount)
+    {
+        foreach ((int occurrenceId, int priority) in keepPriorities)
+        {
+            if (occurrenceId < 0 || occurrenceId >= occurrenceCount)
+            {
+                throw new ArgumentException("Keep-priority occurrence IDs must belong to the baseline occurrence set.", nameof(keepPriorities));
+            }
+            if (priority < 0)
+            {
+                throw new ArgumentException("Keep priorities cannot be negative.", nameof(keepPriorities));
+            }
+        }
+    }
+
+    private sealed class WeightedLisFenwick
+    {
+        private readonly WeightedSequence[] _tree;
+
+        public WeightedLisFenwick(int size)
+        {
+            Size = size;
+            _tree = new WeightedSequence[size + 1];
+            Array.Fill(_tree, WeightedSequence.Empty);
+        }
+
+        public int Size { get; }
+
+        public WeightedSequence Query(int position)
+        {
+            WeightedSequence best = WeightedSequence.Empty;
+            for (int index = position; index > 0; index -= index & -index)
+            {
+                best = WeightedSequence.Better(best, _tree[index]);
+            }
+            return best;
+        }
+
+        public void Update(int position, WeightedSequence value)
+        {
+            for (int index = position; index <= Size; index += index & -index)
+            {
+                _tree[index] = WeightedSequence.Better(_tree[index], value);
+            }
+        }
+    }
+
+    private readonly record struct WeightedSequence(int Length, long Priority, int CandidateIndex)
+    {
+        public static WeightedSequence Empty { get; } = new(0, 0, -1);
+
+        public static WeightedSequence Better(WeightedSequence left, WeightedSequence right)
+        {
+            if (left.Length != right.Length)
+            {
+                return left.Length > right.Length ? left : right;
+            }
+            if (left.Priority != right.Priority)
+            {
+                return left.Priority > right.Priority ? left : right;
+            }
+            if (left.CandidateIndex < 0)
+            {
+                return right;
+            }
+            if (right.CandidateIndex < 0)
+            {
+                return left;
+            }
+            return left.CandidateIndex >= right.CandidateIndex ? left : right;
+        }
+    }
+
+    private sealed class EmptyPriorities : IReadOnlyDictionary<int, int>
+    {
+        public static EmptyPriorities Instance { get; } = new();
+        public int Count => 0;
+        public IEnumerable<int> Keys => [];
+        public IEnumerable<int> Values => [];
+        public int this[int key] => throw new KeyNotFoundException();
+        public bool ContainsKey(int key) => false;
+        public bool TryGetValue(int key, out int value) { value = default; return false; }
+        public IEnumerator<KeyValuePair<int, int>> GetEnumerator() => Enumerable.Empty<KeyValuePair<int, int>>().GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     private readonly record struct ImmutableAnchor(int OccurrenceId, int CurrentIndex, int DesiredIndex);

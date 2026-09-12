@@ -70,6 +70,30 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
+    public async Task TestAddAsync_OutstandingReorderRecoveryBlocksMutationWithoutConsumingNonceAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        AddRuleRequest request = harness.SignAdd(CreateSshRule());
+        harness.MutationSafetyGuard
+            .Setup(static guard => guard.EnsureSafeAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("recovery blocked"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            _ = await harness.Service.AddAsync(request, TestContext.CancellationToken));
+        VerifyNoUfwCalls(harness);
+
+        harness.MutationSafetyGuard
+            .Setup(static guard => guard.EnsureSafeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        harness.SetStatusAfterNextMutation(
+            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+
+        RuleMutationResponse response = (RuleMutationResponse)await harness.Service.AddAsync(request, TestContext.CancellationToken);
+
+        Assert.AreEqual(IntentOperations.ADD_RULE, response.Operation);
+    }
+
+    [TestMethod]
     public async Task TestListAndDeleteAsync_SupportConcreteIpv6RulesAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
@@ -537,6 +561,10 @@ public sealed class FirewallMutationServiceTests
             _configuration = configuration;
             _noncePath = configuration.Settings.Security!.NonceStorePath;
             ProcessRunner = processRunner;
+            MutationSafetyGuard = new Mock<IFirewallMutationSafetyGuard>(MockBehavior.Strict);
+            MutationSafetyGuard
+                .Setup(static guard => guard.EnsureSafeAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
             NetworkInterfaces = new Mock<INetworkInterfaceProvider>();
             NetworkInterfaces.Setup(static provider => provider.GetInterfaceNames()).Returns(["eno1", "lo"]);
             CurrentStatus = initialStatus;
@@ -549,6 +577,8 @@ public sealed class FirewallMutationServiceTests
         }
 
         public Mock<IChildProcessRunner> ProcessRunner { get; }
+
+        public Mock<IFirewallMutationSafetyGuard> MutationSafetyGuard { get; }
 
         public Mock<INetworkInterfaceProvider> NetworkInterfaces { get; }
 
@@ -634,7 +664,7 @@ public sealed class FirewallMutationServiceTests
             NetworkInterfaceSnapshotService networkInterfaceSnapshots = new(NetworkInterfaces.Object, logger);
             FirewallRuleInterfaceValidator interfaceValidator = new(networkInterfaceSnapshots);
             FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, runner, new UfwRuleCommandRenderer(), logger);
-            return new FirewallMutationService(verifier, _nonces, _gate, mutationExecutor);
+            return new FirewallMutationService(verifier, _nonces, _gate, MutationSafetyGuard.Object, mutationExecutor);
         }
 
         public ValueTask DisposeAsync()

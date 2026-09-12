@@ -216,13 +216,36 @@ internal static class UfwOutputFormatter
         string? protocol = rule.ExtendedProtocol ?? (rule.Specification.Protocol == FirewallProtocol.Any
             ? null
             : RuleSpecificationNormalizer.FormatProtocol(rule.Specification.Protocol));
-        if (ports is not null && protocol is not null && protocol is "tcp" or "udp")
+        if (protocol is not null && ShouldFormatProtocol(rule.Specification, ports, destination))
         {
             endpoint += "/" + protocol;
         }
         endpoint += FormatV6Hint(family);
         endpoint += FormatInterface(networkInterface);
         return endpoint;
+    }
+
+    private static bool ShouldFormatProtocol(FirewallRuleSpecification specification, string? ports, bool destination)
+    {
+        if (ports is not null)
+        {
+            return true;
+        }
+        if (specification.SourcePorts is not null || specification.DestinationPorts is not null)
+        {
+            return false;
+        }
+
+        string endpointAddress = RuleSpecificationNormalizer.NormalizeAddress(
+            destination ? specification.Destination : specification.Source);
+        if (endpointAddress != RuleSpecificationNormalizer.ANY)
+        {
+            return true;
+        }
+
+        string source = RuleSpecificationNormalizer.NormalizeAddress(specification.Source);
+        string target = RuleSpecificationNormalizer.NormalizeAddress(specification.Destination);
+        return source == target;
     }
 
     private static string FormatDirection(FirewallDirection direction) => direction switch

@@ -119,6 +119,24 @@ public sealed class RuleReorderPlannerTests
         }
     }
 
+    [TestMethod]
+    public void Plan_KeepPrioritiesBreakEqualLengthLisTiesWithoutIncreasingMoveCount()
+    {
+        int[] current = [0, 1, 2, 3];
+        int[] desired = [1, 0, 3, 2];
+        Dictionary<int, int> priorities = new()
+        {
+            [1] = 10,
+            [3] = 10,
+        };
+
+        RuleReorderPlan plan = _planner.Plan(current, desired, new HashSet<int>(), priorities);
+
+        Assert.AreEqual(2, plan.Moves.Count);
+        Assert.IsTrue(plan.UntouchedOccurrences.SetEquals([1, 3]));
+        CollectionAssert.AreEqual(desired, Apply(current, plan.Moves));
+    }
+
     private static int[] Apply(IReadOnlyList<int> current, IReadOnlyList<RuleReorderMove> moves)
     {
         List<int> result = [.. current];
