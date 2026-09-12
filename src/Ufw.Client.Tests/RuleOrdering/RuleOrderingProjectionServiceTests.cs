@@ -12,67 +12,73 @@ public sealed class RuleOrderingProjectionServiceTests
     private readonly RuleOrderingProjectionService _service = new(new PassthroughStringLocalizer<RulesStrings>());
 
     [TestMethod]
-    public void Move_FirstMovePreservesAuthoritativeOriginalPositionsAndRenumbersProjection()
+    public void Move_FirstMoveUsesBaselineOccurrenceIdsAndRenumbersProjection()
     {
         ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2), Rule("c", 3)];
 
-        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest("c", 1));
+        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(2, 1));
 
         CollectionAssert.AreEqual(new[] { "c", "a", "b" }, preview.Rules.Select(static rule => rule.RuleId).ToArray());
+        CollectionAssert.AreEqual(new[] { 2, 0, 1 }, preview.DesiredOrder.ToArray());
         CollectionAssert.AreEqual(new int?[] { 1, 2, 3 }, preview.Rules.Select(static rule => rule.DisplayNumber).ToArray());
-        Assert.AreEqual(1, preview.GetOriginalPosition(authoritative[0]));
-        Assert.AreEqual(3, preview.GetOriginalPosition(authoritative[2]));
-        Assert.IsTrue(preview.WasDirectlyMoved(authoritative[2]));
-        Assert.IsFalse(preview.WasDirectlyMoved(authoritative[0]));
-        Assert.HasCount(1, preview.Moves);
+        Assert.AreEqual(3, preview.GetOriginalPosition(preview.Rules[0]));
+        Assert.AreEqual(1, preview.GetOriginalPosition(preview.Rules[1]));
+        Assert.IsTrue(preview.WasDirectlyMoved(preview.Rules[0]));
+        Assert.IsFalse(preview.WasDirectlyMoved(preview.Rules[1]));
+        Assert.IsTrue(preview.HasChanges);
     }
 
     [TestMethod]
-    public void Move_SubsequentMoveBuildsOnPreviewWithoutLosingOriginalPositions()
+    public void Move_SubsequentMoveBuildsOnOccurrencePermutation()
     {
         ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2), Rule("c", 3)];
-        RuleOrderingPreview first = _service.Move(authoritative, null, new RuleMoveRequest("c", 1));
+        RuleOrderingPreview first = _service.Move(authoritative, null, new RuleMoveRequest(2, 1));
 
-        RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest("a", 3));
+        RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest(0, 3));
 
         CollectionAssert.AreEqual(new[] { "c", "b", "a" }, second.Rules.Select(static rule => rule.RuleId).ToArray());
-        Assert.AreEqual(1, second.OriginalPositions["a"]);
-        Assert.AreEqual(3, second.OriginalPositions["c"]);
-        CollectionAssert.AreEquivalent(new[] { "a", "c" }, second.DirectlyMovedRuleIds.ToArray());
-        Assert.HasCount(2, second.Moves);
+        CollectionAssert.AreEqual(new[] { 2, 1, 0 }, second.DesiredOrder.ToArray());
+        CollectionAssert.AreEquivalent(new[] { 0, 2 }, second.DirectlyMovedOccurrences.ToArray());
     }
 
     [TestMethod]
-    public void Move_DuplicateStableIdIsRejectedAsAmbiguous()
+    public void Move_DuplicateSemanticRuleIdsRemainDistinctOccurrences()
     {
-        ListedFirewallRule[] authoritative = [Rule("dup", 1), Rule("dup", 2)];
+        ListedFirewallRule first = Rule("dup", 1);
+        ListedFirewallRule second = Rule("dup", 2);
+        ListedFirewallRule[] authoritative = [first, second];
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            _service.Move(authoritative, null, new RuleMoveRequest("dup", 1)));
+        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(1, 1));
+
+        CollectionAssert.AreEqual(new[] { 1, 0 }, preview.DesiredOrder.ToArray());
+        Assert.AreEqual(2, preview.GetOriginalPosition(preview.Rules[0]));
+        Assert.AreEqual(1, preview.GetOriginalPosition(preview.Rules[1]));
+        Assert.IsTrue(preview.WasDirectlyMoved(preview.Rules[0]));
     }
 
     [TestMethod]
-    public void Move_MissingStableIdAndOutOfRangeTargetAreRejected()
+    public void Move_InvalidOccurrenceAndOutOfRangeTargetAreRejected()
     {
         ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2)];
 
         Assert.ThrowsExactly<InvalidOperationException>(() =>
-            _service.Move(authoritative, null, new RuleMoveRequest("missing", 1)));
+            _service.Move(authoritative, null, new RuleMoveRequest(2, 1)));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            _service.Move(authoritative, null, new RuleMoveRequest("a", 0)));
+            _service.Move(authoritative, null, new RuleMoveRequest(0, 0)));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            _service.Move(authoritative, null, new RuleMoveRequest("a", 3)));
+            _service.Move(authoritative, null, new RuleMoveRequest(0, 3)));
     }
 
     [TestMethod]
-    public void Move_DuplicateAuthoritativeIdsAreNotRecordedAsOriginalPositionsForOtherMoves()
+    public void Move_ReturningToBaselineProducesUnchangedPreview()
     {
-        ListedFirewallRule[] authoritative = [Rule("dup", 1), Rule("dup", 2), Rule("unique", 3)];
+        ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2)];
+        RuleOrderingPreview first = _service.Move(authoritative, null, new RuleMoveRequest(1, 1));
 
-        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest("unique", 1));
+        RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest(1, 2));
 
-        Assert.IsFalse(preview.OriginalPositions.ContainsKey("dup"));
-        Assert.AreEqual(3, preview.OriginalPositions["unique"]);
+        CollectionAssert.AreEqual(new[] { 0, 1 }, second.DesiredOrder.ToArray());
+        Assert.IsFalse(second.HasChanges);
     }
 
     private static ListedFirewallRule Rule(string id, int number) => new()

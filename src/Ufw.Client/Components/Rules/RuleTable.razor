@@ -1,4 +1,4 @@
-@inject IDialogService DialogService
+﻿@inject IDialogService DialogService
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -141,7 +141,11 @@
                             }
                             else
                             {
-                                <tr class="rule-row-readonly">
+                                <tr class="@ReadOnlyRowClass(rule)"
+                                    @ondragenter="@(() => SetDragTarget(rule))"
+                                    @ondragover="@(() => SetDragTarget(rule))"
+                                    @ondragover:preventDefault
+                                    @ondrop="@(() => DropAsync(rule))">
                                     <td class="rule-drag-column">
                                         <span class="rule-drag-handle rule-drag-handle-disabled" aria-hidden="true">
                                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
@@ -266,7 +270,11 @@
                     }
                     else
                     {
-                        <article class="rule-mobile-card rule-mobile-card-readonly">
+                        <article class="@ReadOnlyMobileCardClass(rule)"
+                                 @ondragenter="@(() => SetDragTarget(rule))"
+                                 @ondragover="@(() => SetDragTarget(rule))"
+                                 @ondragover:preventDefault
+                                 @ondrop="@(() => DropAsync(rule))">
                             <div class="rule-mobile-card-header">
                                 <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
                                 <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
@@ -289,12 +297,6 @@
         <div class="rule-ordering-note" role="note">
             <strong>@RulesText["OrderingLabel"]</strong>
             <span>@RulesText["OrderingDescription"]</span>
-            @if (OrderingUsesMockData)
-            {
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="rule-ordering-mock-chip">
-                    @RulesText["MockApi"]
-                </MudChip>
-            }
         </div>
     }
 </section>

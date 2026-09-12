@@ -1,36 +1,51 @@
-﻿using Ufw.Client.Api;
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.RuleOrdering;
 
 public sealed class RuleOrderingPreview
 (
     IReadOnlyList<ListedFirewallRule> rules,
-    IReadOnlyDictionary<string, int> originalPositions,
-    IReadOnlySet<string> directlyMovedRuleIds,
-    IReadOnlyList<RuleMoveRequest> moves
+    IReadOnlyList<int> desiredOrder,
+    IReadOnlySet<int> directlyMovedOccurrences
 )
 {
     public IReadOnlyList<ListedFirewallRule> Rules { get; } = rules;
 
-    public IReadOnlyDictionary<string, int> OriginalPositions { get; } = originalPositions;
+    public IReadOnlyList<int> DesiredOrder { get; } = desiredOrder;
 
-    public IReadOnlySet<string> DirectlyMovedRuleIds { get; } = directlyMovedRuleIds;
+    public IReadOnlySet<int> DirectlyMovedOccurrences { get; } = directlyMovedOccurrences;
 
-    public IReadOnlyList<RuleMoveRequest> Moves { get; } = moves;
+    public bool HasChanges => DesiredOrder.Where((occurrenceId, index) => occurrenceId != index).Any();
+
+    public int? GetOccurrenceId(ListedFirewallRule rule)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+        int index = IndexOf(rule);
+        return index >= 0 ? DesiredOrder[index] : null;
+    }
 
     public int? GetOriginalPosition(ListedFirewallRule rule)
     {
-        ArgumentNullException.ThrowIfNull(rule);
-        return !string.IsNullOrWhiteSpace(rule.RuleId)
-            && OriginalPositions.TryGetValue(rule.RuleId, out int position)
-                ? position
-                : null;
+        int? occurrenceId = GetOccurrenceId(rule);
+        return occurrenceId is null ? null : occurrenceId.Value + 1;
     }
 
     public bool WasDirectlyMoved(ListedFirewallRule rule)
     {
-        ArgumentNullException.ThrowIfNull(rule);
-        return !string.IsNullOrWhiteSpace(rule.RuleId) && DirectlyMovedRuleIds.Contains(rule.RuleId);
+        int? occurrenceId = GetOccurrenceId(rule);
+        return occurrenceId is not null && DirectlyMovedOccurrences.Contains(occurrenceId.Value);
+    }
+
+    private int IndexOf(ListedFirewallRule rule)
+    {
+        for (int index = 0; index < Rules.Count; index++)
+        {
+            if (ReferenceEquals(Rules[index], rule))
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 }

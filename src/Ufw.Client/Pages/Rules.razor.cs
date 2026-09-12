@@ -4,6 +4,7 @@ using Ufw.Client.Components.Rules;
 using Ufw.Client.Errors;
 using Ufw.Client.RuleOrdering;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 
 namespace Ufw.Client.Pages;
 
@@ -24,7 +25,9 @@ public sealed partial class Rules
     private bool _deleteDialogOpen;
     private bool _deleting;
     private bool _reordering;
+    private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
+    private RuleReorderResponse? _orderingResult;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -70,6 +73,7 @@ public sealed partial class Rules
 
     public void Dispose()
     {
+        _orderingPrivateKey = string.Empty;
         _lifetime.Cancel();
         _lifetime.Dispose();
     }
@@ -92,6 +96,8 @@ public sealed partial class Rules
         }
 
         _orderingPreview = null;
+        _orderingPrivateKey = string.Empty;
+        _orderingResult = null;
         _state = _state.BeginRefresh(reason);
         try
         {
@@ -179,7 +185,7 @@ public sealed partial class Rules
 
     private Task MoveRuleAsync(RuleMoveRequest request)
     {
-        if (!CanPreviewOrdering || string.IsNullOrWhiteSpace(request.RuleId))
+        if (!CanPreviewOrdering)
         {
             return Task.CompletedTask;
         }
@@ -193,7 +199,13 @@ public sealed partial class Rules
 
         try
         {
-            _orderingPreview = RuleOrderingProjection.Move(authoritativeRules, _orderingPreview, request);
+            RuleOrderingPreview preview = RuleOrderingProjection.Move(authoritativeRules, _orderingPreview, request);
+            _orderingPreview = preview.HasChanges ? preview : null;
+            _orderingResult = null;
+            if (_orderingPreview is null)
+            {
+                _orderingPrivateKey = string.Empty;
+            }
         }
         catch (InvalidOperationException exception)
         {
@@ -205,7 +217,10 @@ public sealed partial class Rules
 
     private async Task ApplyOrderingPreviewAsync()
     {
-        if (_orderingPreview is null || _reordering)
+        if (_orderingPreview is null
+            || _state.Snapshot is not { } snapshot
+            || _reordering
+            || string.IsNullOrWhiteSpace(_orderingPrivateKey))
         {
             return;
         }
@@ -213,20 +228,36 @@ public sealed partial class Rules
         _reordering = true;
         try
         {
-            await RuleOrderingApiClient.ApplyAsync(new RuleOrderingApplyRequest(_orderingPreview.Moves), _lifetime.Token);
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+            RuleReorderResponse response = await RuleOrdering.ApplyAsync(
+                baseline,
+                _orderingPreview.DesiredOrder,
+                _orderingPrivateKey,
+                _lifetime.Token);
 
-            _reordering = false;
-            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+            _orderingPreview = null;
+            _orderingResult = response;
+            _state = _state.AfterReorder(response);
+            if (response.Outcome == RuleReorderOutcome.Completed)
+            {
+                Snackbar.Add(RulesText["OrderingApplied"], Severity.Success);
+            }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
+            ClientError error = ClientErrors.Describe(exception);
+            HandleMutationFailure(error);
+            if (_state.IsStale)
+            {
+                _orderingPreview = null;
+            }
         }
         finally
         {
+            _orderingPrivateKey = string.Empty;
             _reordering = false;
         }
     }
@@ -236,8 +267,49 @@ public sealed partial class Rules
         if (!_reordering)
         {
             _orderingPreview = null;
+            _orderingPrivateKey = string.Empty;
         }
     }
+
+    private Severity OrderingResultSeverity => _orderingResult?.Outcome switch
+    {
+        RuleReorderOutcome.Completed => Severity.Success,
+        RuleReorderOutcome.StaleBaseline or RuleReorderOutcome.PreconditionFailed => Severity.Warning,
+        RuleReorderOutcome.PartiallyCompleted => Severity.Warning,
+        RuleReorderOutcome.RecoveryFailed or RuleReorderOutcome.StateUncertain => Severity.Error,
+        _ => Severity.Info,
+    };
+
+    private string DescribeOrderingResultTitle() => _orderingResult?.Outcome switch
+    {
+        RuleReorderOutcome.Completed => RulesText["OrderingResultCompleted"],
+        RuleReorderOutcome.StaleBaseline => RulesText["OrderingResultStale"],
+        RuleReorderOutcome.PreconditionFailed => RulesText["OrderingResultPrecondition"],
+        RuleReorderOutcome.PartiallyCompleted => RulesText["OrderingResultPartial"],
+        RuleReorderOutcome.RecoveryFailed => RulesText["OrderingResultRecoveryFailed"],
+        RuleReorderOutcome.StateUncertain => RulesText["OrderingResultUncertain"],
+        _ => RulesText["OrderingResult"],
+    };
+
+    private string DescribeOrderingOperation(RuleReorderOperationResponse operation)
+        => RulesText[
+            "OrderingOperationReport",
+            operation.Move.OccurrenceId + 1,
+            operation.Move.TargetIndex + 1,
+            DescribeOrderingOperationOutcome(operation.Outcome)];
+
+    private string DescribeOrderingMove(RuleReorderMoveResponse move)
+        => RulesText["OrderingPendingMove", move.OccurrenceId + 1, move.TargetIndex + 1];
+
+    private string DescribeOrderingOperationOutcome(RuleReorderOperationOutcome outcome) => outcome switch
+    {
+        RuleReorderOperationOutcome.Applied => RulesText["OrderingOperationApplied"],
+        RuleReorderOperationOutcome.AppliedAfterProcessFailure => RulesText["OrderingOperationAppliedAfterFailure"],
+        RuleReorderOperationOutcome.FailedAndRestored => RulesText["OrderingOperationRestored"],
+        RuleReorderOperationOutcome.PresenceConfirmedAfterInterruption => RulesText["OrderingOperationPresenceConfirmed"],
+        RuleReorderOperationOutcome.RecoveryFailed => RulesText["OrderingOperationRecoveryFailed"],
+        _ => outcome.ToString(),
+    };
 
     private void HandleMutationFailure(ClientError error)
     {

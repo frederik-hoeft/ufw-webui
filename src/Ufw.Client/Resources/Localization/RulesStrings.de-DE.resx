@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -264,8 +264,8 @@
   <data name="MoveDescription" xml:space="preserve">
     <value>Wählen Sie die einsbasierte Position, die diese Regel in der geordneten Firewallliste einnehmen soll.</value>
   </data>
-  <data name="MoveMockNotice" xml:space="preserve">
-    <value>Die Regelreihenfolge ist derzeit ein Frontend-Prototyp. Diese Verschiebung wird nur an die Mock-ASP-Grenze gesendet und aktualisiert eine lokale Vorschau; UFW wird nicht geändert und es erfolgt keine Intent-Signierung.</value>
+  <data name="MovePreviewNotice" xml:space="preserve">
+    <value>Diese Verschiebung ändert nur die lokale Vorschau. UFW wird erst geändert, nachdem die vollständige Vorschau geprüft, signiert und angewendet wurde.</value>
   </data>
   <data name="TargetPosition" xml:space="preserve">
     <value>Zielposition</value>
@@ -340,10 +340,7 @@
     <value>Reihenfolge</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>Ziehen Sie eine Regel am Griff oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Bestätigen Sie die Vorschau, bevor die Mock-ASP-Grenze aufgerufen wird. Aktionen zum Einfügen davor/danach öffnen die Regelerstellung mit dem ausgewählten Positionskontext.</value>
-  </data>
-  <data name="MockApi" xml:space="preserve">
-    <value>Mock-API</value>
+    <value>Ziehen Sie eine Regel am Griff oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden wird die vollständige gewünschte Reihenfolge gegen den angezeigten autoritativen Snapshot signiert. Aktionen zum Einfügen davor/danach öffnen die Regelerstellung mit dem ausgewählten Positionskontext.</value>
   </data>
   <data name="ActionsForRule" xml:space="preserve">
     <value>Aktionen für Firewallregel {0}</value>
@@ -357,14 +354,11 @@
   <data name="DragRule" xml:space="preserve">
     <value>Firewallregel ziehen, um sie neu anzuordnen</value>
   </data>
-  <data name="CannotOrderAmbiguous" xml:space="preserve">
-    <value>Diese Regel kann für die Reihenfolge nicht eindeutig adressiert werden.</value>
-  </data>
-  <data name="DragMockTitle" xml:space="preserve">
-    <value>Ziehen Sie, um eine neue Reihenfolge vorzumerken. Bis zur Bestätigung der Vorschau wird nichts an den Mock gesendet.</value>
+  <data name="CannotOrderReadOnly" xml:space="preserve">
+    <value>Diese Regel kann nicht verschoben werden, da sie für eine sichere Neuordnung nicht ausreichend dargestellt werden kann.</value>
   </data>
   <data name="DragRealTitle" xml:space="preserve">
-    <value>Ziehen Sie, um diese Firewallregel neu anzuordnen.</value>
+    <value>Ziehen Sie, um eine neue Reihenfolge vorzumerken. UFW wird erst geändert, wenn die Vorschau signiert und angewendet wird.</value>
   </data>
   <data name="AnyFamily" xml:space="preserve">
     <value>Beliebige Familie</value>
@@ -408,8 +402,8 @@
   <data name="OrderingTargetRange" xml:space="preserve">
     <value>Die Zielposition muss zwischen 1 und {0} liegen.</value>
   </data>
-  <data name="OrderingAmbiguous" xml:space="preserve">
-    <value>Die Regel-ID ist im aktuellen Snapshot mehrdeutig.</value>
+  <data name="OrderingBaselineChanged" xml:space="preserve">
+    <value>Die Reihenfolgevorschau entspricht nicht mehr dem autoritativen Ausgangszustand. Aktualisieren Sie den Status und erstellen Sie eine neue Vorschau.</value>
   </data>
   <data name="OrderingMissing" xml:space="preserve">
     <value>Die Regel ist im aktuellen Snapshot nicht vorhanden.</value>
@@ -503,5 +497,59 @@
   </data>
   <data name="UnknownInterfacesWarning" xml:space="preserve">
     <value>Mindestens ein eingegebener Schnittstellenname ist nicht im zwischengespeicherten Bestand der Host-Schnittstellen enthalten. Der Daemon prüft die Existenz der Schnittstelle vor dem Anwenden der Regel, daher kann die Regel abgelehnt werden.</value>
+  </data>
+  <data name="OrderingApplied" xml:space="preserve">
+    <value>Firewall-Regelreihenfolge wurde angewendet.</value>
+  </data>
+  <data name="OrderingResult" xml:space="preserve">
+    <value>Ergebnis der Regelneuordnung</value>
+  </data>
+  <data name="OrderingResultCompleted" xml:space="preserve">
+    <value>Regelneuordnung abgeschlossen</value>
+  </data>
+  <data name="OrderingResultStale" xml:space="preserve">
+    <value>Regelneuordnung wurde wegen einer Firewall-Änderung nicht angewendet</value>
+  </data>
+  <data name="OrderingResultPrecondition" xml:space="preserve">
+    <value>Regelneuordnung konnte nicht sicher angewendet werden</value>
+  </data>
+  <data name="OrderingResultPartial" xml:space="preserve">
+    <value>Regelneuordnung wurde teilweise angewendet</value>
+  </data>
+  <data name="OrderingResultRecoveryFailed" xml:space="preserve">
+    <value>Wiederherstellung der Regelneuordnung fehlgeschlagen</value>
+  </data>
+  <data name="OrderingResultUncertain" xml:space="preserve">
+    <value>Status der Regelneuordnung ist ungewiss</value>
+  </data>
+  <data name="OrderingCompletedOperations" xml:space="preserve">
+    <value>Ausgeführte Operationen</value>
+  </data>
+  <data name="OrderingPendingOperations" xml:space="preserve">
+    <value>Sicher verbleibende Operationen</value>
+  </data>
+  <data name="OrderingBlockedOperations" xml:space="preserve">
+    <value>Blockierte Operationen des geprüften Plans</value>
+  </data>
+  <data name="OrderingOperationReport" xml:space="preserve">
+    <value>Ausgangsregel {0} auf Position {1}: {2}</value>
+  </data>
+  <data name="OrderingPendingMove" xml:space="preserve">
+    <value>Ausgangsregel {0} auf Position {1}</value>
+  </data>
+  <data name="OrderingOperationApplied" xml:space="preserve">
+    <value>angewendet</value>
+  </data>
+  <data name="OrderingOperationAppliedAfterFailure" xml:space="preserve">
+    <value>trotz Subprozessfehler angewendet</value>
+  </data>
+  <data name="OrderingOperationRestored" xml:space="preserve">
+    <value>fehlgeschlagen und Regel wiederhergestellt</value>
+  </data>
+  <data name="OrderingOperationPresenceConfirmed" xml:space="preserve">
+    <value>unterbrochen; Vorhandensein der Regel bestätigt</value>
+  </data>
+  <data name="OrderingOperationRecoveryFailed" xml:space="preserve">
+    <value>Wiederherstellung fehlgeschlagen</value>
   </data>
 </root>
