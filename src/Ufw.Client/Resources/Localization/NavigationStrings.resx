@@ -8,6 +8,7 @@
   <data name="Management" xml:space="preserve"><value>Management</value></data>
   <data name="Rules" xml:space="preserve"><value>Rules</value></data>
   <data name="Interfaces" xml:space="preserve"><value>Interfaces</value></data>
+  <data name="Hosts" xml:space="preserve"><value>Known hosts</value></data>
   <data name="Status" xml:space="preserve"><value>Status</value></data>
   <data name="Settings" xml:space="preserve"><value>Settings</value></data>
   <data name="DaemonConnected" xml:space="preserve"><value>ufw-systemd connected</value></data>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Bekannte Hosts</value></data>
+  <data name="Title" xml:space="preserve"><value>Bekannte Hosts</value></data>
+  <data name="Description" xml:space="preserve"><value>Wiederverwendbare Host- und Netzwerk-Aliase für die Regelerstellung verwalten.</value></data>
+  <data name="HostBreadcrumb" xml:space="preserve"><value>Host</value></data>
+  <data name="HostsBreadcrumb" xml:space="preserve"><value>Bekannte Hosts</value></data>
+  <data name="AddHost" xml:space="preserve"><value>Host hinzufügen</value></data>
+  <data name="KnownHostCountOne" xml:space="preserve"><value>1 bekannter Host</value></data>
+  <data name="KnownHostCountMany" xml:space="preserve"><value>{0} bekannte Hosts</value></data>
+  <data name="VisibleHostCountOne" xml:space="preserve"><value>1 im Regeleditor sichtbar</value></data>
+  <data name="VisibleHostCountMany" xml:space="preserve"><value>{0} im Regeleditor sichtbar</value></data>
+  <data name="LoadFailed" xml:space="preserve"><value>Bekannte Hosts konnten nicht geladen werden</value></data>
+  <data name="InventoryTitle" xml:space="preserve"><value>Katalog bekannter Hosts</value></data>
+  <data name="InventoryDescription" xml:space="preserve"><value>Diese Aliase gehören zur Webanwendung und werden nur bei der Regelerstellung verwendet. Bei der Auswahl wird die konkrete Adresse in die Regel übernommen; Aliase werden weder an den Daemon gesendet noch in signierte Intents aufgenommen.</value></data>
+  <data name="LoadingAria" xml:space="preserve"><value>Bekannte Hosts werden geladen</value></data>
+  <data name="LoadingInventory" xml:space="preserve"><value>Katalog bekannter Hosts wird geladen...</value></data>
+  <data name="NoKnownHosts" xml:space="preserve"><value>Keine bekannten Hosts</value></data>
+  <data name="NoKnownHostsDescription" xml:space="preserve"><value>Häufig verwendete Hosts oder Netze können hier für eine schnellere Quell- und Zieleingabe hinterlegt werden. Konkrete Adressen und CIDRs können weiterhin direkt eingegeben werden.</value></data>
+  <data name="VisibilityColumn" xml:space="preserve"><value>Sichtbarkeit</value></data>
+  <data name="NameColumn" xml:space="preserve"><value>Name</value></data>
+  <data name="AddressColumn" xml:space="preserve"><value>Adresse / CIDR</value></data>
+  <data name="CommentColumn" xml:space="preserve"><value>Kommentar</value></data>
+  <data name="ActionsColumn" xml:space="preserve"><value>Aktionen</value></data>
+  <data name="NoComment" xml:space="preserve"><value>Kein Kommentar</value></data>
+  <data name="ShowInSuggestions" xml:space="preserve"><value>In Vorschlägen des Regeleditors anzeigen</value></data>
+  <data name="HideFromRuleEditor" xml:space="preserve"><value>{0} aus Vorschlägen des Regeleditors ausblenden</value></data>
+  <data name="ShowInRuleEditor" xml:space="preserve"><value>{0} in Vorschlägen des Regeleditors anzeigen</value></data>
+  <data name="CreateDialogTitle" xml:space="preserve"><value>Bekannten Host hinzufügen</value></data>
+  <data name="EditDialogTitle" xml:space="preserve"><value>Bekannten Host bearbeiten</value></data>
+  <data name="CreateDialogDescription" xml:space="preserve"><value>Eine konkrete IP-Adresse oder ein CIDR-Netz mit einem einprägsamen Namen für die Regelerstellung versehen. Name und Kommentar bleiben reine ASP-Metadaten.</value></data>
+  <data name="EditDialogDescription" xml:space="preserve"><value>{0} bearbeiten. Bestehende Firewall-Regeln behalten die konkrete Adresse, mit der sie erstellt wurden.</value></data>
+  <data name="NameRequired" xml:space="preserve"><value>Ein Hostname ist erforderlich.</value></data>
+  <data name="AddressRequired" xml:space="preserve"><value>Eine IP-Adresse oder ein CIDR-Netz ist erforderlich.</value></data>
+  <data name="InvalidAddress" xml:space="preserve"><value>Eine konkrete IPv4- oder IPv6-Adresse oder ein CIDR-Netz eingeben. "any" ist kein bekannter Host.</value></data>
+  <data name="AddressFamilyChangeNotAllowed" xml:space="preserve"><value>Die Adressfamilie eines bestehenden Alias kann nicht geändert werden. Für einen Wechsel zwischen IPv4 und IPv6 muss ein neuer Alias angelegt werden.</value></data>
+  <data name="CreateHost" xml:space="preserve"><value>Host hinzufügen</value></data>
+  <data name="SaveHost" xml:space="preserve"><value>Änderungen speichern</value></data>
+  <data name="EditHost" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="DeleteHost" xml:space="preserve"><value>Löschen</value></data>
+  <data name="EditHostAria" xml:space="preserve"><value>{0} bearbeiten</value></data>
+  <data name="DeleteHostAria" xml:space="preserve"><value>{0} löschen</value></data>
+  <data name="DeleteDialogTitle" xml:space="preserve"><value>Bekannten Host löschen</value></data>
+  <data name="DeleteDialogDescription" xml:space="preserve"><value>Den bekannten Host {0} löschen?</value></data>
+  <data name="DeleteDialogConsequence" xml:space="preserve"><value>Nur der Alias für die Regelerstellung wird entfernt. Bestehende Firewall-Regeln bleiben unverändert, da sie konkrete Adressen und keine Alias-Referenzen enthalten.</value></data>
+</root>

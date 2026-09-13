@@ -110,13 +110,15 @@ Once a UFW mutation process starts, caller cancellation cannot safely mean "the 
 
 If reconciliation cannot establish the postcondition, callers must treat their previous snapshot as stale and refresh before attempting another mutation. The browser follows that rule and disables further mutation while its displayed snapshot is known to be stale.
 
-## Host interfaces and application metadata
+## Authoring metadata
 
-Host interface existence is a property of the operating system, observed by the daemon. `Ufw.Web` maintains a separate reconciled catalog only to attach application metadata such as comments and "show in suggestions" visibility.
+Application-owned metadata can make rule authoring easier, but it never becomes part of firewall authority. The browser resolves a selected metadata entry to the concrete value understood by the firewall model before preview or signing, and the signed/executed rule contains no application-only identifier.
 
-Reconciliation preserves metadata for interface names that still exist, creates entries for new names, and removes entries whose host interface disappeared. Hiding an entry changes only the rule-authoring UI. It does not make the interface invalid, and a stale cached entry cannot authorize an add or ordered insertion because the daemon checks the signed interface name against a fresh host snapshot before execution.
+Network-interface metadata is attached to daemon-observed host inventory. `Ufw.Web` reconciles current interface names into PostgreSQL so administrators can add comments and control which interfaces appear in suggestions. Reconciliation preserves metadata for names that still exist, creates entries for new names, and removes entries whose host interface disappeared. Hiding an entry changes only the authoring UI. A stale cached entry cannot authorize an add or ordered insertion because the daemon checks the signed interface name against a fresh host snapshot before execution.
 
-This pattern is the intended model for future authoring metadata as well: application-owned names, comments, or search aids may improve usability, but the signed and executed rule must resolve entirely to firewall semantics understood by the daemon.
+Known-host metadata is different because it is entirely ASP-owned. Each alias maps a human-facing name and optional comment to one canonical literal IPv4/IPv6 host address or CIDR, with an independent suggestion-visibility preference. Selecting an alias writes that literal address directly into `FirewallRuleSpecification`; its application identity and descriptive metadata are discarded at that boundary. The daemon therefore receives exactly the same rule as if the address had been entered manually, and it requires no known-host endpoint or reconciliation logic.
+
+Changing or deleting a known-host alias cannot mutate previously authored rules because those rules retain only the resolved literal. An existing alias may move within its current address family, but the API rejects IPv4-to-IPv6 or IPv6-to-IPv4 changes so a persistent alias identity cannot silently change family semantics. Visibility affects discovery only and never address validity.
 
 ## Out-of-band changes
 

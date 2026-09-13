@@ -24,6 +24,13 @@
                         aria-label="@(NavigationText["Interfaces"])">
                 @NavigationText["Interfaces"]
             </MudNavLink>
+            <MudNavLink Href="/hosts"
+                        Match="NavLinkMatch.Prefix"
+                        Icon="@Icons.Material.Filled.Devices"
+                        title="@(NavigationText["Hosts"])"
+                        aria-label="@(NavigationText["Hosts"])">
+                @NavigationText["Hosts"]
+            </MudNavLink>
             <MudNavLink Href="/status"
                         Match="NavLinkMatch.Prefix"
                         Icon="@Icons.Material.Filled.Dns"

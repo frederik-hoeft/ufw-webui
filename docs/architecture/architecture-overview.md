@@ -46,7 +46,7 @@ Browser-side rule validation is not an authorization boundary. The daemon repeat
 
 `Ufw.Web` owns HTTP concerns: API authentication, user/session state, application metadata, PostgreSQL persistence, and adaptation between REST and the local daemon protocol. It can ask the daemon to list state or submit a signed mutation, but it cannot manufacture mutation authority.
 
-The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, and application-owned metadata such as network-interface comments and visibility preferences.
+The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, and application-owned authoring metadata such as network-interface comments and known-host aliases.
 
 Database-backed workflows use request-scoped transactions. Authentication operations are coordinated as one transaction so Identity state and refresh-token state commit or roll back together. Expected authentication failures can still commit security state, for example failed-login counters or refresh-family revocation.
 
@@ -75,12 +75,12 @@ The architecture distinguishes authoritative state from caches and presentation 
 | Authorized mutation public keys | `Ufw.Systemd` operator state | Not writable through the web API |
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
 | Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
-| Users, refresh-token families, interface metadata | `Ufw.Web` / PostgreSQL | Application state only |
+| Users, refresh-token families, interface metadata, known-host aliases | `Ufw.Web` / PostgreSQL | Application state only |
 | Access token | Browser memory | Short-lived bearer credential |
 | Mutation private key | Administrator/browser signing workflow | Never sent to the server or persisted by the application |
 | Production frontend assets | nginx image | Built/deployed independently from ASP |
 
-When application metadata and host state disagree, host state wins. Reconciliation may preserve metadata for objects that still exist, but metadata cannot create a firewall rule or make a nonexistent interface valid.
+Daemon-derived interface metadata is reconciled against host state, and host state wins when they disagree. Known-host aliases are independently ASP-owned authoring metadata and have no daemon inventory to reconcile. Neither kind of metadata can create firewall authority: it must resolve to literal firewall semantics before signing.
 
 ## Primary request flows
 
@@ -103,6 +103,14 @@ See [Firewall model](firewall-model.md) for state reconciliation and [Signed mut
 The daemon exposes the host's current interface names as an unsigned read operation at the mutation-protocol layer. `Ufw.Web` can explicitly reconcile that host inventory into PostgreSQL, preserving application-owned comments and visibility flags for names that still exist.
 
 The cached inventory is an authoring aid, not firewall authority. Selecting an interface in the UI writes the real interface name into the rule. Immediately before an add or ordered-insertion operation executes, the daemon independently verifies that every referenced interface still exists on the host. Deletion remains possible after an interface disappears so stale firewall rules do not become undeletable.
+
+### Managing known hosts for rule authoring
+
+`Ufw.Web` owns a separate PostgreSQL catalog of known-host aliases. Each entry has an application identity, a human-facing name and optional comment, a visibility preference, and one canonical literal IPv4/IPv6 host address or CIDR. Unlike network-interface metadata, these entries are not derived from daemon or operating-system inventory and require no daemon reconciliation.
+
+The browser uses visible aliases only as autocomplete suggestions while preserving unrestricted literal address entry. Selecting an alias immediately writes its canonical address into the source or destination field of `FirewallRuleSpecification`; the alias ID, name, comment, and visibility flag do not enter rule rendering, signed intents, REST mutation payloads, IPC, or daemon processing. Changing or deleting an alias therefore cannot change a rule that was already authored.
+
+An alias keeps its address family for its lifetime. Same-family address changes are allowed, but changing an existing IPv4 alias into IPv6 or vice versa is rejected so one persistent alias identity cannot silently change network-family meaning. Hiding an alias affects suggestions only and has no effect on firewall validity.
 
 ### Authenticating the web session
 

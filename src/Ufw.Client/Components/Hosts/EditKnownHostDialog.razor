@@ -1,0 +1,50 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<KnownHostsStrings> HostsText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @(Host is null ? HostsText["CreateDialogDescription"] : HostsText["EditDialogDescription", Host.Name])
+        </MudText>
+        <MudForm @ref="_form">
+            <MudTextField T="string"
+                          Label="@(HostsText["NameColumn"])"
+                          @bind-Value="_name"
+                          Required="true"
+                          RequiredError="@(HostsText["NameRequired"])"
+                          Immediate="true"
+                          Counter="@MAX_NAME_LENGTH"
+                          MaxLength="@MAX_NAME_LENGTH"
+                          autofocus="true" />
+            <MudTextField T="string"
+                          Label="@(HostsText["AddressColumn"])"
+                          @bind-Value="_address"
+                          Required="true"
+                          RequiredError="@(HostsText["AddressRequired"])"
+                          Error="@(_addressError is not null)"
+                          ErrorText="@_addressError"
+                          Immediate="true"
+                          Counter="@MAX_ADDRESS_LENGTH"
+                          MaxLength="@MAX_ADDRESS_LENGTH"
+                          Placeholder="192.0.2.10, 10.0.0.0/24, 2001:db8::/64"
+                          Class="mt-3" />
+            <MudTextField T="string"
+                          Label="@(HostsText["CommentColumn"])"
+                          @bind-Value="_comment"
+                          Immediate="true"
+                          Counter="@MAX_COMMENT_LENGTH"
+                          MaxLength="@MAX_COMMENT_LENGTH"
+                          Class="mt-3" />
+            <MudCheckBox T="bool"
+                         @bind-Value="_isVisible"
+                         Label="@(HostsText["ShowInSuggestions"])"
+                         Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">
+            @(Host is null ? HostsText["CreateHost"] : HostsText["SaveHost"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>

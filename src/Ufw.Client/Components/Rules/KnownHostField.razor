@@ -1,0 +1,44 @@
+@using System.Linq.Expressions
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudAutocomplete T="string"
+                 Label="@Label"
+                 Value="@Value"
+                 ValueChanged="ValueChangedAsync"
+                 For="@For"
+                 SearchFunc="SearchAsync"
+                 CoerceValue="true"
+                 Immediate="true"
+                 ResetValueOnEmptyText="true"
+                 Disabled="@Disabled"
+                 MaxItems="@((int?)null)"
+                 Placeholder="@Placeholder"
+                 PopoverClass="known-host-popover"
+                 autocomplete="off"
+                 autocapitalize="off"
+                 spellcheck="false">
+    <ItemTemplate Context="selectionValue">
+        @if (FindSuggestion(selectionValue) is { } host)
+        {
+            <div class="known-host-option">
+                <div class="known-host-option-primary">
+                    <strong>@host.Name</strong>
+                    <code>@host.Address</code>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(host.Comment))
+                {
+                    <span>@host.Comment</span>
+                }
+            </div>
+        }
+        else
+        {
+            <span>@selectionValue</span>
+        }
+    </ItemTemplate>
+    <NoItemsTemplate>
+        <div class="known-host-no-items">
+            @RulesText["NoKnownHostMatches"]
+        </div>
+    </NoItemsTemplate>
+</MudAutocomplete>

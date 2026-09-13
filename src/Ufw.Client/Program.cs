@@ -8,6 +8,7 @@ using Ufw.Client.Components.Rules;
 using Ufw.Client.Configuration;
 using Ufw.Client.Errors;
 using Ufw.Client.Intent;
+using Ufw.Client.KnownHosts;
 using Ufw.Client.Localization;
 using Ufw.Client.NetworkInterfaces;
 using Ufw.Client.RuleOrdering;
@@ -50,6 +51,7 @@ public static class Program
         builder.Services.AddScoped<IIntentSigningService, BrowserIntentSigningService>();
         builder.Services.AddScoped<IRuleMutationService, RuleMutationService>();
         builder.Services.AddScoped<IClientThemeService, BrowserClientThemeService>();
+        builder.Services.AddScoped<IKnownHostInventoryService, KnownHostInventoryService>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingService, RuleOrderingService>();
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
@@ -62,6 +64,9 @@ public static class Program
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleApiClient, RuleApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IKnownHostApiClient, KnownHostApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<INetworkInterfaceApiClient, NetworkInterfaceApiClient>(client => client.BaseAddress = apiBaseAddress)

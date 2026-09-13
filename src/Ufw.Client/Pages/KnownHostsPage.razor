@@ -1,0 +1,182 @@
+@page "/hosts"
+@attribute [Authorize]
+@implements IDisposable
+@inject IKnownHostInventoryService HostInventory
+@inject IClientErrorMapper ClientErrors
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<KnownHostsStrings> HostsText
+
+<PageTitle>@HostsText["PageTitle"] - UFW Console</PageTitle>
+
+<PageHeader Title="@(HostsText["Title"])"
+            Description="@(HostsText["Description"])"
+            Breadcrumbs="@Breadcrumbs"
+            ShowStatus="@(_inventory is not null)">
+    <Actions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            @CommonText["Refresh"]
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@IsBusy"
+                   OnClick="CreateAsync"
+                   Class="page-header-button">
+            @HostsText["AddHost"]
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_inventory is not null)
+        {
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeCount(_inventory.Hosts.Count)
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeVisibleCount(_inventory.Hosts.Count(static host => host.IsVisible))
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@HostsText["LoadFailed"]</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_error.Message</MudText>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync">
+            @CommonText["Retry"]
+        </MudButton>
+    </MudAlert>
+}
+
+<MudPaper Class="known-host-inventory-card" Elevation="1">
+    <div class="known-host-inventory-heading">
+        <div>
+            <MudText Typo="Typo.h6" HtmlTag="h2">@HostsText["InventoryTitle"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @HostsText["InventoryDescription"]
+            </MudText>
+        </div>
+    </div>
+
+    @if (_loading && _inventory is null)
+    {
+        <div class="known-host-inventory-loading" role="status" aria-live="polite">
+            <MudProgressLinear Indeterminate="true" aria-label="@(HostsText["LoadingAria"])" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@HostsText["LoadingInventory"]</MudText>
+        </div>
+    }
+    else if (_inventory is { Hosts.Count: 0 })
+    {
+        <div class="known-host-inventory-empty">
+            <MudIcon Icon="@Icons.Material.Filled.Devices" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1">@HostsText["NoKnownHosts"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @HostsText["NoKnownHostsDescription"]
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@IsBusy"
+                       OnClick="CreateAsync">
+                @HostsText["AddHost"]
+            </MudButton>
+        </div>
+    }
+    else if (_inventory is not null)
+    {
+        <MudTable T="KnownHostInventoryItem"
+                  Items="@_inventory.Hosts"
+                  Dense="true"
+                  Hover="true"
+                  Elevation="0"
+                  Class="known-host-inventory-table known-host-inventory-desktop">
+            <HeaderContent>
+                <MudTh Class="known-host-visibility-column">@HostsText["VisibilityColumn"]</MudTh>
+                <MudTh>@HostsText["NameColumn"]</MudTh>
+                <MudTh>@HostsText["AddressColumn"]</MudTh>
+                <MudTh>@HostsText["CommentColumn"]</MudTh>
+                <MudTh Class="known-host-actions-column">@HostsText["ActionsColumn"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@(HostsText["VisibilityColumn"])" Class="known-host-visibility-column">
+                    <div class="known-host-visibility-cell">
+                        <MudTooltip Text="@VisibilityActionText(context)">
+                            <MudIconButton Icon="@(context.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                           Color="@(context.IsVisible ? Color.Primary : Color.Default)"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => UpdateVisibilityAsync(context, !context.IsVisible))"
+                                           aria-label="@VisibilityActionText(context)" />
+                        </MudTooltip>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="@(HostsText["NameColumn"])"><strong>@context.Name</strong></MudTd>
+                <MudTd DataLabel="@(HostsText["AddressColumn"])"><code class="known-host-address">@context.Address</code></MudTd>
+                <MudTd DataLabel="@(HostsText["CommentColumn"])">
+                    <span class="@(string.IsNullOrWhiteSpace(context.Comment) ? "known-host-comment-empty" : "known-host-comment")">
+                        @(string.IsNullOrWhiteSpace(context.Comment) ? HostsText["NoComment"] : context.Comment)
+                    </span>
+                </MudTd>
+                <MudTd DataLabel="@(HostsText["ActionsColumn"])" Class="known-host-actions-column">
+                    <div class="known-host-actions">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@IsBusy" OnClick="@(() => EditAsync(context))">
+                            @HostsText["EditHost"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Disabled="@IsBusy" OnClick="@(() => DeleteAsync(context))">
+                            @HostsText["DeleteHost"]
+                        </MudButton>
+                    </div>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <div class="known-host-inventory-mobile">
+            @foreach (KnownHostInventoryItem host in _inventory.Hosts)
+            {
+                <div class="known-host-mobile-row">
+                    <div class="known-host-mobile-visibility">
+                        <MudTooltip Text="@VisibilityActionText(host)">
+                            <MudIconButton Icon="@(host.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                           Color="@(host.IsVisible ? Color.Primary : Color.Default)"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => UpdateVisibilityAsync(host, !host.IsVisible))"
+                                           aria-label="@VisibilityActionText(host)" />
+                        </MudTooltip>
+                    </div>
+                    <div class="known-host-mobile-copy">
+                        <strong>@host.Name</strong>
+                        <code class="known-host-address">@host.Address</code>
+                        <span class="@(string.IsNullOrWhiteSpace(host.Comment) ? "known-host-comment-empty" : "known-host-comment")">
+                            @(string.IsNullOrWhiteSpace(host.Comment) ? HostsText["NoComment"] : host.Comment)
+                        </span>
+                    </div>
+                    <div class="known-host-mobile-actions">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       Disabled="@IsBusy"
+                                       OnClick="@(() => EditAsync(host))"
+                                       aria-label="@(HostsText["EditHostAria", host.Name])" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       Disabled="@IsBusy"
+                                       OnClick="@(() => DeleteAsync(host))"
+                                       aria-label="@(HostsText["DeleteHostAria", host.Name])" />
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</MudPaper>
