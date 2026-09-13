@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 using Ufw.Roslyn.SourceGen.Controllers.Models;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Controllers;
@@ -6,19 +7,18 @@ using Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.BindingClasses;
 
-internal sealed class BindingClassProcessor(SourceProductionContext context, Compilation compilation, ApiMappingClassInfo mappingClass)
+internal sealed class BindingClassProcessor(SourceProductionContext context, ControllerGeneratorContracts contracts, ApiMappingClassInfo mappingClass)
 {
     public SourceProductionContext Context { get; } = context;
 
-    public ApiMappingClassInfo MappingClass { get; } = mappingClass;
+    public ControllerGeneratorContracts Contracts { get; } = contracts;
 
-    public Compilation Compilation { get; } = compilation;
+    public ApiMappingClassInfo MappingClass { get; } = mappingClass;
 
     public BindingClassProcessorResult Process()
     {
         List<EndpointProcessorResult> mappings = [];
 
-        // Process each registered controller
         ControllerProcessor controllerProcessor = new(this);
         foreach (INamedTypeSymbol controllerType in MappingClass.ControllerRegistrations)
         {
@@ -26,10 +26,8 @@ internal sealed class BindingClassProcessor(SourceProductionContext context, Com
             mappings.AddRange(controllerMappings);
         }
 
-        // Sort mappings by priority (lowest first)
         mappings.Sort((a, b) => a.Priority.CompareTo(b.Priority));
 
-        // ensure uniqueness of mappings
         HashSet<(string HttpMethod, string Route)> seenMappings = [];
         foreach (EndpointProcessorResult mapping in mappings)
         {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Controllers;
 using Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints.Analyzers;
@@ -7,17 +8,16 @@ using Ufw.Roslyn.SourceGen.Controllers.Processors.EndpointVerbs;
 
 namespace Ufw.Roslyn.SourceGen.Controllers.Processors.Endpoints;
 
-internal sealed class EndpointProcessor(SourceProductionContext context, ControllerProcessingContext controllerContext)
+internal sealed class EndpointProcessor(SourceProductionContext context, ControllerGeneratorContracts contracts, ControllerProcessingContext controllerContext)
 {
     private readonly ImmutableArray<IEndpointSignatureAnalyzer> _signatureAnalyzers =
     [
-        new EndpointReturnTypeAnalyzer(context),
+        new EndpointReturnTypeAnalyzer(context, contracts),
         new EndpointParameterAnalyzer(context)
     ];
 
     public EndpointProcessorResult? Process(IMethodSymbol method, EndpointVerbProcessorResult endpointVerb)
     {
-        // Construct full route
         string fullRoute = CombineRoutes(controllerContext.Route, endpointVerb.Route);
         if (string.IsNullOrEmpty(fullRoute))
         {
@@ -25,14 +25,12 @@ internal sealed class EndpointProcessor(SourceProductionContext context, Control
             return null;
         }
 
-        // Calculate final priority (lowest wins)
         long finalPriority = Math.Min(controllerContext.Priority ?? long.MaxValue, endpointVerb.Priority ?? long.MaxValue);
         if (finalPriority == long.MaxValue)
         {
             finalPriority = 0;
         }
 
-        // Validate method signature and determine mapping type
         EndpointSignatureAnalyzerContext analyzerContext = new();
         foreach (IEndpointSignatureAnalyzer analyzer in _signatureAnalyzers)
         {

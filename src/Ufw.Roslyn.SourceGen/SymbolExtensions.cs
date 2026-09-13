@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Text;
 
 namespace Ufw.Roslyn.SourceGen;
 
@@ -38,5 +39,28 @@ internal static class SymbolExtensions
             }
         }
         return i == 0;
+    }
+
+    public static string GetFullMetadataName(this INamedTypeSymbol type)
+    {
+        StringBuilder builder = new();
+        AppendMetadataName(builder, type);
+        return builder.ToString();
+    }
+
+    private static void AppendMetadataName(StringBuilder builder, INamedTypeSymbol type)
+    {
+        if (type.ContainingType is not null)
+        {
+            AppendMetadataName(builder, type.ContainingType);
+            builder.Append('+');
+        }
+        else if (!type.ContainingNamespace.IsGlobalNamespace)
+        {
+            builder.Append(type.ContainingNamespace.ToDisplayString());
+            builder.Append('.');
+        }
+
+        builder.Append(type.MetadataName);
     }
 }

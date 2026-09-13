@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
+using Ufw.Roslyn.SourceGen.Controllers.Contracts;
 using Ufw.Roslyn.SourceGen.Controllers.Diagnostics;
 using Ufw.Roslyn.SourceGen.Controllers.Emitters;
 using Ufw.Roslyn.SourceGen.Controllers.Models;
@@ -12,82 +12,55 @@ namespace Ufw.Roslyn.SourceGen.Controllers;
 [Generator(LanguageNames.CSharp)]
 public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
 {
-    private const string API_CONTROLLER_MAPPING_GENERATOR_ATTRIBUTE_FULL_NAME = "global::Ufw.Roslyn.Controllers.Mapping.Attributes.ApiControllerMappingGeneratorAttribute<,,>";
-    private const string API_CONTROLLER_MAPPING_GENERATOR_ATTRIBUTE_NAME = "ApiControllerMappingGenerator";
-    private const string API_CONTROLLER_REGISTRATION_ATTRIBUTE_FULL_NAME = "global::Ufw.Roslyn.Controllers.Mapping.Attributes.ApiControllerRegistrationAttribute<>";
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Find classes decorated with ApiControllerMappingGenerator attribute
-        IncrementalValuesProvider<ApiMappingClassInfo> apiMappingClasses = context.SyntaxProvider
+        IncrementalValuesProvider<INamedTypeSymbol> candidateClasses = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (s, _) => IsCandidateClass(s),
-                transform: static (ctx, _) => GetApiMappingClassInfo(ctx))
-            .Where(static m => m is not null)
-            .Select(static (m, _) => m!);
+                predicate: static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax { AttributeLists.Count: > 0 },
+                transform: static (generatorContext, _) => GetCandidateClass(generatorContext))
+            .Where(static classSymbol => classSymbol is not null)
+            .Select(static (classSymbol, _) => classSymbol!);
 
-        // Combine with compilation for symbol information
-        IncrementalValueProvider<(Compilation, ImmutableArray<ApiMappingClassInfo>)> compilationAndClasses =
-            context.CompilationProvider.Combine(apiMappingClasses.Collect());
+        IncrementalValueProvider<(Compilation, ImmutableArray<INamedTypeSymbol>)> compilationAndClasses =
+            context.CompilationProvider.Combine(candidateClasses.Collect());
 
-        context.RegisterSourceOutput(compilationAndClasses, (spc, source) => Execute(source.Item1, source.Item2, spc));
+        context.RegisterSourceOutput(compilationAndClasses, static (sourceContext, source) =>
+            Execute(source.Item1, source.Item2, sourceContext));
     }
 
-    private static bool IsCandidateClass(SyntaxNode node)
+    private static INamedTypeSymbol? GetCandidateClass(GeneratorSyntaxContext context)
     {
-        return node is ClassDeclarationSyntax { AttributeLists.Count: > 0 } classDecl &&
-               classDecl.AttributeLists
-                   .SelectMany(al => al.Attributes)
-                   .Any(attr => attr.Name.ToString().Contains(API_CONTROLLER_MAPPING_GENERATOR_ATTRIBUTE_NAME));
-    }
-
-    private static ApiMappingClassInfo? GetApiMappingClassInfo(GeneratorSyntaxContext context)
-    {
-        if (context.Node is not ClassDeclarationSyntax classDecl)
+        if (context.Node is not ClassDeclarationSyntax classDeclaration)
         {
             return null;
         }
 
-        SemanticModel semanticModel = context.SemanticModel;
-        INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(classDecl);
-        if (classSymbol is null)
-        {
-            return null;
-        }
+        return context.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
+    }
 
-        // Find ApiControllerMappingGenerator attribute
-        AttributeData? mappingGeneratorAttr = null;
+    private static ApiMappingClassInfo? GetApiMappingClassInfo(INamedTypeSymbol classSymbol, ControllerGeneratorContracts contracts)
+    {
+        AttributeData? mappingGeneratorAttribute = null;
         List<INamedTypeSymbol> controllerRegistrations = [];
 
         foreach (AttributeData attribute in classSymbol.GetAttributes())
         {
-            if (attribute.AttributeClass is not { IsGenericType: true })
+            INamedTypeSymbol? attributeType = attribute.AttributeClass?.OriginalDefinition;
+            if (SymbolEqualityComparer.Default.Equals(attributeType, contracts.ApiControllerMappingTriggerAttribute.OriginalDefinition))
             {
-                continue;
+                mappingGeneratorAttribute = attribute;
             }
-            string fullyQualifiedName = attribute.AttributeClass.ConstructUnboundGenericType().ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            if (fullyQualifiedName is API_CONTROLLER_MAPPING_GENERATOR_ATTRIBUTE_FULL_NAME)
+            else if (SymbolEqualityComparer.Default.Equals(attributeType, contracts.ApiControllerRegistrationAttribute.OriginalDefinition) &&
+                attribute.AttributeClass?.TypeArguments.FirstOrDefault() is INamedTypeSymbol controllerType)
             {
-                mappingGeneratorAttr = attribute;
-            }
-            else if (fullyQualifiedName is API_CONTROLLER_REGISTRATION_ATTRIBUTE_FULL_NAME)
-            {
-                if (attribute.AttributeClass?.TypeArguments.FirstOrDefault() is INamedTypeSymbol controllerType)
-                {
-                    controllerRegistrations.Add(controllerType);
-                }
+                controllerRegistrations.Add(controllerType);
             }
         }
 
-        if (mappingGeneratorAttr is null)
-        {
-            return null;
-        }
-
-        // Extract factory type and envelope types from the generic attribute
-        if (mappingGeneratorAttr.AttributeClass?.TypeArguments.ElementAtOrDefault(0) is not INamedTypeSymbol factoryType ||
-            mappingGeneratorAttr.AttributeClass?.TypeArguments.ElementAtOrDefault(1) is not INamedTypeSymbol requestEnvelopeType ||
-            mappingGeneratorAttr.AttributeClass?.TypeArguments.ElementAtOrDefault(2) is not INamedTypeSymbol responseEnvelopeType)
+        if (mappingGeneratorAttribute?.AttributeClass is not INamedTypeSymbol mappingGeneratorAttributeType ||
+            mappingGeneratorAttributeType.TypeArguments.ElementAtOrDefault(0) is not INamedTypeSymbol factoryType ||
+            mappingGeneratorAttributeType.TypeArguments.ElementAtOrDefault(1) is not INamedTypeSymbol requestEnvelopeType ||
+            mappingGeneratorAttributeType.TypeArguments.ElementAtOrDefault(2) is not INamedTypeSymbol responseEnvelopeType)
         {
             return null;
         }
@@ -95,16 +68,38 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
         return new ApiMappingClassInfo(classSymbol, factoryType, requestEnvelopeType, responseEnvelopeType, [.. controllerRegistrations]);
     }
 
-    private static void Execute(Compilation compilation, ImmutableArray<ApiMappingClassInfo> mappingClasses, SourceProductionContext context)
+    private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> candidateClasses, SourceProductionContext context)
     {
-        MappingClassEmitter emitter = new(context);
-        foreach (ApiMappingClassInfo mappingClass in mappingClasses)
+        if (candidateClasses.IsDefaultOrEmpty || ControllerGeneratorContracts.TryResolve(compilation, context, out ControllerGeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
         {
+            return;
+        }
+
+        ControllerGeneratorContracts contracts = resolvedContracts;
+        HashSet<ISymbol> processedClasses = new(SymbolEqualityComparer.Default);
+        MappingClassEmitter emitter = new(context, contracts);
+        foreach (INamedTypeSymbol candidateClass in candidateClasses)
+        {
+            if (!processedClasses.Add(candidateClass))
+            {
+                continue;
+            }
+
+            ApiMappingClassInfo? mappingClass = GetApiMappingClassInfo(candidateClass, contracts);
+            if (mappingClass is null)
+            {
+                continue;
+            }
+
             if (mappingClass.ControllerRegistrations.Length == 0)
             {
-                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.MissingControllerRegistrations, mappingClass.ClassSymbol.Locations.FirstOrDefault(), mappingClass.ClassSymbol.Name));
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.MissingControllerRegistrations,
+                    mappingClass.ClassSymbol.Locations.FirstOrDefault(),
+                    mappingClass.ClassSymbol.Name));
             }
-            BindingClassProcessor mappingClassProcessor = new(context, compilation, mappingClass);
+
+            BindingClassProcessor mappingClassProcessor = new(context, contracts, mappingClass);
             BindingClassProcessorResult result = mappingClassProcessor.Process();
             emitter.Emit(result);
         }
