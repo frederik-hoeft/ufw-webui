@@ -12,10 +12,12 @@
 @use "controls/standalone";
 
 @use "components/rules/command-preview";
+@use "components/rules/known-host-field";
 @use "components/rules/network-interface-field";
 @use "components/rules/rule-editor";
 @use "components/rules/rule-table";
 
+@use "pages/hosts";
 @use "pages/interfaces";
 @use "pages/rules";
 @use "pages/settings";

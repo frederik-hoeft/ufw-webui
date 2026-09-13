@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Client.Api;
+using Ufw.Client.KnownHosts;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
 
@@ -9,6 +10,7 @@ namespace Ufw.Client.Components.Rules;
 public sealed partial class RuleEditor
 {
     private MudForm? _form;
+    private IReadOnlyList<KnownHostInventoryItem> _visibleKnownHosts = [];
     private IReadOnlyList<NetworkInterfaceInventoryItem> _knownInterfaces = [];
     private IReadOnlyList<NetworkInterfaceInventoryItem> _visibleInterfaces = [];
     private string? _interfaceInventoryError;
@@ -78,6 +80,25 @@ public sealed partial class RuleEditor
 
     protected async override Task OnInitializedAsync()
     {
+        await Task.WhenAll(LoadKnownHostsAsync(), LoadNetworkInterfacesAsync());
+    }
+
+    private async Task LoadKnownHostsAsync()
+    {
+        try
+        {
+            KnownHostInventoryResponse inventory = await KnownHosts.RefreshAsync();
+            _visibleKnownHosts = inventory.Hosts.Where(static host => host.IsVisible).ToArray();
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _ = ClientErrors.Describe(exception);
+            _visibleKnownHosts = [];
+        }
+    }
+
+    private async Task LoadNetworkInterfacesAsync()
+    {
         try
         {
             NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
@@ -89,6 +110,12 @@ public sealed partial class RuleEditor
             _interfaceInventoryError = ClientErrors.Describe(exception).Message;
         }
     }
+
+    private FirewallAddressFamily SourceKnownHostAddressFamily =>
+        KnownHostSuggestions.ResolveCompatibleAddressFamily(Rule.AddressFamily, Rule.Destination);
+
+    private FirewallAddressFamily DestinationKnownHostAddressFamily =>
+        KnownHostSuggestions.ResolveCompatibleAddressFamily(Rule.AddressFamily, Rule.Source);
 
     private bool IsUnknownInterface(string? interfaceName) =>
         _interfaceInventoryError is null

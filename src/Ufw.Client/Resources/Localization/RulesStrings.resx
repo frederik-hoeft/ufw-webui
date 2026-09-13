@@ -579,4 +579,5 @@
   <data name="OrderedInsertionResultUncertain" xml:space="preserve">
     <value>Insertion outcome is uncertain</value>
   </data>
+  <data name="NoKnownHostMatches" xml:space="preserve"><value>No known host matches this name, address, or comment. You can still enter a literal address or CIDR.</value></data>
 </root>

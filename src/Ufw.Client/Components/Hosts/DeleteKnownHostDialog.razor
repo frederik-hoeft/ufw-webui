@@ -1,0 +1,27 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<KnownHostsStrings> HostsText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            @HostsText["DeleteDialogDescription", Host.Name]
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @HostsText["DeleteDialogConsequence"]
+        </MudText>
+        <MudPaper Outlined="true" Class="pa-3 mt-4">
+            <strong>@Host.Name</strong>
+            <div><code>@Host.Address</code></div>
+            @if (!string.IsNullOrWhiteSpace(Host.Comment))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">@Host.Comment</MudText>
+            }
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">
+            @HostsText["DeleteHost"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>

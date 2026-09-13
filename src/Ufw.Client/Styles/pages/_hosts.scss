@@ -1,0 +1,119 @@
+@use "../core/tokens" as *;
+
+.known-host-inventory-card {
+    overflow: hidden;
+}
+
+.known-host-inventory-heading {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.known-host-inventory-loading,
+.known-host-inventory-empty {
+    display: grid;
+    gap: 0.75rem;
+    padding: 2rem 1.5rem;
+}
+
+.known-host-inventory-loading {
+    max-width: 32rem;
+}
+
+.known-host-inventory-empty {
+    justify-items: center;
+    padding-block: 3rem;
+    text-align: center;
+}
+
+.known-host-inventory-table {
+    .mud-table-head .mud-table-cell {
+        background: var(--mud-palette-background-gray);
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .mud-table-cell {
+        border-color: var(--mud-palette-table-lines);
+    }
+}
+
+.known-host-address {
+    color: var(--mud-palette-text-primary);
+    font-family: var(--ufw-font-mono);
+    font-size: 0.8125rem;
+}
+
+.known-host-comment,
+.known-host-comment-empty {
+    overflow-wrap: anywhere;
+}
+
+.known-host-comment-empty {
+    color: var(--mud-palette-text-secondary);
+}
+
+.known-host-visibility-column {
+    width: 5.5rem;
+    text-align: center;
+}
+
+.known-host-actions-column {
+    width: 9.5rem;
+}
+
+.known-host-visibility-cell,
+.known-host-actions,
+.known-host-mobile-actions,
+.known-host-mobile-visibility {
+    display: flex;
+    align-items: center;
+}
+
+.known-host-visibility-cell {
+    justify-content: center;
+}
+
+.known-host-actions {
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+
+.known-host-inventory-mobile {
+    display: none;
+}
+
+.known-host-mobile-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.known-host-mobile-row:last-child {
+    border-bottom: 0;
+}
+
+.known-host-mobile-copy {
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.25rem;
+}
+
+.known-host-mobile-visibility,
+.known-host-mobile-actions {
+    flex: 0 0 auto;
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .known-host-inventory-desktop {
+        display: none;
+    }
+
+    .known-host-inventory-mobile {
+        display: block;
+    }
+}

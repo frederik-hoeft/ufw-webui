@@ -9,6 +9,7 @@ using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
 using Ufw.Web.Services.Auth;
+using Ufw.Web.Services.KnownHosts;
 using Ufw.Web.Services.NetworkInterfaces;
 using Ufw.Web.Tests.Integration.Support;
 using Wkg.AspNetCore.TestAdapters.Initialization;
@@ -67,6 +68,12 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<AuthenticationFlowService>();
         services.AddScoped<AuthController>();
         services.AddScoped<IAuthenticationFlowService>(static serviceProvider => serviceProvider.GetRequiredService<AuthenticationFlowService>());
+
+        services.AddScoped<KnownHostRepository>();
+        services.AddScoped<IKnownHostRepository>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostRepository>());
+        services.AddScoped<KnownHostService>();
+        services.AddScoped<IKnownHostService>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostService>());
+        services.AddScoped<KnownHostsController>();
 
         services.AddScoped<IntegrationDaemonNetworkInterfaceSource>();
         services.AddScoped<IDaemonNetworkInterfaceSource>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationDaemonNetworkInterfaceSource>());
