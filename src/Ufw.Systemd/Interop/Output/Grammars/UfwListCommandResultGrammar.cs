@@ -31,7 +31,7 @@ internal sealed class UfwListCommandResultGrammar
             .Parser(endpoint.NamedCopy(SourceGroup))
             .Parser<Optional<Whitespace>>()
             .Parser<Optional<Sequence<OutHint, Optional<Whitespace>>>>()
-            .Parser<Optional<Sequence<CommentStart, Alternative<JsonComment, Comment>>>>());
+            .Parser<Optional<Sequence<CommentStart, Comment>>>());
     }
 
     internal static string SourceGroup => "source";
