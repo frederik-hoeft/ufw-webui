@@ -34,12 +34,6 @@ internal static class KnownHostSuggestions
         return $"{host.Name} [{host.Address}]";
     }
 
-    public static string? ResolveInputValue(
-        IReadOnlyList<KnownHostInventoryItem> suggestions,
-        FirewallAddressFamily addressFamily,
-        string? value) =>
-        ResolveSelectionValue(suggestions, addressFamily, value)?.Address ?? value;
-
     public static KnownHostInventoryItem? ResolveSelectionValue(
         IReadOnlyList<KnownHostInventoryItem> suggestions,
         FirewallAddressFamily addressFamily,

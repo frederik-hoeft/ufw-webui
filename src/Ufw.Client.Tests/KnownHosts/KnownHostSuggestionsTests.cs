@@ -47,22 +47,6 @@ public sealed class KnownHostSuggestionsTests
     }
 
     [TestMethod]
-    public void ResolveInputValue_SelectedSuggestionCollapsesToLiteralAndFreeTextIsPreserved()
-    {
-        string selectionValue = KnownHostSuggestions.GetSelectionValue(s_hosts[0]);
-
-        Assert.AreEqual(
-            "192.0.2.10",
-            KnownHostSuggestions.ResolveInputValue(s_hosts, FirewallAddressFamily.IPv4, selectionValue));
-        Assert.AreEqual(
-            "database",
-            KnownHostSuggestions.ResolveInputValue(s_hosts, FirewallAddressFamily.IPv4, "database"));
-        Assert.AreEqual(
-            "198.51.100.77",
-            KnownHostSuggestions.ResolveInputValue(s_hosts, FirewallAddressFamily.IPv4, "198.51.100.77"));
-    }
-
-    [TestMethod]
     public void SelectionValue_ResolvesOnlyExplicitCompatibleSuggestion()
     {
         string selectionValue = KnownHostSuggestions.GetSelectionValue(s_hosts[0]);
