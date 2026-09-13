@@ -31,10 +31,8 @@ internal static class GeneratorContractResolver
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static bool TryResolve<TContract>(
-        Compilation compilation,
-        SourceProductionContext context,
-        out ImmutableDictionary<TContract, INamedTypeSymbol>? registrations) where TContract : struct, Enum
+    public static bool TryResolve<TContract>(Compilation compilation, SourceProductionContext context, out ImmutableDictionary<TContract, INamedTypeSymbol>? registrations)
+        where TContract : struct, Enum
     {
         Dictionary<TContract, INamedTypeSymbol> discoveredRegistrations = [];
         bool foundRegistration = false;
@@ -108,10 +106,10 @@ internal static class GeneratorContractResolver
     private static bool IsContractRegistration<TContract>(AttributeData attribute) where TContract : struct, Enum
     {
         INamedTypeSymbol? attributeType = attribute.AttributeClass;
-        return attributeType is not null &&
-            attributeType.OriginalDefinition.GetFullMetadataName().Equals(RegistrationAttributeMetadataName, StringComparison.Ordinal) &&
-            attributeType.TypeArguments is [INamedTypeSymbol contractType] &&
-            contractType.OriginalDefinition.GetFullMetadataName().Equals(typeof(TContract).FullName, StringComparison.Ordinal);
+        return attributeType is not null
+            && attributeType.OriginalDefinition.GetFullMetadataName().Equals(RegistrationAttributeMetadataName, StringComparison.Ordinal)
+            && attributeType.TypeArguments is [INamedTypeSymbol contractType]
+            && contractType.OriginalDefinition.GetFullMetadataName().Equals(typeof(TContract).FullName, StringComparison.Ordinal);
     }
 
     private static bool TryReadRegistration<TContract>(AttributeData attribute, out TContract contract, out INamedTypeSymbol? registeredType)
@@ -120,9 +118,9 @@ internal static class GeneratorContractResolver
         contract = default;
         registeredType = null;
 
-        if (attribute.ConstructorArguments.Length != 2 ||
-            attribute.ConstructorArguments[0].Value is not { } rawContractValue ||
-            attribute.ConstructorArguments[1] is not { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol type })
+        if (attribute.ConstructorArguments.Length != 2
+            || attribute.ConstructorArguments[0].Value is not { } rawContractValue
+            || attribute.ConstructorArguments[1] is not { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol type })
         {
             return false;
         }

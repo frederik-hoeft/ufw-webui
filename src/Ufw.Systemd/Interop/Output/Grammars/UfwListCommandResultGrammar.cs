@@ -14,13 +14,12 @@ internal sealed class UfwListCommandResultGrammar
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "That would be horrible to read.")]
     public UfwListCommandResultGrammar()
     {
-        IParser address = Alternative<Ipv4Cidr, Ipv6Cidr>.Instance;
-        IParser endpoint = Grammar.Sequence(
-            Grammar.Alternative(Anywhere.Instance, Grammar.Sequence(address, Grammar.Optional(Grammar.Sequence(Whitespace.Instance, PortSegment.Instance))), PortSegment.Instance),
-            Grammar.Optional(Protocol.Instance),
-            Grammar.Optional(Grammar.Sequence(Whitespace.Instance, V6Hint.Instance)),
-            Grammar.Optional(Grammar.Sequence(Whitespace.Instance, NetworkInterface.Instance)),
-            Grammar.Optional(Grammar.Sequence(Whitespace.Instance, V6Hint.Instance)));
+        IParser endpoint = Sequence<
+            Alternative<Anywhere, Sequence<Alternative<Ipv4Cidr, Ipv6Cidr>, Optional<Sequence<Whitespace, PortSegment>>>, PortSegment>,
+            Optional<Protocol>,
+            Optional<Sequence<Whitespace, V6Hint>>,
+            Optional<Sequence<Whitespace, NetworkInterface>>,
+            Optional<Sequence<Whitespace, V6Hint>>>.Instance;
 
         UfwRuleListGrammar = Grammar.Sequence(sequence => sequence
             .Parser<RowNumber>()

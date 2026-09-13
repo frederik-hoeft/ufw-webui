@@ -13,9 +13,7 @@ public sealed class GeneratorContractBootstrapper : IIncrementalGenerator
         {
             postInitializationContext.AddSource("ControllerGeneratorContract.g.cs", EmbeddedSourceText.FromType<ControllerGeneratorContract>());
             postInitializationContext.AddSource("JsonGeneratorContract.g.cs", EmbeddedSourceText.FromType<JsonGeneratorContract>());
-            postInitializationContext.AddSource(
-                "GeneratorContractRegistrationAttribute.g.cs",
-                EmbeddedSourceText.FromType(typeof(GeneratorContractRegistrationAttribute<>)));
+            postInitializationContext.AddSource("GeneratorContractRegistrationAttribute.g.cs", EmbeddedSourceText.FromType(typeof(GeneratorContractRegistrationAttribute<>)));
         });
     }
 }
