@@ -22,4 +22,5 @@
   <data name="InboundInterface" xml:space="preserve"><value>Eingehende Regeln können keine Quellschnittstelle angeben; verwenden Sie das Feld Zielschnittstelle für die Eingangsschnittstelle.</value></data>
   <data name="OutboundInterface" xml:space="preserve"><value>Ausgehende Regeln können keine Zielschnittstelle angeben; verwenden Sie das Feld Quellschnittstelle für die Ausgangsschnittstelle.</value></data>
   <data name="CommentInvalid" xml:space="preserve"><value>Der Kommentar muss 1–200 Zeichen aus einem eingeschränkten sicheren Zeichensatz enthalten.</value></data>
+  <data name="Ipv6Disabled" xml:space="preserve"><value>IPv6-Regeln sind nicht verfügbar, da die IPv6-Unterstützung in der aktuellen UFW-Konfiguration deaktiviert ist.</value></data>
 </root>

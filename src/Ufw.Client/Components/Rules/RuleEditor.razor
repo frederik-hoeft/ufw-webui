@@ -64,7 +64,11 @@
                            For="@(() => Rule.AddressFamily)">
                     @foreach (FirewallAddressFamily value in Enum.GetValues<FirewallAddressFamily>())
                     {
-                        <MudSelectItem T="FirewallAddressFamily" Value="@value">@RuleText.FormatAddressFamily(value)</MudSelectItem>
+                        <MudSelectItem T="FirewallAddressFamily"
+                                       Value="@value"
+                                       Disabled="@(!IPv6Enabled && value == FirewallAddressFamily.IPv6)">
+                            @RuleText.FormatAddressFamily(value)
+                        </MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>

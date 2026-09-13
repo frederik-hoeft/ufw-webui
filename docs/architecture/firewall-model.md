@@ -6,7 +6,7 @@ The consequence is that every mutable rule must be addressable from current obse
 
 ## Authoritative snapshots
 
-Rule listing reads `ufw status numbered` through the privileged daemon. The daemon runs UFW under a deterministic locale, keeps parseable stdout separate from stderr diagnostics, and parses the complete numbered listing into a snapshot.
+Rule listing reads `ufw status numbered` through the privileged daemon. The daemon runs UFW under a deterministic locale, keeps parseable stdout separate from stderr diagnostics, and parses the complete numbered listing into a snapshot. It also reads the configured UFW defaults file and attaches the effective IPv6 capability plus incoming, outgoing, and routed default policies to that same authoritative response. Failure to read or understand either source fails the snapshot read rather than publishing a partially authoritative configuration.
 
 A snapshot can contain two kinds of rows:
 
@@ -46,9 +46,11 @@ This protects deletion from ordinary UFW renumbering and from stale browser snap
 
 ## Address-family materialization
 
-Add requests may be family-neutral when their semantic fields do not force IPv4 or IPv6. UFW can materialize such a request into concrete family-specific rows. The daemon therefore reasons about the observable concrete identities that can result from one structural add.
+Add requests may be family-neutral when their semantic fields do not force IPv4 or IPv6. UFW can materialize such a request into concrete family-specific rows. The daemon therefore reasons about the observable concrete identities that can result from one structural add. When UFW IPv6 support is disabled, a family-neutral add has only an IPv4 observable identity; an explicitly IPv6 add is rejected before a mutating UFW command is issued.
 
-Listed rules and delete requests are always family-specific. Deleting a concrete IPv4 row does not implicitly delete a separate IPv6 row with otherwise similar semantics.
+The IPv6 capability is host configuration, not a property inferred from the current rule set. The browser uses the capability from the authoritative rule snapshot to disable IPv6 authoring and IPv6 known-host suggestions, while the daemon independently enforces it for append and ordered-insertion mutations. Per-rule address-family validation remains separate: a structurally IPv6 rule is still IPv6 regardless of whether the current host permits creating it.
+
+Listed rules and delete requests are always family-specific. Existing IPv6 rows remain observable and deletable even if IPv6 support is subsequently disabled; disabling creation must not make stale firewall state undeletable.
 
 ## Add lifecycle
 
@@ -57,7 +59,7 @@ An accepted add operation follows a conservative sequence:
 1. verify the signed intent and enter the daemon execution gate;
 2. durably consume the nonce;
 3. verify that referenced host interfaces currently exist;
-4. read current UFW state and reject a semantically identical existing rule;
+4. read current UFW state and configuration, reject unsupported IPv6 creation, and reject a semantically identical existing rule;
 5. render validated argv and start UFW directly, without a shell;
 6. retain ownership of the child process through normal exit or cancellation cleanup;
 7. read UFW again and require the expected semantic rule to be observable uniquely;
@@ -71,7 +73,7 @@ Ordered insertion changes membership and placement together, so it is authorized
 
 The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
 
-Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
+Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW plus its configuration, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces, current IPv6 capability, and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
 
 Snapshot occurrences use the combined UFW listing for authorization, but UFW interprets `insert N` within the concrete address-family partition. The daemon translates the signed combined-list anchor into a family-local UFW insertion position immediately before command construction. It then executes one insertion and reconciles the complete post-state. Success requires every baseline occurrence to remain in relative order, exactly one requested rule materialization to have been added, and that row to occupy the signed slot. No recovery journal is needed because ordered insertion never removes an existing row.
 
@@ -90,7 +92,7 @@ Interface existence is intentionally not revalidated for delete. A rule referenc
 
 ## Reorder lifecycle
 
-Reordering is a state-conditioned mutation over one exact authoritative snapshot. The browser computes a versioned SHA-256 fingerprint from the complete ordered `RuleListResponse` it displays and assigns each row a snapshot-local occurrence ID equal to its zero-based position. The signed request binds that fingerprint and the complete desired occurrence permutation. Occurrence IDs are intentionally local to the fingerprinted snapshot; they distinguish duplicate semantic rules without pretending to be durable rule identities.
+Reordering is a state-conditioned mutation over one exact authoritative ordered rule list. The browser computes a versioned SHA-256 fingerprint from the firewall activity flag and complete ordered rule-list projection it displays, and assigns each row a snapshot-local occurrence ID equal to its zero-based position. Operational configuration carried beside the list is not part of fingerprint version 1 and is revalidated independently where it affects a mutation. The signed request binds that fingerprint and the complete desired occurrence permutation. Occurrence IDs are intentionally local to the fingerprinted snapshot; they distinguish duplicate semantic rules without pretending to be durable rule identities.
 
 Under the execution gate, the daemon re-lists UFW and requires the current fingerprint to equal the signed baseline before any reorder mutation begins. It validates that the desired order is a complete permutation, that concrete IPv4 rows remain before IPv6 rows, and that every occurrence which must move can be rendered losslessly for reinsertion. Opaque or otherwise non-reinsertable rows remain fixed anchors.
 

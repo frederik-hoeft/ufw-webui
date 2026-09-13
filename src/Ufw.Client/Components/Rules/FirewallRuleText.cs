@@ -38,6 +38,14 @@ internal sealed class FirewallRuleText(IStringLocalizer<RulesStrings> rulesText)
         _ => direction.ToString(),
     };
 
+    public string FormatDefaultPolicy(FirewallDefaultPolicy policy) => policy switch
+    {
+        FirewallDefaultPolicy.Allow => rulesText["Allow"],
+        FirewallDefaultPolicy.Deny => rulesText["Deny"],
+        FirewallDefaultPolicy.Reject => rulesText["Reject"],
+        _ => policy.ToString(),
+    };
+
     public string FormatAddressFamily(FirewallAddressFamily family) => family switch
     {
         FirewallAddressFamily.IPv4 => "IPv4",

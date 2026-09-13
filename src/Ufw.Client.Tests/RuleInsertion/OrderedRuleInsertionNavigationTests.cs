@@ -13,7 +13,7 @@ public sealed class OrderedRuleInsertionNavigationTests
     {
         ListedFirewallRule first = Rule("duplicate", FirewallAddressFamily.IPv4, 1);
         ListedFirewallRule second = Rule("duplicate", FirewallAddressFamily.IPv4, 2);
-        RuleListResponse baseline = new(Active: true, [first, second]);
+        RuleListResponse baseline = new(Active: true, [first, second], TestFirewallConfiguration.Enabled);
 
         string uri = OrderedRuleInsertionNavigation.BuildUri(baseline, 1, RuleInsertionPlacement.After);
 
@@ -30,7 +30,8 @@ public sealed class OrderedRuleInsertionNavigationTests
             [
                 Rule("v4", FirewallAddressFamily.IPv4, 1),
                 Rule("v6", FirewallAddressFamily.IPv6, 2),
-            ]);
+            ],
+            TestFirewallConfiguration.Enabled);
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
 
         bool success = OrderedRuleInsertionNavigation.TryResolve(
@@ -53,13 +54,14 @@ public sealed class OrderedRuleInsertionNavigationTests
     [TestMethod]
     public void TryResolve_RejectsStaleSnapshotBeforeResolvingOccurrence()
     {
-        RuleListResponse baseline = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1)]);
+        RuleListResponse baseline = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1)], TestFirewallConfiguration.Enabled);
         RuleListResponse changed = new(
             Active: true,
             [
                 Rule("one", FirewallAddressFamily.IPv4, 1),
                 Rule("two", FirewallAddressFamily.IPv4, 2),
-            ]);
+            ],
+            TestFirewallConfiguration.Enabled);
 
         bool success = OrderedRuleInsertionNavigation.TryResolve(
             changed,
@@ -79,7 +81,8 @@ public sealed class OrderedRuleInsertionNavigationTests
     {
         RuleListResponse opaque = new(
             Active: true,
-            [new ListedFirewallRule { DisplayNumber = 1, Parsed = false, RawLine = "opaque" }]);
+            [new ListedFirewallRule { DisplayNumber = 1, Parsed = false, RawLine = "opaque" }],
+            TestFirewallConfiguration.Enabled);
         Assert.IsFalse(OrderedRuleInsertionNavigation.TryResolve(
             opaque,
             FirewallRuleSnapshotFingerprint.Compute(opaque),
@@ -91,7 +94,8 @@ public sealed class OrderedRuleInsertionNavigationTests
 
         RuleListResponse familyNeutral = new(
             Active: true,
-            [Rule("any", FirewallAddressFamily.Any, 1)]);
+            [Rule("any", FirewallAddressFamily.Any, 1)],
+            TestFirewallConfiguration.Enabled);
         Assert.IsFalse(OrderedRuleInsertionNavigation.TryResolve(
             familyNeutral,
             FirewallRuleSnapshotFingerprint.Compute(familyNeutral),
@@ -105,7 +109,7 @@ public sealed class OrderedRuleInsertionNavigationTests
     [TestMethod]
     public void TryResolve_RejectsIncompleteOrUnknownPlacement()
     {
-        RuleListResponse baseline = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1)]);
+        RuleListResponse baseline = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1)], TestFirewallConfiguration.Enabled);
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
 
         Assert.IsFalse(OrderedRuleInsertionNavigation.TryResolve(

@@ -28,12 +28,15 @@ internal enum RuleSnapshotStaleReason
     MutationRejectedRequiresRefresh,
 }
 
-internal sealed record RuleSnapshot(bool FirewallActive, IReadOnlyList<ListedFirewallRule> Rules)
+internal sealed record RuleSnapshot(
+    bool FirewallActive,
+    IReadOnlyList<ListedFirewallRule> Rules,
+    FirewallConfigurationSnapshot Configuration)
 {
     public static RuleSnapshot FromResponse(RuleListResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
-        return new(response.Active, response.Rules.ToArray());
+        return new(response.Active, response.Rules.ToArray(), response.Configuration);
     }
 }
 

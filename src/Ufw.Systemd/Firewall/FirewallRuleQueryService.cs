@@ -10,6 +10,6 @@ internal sealed class FirewallRuleQueryService(IFirewallRuleSnapshotReader snaps
     private async Task<IResponsePayload> ListUnsynchronizedAsync(CancellationToken cancellationToken)
     {
         FirewallRuleSnapshotReadResult result = await snapshotReader.ReadAsync(cancellationToken);
-        return result.Error ?? FirewallRuleSet.ToListResponse(result.Snapshot!);
+        return result.Error ?? FirewallRuleSet.ToListResponse(result.Snapshot!, result.Configuration!);
     }
 }

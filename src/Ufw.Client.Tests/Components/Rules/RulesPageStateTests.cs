@@ -10,8 +10,8 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterInsertion_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));
-        RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")]);
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")], TestFirewallConfiguration.Disabled);
         RuleInsertionResponse report = new(
             RuleInsertionOutcome.PreconditionFailed,
             finalSnapshot,
@@ -25,12 +25,13 @@ public sealed class RulesPageStateTests
         Assert.IsFalse(updated.Snapshot.FirewallActive);
         Assert.HasCount(2, updated.Snapshot.Rules);
         Assert.AreEqual("inserted", updated.Snapshot.Rules[1].RuleId);
+        Assert.IsFalse(updated.Snapshot.Configuration.IPv6Enabled);
     }
 
     [TestMethod]
     public void AfterInsertion_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
         RuleInsertionResponse report = new(
             RuleInsertionOutcome.StateUncertain,
             FinalSnapshot: null,
@@ -47,8 +48,8 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterReorder_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));
-        RuleListResponse finalSnapshot = new(false, [Rule("new")]);
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RuleListResponse finalSnapshot = new(false, [Rule("new")], TestFirewallConfiguration.Enabled);
         RuleReorderResponse report = new(
             RuleReorderOutcome.PartiallyCompleted,
             finalSnapshot,
@@ -69,7 +70,7 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterReorder_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")]));
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
         RuleReorderResponse report = new(
             RuleReorderOutcome.StateUncertain,
             FinalSnapshot: null,

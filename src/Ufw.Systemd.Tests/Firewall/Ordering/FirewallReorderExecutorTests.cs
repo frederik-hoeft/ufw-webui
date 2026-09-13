@@ -433,7 +433,7 @@ public sealed class FirewallReorderExecutorTests
         "[ 1] 22/tcp                     ALLOW IN    Anywhere",
         "[ 2] 22/tcp (v6)                ALLOW IN    Anywhere (v6)"))!;
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot);
+    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
 
     private sealed class ReorderHarness : IDisposable
     {
@@ -459,8 +459,8 @@ public sealed class FirewallReorderExecutorTests
                 : snapshots;
             _snapshots = new Queue<FirewallRuleSnapshotReadResult>(reads.Select(static snapshot =>
                 snapshot is null
-                    ? new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("test read failure"), null)
-                    : new FirewallRuleSnapshotReadResult(null, snapshot)));
+                    ? new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("test read failure"), null, null)
+                    : new FirewallRuleSnapshotReadResult(null, snapshot, TestFirewallConfiguration.Enabled)));
             _snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshots.Dequeue());
@@ -497,7 +497,7 @@ public sealed class FirewallReorderExecutorTests
         {
             FirewallRuleSnapshotReadResult baseline = _snapshots.Peek();
             return new RuleReorderExecutionRequest(
-                FirewallRuleSnapshotFingerprint.Compute(FirewallRuleSet.ToListResponse(baseline.Snapshot!)),
+                FirewallRuleSnapshotFingerprint.Compute(FirewallRuleSet.ToListResponse(baseline.Snapshot!, baseline.Configuration!)),
                 desiredOrder);
         }
 

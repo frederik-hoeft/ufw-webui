@@ -26,7 +26,9 @@ dotnet run --project src/Ufw.Mock -- route allow from 10.0.0.0/8 to 192.0.2.10 p
 
 `--version` identifies both the UFW compatibility version and the fact that the process is the mock. Global `--dry-run` and `--force` follow the UFW command surface; command-specific validation still rejects combinations that real UFW would not accept.
 
-For daemon development, point `Ufw.Systemd` at the built executable through its `ufw_path` setting. `scripts/setup-dev.sh` does this automatically on Windows when the mock has already been built and no `ufw` executable is available.
+For daemon development, point `Ufw.Systemd` at the built executable through its `ufw_path` setting. The daemon also reads UFW's defaults file independently to obtain IPv6 capability and default policies. `scripts/setup-dev.sh` handles both sides automatically on Windows: when a built mock is available it selects that executable and generates a matching `ufw_defaults_path` fixture with UFW's normal IPv6-enabled, deny-incoming/deny-routed/allow-outgoing defaults. Set `UFW_DEFAULTS_PATH` when a different development configuration is needed.
+
+The mock's JSON state and the daemon defaults fixture are intentionally separate inputs because production UFW also exposes numbered rule state through the executable while keeping these capabilities in host configuration. If a development scenario changes mock default policies or IPv6 state directly, keep the file named by `ufw_defaults_path` consistent with that scenario before exercising daemon-backed reads or mutations.
 
 ## Persistent firewall state
 

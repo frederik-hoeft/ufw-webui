@@ -41,6 +41,12 @@
             <MudChip T="string"
                      Size="Size.Small"
                      Variant="Variant.Filled"
+                     Class="@(snapshot.Configuration.IPv6Enabled ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
+                @(snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
+            </MudChip>
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
                      Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
                 @DescribeSnapshotStatus()
             </MudChip>
@@ -148,6 +154,7 @@ else
                 DefinitionDescription="@RuleDefinitionDescription"
                 Disabled="@(!CanEdit)"
                 AddressFamilyLocked="@IsOrderedInsertionRequested"
+                IPv6Enabled="@_state.Snapshot.Configuration.IPv6Enabled"
                 SubmitDisabled="@(!CanSubmit)"
                 SubmitLabel="@(IsOrderedInsertionRequested ? RulesText["InsertSignedRule"] : RulesText["AddSignedRule"])"
                 SubmittingLabel="@(IsOrderedInsertionRequested ? RulesText["InsertingRule"] : RulesText["AddingRule"])"

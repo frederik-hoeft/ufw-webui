@@ -209,7 +209,7 @@ public sealed partial class Rules
 
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
             string uri = OrderedRuleInsertionNavigation.BuildUri(baseline, occurrenceId, request.Placement);
             Navigation.NavigateTo(uri);
         }
@@ -266,7 +266,7 @@ public sealed partial class Rules
         _reordering = true;
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
             RuleReorderResponse response = await RuleOrdering.ApplyAsync(
                 baseline,
                 _orderingPreview.DesiredOrder,

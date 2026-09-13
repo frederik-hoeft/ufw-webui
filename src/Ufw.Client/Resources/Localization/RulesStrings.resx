@@ -580,4 +580,10 @@
     <value>Insertion outcome is uncertain</value>
   </data>
   <data name="NoKnownHostMatches" xml:space="preserve"><value>No known host matches this name, address, or comment. You can still enter a literal address or CIDR.</value></data>
+  <data name="FirewallDefaults" xml:space="preserve"><value>Default policies</value></data>
+  <data name="DefaultIncoming" xml:space="preserve"><value>Incoming</value></data>
+  <data name="DefaultOutgoing" xml:space="preserve"><value>Outgoing</value></data>
+  <data name="DefaultRouted" xml:space="preserve"><value>Routed</value></data>
+  <data name="IPv6CapabilityEnabled" xml:space="preserve"><value>IPv6 enabled</value></data>
+  <data name="IPv6CapabilityDisabled" xml:space="preserve"><value>IPv6 disabled</value></data>
 </root>

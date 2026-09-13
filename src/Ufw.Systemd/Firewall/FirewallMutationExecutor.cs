@@ -14,6 +14,7 @@ namespace Ufw.Systemd.Firewall;
 internal sealed class FirewallMutationExecutor(
     IFirewallRuleSnapshotReader snapshotReader,
     IFirewallRuleInterfaceValidator interfaceValidator,
+    IFirewallRuleCapabilityValidator capabilityValidator,
     IUfwRunner ufwRunner,
     IUfwRuleCommandRenderer ufwRuleCommandRenderer,
     ILogger logger) : IFirewallMutationExecutor
@@ -28,12 +29,19 @@ internal sealed class FirewallMutationExecutor(
             return interfaceError;
         }
 
-        IReadOnlyList<string> identities = GetObservableIdentities(intent.Rule);
         FirewallRuleSnapshotReadResult existingSnapshot = await snapshotReader.ReadAsync(cancellationToken);
         if (existingSnapshot.Error is not null)
         {
             return existingSnapshot.Error;
         }
+
+        IResponsePayload? capabilityError = capabilityValidator.Validate(intent.Rule, existingSnapshot.Configuration!);
+        if (capabilityError is not null)
+        {
+            return capabilityError;
+        }
+
+        IReadOnlyList<string> identities = GetObservableIdentities(intent.Rule, existingSnapshot.Configuration!.IPv6Enabled);
         if (FirewallRuleSet.FindMatches(existingSnapshot.Snapshot!, identities).Count > 0)
         {
             return new ConflictResponse("A semantically identical rule already exists.");
@@ -202,7 +210,7 @@ internal sealed class FirewallMutationExecutor(
         return false;
     }
 
-    private static IReadOnlyList<string> GetObservableIdentities(FirewallRuleSpecification specification)
+    private static IReadOnlyList<string> GetObservableIdentities(FirewallRuleSpecification specification, bool ipv6Enabled)
     {
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(specification);
         if (normalized.AddressFamily != FirewallAddressFamily.Any)
@@ -211,6 +219,11 @@ internal sealed class FirewallMutationExecutor(
         }
 
         FirewallRuleSpecification ipv4 = CloneWithAddressFamily(normalized, FirewallAddressFamily.IPv4);
+        if (!ipv6Enabled)
+        {
+            return [RuleIdentity.Compute(ipv4)];
+        }
+
         FirewallRuleSpecification ipv6 = CloneWithAddressFamily(normalized, FirewallAddressFamily.IPv6);
         return [RuleIdentity.Compute(ipv4), RuleIdentity.Compute(ipv6)];
     }

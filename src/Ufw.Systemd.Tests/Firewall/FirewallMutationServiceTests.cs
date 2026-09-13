@@ -12,6 +12,7 @@ using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Firewall;
+using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.NetworkInterfaces;
 using Ufw.Systemd.Security.Intent;
@@ -41,6 +42,10 @@ public sealed class FirewallMutationServiceTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(response.Rules[0].RuleId));
         Assert.AreEqual(1, response.Rules[0].DisplayNumber);
         Assert.AreEqual("22", response.Rules[0].Rule!.DestinationPorts);
+        Assert.IsTrue(response.Configuration.IPv6Enabled);
+        Assert.AreEqual(FirewallDefaultPolicy.Deny, response.Configuration.IncomingPolicy);
+        Assert.AreEqual(FirewallDefaultPolicy.Allow, response.Configuration.OutgoingPolicy);
+        Assert.AreEqual(FirewallDefaultPolicy.Deny, response.Configuration.RoutedPolicy);
     }
 
     [TestMethod]
@@ -110,6 +115,71 @@ public sealed class FirewallMutationServiceTests
         harness.ProcessRunner.Verify(
             static runner => runner.RunAsync(
                 It.Is<ChildProcessRequest>(request => request.Arguments.SequenceEqual(s_deleteIpv6Args)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task TestAddAsync_Ipv6DisabledRejectsConcreteIpv6BeforeMutationAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        harness.UfwDefaultsReader
+            .Setup(static reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestFirewallConfiguration.Disabled);
+        FirewallRuleSpecification rule = CreateSshRule();
+        rule.AddressFamily = FirewallAddressFamily.IPv6;
+
+        IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(rule), TestContext.CancellationToken);
+
+        ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
+        Assert.IsTrue(validation.Errors.Any(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily)));
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task TestAddAsync_Ipv6DisabledRejectsFamilyNeutralInputThatNormalizesToIpv6Async()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
+        harness.UfwDefaultsReader
+            .Setup(static reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestFirewallConfiguration.Disabled);
+        FirewallRuleSpecification rule = CreateSshRule();
+        rule.Source = "2001:db8::1";
+
+        IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(rule), TestContext.CancellationToken);
+
+        ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
+        Assert.IsTrue(validation.Errors.Any(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily)));
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task TestAddAsync_Ipv6DisabledFamilyNeutralRuleIgnoresIpv6OnlyDuplicateAsync()
+    {
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
+        harness.UfwDefaultsReader
+            .Setup(static reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestFirewallConfiguration.Disabled);
+        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules(
+            "[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh",
+            "[ 4] 22/tcp (v6)                ALLOW IN    Anywhere (v6)              # ssh"));
+
+        IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(CreateSshRule()), TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<RuleMutationResponse>(response);
+        harness.ProcessRunner.Verify(
+            static runner => runner.RunAsync(
+                It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -565,6 +635,8 @@ public sealed class FirewallMutationServiceTests
             MutationSafetyGuard
                 .Setup(static guard => guard.EnsureSafeAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            UfwDefaultsReader = new Mock<IUfwDefaultsReader>();
+            UfwDefaultsReader.Setup(static reader => reader.ReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(TestFirewallConfiguration.Enabled);
             NetworkInterfaces = new Mock<INetworkInterfaceProvider>();
             NetworkInterfaces.Setup(static provider => provider.GetInterfaceNames()).Returns(["eno1", "lo"]);
             CurrentStatus = initialStatus;
@@ -579,6 +651,8 @@ public sealed class FirewallMutationServiceTests
         public Mock<IChildProcessRunner> ProcessRunner { get; }
 
         public Mock<IFirewallMutationSafetyGuard> MutationSafetyGuard { get; }
+
+        public Mock<IUfwDefaultsReader> UfwDefaultsReader { get; }
 
         public Mock<INetworkInterfaceProvider> NetworkInterfaces { get; }
 
@@ -659,11 +733,11 @@ public sealed class FirewallMutationServiceTests
             ConsoleLogger logger = new();
             IntentVerifier verifier = new(_keys, _deploymentIdentity, _configuration, _clock, MessageJsonSerializerContext.Default);
             UfwRunner runner = new(_configuration, ProcessRunner.Object);
-            FirewallRuleSnapshotReader snapshotReader = new(runner, logger);
+            FirewallRuleSnapshotReader snapshotReader = new(runner, UfwDefaultsReader.Object, logger);
             QueryService = new FirewallRuleQueryService(snapshotReader, _gate);
             NetworkInterfaceSnapshotService networkInterfaceSnapshots = new(NetworkInterfaces.Object, logger);
             FirewallRuleInterfaceValidator interfaceValidator = new(networkInterfaceSnapshots);
-            FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, runner, new UfwRuleCommandRenderer(), logger);
+            FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, new FirewallRuleCapabilityValidator(), runner, new UfwRuleCommandRenderer(), logger);
             return new FirewallMutationService(verifier, _nonces, _gate, MutationSafetyGuard.Object, mutationExecutor);
         }
 

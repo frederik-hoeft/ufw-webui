@@ -38,7 +38,8 @@ public sealed class RulesControllerTests
                         DestinationPorts = "22",
                     }
                 }
-            ]);
+            ],
+            TestFirewallConfiguration.Enabled);
         client
             .Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
@@ -342,7 +343,7 @@ public sealed class RulesControllerTests
 
     private static RuleInsertionResponse CreateInsertionResponse(RuleInsertionOutcome outcome) => new(
         outcome,
-        new RuleListResponse(Active: true, []),
+        new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
         null,
         "diagnostic");
 
@@ -364,7 +365,7 @@ public sealed class RulesControllerTests
 
     private static RuleReorderResponse CreateReorderResponse(RuleReorderOutcome outcome) => new(
         outcome,
-        new RuleListResponse(Active: true, []),
+        new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
         [new RuleReorderOperationResponse(
             new RuleReorderMoveResponse(1, 0, 0),
             RuleReorderOperationOutcome.FailedAndRestored,

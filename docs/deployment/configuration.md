@@ -109,7 +109,10 @@ The production template is `deploy/systemd/settings.json.example`.
 | --- | --- | --- |
 | `debug_mode` | include daemon diagnostic detail where supported | `false` |
 | `ufw_path` | UFW executable | `/usr/sbin/ufw` |
+| `ufw_defaults_path` | UFW host defaults used for IPv6 capability and default policies | `/etc/default/ufw` |
 | `write_to_console` | enable console logging for systemd capture | `true` |
+
+The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
 
 ### Pipe and stream security
 

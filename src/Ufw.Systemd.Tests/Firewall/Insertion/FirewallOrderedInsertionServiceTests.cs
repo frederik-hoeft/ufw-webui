@@ -183,7 +183,7 @@ public sealed class FirewallOrderedInsertionServiceTests
         Mock<INonceStore> nonceStore = CreateNonceStore();
         Mock<IFirewallMutationSafetyGuard> guard = CreateSafetyGuard();
         Mock<IFirewallOrderedInsertionExecutor> executor = new(MockBehavior.Strict);
-        RuleListResponse snapshot = new(Active: true, []);
+        RuleListResponse snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         executor.Setup(value => value.ExecuteAsync(It.IsAny<InsertRulePayload>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleInsertionExecutionResult(executionOutcome, snapshot, null, "diagnostic"));
         FirewallOrderedInsertionService service = new(
@@ -229,7 +229,7 @@ public sealed class FirewallOrderedInsertionServiceTests
     }
 
     private static RuleInsertionExecutionResult CompletedResult() =>
-        new(RuleInsertionExecutionOutcome.Completed, new RuleListResponse(Active: true, []), null, null);
+        new(RuleInsertionExecutionOutcome.Completed, new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled), null, null);
 
     private static InsertRuleRequest CreateRequest() => new()
     {

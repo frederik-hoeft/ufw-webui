@@ -580,4 +580,10 @@
     <value>Ergebnis des Einfügens ist ungewiss</value>
   </data>
   <data name="NoKnownHostMatches" xml:space="preserve"><value>Kein bekannter Host passt zu Name, Adresse oder Kommentar. Eine konkrete Adresse oder ein CIDR kann weiterhin direkt eingegeben werden.</value></data>
+  <data name="FirewallDefaults" xml:space="preserve"><value>Standardrichtlinien</value></data>
+  <data name="DefaultIncoming" xml:space="preserve"><value>Eingehend</value></data>
+  <data name="DefaultOutgoing" xml:space="preserve"><value>Ausgehend</value></data>
+  <data name="DefaultRouted" xml:space="preserve"><value>Weitergeleitet</value></data>
+  <data name="IPv6CapabilityEnabled" xml:space="preserve"><value>IPv6 aktiviert</value></data>
+  <data name="IPv6CapabilityDisabled" xml:space="preserve"><value>IPv6 deaktiviert</value></data>
 </root>
