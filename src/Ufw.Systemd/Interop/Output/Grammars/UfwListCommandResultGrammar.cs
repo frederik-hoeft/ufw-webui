@@ -11,7 +11,7 @@ internal sealed class UfwListCommandResultGrammar
 {
     private IParser UfwRuleListGrammar { get; }
 
-    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "That would be horrible to read.")]
+    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "That would be horrible to read with CRTP.")]
     public UfwListCommandResultGrammar()
     {
         IParser endpoint = Sequence<

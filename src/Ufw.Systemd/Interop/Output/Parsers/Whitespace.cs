@@ -13,11 +13,8 @@ internal sealed class Whitespace(string? name = null) : IParser<Whitespace>
 
     public bool TryParse(string input, int offset, [NotNullWhen(true)] out ISyntaxNode? syntaxNode, out int charsConsumed)
     {
-        int i = offset;
-        while (i < input.Length && char.IsWhiteSpace(input[i]))
-        {
-            i++;
-        }
+        int i;
+        for (i = offset; i < input.Length && char.IsWhiteSpace(input[i]); ++i) { }
         int consumed = i - offset;
         if (consumed == 0)
         {
