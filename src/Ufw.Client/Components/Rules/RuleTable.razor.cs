@@ -20,6 +20,7 @@ public sealed partial class RuleTable
 
     private ListedFirewallRule? _draggedRule;
     private ListedFirewallRule? _dragTargetRule;
+    private HashSet<string> _uniqueRuleIds = new(StringComparer.Ordinal);
 
     [Parameter]
     public IReadOnlyList<ListedFirewallRule> Rules { get; set; } = [];
@@ -48,6 +49,28 @@ public sealed partial class RuleTable
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
 
+    protected override void OnParametersSet()
+    {
+        Dictionary<string, int> ruleIdCounts = new(StringComparer.Ordinal);
+        foreach (ListedFirewallRule rule in Rules)
+        {
+            if (!string.IsNullOrWhiteSpace(rule.RuleId))
+            {
+                ruleIdCounts[rule.RuleId] = ruleIdCounts.GetValueOrDefault(rule.RuleId) + 1;
+            }
+        }
+
+        _uniqueRuleIds = [.. ruleIdCounts.Where(static pair => pair.Value == 1).Select(static pair => pair.Key)];
+    }
+
+    // Keep dragover browser-only in the Razor markup. It fires continuously during a native drag, and a Blazor event handler
+    // would otherwise schedule a full component render for every event. Dragenter only renders when the target row changes.
+    private Action BeginDragHandler(ListedFirewallRule rule)
+        => EventUtil.AsNonRenderingEventHandler(this, () => BeginDrag(rule));
+
+    private Action DragEnterHandler(ListedFirewallRule rule)
+        => EventUtil.AsNonRenderingEventHandler(this, () => SetDragTarget(rule));
+
     private string DragHandleLabel(ListedFirewallRule rule)
         => rule.DisplayNumber is { } number
             ? RulesText["DragRuleNumber", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
@@ -64,15 +87,9 @@ public sealed partial class RuleTable
     }
 
     private string DragHandleClass(ListedFirewallRule rule)
-    {
-        List<string> classes = ["rule-drag-handle"];
-        if (OrderingDisabled || !CanOrderRule(rule))
-        {
-            classes.Add("rule-drag-handle-disabled");
-        }
-
-        return string.Join(' ', classes);
-    }
+        => OrderingDisabled || !CanOrderRule(rule)
+            ? "rule-drag-handle rule-drag-handle-disabled"
+            : "rule-drag-handle";
 
     private string RowClass(ListedFirewallRule rule)
     {
@@ -122,23 +139,10 @@ public sealed partial class RuleTable
     internal static bool CanOrderRule(ListedFirewallRule rule) => rule.Parsed && rule.Rule is not null;
 
     private bool CanMutateRule(ListedFirewallRule rule)
-    {
-        if (!rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
-        {
-            return false;
-        }
-
-        int matches = 0;
-        foreach (ListedFirewallRule candidate in Rules)
-        {
-            if (string.Equals(candidate.RuleId, rule.RuleId, StringComparison.Ordinal) && ++matches > 1)
-            {
-                return false;
-            }
-        }
-
-        return matches == 1;
-    }
+        => rule.Parsed
+            && rule.Rule is not null
+            && rule.RuleId is { } ruleId
+            && _uniqueRuleIds.Contains(ruleId);
 
     private void BeginDrag(ListedFirewallRule rule)
     {
@@ -151,10 +155,13 @@ public sealed partial class RuleTable
 
     private void SetDragTarget(ListedFirewallRule rule)
     {
-        if (_draggedRule is not null)
+        if (_draggedRule is null || ReferenceEquals(_dragTargetRule, rule))
         {
-            _dragTargetRule = rule;
+            return;
         }
+
+        _dragTargetRule = rule;
+        StateHasChanged();
     }
 
     private void EndDrag()
