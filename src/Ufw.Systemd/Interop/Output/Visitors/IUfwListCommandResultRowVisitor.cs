@@ -1,4 +1,4 @@
-using Ufw.Shared.Parsing.Visitors;
+﻿using Ufw.Shared.Parsing.Visitors;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
 
 namespace Ufw.Systemd.Interop.Output.Visitors;
@@ -14,7 +14,6 @@ internal interface IUfwListCommandResultRowVisitor : INodeVisitor
     void Visit(V6HintSyntaxNode syntaxNode);
     void Visit(ActionSyntaxNode syntaxNode);
     void Visit(OutSyntaxNode syntaxNode);
-    void Visit(JsonCommentSyntaxNode syntaxNode);
     void Visit(CommentSyntaxNode syntaxNode);
     void Visit(AnywhereSyntaxNode anywhereSyntaxNode);
 }

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Ufw.Shared.Parsing.Visitors;
 
 namespace Ufw.Shared.Parsing.SyntaxNodes;

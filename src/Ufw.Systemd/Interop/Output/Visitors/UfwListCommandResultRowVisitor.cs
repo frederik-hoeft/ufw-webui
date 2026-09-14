@@ -1,9 +1,9 @@
-using ParsedFirewallAction = Ufw.Systemd.Interop.Output.Model.FirewallAction;
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.Grammars;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using ParsedFirewallAction = Ufw.Systemd.Interop.Output.Model.FirewallAction;
 
 namespace Ufw.Systemd.Interop.Output.Visitors;
 
@@ -69,8 +69,6 @@ internal sealed class UfwListCommandResultRowVisitor(UfwListCommandResultRow res
             throw new InvalidOperationException("Out node found but destination interface is not set.");
         }
     }
-
-    public void Visit(JsonCommentSyntaxNode syntaxNode) => result.Context = syntaxNode.Evaluate();
 
     public void Visit(CommentSyntaxNode syntaxNode) => result.Comment = syntaxNode.Evaluate();
 

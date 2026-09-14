@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Parsing.Parsers;
+﻿namespace Ufw.Shared.Parsing.Parsers;
 
 public interface IParser<TParser> : IParser
     where TParser : class, IParser<TParser>

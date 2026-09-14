@@ -19,7 +19,7 @@ namespace Ufw.Systemd.Tests.Firewall.Ordering;
 [SuppressMessage("Performance", "CA1861:Prefer 'static readonly' fields over constant array arguments", Justification = "Expected argv arrays are local one-shot test assertions.")]
 public sealed class FirewallReorderExecutorTests
 {
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task ExecuteAsync_MinimalMove_DeletesThenInsertsBeforeDesiredAnchorAsync()

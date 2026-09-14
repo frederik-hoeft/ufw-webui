@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Parsing.Parsers;
+﻿namespace Ufw.Shared.Parsing.Parsers;
 
 public sealed class Optional<TParser>() : Optional(TParser.Instance), IParser<Optional<TParser>> where TParser : class, IParser<TParser>
 {

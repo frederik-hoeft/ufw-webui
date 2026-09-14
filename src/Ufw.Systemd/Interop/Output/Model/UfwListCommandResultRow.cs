@@ -1,12 +1,12 @@
-﻿namespace Ufw.Systemd.Interop.Output.Model;
+﻿using Ufw.Shared.Firewall;
+
+namespace Ufw.Systemd.Interop.Output.Model;
 
 internal sealed class UfwListCommandResultRow
 {
-    public Ufw.Shared.Firewall.FirewallAddressFamily AddressFamily { get; set; } = Ufw.Shared.Firewall.FirewallAddressFamily.IPv4;
+    public FirewallAddressFamily AddressFamily { get; set; } = FirewallAddressFamily.IPv4;
 
     public int RowNumber { get; set; }
-
-    public UfwRuleContext? Context { get; set; }
 
     public RuleType Type { get; set; }
 

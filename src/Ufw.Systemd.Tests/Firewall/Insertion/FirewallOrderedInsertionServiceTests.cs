@@ -21,7 +21,7 @@ public sealed class FirewallOrderedInsertionServiceTests
     private const string NONCE = "test-nonce";
     private const long EXPIRES_AT_UNIX = 2_000_000_000;
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task InsertAsync_HoldsSharedGateAndRunsSafetyBeforeNonceAndExecutorAsync()

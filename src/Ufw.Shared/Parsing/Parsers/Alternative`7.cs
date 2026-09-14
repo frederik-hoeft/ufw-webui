@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Parsing.Parsers;
+﻿namespace Ufw.Shared.Parsing.Parsers;
 
 public sealed class Alternative<TParser1, TParser2, TParser3, TParser4, TParser5, TParser6, TParser7>(string? name = null)
     : Alternative(parsers: [TParser1.Instance, TParser2.Instance, TParser3.Instance, TParser4.Instance, TParser5.Instance, TParser6.Instance, TParser7.Instance], name), IParser<Alternative<TParser1, TParser2, TParser3, TParser4, TParser5, TParser6, TParser7>>

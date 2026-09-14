@@ -1,4 +1,4 @@
-namespace Ufw.Web.Services.KnownHosts;
+﻿namespace Ufw.Web.Services.KnownHosts;
 
 public enum KnownHostMutationOutcome
 {

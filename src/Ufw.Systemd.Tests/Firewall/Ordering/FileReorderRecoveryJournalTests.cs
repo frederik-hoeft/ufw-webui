@@ -7,7 +7,7 @@ namespace Ufw.Systemd.Tests.Firewall.Ordering;
 [TestClass]
 public sealed class FileReorderRecoveryJournalTests
 {
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task WriteAsync_PersistsEntryAcrossJournalInstancesAsync()

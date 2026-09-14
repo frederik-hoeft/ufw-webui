@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall;
+﻿namespace Ufw.Shared.Firewall;
 
 public sealed record FirewallConfigurationSnapshot(
     bool IPv6Enabled,

@@ -1,8 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
+using Ufw.Shared.Parsing;
 using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Shared.Parsing.Visitors;
-using Ufw.Shared.Parsing;
 
 namespace Ufw.Shared.Tests.Parsing;
 

@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Configuration;
 
 namespace Ufw.Ipc.Tests.Support;

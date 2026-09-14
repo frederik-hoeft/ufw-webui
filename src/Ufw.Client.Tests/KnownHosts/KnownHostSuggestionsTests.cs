@@ -1,4 +1,4 @@
-using Ufw.Client.Api;
+﻿using Ufw.Client.Api;
 using Ufw.Client.KnownHosts;
 using Ufw.Shared.Firewall;
 
@@ -63,12 +63,12 @@ public sealed class KnownHostSuggestionsTests
         string address,
         FirewallAddressFamily family,
         string comment) => new()
-    {
-        Id = Guid.CreateVersion7(),
-        Name = name,
-        Address = address,
-        AddressFamily = family,
-        Comment = comment,
-        IsVisible = true,
-    };
+        {
+            Id = Guid.CreateVersion7(),
+            Name = name,
+            Address = address,
+            AddressFamily = family,
+            Comment = comment,
+            IsVisible = true,
+        };
 }

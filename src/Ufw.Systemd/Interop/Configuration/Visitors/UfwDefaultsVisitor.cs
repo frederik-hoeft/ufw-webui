@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Configuration.SyntaxNodes;
 
 namespace Ufw.Systemd.Interop.Configuration.Visitors;

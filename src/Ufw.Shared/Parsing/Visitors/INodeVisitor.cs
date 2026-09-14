@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Parsing.Visitors;
+﻿namespace Ufw.Shared.Parsing.Visitors;
 
 /// <summary>
 /// Marker interface for syntax-tree visitors used by parser consumers.

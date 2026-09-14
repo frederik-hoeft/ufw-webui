@@ -62,7 +62,6 @@ public sealed class UfwDefaultsParserTests
         Assert.AreEqual(FirewallDefaultPolicy.Reject, snapshot.RoutedPolicy);
     }
 
-
     [TestMethod]
     public void TryParse_UnrelatedDefaultsSyntax_IsIgnored()
     {

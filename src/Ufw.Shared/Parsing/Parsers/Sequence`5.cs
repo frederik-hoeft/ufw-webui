@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Parsing.Parsers;
+﻿namespace Ufw.Shared.Parsing.Parsers;
 
 public sealed class Sequence<TParser1, TParser2, TParser3, TParser4, TParser5>(string? name = null)
     : Sequence(parsers: [TParser1.Instance, TParser2.Instance, TParser3.Instance, TParser4.Instance, TParser5.Instance], name), IParser<Sequence<TParser1, TParser2, TParser3, TParser4, TParser5>>

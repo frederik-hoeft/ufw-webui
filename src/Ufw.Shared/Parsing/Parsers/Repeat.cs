@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Parsing.SyntaxNodes;
 
 namespace Ufw.Shared.Parsing.Parsers;

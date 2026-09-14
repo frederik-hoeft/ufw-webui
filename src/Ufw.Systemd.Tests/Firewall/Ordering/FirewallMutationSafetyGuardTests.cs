@@ -7,7 +7,7 @@ namespace Ufw.Systemd.Tests.Firewall.Ordering;
 [TestClass]
 public sealed class FirewallMutationSafetyGuardTests
 {
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task EnsureSafeAsync_NoOutstandingJournal_DoesNothingAsync()

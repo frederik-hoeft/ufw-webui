@@ -1,5 +1,5 @@
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;

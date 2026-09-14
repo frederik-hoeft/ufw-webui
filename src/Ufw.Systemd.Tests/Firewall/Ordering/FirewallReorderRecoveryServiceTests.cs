@@ -22,7 +22,7 @@ public sealed class FirewallReorderRecoveryServiceTests
     private static readonly string[] s_ipv6RecoveryInsertArguments =
         ["insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"];
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task RecoverAsync_AfterJournalReopen_ReinsertsMissingRuleAndClearsJournalAsync()

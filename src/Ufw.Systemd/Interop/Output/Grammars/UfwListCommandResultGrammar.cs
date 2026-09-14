@@ -1,8 +1,8 @@
-﻿﻿using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Ufw.Shared.Parsing;
 using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;
-using Ufw.Shared.Parsing;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.Parsers;
 using Ufw.Systemd.Interop.Output.Visitors;
@@ -33,7 +33,7 @@ internal sealed class UfwListCommandResultGrammar
             .Parser(endpoint.NamedCopy(SourceGroup))
             .Parser<Optional<Whitespace>>()
             .Parser<Optional<Sequence<OutHint, Optional<Whitespace>>>>()
-            .Parser<Optional<Sequence<CommentStart, Alternative<JsonComment, Comment>>>>())
+            .Parser<Optional<Sequence<CommentStart, Comment>>>())
             .RequireVisitor<IUfwListCommandResultRowVisitor>();
     }
 

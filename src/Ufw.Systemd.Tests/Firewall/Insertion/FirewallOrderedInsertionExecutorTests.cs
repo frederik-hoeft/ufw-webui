@@ -21,7 +21,7 @@ namespace Ufw.Systemd.Tests.Firewall.Insertion;
 [SuppressMessage("Performance", "CA1861:Prefer 'static readonly' fields over constant array arguments", Justification = "Expected argv arrays are local one-shot test assertions.")]
 public sealed class FirewallOrderedInsertionExecutorTests
 {
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task ExecuteAsync_BeforeIpv4Anchor_UsesFamilyLocalPositionAndExactPostconditionAsync()
