@@ -53,8 +53,7 @@
                             if (rule.Parsed && rule.Rule is not null)
                             {
                                 <tr class="@RowClass(rule)"
-                                    @ondragenter="@(() => SetDragTarget(rule))"
-                                    @ondragover="@(() => SetDragTarget(rule))"
+                                    @ondragenter="@DragEnterHandler(rule)"
                                     @ondragover:preventDefault
                                     @ondrop="@(() => DropAsync(rule))">
                                     <td class="rule-drag-column">
@@ -64,7 +63,7 @@
                                                 disabled="@(OrderingDisabled || !CanOrderRule(rule))"
                                                 title="@DragHandleTitle(rule)"
                                                 aria-label="@DragHandleLabel(rule)"
-                                                @ondragstart="@(() => BeginDrag(rule))"
+                                                @ondragstart="@BeginDragHandler(rule)"
                                                 @ondragend="EndDrag">
                                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                                         </button>
@@ -143,8 +142,7 @@
                             else
                             {
                                 <tr class="@ReadOnlyRowClass(rule)"
-                                    @ondragenter="@(() => SetDragTarget(rule))"
-                                    @ondragover="@(() => SetDragTarget(rule))"
+                                    @ondragenter="@DragEnterHandler(rule)"
                                     @ondragover:preventDefault
                                     @ondrop="@(() => DropAsync(rule))">
                                     <td class="rule-drag-column">
@@ -181,8 +179,7 @@
                     if (rule.Parsed && rule.Rule is not null)
                     {
                         <article class="@MobileCardClass(rule)"
-                                 @ondragenter="@(() => SetDragTarget(rule))"
-                                 @ondragover="@(() => SetDragTarget(rule))"
+                                 @ondragenter="@DragEnterHandler(rule)"
                                  @ondragover:preventDefault
                                  @ondrop="@(() => DropAsync(rule))">
                             <div class="rule-mobile-card-header">
@@ -193,7 +190,7 @@
                                             disabled="@(OrderingDisabled || !CanOrderRule(rule))"
                                             title="@DragHandleTitle(rule)"
                                             aria-label="@DragHandleLabel(rule)"
-                                            @ondragstart="@(() => BeginDrag(rule))"
+                                            @ondragstart="@BeginDragHandler(rule)"
                                             @ondragend="EndDrag">
                                         <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                                     </button>
@@ -273,8 +270,7 @@
                     else
                     {
                         <article class="@ReadOnlyMobileCardClass(rule)"
-                                 @ondragenter="@(() => SetDragTarget(rule))"
-                                 @ondragover="@(() => SetDragTarget(rule))"
+                                 @ondragenter="@DragEnterHandler(rule)"
                                  @ondragover:preventDefault
                                  @ondrop="@(() => DropAsync(rule))">
                             <div class="rule-mobile-card-header">
