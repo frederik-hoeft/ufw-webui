@@ -9,7 +9,7 @@ public sealed class UfwDefaultsParserTests
     [TestMethod]
     public void TryParse_StandardDefaults_ReturnsAuthoritativeConfiguration()
     {
-        const string defaults = """
+        const string DEFAULTS = """
             # /etc/default/ufw
             IPV6=yes
             DEFAULT_INPUT_POLICY="DROP"
@@ -17,7 +17,7 @@ public sealed class UfwDefaultsParserTests
             DEFAULT_FORWARD_POLICY="REJECT"
             """;
 
-        bool parsed = UfwDefaultsParser.TryParse(defaults, out FirewallConfigurationSnapshot? snapshot);
+        bool parsed = UfwDefaultsParser.TryParse(DEFAULTS, out FirewallConfigurationSnapshot? snapshot);
 
         Assert.IsTrue(parsed);
         Assert.IsNotNull(snapshot);
@@ -30,9 +30,9 @@ public sealed class UfwDefaultsParserTests
     [TestMethod]
     public void TryParse_CrLfDefaults_ReturnsAuthoritativeConfiguration()
     {
-        const string defaults = "IPV6=yes\r\nDEFAULT_INPUT_POLICY=DROP\r\nDEFAULT_OUTPUT_POLICY=ACCEPT\r\nDEFAULT_FORWARD_POLICY=DROP\r\n";
+        const string DEFAULTS = "IPV6=yes\r\nDEFAULT_INPUT_POLICY=DROP\r\nDEFAULT_OUTPUT_POLICY=ACCEPT\r\nDEFAULT_FORWARD_POLICY=DROP\r\n";
 
-        bool parsed = UfwDefaultsParser.TryParse(defaults, out FirewallConfigurationSnapshot? snapshot);
+        bool parsed = UfwDefaultsParser.TryParse(DEFAULTS, out FirewallConfigurationSnapshot? snapshot);
 
         Assert.IsTrue(parsed);
         Assert.IsNotNull(snapshot);
@@ -45,14 +45,14 @@ public sealed class UfwDefaultsParserTests
     [TestMethod]
     public void TryParse_DisabledIpv6AndAliases_AreAccepted()
     {
-        const string defaults = """
+        const string DEFAULTS = """
             IPV6 = no # intentionally disabled
             DEFAULT_INPUT_POLICY = deny
             DEFAULT_OUTPUT_POLICY = 'allow' # comment
             DEFAULT_FORWARD_POLICY = reject
             """;
 
-        bool parsed = UfwDefaultsParser.TryParse(defaults, out FirewallConfigurationSnapshot? snapshot);
+        bool parsed = UfwDefaultsParser.TryParse(DEFAULTS, out FirewallConfigurationSnapshot? snapshot);
 
         Assert.IsTrue(parsed);
         Assert.IsNotNull(snapshot);
@@ -65,7 +65,7 @@ public sealed class UfwDefaultsParserTests
     [TestMethod]
     public void TryParse_UnrelatedDefaultsSyntax_IsIgnored()
     {
-        const string defaults = """
+        const string DEFAULTS = """
             # Representative unrelated /etc/default/ufw settings.
             IPT_SYSCTL=/etc/ufw/sysctl.conf
             IPT_MODULES="nf_conntrack_ftp nf_nat_ftp"
@@ -76,7 +76,7 @@ public sealed class UfwDefaultsParserTests
             DEFAULT_FORWARD_POLICY=DROP
             """;
 
-        bool parsed = UfwDefaultsParser.TryParse(defaults, out FirewallConfigurationSnapshot? snapshot);
+        bool parsed = UfwDefaultsParser.TryParse(DEFAULTS, out FirewallConfigurationSnapshot? snapshot);
 
         Assert.IsTrue(parsed);
         Assert.IsNotNull(snapshot);
@@ -89,7 +89,7 @@ public sealed class UfwDefaultsParserTests
     [TestMethod]
     public void TryParse_MalformedRequiredDuplicate_FailsClosed()
     {
-        const string defaults = """
+        const string DEFAULTS = """
             IPV6=yes
             DEFAULT_INPUT_POLICY=DROP
             DEFAULT_OUTPUT_POLICY=ACCEPT
@@ -97,7 +97,7 @@ public sealed class UfwDefaultsParserTests
             IPV6='no' trailing
             """;
 
-        Assert.IsFalse(UfwDefaultsParser.TryParse(defaults, out FirewallConfigurationSnapshot? snapshot));
+        Assert.IsFalse(UfwDefaultsParser.TryParse(DEFAULTS, out FirewallConfigurationSnapshot? snapshot));
         Assert.IsNull(snapshot);
     }
 

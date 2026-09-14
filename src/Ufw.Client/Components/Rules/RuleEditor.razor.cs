@@ -169,9 +169,9 @@ public sealed partial class RuleEditor
             .ToArray();
     }
 
-    private static void AddIPv6CapabilityErrors(FirewallRuleSpecification specification, List<ModelValidationError> errors)
+    private void AddIPv6CapabilityErrors(FirewallRuleSpecification specification, List<ModelValidationError> errors)
     {
-        const string message = "IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration.";
+        string message = ValidationText["Ipv6Disabled"];
         if (specification.AddressFamily == FirewallAddressFamily.IPv6)
         {
             errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), message));
