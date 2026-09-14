@@ -1,11 +1,14 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using Ufw.Shared.Parsing.Parsers;
+using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.Parsers;
 
-internal sealed partial class Protocol(string? name = null) : RegexParserBase<Protocol>(name), IParser<Protocol>, IRegexOwner
+internal sealed partial class Protocol(string? name = null) : RegexParserBase<Protocol, IUfwListCommandResultRowVisitor>(name), IParser<Protocol>, IRegexOwner
 {
     public static Protocol Instance { get; } = new();
 

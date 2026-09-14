@@ -17,6 +17,12 @@ This distinction is deliberate. Partial parser understanding is sufficient for o
 
 All UFW reads and writes pass through one daemon execution gate. A read therefore cannot observe an intermediate state from a daemon-managed compound operation, and a mutation can compare pre- and post-operation snapshots without another daemon request interleaving.
 
+### Parsing boundary
+
+Daemon-side text parsing uses a small parser-combinator substrate owned by `Ufw.Shared`. Its parser, syntax-node, and visitor contracts remain untyped so sequence, alternative, optional, and repetition combinators can be reused without propagating a domain visitor type through the grammar tree. Terminal nodes opt into a visitor contract only when interpretation requires one, and grammars validate visitor compatibility recursively when they are constructed.
+
+The numbered-rule grammar and UFW-defaults grammar therefore share the same structural parser machinery while retaining independent visitors and semantic models. The defaults grammar treats the configuration as repeated assignment lines and interprets only the UFW options required by the authoritative firewall snapshot. Unrelated defaults remain opaque, while a missing, malformed, or unsupported required option prevents the daemon from publishing a partially authoritative configuration.
+
 ## Structural rule semantics
 
 Supported rules are represented by normalized firewall semantics rather than by the exact text UFW happened to print. The model contains:

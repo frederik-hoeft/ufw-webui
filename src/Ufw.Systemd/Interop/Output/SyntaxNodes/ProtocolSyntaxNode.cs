@@ -1,9 +1,10 @@
-﻿using Ufw.Systemd.Interop.Output.Model;
+using Ufw.Shared.Parsing.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.SyntaxNodes;
 
-internal sealed class ProtocolSyntaxNode(string? name, UfwProtocol protocol) : SyntaxNodeBase<UfwProtocol>(name, protocol)
+internal sealed class ProtocolSyntaxNode(string? name, UfwProtocol protocol) : SyntaxNodeBase<IUfwListCommandResultRowVisitor, UfwProtocol>(name, protocol)
 {
-    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
+    protected override void Accept(IUfwListCommandResultRowVisitor visitor) => visitor.Visit(this);
 }

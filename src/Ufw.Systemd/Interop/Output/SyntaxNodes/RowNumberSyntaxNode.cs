@@ -1,8 +1,9 @@
-﻿using Ufw.Systemd.Interop.Output.Visitors;
+using Ufw.Shared.Parsing.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.SyntaxNodes;
 
-internal sealed class RowNumberSyntaxNode(string? name, int value) : SyntaxNodeBase<int>(name, value)
+internal sealed class RowNumberSyntaxNode(string? name, int value) : SyntaxNodeBase<IUfwListCommandResultRowVisitor, int>(name, value)
 {
-    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
+    protected override void Accept(IUfwListCommandResultRowVisitor visitor) => visitor.Visit(this);
 }

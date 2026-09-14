@@ -1,10 +1,13 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using Ufw.Shared.Parsing.Parsers;
+using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.Parsers;
 
-internal sealed partial class RowNumber(string? name = null) : RegexParserBase<RowNumber>(name), IParser<RowNumber>, IRegexOwner
+internal sealed partial class RowNumber(string? name = null) : RegexParserBase<RowNumber, IUfwListCommandResultRowVisitor>(name), IParser<RowNumber>, IRegexOwner
 {
     public static RowNumber Instance { get; } = new();
 

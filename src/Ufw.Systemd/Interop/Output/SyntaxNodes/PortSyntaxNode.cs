@@ -1,8 +1,9 @@
-﻿using Ufw.Systemd.Interop.Output.Visitors;
+using Ufw.Shared.Parsing.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.SyntaxNodes;
 
-internal sealed class PortSyntaxNode(string? name, string ports) : SyntaxNodeBase<string>(name, ports)
+internal sealed class PortSyntaxNode(string? name, string ports) : SyntaxNodeBase<IUfwListCommandResultRowVisitor, string>(name, ports)
 {
-    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
+    protected override void Accept(IUfwListCommandResultRowVisitor visitor) => visitor.Visit(this);
 }

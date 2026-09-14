@@ -1,11 +1,14 @@
-﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Ufw.Shared.Parsing.Parsers;
+using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.Parsers;
 
-internal sealed partial class PortSegment(string? name = null) : RegexParserBase<PortSegment>(name), IParser<PortSegment>, IRegexOwner
+internal sealed partial class PortSegment(string? name = null) : RegexParserBase<PortSegment, IUfwListCommandResultRowVisitor>(name), IParser<PortSegment>, IRegexOwner
 {
     public static PortSegment Instance { get; } = new();
 

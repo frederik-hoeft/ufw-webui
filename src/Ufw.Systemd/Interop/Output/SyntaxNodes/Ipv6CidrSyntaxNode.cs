@@ -1,8 +1,9 @@
-﻿using Ufw.Systemd.Interop.Output.Visitors;
+using Ufw.Shared.Parsing.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.SyntaxNodes;
 
-internal sealed class Ipv6CidrSyntaxNode(string? name, string sourceAddress) : SyntaxNodeBase<string>(name, sourceAddress)
+internal sealed class Ipv6CidrSyntaxNode(string? name, string sourceAddress) : SyntaxNodeBase<IUfwListCommandResultRowVisitor, string>(name, sourceAddress)
 {
-    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
+    protected override void Accept(IUfwListCommandResultRowVisitor visitor) => visitor.Visit(this);
 }
