@@ -14,6 +14,7 @@ namespace Ufw.Systemd.Firewall.Insertion;
 internal sealed class FirewallOrderedInsertionExecutor(
     IFirewallRuleSnapshotReader snapshotReader,
     IFirewallRuleInterfaceValidator interfaceValidator,
+    IFirewallRuleCapabilityValidator capabilityValidator,
     IUfwRunner ufwRunner,
     IUfwRuleCommandRenderer renderer,
     ILogger logger) : IFirewallOrderedInsertionExecutor
@@ -46,6 +47,12 @@ internal sealed class FirewallOrderedInsertionExecutor(
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
             return Result(RuleInsertionExecutionOutcome.PreconditionFailed, baseline, exception.Message);
+        }
+
+        IResponsePayload? capabilityError = capabilityValidator.Validate(rule, baseline.Configuration);
+        if (capabilityError is not null)
+        {
+            return Result(RuleInsertionExecutionOutcome.PreconditionFailed, baseline, GetResponseDiagnostic(capabilityError));
         }
 
         IResponsePayload? interfaceError = interfaceValidator.Validate(rule);
@@ -150,7 +157,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
     private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
     {
         FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!) : null;
+        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private static int GetExpectedInsertionIndex(

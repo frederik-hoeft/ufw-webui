@@ -79,7 +79,7 @@ Add, ordered insertion, and delete sign a normalized structural firewall rule. T
 
 The signature does not cover this JSON text directly. The daemon validates and normalizes the semantic values and rebuilds the canonical signed bytes defined below.
 
-A family-neutral rule is allowed for append add when the rule semantics do not force IPv4 or IPv6. UFW may materialize that add as separate concrete family rows. Ordered insertion and delete MUST carry a concrete IPv4 or IPv6 rule.
+A family-neutral rule is allowed for append add when the rule semantics do not force IPv4 or IPv6. UFW materializes that add as separate concrete family rows when IPv6 is enabled and as IPv4 only when IPv6 is disabled. Ordered insertion and delete MUST carry a concrete IPv4 or IPv6 rule.
 
 Interface fields follow UFW direction semantics. Inbound rules may use the inbound/destination-side interface, outbound rules may use the outbound/source-side interface, and forward rules may use both ingress and egress interfaces. Ambiguous combinations that would require precedence or fallback interpretation MUST be rejected.
 
@@ -106,7 +106,7 @@ The daemon MUST normalize and validate the rule. Under the execution gate it MUS
 }
 ```
 
-`baselineFingerprint` identifies the exact ordered `RuleListResponse` reviewed by the signer. `anchorOccurrenceId` is the zero-based occurrence of the selected row in that baseline, and `placement` is `Before` or `After`. Occurrence IDs are snapshot-local rather than semantic identities, so duplicate semantic anchor rows remain independently addressable.
+`baselineFingerprint` identifies the exact ordered firewall-list projection of the `RuleListResponse` reviewed by the signer. `anchorOccurrenceId` is the zero-based occurrence of the selected row in that baseline, and `placement` is `Before` or `After`. Occurrence IDs are snapshot-local rather than semantic identities, so duplicate semantic anchor rows remain independently addressable.
 
 The inserted rule MUST have a concrete address family equal to the parsed anchor's concrete family. Family-neutral ordered insertion is rejected because one signed occurrence identifies one concrete ordered position while a family-neutral UFW add may materialize into multiple family-specific rows. Under the serialized execution boundary, the daemon MUST require a fresh authoritative snapshot matching `baselineFingerprint` before interpreting the occurrence.
 
@@ -132,7 +132,7 @@ At execution time the daemon resolves that semantic identity against a fresh UFW
 }
 ```
 
-`baselineFingerprint` identifies the exact ordered `RuleListResponse` reviewed by the signer. `desiredOrder` contains zero-based occurrence IDs from that baseline and expresses the complete desired ordering. Occurrence IDs are snapshot-local identifiers, not semantic rule IDs or durable UFW row numbers.
+`baselineFingerprint` identifies the exact ordered firewall-list projection of the `RuleListResponse` reviewed by the signer. `desiredOrder` contains zero-based occurrence IDs from that baseline and expresses the complete desired ordering. Occurrence IDs are snapshot-local identifiers, not semantic rule IDs or durable UFW row numbers.
 
 The daemon MUST reject a malformed fingerprint. After authorization and nonce consumption, reorder preflight MUST require the desired order to be a complete valid permutation of the authoritative baseline and MUST enforce all daemon-side moveability and address-family ordering constraints before starting a reorder mutation.
 
@@ -252,7 +252,7 @@ Ordered insertion and reorder use a shared versioned fingerprint domain:
 ufw-webui/firewall-rule-snapshot/1
 ```
 
-The fingerprint commits to the exact authoritative list representation displayed to the signer, not only to semantic rule identities. Its canonical binary input contains, in order:
+The fingerprint commits to the exact authoritative ordered-list representation displayed to the signer, not only to semantic rule identities. Operational configuration carried beside that list in `RuleListResponse` (currently IPv6 capability and default policies) is intentionally outside fingerprint version 1; mutation-specific capability checks use fresh daemon configuration independently. Its canonical binary input contains, in order:
 
 1. the context string;
 2. firewall active state;
@@ -268,7 +268,7 @@ The fingerprint commits to the exact authoritative list representation displayed
 
 Strings are encoded as a four-byte big-endian byte length followed by UTF-8 bytes. Integers are four-byte big-endian values. Booleans are one byte (`0` or `1`). Nullable fields are preceded by a boolean presence marker. The SHA-256 digest of this binary representation is base64url encoded and exposed as `sha256:<digest>`.
 
-Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable for insertion anchors and reorder without creating a false durable identity. A signer MUST compute the fingerprint from the exact authoritative snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible state.
+Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable for insertion anchors and reorder without creating a false durable identity. A signer MUST compute the fingerprint from the exact authoritative ordered-list snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible rule order.
 
 ## Verification requirements
 

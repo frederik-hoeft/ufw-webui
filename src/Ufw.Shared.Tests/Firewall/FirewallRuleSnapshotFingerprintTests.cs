@@ -44,7 +44,7 @@ public sealed class FirewallRuleSnapshotFingerprintTests
     public void Compute_ReorderedRows_ChangesFingerprint()
     {
         RuleListResponse snapshot = CreateSnapshot();
-        RuleListResponse reordered = new(snapshot.Active, snapshot.Rules.Reverse().ToArray());
+        RuleListResponse reordered = new(snapshot.Active, snapshot.Rules.Reverse().ToArray(), snapshot.Configuration);
 
         Assert.AreNotEqual(
             FirewallRuleSnapshotFingerprint.Compute(snapshot),
@@ -55,11 +55,27 @@ public sealed class FirewallRuleSnapshotFingerprintTests
     public void Compute_ActiveStateChange_ChangesFingerprint()
     {
         RuleListResponse snapshot = CreateSnapshot();
-        RuleListResponse inactive = new(false, snapshot.Rules);
+        RuleListResponse inactive = new(false, snapshot.Rules, snapshot.Configuration);
 
         Assert.AreNotEqual(
             FirewallRuleSnapshotFingerprint.Compute(snapshot),
             FirewallRuleSnapshotFingerprint.Compute(inactive));
+    }
+
+    [TestMethod]
+    public void Compute_OperationalConfigurationChange_DoesNotChangeFingerprintVersionOne()
+    {
+        RuleListResponse snapshot = CreateSnapshot();
+        FirewallConfigurationSnapshot changedConfiguration = new(
+            IPv6Enabled: false,
+            IncomingPolicy: FirewallDefaultPolicy.Allow,
+            OutgoingPolicy: FirewallDefaultPolicy.Deny,
+            RoutedPolicy: FirewallDefaultPolicy.Reject);
+        RuleListResponse changed = new(snapshot.Active, snapshot.Rules, changedConfiguration);
+
+        Assert.AreEqual(
+            FirewallRuleSnapshotFingerprint.Compute(snapshot),
+            FirewallRuleSnapshotFingerprint.Compute(changed));
     }
 
     [TestMethod]
@@ -139,14 +155,14 @@ public sealed class FirewallRuleSnapshotFingerprintTests
             RawLine = "[ 2] unsupported raw ufw syntax",
             Rule = null,
         };
-        return new RuleListResponse(true, [parsed, opaque]);
+        return new RuleListResponse(true, [parsed, opaque], TestFirewallConfiguration.Enabled);
     }
 
     private static RuleListResponse ReplaceFirst(RuleListResponse source, ListedFirewallRule replacement)
     {
         ListedFirewallRule[] rules = source.Rules.ToArray();
         rules[0] = replacement;
-        return new RuleListResponse(source.Active, rules);
+        return new RuleListResponse(source.Active, rules, source.Configuration);
     }
 
     private static ListedFirewallRule CloneListed(

@@ -243,7 +243,7 @@ public sealed partial class CreateRule
             return;
         }
 
-        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
         _insertionResult = null;
         _submitting = true;
@@ -332,6 +332,7 @@ public sealed partial class CreateRule
         {
             OrderedRuleInsertionContextError.StaleBaseline => RulesText["InsertionBaselineStale"],
             OrderedRuleInsertionContextError.AnchorUnavailable => RulesText["InsertionTargetMissing"],
+            OrderedRuleInsertionContextError.CapabilityUnavailable => RulesText["InsertionIPv6Unavailable"],
             OrderedRuleInsertionContextError.InvalidFingerprint
                 or OrderedRuleInsertionContextError.InvalidPlacement
                 or OrderedRuleInsertionContextError.Incomplete => RulesText["InsertionContextInvalid"],

@@ -1,4 +1,5 @@
-﻿using Ufw.Mock.State;
+﻿using Ufw.Mock.Cli;
+using Ufw.Mock.State;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Rules;
@@ -12,6 +13,10 @@ internal sealed class ParsedRuleRequest
         FirewallAddressFamily family = Rule.Specification.AddressFamily;
         if (family != FirewallAddressFamily.Any)
         {
+            if (family == FirewallAddressFamily.IPv6 && !ipv6Enabled)
+            {
+                throw new UfwCliException("IPv6 support not enabled");
+            }
             return [CloneForFamily(Rule, family)];
         }
 

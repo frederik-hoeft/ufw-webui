@@ -102,7 +102,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
     private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
     {
         FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!) : null;
+        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private static int? FindUniqueAnchorIndex(IReadOnlyList<ListedFirewallRule> rules, RuleRecoveryAnchor? anchor)

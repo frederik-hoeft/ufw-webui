@@ -256,12 +256,12 @@ public sealed class HttpApiClientsTests
             }
             : null;
         return JsonSerializer.Serialize(
-            new RuleInsertionResponse(outcome, new RuleListResponse(true, inserted is null ? [] : [inserted]), inserted, Diagnostic: null),
+            new RuleInsertionResponse(outcome, new RuleListResponse(true, inserted is null ? [] : [inserted], TestFirewallConfiguration.Enabled), inserted, Diagnostic: null),
             MessageJsonSerializerContext.Default.RuleInsertionResponse);
     }
 
     private static string ReorderResponseJson(RuleReorderOutcome outcome) => JsonSerializer.Serialize(
-        new RuleReorderResponse(outcome, new RuleListResponse(true, []), [], [], [], Diagnostic: null),
+        new RuleReorderResponse(outcome, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], [], Diagnostic: null),
         MessageJsonSerializerContext.Default.RuleReorderResponse);
 
     private static string MutationResponseJson(string operation) =>

@@ -22,7 +22,8 @@ internal sealed class UfwRunner(IConfiguration configuration, IChildProcessRunne
             }
         }
 
-        ChildProcessRequest request = new(configuration.Settings.UfwPath, args, s_environment);
+        ImmutableDictionary<string, string> environment = s_environment.SetItem("UFW_DEFAULTS_PATH", configuration.Settings.UfwDefaultsPath);
+        ChildProcessRequest request = new(configuration.Settings.UfwPath, args, environment);
         ChildProcessResult result = await processRunner.RunAsync(request, cancellationToken);
         command.SetOutput(result.StandardOutput);
         return new UfwProcessResult(result.ExitCode, result.StandardOutput, result.StandardError, args, result.CancellationRequested);

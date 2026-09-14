@@ -22,4 +22,5 @@
   <data name="InboundInterface" xml:space="preserve"><value>Inbound rules cannot specify a source interface; use the destination interface field for the ingress interface.</value></data>
   <data name="OutboundInterface" xml:space="preserve"><value>Outbound rules cannot specify a destination interface; use the source interface field for the egress interface.</value></data>
   <data name="CommentInvalid" xml:space="preserve"><value>Comment must be 1-200 characters of a restricted safe alphabet.</value></data>
+  <data name="Ipv6Disabled" xml:space="preserve"><value>IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration.</value></data>
 </root>

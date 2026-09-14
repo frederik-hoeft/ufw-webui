@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Ufw.Client.Serialization;
 
 namespace Ufw.Client.Api;

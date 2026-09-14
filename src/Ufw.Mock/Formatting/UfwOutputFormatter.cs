@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using Ufw.Mock.Rules;
 using Ufw.Mock.State;
 using Ufw.Shared.Firewall;
 
@@ -7,7 +8,7 @@ namespace Ufw.Mock.Formatting;
 
 internal static class UfwOutputFormatter
 {
-    public static string FormatStatus(UfwMockState state, bool numbered, bool verbose)
+    public static string FormatStatus(UfwMockState state, bool numbered, bool verbose, bool ipv6Enabled)
     {
         ArgumentNullException.ThrowIfNull(state);
         if (!state.Enabled)
@@ -41,9 +42,10 @@ internal static class UfwOutputFormatter
         builder.Append(prefix);
         builder.AppendLine("--                         ------      ----");
 
-        for (int index = 0; index < state.Rules.Count; index++)
+        IReadOnlyList<UfwMockRule> observableRules = UfwRuleVisibility.GetObservableRules(state, ipv6Enabled);
+        for (int index = 0; index < observableRules.Count; index++)
         {
-            UfwMockRule rule = state.Rules[index];
+            UfwMockRule rule = observableRules[index];
             string rowPrefix = numbered ? $"[{(index + 1).ToString(CultureInfo.InvariantCulture),2}] " : string.Empty;
             builder.Append(rowPrefix);
             builder.AppendLine(FormatRuleRow(rule));
@@ -79,11 +81,11 @@ internal static class UfwOutputFormatter
         return row.TrimEnd();
     }
 
-    public static string FormatAdded(UfwMockState state)
+    public static string FormatAdded(UfwMockState state, bool ipv6Enabled)
     {
         StringBuilder builder = new();
         builder.AppendLine("Added user rules (see 'ufw status' for running firewall):");
-        foreach (UfwMockRule rule in state.Rules)
+        foreach (UfwMockRule rule in UfwRuleVisibility.GetObservableRules(state, ipv6Enabled))
         {
             builder.Append("ufw ");
             builder.AppendLine(FormatRuleCommand(rule));
@@ -91,16 +93,17 @@ internal static class UfwOutputFormatter
         return builder.ToString().TrimEnd();
     }
 
-    public static string FormatUserRules(UfwMockState state)
+    public static string FormatUserRules(UfwMockState state, bool ipv6Enabled)
     {
         StringBuilder builder = new();
         builder.AppendLine("# Ufw.Mock synthetic user-rules report");
-        for (int index = 0; index < state.Rules.Count; index++)
+        IReadOnlyList<UfwMockRule> observableRules = UfwRuleVisibility.GetObservableRules(state, ipv6Enabled);
+        for (int index = 0; index < observableRules.Count; index++)
         {
             builder.Append("# ");
             builder.Append((index + 1).ToString(CultureInfo.InvariantCulture));
             builder.Append(' ');
-            builder.AppendLine(FormatRuleCommand(state.Rules[index]));
+            builder.AppendLine(FormatRuleCommand(observableRules[index]));
         }
         return builder.ToString().TrimEnd();
     }

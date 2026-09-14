@@ -22,7 +22,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         UsingComponentAsync(CreateInsertRequest(), async (controller, request, serviceProvider, cancellationToken) =>
         {
             IntegrationUfwClient daemon = serviceProvider.GetRequiredService<IntegrationUfwClient>();
-            RuleListResponse finalSnapshot = new(Active: true, [Listed("existing", 1)]);
+            RuleListResponse finalSnapshot = new(Active: true, [Listed("existing", 1)], TestFirewallConfiguration.Enabled);
             daemon.InsertResponse = new RuleInsertionResponse(
                 RuleInsertionOutcome.StateUncertain,
                 finalSnapshot,
@@ -45,7 +45,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         UsingComponentAsync(CreateRequest(), async (controller, request, serviceProvider, cancellationToken) =>
         {
             IntegrationUfwClient daemon = serviceProvider.GetRequiredService<IntegrationUfwClient>();
-            RuleListResponse finalSnapshot = new(Active: true, []);
+            RuleListResponse finalSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
             daemon.ReorderResponse = new RuleReorderResponse(
                 RuleReorderOutcome.PartiallyCompleted,
                 finalSnapshot,

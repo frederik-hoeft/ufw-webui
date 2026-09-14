@@ -21,7 +21,7 @@ namespace Ufw.Systemd.Tests.Firewall.Insertion;
 [SuppressMessage("Performance", "CA1861:Prefer 'static readonly' fields over constant array arguments", Justification = "Expected argv arrays are local one-shot test assertions.")]
 public sealed class FirewallOrderedInsertionExecutorTests
 {
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task ExecuteAsync_BeforeIpv4Anchor_UsesFamilyLocalPositionAndExactPostconditionAsync()
@@ -101,6 +101,19 @@ public sealed class FirewallOrderedInsertionExecutorTests
         CollectionAssert.AreEqual(
             new[] { "insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
             harness.Commands.Single());
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_Ipv6DisabledRejectsIpv6InsertionWithoutMutationAsync()
+    {
+        using InsertionHarness harness = new(TestFirewallConfiguration.Disabled, Snapshot("80v6"));
+
+        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")),
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleInsertionExecutionOutcome.PreconditionFailed, result.Outcome);
+        Assert.IsEmpty(harness.Commands);
     }
 
     [TestMethod]
@@ -279,7 +292,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             "[ 1] 80/tcp                     ALLOW IN    Anywhere",
             "[ 2] unsupported opaque rule (v6)"))!;
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot);
+    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
 
     private sealed class InsertionHarness : IDisposable
     {
@@ -291,11 +304,16 @@ public sealed class FirewallOrderedInsertionExecutorTests
         private IResponsePayload? _interfaceValidationResponse;
 
         public InsertionHarness(params UfwStatusSnapshot?[] snapshots)
+            : this(TestFirewallConfiguration.Enabled, snapshots)
         {
-            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Select(static snapshot =>
+        }
+
+        public InsertionHarness(FirewallConfigurationSnapshot configuration, params UfwStatusSnapshot?[] snapshots)
+        {
+            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Select(snapshot =>
                 snapshot is null
-                    ? new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("test read failure"), null)
-                    : new FirewallRuleSnapshotReadResult(null, snapshot)));
+                    ? new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("test read failure"), null, null)
+                    : new FirewallRuleSnapshotReadResult(null, snapshot, configuration)));
             _snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshots.Dequeue());
@@ -309,6 +327,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             Executor = new FirewallOrderedInsertionExecutor(
                 _snapshotReader.Object,
                 _interfaceValidator.Object,
+                new FirewallRuleCapabilityValidator(),
                 _ufwRunner.Object,
                 new UfwRuleCommandRenderer(),
                 new ConsoleLogger());
@@ -325,7 +344,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         public InsertRulePayload Payload(int anchorOccurrenceId, RuleInsertionPlacement placement, FirewallRuleSpecification rule)
         {
-            RuleListResponse baseline = FirewallRuleSet.ToListResponse(_snapshots.Peek().Snapshot!);
+            RuleListResponse baseline = FirewallRuleSet.ToListResponse(_snapshots.Peek().Snapshot!, _snapshots.Peek().Configuration!);
             return new InsertRulePayload
             {
                 BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),

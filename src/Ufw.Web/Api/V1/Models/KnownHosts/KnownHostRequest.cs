@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Api.V1.Models.KnownHosts;

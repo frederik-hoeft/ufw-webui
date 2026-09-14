@@ -16,7 +16,8 @@ public sealed class UfwRunnerTests
     [TestMethod]
     public async Task ExecuteAsync_UsesDeterministicLocaleAndKeepsOutputStreamsSeparateAsync()
     {
-        TestConfiguration configuration = new(TestAppSettingsFactory.Create());
+        const string DEFAULTS_PATH = "/test/etc/default/ufw";
+        TestConfiguration configuration = new(TestAppSettingsFactory.Create(ufwDefaultsPath: DEFAULTS_PATH));
         Mock<IChildProcessRunner> processRunner = new();
         processRunner
             .Setup(static runner => runner.RunAsync(It.IsAny<ChildProcessRequest>(), It.IsAny<CancellationToken>()))
@@ -37,7 +38,8 @@ public sealed class UfwRunnerTests
                     request.Command == "/usr/sbin/ufw"
                     && request.Arguments.SequenceEqual(s_statusArguments)
                     && request.Environment["LC_ALL"] == "C"
-                    && request.Environment["LANG"] == "C"),
+                    && request.Environment["LANG"] == "C"
+                    && request.Environment["UFW_DEFAULTS_PATH"] == DEFAULTS_PATH),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

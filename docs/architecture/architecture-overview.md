@@ -70,7 +70,7 @@ The architecture distinguishes authoritative state from caches and presentation 
 
 | State | Owner | Notes |
 | --- | --- | --- |
-| Firewall rules and UFW enabled state | UFW, observed through `Ufw.Systemd` | Never reconstructed from PostgreSQL |
+| Firewall rules, enabled state, IPv6 capability, and default policies | UFW, observed through `Ufw.Systemd` | Never reconstructed from PostgreSQL |
 | Current host network interfaces | Host OS, observed through `Ufw.Systemd` | Re-read for add-rule validation |
 | Authorized mutation public keys | `Ufw.Systemd` operator state | Not writable through the web API |
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
@@ -86,15 +86,15 @@ Daemon-derived interface metadata is reconciled against host state, and host sta
 
 ### Reading firewall state
 
-The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity.
+The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one rule snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
 
-The browser treats each successful response as an authoritative snapshot. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
+The browser treats each successful response as an authoritative snapshot. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
 
 ### Mutating firewall state
 
 A firewall mutation uses two independent authorization layers. The HTTP request requires a valid web session, and the mutation body carries a browser-created signature that the daemon verifies independently.
 
-The browser first obtains the daemon's intent context and signs an operation-specific canonical payload with an authorized P-256 key. Append add binds normalized rule semantics; delete also binds the semantic rule identity. Ordered insertion binds the normalized new rule, a SHA-256 fingerprint of the exact ordered snapshot displayed by the browser, one snapshot-local anchor occurrence, and before/after placement. Reorder binds the same kind of exact snapshot fingerprint plus the complete desired occurrence permutation. `Ufw.Web` forwards the signed envelope without becoming mutation authority. The daemon verifies deployment scope, operation, payload semantics, signature, and freshness before entering the serialized mutation boundary, then durably consumes the nonce and reconciles every privileged UFW effect against fresh authoritative state.
+The browser first obtains the daemon's intent context and signs an operation-specific canonical payload with an authorized P-256 key. Append add binds normalized rule semantics; delete also binds the semantic rule identity. Ordered insertion binds the normalized new rule, a SHA-256 fingerprint of the exact ordered firewall-list projection displayed by the browser, one snapshot-local anchor occurrence, and before/after placement. Reorder binds the same ordered-list fingerprint plus the complete desired occurrence permutation. Operational UFW configuration carried with the rule response is checked independently rather than being folded into fingerprint version 1. `Ufw.Web` forwards the signed envelope without becoming mutation authority. The daemon verifies deployment scope, operation, payload semantics, signature, and freshness before entering the serialized mutation boundary, then durably consumes the nonce and reconciles every privileged UFW effect against fresh authoritative state.
 
 See [Firewall model](firewall-model.md) for state reconciliation and [Signed mutation intent v2](../protocols/signed-intent.md) for the exact signed contract.
 

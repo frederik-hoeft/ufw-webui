@@ -8,4 +8,5 @@ internal enum OrderedRuleInsertionContextError
     InvalidPlacement,
     StaleBaseline,
     AnchorUnavailable,
+    CapabilityUnavailable,
 }

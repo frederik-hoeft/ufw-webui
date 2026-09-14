@@ -206,10 +206,15 @@ public sealed partial class Rules
             Snackbar.Add(RulesText["InsertionTargetUnavailable"], Severity.Warning);
             return Task.CompletedTask;
         }
+        if (request.Rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6 && !snapshot.Configuration.IPv6Enabled)
+        {
+            Snackbar.Add(RulesText["InsertionIPv6Unavailable"], Severity.Warning);
+            return Task.CompletedTask;
+        }
 
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
             string uri = OrderedRuleInsertionNavigation.BuildUri(baseline, occurrenceId, request.Placement);
             Navigation.NavigateTo(uri);
         }
@@ -266,7 +271,7 @@ public sealed partial class Rules
         _reordering = true;
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules);
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
             RuleReorderResponse response = await RuleOrdering.ApplyAsync(
                 baseline,
                 _orderingPreview.DesiredOrder,

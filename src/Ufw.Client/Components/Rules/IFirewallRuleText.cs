@@ -10,6 +10,8 @@ internal interface IFirewallRuleText
 
     string FormatDirection(FirewallDirection direction);
 
+    string FormatDefaultPolicy(FirewallDefaultPolicy policy);
+
     string FormatAddressFamily(FirewallAddressFamily family);
 
     string FormatProtocol(FirewallProtocol protocol);

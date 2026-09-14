@@ -45,6 +45,7 @@ public static class UfwMockApplication
                 services.AddSingleton(options);
                 services.AddSingleton<UfwStateStore>();
                 services.AddSingleton<UfwRuleParser>();
+                services.AddSingleton<UfwCompatibilityConfiguration>();
                 services.AddSingleton<UfwCommandExecutionService>();
                 services.AddSingleton<UfwConfirmationService>();
                 services.AddSingleton<UfwLifecycleService>();

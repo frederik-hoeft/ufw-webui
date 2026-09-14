@@ -8,11 +8,13 @@ internal static class TestAppSettingsFactory
         string? authorizedKeysPath = null,
         string? nonceStorePath = null,
         string? deploymentIdPath = null,
-        string? reorderRecoveryJournalPath = null) =>
+        string? reorderRecoveryJournalPath = null,
+        string? ufwDefaultsPath = null) =>
         new()
         {
             DebugMode = true,
             UfwPath = "/usr/sbin/ufw",
+            UfwDefaultsPath = ufwDefaultsPath ?? "/nonexistent/ufw-defaults",
             WriteToConsole = false,
             Pipe = new PipeOptions
             {

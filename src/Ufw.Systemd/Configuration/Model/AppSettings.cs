@@ -6,6 +6,8 @@ internal sealed class AppSettings : IRequireValidation
 
     public string UfwPath { get; init; } = "/usr/sbin/ufw";
 
+    public string UfwDefaultsPath { get; init; } = "/etc/default/ufw";
+
     public bool WriteToConsole { get; set; }
 
     public required PipeOptions Pipe { get; set; }
@@ -17,6 +19,7 @@ internal sealed class AppSettings : IRequireValidation
     public bool AssertIsValid() => _ = this is
     {
         UfwPath.Length: > 0,
+        UfwDefaultsPath.Length: > 0,
         Pipe: not null,
     } && File.Exists(UfwPath) && Pipe.AssertIsValid() && Network.AssertIsValid()
         && Security?.AssertIsValid() is not false

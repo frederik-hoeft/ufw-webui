@@ -1,12 +1,14 @@
-﻿using Ufw.Shared.Ipc.Model.Responses;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Systemd.Interop.Commands;
+using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Interop.Output;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall;
 
-internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, ILogger logger) : IFirewallRuleSnapshotReader
+internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, IUfwDefaultsReader defaultsReader, ILogger logger) : IFirewallRuleSnapshotReader
 {
     private readonly ILogger<FirewallRuleSnapshotReader> _logger = logger.Scoped<FirewallRuleSnapshotReader>();
 
@@ -21,7 +23,7 @@ internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, ILogger l
         catch (ChildProcessException exception)
         {
             _logger.LogError(exception, "Failed to start UFW while reading the current rule set.");
-            return new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("Failed to start UFW while reading the current rule set."), null);
+            return Error("Failed to start UFW while reading the current rule set.");
         }
 
         if (result.CancellationRequested)
@@ -34,16 +36,25 @@ internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, ILogger l
         {
             string diagnostics = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
             _logger.LogError($"ufw status failed with exit code {result.ExitCode}: {diagnostics}");
-            return new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("Failed to read the current UFW rule set."), null);
+            return Error("Failed to read the current UFW rule set.");
         }
 
         UfwStatusSnapshot? snapshot = await command.GetResultAsync(cancellationToken);
         if (snapshot is null)
         {
             _logger.LogError("UFW status returned successful process output that could not be parsed as a status response.");
-            return new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("Failed to parse the current UFW rule set."), null);
+            return Error("Failed to parse the current UFW rule set.");
         }
 
-        return new FirewallRuleSnapshotReadResult(null, snapshot);
+        FirewallConfigurationSnapshot? configuration = await defaultsReader.ReadAsync(cancellationToken);
+        if (configuration is null)
+        {
+            return Error("Failed to read the current UFW configuration.");
+        }
+
+        return new FirewallRuleSnapshotReadResult(null, snapshot, configuration);
     }
+
+    private static FirewallRuleSnapshotReadResult Error(string message) =>
+        new(new InternalServerErrorResponse(message), null, null);
 }

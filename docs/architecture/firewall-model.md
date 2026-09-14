@@ -6,7 +6,7 @@ The consequence is that every mutable rule must be addressable from current obse
 
 ## Authoritative snapshots
 
-Rule listing reads `ufw status numbered` through the privileged daemon. The daemon runs UFW under a deterministic locale, keeps parseable stdout separate from stderr diagnostics, and parses the complete numbered listing into a snapshot.
+Rule listing reads `ufw status numbered` through the privileged daemon. The daemon runs UFW under a deterministic locale, keeps parseable stdout separate from stderr diagnostics, and parses the complete numbered listing into a snapshot. It also reads the configured UFW defaults file and attaches the effective IPv6 capability plus incoming, outgoing, and routed default policies to that same authoritative response. Failure to read or understand either source fails the snapshot read rather than publishing a partially authoritative configuration.
 
 A snapshot can contain two kinds of rows:
 
@@ -16,6 +16,12 @@ A snapshot can contain two kinds of rows:
 This distinction is deliberate. Partial parser understanding is sufficient for observability, but it is not sufficient authority to delete or rewrite a firewall rule.
 
 All UFW reads and writes pass through one daemon execution gate. A read therefore cannot observe an intermediate state from a daemon-managed compound operation, and a mutation can compare pre- and post-operation snapshots without another daemon request interleaving.
+
+### Parsing boundary
+
+Daemon-side text parsing uses a small parser-combinator substrate owned by `Ufw.Shared`. Its parser, syntax-node, and visitor contracts remain untyped so sequence, alternative, optional, and repetition combinators can be reused without propagating a domain visitor type through the grammar tree. Terminal nodes opt into a visitor contract only when interpretation requires one, and grammars validate visitor compatibility recursively when they are constructed.
+
+The numbered-rule grammar and UFW-defaults grammar therefore share the same structural parser machinery while retaining independent visitors and semantic models. The defaults grammar treats the configuration as repeated assignment lines and interprets only the UFW options required by the authoritative firewall snapshot. Unrelated defaults remain opaque, while a missing, malformed, or unsupported required option prevents the daemon from publishing a partially authoritative configuration.
 
 ## Structural rule semantics
 
@@ -46,9 +52,11 @@ This protects deletion from ordinary UFW renumbering and from stale browser snap
 
 ## Address-family materialization
 
-Add requests may be family-neutral when their semantic fields do not force IPv4 or IPv6. UFW can materialize such a request into concrete family-specific rows. The daemon therefore reasons about the observable concrete identities that can result from one structural add.
+Add requests may be family-neutral when their semantic fields do not force IPv4 or IPv6. With IPv6 enabled, UFW materializes such a request into concrete IPv4 and IPv6 rows. With IPv6 disabled, the same family-neutral command is IPv4-only. The daemon therefore reasons about the observable concrete identities that can result from one structural add under the current UFW capability. An explicitly IPv6 add is rejected before a mutating UFW command is issued.
 
-Listed rules and delete requests are always family-specific. Deleting a concrete IPv4 row does not implicitly delete a separate IPv6 row with otherwise similar semantics.
+The IPv6 capability is host configuration, not a property inferred from the current rule set. The browser uses the capability from the authoritative rule snapshot to disable IPv6 authoring and IPv6 known-host suggestions, while the daemon independently enforces it for append and ordered-insertion mutations. Per-rule address-family validation remains separate: a structurally IPv6 rule is still IPv6 regardless of whether the current host permits creating it.
+
+Listed rules and delete requests are always family-specific. UFW only loads and reports its IPv6 user-rule file while IPv6 support is enabled. If `IPV6=no`, previously stored IPv6 rules disappear from `status numbered` and are not part of the authoritative rule snapshot; UFW retains the backing IPv6 rule file, so those rows can become observable again if IPv6 is re-enabled. The web interface follows that UFW-visible state rather than inventing mutability for rules the active UFW configuration does not expose.
 
 ## Add lifecycle
 
@@ -57,7 +65,7 @@ An accepted add operation follows a conservative sequence:
 1. verify the signed intent and enter the daemon execution gate;
 2. durably consume the nonce;
 3. verify that referenced host interfaces currently exist;
-4. read current UFW state and reject a semantically identical existing rule;
+4. read current UFW state and configuration, reject unsupported IPv6 creation, and reject a semantically identical existing rule;
 5. render validated argv and start UFW directly, without a shell;
 6. retain ownership of the child process through normal exit or cancellation cleanup;
 7. read UFW again and require the expected semantic rule to be observable uniquely;
@@ -69,9 +77,9 @@ A zero child-process exit code is therefore necessary but not sufficient for suc
 
 Ordered insertion changes membership and placement together, so it is authorized independently from append-style add and reorder. The browser signs the normalized new rule, the fingerprint of the exact authoritative snapshot being reviewed, one zero-based snapshot-local anchor occurrence, and whether the new rule belongs before or after that anchor. Duplicate semantic anchor rows remain independently addressable because occurrence identity is meaningful only inside the signed snapshot.
 
-The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
+The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Because UFW does not expose IPv6 rows while IPv6 support is disabled, a valid disabled-IPv6 snapshot cannot provide an IPv6 insertion anchor; client and daemon validation additionally reject such an inconsistent context defensively. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
 
-Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
+Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW plus its configuration, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces, current IPv6 capability, and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
 
 Snapshot occurrences use the combined UFW listing for authorization, but UFW interprets `insert N` within the concrete address-family partition. The daemon translates the signed combined-list anchor into a family-local UFW insertion position immediately before command construction. It then executes one insertion and reconciles the complete post-state. Success requires every baseline occurrence to remain in relative order, exactly one requested rule materialization to have been added, and that row to occupy the signed slot. No recovery journal is needed because ordered insertion never removes an existing row.
 
@@ -90,7 +98,7 @@ Interface existence is intentionally not revalidated for delete. A rule referenc
 
 ## Reorder lifecycle
 
-Reordering is a state-conditioned mutation over one exact authoritative snapshot. The browser computes a versioned SHA-256 fingerprint from the complete ordered `RuleListResponse` it displays and assigns each row a snapshot-local occurrence ID equal to its zero-based position. The signed request binds that fingerprint and the complete desired occurrence permutation. Occurrence IDs are intentionally local to the fingerprinted snapshot; they distinguish duplicate semantic rules without pretending to be durable rule identities.
+Reordering is a state-conditioned mutation over one exact authoritative ordered rule list. The browser computes a versioned SHA-256 fingerprint from the firewall activity flag and complete ordered rule-list projection it displays, and assigns each row a snapshot-local occurrence ID equal to its zero-based position. Operational configuration carried beside the list is not part of fingerprint version 1 and is revalidated independently where it affects a mutation. The signed request binds that fingerprint and the complete desired occurrence permutation. Occurrence IDs are intentionally local to the fingerprinted snapshot; they distinguish duplicate semantic rules without pretending to be durable rule identities.
 
 Under the execution gate, the daemon re-lists UFW and requires the current fingerprint to equal the signed baseline before any reorder mutation begins. It validates that the desired order is a complete permutation, that concrete IPv4 rows remain before IPv6 rows, and that every occurrence which must move can be rendered losslessly for reinsertion. Opaque or otherwise non-reinsertable rows remain fixed anchors.
 

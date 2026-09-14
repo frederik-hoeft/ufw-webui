@@ -92,7 +92,7 @@ public sealed class RuleMutationServiceTests
             RuleId = "anchor",
             Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
         };
-        RuleListResponse baseline = new(Active: true, [anchor]);
+        RuleListResponse baseline = new(Active: true, [anchor], TestFirewallConfiguration.Enabled);
         FirewallRuleSpecification rule = new()
         {
             Action = FirewallAction.Allow,
@@ -131,7 +131,7 @@ public sealed class RuleMutationServiceTests
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION + 1, "deployment"));
 
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => host.Service.InsertRuleAsync(
-            new RuleListResponse(Active: true, []),
+            new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
             anchorOccurrenceId: 0,
             RuleInsertionPlacement.Before,
             new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },

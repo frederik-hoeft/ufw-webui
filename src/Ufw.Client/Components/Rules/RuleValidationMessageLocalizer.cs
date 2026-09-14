@@ -19,6 +19,7 @@ internal sealed class RuleValidationMessageLocalizer(IStringLocalizer<Validation
         ["IPv6 prefix length must be between 0 and 128."] = "Ipv6Prefix",
         ["Source and destination addresses must use the same address family."] = "AddressFamiliesMustMatch",
         ["Address family does not match the rule addresses."] = "AddressFamilyMismatch",
+        ["IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration."] = "Ipv6Disabled",
         ["Ports must be a comma-separated list of ports or port ranges."] = "PortsSyntax",
         ["Ports must be between 1 and 65535."] = "PortsRange",
         ["Port ranges must use values between 1 and 65535."] = "PortRangesRange",

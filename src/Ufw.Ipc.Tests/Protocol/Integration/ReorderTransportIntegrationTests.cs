@@ -98,7 +98,7 @@ public sealed class ReorderTransportIntegrationTests : IpcProtocolTestBase
         RuleReorderMoveResponse move = new(1, 0, 0);
         return new RuleReorderResponse(
             RuleReorderOutcome.PartiallyCompleted,
-            new RuleListResponse(Active: true, [rule]),
+            new RuleListResponse(Active: true, [rule], TestFirewallConfiguration.Enabled),
             [new RuleReorderOperationResponse(move, RuleReorderOperationOutcome.FailedAndRestored, "restored")],
             [new RuleReorderMoveResponse(0, 1, null)],
             [new RuleReorderMoveResponse(0, 1, null)],

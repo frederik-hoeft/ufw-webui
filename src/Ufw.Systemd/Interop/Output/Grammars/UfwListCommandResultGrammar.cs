@@ -1,18 +1,20 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Ufw.Shared.Parsing;
+using Ufw.Shared.Parsing.Parsers;
+using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.Parsers;
-using Ufw.Systemd.Interop.Output.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.Grammars;
 
 internal sealed class UfwListCommandResultGrammar
 {
-    private IParser UfwRuleListGrammar { get; }
+    private readonly IParser _ufwRuleListGrammar;
 
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "That would be horrible to read with CRTP.")]
-    public UfwListCommandResultGrammar()
+    private UfwListCommandResultGrammar()
     {
         IParser endpoint = Sequence<
             Alternative<Anywhere, Sequence<Alternative<Ipv4Cidr, Ipv6Cidr>, Optional<Sequence<Whitespace, PortSegment>>>, PortSegment>,
@@ -21,7 +23,7 @@ internal sealed class UfwListCommandResultGrammar
             Optional<Sequence<Whitespace, NetworkInterface>>,
             Optional<Sequence<Whitespace, V6Hint>>>.Instance;
 
-        UfwRuleListGrammar = Grammar.Sequence(sequence => sequence
+        _ufwRuleListGrammar = Grammar.Sequence(sequence => sequence
             .Parser<RowNumber>()
             .Parser<Whitespace>()
             .Parser(endpoint.NamedCopy(DestinationGroup))
@@ -31,7 +33,8 @@ internal sealed class UfwListCommandResultGrammar
             .Parser(endpoint.NamedCopy(SourceGroup))
             .Parser<Optional<Whitespace>>()
             .Parser<Optional<Sequence<OutHint, Optional<Whitespace>>>>()
-            .Parser<Optional<Sequence<CommentStart, Comment>>>());
+            .Parser<Optional<Sequence<CommentStart, Comment>>>())
+            .RequireVisitor<IUfwListCommandResultRowVisitor>();
     }
 
     internal static string SourceGroup => "source";
@@ -42,7 +45,7 @@ internal sealed class UfwListCommandResultGrammar
 
     public bool TryParse(string input, [NotNullWhen(true)] out UfwListCommandResultRow? result)
     {
-        if (!UfwRuleListGrammar.TryParse(input, 0, out ISyntaxNode? node, out int charsConsumed)
+        if (!_ufwRuleListGrammar.TryParse(input, 0, out ISyntaxNode? node, out int charsConsumed)
             || charsConsumed != input.Length)
         {
             result = null;

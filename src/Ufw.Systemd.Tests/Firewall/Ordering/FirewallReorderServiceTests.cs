@@ -18,7 +18,7 @@ namespace Ufw.Systemd.Tests.Firewall.Ordering;
 [TestClass]
 public sealed class FirewallReorderServiceTests
 {
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task ReorderAsync_HoldsSharedExecutionGateForEntireExecutorCallAsync()
@@ -184,7 +184,7 @@ public sealed class FirewallReorderServiceTests
         Mock<INonceStore> nonceStore = CreateNonceStore(consume: true);
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
-        RuleListResponse authoritativeSnapshot = new(Active: true, []);
+        RuleListResponse authoritativeSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         executor
             .Setup(candidate => candidate.ExecuteAsync(
                 It.Is<RuleReorderExecutionRequest>(request =>
@@ -250,7 +250,7 @@ public sealed class FirewallReorderServiceTests
         Mock<INonceStore> nonceStore = CreateNonceStore(consume: true);
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
-        RuleListResponse finalSnapshot = new(Active: true, []);
+        RuleListResponse finalSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         RuleReorderMove appliedMove = new(2, 0, 0);
         RuleReorderMove blockedMove = new(1, 2, null);
         RuleReorderExecutionResult executionResult = new(
@@ -320,7 +320,7 @@ public sealed class FirewallReorderServiceTests
 
     private static RuleReorderExecutionResult CompletedResult() => new(
         RuleReorderExecutionOutcome.Completed,
-        new RuleListResponse(Active: true, []),
+        new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
         [],
         [],
         [],

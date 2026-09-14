@@ -63,7 +63,7 @@ public sealed class InsertTransportIntegrationTests : IpcProtocolTestBase
     [DataRow(RuleInsertionOutcome.StateUncertain)]
     public Task NonSuccessInsertionOutcome_RoundTripsThroughProductionProtocolAsync(RuleInsertionOutcome outcome)
     {
-        RuleInsertionResponse expected = new(outcome, new RuleListResponse(Active: true, []), null, "diagnostic");
+        RuleInsertionResponse expected = new(outcome, new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled), null, "diagnostic");
         return RunAsync(
             configureEndpoints: endpoints => endpoints.MapPost<InsertRuleRequest, RuleInsertionResponse>(
                 ROUTE,
@@ -110,7 +110,7 @@ public sealed class InsertTransportIntegrationTests : IpcProtocolTestBase
         ListedFirewallRule inserted = Listed("sha256:inserted", 2, "22");
         return new RuleInsertionResponse(
             RuleInsertionOutcome.Completed,
-            new RuleListResponse(Active: true, [baseline, inserted]),
+            new RuleListResponse(Active: true, [baseline, inserted], TestFirewallConfiguration.Enabled),
             inserted,
             "completed");
     }

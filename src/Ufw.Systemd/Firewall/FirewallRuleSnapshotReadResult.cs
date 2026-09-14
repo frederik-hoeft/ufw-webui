@@ -1,6 +1,10 @@
-﻿using Ufw.Shared.Ipc.Model;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model;
 using Ufw.Systemd.Interop.Output;
 
 namespace Ufw.Systemd.Firewall;
 
-internal readonly record struct FirewallRuleSnapshotReadResult(IResponsePayload? Error, UfwStatusSnapshot? Snapshot);
+internal readonly record struct FirewallRuleSnapshotReadResult(
+    IResponsePayload? Error,
+    UfwStatusSnapshot? Snapshot,
+    FirewallConfigurationSnapshot? Configuration);

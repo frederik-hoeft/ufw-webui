@@ -10,6 +10,7 @@ namespace Ufw.Client.Components.Rules;
 public sealed partial class RuleEditor
 {
     private MudForm? _form;
+    private IReadOnlyList<KnownHostInventoryItem> _knownHosts = [];
     private IReadOnlyList<KnownHostInventoryItem> _visibleKnownHosts = [];
     private IReadOnlyList<NetworkInterfaceInventoryItem> _knownInterfaces = [];
     private IReadOnlyList<NetworkInterfaceInventoryItem> _visibleInterfaces = [];
@@ -52,6 +53,9 @@ public sealed partial class RuleEditor
     public bool AddressFamilyLocked { get; set; }
 
     [Parameter]
+    public bool IPv6Enabled { get; set; }
+
+    [Parameter]
     public bool SubmitDisabled { get; set; }
 
     [Parameter]
@@ -83,16 +87,20 @@ public sealed partial class RuleEditor
         await Task.WhenAll(LoadKnownHostsAsync(), LoadNetworkInterfacesAsync());
     }
 
+    protected override void OnParametersSet() => RefreshVisibleKnownHosts();
+
     private async Task LoadKnownHostsAsync()
     {
         try
         {
             KnownHostInventoryResponse inventory = await KnownHosts.RefreshAsync();
-            _visibleKnownHosts = inventory.Hosts.Where(static host => host.IsVisible).ToArray();
+            _knownHosts = inventory.Hosts;
+            RefreshVisibleKnownHosts();
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             _ = ClientErrors.Describe(exception);
+            _knownHosts = [];
             _visibleKnownHosts = [];
         }
     }
@@ -143,10 +151,39 @@ public sealed partial class RuleEditor
 
         int separator = propertyName.LastIndexOf('.');
         string memberName = separator < 0 ? propertyName : propertyName[(separator + 1)..];
-        ModelValidationError[] errors = RuleSpecificationValidator.Validate(specification);
+        List<ModelValidationError> errors = [.. RuleSpecificationValidator.Validate(specification)];
+        if (!IPv6Enabled)
+        {
+            AddIPv6CapabilityErrors(specification, errors);
+        }
+
         return errors
             .Where(error => string.Equals(error.PropertyName, memberName, StringComparison.Ordinal))
             .Select(ValidationMessages.Localize);
+    }
+
+    private void RefreshVisibleKnownHosts()
+    {
+        _visibleKnownHosts = _knownHosts
+            .Where(host => host.IsVisible && (IPv6Enabled || host.AddressFamily != FirewallAddressFamily.IPv6))
+            .ToArray();
+    }
+
+    private void AddIPv6CapabilityErrors(FirewallRuleSpecification specification, List<ModelValidationError> errors)
+    {
+        string message = ValidationText["Ipv6Disabled"];
+        if (specification.AddressFamily == FirewallAddressFamily.IPv6)
+        {
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), message));
+        }
+        if (RuleSpecificationNormalizer.GetAddressFamily(specification.Source) == FirewallAddressFamily.IPv6)
+        {
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Source), message));
+        }
+        if (RuleSpecificationNormalizer.GetAddressFamily(specification.Destination) == FirewallAddressFamily.IPv6)
+        {
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Destination), message));
+        }
     }
 
     private async Task DirectionChangedAsync(FirewallDirection value)

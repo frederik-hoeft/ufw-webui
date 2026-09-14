@@ -1,11 +1,14 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using Ufw.Shared.Parsing.Parsers;
+using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.Model;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.Parsers;
 
-internal sealed partial class RoutingAction(string? name = null) : RegexParserBase<RoutingAction>(name), IParser<RoutingAction>, IRegexOwner
+internal sealed partial class RoutingAction(string? name = null) : RegexParserBase<RoutingAction, IUfwListCommandResultRowVisitor>(name), IParser<RoutingAction>, IRegexOwner
 {
     public static RoutingAction Instance { get; } = new();
 

@@ -22,7 +22,7 @@ public sealed class FirewallReorderRecoveryServiceTests
     private static readonly string[] s_ipv6RecoveryInsertArguments =
         ["insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"];
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task RecoverAsync_AfterJournalReopen_ReinsertsMissingRuleAndClearsJournalAsync()
@@ -149,7 +149,7 @@ public sealed class FirewallReorderRecoveryServiceTests
             Mock<IFirewallRuleSnapshotReader> snapshotReader = new(MockBehavior.Strict);
             snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("read failed"), null));
+                .ReturnsAsync(new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("read failed"), null, null));
             Mock<IUfwRunner> runner = new(MockBehavior.Strict);
             RuleReorderRecoveryCoordinator coordinator = new(
                 snapshotReader.Object,
@@ -197,9 +197,9 @@ public sealed class FirewallReorderRecoveryServiceTests
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot);
+    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
 
-    private static FirewallRuleSnapshotReadResult ReadResult(UfwStatusSnapshot snapshot) => new(null, snapshot);
+    private static FirewallRuleSnapshotReadResult ReadResult(UfwStatusSnapshot snapshot) => new(null, snapshot, TestFirewallConfiguration.Enabled);
 
     private static string CreateTemporaryDirectory()
     {

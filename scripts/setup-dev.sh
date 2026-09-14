@@ -57,6 +57,9 @@ Environment:
   UFW_PATH           UFW executable written to daemon config. Defaults to command -v
                      ufw; on Unix falls back to /usr/sbin/ufw. On Windows, point this
                      at a Windows-compatible UFW mock/executable when one is not on PATH.
+  UFW_DEFAULTS_PATH  UFW defaults file written to daemon config. Defaults to
+                     /etc/default/ufw on Unix and a generated mock-compatible file
+                     under the development state directory on Windows.
 USAGE
 }
 
@@ -410,6 +413,27 @@ if is_windows && [[ "$ufw_path" != "ufw.exe" ]]; then
     ufw_path="$(to_host_path "$ufw_path")"
 fi
 
+ufw_defaults_path="${UFW_DEFAULTS_PATH:-}"
+generate_dev_ufw_defaults=false
+if [[ -n "$ufw_defaults_path" ]]; then
+    ufw_defaults_path="$(to_shell_path "$ufw_defaults_path")"
+elif is_windows; then
+    ufw_defaults_path="$STATE_DIR/ufw-defaults"
+    generate_dev_ufw_defaults=true
+else
+    ufw_defaults_path="/etc/default/ufw"
+fi
+
+if [[ "$generate_dev_ufw_defaults" == true ]]; then
+    cat > "$ufw_defaults_path" <<'EOF_UFW_DEFAULTS'
+IPV6=yes
+DEFAULT_INPUT_POLICY="DROP"
+DEFAULT_OUTPUT_POLICY="ACCEPT"
+DEFAULT_FORWARD_POLICY="DROP"
+EOF_UFW_DEFAULTS
+fi
+
+config_ufw_defaults_path="$(to_host_path "$ufw_defaults_path")"
 config_server_cert="$(to_host_path "$SERVER_CERT")"
 config_server_key="$(to_host_path "$SERVER_KEY")"
 config_authorized_keys="$(to_host_path "$AUTHORIZED_KEYS")"
@@ -417,6 +441,7 @@ config_nonce_store="$(to_host_path "$NONCE_STORE")"
 config_deployment_id="$(to_host_path "$STATE_DIR/deployment-id")"
 
 escaped_ufw_path="$(json_escape "$ufw_path")"
+escaped_ufw_defaults_path="$(json_escape "$config_ufw_defaults_path")"
 escaped_pipe_name="$(json_escape "$PIPE_NAME")"
 escaped_server_cert="$(json_escape "$config_server_cert")"
 escaped_server_key="$(json_escape "$config_server_key")"
@@ -428,6 +453,7 @@ cat > "$SYSTEMD_CONFIG" <<EOF_SYSTEMD_CONFIG
 {
   "debug_mode": true,
   "ufw_path": "$escaped_ufw_path",
+  "ufw_defaults_path": "$escaped_ufw_defaults_path",
   "write_to_console": true,
   "pipe": {
     "pipe_name": "$escaped_pipe_name",

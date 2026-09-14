@@ -32,6 +32,10 @@ internal static class OrderedRuleInsertionNavigation
         {
             throw new InvalidOperationException("Ordered insertion requires a parsed anchor with a concrete address family.");
         }
+        if (anchor.Rule.AddressFamily == FirewallAddressFamily.IPv6 && !baseline.Configuration.IPv6Enabled)
+        {
+            throw new InvalidOperationException("Ordered insertion cannot target IPv6 while IPv6 support is disabled.");
+        }
 
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
         return $"{CREATE_RULE_PATH}?baseline={Uri.EscapeDataString(fingerprint)}"
@@ -88,6 +92,11 @@ internal static class OrderedRuleInsertionNavigation
             || anchor.Rule.AddressFamily is not (FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6))
         {
             error = OrderedRuleInsertionContextError.AnchorUnavailable;
+            return false;
+        }
+        if (anchor.Rule.AddressFamily == FirewallAddressFamily.IPv6 && !snapshot.Configuration.IPv6Enabled)
+        {
+            error = OrderedRuleInsertionContextError.CapabilityUnavailable;
             return false;
         }
 

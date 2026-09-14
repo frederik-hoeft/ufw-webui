@@ -2,6 +2,7 @@
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
+using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
 
@@ -11,6 +12,7 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<TimeProvider>(Factory = nameof(GetTimeProvider))]
 [Singleton<IChildProcessRunner, DefaultChildProcessRunner>]
 [Singleton<IUfwRunner, UfwRunner>]
+[Singleton<IUfwDefaultsReader, UfwDefaultsReader>]
 [Singleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>]
 [Singleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>]
 [Singleton<INonceStore, FileNonceStore>]
@@ -30,6 +32,7 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]
 [Singleton<IFirewallRuleQueryService, FirewallRuleQueryService>]
 [Singleton<IFirewallRuleInterfaceValidator, FirewallRuleInterfaceValidator>]
+[Singleton<IFirewallRuleCapabilityValidator, FirewallRuleCapabilityValidator>]
 [Singleton<IFirewallMutationExecutor, FirewallMutationExecutor>]
 [Singleton<IFirewallMutationService, FirewallMutationService>]
 internal interface IFirewallModule

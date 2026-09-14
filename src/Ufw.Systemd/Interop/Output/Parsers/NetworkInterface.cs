@@ -1,10 +1,13 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using Ufw.Shared.Parsing.Parsers;
+using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.SyntaxNodes;
+using Ufw.Systemd.Interop.Output.Visitors;
 
 namespace Ufw.Systemd.Interop.Output.Parsers;
 
-internal sealed partial class NetworkInterface(string? name = null) : RegexParserBase<NetworkInterface>(name), IParser<NetworkInterface>, IRegexOwner
+internal sealed partial class NetworkInterface(string? name = null) : RegexParserBase<NetworkInterface, IUfwListCommandResultRowVisitor>(name), IParser<NetworkInterface>, IRegexOwner
 {
     public static NetworkInterface Instance { get; } = new();
 

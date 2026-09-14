@@ -14,7 +14,7 @@ public sealed class RuleOrderingServiceTests
     [TestMethod]
     public async Task ApplyAsync_FingerprintsExactDisplayedBaselineAndSignsCompletePermutationAsync()
     {
-        RuleListResponse baseline = new(true, [Rule("dup", 1), Rule("dup", 2)]);
+        RuleListResponse baseline = new(true, [Rule("dup", 1), Rule("dup", 2)], TestFirewallConfiguration.Enabled);
         int[] desiredOrder = [1, 0];
         RuleReorderResponse expected = Response(RuleReorderOutcome.PartiallyCompleted, baseline);
         Mock<IRuleApiClient> api = new();
@@ -58,7 +58,7 @@ public sealed class RuleOrderingServiceTests
         RuleOrderingService service = new(api.Object, context.Object, signer.Object);
 
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() =>
-            service.ApplyAsync(new RuleListResponse(true, [Rule("a", 1)]), [0], "private-key"));
+            service.ApplyAsync(new RuleListResponse(true, [Rule("a", 1)], TestFirewallConfiguration.Enabled), [0], "private-key"));
 
         signer.VerifyNoOtherCalls();
         api.VerifyNoOtherCalls();
@@ -71,7 +71,7 @@ public sealed class RuleOrderingServiceTests
         Mock<IIntentContextApiClient> context = new();
         Mock<IIntentSigningService> signer = new();
         RuleOrderingService service = new(api.Object, context.Object, signer.Object);
-        RuleListResponse baseline = new(true, [Rule("a", 1), Rule("b", 2)]);
+        RuleListResponse baseline = new(true, [Rule("a", 1), Rule("b", 2)], TestFirewallConfiguration.Enabled);
 
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0], "private-key"));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0, 0], "private-key"));

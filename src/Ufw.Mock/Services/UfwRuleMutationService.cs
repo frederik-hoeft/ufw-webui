@@ -7,20 +7,20 @@ namespace Ufw.Mock.Services;
 
 internal sealed class UfwRuleMutationService
 {
-    public IReadOnlyList<UfwRuleMutationResult> Add(UfwMockState state, ParsedRuleRequest request) =>
-        Mutate(state, request, RulePlacement.Append, null);
+    public IReadOnlyList<UfwRuleMutationResult> Add(UfwMockState state, ParsedRuleRequest request, bool ipv6Enabled) =>
+        Mutate(state, request, ipv6Enabled, RulePlacement.Append, null);
 
-    public IReadOnlyList<UfwRuleMutationResult> Insert(UfwMockState state, ParsedRuleRequest request, int insertNumber) =>
-        Mutate(state, request, RulePlacement.Insert, insertNumber);
+    public IReadOnlyList<UfwRuleMutationResult> Insert(UfwMockState state, ParsedRuleRequest request, int insertNumber, bool ipv6Enabled) =>
+        Mutate(state, request, ipv6Enabled, RulePlacement.Insert, insertNumber);
 
-    public IReadOnlyList<UfwRuleMutationResult> Prepend(UfwMockState state, ParsedRuleRequest request) =>
-        Mutate(state, request, RulePlacement.Prepend, null);
+    public IReadOnlyList<UfwRuleMutationResult> Prepend(UfwMockState state, ParsedRuleRequest request, bool ipv6Enabled) =>
+        Mutate(state, request, ipv6Enabled, RulePlacement.Prepend, null);
 
-    public List<UfwMockRule> Delete(UfwMockState state, ParsedRuleRequest request)
+    public List<UfwMockRule> Delete(UfwMockState state, ParsedRuleRequest request, bool ipv6Enabled)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(request);
-        IReadOnlyList<UfwMockRule> targets = request.Materialize(state.IPv6Enabled);
+        IReadOnlyList<UfwMockRule> targets = request.Materialize(ipv6Enabled);
         List<UfwMockRule> matches = [];
         foreach (UfwMockRule target in targets)
         {
@@ -42,31 +42,34 @@ internal sealed class UfwRuleMutationService
         return matches;
     }
 
-    public UfwMockRule DeleteByNumber(UfwMockState state, int displayNumber)
+    public UfwMockRule DeleteByNumber(UfwMockState state, int displayNumber, bool ipv6Enabled)
     {
         if (displayNumber <= 0)
         {
             throw new UfwCliException("Rule numbers are one-based.");
         }
-        if (displayNumber > state.Rules.Count)
+
+        IReadOnlyList<UfwMockRule> observableRules = UfwRuleVisibility.GetObservableRules(state, ipv6Enabled);
+        if (displayNumber > observableRules.Count)
         {
             throw new UfwCliException("Could not delete non-existent rule");
         }
 
-        UfwMockRule rule = state.Rules[displayNumber - 1];
-        state.Rules.RemoveAt(displayNumber - 1);
+        UfwMockRule rule = observableRules[displayNumber - 1];
+        state.Rules.Remove(rule);
         return rule;
     }
 
     private static IReadOnlyList<UfwRuleMutationResult> Mutate(
         UfwMockState state,
         ParsedRuleRequest request,
+        bool ipv6Enabled,
         RulePlacement placement,
         int? insertNumber)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(request);
-        IReadOnlyList<UfwMockRule> concreteRules = request.Materialize(state.IPv6Enabled);
+        IReadOnlyList<UfwMockRule> concreteRules = request.Materialize(ipv6Enabled);
         if (placement == RulePlacement.Insert && (insertNumber is null || insertNumber <= 0))
         {
             throw new UfwCliException($"Invalid position '{insertNumber}'.");

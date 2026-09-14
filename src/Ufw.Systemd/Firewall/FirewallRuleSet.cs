@@ -6,16 +6,17 @@ namespace Ufw.Systemd.Firewall;
 
 internal static class FirewallRuleSet
 {
-    public static RuleListResponse ToListResponse(UfwStatusSnapshot snapshot)
+    public static RuleListResponse ToListResponse(UfwStatusSnapshot snapshot, FirewallConfigurationSnapshot configuration)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(configuration);
         List<ListedFirewallRule> rules = new(snapshot.Rules.Count);
         foreach (ObservedUfwRule observed in snapshot.Rules)
         {
             rules.Add(UfwRuleMapper.ToListedRule(observed));
         }
 
-        return new RuleListResponse(snapshot.Active, rules);
+        return new RuleListResponse(snapshot.Active, rules, configuration);
     }
 
     public static List<ListedFirewallRule> FindMatches(UfwStatusSnapshot snapshot, string identity) =>

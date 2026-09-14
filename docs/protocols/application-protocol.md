@@ -149,13 +149,15 @@ The current application-v1 daemon routes are:
 | --- | --- | --- | --- |
 | `GET` | `/api/v1/intent/context` | read deployment identity and signed-intent protocol version | no |
 | `GET` | `/api/v1/network-interfaces` | enumerate current host interface names | no |
-| `GET` | `/api/v1/rules` | read authoritative UFW state | no |
+| `GET` | `/api/v1/rules` | read authoritative UFW rules plus effective IPv6/default-policy configuration | no |
 | `POST` | `/api/v1/rules` | append a rule | yes, `rules.add` |
 | `POST` | `/api/v1/rules/insert` | insert a concrete-family rule before or after an occurrence in the exact reviewed snapshot | yes, `rules.insert` |
 | `PUT` | `/api/v1/rules/order` | reorder the exact reviewed rule snapshot | yes, `rules.reorder` |
 | `DELETE` | `/api/v1/rules` | delete a concrete rule | yes, `rules.delete` |
 
 The interface route carries host-observed names only. ASP-owned UUIDs, comments, and visibility metadata are intentionally outside IPC.
+
+A successful rules response is one authoritative snapshot. In addition to firewall activity and listed rows, it carries the daemon-observed UFW configuration needed by rule authoring: whether IPv6 rule creation is enabled and the incoming, outgoing, and routed default policies. `Ufw.Web` forwards this operational state without persisting or reconciling it into PostgreSQL.
 
 ## Response semantics
 

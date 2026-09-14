@@ -32,7 +32,7 @@ public sealed class OperationalStatusServiceTests
         Task refresh = service.RefreshAsync();
         Assert.IsTrue(service.IsRefreshing);
         clock.Advance(TimeSpan.FromMilliseconds(125));
-        rulesResult.SetResult(new RuleListResponse(true, [new ListedFirewallRule(), new ListedFirewallRule()]));
+        rulesResult.SetResult(new RuleListResponse(true, [new ListedFirewallRule(), new ListedFirewallRule()], TestFirewallConfiguration.Enabled));
         await refresh;
 
         Assert.IsFalse(service.IsRefreshing);
@@ -57,7 +57,7 @@ public sealed class OperationalStatusServiceTests
         HttpRequestException failure = new("daemon unavailable");
         ClientError mapped = new(ClientErrorKind.Unavailable, "unavailable", true);
         rules.Setup(client => client.GetRulesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleListResponse(false, []));
+            .ReturnsAsync(new RuleListResponse(false, [], TestFirewallConfiguration.Enabled));
         intent.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromException<IntentContextResponse>(failure));
         errors.Setup(mapper => mapper.Describe(failure)).Returns(mapped);

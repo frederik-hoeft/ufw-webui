@@ -8,6 +8,8 @@ public sealed class UfwCliBlackboxTests
 {
     private string _temporaryDirectory = null!;
     private string _statePath = null!;
+    private string _defaultsPath = null!;
+    private string? _originalDefaultsPath;
 
     [TestInitialize]
     public void Initialize()
@@ -15,11 +17,16 @@ public sealed class UfwCliBlackboxTests
         _temporaryDirectory = Path.Combine(Path.GetTempPath(), "Ufw.Mock.BlackboxTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_temporaryDirectory);
         _statePath = Path.Combine(_temporaryDirectory, "state.json");
+        _defaultsPath = Path.Combine(_temporaryDirectory, "ufw-defaults");
+        File.WriteAllText(_defaultsPath, "IPV6=yes\n");
+        _originalDefaultsPath = Environment.GetEnvironmentVariable("UFW_DEFAULTS_PATH");
+        Environment.SetEnvironmentVariable("UFW_DEFAULTS_PATH", _defaultsPath);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        Environment.SetEnvironmentVariable("UFW_DEFAULTS_PATH", _originalDefaultsPath);
         try
         {
             Directory.Delete(_temporaryDirectory, recursive: true);
@@ -78,6 +85,47 @@ public sealed class UfwCliBlackboxTests
         StringAssert.Contains(status.StdOut, "[ 2] 22/tcp (v6)");
         StringAssert.Contains(status.StdOut, "Anywhere (v6) # ssh");
         Assert.IsFalse(status.StdOut.Contains("Anywhere/tcp", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task Ipv6DisabledMatchesUfwVisibilityAndMutationSemanticsAsync()
+    {
+        _ = await InvokeAsync("allow", "22/tcp");
+        _ = await InvokeAsync("--force", "enable");
+
+        CommandResult enabledStatus = await InvokeAsync("status", "numbered");
+        StringAssert.Contains(enabledStatus.StdOut, "22/tcp (v6)");
+
+        await File.WriteAllTextAsync(_defaultsPath, "IPV6=no\n");
+
+        CommandResult disabledStatus = await InvokeAsync("status", "numbered");
+        StringAssert.Contains(disabledStatus.StdOut, "[ 1] 22/tcp");
+        Assert.IsFalse(disabledStatus.StdOut.Contains("(v6)", StringComparison.Ordinal));
+
+        CommandResult addAny = await InvokeAsync("allow", "443/tcp");
+        Assert.AreEqual(0, addAny.ExitCode);
+        Assert.AreEqual("Rule added", addAny.StdOut);
+
+        CommandResult addIpv6 = await InvokeAsync("allow", "from", "::/0", "to", "::/0", "port", "8443", "proto", "tcp");
+        Assert.AreEqual(1, addIpv6.ExitCode);
+        StringAssert.Contains(addIpv6.StdErr, "IPv6 support not enabled");
+
+        CommandResult disabledAdded = await InvokeAsync("show", "added");
+        Assert.IsFalse(disabledAdded.StdOut.Contains("::/0", StringComparison.Ordinal));
+        Assert.AreEqual(1, CountOccurrences(disabledAdded.StdOut, "22"));
+        Assert.AreEqual(1, CountOccurrences(disabledAdded.StdOut, "443"));
+
+        CommandResult delete = await InvokeAsync("--force", "delete", "1");
+        Assert.AreEqual(0, delete.ExitCode);
+        CommandResult afterDelete = await InvokeAsync("status", "numbered");
+        StringAssert.Contains(afterDelete.StdOut, "[ 1] 443/tcp");
+        Assert.IsFalse(afterDelete.StdOut.Contains("22/tcp", StringComparison.Ordinal));
+
+        await File.WriteAllTextAsync(_defaultsPath, "IPV6=yes\n");
+        CommandResult reenabledStatus = await InvokeAsync("status", "numbered");
+        StringAssert.Contains(reenabledStatus.StdOut, "22/tcp (v6)");
+        StringAssert.Contains(reenabledStatus.StdOut, "443/tcp");
+        Assert.AreEqual(1, CountOccurrences(reenabledStatus.StdOut, "443/tcp"));
     }
 
     [TestMethod]
