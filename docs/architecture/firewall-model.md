@@ -46,11 +46,11 @@ This protects deletion from ordinary UFW renumbering and from stale browser snap
 
 ## Address-family materialization
 
-Add requests may be family-neutral when their semantic fields do not force IPv4 or IPv6. UFW can materialize such a request into concrete family-specific rows. The daemon therefore reasons about the observable concrete identities that can result from one structural add. When UFW IPv6 support is disabled, a family-neutral add has only an IPv4 observable identity; an explicitly IPv6 add is rejected before a mutating UFW command is issued.
+Add requests may be family-neutral when their semantic fields do not force IPv4 or IPv6. With IPv6 enabled, UFW materializes such a request into concrete IPv4 and IPv6 rows. With IPv6 disabled, the same family-neutral command is IPv4-only. The daemon therefore reasons about the observable concrete identities that can result from one structural add under the current UFW capability. An explicitly IPv6 add is rejected before a mutating UFW command is issued.
 
 The IPv6 capability is host configuration, not a property inferred from the current rule set. The browser uses the capability from the authoritative rule snapshot to disable IPv6 authoring and IPv6 known-host suggestions, while the daemon independently enforces it for append and ordered-insertion mutations. Per-rule address-family validation remains separate: a structurally IPv6 rule is still IPv6 regardless of whether the current host permits creating it.
 
-Listed rules and delete requests are always family-specific. Existing IPv6 rows remain observable and deletable even if IPv6 support is subsequently disabled; disabling creation must not make stale firewall state undeletable.
+Listed rules and delete requests are always family-specific. UFW only loads and reports its IPv6 user-rule file while IPv6 support is enabled. If `IPV6=no`, previously stored IPv6 rules disappear from `status numbered` and are not part of the authoritative rule snapshot; UFW retains the backing IPv6 rule file, so those rows can become observable again if IPv6 is re-enabled. The web interface follows that UFW-visible state rather than inventing mutability for rules the active UFW configuration does not expose.
 
 ## Add lifecycle
 
@@ -71,7 +71,7 @@ A zero child-process exit code is therefore necessary but not sufficient for suc
 
 Ordered insertion changes membership and placement together, so it is authorized independently from append-style add and reorder. The browser signs the normalized new rule, the fingerprint of the exact authoritative snapshot being reviewed, one zero-based snapshot-local anchor occurrence, and whether the new rule belongs before or after that anchor. Duplicate semantic anchor rows remain independently addressable because occurrence identity is meaningful only inside the signed snapshot.
 
-The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
+The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Because UFW does not expose IPv6 rows while IPv6 support is disabled, a valid disabled-IPv6 snapshot cannot provide an IPv6 insertion anchor; client and daemon validation additionally reject such an inconsistent context defensively. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
 
 Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW plus its configuration, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces, current IPv6 capability, and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
 

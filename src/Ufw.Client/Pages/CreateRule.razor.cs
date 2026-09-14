@@ -332,6 +332,7 @@ public sealed partial class CreateRule
         {
             OrderedRuleInsertionContextError.StaleBaseline => RulesText["InsertionBaselineStale"],
             OrderedRuleInsertionContextError.AnchorUnavailable => RulesText["InsertionTargetMissing"],
+            OrderedRuleInsertionContextError.CapabilityUnavailable => RulesText["InsertionIPv6Unavailable"],
             OrderedRuleInsertionContextError.InvalidFingerprint
                 or OrderedRuleInsertionContextError.InvalidPlacement
                 or OrderedRuleInsertionContextError.Incomplete => RulesText["InsertionContextInvalid"],

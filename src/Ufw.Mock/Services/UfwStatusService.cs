@@ -4,7 +4,7 @@ using Ufw.Mock.State;
 
 namespace Ufw.Mock.Services;
 
-internal sealed class UfwStatusService(UfwStateStore store, UfwCommandExecutionService execution)
+internal sealed class UfwStatusService(UfwStateStore store, UfwCommandExecutionService execution, UfwCompatibilityConfiguration compatibilityConfiguration)
 {
     private static readonly HashSet<string> s_reports = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -44,7 +44,8 @@ internal sealed class UfwStatusService(UfwStateStore store, UfwCommandExecutionS
 
         return store.Read(state =>
         {
-            Console.WriteLine(UfwOutputFormatter.FormatStatus(state, numbered, verbose));
+            bool ipv6Enabled = compatibilityConfiguration.IsIPv6Enabled(state);
+            Console.WriteLine(UfwOutputFormatter.FormatStatus(state, numbered, verbose, ipv6Enabled));
             return 0;
         });
     });
@@ -59,10 +60,11 @@ internal sealed class UfwStatusService(UfwStateStore store, UfwCommandExecutionS
         string report = arguments[0].ToUpperInvariant();
         return store.Read(state =>
         {
+            bool ipv6Enabled = compatibilityConfiguration.IsIPv6Enabled(state);
             string output = report switch
             {
-                "ADDED" => UfwOutputFormatter.FormatAdded(state),
-                "USER-RULES" => UfwOutputFormatter.FormatUserRules(state),
+                "ADDED" => UfwOutputFormatter.FormatAdded(state, ipv6Enabled),
+                "USER-RULES" => UfwOutputFormatter.FormatUserRules(state, ipv6Enabled),
                 "LISTENING" => "Netid  State  Local Address:Port  Peer Address:Port  Process\n# Ufw.Mock does not inspect host sockets.",
                 _ => $"# Ufw.Mock synthetic {report} report\n# Firewall status: {(state.Enabled ? "active" : "inactive")}\n# Host netfilter tables are not inspected.",
             };

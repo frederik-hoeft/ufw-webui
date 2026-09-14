@@ -23,6 +23,18 @@ public sealed class OrderedRuleInsertionNavigationTests
     }
 
     [TestMethod]
+    public void BuildUri_RejectsIpv6AnchorWhenCapabilityIsDisabled()
+    {
+        RuleListResponse baseline = new(
+            Active: true,
+            [Rule("v6", FirewallAddressFamily.IPv6, 1)],
+            TestFirewallConfiguration.Disabled);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            OrderedRuleInsertionNavigation.BuildUri(baseline, 0, RuleInsertionPlacement.Before));
+    }
+
+    [TestMethod]
     public void TryResolve_RequiresExactFingerprintAndDerivesConcreteAnchorFamily()
     {
         RuleListResponse baseline = new(
@@ -49,6 +61,27 @@ public sealed class OrderedRuleInsertionNavigationTests
         Assert.AreEqual(RuleInsertionPlacement.Before, context.Placement);
         Assert.AreEqual(FirewallAddressFamily.IPv6, context.AddressFamily);
         Assert.AreSame(baseline.Rules[1], context.Anchor);
+    }
+
+    [TestMethod]
+    public void TryResolve_RejectsIpv6AnchorWhenCapabilityIsDisabled()
+    {
+        RuleListResponse baseline = new(
+            Active: true,
+            [Rule("v6", FirewallAddressFamily.IPv6, 1)],
+            TestFirewallConfiguration.Disabled);
+
+        bool success = OrderedRuleInsertionNavigation.TryResolve(
+            baseline,
+            FirewallRuleSnapshotFingerprint.Compute(baseline),
+            anchorOccurrenceId: 0,
+            "before",
+            out OrderedRuleInsertionNavigationContext? context,
+            out OrderedRuleInsertionContextError error);
+
+        Assert.IsFalse(success);
+        Assert.IsNull(context);
+        Assert.AreEqual(OrderedRuleInsertionContextError.CapabilityUnavailable, error);
     }
 
     [TestMethod]

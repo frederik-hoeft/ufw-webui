@@ -129,6 +129,9 @@
   <data name="InsertionTargetUnavailable" xml:space="preserve">
     <value>Das ausgewählte Einfügeziel ist nicht verfügbar.</value>
   </data>
+  <data name="InsertionIPv6Unavailable" xml:space="preserve">
+    <value>Das ausgewählte IPv6-Einfügeziel ist nicht verfügbar, da IPv6 in der aktuellen UFW-Konfiguration deaktiviert ist.</value>
+  </data>
   <data name="InsertionTargetMissing" xml:space="preserve">
     <value>Das ausgewählte Einfügeziel ist im autoritativen Firewallstatus nicht mehr vorhanden.</value>
   </data>

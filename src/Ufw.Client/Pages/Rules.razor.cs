@@ -206,6 +206,11 @@ public sealed partial class Rules
             Snackbar.Add(RulesText["InsertionTargetUnavailable"], Severity.Warning);
             return Task.CompletedTask;
         }
+        if (request.Rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6 && !snapshot.Configuration.IPv6Enabled)
+        {
+            Snackbar.Add(RulesText["InsertionIPv6Unavailable"], Severity.Warning);
+            return Task.CompletedTask;
+        }
 
         try
         {

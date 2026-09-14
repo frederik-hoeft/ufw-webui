@@ -129,6 +129,9 @@
   <data name="InsertionTargetUnavailable" xml:space="preserve">
     <value>The selected insertion target is unavailable.</value>
   </data>
+  <data name="InsertionIPv6Unavailable" xml:space="preserve">
+    <value>The selected IPv6 insertion target is unavailable because IPv6 support is disabled in the current UFW configuration.</value>
+  </data>
   <data name="InsertionTargetMissing" xml:space="preserve">
     <value>The selected insertion target is no longer present in authoritative firewall state.</value>
   </data>

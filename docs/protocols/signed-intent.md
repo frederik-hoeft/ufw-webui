@@ -79,7 +79,7 @@ Add, ordered insertion, and delete sign a normalized structural firewall rule. T
 
 The signature does not cover this JSON text directly. The daemon validates and normalizes the semantic values and rebuilds the canonical signed bytes defined below.
 
-A family-neutral rule is allowed for append add when the rule semantics do not force IPv4 or IPv6. UFW may materialize that add as separate concrete family rows. Ordered insertion and delete MUST carry a concrete IPv4 or IPv6 rule.
+A family-neutral rule is allowed for append add when the rule semantics do not force IPv4 or IPv6. UFW materializes that add as separate concrete family rows when IPv6 is enabled and as IPv4 only when IPv6 is disabled. Ordered insertion and delete MUST carry a concrete IPv4 or IPv6 rule.
 
 Interface fields follow UFW direction semantics. Inbound rules may use the inbound/destination-side interface, outbound rules may use the outbound/source-side interface, and forward rules may use both ingress and egress interfaces. Ambiguous combinations that would require precedence or fallback interpretation MUST be rejected.
 

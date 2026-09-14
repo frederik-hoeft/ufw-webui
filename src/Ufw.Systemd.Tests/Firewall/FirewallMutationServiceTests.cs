@@ -164,15 +164,14 @@ public sealed class FirewallMutationServiceTests
     }
 
     [TestMethod]
-    public async Task TestAddAsync_Ipv6DisabledFamilyNeutralRuleIgnoresIpv6OnlyDuplicateAsync()
+    public async Task TestAddAsync_Ipv6DisabledFamilyNeutralRuleExpectsIpv4OnlyAsync()
     {
-        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         harness.UfwDefaultsReader
             .Setup(static reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestFirewallConfiguration.Disabled);
         harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules(
-            "[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh",
-            "[ 4] 22/tcp (v6)                ALLOW IN    Anywhere (v6)              # ssh"));
+            "[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
 
         IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(CreateSshRule()), TestContext.CancellationToken);
 
