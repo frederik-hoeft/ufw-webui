@@ -57,7 +57,11 @@ public static class Program
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
 
+        builder.Services.AddHttpClient<IManagementApiHealthClient, ManagementApiHealthClient>(client => client.BaseAddress = apiBaseAddress);
         builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IDaemonStatusApiClient, DaemonStatusApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         // Keep browser credentials inside the bearer handler so a one-time 401 replay reapplies cookie credentials.
         builder.Services.AddHttpClient<IIntentContextApiClient, IntentContextApiClient>(client => client.BaseAddress = apiBaseAddress)

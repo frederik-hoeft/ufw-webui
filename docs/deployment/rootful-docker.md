@@ -187,4 +187,4 @@ docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml port a
 
 The second command should report no published mapping.
 
-Finally sign in through the browser, verify daemon-backed status, reconcile the network-interface inventory, and only then test a harmless signed firewall mutation.
+Finally sign in through the browser, verify the management API, ufw-systemd, and firewall status checks, reconcile the network-interface inventory, and only then test a harmless signed firewall mutation.

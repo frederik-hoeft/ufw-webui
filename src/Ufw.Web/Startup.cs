@@ -204,6 +204,7 @@ internal sealed class Startup : IAsyncStartupScript
 
         app.MapControllers();
         app.MapHealthChecks("/health");
+        app.MapHealthChecks("/api/health");
 
         await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
         ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

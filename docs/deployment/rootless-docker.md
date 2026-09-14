@@ -218,4 +218,4 @@ docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml exec a
 
 If the host socket exists but the container directory is empty, first confirm `UFW_IPC_HOST_DIR=/var/lib/ufw-webui/ipc`. Do not work around the problem by moving the socket into `/run` or making it world-accessible.
 
-Finally sign in through the browser, verify daemon-backed status, reconcile network interfaces, and only then test a harmless signed mutation.
+Finally sign in through the browser, verify the management API, ufw-systemd, and firewall status checks, reconcile network interfaces, and only then test a harmless signed mutation.

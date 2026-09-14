@@ -54,7 +54,7 @@ Database-backed workflows use request-scoped transactions. Authentication operat
 
 `Ufw.Systemd` is the host security boundary. It owns daemon IPC routing, authorized mutation keys, replay protection, deployment identity, authoritative UFW observation, host-interface validation, and the subprocess boundary.
 
-The daemon exposes read operations for rules, network interfaces, and intent context. Add, ordered insertion, delete, and reorder operations additionally cross signed-intent verification before they can reach the UFW execution gate. IPC peer identity and web authentication are defense in depth, not substitutes for this authorization check.
+The daemon exposes read operations for process liveness, rules, network interfaces, and intent context. Add, ordered insertion, delete, and reorder operations additionally cross signed-intent verification before they can reach the UFW execution gate. IPC peer identity and web authentication are defense in depth, not substitutes for this authorization check.
 
 All UFW activity is serialized inside the daemon. A mutation retains the execution gate through current-state checks, process completion, and post-operation reconciliation. Once a child process starts, cancellation does not abandon it: the daemon retains ownership until the child exits or is terminated and reaped, reconciles authoritative state, and only then completes the request.
 
@@ -63,6 +63,17 @@ All UFW activity is serialized inside the daemon. A mutation retains the executi
 `Ufw.Shared` contains concepts that must mean the same thing on both sides of a process boundary: firewall rule semantics, normalization and rendering, signed-intent primitives, IPC message contracts, and protocol serialization metadata. It does not own runtime policy for either the browser, web application, or daemon.
 
 `Ufw.Ipc.Client` implements the typed daemon client used by `Ufw.Web`. `Ufw.Roslyn` provides the runtime-facing routing and serialization abstractions, while `Ufw.Roslyn.SourceGen` resolves their compile-time contracts and emits static bindings suitable for NativeAOT. Controller routing and JSON serialization use independent contract families so their compile-time dependencies can evolve separately. See [Compile-time routing and serialization](source-generation.md) for the source-generation boundary.
+
+## Operational status boundaries
+
+Operational status is reported from explicit probes rather than inferred from unrelated successful endpoints. The browser treats the major runtime boundaries independently:
+
+- `GET /api/health` probes the `Ufw.Web` management process. ASP also retains `/health` for direct/internal health checks; production nginx intentionally exposes only the `/api/*` form to the browser.
+- `GET /api/v1/status` crosses ASP and local IPC to a dependency-free `Ufw.Systemd` endpoint. It proves that the daemon request path can answer, but it does not execute UFW or read deployment identity/replay state.
+- `GET /api/v1/rules` remains the authoritative firewall/UFW probe. A daemon can therefore be live even when UFW observation fails.
+- `GET /api/v1/intent/context` supplies deployment identity and signed-intent protocol metadata only. Its success or failure does not define daemon liveness.
+
+Probe results do not rescue or overwrite each other. A successful rules read cannot make a failed daemon liveness probe healthy. Conversely, if an upstream probe fails while a downstream request also fails, the downstream component is reported as unknown rather than inferred unavailable; independently successful downstream probes remain visible.
 
 ## State ownership
 

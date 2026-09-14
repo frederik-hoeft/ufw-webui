@@ -6,14 +6,19 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="PageTitle" xml:space="preserve"><value>System status</value></data>
   <data name="Title" xml:space="preserve"><value>System status</value></data>
-  <data name="Description" xml:space="preserve"><value>Live operational checks for the daemon-backed management path and firewall snapshot.</value></data>
+  <data name="Description" xml:space="preserve"><value>Independent operational checks for the management API, ufw-systemd, and authoritative firewall state.</value></data>
   <data name="SystemBreadcrumb" xml:space="preserve"><value>System</value></data>
   <data name="StatusBreadcrumb" xml:space="preserve"><value>Status</value></data>
   <data name="RefreshStatus" xml:space="preserve"><value>Refresh status</value></data>
   <data name="CheckedAt" xml:space="preserve"><value>Checked {0}</value></data>
-  <data name="DaemonUnavailableAlert" xml:space="preserve"><value>Neither daemon-backed status request completed successfully. This can indicate that the management API or ufw-systemd path is unavailable; the current REST surface cannot distinguish those failures further.</value></data>
+  <data name="ManagementApiUnavailableAlert" xml:space="preserve"><value>The browser could not reach the management API health endpoint. Downstream daemon and firewall failures cannot be attributed while this boundary is unavailable.</value></data>
+  <data name="DaemonUnavailableAlert" xml:space="preserve"><value>The management API is reachable, but its dedicated ufw-systemd liveness probe failed. Firewall state may therefore be unavailable independently of UFW itself.</value></data>
   <data name="ProtocolMismatchAlert" xml:space="preserve"><value>ufw-systemd is reachable, but it reports signed-intent protocol version {0} while this client supports version {1}. Firewall reads may still work, but signed mutations are incompatible.</value></data>
-  <data name="DaemonBackedApi" xml:space="preserve"><value>Daemon-backed API</value></data>
+  <data name="ManagementApi" xml:space="preserve"><value>Management API</value></data>
+  <data name="UfwSystemd" xml:space="preserve"><value>ufw-systemd</value></data>
+  <data name="Probe" xml:space="preserve"><value>Probe</value></data>
+  <data name="Scope" xml:space="preserve"><value>Scope</value></data>
+  <data name="BrowserToManagementApi" xml:space="preserve"><value>Browser → ASP</value></data>
   <data name="Deployment" xml:space="preserve"><value>Deployment</value></data>
   <data name="IntentProtocol" xml:space="preserve"><value>Intent protocol</value></data>
   <data name="Firewall" xml:space="preserve"><value>Firewall</value></data>
@@ -21,8 +26,8 @@
   <data name="Source" xml:space="preserve"><value>Source</value></data>
   <data name="AuthoritativeUfwSnapshot" xml:space="preserve"><value>Authoritative UFW snapshot</value></data>
   <data name="StatusSemantics" xml:space="preserve"><value>Status semantics</value></data>
-  <data name="StatusSemanticsDescription" xml:space="preserve"><value>These checks use the existing authenticated daemon-backed intent-context and rule-list endpoints. A successful check proves the browser can complete that path through ASP to ufw-systemd. Failures are intentionally not attributed to a specific hop because the current API does not expose a component-level health contract.</value></data>
-  <data name="LastCombinedCheck" xml:space="preserve"><value>Last combined check completed in {0}.</value></data>
+  <data name="StatusSemanticsDescription" xml:space="preserve"><value>Management API liveness comes from /api/health, ufw-systemd liveness from its dedicated /api/v1/status probe, and firewall state from the authoritative rules snapshot. Intent context supplies deployment and protocol metadata only; one successful endpoint never implies that another component is healthy.</value></data>
+  <data name="LastCombinedCheck" xml:space="preserve"><value>Last status refresh completed in {0}.</value></data>
   <data name="ConnectedIncompatible" xml:space="preserve"><value>Connected, incompatible</value></data>
   <data name="Connected" xml:space="preserve"><value>Connected</value></data>
   <data name="Compatible" xml:space="preserve"><value>v{0} (compatible)</value></data>

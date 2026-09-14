@@ -9,7 +9,7 @@ public sealed partial class OperationalStatusIndicator
     protected async override Task OnInitializedAsync()
     {
         OperationalStatus.Changed += OnStatusChanged;
-        if (OperationalStatus.Current.DaemonBackedApi == OperationalAvailability.Unknown)
+        if (OperationalStatus.Current.Daemon == OperationalAvailability.Unknown)
         {
             try
             {
@@ -30,14 +30,14 @@ public sealed partial class OperationalStatusIndicator
 
     private void OnStatusChanged() => _ = InvokeAsync(StateHasChanged);
 
-    private string Label => OperationalStatus.Current.DaemonBackedApi switch
+    private string Label => OperationalStatus.Current.Daemon switch
     {
         OperationalAvailability.Available => NavigationText["DaemonConnected"],
         OperationalAvailability.Unavailable => NavigationText["DaemonUnavailable"],
         _ => OperationalStatus.IsRefreshing ? NavigationText["DaemonChecking"] : NavigationText["DaemonUnknown"],
     };
 
-    private string StatusClass => OperationalStatus.Current.DaemonBackedApi switch
+    private string StatusClass => OperationalStatus.Current.Daemon switch
     {
         OperationalAvailability.Available => "app-navigation-status-dot-success",
         OperationalAvailability.Unavailable => "app-navigation-status-dot-error",

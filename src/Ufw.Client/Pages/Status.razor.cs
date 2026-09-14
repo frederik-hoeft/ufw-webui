@@ -43,7 +43,11 @@ public sealed partial class Status
 
     private void OnStatusChanged() => _ = InvokeAsync(StateHasChanged);
 
-    private string DaemonStatusLabel => OperationalStatus.Current.DaemonBackedApi switch
+    private string ManagementApiStatusLabel => AvailabilityLabel(OperationalStatus.Current.ManagementApi);
+
+    private Color ManagementApiIconColor => AvailabilityColor(OperationalStatus.Current.ManagementApi);
+
+    private string DaemonStatusLabel => OperationalStatus.Current.Daemon switch
     {
         OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false
             => StatusText["ConnectedIncompatible"],
@@ -52,7 +56,7 @@ public sealed partial class Status
         _ => OperationalStatus.IsRefreshing ? CommonText["Checking"] : CommonText["Unknown"],
     };
 
-    private string DaemonChipClass => OperationalStatus.Current.DaemonBackedApi switch
+    private string DaemonChipClass => OperationalStatus.Current.Daemon switch
     {
         OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false
             => "page-status-chip page-status-chip-warning",
@@ -61,7 +65,7 @@ public sealed partial class Status
         _ => "page-status-chip",
     };
 
-    private Color DaemonIconColor => OperationalStatus.Current.DaemonBackedApi switch
+    private Color DaemonIconColor => OperationalStatus.Current.Daemon switch
     {
         OperationalAvailability.Available when OperationalStatus.Current.IntentProtocolCompatible == false => Color.Warning,
         OperationalAvailability.Available => Color.Success,
@@ -81,6 +85,20 @@ public sealed partial class Status
     {
         OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == true => Color.Success,
         OperationalAvailability.Available when OperationalStatus.Current.FirewallActive == false => Color.Warning,
+        OperationalAvailability.Unavailable => Color.Error,
+        _ => Color.Secondary,
+    };
+
+    private string AvailabilityLabel(OperationalAvailability availability) => availability switch
+    {
+        OperationalAvailability.Available => CommonText["Available"],
+        OperationalAvailability.Unavailable => CommonText["Unavailable"],
+        _ => OperationalStatus.IsRefreshing ? CommonText["Checking"] : CommonText["Unknown"],
+    };
+
+    private static Color AvailabilityColor(OperationalAvailability availability) => availability switch
+    {
+        OperationalAvailability.Available => Color.Success,
         OperationalAvailability.Unavailable => Color.Error,
         _ => Color.Secondary,
     };
