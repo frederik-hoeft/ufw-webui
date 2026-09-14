@@ -94,7 +94,7 @@ Then apply the stack:
 docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml up -d
 ```
 
-`Ufw.Web` applies forward EF Core migrations at startup. Wait for the stack to stabilize and verify browser frontend integrity plus daemon-backed status before discarding rollback artifacts.
+`Ufw.Web` applies forward EF Core migrations at startup. Wait for the stack to stabilize and verify browser frontend integrity plus the management API, ufw-systemd, and firewall status checks before discarding rollback artifacts.
 
 Frontend and ASP images can be replaced independently, but a release that does so must preserve API/client compatibility. Replacing ASP never changes the nginx frontend filesystem, which preserves the frontend-delivery security boundary.
 

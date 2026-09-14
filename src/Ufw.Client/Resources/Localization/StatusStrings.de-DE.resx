@@ -6,14 +6,19 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="PageTitle" xml:space="preserve"><value>Systemstatus</value></data>
   <data name="Title" xml:space="preserve"><value>Systemstatus</value></data>
-  <data name="Description" xml:space="preserve"><value>Live-Betriebsprüfungen für den daemon-gestützten Verwaltungspfad und den Firewall-Snapshot.</value></data>
+  <data name="Description" xml:space="preserve"><value>Unabhängige Betriebsprüfungen für Verwaltungs-API, ufw-systemd und autoritativen Firewallstatus.</value></data>
   <data name="SystemBreadcrumb" xml:space="preserve"><value>System</value></data>
   <data name="StatusBreadcrumb" xml:space="preserve"><value>Status</value></data>
   <data name="RefreshStatus" xml:space="preserve"><value>Status aktualisieren</value></data>
   <data name="CheckedAt" xml:space="preserve"><value>Geprüft: {0}</value></data>
-  <data name="DaemonUnavailableAlert" xml:space="preserve"><value>Keine der daemon-gestützten Statusanfragen wurde erfolgreich abgeschlossen. Dies kann bedeuten, dass die Verwaltungs-API oder der ufw-systemd-Pfad nicht verfügbar ist; die aktuelle REST-Oberfläche kann diese Fehler nicht weiter unterscheiden.</value></data>
+  <data name="ManagementApiUnavailableAlert" xml:space="preserve"><value>Der Browser konnte den Health-Endpunkt der Verwaltungs-API nicht erreichen. Fehler nachgelagerter Daemon- und Firewall-Prüfungen können nicht zugeordnet werden, solange diese Grenze nicht verfügbar ist.</value></data>
+  <data name="DaemonUnavailableAlert" xml:space="preserve"><value>Die Verwaltungs-API ist erreichbar, aber ihre dedizierte ufw-systemd-Liveness-Prüfung ist fehlgeschlagen. Der Firewallstatus kann daher unabhängig von UFW selbst nicht verfügbar sein.</value></data>
   <data name="ProtocolMismatchAlert" xml:space="preserve"><value>ufw-systemd ist erreichbar, meldet jedoch Signed-Intent-Protokollversion {0}, während dieser Client Version {1} unterstützt. Firewall-Lesezugriffe können weiterhin funktionieren, signierte Mutationen sind jedoch inkompatibel.</value></data>
-  <data name="DaemonBackedApi" xml:space="preserve"><value>Daemon-gestützte API</value></data>
+  <data name="ManagementApi" xml:space="preserve"><value>Verwaltungs-API</value></data>
+  <data name="UfwSystemd" xml:space="preserve"><value>ufw-systemd</value></data>
+  <data name="Probe" xml:space="preserve"><value>Prüfung</value></data>
+  <data name="Scope" xml:space="preserve"><value>Bereich</value></data>
+  <data name="BrowserToManagementApi" xml:space="preserve"><value>Browser → ASP</value></data>
   <data name="Deployment" xml:space="preserve"><value>Deployment</value></data>
   <data name="IntentProtocol" xml:space="preserve"><value>Intent-Protokoll</value></data>
   <data name="Firewall" xml:space="preserve"><value>Firewall</value></data>
@@ -21,8 +26,8 @@
   <data name="Source" xml:space="preserve"><value>Quelle</value></data>
   <data name="AuthoritativeUfwSnapshot" xml:space="preserve"><value>Autoritativer UFW-Snapshot</value></data>
   <data name="StatusSemantics" xml:space="preserve"><value>Bedeutung des Status</value></data>
-  <data name="StatusSemanticsDescription" xml:space="preserve"><value>Diese Prüfungen verwenden die vorhandenen authentifizierten daemon-gestützten Endpunkte für Intent-Kontext und Regelliste. Eine erfolgreiche Prüfung belegt, dass der Browser den Pfad über ASP zu ufw-systemd vollständig durchlaufen kann. Fehler werden absichtlich keinem einzelnen Abschnitt zugeordnet, da die aktuelle API keinen Gesundheitsvertrag auf Komponentenebene bereitstellt.</value></data>
-  <data name="LastCombinedCheck" xml:space="preserve"><value>Die letzte kombinierte Prüfung wurde in {0} abgeschlossen.</value></data>
+  <data name="StatusSemanticsDescription" xml:space="preserve"><value>Die Liveness der Verwaltungs-API stammt von /api/health, die von ufw-systemd aus der dedizierten /api/v1/status-Prüfung und der Firewallstatus aus dem autoritativen Regelsnapshot. Der Intent-Kontext liefert nur Deployment- und Protokollmetadaten; ein erfolgreicher Endpunkt impliziert niemals den Zustand einer anderen Komponente.</value></data>
+  <data name="LastCombinedCheck" xml:space="preserve"><value>Die letzte Statusaktualisierung wurde in {0} abgeschlossen.</value></data>
   <data name="ConnectedIncompatible" xml:space="preserve"><value>Verbunden, inkompatibel</value></data>
   <data name="Connected" xml:space="preserve"><value>Verbunden</value></data>
   <data name="Compatible" xml:space="preserve"><value>v{0} (kompatibel)</value></data>

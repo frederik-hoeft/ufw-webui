@@ -2,7 +2,7 @@
 
 .operational-status-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
 }
 
@@ -63,6 +63,12 @@
 .operational-status-meta {
     margin-top: 1rem;
     padding: 1.5rem;
+}
+
+@media (max-width: ($navigation-expanded-breakpoint - 0.02px)) {
+    .operational-status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: $mobile-breakpoint) {

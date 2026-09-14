@@ -13,7 +13,9 @@ internal sealed record OperationalStatusSnapshot
 {
     public static OperationalStatusSnapshot Unknown { get; } = new();
 
-    public OperationalAvailability DaemonBackedApi { get; init; } = OperationalAvailability.Unknown;
+    public OperationalAvailability ManagementApi { get; init; } = OperationalAvailability.Unknown;
+
+    public OperationalAvailability Daemon { get; init; } = OperationalAvailability.Unknown;
 
     public OperationalAvailability FirewallSnapshot { get; init; } = OperationalAvailability.Unknown;
 
@@ -30,6 +32,10 @@ internal sealed record OperationalStatusSnapshot
     public DateTimeOffset? CheckedAt { get; init; }
 
     public TimeSpan? RoundTrip { get; init; }
+
+    public ClientError? ManagementApiError { get; init; }
+
+    public ClientError? DaemonError { get; init; }
 
     public ClientError? IntentContextError { get; init; }
 

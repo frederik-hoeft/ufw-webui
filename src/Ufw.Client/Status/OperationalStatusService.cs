@@ -7,6 +7,8 @@ namespace Ufw.Client.Status;
 
 internal sealed class OperationalStatusService
 (
+    IManagementApiHealthClient managementHealth,
+    IDaemonStatusApiClient daemonStatus,
     IRuleApiClient rulesApiClient,
     IIntentContextApiClient intentContextApiClient,
     IClientErrorMapper clientErrors,
@@ -30,12 +32,14 @@ internal sealed class OperationalStatusService
             Changed?.Invoke();
 
             long startedAt = timeProvider.GetTimestamp();
+            Task managementTask = managementHealth.ProbeAsync(cancellationToken);
+            Task daemonTask = daemonStatus.ProbeAsync(cancellationToken);
             Task<IntentContextResponse> intentContextTask = intentContextApiClient.GetAsync(cancellationToken);
             Task<RuleListResponse> rulesTask = rulesApiClient.GetRulesAsync(cancellationToken);
 
             try
             {
-                await Task.WhenAll(intentContextTask, rulesTask);
+                await Task.WhenAll(managementTask, daemonTask, intentContextTask, rulesTask);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -43,9 +47,11 @@ internal sealed class OperationalStatusService
             }
             catch
             {
-                // Individual task failures are projected below so partial operational state remains visible.
+                // Each probe is projected independently below so one failure cannot infer another component's state.
             }
 
+            bool managementSucceeded = managementTask.Status == TaskStatus.RanToCompletion;
+            bool daemonSucceeded = daemonTask.Status == TaskStatus.RanToCompletion;
             IntentContextResponse? intentContext = intentContextTask.Status == TaskStatus.RanToCompletion
                 ? await intentContextTask
                 : null;
@@ -53,17 +59,25 @@ internal sealed class OperationalStatusService
                 ? await rulesTask
                 : null;
 
-            ClientError? intentError = DescribeFailure(intentContextTask);
-            ClientError? firewallError = DescribeFailure(rulesTask);
+            OperationalAvailability managementAvailability = managementSucceeded
+                ? OperationalAvailability.Available
+                : OperationalAvailability.Unavailable;
+            OperationalAvailability daemonAvailability = daemonSucceeded
+                ? OperationalAvailability.Available
+                : managementSucceeded
+                    ? OperationalAvailability.Unavailable
+                    : OperationalAvailability.Unknown;
+            OperationalAvailability firewallAvailability = rules is not null
+                ? OperationalAvailability.Available
+                : managementSucceeded && daemonSucceeded
+                    ? OperationalAvailability.Unavailable
+                    : OperationalAvailability.Unknown;
 
             Current = new OperationalStatusSnapshot
             {
-                DaemonBackedApi = intentContext is not null || rules is not null
-                    ? OperationalAvailability.Available
-                    : OperationalAvailability.Unavailable,
-                FirewallSnapshot = rules is not null
-                    ? OperationalAvailability.Available
-                    : OperationalAvailability.Unavailable,
+                ManagementApi = managementAvailability,
+                Daemon = daemonAvailability,
+                FirewallSnapshot = firewallAvailability,
                 FirewallActive = rules?.Active,
                 RuleCount = rules?.Rules.Count,
                 IntentProtocolVersion = intentContext?.ProtocolVersion,
@@ -73,8 +87,10 @@ internal sealed class OperationalStatusService
                 DeploymentId = intentContext?.DeploymentId,
                 CheckedAt = timeProvider.GetUtcNow(),
                 RoundTrip = timeProvider.GetElapsedTime(startedAt),
-                IntentContextError = intentError,
-                FirewallError = firewallError,
+                ManagementApiError = DescribeFailure(managementTask),
+                DaemonError = DescribeFailure(daemonTask),
+                IntentContextError = DescribeFailure(intentContextTask),
+                FirewallError = DescribeFailure(rulesTask),
             };
         }
         finally

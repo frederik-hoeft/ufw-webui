@@ -147,6 +147,7 @@ The current application-v1 daemon routes are:
 
 | Method | Route | Purpose | Signed intent required |
 | --- | --- | --- | --- |
+| `GET` | `/api/v1/status` | process-level ufw-systemd liveness probe; does not read UFW or daemon persistent state | no |
 | `GET` | `/api/v1/intent/context` | read deployment identity and signed-intent protocol version | no |
 | `GET` | `/api/v1/network-interfaces` | enumerate current host interface names | no |
 | `GET` | `/api/v1/rules` | read authoritative UFW rules plus effective IPv6/default-policy configuration | no |

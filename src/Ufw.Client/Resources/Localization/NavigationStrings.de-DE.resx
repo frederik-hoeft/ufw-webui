@@ -15,6 +15,6 @@
   <data name="DaemonUnavailable" xml:space="preserve"><value>ufw-systemd nicht verfügbar</value></data>
   <data name="DaemonChecking" xml:space="preserve"><value>ufw-systemd wird geprüft...</value></data>
   <data name="DaemonUnknown" xml:space="preserve"><value>ufw-systemd-Status unbekannt</value></data>
-  <data name="NoStatusCheck" xml:space="preserve"><value>Es wurde noch keine daemon-gestützte Statusprüfung abgeschlossen.</value></data>
+  <data name="NoStatusCheck" xml:space="preserve"><value>Es wurde noch keine ufw-systemd-Liveness-Prüfung abgeschlossen.</value></data>
   <data name="LastChecked" xml:space="preserve"><value>Zuletzt geprüft: {0}.</value></data>
 </root>
