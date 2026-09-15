@@ -12,6 +12,34 @@
     border-radius: var(--mud-default-borderradius);
 }
 
+.rule-family-section + .rule-family-section {
+    border-top: 1px solid var(--mud-palette-table-lines);
+}
+
+.rule-family-heading {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+    background: var(--mud-palette-surface);
+
+    h3 {
+        margin: 0;
+        color: var(--mud-palette-text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    span {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+}
+
 .rule-table-progress {
     position: absolute;
     top: 0;
@@ -87,8 +115,8 @@
 }
 
 .rule-direction-column {
-    width: 9rem;
-    min-width: 9rem;
+    width: 7rem;
+    min-width: 7rem;
 }
 
 .rule-endpoint-column {
@@ -173,25 +201,8 @@
     color: var(--mud-palette-warning);
 }
 
-.rule-direction-family {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.3rem;
-    white-space: nowrap;
-}
-
 .rule-direction {
     color: var(--mud-palette-text-primary);
-}
-
-.rule-family {
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
-
-    &::before {
-        margin-right: 0.3rem;
-        content: "·";
-    }
 }
 
 .rule-endpoint,

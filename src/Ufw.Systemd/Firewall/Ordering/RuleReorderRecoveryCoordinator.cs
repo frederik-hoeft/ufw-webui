@@ -72,8 +72,8 @@ internal sealed class RuleReorderRecoveryCoordinator(
         int? nextIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.NextAnchor);
         if (nextIndex.HasValue && snapshot.Rules[nextIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            int nextFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(snapshot.Rules, nextIndex.Value);
-            return new UfwInsertRuleCommand(nextFamilyPosition, entry.Rule, renderer);
+            int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, nextIndex.Value);
+            return new UfwInsertRuleCommand(position, entry.Rule, renderer);
         }
 
         int? previousIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.PreviousAnchor);
@@ -84,7 +84,8 @@ internal sealed class RuleReorderRecoveryCoordinator(
             int insertionPosition = previousFamilyPosition + 1;
             if (insertionPosition <= familyCount)
             {
-                return new UfwInsertRuleCommand(insertionPosition, entry.Rule, renderer);
+                int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, entry.Rule.AddressFamily, insertionPosition);
+                return new UfwInsertRuleCommand(position, entry.Rule, renderer);
             }
 
             return new UfwAddRuleCommand(entry.Rule, renderer);
@@ -93,7 +94,8 @@ internal sealed class RuleReorderRecoveryCoordinator(
         int currentFamilyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
         if (entry.OriginalFamilyPosition <= currentFamilyCount)
         {
-            return new UfwInsertRuleCommand(entry.OriginalFamilyPosition, entry.Rule, renderer);
+            int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, entry.Rule.AddressFamily, entry.OriginalFamilyPosition);
+            return new UfwInsertRuleCommand(position, entry.Rule, renderer);
         }
 
         return new UfwAddRuleCommand(entry.Rule, renderer);

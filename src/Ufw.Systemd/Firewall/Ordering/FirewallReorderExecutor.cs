@@ -307,8 +307,12 @@ internal sealed class FirewallReorderExecutor(
         if (move.BeforeOccurrenceId is int beforeOccurrenceId)
         {
             int beforeIndex = IndexOf(afterDeleteOrder, beforeOccurrenceId);
-            int familyPosition = UfwRulePositionResolver.GetFamilyPosition(afterDelete.Rules, beforeIndex);
-            return new UfwInsertRuleCommand(familyPosition, specification, renderer);
+            FirewallAddressFamily beforeFamily = ListedFirewallRuleFamily.GetObservedFamily(afterDelete.Rules[beforeIndex]);
+            if (beforeFamily == specification.AddressFamily)
+            {
+                int position = UfwRulePositionResolver.GetUfwInsertPosition(afterDelete.Rules, beforeIndex);
+                return new UfwInsertRuleCommand(position, specification, renderer);
+            }
         }
 
         return new UfwAddRuleCommand(specification, renderer);
@@ -488,7 +492,7 @@ internal sealed class FirewallReorderExecutor(
                 continue;
             }
 
-            FirewallAddressFamily? family = baselineRules[occurrenceId].Rule?.AddressFamily;
+            FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(baselineRules[occurrenceId]);
             if (family == FirewallAddressFamily.IPv6)
             {
                 ipv6Seen = true;

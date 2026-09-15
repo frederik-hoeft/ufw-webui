@@ -82,10 +82,7 @@ public sealed partial class RuleEditor
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
-    protected async override Task OnInitializedAsync()
-    {
-        await Task.WhenAll(LoadKnownHostsAsync(), LoadNetworkInterfacesAsync());
-    }
+    protected override Task OnInitializedAsync() => Task.WhenAll(LoadKnownHostsAsync(), LoadNetworkInterfacesAsync());
 
     protected override void OnParametersSet() => RefreshVisibleKnownHosts();
 

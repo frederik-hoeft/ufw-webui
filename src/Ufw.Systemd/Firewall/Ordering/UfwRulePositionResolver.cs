@@ -12,11 +12,11 @@ internal static class UfwRulePositionResolver
             throw new ArgumentOutOfRangeException(nameof(occurrenceIndex), occurrenceIndex, "Rule occurrence is outside the current snapshot.");
         }
 
-        FirewallAddressFamily family = GetObservedFamily(rules[occurrenceIndex]);
+        FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rules[occurrenceIndex]);
         int position = 0;
         for (int index = 0; index <= occurrenceIndex; index++)
         {
-            if (GetObservedFamily(rules[index]) == family)
+            if (ListedFirewallRuleFamily.GetObservedFamily(rules[index]) == family)
             {
                 position++;
             }
@@ -24,11 +24,45 @@ internal static class UfwRulePositionResolver
         return position;
     }
 
+    public static int GetUfwInsertPosition(IReadOnlyList<ListedFirewallRule> rules, int occurrenceIndex)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        if (occurrenceIndex < 0 || occurrenceIndex >= rules.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(occurrenceIndex), occurrenceIndex, "Rule occurrence is outside the current snapshot.");
+        }
+
+        FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rules[occurrenceIndex]);
+        int familyPosition = GetFamilyPosition(rules, occurrenceIndex);
+        return GetUfwInsertPosition(rules, family, familyPosition);
+    }
+
+    public static int GetUfwInsertPosition(
+        IReadOnlyList<ListedFirewallRule> rules,
+        FirewallAddressFamily family,
+        int familyPosition)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        EnsureConcreteFamily(family);
+        int familyCount = CountFamily(rules, family);
+        if (familyPosition <= 0 || familyPosition > familyCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(familyPosition),
+                familyPosition,
+                "UFW insert positions must identify an existing rule in the target family.");
+        }
+
+        return family == FirewallAddressFamily.IPv6
+            ? CountFamily(rules, FirewallAddressFamily.IPv4) + familyPosition
+            : familyPosition;
+    }
+
     public static int CountFamily(IReadOnlyList<ListedFirewallRule> rules, FirewallAddressFamily family)
     {
         ArgumentNullException.ThrowIfNull(rules);
         EnsureConcreteFamily(family);
-        return rules.Count(rule => GetObservedFamily(rule) == family);
+        return rules.Count(rule => ListedFirewallRuleFamily.GetObservedFamily(rule) == family);
     }
 
     public static int? FindNextFamilyOccurrence(
@@ -40,30 +74,12 @@ internal static class UfwRulePositionResolver
         EnsureConcreteFamily(family);
         for (int index = occurrenceIndex + 1; index < rules.Count; index++)
         {
-            if (GetObservedFamily(rules[index]) == family)
+            if (ListedFirewallRuleFamily.GetObservedFamily(rules[index]) == family)
             {
                 return index;
             }
         }
         return null;
-    }
-
-    public static FirewallAddressFamily GetObservedFamily(ListedFirewallRule rule)
-    {
-        ArgumentNullException.ThrowIfNull(rule);
-        if (rule.Rule?.AddressFamily is FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6)
-        {
-            return rule.Rule.AddressFamily;
-        }
-
-        if (string.IsNullOrWhiteSpace(rule.RawLine))
-        {
-            throw new InvalidOperationException("The observed UFW rule does not expose an address family.");
-        }
-
-        return rule.RawLine.Contains("(v6)", StringComparison.Ordinal)
-            ? FirewallAddressFamily.IPv6
-            : FirewallAddressFamily.IPv4;
     }
 
     private static void EnsureConcreteFamily(FirewallAddressFamily family)

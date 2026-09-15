@@ -24,7 +24,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
-    public async Task ExecuteAsync_BeforeIpv4Anchor_UsesFamilyLocalPositionAndExactPostconditionAsync()
+    public async Task ExecuteAsync_BeforeIpv4Anchor_UsesCombinedUfwPositionAndExactPostconditionAsync()
     {
         using InsertionHarness harness = new(
             Snapshot("80", "443", "80v6"),
@@ -87,7 +87,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     }
 
     [TestMethod]
-    public async Task ExecuteAsync_BeforeIpv6Anchor_TranslatesCombinedOccurrenceToFamilyLocalPositionAsync()
+    public async Task ExecuteAsync_BeforeIpv6Anchor_UsesCombinedUfwPositionAsync()
     {
         using InsertionHarness harness = new(
             Snapshot("80", "443", "80v6", "443v6"),
@@ -99,7 +99,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         CollectionAssert.AreEqual(
-            new[] { "insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
+            new[] { "insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
             harness.Commands.Single());
     }
 

@@ -29,7 +29,7 @@ The phase does not expose a daemon route, invoke UFW, or enable the existing ord
 
 Implement the privileged single-mutation transaction under the existing UFW execution gate.
 
-The daemon verifies the exact baseline, validates interfaces and duplicate semantics using the existing add-rule machinery, resolves the signed combined-snapshot occurrence into UFW's concrete family-local insertion number, executes one mutation, and reconciles the complete authoritative post-state. `before` inserts at the selected occurrence. `after` inserts before the next occurrence in the same address-family partition, or appends that concrete-family rule when the selected occurrence is the last rule in its family.
+The daemon verifies the exact baseline, validates interfaces and duplicate semantics using the existing add-rule machinery, resolves the signed combined-snapshot occurrence into a family-local semantic slot and then into UFW's combined numbered `insert N` coordinate, executes one mutation, and reconciles the complete authoritative post-state. `before` inserts at the selected occurrence. `after` inserts before the next occurrence in the same address-family partition, or appends that concrete-family rule when the selected occurrence is the last rule in its family.
 
 The existing reorder mutation-safety guard runs before ordered insertion so an unresolved delete/reinsert recovery obligation blocks all later mutations. Ordered insertion itself needs no recovery journal because it never removes an existing row.
 
