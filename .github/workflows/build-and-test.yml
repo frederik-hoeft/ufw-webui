@@ -22,4 +22,4 @@ jobs:
       - name: Build
         run: dotnet build src/Ufw.slnx --configuration Release --no-restore /p:TreatWarningsAsErrors=true
       - name: Test
-        run: dotnet test src/Ufw.slnx --configuration Release --no-build --verbosity normal --logger "console;verbosity=detailed"
+        run: dotnet test src/Ufw.slnx --configuration Release --no-build
