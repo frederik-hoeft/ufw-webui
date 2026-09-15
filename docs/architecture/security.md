@@ -1,6 +1,6 @@
 # Security Architecture
 
-UFW WebUI is designed around the assumption that the network-facing web tier is a larger and less trusted attack surface than the privileged firewall daemon. The architecture therefore separates ordinary web authentication from authorization to execute a firewall mutation.
+UFWeb is designed around the assumption that the network-facing web tier is a larger and less trusted attack surface than the privileged firewall daemon. The architecture therefore separates ordinary web authentication from authorization to execute a firewall mutation.
 
 The security objective is not to make `Ufw.Web` harmless if compromised. It is to prevent compromise of the ASP process alone from becoming sufficient authority to forge a new valid firewall mutation or silently replace the browser signing client.
 

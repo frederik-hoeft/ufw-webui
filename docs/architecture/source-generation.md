@@ -1,6 +1,6 @@
 # Compile-Time Routing and Serialization
 
-UFW WebUI uses source generation to keep daemon routing and protocol serialization compatible with NativeAOT without making the analyzer depend on concrete runtime implementation types. The runtime-facing abstractions live in `Ufw.Roslyn`; the analyzer-only implementation lives in `Ufw.Roslyn.SourceGen`.
+UFWeb uses source generation to keep daemon routing and protocol serialization compatible with NativeAOT without making the analyzer depend on concrete runtime implementation types. The runtime-facing abstractions live in `Ufw.Roslyn`; the analyzer-only implementation lives in `Ufw.Roslyn.SourceGen`.
 
 The boundary follows two related patterns:
 

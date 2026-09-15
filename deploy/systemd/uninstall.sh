@@ -18,7 +18,7 @@ usage() {
     cat <<'USAGE'
 Usage: sudo deploy/systemd/uninstall.sh [options]
 
-Uninstalls the privileged UFW WebUI daemon.
+Uninstalls the UFWeb privileged firewall daemon.
 
 By default the daemon configuration, authorized keys, replay state, and
 persistent deployment identity are preserved so a later reinstall can resume

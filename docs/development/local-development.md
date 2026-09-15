@@ -1,6 +1,6 @@
 # Local development
 
-UFW WebUI can be developed without granting the development process firewall privileges. The normal local setup runs the browser client, ASP.NET Core application, PostgreSQL, and daemon as separate processes, while the daemon can execute either the real `ufw` binary or the platform-neutral [UFW mock](ufw-mock.md).
+UFWeb can be developed without granting the development process firewall privileges. The normal local setup runs the browser client, ASP.NET Core application, PostgreSQL, and daemon as separate processes, while the daemon can execute either the real `ufw` binary or the platform-neutral [UFW mock](ufw-mock.md).
 
 The development topology deliberately resembles production: the browser still talks to the web API, the web API still uses the IPC protocol to reach the daemon, and firewall mutations are still signed by a browser-held key and verified by the daemon. Development configuration changes endpoints and credentials; it does not introduce a separate application path.
 

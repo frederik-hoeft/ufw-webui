@@ -4,7 +4,7 @@ The application IPC protocol defines the JSON request and response documents exc
 
 ITP owns framing and delivers complete bytes. This protocol owns application-envelope semantics. Daemon routing interprets method and route only after the envelope is valid.
 
-The requirement words in this document describe interoperability requirements for UFW WebUI implementations.
+The requirement words in this document describe interoperability requirements for UFWeb implementations.
 
 ## Versioning
 

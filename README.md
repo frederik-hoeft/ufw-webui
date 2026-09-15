@@ -1,6 +1,6 @@
-# UFW WebUI
+# UFWeb
 
-UFW WebUI is a browser-based management interface for UFW built around a strict privilege boundary: the network-facing application never executes firewall commands. A Blazor client and ASP.NET Core API provide the management experience, while a small host daemon is the only component allowed to invoke UFW.
+UFWeb is a UFW management platform built around a strict privilege boundary: the network-facing application never executes firewall commands. A Blazor client and ASP.NET Core API provide the management experience, while a small host daemon is the only component allowed to invoke UFW.
 
 UFW remains the firewall authority. Rules created with the normal UFW CLI or by other administrators remain visible, mutations use structural semantics or exact snapshot occurrences rather than treating unstable UFW row numbers as durable identity, and PostgreSQL stores application state rather than a shadow copy of the firewall.
 
@@ -96,4 +96,4 @@ Before submitting changes, run the full solution build and test suite. Changes t
 
 ## License
 
-UFW WebUI is licensed under the [MIT License](LICENSE).
+UFWeb is licensed under the [MIT License](LICENSE).

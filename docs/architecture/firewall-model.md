@@ -1,6 +1,6 @@
 # Firewall State and Rule Model
 
-UFW WebUI treats UFW itself as the authoritative firewall database. The application does not attempt to mirror every rule into PostgreSQL or assume that it is the only actor modifying the firewall. This allows normal UFW tooling and other administrators to coexist with the web interface without creating two competing sources of truth.
+UFWeb treats UFW itself as the authoritative firewall database. The application does not attempt to mirror every rule into PostgreSQL or assume that it is the only actor modifying the firewall. This allows normal UFW tooling and other administrators to coexist with the web interface without creating two competing sources of truth.
 
 The consequence is that every mutable rule must be addressable from current observed firewall semantics rather than from application-generated row numbers or database identifiers.
 
@@ -134,7 +134,7 @@ Changing or deleting a known-host alias cannot mutate previously authored rules 
 
 ## Out-of-band changes
 
-Administrators and other tools may change UFW outside UFW WebUI. The architecture expects this rather than treating it as corruption.
+Administrators and other tools may change UFW outside UFWeb. The architecture expects this rather than treating it as corruption.
 
 A subsequent list observes those changes directly. Supported externally-created rules receive the same semantic identities as equivalent rules created through the web interface. Renumbering does not break identity. Unsupported syntax remains observable but read-only.
 

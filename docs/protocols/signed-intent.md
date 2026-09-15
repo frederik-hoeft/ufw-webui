@@ -2,7 +2,7 @@
 
 Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` forwards it; `Ufw.Systemd` reconstructs the canonical bytes and verifies them against daemon-owned trust state before any privileged UFW mutation can begin.
 
-This document defines the project contract for `rules.add`, `rules.insert`, `rules.delete`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFW WebUI implementations.
+This document defines the project contract for `rules.add`, `rules.insert`, `rules.delete`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFWeb implementations.
 
 Read-only rule listing, network-interface discovery, and intent-context retrieval are unsigned at this protocol layer. They may still require authentication at surrounding layers.
 

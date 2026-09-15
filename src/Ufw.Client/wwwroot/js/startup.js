@@ -34,7 +34,7 @@
 
     function reportUnexpectedBrowserError(source, error) {
         const reference = createDiagnosticReference();
-        console.error(`Unexpected UFW Console browser error ${reference} (${source}).`, error);
+        console.error(`Unexpected UFWeb browser error ${reference} (${source}).`, error);
 
         const message = document.getElementById("blazor-error-message");
         if (message) {

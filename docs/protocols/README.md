@@ -68,4 +68,4 @@ Caller cancellation and daemon shutdown remain cancellation signals. They are no
 - [Application IPC protocol v1](application-protocol.md) defines the JSON envelope, payload representations, typed binding rules, and application-level errors.
 - [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for append add, ordered insertion, delete, and reorder operations, including canonicalization, replay protection, semantic delete identity, and exact-snapshot occurrence authority.
 
-For the architectural role of IPC, see [UFW WebUI Architecture](../architecture/architecture-overview.md). For production socket ownership and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).
+For the architectural role of IPC, see [UFWeb Architecture](../architecture/architecture-overview.md). For production socket ownership and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).
