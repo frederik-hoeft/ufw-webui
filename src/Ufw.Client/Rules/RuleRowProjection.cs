@@ -2,7 +2,7 @@
 
 namespace Ufw.Client.Rules;
 
-internal sealed record RuleRowProjection(
+public sealed record RuleRowProjection(
     ListedFirewallRule Rule,
     FirewallAddressFamily AddressFamily,
     int OccurrenceId,

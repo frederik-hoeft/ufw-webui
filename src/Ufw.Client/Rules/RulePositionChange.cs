@@ -1,3 +1,3 @@
 ﻿namespace Ufw.Client.Rules;
 
-internal sealed record RulePositionChange(int OriginalPosition, int CurrentPosition, bool DirectlyMoved);
+public sealed record RulePositionChange(int OriginalPosition, int CurrentPosition, bool DirectlyMoved);

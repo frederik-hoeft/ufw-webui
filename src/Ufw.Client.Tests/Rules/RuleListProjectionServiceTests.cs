@@ -10,6 +10,16 @@ public sealed class RuleListProjectionServiceTests
     private readonly RuleListProjectionService _projection = new();
 
     [TestMethod]
+    public void Create_AlwaysExposesBothAddressFamilyPartitions()
+    {
+        RuleListProjection projection = _projection.Create([], orderingPreview: null);
+
+        Assert.HasCount(2, projection.Families);
+        Assert.IsEmpty(projection.GetFamily(FirewallAddressFamily.IPv4).Rows);
+        Assert.IsEmpty(projection.GetFamily(FirewallAddressFamily.IPv6).Rows);
+    }
+
+    [TestMethod]
     public void Create_DuplicateSemanticIdsRemainOrderableButAreNotMutable()
     {
         ListedFirewallRule first = Rule("duplicate", FirewallAddressFamily.IPv4, displayNumber: 1);
@@ -17,9 +27,11 @@ public sealed class RuleListProjectionServiceTests
 
         RuleListProjection projection = _projection.Create([first, second], orderingPreview: null);
 
-        Assert.HasCount(1, projection.Families);
-        Assert.IsTrue(projection.Families[0].Rows.All(static row => row.CanOrder));
-        Assert.IsTrue(projection.Families[0].Rows.All(static row => !row.CanMutate));
+        Assert.HasCount(2, projection.Families);
+        RuleFamilyProjection ipv4 = projection.GetFamily(FirewallAddressFamily.IPv4);
+        Assert.IsTrue(ipv4.Rows.All(static row => row.CanOrder));
+        Assert.IsTrue(ipv4.Rows.All(static row => !row.CanMutate));
+        Assert.IsEmpty(projection.GetFamily(FirewallAddressFamily.IPv6).Rows);
     }
 
     [TestMethod]

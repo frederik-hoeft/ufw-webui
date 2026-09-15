@@ -64,17 +64,11 @@ internal sealed class RuleListProjectionService : IRuleListProjectionService
             }
         }
 
-        List<RuleFamilyProjection> families = [];
-        if (ipv4Rows.Count > 0)
-        {
-            families.Add(new RuleFamilyProjection(FirewallAddressFamily.IPv4, ipv4Rows));
-        }
-        if (ipv6Rows.Count > 0)
-        {
-            families.Add(new RuleFamilyProjection(FirewallAddressFamily.IPv6, ipv6Rows));
-        }
-
-        return new RuleListProjection(families);
+        return new RuleListProjection(
+        [
+            new RuleFamilyProjection(FirewallAddressFamily.IPv4, ipv4Rows),
+            new RuleFamilyProjection(FirewallAddressFamily.IPv6, ipv6Rows),
+        ]);
     }
 
     private static IReadOnlyList<int> GetProjectedOrder(int ruleCount, RuleOrderingPreview? orderingPreview)

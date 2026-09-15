@@ -402,6 +402,9 @@
   <data name="NoInterfaceMatches" xml:space="preserve">
     <value>No cached interface matches this name or comment. You can still enter a host interface name.</value>
   </data>
+  <data name="CurrentAddressFamilyRules" xml:space="preserve"><value>Current {0} firewall rules</value></data>
+  <data name="NoAddressFamilyRules" xml:space="preserve"><value>No {0} rules</value></data>
+  <data name="NoAddressFamilyRulesDescription" xml:space="preserve"><value>The authoritative UFW snapshot contains no {0} rules.</value></data>
   <data name="CurrentFirewallRules" xml:space="preserve">
     <value>Current firewall rules</value>
   </data>

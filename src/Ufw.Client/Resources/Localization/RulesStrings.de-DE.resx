@@ -402,6 +402,9 @@
   <data name="NoInterfaceMatches" xml:space="preserve">
     <value>Keine zwischengespeicherte Schnittstelle passt zu diesem Namen oder Kommentar. Sie können weiterhin einen Host-Schnittstellennamen eingeben.</value>
   </data>
+  <data name="CurrentAddressFamilyRules" xml:space="preserve"><value>Aktuelle {0}-Firewallregeln</value></data>
+  <data name="NoAddressFamilyRules" xml:space="preserve"><value>Keine {0}-Regeln</value></data>
+  <data name="NoAddressFamilyRulesDescription" xml:space="preserve"><value>Der autoritative UFW-Snapshot enthält keine {0}-Regeln.</value></data>
   <data name="CurrentFirewallRules" xml:space="preserve">
     <value>Aktuelle Firewallregeln</value>
   </data>

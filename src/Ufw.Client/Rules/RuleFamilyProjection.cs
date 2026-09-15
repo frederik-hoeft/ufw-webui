@@ -2,4 +2,4 @@
 
 namespace Ufw.Client.Rules;
 
-internal sealed record RuleFamilyProjection(FirewallAddressFamily AddressFamily, IReadOnlyList<RuleRowProjection> Rows);
+public sealed record RuleFamilyProjection(FirewallAddressFamily AddressFamily, IReadOnlyList<RuleRowProjection> Rows);

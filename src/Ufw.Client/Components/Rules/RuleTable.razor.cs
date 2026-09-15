@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Client.Api;
-using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
 using Ufw.Shared.Firewall;
 
@@ -21,13 +20,8 @@ public sealed partial class RuleTable
 
     private RuleRowProjection? _draggedRow;
     private RuleDropTargetProjection? _dropTarget;
-    private RuleListProjection _projection = RuleListProjection.Empty;
-
-    [Parameter]
-    public IReadOnlyList<ListedFirewallRule> Rules { get; set; } = [];
-
-    [Parameter]
-    public RuleOrderingPreview? OrderingPreview { get; set; }
+    [Parameter, EditorRequired]
+    public required RuleFamilyProjection Family { get; set; }
 
     [Parameter]
     public bool Loading { get; set; }
@@ -49,9 +43,6 @@ public sealed partial class RuleTable
 
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
-
-    protected override void OnParametersSet() =>
-        _projection = ProjectionService.Create(Rules, OrderingPreview);
 
     // Keep dragover browser-only in the Razor markup. It fires continuously during a native drag, and a Blazor event handler
     // would otherwise schedule a full component render for every event. Dragenter only renders when the target row changes.
@@ -78,13 +69,6 @@ public sealed partial class RuleTable
         OrderingDisabled || !row.CanOrder
             ? "rule-drag-handle rule-drag-handle-disabled"
             : "rule-drag-handle";
-
-    private static string FamilyHeadingId(FirewallAddressFamily family) =>
-        family == FirewallAddressFamily.IPv6 ? "firewall-ipv6-rules-heading" : "firewall-ipv4-rules-heading";
-
-    private string DescribeFamilyRuleCount(int count) => count == 1
-        ? RulesText["RuleCountOne"]
-        : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
     private string RowClass(RuleRowProjection row)
     {

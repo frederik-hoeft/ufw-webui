@@ -2,3 +2,8 @@
     width: 100%;
     max-width: 72rem;
 }
+
+.rule-family-tabs,
+.rule-family-tab-panels {
+    min-width: 0;
+}
