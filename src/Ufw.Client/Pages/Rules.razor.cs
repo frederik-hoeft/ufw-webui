@@ -29,7 +29,7 @@ public sealed partial class Rules
     private bool _reordering;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
-    private RuleReorderResponse? _orderingResult;
+    private RuleOrderingResultContext? _orderingResult;
     private RuleListProjection _ruleListProjection = RuleListProjection.Empty;
     private RuleFamilySelectionState _familySelection = RuleFamilySelectionState.Initial;
 
@@ -270,14 +270,15 @@ public sealed partial class Rules
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+            int[] desiredOrder = _orderingPreview.DesiredOrder.ToArray();
             RuleReorderResponse response = await RuleOrdering.ApplyAsync(
                 baseline,
-                _orderingPreview.DesiredOrder,
+                desiredOrder,
                 _orderingPrivateKey,
                 _lifetime.Token);
 
             _orderingPreview = null;
-            _orderingResult = response;
+            _orderingResult = new RuleOrderingResultContext(response, baseline.Rules.ToArray(), desiredOrder);
             _state = _state.AfterReorder(response);
             RefreshRuleListProjection();
             if (response.Outcome == RuleReorderOutcome.Completed)
@@ -334,6 +335,11 @@ public sealed partial class Rules
         _state = _state.AfterMutationFailure(error);
         Snackbar.Add(error.Message, Severity.Error);
     }
+
+    private sealed record RuleOrderingResultContext(
+        RuleReorderResponse Response,
+        IReadOnlyList<ListedFirewallRule> BaselineRules,
+        IReadOnlyList<int> DesiredOrder);
 
     private string DescribeStaleState() => _state.StaleReason switch
     {

@@ -169,7 +169,9 @@ else if (_state.Snapshot is { })
 
     @if (_orderingResult is { } orderingResult)
     {
-        <RuleOrderingResultAlert Result="@orderingResult" />
+        <RuleOrderingResultAlert Result="@orderingResult.Response"
+                                 BaselineRules="@orderingResult.BaselineRules"
+                                 DesiredOrder="@orderingResult.DesiredOrder" />
     }
 
     <MudTabs ActivePanelIndex="@SelectedFamilyTabIndex"
