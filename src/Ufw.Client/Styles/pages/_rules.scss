@@ -7,3 +7,9 @@
 .rule-family-tab-panels {
     min-width: 0;
 }
+
+.rule-ordering-preview-alert footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}

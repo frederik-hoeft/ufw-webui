@@ -2,19 +2,19 @@
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<section aria-labelledby="firewall-rule-list-heading" class="rule-list-section">
+<section aria-labelledby="firewall-rule-list-heading" class="rule-family-workspace">
     <h2 id="firewall-rule-list-heading" class="visually-hidden">@RulesText["CurrentAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</h2>
-    <MudPaper Elevation="0" Class="rule-table-card">
+    <MudPaper Elevation="0" Class="surface">
         @if (Loading)
         {
             <MudProgressLinear Indeterminate="true"
-                               Class="rule-table-progress"
+                               Class="progress"
                                aria-label="@(RulesText["LoadingStateAria"])" />
         }
 
         @if (Family.Rows.Count == 0)
         {
-            <div class="rule-empty-state">
+            <div class="empty-state">
                 <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Large" Color="Color.Secondary" />
                 <MudText Typo="Typo.subtitle1">@RulesText["NoAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -32,19 +32,19 @@
         }
         else
         {
-            <div class="rule-table-scroll" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
-                <table class="rule-table" aria-busy="@Loading">
+            <div class="desktop-list" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
+                <table aria-busy="@Loading">
                     <thead>
                         <tr>
-                            <th scope="col" class="rule-drag-column"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
-                            <th scope="col" class="rule-number-column">@RulesText["RulePositionColumn"]</th>
-                            <th scope="col" class="rule-action-column">@RulesText["ActionColumn"]</th>
-                            <th scope="col" class="rule-direction-column">@RulesText["DirectionColumn"]</th>
-                            <th scope="col" class="rule-endpoint-column">@RulesText["FromColumn"]</th>
-                            <th scope="col" class="rule-endpoint-column">@RulesText["ToColumn"]</th>
-                            <th scope="col" class="rule-protocol-column">@RulesText["ProtocolColumn"]</th>
-                            <th scope="col" class="rule-comment-column">@RulesText["CommentColumn"]</th>
-                            <th scope="col" class="rule-row-actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
+                            <th scope="col" class="drag"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
+                            <th scope="col" class="position">@RulesText["RulePositionColumn"]</th>
+                            <th scope="col" class="action">@RulesText["ActionColumn"]</th>
+                            <th scope="col" class="direction">@RulesText["DirectionColumn"]</th>
+                            <th scope="col" class="endpoint">@RulesText["FromColumn"]</th>
+                            <th scope="col" class="endpoint">@RulesText["ToColumn"]</th>
+                            <th scope="col" class="protocol">@RulesText["ProtocolColumn"]</th>
+                            <th scope="col" class="comment">@RulesText["CommentColumn"]</th>
+                            <th scope="col" class="actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,7 +67,7 @@
                 </table>
             </div>
 
-            <div class="rule-mobile-list" aria-busy="@Loading">
+            <div class="mobile-list" aria-busy="@Loading">
                 @foreach (RuleRowProjection row in Family.Rows)
                 {
                     <RuleMobileCard Row="@row"
@@ -89,7 +89,7 @@
 
     @if (Family.Rows.Count > 0)
     {
-        <div class="rule-ordering-note" role="note">
+        <div class="ordering-note" role="note">
             <strong>@RulesText["OrderingLabel"]</strong>
             <span>@RulesText["OrderingDescription"]</span>
         </div>

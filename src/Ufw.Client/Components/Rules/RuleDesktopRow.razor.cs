@@ -67,15 +67,15 @@ public sealed partial class RuleDesktopRow
     {
         get
         {
-            List<string> classes = [];
+            List<string> classes = ["rule-desktop-row"];
             if (Row.PositionChange is { DirectlyMoved: true })
             {
-                classes.Add("rule-row-ordering-direct");
+                classes.Add("ordering-direct");
             }
 
             if (DropIndicatorEdge is { } edge)
             {
-                classes.Add(edge == RuleDropIndicatorEdge.Before ? "rule-row-drop-target-before" : "rule-row-drop-target-after");
+                classes.Add(edge == RuleDropIndicatorEdge.Before ? "drop-before" : "drop-after");
             }
 
             return string.Join(' ', classes);
@@ -84,9 +84,9 @@ public sealed partial class RuleDesktopRow
 
     private string ReadOnlyRowClass => DropIndicatorEdge switch
     {
-        RuleDropIndicatorEdge.Before => "rule-row-drop-target-before",
-        RuleDropIndicatorEdge.After => "rule-row-drop-target-after",
-        _ => string.Empty,
+        RuleDropIndicatorEdge.Before => "rule-desktop-row drop-before",
+        RuleDropIndicatorEdge.After => "rule-desktop-row drop-after",
+        _ => "rule-desktop-row",
     };
 
     private Task DropAsync() => DropRequested(Row);

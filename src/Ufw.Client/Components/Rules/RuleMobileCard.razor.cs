@@ -70,12 +70,12 @@ public sealed partial class RuleMobileCard
             List<string> classes = ["rule-mobile-card"];
             if (Row.PositionChange is { DirectlyMoved: true })
             {
-                classes.Add("rule-mobile-card-ordering-direct");
+                classes.Add("ordering-direct");
             }
 
             if (DropIndicatorEdge is { } edge)
             {
-                classes.Add(edge == RuleDropIndicatorEdge.Before ? "rule-mobile-card-drop-target-before" : "rule-mobile-card-drop-target-after");
+                classes.Add(edge == RuleDropIndicatorEdge.Before ? "drop-before" : "drop-after");
             }
 
             return string.Join(' ', classes);
@@ -84,9 +84,9 @@ public sealed partial class RuleMobileCard
 
     private string ReadOnlyCardClass => DropIndicatorEdge switch
     {
-        RuleDropIndicatorEdge.Before => "rule-mobile-card rule-mobile-card-readonly rule-mobile-card-drop-target-before",
-        RuleDropIndicatorEdge.After => "rule-mobile-card rule-mobile-card-readonly rule-mobile-card-drop-target-after",
-        _ => "rule-mobile-card rule-mobile-card-readonly",
+        RuleDropIndicatorEdge.Before => "rule-mobile-card readonly drop-before",
+        RuleDropIndicatorEdge.After => "rule-mobile-card readonly drop-after",
+        _ => "rule-mobile-card readonly",
     };
 
     private Task DropAsync() => DropRequested(Row);

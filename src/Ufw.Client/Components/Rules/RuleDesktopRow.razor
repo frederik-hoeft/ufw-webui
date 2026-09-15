@@ -11,7 +11,7 @@
         @ondragenter="@DragEnterHandler"
         @ondragover:preventDefault
         @ondrop="DropAsync">
-        <td class="rule-drag-column">
+        <td class="drag">
             <button type="button"
                     class="@DragHandleClass"
                     draggable="@DragEnabled"
@@ -23,7 +23,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
             </button>
         </td>
-        <td class="rule-number-column">
+        <td class="position">
             @if (Row.PositionChange is { } positionChange)
             {
                 <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
@@ -47,28 +47,28 @@
                 <span class="rule-number">@Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
             }
         </td>
-        <td class="rule-action-column">
+        <td class="action">
             <span class="@ActionClass(rule.Rule.Action)">
                 @RuleText.FormatAction(rule.Rule.Action)
             </span>
         </td>
-        <td class="rule-direction-column">
+        <td class="direction">
             <span class="rule-direction">@RuleText.FormatDirection(rule.Rule.Direction)</span>
         </td>
-        <td class="rule-endpoint-column">
+        <td class="endpoint">
             <span class="rule-endpoint">
                 @RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)
             </span>
         </td>
-        <td class="rule-endpoint-column">
+        <td class="endpoint">
             <span class="rule-endpoint">
                 @RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)
             </span>
         </td>
-        <td class="rule-protocol-column">
+        <td class="protocol">
             <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
         </td>
-        <td class="rule-comment-column">
+        <td class="comment">
             @if (!string.IsNullOrWhiteSpace(rule.Rule.Comment))
             {
                 <span class="rule-comment">@rule.Rule.Comment</span>
@@ -78,7 +78,7 @@
                 <span class="rule-comment-empty">@RulesText["None"]</span>
             }
         </td>
-        <td class="rule-row-actions">
+        <td class="actions">
             <RuleActionsMenu Rule="@rule"
                              FamilyPosition="@Row.FamilyPosition"
                              OrderingDisabled="@OrderingDisabled"
@@ -98,12 +98,12 @@ else
         @ondragenter="@DragEnterHandler"
         @ondragover:preventDefault
         @ondrop="DropAsync">
-        <td class="rule-drag-column">
+        <td class="drag">
             <span class="rule-drag-handle rule-drag-handle-disabled" aria-hidden="true">
                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
             </span>
         </td>
-        <td class="rule-number-column">
+        <td class="position">
             @if (Row.PositionChange is { } positionChange)
             {
                 <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
@@ -121,12 +121,12 @@ else
             }
         </td>
         <td colspan="6">
-            <div class="rule-unsupported">
+            <div class="unsupported">
                 <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
                 <span class="rule-raw-line">@rule.RawLine</span>
             </div>
         </td>
-        <td class="rule-row-actions">
+        <td class="actions">
             <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
                 <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
                     <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
