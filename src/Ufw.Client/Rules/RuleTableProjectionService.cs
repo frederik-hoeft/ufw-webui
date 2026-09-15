@@ -22,18 +22,19 @@ internal sealed class RuleTableProjectionService : IRuleTableProjectionService
             familyCounts[family] = familyCounts.GetValueOrDefault(family) + 1;
         }
 
+        IReadOnlyList<int> projectedOrder = GetProjectedOrder(rules.Count, orderingPreview);
         Dictionary<FirewallAddressFamily, int> familyPositions = new();
         List<RuleRowProjection> ipv4Rows = [];
         List<RuleRowProjection> ipv6Rows = [];
-        for (int index = 0; index < rules.Count; index++)
+        for (int projectedIndex = 0; projectedIndex < projectedOrder.Count; projectedIndex++)
         {
-            ListedFirewallRule rule = rules[index];
+            int occurrenceId = projectedOrder[projectedIndex];
+            ListedFirewallRule rule = rules[occurrenceId];
             FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rule);
             int familyPosition = familyPositions.GetValueOrDefault(family) + 1;
             familyPositions[family] = familyPosition;
 
-            int occurrenceId = orderingPreview?.GetOccurrenceId(rule) ?? index;
-            RulePositionChange? positionChange = CreatePositionChange(rule, orderingPreview);
+            RulePositionChange? positionChange = CreatePositionChange(occurrenceId, projectedIndex, orderingPreview);
             bool canOrder = rule.Parsed && rule.Rule is not null;
             bool canMutate = canOrder
                 && rule.RuleId is { } ruleId
@@ -72,17 +73,30 @@ internal sealed class RuleTableProjectionService : IRuleTableProjectionService
         return new RuleTableProjection(families);
     }
 
-    private static RulePositionChange? CreatePositionChange(ListedFirewallRule rule, RuleOrderingPreview? orderingPreview)
+    private static IReadOnlyList<int> GetProjectedOrder(int ruleCount, RuleOrderingPreview? orderingPreview)
     {
-        int? originalPosition = orderingPreview?.GetOriginalPosition(rule);
-        if (originalPosition is null || rule.DisplayNumber is null || originalPosition.Value == rule.DisplayNumber.Value)
+        if (orderingPreview is null)
+        {
+            return Enumerable.Range(0, ruleCount).ToArray();
+        }
+        if (orderingPreview.DesiredOrder.Count != ruleCount)
+        {
+            throw new InvalidOperationException("The ordering preview does not match the authoritative rule snapshot.");
+        }
+
+        return orderingPreview.DesiredOrder;
+    }
+
+    private static RulePositionChange? CreatePositionChange(int occurrenceId, int projectedIndex, RuleOrderingPreview? orderingPreview)
+    {
+        if (orderingPreview is null || occurrenceId == projectedIndex)
         {
             return null;
         }
 
         return new RulePositionChange(
-            originalPosition.Value,
-            rule.DisplayNumber.Value,
-            orderingPreview!.WasDirectlyMoved(rule));
+            occurrenceId + 1,
+            projectedIndex + 1,
+            orderingPreview.WasDirectlyMoved(occurrenceId));
     }
 }

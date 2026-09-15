@@ -60,13 +60,17 @@ public sealed class RuleTableProjectionServiceTests
     [TestMethod]
     public void Create_UsesOrderingPreviewForOriginalOccurrenceAndMovePresentation()
     {
-        ListedFirewallRule first = Rule("first", FirewallAddressFamily.IPv4, displayNumber: 2);
-        ListedFirewallRule second = Rule("second", FirewallAddressFamily.IPv4, displayNumber: 1);
-        RuleOrderingPreview preview = new([second, first], [1, 0], new HashSet<int> { 1 });
+        ListedFirewallRule first = Rule("first", FirewallAddressFamily.IPv4, displayNumber: 1);
+        ListedFirewallRule second = Rule("second", FirewallAddressFamily.IPv4, displayNumber: 2);
+        ListedFirewallRule[] authoritative = [first, second];
+        RuleOrderingPreview preview = new([1, 0], new HashSet<int> { 1 });
 
-        RuleTableProjection projection = _projection.Create(preview.Rules, preview);
+        RuleTableProjection projection = _projection.Create(authoritative, preview);
         RuleRowProjection moved = projection.Families[0].Rows[0];
 
+        Assert.AreSame(second, moved.Rule);
+        Assert.AreEqual(2, moved.Rule.DisplayNumber);
+        Assert.AreEqual(1, first.DisplayNumber);
         Assert.AreEqual(1, moved.OccurrenceId);
         Assert.AreEqual(1, moved.FamilyPosition);
         Assert.IsNotNull(moved.PositionChange);

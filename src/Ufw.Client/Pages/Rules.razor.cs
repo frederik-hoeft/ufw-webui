@@ -39,9 +39,6 @@ public sealed partial class Rules
 
     private bool HasOrderingPreview => _orderingPreview is not null;
 
-    private IReadOnlyList<ListedFirewallRule> DisplayedRules
-        => _orderingPreview?.Rules ?? _state.Snapshot?.Rules ?? [];
-
     private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering;
 
     private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !HasOrderingPreview;

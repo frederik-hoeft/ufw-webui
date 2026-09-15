@@ -58,18 +58,6 @@ internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesString
             : [.. currentPreview.DirectlyMovedOccurrences];
         directlyMovedOccurrences.Add(request.OccurrenceId);
 
-        ListedFirewallRule[] projected = [.. desiredOrder.Select((occurrenceId, index) =>
-            CopyWithDisplayNumber(authoritativeRules[occurrenceId], index + 1))];
-
-        return new RuleOrderingPreview(projected, desiredOrder, directlyMovedOccurrences);
+        return new RuleOrderingPreview(desiredOrder, directlyMovedOccurrences);
     }
-
-    private static ListedFirewallRule CopyWithDisplayNumber(ListedFirewallRule rule, int displayNumber) => new()
-    {
-        RuleId = rule.RuleId,
-        DisplayNumber = displayNumber,
-        Parsed = rule.Parsed,
-        RawLine = rule.RawLine,
-        Rule = rule.Rule,
-    };
 }

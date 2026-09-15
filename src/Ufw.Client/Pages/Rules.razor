@@ -171,7 +171,7 @@ else if (_state.Snapshot is { })
         <RuleOrderingResultAlert Result="@orderingResult" />
     }
 
-    <RuleTable Rules="@DisplayedRules"
+    <RuleTable Rules="@(_state.Snapshot?.Rules ?? [])"
                OrderingPreview="@_orderingPreview"
                Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
                Disabled="@(!CanMutateFirewall)"
