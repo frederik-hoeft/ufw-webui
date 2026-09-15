@@ -6,7 +6,7 @@ using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
 
-public sealed partial class RuleTable
+public sealed partial class RuleFamilyWorkspace
 {
     private static readonly DialogOptions s_moveDialogOptions = new()
     {
@@ -139,7 +139,7 @@ public sealed partial class RuleTable
             return;
         }
 
-        if (ReferenceEquals(source, row) || source.AddressFamily != row.AddressFamily)
+        if (ReferenceEquals(source, row))
         {
             if (_dropTarget is not null)
             {
@@ -167,8 +167,7 @@ public sealed partial class RuleTable
             if (source is null
                 || ReferenceEquals(source, target)
                 || OrderingDisabled
-                || !source.CanOrder
-                || source.AddressFamily != target.AddressFamily)
+                || !source.CanOrder)
             {
                 return;
             }

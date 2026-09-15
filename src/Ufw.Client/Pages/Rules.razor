@@ -178,7 +178,7 @@ else if (_state.Snapshot is { })
              Class="rule-family-tabs"
              TabPanelsClass="rule-family-tab-panels">
         <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv4)" BadgeData="@IPv4Family.Rows.Count">
-            <RuleTable Family="@IPv4Family"
+            <RuleFamilyWorkspace Family="@IPv4Family"
                        Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
                        Disabled="@(!CanMutateFirewall)"
                        OrderingDisabled="@(!CanPreviewOrdering)"
@@ -190,7 +190,7 @@ else if (_state.Snapshot is { })
         @if (IPv6FamilyAvailable)
         {
             <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv6)" BadgeData="@IPv6Family.Rows.Count">
-                <RuleTable Family="@IPv6Family"
+                <RuleFamilyWorkspace Family="@IPv6Family"
                            Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
                            Disabled="@(!CanMutateFirewall)"
                            OrderingDisabled="@(!CanPreviewOrdering)"
