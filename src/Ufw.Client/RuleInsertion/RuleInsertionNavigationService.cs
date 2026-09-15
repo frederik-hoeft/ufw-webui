@@ -2,6 +2,7 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
+using Ufw.Shared.Web;
 
 namespace Ufw.Client.RuleInsertion;
 
@@ -33,9 +34,11 @@ internal sealed class RuleInsertionNavigationService : IRuleInsertionNavigationS
         }
 
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
-        return $"{CREATE_RULE_PATH}?baseline={Uri.EscapeDataString(fingerprint)}"
-            + $"&anchor={anchorOccurrenceId.ToString(CultureInfo.InvariantCulture)}"
-            + $"&placement={FormatPlacement(placement)}";
+        return SimpleUriBuilder.Create(CREATE_RULE_PATH)
+            .AppendQuery("baseline", fingerprint)
+            .AppendQuery("anchor", anchorOccurrenceId)
+            .AppendQuery("placement", FormatPlacement(placement))
+            .Build();
     }
 
     public RuleInsertionNavigationResolution Resolve(RuleListResponse snapshot, RuleInsertionNavigationQuery query)

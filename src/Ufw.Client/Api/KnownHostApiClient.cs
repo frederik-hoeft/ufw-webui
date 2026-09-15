@@ -1,11 +1,13 @@
 ﻿using System.Net.Http.Json;
 using Ufw.Client.Serialization;
+using Ufw.Shared.Web;
 
 namespace Ufw.Client.Api;
 
 internal sealed class KnownHostApiClient(HttpClient httpClient) : IKnownHostApiClient
 {
-    private static readonly Uri s_hostsUri = new("api/v1/known-hosts", UriKind.Relative);
+    private const string HOSTS_PATH = "api/v1/known-hosts";
+    private static readonly Uri s_hostsUri = new(HOSTS_PATH, UriKind.Relative);
 
     public async Task<KnownHostInventoryResponse> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -25,7 +27,7 @@ internal sealed class KnownHostApiClient(HttpClient httpClient) : IKnownHostApiC
     {
         ValidateHostId(hostId);
         ArgumentNullException.ThrowIfNull(request);
-        Uri uri = new($"api/v1/known-hosts/{hostId:D}", UriKind.Relative);
+        Uri uri = BuildHostUri(hostId);
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.UpdateKnownHostRequest);
         using HttpResponseMessage response = await httpClient.PutAsync(uri, content, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
@@ -34,10 +36,14 @@ internal sealed class KnownHostApiClient(HttpClient httpClient) : IKnownHostApiC
     public async Task<KnownHostInventoryResponse> DeleteAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
         ValidateHostId(hostId);
-        Uri uri = new($"api/v1/known-hosts/{hostId:D}", UriKind.Relative);
+        Uri uri = BuildHostUri(hostId);
         using HttpResponseMessage response = await httpClient.DeleteAsync(uri, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
     }
+
+    private static Uri BuildHostUri(Guid hostId) => SimpleUriBuilder.Create(HOSTS_PATH)
+        .AppendPath(hostId.ToString("D"))
+        .BuildUri(UriKind.Relative);
 
     private static void ValidateHostId(Guid hostId)
     {

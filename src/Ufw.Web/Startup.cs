@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using Ufw.Ipc.Client.Configuration;
+using Ufw.Shared.Web;
 using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Configuration.Swagger;
@@ -187,7 +188,11 @@ internal sealed class Startup : IAsyncStartupScript
             {
                 foreach (ApiVersionDescription description in versionProvider.ApiVersionDescriptions)
                 {
-                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                    string swaggerEndpoint = SimpleUriBuilder.Create("/swagger")
+                        .AppendPath(description.GroupName)
+                        .AppendPath("swagger.json")
+                        .Build();
+                    options.SwaggerEndpoint(swaggerEndpoint, description.GroupName.ToUpperInvariant());
                 }
             });
         }
