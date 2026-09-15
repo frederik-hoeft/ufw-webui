@@ -20,7 +20,7 @@ public sealed partial class RuleTable
     };
 
     private RuleRowProjection? _draggedRow;
-    private RuleRowProjection? _dragTargetRow;
+    private RuleDropTargetProjection? _dropTarget;
     private RuleTableProjection _projection = RuleTableProjection.Empty;
 
     [Parameter]
@@ -96,23 +96,27 @@ public sealed partial class RuleTable
             classes.Add("rule-row-ordering-direct");
         }
 
-        if (ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row))
+        if (DropIndicatorEdge(row) is { } edge)
         {
-            classes.Add("rule-row-drop-target");
+            classes.Add(edge == RuleDropIndicatorEdge.Before ? "rule-row-drop-target-before" : "rule-row-drop-target-after");
         }
 
         return string.Join(' ', classes);
     }
 
-    private string ReadOnlyRowClass(RuleRowProjection row) =>
-        ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row)
-            ? "rule-row-drop-target"
-            : string.Empty;
+    private string ReadOnlyRowClass(RuleRowProjection row) => DropIndicatorEdge(row) switch
+    {
+        RuleDropIndicatorEdge.Before => "rule-row-drop-target-before",
+        RuleDropIndicatorEdge.After => "rule-row-drop-target-after",
+        _ => string.Empty,
+    };
 
-    private string ReadOnlyMobileCardClass(RuleRowProjection row) =>
-        ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row)
-            ? "rule-mobile-card rule-mobile-card-readonly rule-row-drop-target"
-            : "rule-mobile-card rule-mobile-card-readonly";
+    private string ReadOnlyMobileCardClass(RuleRowProjection row) => DropIndicatorEdge(row) switch
+    {
+        RuleDropIndicatorEdge.Before => "rule-mobile-card rule-mobile-card-readonly rule-mobile-card-drop-target-before",
+        RuleDropIndicatorEdge.After => "rule-mobile-card rule-mobile-card-readonly rule-mobile-card-drop-target-after",
+        _ => "rule-mobile-card rule-mobile-card-readonly",
+    };
 
     private string MobileCardClass(RuleRowProjection row)
     {
@@ -122,13 +126,16 @@ public sealed partial class RuleTable
             classes.Add("rule-mobile-card-ordering-direct");
         }
 
-        if (ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row))
+        if (DropIndicatorEdge(row) is { } edge)
         {
-            classes.Add("rule-mobile-card-drop-target");
+            classes.Add(edge == RuleDropIndicatorEdge.Before ? "rule-mobile-card-drop-target-before" : "rule-mobile-card-drop-target-after");
         }
 
         return string.Join(' ', classes);
     }
+
+    private RuleDropIndicatorEdge? DropIndicatorEdge(RuleRowProjection row) =>
+        ReferenceEquals(_dropTarget?.Row, row) ? _dropTarget.IndicatorEdge : null;
 
     private string DragEnabled(RuleRowProjection row) =>
         !OrderingDisabled && row.CanOrder ? "true" : "false";
@@ -138,35 +145,36 @@ public sealed partial class RuleTable
         if (!OrderingDisabled && row.CanOrder)
         {
             _draggedRow = row;
-            _dragTargetRow = row;
+            _dropTarget = null;
         }
     }
 
     private void SetDragTarget(RuleRowProjection row)
     {
-        if (_draggedRow is null || ReferenceEquals(_dragTargetRow, row))
+        RuleRowProjection? source = _draggedRow;
+        if (source is null || ReferenceEquals(_dropTarget?.Row, row))
         {
             return;
         }
 
-        if (_draggedRow.AddressFamily != row.AddressFamily)
+        if (ReferenceEquals(source, row) || source.AddressFamily != row.AddressFamily)
         {
-            if (_dragTargetRow is not null)
+            if (_dropTarget is not null)
             {
-                _dragTargetRow = null;
+                _dropTarget = null;
                 StateHasChanged();
             }
             return;
         }
 
-        _dragTargetRow = row;
+        _dropTarget = new RuleDropTargetProjection(source, row);
         StateHasChanged();
     }
 
     private void EndDrag()
     {
         _draggedRow = null;
-        _dragTargetRow = null;
+        _dropTarget = null;
     }
 
     private async Task DropAsync(RuleRowProjection target)
