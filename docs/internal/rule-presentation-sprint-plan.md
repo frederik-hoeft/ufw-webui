@@ -86,7 +86,7 @@ The UI should therefore move toward family-relative presentation coordinates:
 - keep snapshot-local occurrence identity distinct from user-facing family position;
 - permit only family-local reordering.
 
-This makes IPv4 and IPv6 self-contained presentation units. They can remain stacked sections, become tabs, or move to separate routes later without changing rule authority or ordering semantics.
+This makes IPv4 and IPv6 self-contained presentation units. The preparatory refactor presents them as tab-selected family workspaces within the shared `/rules` page, while keeping the component boundary independent enough that a later navigation/layout change would not alter rule authority or ordering semantics.
 
 ## Rule-list projection
 
@@ -261,12 +261,13 @@ Whether templates retain optional provenance such as "created from rule" or whet
 Before designing concrete metadata entities and endpoints, the existing UI should receive one focused structural preparation pass:
 
 1. **Make family-relative position first-class in presentation.** Stop treating combined UFW numbering as the visible ordering model. Preserve the combined number only where authoritative snapshot/protocol semantics require it.
-2. **Decompose the rule table at real interaction seams.** Extract family-level interaction from row presentation and establish independent match-context/details extension regions. Do not split cells/helpers merely to reduce file length.
+2. **Separate authoritative rules from ordering-preview state.** Ordering previews should describe desired occurrence order without cloning rules or rewriting authoritative UFW display numbers.
 3. **Generalize the projection vocabulary.** The existing rule-table projection increasingly represents a reusable rule-list presentation model rather than HTML-table state. Rename/generalize where that improves the boundary without speculative abstraction.
-4. **Centralize page interaction mode.** Encode filtered vs. ordering-preview mutual exclusion once so later search/filter UI cannot accidentally leave reorder paths enabled.
-5. **Preserve behavior and protocol boundaries.** No daemon protocol, signing, EF schema, or REST endpoint changes belong in this preparatory refactor.
+4. **Move family separation to a real UI boundary.** Keep one `/rules` page for global firewall state and mutation orchestration, but compose IPv4/IPv6 as tab-selected family workspaces with family-local interaction state.
+5. **Decompose the rule UI at interaction seams.** Extract family-level drag/move behavior and focused desktop/mobile row presenters. Do not create placeholder search/match or metadata components before those features exist.
+6. **Preserve behavior and protocol boundaries.** No search/filter implementation, daemon protocol, signing, EF schema, enriched REST endpoint, metadata, or template changes belong in this preparatory refactor.
 
-After this preparation, search/filtering, ASP enrichment/grouping, and templates can be developed as separate feature slices over a stable presentation foundation.
+The implementation sequence and acceptance criteria are tracked in [Rule-presentation foundation refactor plan](rule-presentation-foundation-refactor-plan.md). After this preparation, search/filtering, ASP enrichment/grouping, and templates can be developed as separate feature slices over a stable presentation foundation.
 
 ## Deferred detailed design
 
@@ -279,7 +280,6 @@ The following are intentionally not fixed by this baseline and should be worked 
 - whether ordered insertion remains available while a filter is active;
 - template schema, metadata-copy behavior, provenance, and template-manager UX;
 - reconciliation endpoint/command shape and orphan-cleanup confirmation UX;
-- whether IPv4/IPv6 remain stacked, become tabs, or move to separate routes;
 - optional direct rule-detail navigation;
 - any future automated orphan-retention policy.
 

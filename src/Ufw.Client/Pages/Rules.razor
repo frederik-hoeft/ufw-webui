@@ -8,6 +8,7 @@
 @inject IClientErrorMapper ClientErrors
 @inject IRuleOrderingService RuleOrdering
 @inject IRuleOrderingProjectionService RuleOrderingProjection
+@inject IRuleListProjectionService RuleListProjectionService
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
@@ -168,16 +169,38 @@ else if (_state.Snapshot is { })
 
     @if (_orderingResult is { } orderingResult)
     {
-        <RuleOrderingResultAlert Result="@orderingResult" />
+        <RuleOrderingResultAlert Result="@orderingResult.Response"
+                                 BaselineRules="@orderingResult.BaselineRules"
+                                 DesiredOrder="@orderingResult.DesiredOrder" />
     }
 
-    <RuleTable Rules="@DisplayedRules"
-               OrderingPreview="@_orderingPreview"
-               Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
-               Disabled="@(!CanMutateFirewall)"
-               OrderingDisabled="@(!CanPreviewOrdering)"
-               InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
-               DeleteRequested="BeginDeleteAsync"
-               InsertionRequested="BeginOrderedInsertionAsync"
-               MoveRequested="MoveRuleAsync" />
+    <MudTabs ActivePanelIndex="@SelectedFamilyTabIndex"
+             ActivePanelIndexChanged="SelectFamilyTab"
+             KeepPanelsAlive="false"
+             Class="rule-family-tabs"
+             TabPanelsClass="rule-family-tab-panels">
+        <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv4)" BadgeData="@IPv4Family.Rows.Count">
+            <RuleFamilyWorkspace Family="@IPv4Family"
+                       Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+                       Disabled="@(!CanMutateFirewall)"
+                       OrderingDisabled="@(!CanPreviewOrdering)"
+                       InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
+                       DeleteRequested="BeginDeleteAsync"
+                       InsertionRequested="BeginOrderedInsertionAsync"
+                       MoveRequested="MoveRuleAsync" />
+        </MudTabPanel>
+        @if (IPv6FamilyAvailable)
+        {
+            <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv6)" BadgeData="@IPv6Family.Rows.Count">
+                <RuleFamilyWorkspace Family="@IPv6Family"
+                           Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+                           Disabled="@(!CanMutateFirewall)"
+                           OrderingDisabled="@(!CanPreviewOrdering)"
+                           InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
+                           DeleteRequested="BeginDeleteAsync"
+                           InsertionRequested="BeginOrderedInsertionAsync"
+                           MoveRequested="MoveRuleAsync" />
+            </MudTabPanel>
+        }
+    </MudTabs>
 }

@@ -1,0 +1,163 @@
+@use "../../core/tokens" as *;
+
+.rule-family-workspace {
+    min-width: 0;
+
+    > .surface {
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+        border-radius: var(--mud-default-borderradius);
+
+        > .progress {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        > .empty-state {
+            display: grid;
+            justify-items: center;
+            gap: 0.5rem;
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+
+        > .desktop-list {
+            min-width: 0;
+            overflow-x: auto;
+            overscroll-behavior-inline: contain;
+
+            > table {
+                width: 100%;
+                min-width: 66rem;
+                border-spacing: 0;
+                border-collapse: collapse;
+                color: var(--mud-palette-text-primary);
+
+                th,
+                td {
+                    border-bottom: 1px solid var(--mud-palette-table-lines);
+                    text-align: left;
+                    vertical-align: middle;
+                }
+
+                th {
+                    height: 2.5rem;
+                    padding: 0.5rem 0.75rem;
+                    background: var(--mud-palette-background-gray);
+                    color: var(--mud-palette-text-secondary);
+                    font-size: 0.6875rem;
+                    font-weight: 600;
+                    letter-spacing: 0.01em;
+                    white-space: nowrap;
+                }
+
+                td {
+                    height: 3rem;
+                    padding: 0.5rem 0.75rem;
+                    font-size: 0.8125rem;
+                }
+
+                tbody tr:last-child td {
+                    border-bottom: 0;
+                }
+
+                tbody tr {
+                    transition: background-color 120ms ease;
+
+                    &:hover {
+                        background: var(--mud-palette-table-hover);
+                    }
+                }
+
+                .drag {
+                    width: 2.75rem;
+                    min-width: 2.75rem;
+                    padding-inline: 0.5rem;
+                    text-align: center;
+                }
+
+                .position {
+                    width: 5.5rem;
+                    min-width: 5.5rem;
+                }
+
+                .action,
+                .direction {
+                    width: 7rem;
+                    min-width: 7rem;
+                }
+
+                .endpoint {
+                    min-width: 13rem;
+                }
+
+                .protocol {
+                    width: 6rem;
+                    min-width: 6rem;
+                }
+
+                .comment {
+                    width: 14rem;
+                    min-width: 12rem;
+                }
+
+                .actions {
+                    width: 3rem;
+                    min-width: 3rem;
+                    text-align: right;
+                    white-space: nowrap;
+                }
+            }
+        }
+
+        > .mobile-list {
+            display: none;
+        }
+    }
+
+    > .ordering-note {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 0.875rem 1rem;
+        border-radius: var(--mud-default-borderradius);
+        background: var(--mud-palette-background-gray);
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.8125rem;
+
+        > strong {
+            flex: 0 0 auto;
+            color: var(--mud-palette-text-primary);
+            font-weight: 600;
+        }
+
+        > span {
+            min-width: 0;
+        }
+    }
+}
+
+@media (max-width: ($desktop-breakpoint - 0.02px)) {
+    .rule-family-workspace > .ordering-note {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .rule-family-workspace > .surface {
+        > .desktop-list {
+            display: none;
+        }
+
+        > .mobile-list {
+            display: block;
+        }
+    }
+}

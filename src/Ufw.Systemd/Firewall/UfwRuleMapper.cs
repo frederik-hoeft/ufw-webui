@@ -73,6 +73,7 @@ internal static class UfwRuleMapper
             Destination = row.Destination,
             DestinationPorts = row.DestinationPorts,
             DestinationInterface = row.DestinationInterface,
+            Comment = row.Comment,
         });
     }
 

@@ -3,8 +3,8 @@
 <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
          Size="Size.Small"
          Dense="true"
-         Class="rule-row-menu"
-         PopoverClass="rule-row-menu-popover"
+         Class="rule-actions-menu"
+         PopoverClass="rule-actions-menu-popover"
          aria-label="@ActionsLabel">
     <MudMenuItem Disabled="@(OrderingDisabled || !CanOrder)"
                  Icon="@Icons.Material.Filled.DragIndicator"
@@ -26,7 +26,7 @@
                  Icon="@Icons.Material.Filled.Delete"
                  IconColor="Color.Error"
                  OnClick="@(() => DeleteRequested.InvokeAsync(Rule))"
-                 Class="rule-menu-delete">
+                 Class="delete">
         @RulesText["DeleteRule"]
     </MudMenuItem>
 </MudMenu>

@@ -1,13 +1,26 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Ufw.Client.RuleOrdering;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
 namespace Ufw.Client.Components.Rules;
 
 public sealed partial class RuleOrderingResultAlert
 {
+    [Inject]
+    private IRuleOrderingResultProjectionService ResultProjectionService { get; set; } = null!;
+
     [Parameter, EditorRequired]
     public RuleReorderResponse Result { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ListedFirewallRule> BaselineRules { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<int> DesiredOrder { get; set; } = [];
+
+    private RuleOrderingResultProjection Projection { get; set; } = RuleOrderingResultProjection.Empty;
 
     private Severity AlertSeverity => Result.Outcome switch
     {
@@ -29,15 +42,17 @@ public sealed partial class RuleOrderingResultAlert
         _ => RulesText["OrderingResult"],
     };
 
-    private string DescribeOperation(RuleReorderOperationResponse operation) =>
+    protected override void OnParametersSet() => Projection = ResultProjectionService.Create(Result, BaselineRules, DesiredOrder);
+
+    private string DescribeOperation(RuleOrderingOperationProjection operation) =>
         RulesText[
             "OrderingOperationReport",
-            operation.Move.OccurrenceId + 1,
-            operation.Move.TargetIndex + 1,
-            DescribeOperationOutcome(operation.Outcome)];
+            operation.BaselineFamilyPosition,
+            operation.TargetFamilyPosition,
+            DescribeOperationOutcome(operation.Operation.Outcome)];
 
-    private string DescribeMove(RuleReorderMoveResponse move) =>
-        RulesText["OrderingPendingMove", move.OccurrenceId + 1, move.TargetIndex + 1];
+    private string DescribeMove(RuleOrderingMoveProjection move) =>
+        RulesText["OrderingPendingMove", move.BaselineFamilyPosition, move.TargetFamilyPosition];
 
     private string DescribeOperationOutcome(RuleReorderOperationOutcome outcome) => outcome switch
     {

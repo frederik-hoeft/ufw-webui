@@ -6,31 +6,31 @@
     {
         <MudText Typo="Typo.body2" Class="mb-3">@Result.Diagnostic</MudText>
     }
-    @if (Result.Operations.Length > 0)
+    @if (Projection.Operations.Count > 0)
     {
         <MudText Typo="Typo.body2"><strong>@RulesText["OrderingCompletedOperations"]</strong></MudText>
         <ul class="mb-3">
-            @foreach (RuleReorderOperationResponse operation in Result.Operations)
+            @foreach (RuleOrderingOperationProjection operation in Projection.Operations)
             {
                 <li>@DescribeOperation(operation)</li>
             }
         </ul>
     }
-    @if (Result.PendingOperations.Length > 0)
+    @if (Projection.PendingOperations.Count > 0)
     {
         <MudText Typo="Typo.body2"><strong>@RulesText["OrderingPendingOperations"]</strong></MudText>
         <ul class="mb-3">
-            @foreach (RuleReorderMoveResponse move in Result.PendingOperations)
+            @foreach (RuleOrderingMoveProjection move in Projection.PendingOperations)
             {
                 <li>@DescribeMove(move)</li>
             }
         </ul>
     }
-    @if (Result.BlockedOperations.Length > 0)
+    @if (Projection.BlockedOperations.Count > 0)
     {
         <MudText Typo="Typo.body2"><strong>@RulesText["OrderingBlockedOperations"]</strong></MudText>
         <ul>
-            @foreach (RuleReorderMoveResponse move in Result.BlockedOperations)
+            @foreach (RuleOrderingMoveProjection move in Projection.BlockedOperations)
             {
                 <li>@DescribeMove(move)</li>
             }

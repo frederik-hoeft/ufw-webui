@@ -1,0 +1,97 @@
+@inject IDialogService DialogService
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<section aria-labelledby="firewall-rule-list-heading" class="rule-family-workspace">
+    <h2 id="firewall-rule-list-heading" class="visually-hidden">@RulesText["CurrentAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</h2>
+    <MudPaper Elevation="0" Class="surface">
+        @if (Loading)
+        {
+            <MudProgressLinear Indeterminate="true"
+                               Class="progress"
+                               aria-label="@(RulesText["LoadingStateAria"])" />
+        }
+
+        @if (Family.Rows.Count == 0)
+        {
+            <div class="empty-state">
+                <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.subtitle1">@RulesText["NoAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @RulesText["NoAddressFamilyRulesDescription", RuleText.FormatAddressFamily(Family.AddressFamily)]
+                </MudText>
+                <MudButton Href="/rules/create"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@Disabled"
+                           Class="mt-2">
+                    @RulesText["AddRule"]
+                </MudButton>
+            </div>
+        }
+        else
+        {
+            <div class="desktop-list" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
+                <table aria-busy="@Loading">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="drag"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
+                            <th scope="col" class="position">@RulesText["RulePositionColumn"]</th>
+                            <th scope="col" class="action">@RulesText["ActionColumn"]</th>
+                            <th scope="col" class="direction">@RulesText["DirectionColumn"]</th>
+                            <th scope="col" class="endpoint">@RulesText["FromColumn"]</th>
+                            <th scope="col" class="endpoint">@RulesText["ToColumn"]</th>
+                            <th scope="col" class="protocol">@RulesText["ProtocolColumn"]</th>
+                            <th scope="col" class="comment">@RulesText["CommentColumn"]</th>
+                            <th scope="col" class="actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (RuleRowProjection row in Family.Rows)
+                        {
+                            <RuleDesktopRow Row="@row"
+                                            OrderingDisabled="@OrderingDisabled"
+                                            InsertionDisabled="@InsertionDisabled"
+                                            MutationDisabled="@Disabled"
+                                            DropIndicatorEdge="@DropIndicatorEdge(row)"
+                                            DragStarted="@BeginDrag"
+                                            DragEntered="@SetDragTarget"
+                                            DragEnded="@EndDrag"
+                                            DropRequested="@DropAsync"
+                                            MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                            InsertionRequested="@InsertionRequested"
+                                            DeleteRequested="@DeleteRequested" />
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mobile-list" aria-busy="@Loading">
+                @foreach (RuleRowProjection row in Family.Rows)
+                {
+                    <RuleMobileCard Row="@row"
+                                    OrderingDisabled="@OrderingDisabled"
+                                    InsertionDisabled="@InsertionDisabled"
+                                    MutationDisabled="@Disabled"
+                                    DropIndicatorEdge="@DropIndicatorEdge(row)"
+                                    DragStarted="@BeginDrag"
+                                    DragEntered="@SetDragTarget"
+                                    DragEnded="@EndDrag"
+                                    DropRequested="@DropAsync"
+                                    MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                    InsertionRequested="@InsertionRequested"
+                                    DeleteRequested="@DeleteRequested" />
+                }
+            </div>
+        }
+    </MudPaper>
+
+    @if (Family.Rows.Count > 0)
+    {
+        <div class="ordering-note" role="note">
+            <strong>@RulesText["OrderingLabel"]</strong>
+            <span>@RulesText["OrderingDescription"]</span>
+        </div>
+    }
+</section>

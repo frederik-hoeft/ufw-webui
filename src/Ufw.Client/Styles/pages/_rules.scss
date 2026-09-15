@@ -2,3 +2,14 @@
     width: 100%;
     max-width: 72rem;
 }
+
+.rule-family-tabs,
+.rule-family-tab-panels {
+    min-width: 0;
+}
+
+.rule-ordering-preview-alert footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}

@@ -63,7 +63,8 @@ public static class Program
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingService, RuleOrderingService>();
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
-        builder.Services.AddSingleton<IRuleTableProjectionService, RuleTableProjectionService>();
+        builder.Services.AddSingleton<IRuleOrderingResultProjectionService, RuleOrderingResultProjectionService>();
+        builder.Services.AddSingleton<IRuleListProjectionService, RuleListProjectionService>();
         builder.Services.AddSingleton<IRuleInsertionNavigationService, RuleInsertionNavigationService>();
         builder.Services.AddSingleton<IRuleMutationReconciliationService, RuleMutationReconciliationService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();

@@ -87,10 +87,25 @@ internal sealed class RuleInsertionNavigationService : IRuleInsertionNavigationS
         OrderedRuleInsertionNavigationContext context = new(
             query.BaselineFingerprint,
             anchorOccurrenceId,
+            GetFamilyPosition(snapshot.Rules, anchorOccurrenceId, anchor.Rule.AddressFamily),
             placement,
             anchor.Rule.AddressFamily,
             anchor);
         return new RuleInsertionNavigationResolution(context, OrderedRuleInsertionContextError.None);
+    }
+
+    private static int GetFamilyPosition(IReadOnlyList<ListedFirewallRule> rules, int occurrenceId, FirewallAddressFamily family)
+    {
+        int familyPosition = 0;
+        for (int index = 0; index <= occurrenceId; index++)
+        {
+            if (ListedFirewallRuleFamily.GetObservedFamily(rules[index]) == family)
+            {
+                familyPosition++;
+            }
+        }
+
+        return familyPosition;
     }
 
     private static int FindOccurrenceId(IReadOnlyList<ListedFirewallRule> rules, ListedFirewallRule anchor)

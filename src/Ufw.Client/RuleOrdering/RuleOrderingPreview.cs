@@ -1,37 +1,25 @@
-﻿using Ufw.Shared.Firewall;
-
-namespace Ufw.Client.RuleOrdering;
+﻿namespace Ufw.Client.RuleOrdering;
 
 public sealed class RuleOrderingPreview
 {
-    private readonly Dictionary<ListedFirewallRule, int> _occurrenceIds;
-
-    public RuleOrderingPreview(
-        IReadOnlyList<ListedFirewallRule> rules,
-        IReadOnlyList<int> desiredOrder,
-        IReadOnlySet<int> directlyMovedOccurrences)
+    public RuleOrderingPreview(IReadOnlyList<int> desiredOrder, IReadOnlySet<int> directlyMovedOccurrences)
     {
-        ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(desiredOrder);
         ArgumentNullException.ThrowIfNull(directlyMovedOccurrences);
-        if (rules.Count != desiredOrder.Count)
+
+        int[] order = [.. desiredOrder];
+        ValidatePermutation(order);
+
+        HashSet<int> directlyMoved = [.. directlyMovedOccurrences];
+        if (directlyMoved.Any(occurrenceId => occurrenceId < 0 || occurrenceId >= order.Length))
         {
-            throw new ArgumentException("The projected rules and desired order must have the same number of entries.", nameof(desiredOrder));
+            throw new ArgumentOutOfRangeException(nameof(directlyMovedOccurrences), "Directly moved occurrence IDs must refer to the ordering baseline.");
         }
 
-        Rules = rules;
-        DesiredOrder = desiredOrder;
-        DirectlyMovedOccurrences = directlyMovedOccurrences;
-        HasChanges = false;
-        _occurrenceIds = new Dictionary<ListedFirewallRule, int>(rules.Count, ReferenceEqualityComparer.Instance);
-        for (int index = 0; index < rules.Count; index++)
-        {
-            _occurrenceIds.Add(rules[index], desiredOrder[index]);
-            HasChanges |= desiredOrder[index] != index;
-        }
+        DesiredOrder = order;
+        DirectlyMovedOccurrences = directlyMoved;
+        HasChanges = order.Where((occurrenceId, index) => occurrenceId != index).Any();
     }
-
-    public IReadOnlyList<ListedFirewallRule> Rules { get; }
 
     public IReadOnlyList<int> DesiredOrder { get; }
 
@@ -39,21 +27,20 @@ public sealed class RuleOrderingPreview
 
     public bool HasChanges { get; }
 
-    public int? GetOccurrenceId(ListedFirewallRule rule)
-    {
-        ArgumentNullException.ThrowIfNull(rule);
-        return _occurrenceIds.TryGetValue(rule, out int occurrenceId) ? occurrenceId : null;
-    }
+    public bool WasDirectlyMoved(int occurrenceId) => DirectlyMovedOccurrences.Contains(occurrenceId);
 
-    public int? GetOriginalPosition(ListedFirewallRule rule)
+    private static void ValidatePermutation(IReadOnlyList<int> desiredOrder)
     {
-        int? occurrenceId = GetOccurrenceId(rule);
-        return occurrenceId is null ? null : occurrenceId.Value + 1;
-    }
+        bool[] observed = new bool[desiredOrder.Count];
+        for (int index = 0; index < desiredOrder.Count; index++)
+        {
+            int occurrenceId = desiredOrder[index];
+            if (occurrenceId < 0 || occurrenceId >= desiredOrder.Count || observed[occurrenceId])
+            {
+                throw new ArgumentException("The desired order must contain each ordering-baseline occurrence exactly once.", nameof(desiredOrder));
+            }
 
-    public bool WasDirectlyMoved(ListedFirewallRule rule)
-    {
-        int? occurrenceId = GetOccurrenceId(rule);
-        return occurrenceId is not null && DirectlyMovedOccurrences.Contains(occurrenceId.Value);
+            observed[occurrenceId] = true;
+        }
     }
 }

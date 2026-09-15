@@ -29,7 +29,9 @@ public sealed partial class Rules
     private bool _reordering;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
-    private RuleReorderResponse? _orderingResult;
+    private RuleOrderingResultContext? _orderingResult;
+    private RuleListProjection _ruleListProjection = RuleListProjection.Empty;
+    private RuleFamilySelectionState _familySelection = RuleFamilySelectionState.Initial;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -39,8 +41,15 @@ public sealed partial class Rules
 
     private bool HasOrderingPreview => _orderingPreview is not null;
 
-    private IReadOnlyList<ListedFirewallRule> DisplayedRules
-        => _orderingPreview?.Rules ?? _state.Snapshot?.Rules ?? [];
+    private RuleFamilyProjection IPv4Family => _ruleListProjection.GetFamily(FirewallAddressFamily.IPv4);
+
+    private RuleFamilyProjection IPv6Family => _ruleListProjection.GetFamily(FirewallAddressFamily.IPv6);
+
+    private bool IPv6FamilyAvailable =>
+        _state.Snapshot is { } snapshot && RuleFamilySelectionState.IsIPv6Available(snapshot.Configuration.IPv6Enabled, IPv6Family.Rows.Count);
+
+    private int SelectedFamilyTabIndex =>
+        _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;
 
     private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering;
 
@@ -100,11 +109,13 @@ public sealed partial class Rules
         _orderingPreview = null;
         _orderingPrivateKey = string.Empty;
         _orderingResult = null;
+        RefreshRuleListProjection();
         _state = _state.BeginRefresh(reason);
         try
         {
             Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
+            RefreshRuleListProjection();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -231,6 +242,7 @@ public sealed partial class Rules
             RuleOrderingPreview preview = RuleOrderingProjection.Move(authoritativeRules, _orderingPreview, request);
             _orderingPreview = preview.HasChanges ? preview : null;
             _orderingResult = null;
+            RefreshRuleListProjection();
             if (_orderingPreview is null)
             {
                 _orderingPrivateKey = string.Empty;
@@ -258,15 +270,17 @@ public sealed partial class Rules
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+            int[] desiredOrder = _orderingPreview.DesiredOrder.ToArray();
             RuleReorderResponse response = await RuleOrdering.ApplyAsync(
                 baseline,
-                _orderingPreview.DesiredOrder,
+                desiredOrder,
                 _orderingPrivateKey,
                 _lifetime.Token);
 
             _orderingPreview = null;
-            _orderingResult = response;
+            _orderingResult = new RuleOrderingResultContext(response, baseline.Rules.ToArray(), desiredOrder);
             _state = _state.AfterReorder(response);
+            RefreshRuleListProjection();
             if (response.Outcome == RuleReorderOutcome.Completed)
             {
                 Snackbar.Add(RulesText["OrderingApplied"], Severity.Success);
@@ -282,6 +296,7 @@ public sealed partial class Rules
             if (_state.IsStale)
             {
                 _orderingPreview = null;
+                RefreshRuleListProjection();
             }
         }
         finally
@@ -297,7 +312,22 @@ public sealed partial class Rules
         {
             _orderingPreview = null;
             _orderingPrivateKey = string.Empty;
+            RefreshRuleListProjection();
         }
+    }
+
+    private void SelectFamilyTab(int tabIndex)
+    {
+        FirewallAddressFamily requestedFamily = tabIndex == 1
+            ? FirewallAddressFamily.IPv6
+            : FirewallAddressFamily.IPv4;
+        _familySelection = _familySelection.Select(requestedFamily, IPv6FamilyAvailable);
+    }
+
+    private void RefreshRuleListProjection()
+    {
+        _ruleListProjection = RuleListProjectionService.Create(_state.Snapshot?.Rules ?? [], _orderingPreview);
+        _familySelection = _familySelection.Reconcile(IPv6FamilyAvailable);
     }
 
     private void HandleMutationFailure(ClientError error)
@@ -305,6 +335,8 @@ public sealed partial class Rules
         _state = _state.AfterMutationFailure(error);
         Snackbar.Add(error.Message, Severity.Error);
     }
+
+    private sealed record RuleOrderingResultContext(RuleReorderResponse Response, IReadOnlyList<ListedFirewallRule> BaselineRules, IReadOnlyList<int> DesiredOrder);
 
     private string DescribeStaleState() => _state.StaleReason switch
     {

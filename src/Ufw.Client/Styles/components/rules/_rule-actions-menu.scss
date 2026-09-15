@@ -1,0 +1,28 @@
+.rule-actions-menu .mud-button-root {
+    min-width: 2rem;
+}
+
+// MudMenu renders the popover outside the owning component subtree, so this class is an intentional global integration hook.
+.rule-actions-menu-popover {
+    .mud-list {
+        min-width: 13rem;
+        max-width: min(22rem, calc(100vw - 2rem));
+    }
+
+    .mud-list-item-text {
+        display: flex;
+        align-items: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .mud-list-item-icon {
+        min-width: 2.25rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .delete {
+        color: var(--mud-palette-error);
+    }
+}
