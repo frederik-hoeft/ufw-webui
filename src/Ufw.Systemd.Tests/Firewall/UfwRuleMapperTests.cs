@@ -50,6 +50,20 @@ public sealed class UfwRuleMapperTests
     }
 
     [TestMethod]
+    public void TestToListedRule_PreservesComment()
+    {
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse("Status: active\n[ 1] 22/tcp ALLOW IN Anywhere # some SSH stuff\n");
+        Assert.IsNotNull(snapshot);
+        Assert.HasCount(1, snapshot.Rules);
+
+        ListedFirewallRule listed = UfwRuleMapper.ToListedRule(snapshot.Rules[0]);
+
+        Assert.IsTrue(listed.Parsed);
+        Assert.IsNotNull(listed.Rule);
+        Assert.AreEqual("some SSH stuff", listed.Rule.Comment);
+    }
+
+    [TestMethod]
     public void TestToListedRule_SemanticallyInconsistentParsedRowRemainsUnaddressable()
     {
         UfwStatusSnapshot? snapshot = UfwStatusParser.Parse("Status: active\n[ 1] 192.168.1.0/24 (v6) ALLOW IN Anywhere (v6)\n");

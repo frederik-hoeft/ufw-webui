@@ -5,8 +5,5 @@ namespace Ufw.Client.RuleOrdering;
 
 internal interface IRuleOrderingResultProjectionService
 {
-    RuleOrderingResultProjection Create(
-        RuleReorderResponse result,
-        IReadOnlyList<ListedFirewallRule> baselineRules,
-        IReadOnlyList<int> desiredOrder);
+    RuleOrderingResultProjection Create(RuleReorderResponse result, IReadOnlyList<ListedFirewallRule> baselineRules, IReadOnlyList<int> desiredOrder);
 }

@@ -10,12 +10,6 @@ internal sealed record RuleOrderingResultProjection(
     public static RuleOrderingResultProjection Empty { get; } = new([], [], []);
 }
 
-internal sealed record RuleOrderingOperationProjection(
-    RuleReorderOperationResponse Operation,
-    int BaselineFamilyPosition,
-    int TargetFamilyPosition);
+internal sealed record RuleOrderingOperationProjection(RuleReorderOperationResponse Operation, int BaselineFamilyPosition, int TargetFamilyPosition);
 
-internal sealed record RuleOrderingMoveProjection(
-    RuleReorderMoveResponse Move,
-    int BaselineFamilyPosition,
-    int TargetFamilyPosition);
+internal sealed record RuleOrderingMoveProjection(RuleReorderMoveResponse Move, int BaselineFamilyPosition, int TargetFamilyPosition);

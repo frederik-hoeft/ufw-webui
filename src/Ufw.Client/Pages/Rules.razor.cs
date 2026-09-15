@@ -336,10 +336,7 @@ public sealed partial class Rules
         Snackbar.Add(error.Message, Severity.Error);
     }
 
-    private sealed record RuleOrderingResultContext(
-        RuleReorderResponse Response,
-        IReadOnlyList<ListedFirewallRule> BaselineRules,
-        IReadOnlyList<int> DesiredOrder);
+    private sealed record RuleOrderingResultContext(RuleReorderResponse Response, IReadOnlyList<ListedFirewallRule> BaselineRules, IReadOnlyList<int> DesiredOrder);
 
     private string DescribeStaleState() => _state.StaleReason switch
     {

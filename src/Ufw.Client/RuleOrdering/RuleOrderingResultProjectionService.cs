@@ -5,10 +5,7 @@ namespace Ufw.Client.RuleOrdering;
 
 internal sealed class RuleOrderingResultProjectionService : IRuleOrderingResultProjectionService
 {
-    public RuleOrderingResultProjection Create(
-        RuleReorderResponse result,
-        IReadOnlyList<ListedFirewallRule> baselineRules,
-        IReadOnlyList<int> desiredOrder)
+    public RuleOrderingResultProjection Create(RuleReorderResponse result, IReadOnlyList<ListedFirewallRule> baselineRules, IReadOnlyList<int> desiredOrder)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(baselineRules);
