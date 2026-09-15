@@ -10,7 +10,7 @@ readonly SYSTEMD_CONFIG="$REPO_ROOT/src/Ufw.Systemd/appsettings.json"
 readonly WEB_CONFIG="$REPO_ROOT/src/Ufw.Web/appsettings.json"
 readonly WEB_DEFAULT_CONFIG="$REPO_ROOT/src/Ufw.Web/appsettings.default.json"
 readonly TLS_SERVER_NAME="ufw-systemd"
-readonly CA_COMMON_NAME="UFW WebUI Development CA"
+readonly CA_COMMON_NAME="UFWeb Development CA"
 readonly SERVER_COMMON_NAME="$TLS_SERVER_NAME"
 readonly CLIENT_COMMON_NAME="ufw-web-dev-client"
 
@@ -33,7 +33,7 @@ usage() {
     cat <<'USAGE'
 Usage: scripts/setup-dev.sh [options]
 
-Generates local development credentials and configuration for UFW WebUI:
+Generates local development credentials and configuration for UFWeb:
   - a development CA;
   - daemon TLS server and web-client mTLS certificates;
   - a P-256 ECDSA Ufw.Web JWT signing key;

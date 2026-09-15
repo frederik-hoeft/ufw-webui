@@ -25,7 +25,7 @@ usage() {
     cat <<'USAGE'
 Usage: sudo deploy/systemd/install.sh --binary PATH [options]
 
-Installs or updates the privileged UFW WebUI daemon.
+Installs or updates the UFWeb privileged firewall daemon.
 
 Required:
   --binary PATH             Published Linux Ufw.Systemd executable.

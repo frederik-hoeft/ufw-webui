@@ -1,8 +1,8 @@
-# UFW WebUI coding instructions
+# UFWeb coding instructions
 
 ## Project model
 
-UFW WebUI is a .NET 10 solution with a Blazor WebAssembly client, a network-facing ASP.NET Core API, and a privileged host daemon.
+UFWeb is a .NET 10 UFW management platform with a Blazor WebAssembly client, a network-facing ASP.NET Core API, and a privileged host daemon.
 
 - `Ufw.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, rule-authoring interaction, and browser-side signed-intent creation.
 - `Ufw.Web` is the REST API. It owns ASP.NET Core Identity, PostgreSQL-backed application state, JWT/refresh-token handling, application authorization, browser-facing metadata, and the local IPC client.

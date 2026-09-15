@@ -1,6 +1,6 @@
 # Production Deployment
 
-UFW WebUI supports one production application topology with two Docker ownership models. Choose the runbook that matches how Docker runs on the firewall host; do not combine the group/ownership instructions from both modes.
+UFWeb supports one production application topology with two Docker ownership models. Choose the runbook that matches how Docker runs on the firewall host; do not combine the group/ownership instructions from both modes.
 
 | Docker mode | Use this guide | Host-file group mapping |
 | --- | --- | --- |

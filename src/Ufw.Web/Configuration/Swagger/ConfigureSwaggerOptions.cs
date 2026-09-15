@@ -13,7 +13,7 @@ internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider ver
         {
             options.SwaggerDoc(description.GroupName, new OpenApiInfo
             {
-                Title = "UFW WebUI API",
+                Title = "UFWeb API",
                 Version = description.ApiVersion.ToString(),
                 Description = description.IsDeprecated ? "This API version has been deprecated." : null,
             });

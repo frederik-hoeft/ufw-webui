@@ -54,11 +54,11 @@ Application metadata follows the live semantic rule by identity but is not itsel
 
 ### In-band deletion
 
-When UFW WebUI successfully deletes a live rule through its own mutation flow, ASP can immediately remove the metadata attached to that semantic identity. The application has authoritative knowledge that the in-band operation completed and can clean up the corresponding enrichment state as part of that application workflow.
+When UFWeb successfully deletes a live rule through its own mutation flow, ASP can immediately remove the metadata attached to that semantic identity. The application has authoritative knowledge that the in-band operation completed and can clean up the corresponding enrichment state as part of that application workflow.
 
 ### Out-of-band deletion
 
-When a rule disappears because UFW was changed outside UFW WebUI, unmatched metadata is retained rather than deleted during the next rules read. It simply has no authoritative rule to enrich and therefore does not appear in the normal rule UI.
+When a rule disappears because UFW was changed outside UFWeb, unmatched metadata is retained rather than deleted during the next rules read. It simply has no authoritative rule to enrich and therefore does not appear in the normal rule UI.
 
 This state is best described as **unmatched** or **orphaned metadata**, not soft deletion. No live firewall object is represented by the database row.
 

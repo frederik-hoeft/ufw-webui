@@ -4,7 +4,7 @@ ITP is the framing protocol used on the local stream between the web application
 
 ITP does not define application routes, JSON semantics, authentication, sessions, multiplexing, or mutation authorization. A connection carries at most one application exchange.
 
-The requirement words in this document describe interoperability requirements for UFW WebUI implementations; they are not a claim of external standardization.
+The requirement words in this document describe interoperability requirements for UFWeb implementations; they are not a claim of external standardization.
 
 ## Stable bootstrap
 
