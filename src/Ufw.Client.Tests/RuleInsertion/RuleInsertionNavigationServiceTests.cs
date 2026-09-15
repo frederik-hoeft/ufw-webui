@@ -43,23 +43,29 @@ public sealed class RuleInsertionNavigationServiceTests
     }
 
     [TestMethod]
-    public void Resolve_RequiresExactFingerprintAndDerivesConcreteAnchorFamily()
+    public void Resolve_RequiresExactFingerprintAndDerivesConcreteAnchorFamilyAndPosition()
     {
         RuleListResponse baseline = new(
             Active: true,
-            [Rule("v4", FirewallAddressFamily.IPv4, 1), Rule("v6", FirewallAddressFamily.IPv6, 2)],
+            [
+                Rule("v4-a", FirewallAddressFamily.IPv4, 1),
+                Rule("v6-a", FirewallAddressFamily.IPv6, 2),
+                Rule("v4-b", FirewallAddressFamily.IPv4, 3),
+                Rule("v6-b", FirewallAddressFamily.IPv6, 4),
+            ],
             TestFirewallConfiguration.Enabled);
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
 
-        RuleInsertionNavigationResolution resolution = _service.Resolve(baseline, Query(fingerprint, "1", "before"));
+        RuleInsertionNavigationResolution resolution = _service.Resolve(baseline, Query(fingerprint, "3", "before"));
 
         Assert.IsTrue(resolution.Succeeded);
         Assert.AreEqual(OrderedRuleInsertionContextError.None, resolution.Error);
         Assert.IsNotNull(resolution.Context);
-        Assert.AreEqual(1, resolution.Context.AnchorOccurrenceId);
+        Assert.AreEqual(3, resolution.Context.AnchorOccurrenceId);
+        Assert.AreEqual(2, resolution.Context.AnchorFamilyPosition);
         Assert.AreEqual(RuleInsertionPlacement.Before, resolution.Context.Placement);
         Assert.AreEqual(FirewallAddressFamily.IPv6, resolution.Context.AddressFamily);
-        Assert.AreSame(baseline.Rules[1], resolution.Context.Anchor);
+        Assert.AreSame(baseline.Rules[3], resolution.Context.Anchor);
     }
 
     [TestMethod]

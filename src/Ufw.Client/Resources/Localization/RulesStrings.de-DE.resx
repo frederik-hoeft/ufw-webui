@@ -135,9 +135,6 @@
   <data name="InsertionTargetMissing" xml:space="preserve">
     <value>Das ausgewählte Einfügeziel ist im autoritativen Firewallstatus nicht mehr vorhanden.</value>
   </data>
-  <data name="SelectedRule" xml:space="preserve">
-    <value>die ausgewählte Regel</value>
-  </data>
   <data name="RulePosition" xml:space="preserve">
     <value>Regel {0}</value>
   </data>
@@ -276,8 +273,8 @@
   <data name="ReorderColumn" xml:space="preserve">
     <value>Reihenfolge</value>
   </data>
-  <data name="RuleNumberColumn" xml:space="preserve">
-    <value>UFW-Nr.</value>
+  <data name="RulePositionColumn" xml:space="preserve">
+    <value>Position</value>
   </data>
   <data name="ActionColumn" xml:space="preserve">
     <value>Aktion</value>
@@ -334,19 +331,13 @@
     <value>Reihenfolge</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>IPv4 und IPv6 haben unabhängige UFW-Regelreihenfolgen. Die angezeigten UFW-Nummern entsprechen dem autoritativen nummerierten Snapshot; Verschiebepositionen gelten innerhalb einer Familie. Ziehen Sie Regeln innerhalb einer Familie oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden werden der vollständige autoritative Snapshot und die gewünschte Permutation signiert. Einfügeaktionen verwenden die Familie der ausgewählten Regel.</value>
+    <value>IPv4 und IPv6 haben unabhängige UFW-Regelreihenfolgen. Angezeigte Positionen sind innerhalb jeder Adressfamilie einsbasiert. Ziehen Sie Regeln innerhalb einer Familie oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden werden der vollständige autoritative Snapshot und die gewünschte Permutation signiert. Einfügeaktionen verwenden die Familie der ausgewählten Regel.</value>
   </data>
-  <data name="ActionsForRule" xml:space="preserve">
-    <value>Aktionen für Firewallregel {0}</value>
+  <data name="ActionsForRulePosition" xml:space="preserve">
+    <value>Aktionen für Firewallregel an Position {0}</value>
   </data>
-  <data name="RuleActions" xml:space="preserve">
-    <value>Aktionen für Firewallregel</value>
-  </data>
-  <data name="DragRuleNumber" xml:space="preserve">
-    <value>Firewallregel {0} ziehen, um sie neu anzuordnen</value>
-  </data>
-  <data name="DragRule" xml:space="preserve">
-    <value>Firewallregel ziehen, um sie neu anzuordnen</value>
+  <data name="DragRulePosition" xml:space="preserve">
+    <value>Firewallregel an Position {0} ziehen, um sie neu anzuordnen</value>
   </data>
   <data name="CannotOrderReadOnly" xml:space="preserve">
     <value>Diese Regel kann nicht verschoben werden, da sie für eine sichere Neuordnung nicht ausreichend dargestellt werden kann.</value>

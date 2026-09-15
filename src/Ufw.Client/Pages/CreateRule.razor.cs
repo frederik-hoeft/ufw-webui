@@ -301,9 +301,7 @@ public sealed partial class CreateRule
             return DescribeInsertionContextError();
         }
 
-        string position = context.Anchor.DisplayNumber is { } displayNumber
-            ? RulesText["RulePosition", displayNumber.ToString("N0", CultureInfo.CurrentCulture)]
-            : RulesText["SelectedRule"];
+        string position = RulesText["RulePosition", context.AnchorFamilyPosition.ToString("N0", CultureInfo.CurrentCulture)];
         string placement = context.Placement == RuleInsertionPlacement.Before
             ? RulesText["Before"]
             : RulesText["After"];

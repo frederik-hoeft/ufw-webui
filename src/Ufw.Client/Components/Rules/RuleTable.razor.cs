@@ -62,9 +62,7 @@ public sealed partial class RuleTable
         EventUtil.AsNonRenderingEventHandler(this, () => SetDragTarget(row));
 
     private string DragHandleLabel(RuleRowProjection row) =>
-        row.Rule.DisplayNumber is { } number
-            ? RulesText["DragRuleNumber", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
-            : RulesText["DragRule"];
+        RulesText["DragRulePosition", row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)];
 
     private string DragHandleTitle(RuleRowProjection row)
     {

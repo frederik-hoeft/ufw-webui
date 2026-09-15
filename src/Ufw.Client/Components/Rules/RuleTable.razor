@@ -48,7 +48,7 @@
                             <thead>
                                 <tr>
                                     <th scope="col" class="rule-drag-column"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
-                                    <th scope="col" class="rule-number-column">@RulesText["RuleNumberColumn"]</th>
+                                    <th scope="col" class="rule-number-column">@RulesText["RulePositionColumn"]</th>
                                     <th scope="col" class="rule-action-column">@RulesText["ActionColumn"]</th>
                                     <th scope="col" class="rule-direction-column">@RulesText["DirectionColumn"]</th>
                                     <th scope="col" class="rule-endpoint-column">@RulesText["FromColumn"]</th>
@@ -101,7 +101,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="rule-number">@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                                    <span class="rule-number">@row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
                                                 }
                                             </td>
                                             <td class="rule-action-column">
@@ -137,6 +137,7 @@
                                             </td>
                                             <td class="rule-row-actions">
                                                 <RuleActionsMenu Rule="@rule"
+                                                                 FamilyPosition="@row.FamilyPosition"
                                                                  OrderingDisabled="@OrderingDisabled"
                                                                  InsertionDisabled="@InsertionDisabled"
                                                                  MutationDisabled="@Disabled"
@@ -160,7 +161,21 @@
                                                 </span>
                                             </td>
                                             <td class="rule-number-column">
-                                                <span class="rule-number">@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                                @if (row.PositionChange is { } positionChange)
+                                                {
+                                                    <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
+                                                          aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
+                                                        <span aria-hidden="true" class="rule-position-change-values">
+                                                            <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                            <span class="rule-position-arrow">&rarr;</span>
+                                                            <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                        </span>
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="rule-number">@row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                }
                                             </td>
                                             <td colspan="6">
                                                 <div class="rule-unsupported">
@@ -225,7 +240,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                                    <span class="rule-number">#@row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
                                                 }
                                                 <span class="@ActionClass(rule.Rule.Action)">
                                                     @RuleText.FormatAction(rule.Rule.Action)
@@ -233,6 +248,7 @@
                                             </div>
                                         </div>
                                         <RuleActionsMenu Rule="@rule"
+                                                         FamilyPosition="@row.FamilyPosition"
                                                          OrderingDisabled="@OrderingDisabled"
                                                          InsertionDisabled="@InsertionDisabled"
                                                          MutationDisabled="@Disabled"
@@ -281,7 +297,21 @@
                                          @ondragover:preventDefault
                                          @ondrop="@(() => DropAsync(row))">
                                     <div class="rule-mobile-card-header">
-                                        <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
+                                        @if (row.PositionChange is { } positionChange)
+                                        {
+                                            <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
+                                                  aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
+                                                <span aria-hidden="true" class="rule-position-change-values">
+                                                    <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                    <span class="rule-position-arrow">&rarr;</span>
+                                                    <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                </span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="rule-number">#@row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                        }
                                         <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
                                             <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
                                                 <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />

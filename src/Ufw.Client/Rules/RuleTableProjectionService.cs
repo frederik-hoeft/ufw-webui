@@ -11,15 +11,19 @@ internal sealed class RuleTableProjectionService : IRuleTableProjectionService
 
         Dictionary<string, int> ruleIdCounts = new(StringComparer.Ordinal);
         Dictionary<FirewallAddressFamily, int> familyCounts = new();
-        foreach (ListedFirewallRule rule in rules)
+        Dictionary<int, int> originalFamilyPositions = new();
+        for (int occurrenceId = 0; occurrenceId < rules.Count; occurrenceId++)
         {
+            ListedFirewallRule rule = rules[occurrenceId];
             if (!string.IsNullOrWhiteSpace(rule.RuleId))
             {
                 ruleIdCounts[rule.RuleId] = ruleIdCounts.GetValueOrDefault(rule.RuleId) + 1;
             }
 
             FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rule);
-            familyCounts[family] = familyCounts.GetValueOrDefault(family) + 1;
+            int familyPosition = familyCounts.GetValueOrDefault(family) + 1;
+            familyCounts[family] = familyPosition;
+            originalFamilyPositions[occurrenceId] = familyPosition;
         }
 
         IReadOnlyList<int> projectedOrder = GetProjectedOrder(rules.Count, orderingPreview);
@@ -34,7 +38,7 @@ internal sealed class RuleTableProjectionService : IRuleTableProjectionService
             int familyPosition = familyPositions.GetValueOrDefault(family) + 1;
             familyPositions[family] = familyPosition;
 
-            RulePositionChange? positionChange = CreatePositionChange(occurrenceId, projectedIndex, orderingPreview);
+            RulePositionChange? positionChange = CreatePositionChange(occurrenceId, originalFamilyPositions[occurrenceId], familyPosition, orderingPreview);
             bool canOrder = rule.Parsed && rule.Rule is not null;
             bool canMutate = canOrder
                 && rule.RuleId is { } ruleId
@@ -87,16 +91,20 @@ internal sealed class RuleTableProjectionService : IRuleTableProjectionService
         return orderingPreview.DesiredOrder;
     }
 
-    private static RulePositionChange? CreatePositionChange(int occurrenceId, int projectedIndex, RuleOrderingPreview? orderingPreview)
+    private static RulePositionChange? CreatePositionChange(
+        int occurrenceId,
+        int originalFamilyPosition,
+        int currentFamilyPosition,
+        RuleOrderingPreview? orderingPreview)
     {
-        if (orderingPreview is null || occurrenceId == projectedIndex)
+        if (orderingPreview is null || originalFamilyPosition == currentFamilyPosition)
         {
             return null;
         }
 
         return new RulePositionChange(
-            occurrenceId + 1,
-            projectedIndex + 1,
+            originalFamilyPosition,
+            currentFamilyPosition,
             orderingPreview.WasDirectlyMoved(occurrenceId));
     }
 }

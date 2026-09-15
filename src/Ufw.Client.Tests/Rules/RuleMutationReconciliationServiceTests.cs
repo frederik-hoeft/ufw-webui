@@ -55,6 +55,7 @@ public sealed class RuleMutationReconciliationServiceTests
         OrderedRuleInsertionNavigationContext context = new(
             FirewallRuleSnapshotFingerprint.Compute(baseline),
             0,
+            1,
             RuleInsertionPlacement.After,
             FirewallAddressFamily.IPv4,
             baseline.Rules[0]);
@@ -73,6 +74,7 @@ public sealed class RuleMutationReconciliationServiceTests
         OrderedRuleInsertionNavigationContext context = new(
             FirewallRuleSnapshotFingerprint.Compute(baseline),
             0,
+            1,
             RuleInsertionPlacement.Before,
             FirewallAddressFamily.IPv4,
             baseline.Rules[0]);
