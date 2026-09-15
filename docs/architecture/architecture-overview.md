@@ -6,7 +6,7 @@ This document explains that system model, how state is owned, and how the major 
 
 ## System model
 
-A production deployment has four runtime roles. Three are unprivileged application processes; the fourth is the privileged daemon on the firewall host.
+A production deployment has five application/runtime components around UFW itself: the administrator's browser, nginx, `Ufw.Web`, PostgreSQL, and the privileged `Ufw.Systemd` host daemon. Only the daemon crosses the host firewall boundary.
 
 ```mermaid
 flowchart LR
@@ -48,7 +48,7 @@ Browser-side rule validation is not an authorization boundary. The daemon repeat
 
 The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, and application-owned authoring metadata such as network-interface comments and known-host aliases.
 
-Database-backed workflows use request-scoped transactions. Authentication operations are coordinated as one transaction so Identity state and refresh-token state commit or roll back together. Expected authentication failures can still commit security state, for example failed-login counters or refresh-family revocation.
+Database-backed workflows preserve one transactional boundary across related Identity and application state. Authentication therefore does not commit a refreshed token while rolling back the corresponding Identity state, or vice versa. Expected failures may still commit security-relevant state such as failed-login counters or refresh-family revocation.
 
 ### Privileged daemon
 
@@ -82,7 +82,7 @@ The architecture distinguishes authoritative state from caches and presentation 
 | State | Owner | Notes |
 | --- | --- | --- |
 | Firewall rules, enabled state, IPv6 capability, and default policies | UFW, observed through `Ufw.Systemd` | Never reconstructed from PostgreSQL |
-| Current host network interfaces | Host OS, observed through `Ufw.Systemd` | Re-read for add-rule validation |
+| Current host network interfaces | Host OS, observed through `Ufw.Systemd` | Re-read for append and ordered-insertion validation |
 | Authorized mutation public keys | `Ufw.Systemd` operator state | Not writable through the web API |
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
 | Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
@@ -157,7 +157,7 @@ The source tree follows deployment and responsibility boundaries rather than mir
 | `Ufw.Systemd` | privileged firewall daemon |
 | `Ufw.Shared` | cross-process domain/protocol contracts |
 | `Ufw.Ipc.Client` | local typed IPC client |
-| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | runtime abstractions plus CESI/CTCD-based compile-time routing and serialization generation |
+| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | runtime abstractions plus compile-time routing and serialization generation |
 | `Ufw.Mock` | development substitute for the external UFW executable |
 
 Tests are split along the same boundaries. Shared tests cover firewall/protocol semantics, IPC tests exercise the real client/daemon protocol stack over in-process transport, daemon tests cover authorization and UFW integration behavior, web tests cover persistence and application workflows, and mock black-box tests verify observable CLI compatibility.

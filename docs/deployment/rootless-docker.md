@@ -1,6 +1,6 @@
 # Rootless Docker Deployment
 
-This runbook is for Docker Engine running in rootless mode under a dedicated or normal unprivileged host user. Application containers remain non-root; host bind-mount access is granted through the rootless user namespace rather than by exposing arbitrary host GIDs.
+This runbook is for Docker Engine running in rootless mode under a dedicated or normal unprivileged host user. The frontend and ASP workloads run as non-root container users, while PostgreSQL follows the official image lifecycle inside the rootless user namespace. Host bind-mount access is granted through that user namespace rather than by exposing arbitrary host GIDs.
 
 The key mapping rule is simple: supplemental container GID `0` maps to the rootless Docker user's primary host group. In this runbook, `UFW_IPC_CONTAINER_GID`, `UFW_JWT_CONTAINER_GID`, and `UFW_TLS_CONTAINER_GID` therefore remain `0`.
 
