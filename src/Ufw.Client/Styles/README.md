@@ -10,10 +10,12 @@
 
 Responsive rules should normally live in the same file as the base selector they modify. A page stylesheet should not reach into MudBlazor internals to repair a reusable component; keep such customization in the owning control stylesheet and document why the framework override is necessary.
 
+Prefer one stable class on the owning page/component boundary and nest private descendants beneath it. Use semantic elements (`header`, `footer`, `article`, and similar) or short state/layout hooks within that boundary instead of repeating the owner name in one-off descendant classes. Keep globally descriptive classes when they are shared across components, represent state, or are required as framework integration hooks such as a MudBlazor popover class.
+
 The generated `wwwroot/css/app.css` is build output and is intentionally ignored by Git.
 
 ## Scoped component styles
 
 Blazor supports CSS isolation through companion `Component.razor.css` files. Sass itself is not a native Blazor CSS-isolation input, but the `AspNetCore.SassCompiler` package used by this project can compile scoped SCSS before Blazor performs selector rewriting.
 
-Scoped Sass is currently disabled in `sasscompiler.json`. Much of the application styling intentionally customizes markup emitted by MudBlazor child components; moving those rules to CSS isolation would require `::deep` selectors and a second stylesheet bundle without materially improving ownership. Prefer the modular global Sass tree for those controls. Scoped styles remain a reasonable option for future components whose rendered markup is substantially self-owned.
+Scoped Sass is disabled in `sasscompiler.json`. Much of the application styling intentionally customizes markup emitted by MudBlazor child components; moving those rules to CSS isolation would require `::deep` selectors and a second stylesheet bundle without materially improving ownership. Prefer the modular global Sass tree for those controls. Scoped styles remain a reasonable option for components whose rendered markup is substantially self-owned.

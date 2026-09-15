@@ -247,13 +247,7 @@ internal sealed partial class UfwRuleParser
         };
     }
 
-    private static void ConsumeEndpointQualifier(
-        IReadOnlyList<string> arguments,
-        ref int index,
-        UfwMockState state,
-        ref string? ports,
-        ref string? applicationName,
-        ref string? protocol)
+    private static void ConsumeEndpointQualifier(IReadOnlyList<string> arguments, ref int index, UfwMockState state, ref string? ports, ref string? applicationName, ref string? protocol)
     {
         if (index + 1 >= arguments.Count)
         {

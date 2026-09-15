@@ -2,8 +2,4 @@
 
 namespace Ufw.Systemd.Firewall.Ordering;
 
-internal sealed record RuleRecoveryResult(
-    bool PresenceConfirmed,
-    bool InsertionAttempted,
-    RuleListResponse? Snapshot,
-    string? Diagnostic);
+internal sealed record RuleRecoveryResult(bool PresenceConfirmed, bool InsertionAttempted, RuleListResponse? Snapshot, string? Diagnostic);

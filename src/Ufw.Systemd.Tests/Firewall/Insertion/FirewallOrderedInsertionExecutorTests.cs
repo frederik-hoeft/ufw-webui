@@ -354,12 +354,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             };
         }
 
-        public void EnqueueProcess(
-            int exitCode = 0,
-            string standardError = "",
-            bool cancellationRequested = false,
-            Action? onExecute = null,
-            Exception? exception = null) =>
+        public void EnqueueProcess(int exitCode = 0, string standardError = "", bool cancellationRequested = false, Action? onExecute = null, Exception? exception = null) =>
             _processes.Enqueue(new ProcessBehavior(exitCode, standardError, cancellationRequested, onExecute, exception));
 
         public void Dispose()
@@ -387,10 +382,5 @@ public sealed class FirewallOrderedInsertionExecutorTests
         }
     }
 
-    private sealed record ProcessBehavior(
-        int ExitCode,
-        string StandardError,
-        bool CancellationRequested,
-        Action? OnExecute,
-        Exception? Exception);
+    private sealed record ProcessBehavior(int ExitCode, string StandardError, bool CancellationRequested, Action? OnExecute, Exception? Exception);
 }

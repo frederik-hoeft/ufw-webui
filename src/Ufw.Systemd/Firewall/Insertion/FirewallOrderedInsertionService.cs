@@ -26,9 +26,7 @@ internal sealed class FirewallOrderedInsertionService(
         return await executionGate.RunAsync(ct => ExecuteAsync(accepted, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteAsync(
-        IntentVerificationResult.AcceptedInsertion accepted,
-        CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteAsync(IntentVerificationResult.AcceptedInsertion accepted, CancellationToken cancellationToken)
     {
         await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))

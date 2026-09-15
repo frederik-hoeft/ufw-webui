@@ -257,12 +257,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         }, cancellationToken: TestContext.CancellationToken);
     }
 
-    private InsertRuleRequest CreateSignedRequest(
-        string deploymentId,
-        RuleListResponse baseline,
-        int anchorOccurrenceId,
-        RuleInsertionPlacement placement,
-        FirewallRuleSpecification rule)
+    private InsertRuleRequest CreateSignedRequest(string deploymentId, RuleListResponse baseline, int anchorOccurrenceId, RuleInsertionPlacement placement, FirewallRuleSpecification rule)
     {
         InsertRulePayload payload = new()
         {
@@ -279,14 +274,10 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             TimeProvider.System);
     }
 
-    private static Task<RuleListResponse> GetRulesAsync(
-        IIpcTestContext context,
-        CancellationToken cancellationToken) =>
+    private static Task<RuleListResponse> GetRulesAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
         context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
 
-    private static Task<IntentContextResponse> GetIntentContextAsync(
-        IIpcTestContext context,
-        CancellationToken cancellationToken) =>
+    private static Task<IntentContextResponse> GetIntentContextAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
         context.Client.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", cancellationToken);
 
     private async Task SeedIpv4RulesAsync()
@@ -325,18 +316,14 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         Assert.AreEqual(0, enabled.ExitCode);
     }
 
-    private static FirewallRuleSpecification Rule(
-        string port,
-        FirewallAddressFamily family,
-        FirewallAction action,
-        FirewallProtocol protocol) => new()
-        {
-            Action = action,
-            AddressFamily = family,
-            Direction = FirewallDirection.In,
-            Protocol = protocol,
-            DestinationPorts = port,
-        };
+    private static FirewallRuleSpecification Rule(string port, FirewallAddressFamily family, FirewallAction action, FirewallProtocol protocol) => new()
+    {
+        Action = action,
+        AddressFamily = family,
+        Direction = FirewallDirection.In,
+        Protocol = protocol,
+        DestinationPorts = port,
+    };
 
     private sealed class AlwaysValidInterfaceValidator : IFirewallRuleInterfaceValidator
     {

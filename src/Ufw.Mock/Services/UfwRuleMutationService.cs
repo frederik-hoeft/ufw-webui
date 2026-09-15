@@ -60,12 +60,7 @@ internal sealed class UfwRuleMutationService
         return rule;
     }
 
-    private static IReadOnlyList<UfwRuleMutationResult> Mutate(
-        UfwMockState state,
-        ParsedRuleRequest request,
-        bool ipv6Enabled,
-        RulePlacement placement,
-        int? insertNumber)
+    private static IReadOnlyList<UfwRuleMutationResult> Mutate(UfwMockState state, ParsedRuleRequest request, bool ipv6Enabled, RulePlacement placement, int? insertNumber)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(request);

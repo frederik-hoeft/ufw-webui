@@ -1,0 +1,97 @@
+﻿using Ufw.Client.Rules;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
+
+namespace Ufw.Client.Tests.Rules;
+
+[TestClass]
+public sealed class RulesPageStateTests
+{
+    [TestMethod]
+    public void AfterInsertion_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")], TestFirewallConfiguration.Disabled);
+        RuleInsertionResponse report = new(
+            RuleInsertionOutcome.PreconditionFailed,
+            finalSnapshot,
+            InsertedRule: null,
+            Diagnostic: "rejected");
+
+        RulesPageState updated = state.AfterInsertion(report);
+
+        Assert.IsTrue(updated.IsCurrent);
+        Assert.IsNotNull(updated.Snapshot);
+        Assert.IsFalse(updated.Snapshot.FirewallActive);
+        Assert.HasCount(2, updated.Snapshot.Rules);
+        Assert.AreEqual("inserted", updated.Snapshot.Rules[1].RuleId);
+        Assert.IsFalse(updated.Snapshot.Configuration.IPv6Enabled);
+    }
+
+    [TestMethod]
+    public void AfterInsertion_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RuleInsertionResponse report = new(
+            RuleInsertionOutcome.StateUncertain,
+            FinalSnapshot: null,
+            InsertedRule: null,
+            Diagnostic: "unreadable");
+
+        RulesPageState updated = state.AfterInsertion(report);
+
+        Assert.IsTrue(updated.IsStale);
+        Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
+        Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
+    }
+
+    [TestMethod]
+    public void AfterReorder_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RuleListResponse finalSnapshot = new(false, [Rule("new")], TestFirewallConfiguration.Enabled);
+        RuleReorderResponse report = new(
+            RuleReorderOutcome.PartiallyCompleted,
+            finalSnapshot,
+            [],
+            [],
+            [],
+            Diagnostic: "partial");
+
+        RulesPageState updated = state.AfterReorder(report);
+
+        Assert.IsTrue(updated.IsCurrent);
+        Assert.IsNotNull(updated.Snapshot);
+        Assert.IsFalse(updated.Snapshot.FirewallActive);
+        Assert.AreEqual("new", updated.Snapshot.Rules[0].RuleId);
+        Assert.IsNull(updated.StaleReason);
+    }
+
+    [TestMethod]
+    public void AfterReorder_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RuleReorderResponse report = new(
+            RuleReorderOutcome.StateUncertain,
+            FinalSnapshot: null,
+            [],
+            [],
+            [],
+            Diagnostic: "unreadable");
+
+        RulesPageState updated = state.AfterReorder(report);
+
+        Assert.IsTrue(updated.IsStale);
+        Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
+        Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
+    }
+
+    private static ListedFirewallRule Rule(string id) => new()
+    {
+        RuleId = id,
+        DisplayNumber = 1,
+        Parsed = true,
+        RawLine = id,
+        Rule = new FirewallRuleSpecification(),
+    };
+}

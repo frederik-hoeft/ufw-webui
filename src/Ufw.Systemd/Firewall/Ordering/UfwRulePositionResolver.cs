@@ -37,10 +37,7 @@ internal static class UfwRulePositionResolver
         return GetUfwInsertPosition(rules, family, familyPosition);
     }
 
-    public static int GetUfwInsertPosition(
-        IReadOnlyList<ListedFirewallRule> rules,
-        FirewallAddressFamily family,
-        int familyPosition)
+    public static int GetUfwInsertPosition(IReadOnlyList<ListedFirewallRule> rules, FirewallAddressFamily family, int familyPosition)
     {
         ArgumentNullException.ThrowIfNull(rules);
         EnsureConcreteFamily(family);
@@ -65,10 +62,7 @@ internal static class UfwRulePositionResolver
         return rules.Count(rule => ListedFirewallRuleFamily.GetObservedFamily(rule) == family);
     }
 
-    public static int? FindNextFamilyOccurrence(
-        IReadOnlyList<ListedFirewallRule> rules,
-        int occurrenceIndex,
-        FirewallAddressFamily family)
+    public static int? FindNextFamilyOccurrence(IReadOnlyList<ListedFirewallRule> rules, int occurrenceIndex, FirewallAddressFamily family)
     {
         ArgumentNullException.ThrowIfNull(rules);
         EnsureConcreteFamily(family);

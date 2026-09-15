@@ -1,3 +1,29 @@
+.known-host-option {
+    display: grid;
+    min-width: 0;
+    gap: 0.125rem;
+
+    > div {
+        display: flex;
+        min-width: 0;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+
+        > strong,
+        > code {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    > small {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.75rem;
+        overflow-wrap: anywhere;
+    }
+}
+
 .known-host-no-items {
     padding: 0.75rem 1rem;
     color: var(--mud-palette-text-secondary);
@@ -6,32 +32,8 @@
     overflow-wrap: anywhere;
 }
 
-.known-host-option {
-    display: grid;
-    min-width: 0;
-    gap: 0.125rem;
-}
-
-.known-host-option-primary {
-    display: flex;
-    min-width: 0;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.known-host-option-primary strong,
-.known-host-option-primary code {
-    min-width: 0;
-    overflow-wrap: anywhere;
-}
-
-.known-host-option span {
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
-    overflow-wrap: anywhere;
-}
-
+// MudAutocomplete gives both its popover and the nested MudList vertical overflow.
+// Keep the list as the sole scroll container while preserving MudBlazor's MaxHeight limit.
 .known-host-popover {
     overflow-y: hidden;
 }

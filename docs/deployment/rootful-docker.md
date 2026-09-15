@@ -1,6 +1,6 @@
 # Rootful Docker Deployment
 
-This runbook is for a normal system-wide Docker daemon running as root. Application containers still run as non-root users. Access to host-mounted secrets and the daemon socket is granted with dedicated host groups whose numeric GIDs are passed into Compose.
+This runbook is for a normal system-wide Docker daemon running as root. The frontend and ASP workloads run as non-root container users. PostgreSQL follows the official image lifecycle and drops to its database user after any required storage initialization. Access to host-mounted secrets and the daemon socket is granted with dedicated host groups whose numeric GIDs are passed into Compose.
 
 Do not use the rootless GID-0 mapping rules in this deployment mode.
 

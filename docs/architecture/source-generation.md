@@ -40,7 +40,7 @@ The protocol consists of a generic contract-registration attribute plus cohesive
 - the **controller contract family** describes controller mapping triggers, controller registrations, routing attributes, endpoint mapping infrastructure, activation, and identifiable-response semantics;
 - the **JSON contract family** describes JSON binding triggers, the AOT serializer-context abstraction, `JsonSerializable` metadata, and `JsonTypeInfo` metadata.
 
-Separating the families is an architectural boundary rather than only an organizational choice. A generator resolves and validates only its own family, so JSON contract evolution cannot introduce controller requirements and controller contract evolution cannot introduce JSON requirements. A future independent generator concern should normally define its own cohesive contract family instead of extending an unrelated vocabulary.
+Separating the families is an architectural boundary rather than only an organizational choice. A generator resolves and validates only its own family, so JSON contract evolution cannot introduce controller requirements and controller contract evolution cannot introduce JSON requirements. An independent generator concern should normally define its own cohesive contract family instead of extending an unrelated vocabulary.
 
 The enum values in each family are explicit protocol identifiers. They must remain stable for the lifetime of that contract family because independently compiled assemblies can carry registrations created from separately injected copies of the same protocol source.
 

@@ -33,10 +33,7 @@ internal sealed class MockBackedUfwRunner(string statePath) : IUfwRunner
             CancellationRequested: false);
     }
 
-    public static async Task<MockCommandResult> InvokeAsync(
-        string statePath,
-        IEnumerable<string> arguments,
-        CancellationToken cancellationToken = default)
+    public static async Task<MockCommandResult> InvokeAsync(string statePath, IEnumerable<string> arguments, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(statePath);
         ArgumentNullException.ThrowIfNull(arguments);

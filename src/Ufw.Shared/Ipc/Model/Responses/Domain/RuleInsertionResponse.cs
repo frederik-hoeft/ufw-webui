@@ -2,8 +2,4 @@
 
 namespace Ufw.Shared.Ipc.Model.Responses.Domain;
 
-public sealed record RuleInsertionResponse(
-    RuleInsertionOutcome Outcome,
-    RuleListResponse? FinalSnapshot,
-    ListedFirewallRule? InsertedRule,
-    string? Diagnostic) : OkResponseBase;
+public sealed record RuleInsertionResponse(RuleInsertionOutcome Outcome, RuleListResponse? FinalSnapshot, ListedFirewallRule? InsertedRule, string? Diagnostic) : OkResponseBase;

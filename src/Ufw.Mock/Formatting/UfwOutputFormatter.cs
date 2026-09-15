@@ -197,13 +197,7 @@ internal static class UfwOutputFormatter
         return string.Join(' ', arguments);
     }
 
-    private static string FormatEndpoint(
-        string? address,
-        string? ports,
-        string? networkInterface,
-        FirewallAddressFamily family,
-        UfwMockRule rule,
-        bool destination)
+    private static string FormatEndpoint(string? address, string? ports, string? networkInterface, FirewallAddressFamily family, UfwMockRule rule, bool destination)
     {
         string? applicationName = destination ? rule.DestinationApplicationName : rule.SourceApplicationName;
         if (applicationName is not null)

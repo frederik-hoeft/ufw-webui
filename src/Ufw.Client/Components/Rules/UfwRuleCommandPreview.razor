@@ -2,20 +2,18 @@
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <div class="ufw-command-preview" role="group" aria-label="@EffectiveLabel">
-    <MudText Typo="Typo.overline" HtmlTag="div" Class="ufw-command-preview-label">@EffectiveLabel</MudText>
+    <span>@EffectiveLabel</span>
     @if (TryGetCommandText(out string? commandText))
     {
-        <code class="ufw-command-preview-value">@commandText</code>
+        <code>@commandText</code>
     }
     else
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ufw-command-preview-empty">
-            @RulesText["CommandPreviewEmpty"]
-        </MudText>
+        <p>@RulesText["CommandPreviewEmpty"]</p>
     }
     @if (Details is not null)
     {
-        <div class="ufw-command-preview-details">
+        <div>
             @Details
         </div>
     }

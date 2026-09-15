@@ -77,7 +77,7 @@ dotnet run --project src/Ufw.Web
 dotnet run --project src/Ufw.Client
 ```
 
-The default launch profiles expose the web API at `https://localhost:7259` and the Blazor client at `https://localhost:7298`. The browser client talks to the API using its development configuration; the web application reaches the daemon through the generated local IPC endpoint.
+The default launch profiles expose the web API at `https://localhost:7259` and the Blazor client at `https://localhost:7298`. The browser client talks to the API using its development configuration and `Ufw.Web` permits that explicit development origin through CORS. Production does not use this split-origin browser path: nginx serves the client and proxies `/api/*` on one HTTPS origin. The web application reaches the daemon through the generated local IPC endpoint.
 
 For a firewall mutation, use the generated intent-key data URI from `artifacts/dev/intent/intent-key.data-uri.txt` in the client's mutation authorization field. The private key is supplied to the browser for the individual signing operation; the corresponding public key is already present in the generated daemon `authorized_keys` file.
 

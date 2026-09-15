@@ -24,7 +24,7 @@ public sealed partial class RuleActionsMenu
     public bool CanMutate { get; set; }
 
     [Parameter]
-    public EventCallback<ListedFirewallRule> MoveToPositionRequested { get; set; }
+    public EventCallback MoveToPositionRequested { get; set; }
 
     [Parameter]
     public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }

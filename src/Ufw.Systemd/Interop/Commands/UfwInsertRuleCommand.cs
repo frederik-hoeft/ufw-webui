@@ -5,10 +5,7 @@ using Ufw.Shared.Firewall.Rendering;
 
 namespace Ufw.Systemd.Interop.Commands;
 
-internal sealed class UfwInsertRuleCommand(
-    int displayNumber,
-    FirewallRuleSpecification specification,
-    IUfwRuleCommandRenderer renderer) : IUfwCommand
+internal sealed class UfwInsertRuleCommand(int displayNumber, FirewallRuleSpecification specification, IUfwRuleCommandRenderer renderer) : IUfwCommand
 {
     public ImmutableArray<string> BuildArguments()
     {

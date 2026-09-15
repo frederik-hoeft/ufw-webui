@@ -98,7 +98,7 @@ docker compose --env-file deploy/docker/.env -f deploy/docker/compose.yml up -d
 
 Frontend and ASP images can be replaced independently, but a release that does so must preserve API/client compatibility. Replacing ASP never changes the nginx frontend filesystem, which preserves the frontend-delivery security boundary.
 
-The committed PostgreSQL image is pinned to major version 18. Treat a future PostgreSQL major-version change as a database migration project (`pg_upgrade` or logical dump/restore), not as a normal image refresh.
+The committed PostgreSQL image is pinned to major version 18. Changing PostgreSQL major versions is a database migration project (`pg_upgrade` or logical dump/restore), not a normal image refresh.
 
 ## Rollback
 

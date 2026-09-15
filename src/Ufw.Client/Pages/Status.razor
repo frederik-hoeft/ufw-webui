@@ -57,13 +57,13 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
 
 <div class="operational-status-grid" aria-busy="@OperationalStatus.IsRefreshing">
     <MudPaper Class="operational-status-card" Elevation="1">
-        <div class="operational-status-card-heading">
+        <header>
             <MudIcon Icon="@Icons.Material.Filled.Cloud" Color="@ManagementApiIconColor" />
             <div>
                 <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["ManagementApi"]</MudText>
                 <MudText Typo="Typo.h6" HtmlTag="h2">@ManagementApiStatusLabel</MudText>
             </div>
-        </div>
+        </header>
         <dl class="operational-status-details">
             <div>
                 <dt>@StatusText["Probe"]</dt>
@@ -81,13 +81,13 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
     </MudPaper>
 
     <MudPaper Class="operational-status-card" Elevation="1">
-        <div class="operational-status-card-heading">
+        <header>
             <MudIcon Icon="@Icons.Material.Filled.Dns" Color="@DaemonIconColor" />
             <div>
                 <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["UfwSystemd"]</MudText>
                 <MudText Typo="Typo.h6" HtmlTag="h2">@DaemonStatusLabel</MudText>
             </div>
-        </div>
+        </header>
         <dl class="operational-status-details">
             <div>
                 <dt>@StatusText["Deployment"]</dt>
@@ -109,13 +109,13 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
     </MudPaper>
 
     <MudPaper Class="operational-status-card" Elevation="1">
-        <div class="operational-status-card-heading">
+        <header>
             <MudIcon Icon="@Icons.Material.Filled.Security" Color="@FirewallIconColor" />
             <div>
                 <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["Firewall"]</MudText>
                 <MudText Typo="Typo.h6" HtmlTag="h2">@FirewallStatusLabel</MudText>
             </div>
-        </div>
+        </header>
         <dl class="operational-status-details">
             <div>
                 <dt>@StatusText["Rules"]</dt>

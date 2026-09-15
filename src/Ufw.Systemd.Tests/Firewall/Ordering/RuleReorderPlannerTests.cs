@@ -214,10 +214,7 @@ public sealed class RuleReorderPlannerTests
         return result;
     }
 
-    private static int MaximumCommonSubsequenceContaining(
-        IReadOnlyList<int> current,
-        IReadOnlyList<int> desired,
-        IReadOnlySet<int> required)
+    private static int MaximumCommonSubsequenceContaining(IReadOnlyList<int> current, IReadOnlyList<int> desired, IReadOnlySet<int> required)
     {
         Dictionary<int, int> desiredPositions = desired
             .Select(static (occurrenceId, index) => (occurrenceId, index))

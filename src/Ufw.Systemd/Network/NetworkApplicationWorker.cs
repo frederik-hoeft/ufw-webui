@@ -5,10 +5,7 @@ using Ufw.Systemd.Transport;
 
 namespace Ufw.Systemd.Network;
 
-internal sealed class NetworkApplicationWorker(
-    ITransportLayerService transportLayerService,
-    INetworkConnectionProcessor connectionProcessor,
-    ILogger logger) : INetworkApplicationWorker
+internal sealed class NetworkApplicationWorker(ITransportLayerService transportLayerService, INetworkConnectionProcessor connectionProcessor, ILogger logger) : INetworkApplicationWorker
 {
     public async Task ServeAsync(CancellationToken cancellationToken)
     {

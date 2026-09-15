@@ -4,6 +4,7 @@ using System.Globalization;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Errors;
 using Ufw.Client.RuleInsertion;
+using Ufw.Client.Rules;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -13,7 +14,7 @@ public sealed partial class CreateRule
 {
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
-    private FirewallRuleSpecification _draft = FirewallRuleDefaults.Create();
+    private FirewallRuleSpecification _draft = null!;
     private OrderedRuleInsertionNavigationContext? _orderedInsertionContext;
     private OrderedRuleInsertionContextError _orderedInsertionContextError;
     private RuleInsertionResponse? _insertionResult;
@@ -30,14 +31,16 @@ public sealed partial class CreateRule
         new BreadcrumbItem(RulesText["AddRuleBreadcrumb"], null, disabled: true),
     ];
 
-    private bool HasLegacyInsertionTarget
-        => !string.IsNullOrWhiteSpace(LegacyBeforeRuleId) || !string.IsNullOrWhiteSpace(LegacyAfterRuleId);
+    private RuleInsertionNavigationQuery InsertionQuery => new(
+        InsertionBaselineFingerprint,
+        InsertionAnchorValue,
+        InsertionPlacementValue,
+        LegacyBeforeRuleId,
+        LegacyAfterRuleId);
 
-    private bool IsOrderedInsertionRequested
-        => HasLegacyInsertionTarget
-            || !string.IsNullOrWhiteSpace(InsertionBaselineFingerprint)
-            || !string.IsNullOrWhiteSpace(InsertionAnchorValue)
-            || !string.IsNullOrWhiteSpace(InsertionPlacementValue);
+    private bool HasLegacyInsertionTarget => InsertionQuery.HasLegacyTarget;
+
+    private bool IsOrderedInsertionRequested => InsertionQuery.IsRequested;
 
     private bool CanUseOrderedInsertionContext
         => !IsOrderedInsertionRequested || !_orderedInsertionInvalidated && _orderedInsertionContext is not null;
@@ -69,7 +72,11 @@ public sealed partial class CreateRule
     [Parameter, SupplyParameterFromQuery(Name = "after")]
     public string? LegacyAfterRuleId { get; set; }
 
-    protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
+    protected async override Task OnInitializedAsync()
+    {
+        _draft = RuleDraftFactory.Create();
+        await LoadRulesAsync(RuleRefreshReason.Manual);
+    }
 
     public void Dispose()
     {
@@ -120,7 +127,7 @@ public sealed partial class CreateRule
 
             if (_mutationMayHaveCompleted)
             {
-                if (_reconciliationRuleIdentity is not null && ContainsRuleIdentity(_state.Snapshot!, _reconciliationRuleIdentity))
+                if (_reconciliationRuleIdentity is not null && MutationReconciliation.IsPresent(_state.Snapshot!, _reconciliationRuleIdentity))
                 {
                     Navigation.NavigateTo("/rules");
                     return;
@@ -148,35 +155,17 @@ public sealed partial class CreateRule
         {
             return;
         }
-        if (HasLegacyInsertionTarget)
-        {
-            _orderedInsertionInvalidated = true;
-            _orderedInsertionContextError = OrderedRuleInsertionContextError.Incomplete;
-            return;
-        }
 
-        int? anchorOccurrenceId = int.TryParse(
-            InsertionAnchorValue,
-            NumberStyles.None,
-            CultureInfo.InvariantCulture,
-            out int parsedAnchor)
-                ? parsedAnchor
-                : null;
-        if (!OrderedRuleInsertionNavigation.TryResolve(
-            snapshot,
-            InsertionBaselineFingerprint,
-            anchorOccurrenceId,
-            InsertionPlacementValue,
-            out OrderedRuleInsertionNavigationContext? context,
-            out OrderedRuleInsertionContextError error))
+        RuleInsertionNavigationResolution resolution = InsertionNavigation.Resolve(snapshot, InsertionQuery);
+        if (!resolution.Succeeded)
         {
-            _orderedInsertionContextError = error;
+            _orderedInsertionContextError = resolution.Error;
             _orderedInsertionInvalidated = true;
             return;
         }
 
-        _orderedInsertionContext = context;
-        _draft.AddressFamily = context.AddressFamily;
+        _orderedInsertionContext = resolution.Context;
+        _draft.AddressFamily = resolution.Context!.AddressFamily;
     }
 
     private async Task SubmitRuleAsync()
@@ -202,12 +191,12 @@ public sealed partial class CreateRule
         // mutation response is available. A successful family-neutral add returns a
         // concrete family-specific rule, so prefer that identity for the subsequent
         // authoritative refresh.
-        _reconciliationRuleIdentity = RuleIdentity.Compute(normalized);
+        _reconciliationRuleIdentity = MutationReconciliation.GetRequestedIdentity(normalized);
         _submitting = true;
         try
         {
             RuleMutationResponse mutation = await RuleMutations.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
-            _reconciliationRuleIdentity = GetRuleIdentity(mutation.Rule) ?? _reconciliationRuleIdentity;
+            _reconciliationRuleIdentity = MutationReconciliation.GetMutationIdentity(mutation, _reconciliationRuleIdentity);
             _mutationMayHaveCompleted = true;
             _submitting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
@@ -266,7 +255,7 @@ public sealed partial class CreateRule
                 return;
             }
 
-            if (MustReselectInsertionAnchor(response, context))
+            if (MutationReconciliation.MustReselectInsertionAnchor(response, context))
             {
                 InvalidateOrderedInsertionContext();
             }
@@ -364,22 +353,6 @@ public sealed partial class CreateRule
         _ => RulesText["OrderedInsertionResult"],
     };
 
-    private static bool MustReselectInsertionAnchor(
-        RuleInsertionResponse response,
-        OrderedRuleInsertionNavigationContext context)
-    {
-        if (response.Outcome is RuleInsertionOutcome.StaleBaseline or RuleInsertionOutcome.StateUncertain
-            || response.FinalSnapshot is null)
-        {
-            return true;
-        }
-
-        return !string.Equals(
-            FirewallRuleSnapshotFingerprint.Compute(response.FinalSnapshot),
-            context.BaselineFingerprint,
-            StringComparison.Ordinal);
-    }
-
     private void InvalidateOrderedInsertionContext()
     {
         _orderedInsertionContext = null;
@@ -393,21 +366,4 @@ public sealed partial class CreateRule
         RuleSnapshotStaleReason.MutationRejectedRequiresRefresh => RulesText["MutationRejectedRefresh"],
         _ => RulesText["LatestRefreshFailed"],
     };
-
-    private static string? GetRuleIdentity(ListedFirewallRule rule)
-    {
-        if (!string.IsNullOrWhiteSpace(rule.RuleId))
-        {
-            return rule.RuleId;
-        }
-
-        return rule.Parsed && rule.Rule is not null ? RuleIdentity.Compute(rule.Rule) : null;
-    }
-
-    private static bool ContainsRuleIdentity(RuleSnapshot snapshot, string identity)
-    {
-        return snapshot.Rules.Any(rule => rule.Parsed
-            && rule.Rule is not null
-            && string.Equals(rule.RuleId ?? RuleIdentity.Compute(rule.Rule), identity, StringComparison.Ordinal));
-    }
 }

@@ -44,9 +44,7 @@ public sealed partial class RulesController
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status503ServiceUnavailable)]
-    public partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync(
-        [FromBody] InsertRuleRequest request,
-        CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync([FromBody] InsertRuleRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed reorder intent to the privileged daemon.
@@ -60,9 +58,7 @@ public sealed partial class RulesController
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status503ServiceUnavailable)]
-    public partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(
-        [FromBody] ReorderRulesRequest request,
-        CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync([FromBody] ReorderRulesRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed delete-rule intent to the privileged daemon.

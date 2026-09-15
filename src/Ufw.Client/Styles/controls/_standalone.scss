@@ -16,6 +16,25 @@
     border: 1px solid var(--mud-palette-lines-default);
     background: var(--mud-palette-surface);
     box-shadow: none;
+
+    > header > .mud-typography-body1 {
+        margin-top: 0.375rem;
+    }
+
+    > section {
+        margin-top: 1.5rem;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    > footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
 }
 
 .standalone-panel-brand {
@@ -60,25 +79,6 @@
 .standalone-panel-icon-success {
     background: color-mix(in srgb, var(--mud-palette-success) 10%, var(--mud-palette-surface));
     color: var(--mud-palette-success);
-}
-
-.standalone-panel-description {
-    margin-top: 0.375rem;
-}
-
-.standalone-panel-content {
-    margin-top: 1.5rem;
-}
-
-.standalone-panel-content:empty {
-    display: none;
-}
-
-.standalone-panel-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
 }
 
 .standalone-progress {
@@ -169,7 +169,7 @@
         padding: 1.25rem;
     }
 
-    .standalone-panel-actions {
+    .standalone-panel > footer {
         flex-direction: column;
         align-items: stretch;
 

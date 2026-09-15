@@ -37,10 +37,7 @@ internal sealed class IntentVerifier
         IntentOperations.REORDER_RULES,
         ParseReorderPayload);
 
-    private IntentVerificationResult Verify(
-        ISignedIntent intent,
-        string expectedOperation,
-        Func<ISignedIntent, PayloadVerification> payloadVerifier)
+    private IntentVerificationResult Verify(ISignedIntent intent, string expectedOperation, Func<ISignedIntent, PayloadVerification> payloadVerifier)
     {
         ArgumentNullException.ThrowIfNull(intent);
         if (intent.Version != IntentProtocol.VERSION)
@@ -287,14 +284,9 @@ internal sealed class IntentVerifier
 
     private static IntentVerificationResult.Rejected Reject(IResponsePayload response) => new(response);
 
-    private sealed record PayloadVerification(
-        byte[]? Canonical,
-        Func<string, string, long, IntentVerificationResult.Accepted>? CreateAccepted,
-        IResponsePayload? Error)
+    private sealed record PayloadVerification(byte[]? Canonical, Func<string, string, long, IntentVerificationResult.Accepted>? CreateAccepted, IResponsePayload? Error)
     {
-        public static PayloadVerification Accept(
-            byte[] canonical,
-            Func<string, string, long, IntentVerificationResult.Accepted> createAccepted) =>
+        public static PayloadVerification Accept(byte[] canonical, Func<string, string, long, IntentVerificationResult.Accepted> createAccepted) =>
             new(canonical, createAccepted, null);
 
         public static PayloadVerification Reject(IResponsePayload error) => new(null, null, error);

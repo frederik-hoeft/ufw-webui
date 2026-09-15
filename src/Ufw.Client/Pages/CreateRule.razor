@@ -1,9 +1,12 @@
-﻿@using Ufw.Shared.Ipc.Model.Responses.Domain
+@using Ufw.Shared.Ipc.Model.Responses.Domain
 @page "/rules/create"
 @attribute [Authorize]
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
 @inject IRuleMutationService RuleMutations
+@inject IRuleInsertionNavigationService InsertionNavigation
+@inject IRuleMutationReconciliationService MutationReconciliation
+@inject IRuleDraftFactory RuleDraftFactory
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors

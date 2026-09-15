@@ -2,7 +2,7 @@
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <div class="@CssClass">
-    <label class="network-interface-label" for="@_inputId">@Label</label>
+    <label for="@_inputId">@Label</label>
     <MudAutocomplete T="string"
                      InputId="@_inputId"
                      Value="@Value"
@@ -25,7 +25,7 @@
                     <code>@suggestion.Name</code>
                     @if (!string.IsNullOrWhiteSpace(suggestion.Comment))
                     {
-                        <span>@suggestion.Comment</span>
+                        <small>@suggestion.Comment</small>
                     }
                 </div>
             }
@@ -43,7 +43,7 @@
 
     @if (!string.IsNullOrWhiteSpace(HelperText))
     {
-        <div class="network-interface-help">@HelperText</div>
+        <small>@HelperText</small>
     }
 
 </div>

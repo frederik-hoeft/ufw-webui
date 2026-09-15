@@ -21,9 +21,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
 {
     private readonly ILogger<FirewallOrderedInsertionExecutor> _logger = logger.Scoped<FirewallOrderedInsertionExecutor>();
 
-    public async Task<RuleInsertionExecutionResult> ExecuteAsync(
-        InsertRulePayload payload,
-        CancellationToken cancellationToken)
+    public async Task<RuleInsertionExecutionResult> ExecuteAsync(InsertRulePayload payload, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
         RuleInsertionContract.ValidatePayload(payload);
@@ -111,11 +109,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
             CombineDiagnostics(process.Diagnostic, "Firewall state diverged from the exact ordered-insertion postcondition."));
     }
 
-    private IUfwCommand CreateCommand(
-        RuleListResponse baseline,
-        InsertRulePayload payload,
-        ListedFirewallRule anchor,
-        FirewallRuleSpecification rule)
+    private IUfwCommand CreateCommand(RuleListResponse baseline, InsertRulePayload payload, ListedFirewallRule anchor, FirewallRuleSpecification rule)
     {
         FirewallAddressFamily family = anchor.Rule!.AddressFamily;
         if (payload.Placement == RuleInsertionPlacement.Before)
@@ -160,10 +154,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
-    private static int GetExpectedInsertionIndex(
-        IReadOnlyList<ListedFirewallRule> baseline,
-        InsertRulePayload payload,
-        FirewallAddressFamily family)
+    private static int GetExpectedInsertionIndex(IReadOnlyList<ListedFirewallRule> baseline, InsertRulePayload payload, FirewallAddressFamily family)
     {
         if (payload.Placement == RuleInsertionPlacement.Before)
         {
@@ -273,10 +264,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
     }
 
-    private static RuleInsertionExecutionResult Result(
-        RuleInsertionExecutionOutcome outcome,
-        RuleListResponse? finalSnapshot,
-        string? diagnostic) =>
+    private static RuleInsertionExecutionResult Result(RuleInsertionExecutionOutcome outcome, RuleListResponse? finalSnapshot, string? diagnostic) =>
         new(outcome, finalSnapshot, null, diagnostic);
 
     private sealed record ProcessExecution(bool Succeeded, bool CancellationRequested, string? Diagnostic);

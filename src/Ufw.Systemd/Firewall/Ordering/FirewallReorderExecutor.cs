@@ -19,9 +19,7 @@ internal sealed class FirewallReorderExecutor(
 {
     private readonly ILogger<FirewallReorderExecutor> _logger = logger.Scoped<FirewallReorderExecutor>();
 
-    public async Task<RuleReorderExecutionResult> ExecuteAsync(
-        RuleReorderExecutionRequest request,
-        CancellationToken cancellationToken)
+    public async Task<RuleReorderExecutionResult> ExecuteAsync(RuleReorderExecutionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.BaselineFingerprint);
@@ -270,11 +268,7 @@ internal sealed class FirewallReorderExecutor(
             "Firewall state diverged after reinserting the moved rule.");
     }
 
-    private MoveExecutionResult RecoveryInterruption(
-        RuleReorderMove move,
-        RuleRecoveryResult recovery,
-        string? processDiagnostic,
-        string divergenceDiagnostic)
+    private MoveExecutionResult RecoveryInterruption(RuleReorderMove move, RuleRecoveryResult recovery, string? processDiagnostic, string divergenceDiagnostic)
     {
         string diagnostic = CombineDiagnostics(processDiagnostic, divergenceDiagnostic, recovery.Diagnostic)
             ?? divergenceDiagnostic;
@@ -298,11 +292,7 @@ internal sealed class FirewallReorderExecutor(
             diagnostic);
     }
 
-    private IUfwCommand CreatePlannedInsertionCommand(
-        RuleReorderMove move,
-        RuleListResponse afterDelete,
-        IReadOnlyList<int> afterDeleteOrder,
-        FirewallRuleSpecification specification)
+    private IUfwCommand CreatePlannedInsertionCommand(RuleReorderMove move, RuleListResponse afterDelete, IReadOnlyList<int> afterDeleteOrder, FirewallRuleSpecification specification)
     {
         if (move.BeforeOccurrenceId is int beforeOccurrenceId)
         {
@@ -425,10 +415,7 @@ internal sealed class FirewallReorderExecutor(
         }
     }
 
-    private static bool SnapshotMatchesOrder(
-        RuleListResponse snapshot,
-        RuleListResponse baseline,
-        IReadOnlyList<int> expectedOrder)
+    private static bool SnapshotMatchesOrder(RuleListResponse snapshot, RuleListResponse baseline, IReadOnlyList<int> expectedOrder)
     {
         if (snapshot.Active != baseline.Active || snapshot.Rules.Count != expectedOrder.Count)
         {
@@ -520,10 +507,7 @@ internal sealed class FirewallReorderExecutor(
         return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
     }
 
-    private static RuleReorderExecutionResult Result(
-        RuleReorderExecutionOutcome outcome,
-        RuleListResponse? finalSnapshot,
-        string? diagnostic = null) =>
+    private static RuleReorderExecutionResult Result(RuleReorderExecutionOutcome outcome, RuleListResponse? finalSnapshot, string? diagnostic = null) =>
         new(outcome, finalSnapshot, [], [], [], diagnostic);
 
     private sealed record PreflightResult(
@@ -542,17 +526,10 @@ internal sealed class FirewallReorderExecutor(
         RuleReorderOperationReport? OperationReport,
         string? Diagnostic)
     {
-        public static MoveExecutionResult Success(
-            RuleListResponse snapshot,
-            List<int> resultingOrder,
-            RuleReorderOperationReport report) =>
+        public static MoveExecutionResult Success(RuleListResponse snapshot, List<int> resultingOrder, RuleReorderOperationReport report) =>
             new(true, false, snapshot, resultingOrder, report, report.Diagnostic);
 
-        public static MoveExecutionResult Interrupted(
-            RuleListResponse? snapshot,
-            RuleReorderOperationReport? report,
-            string? diagnostic,
-            bool recoveryFailed = false) =>
+        public static MoveExecutionResult Interrupted(RuleListResponse? snapshot, RuleReorderOperationReport? report, string? diagnostic, bool recoveryFailed = false) =>
             new(false, recoveryFailed, snapshot, null, report, diagnostic);
     }
 }

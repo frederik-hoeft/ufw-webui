@@ -129,9 +129,7 @@ public sealed class RulesControllerTests
     [DataRow(RuleInsertionOutcome.StaleBaseline, StatusCodes.Status409Conflict)]
     [DataRow(RuleInsertionOutcome.PreconditionFailed, StatusCodes.Status422UnprocessableEntity)]
     [DataRow(RuleInsertionOutcome.StateUncertain, StatusCodes.Status503ServiceUnavailable)]
-    public async Task TestInsertRuleAsync_PreservesStructuredNonSuccessReportAsync(
-        RuleInsertionOutcome outcome,
-        int expectedStatusCode)
+    public async Task TestInsertRuleAsync_PreservesStructuredNonSuccessReportAsync(RuleInsertionOutcome outcome, int expectedStatusCode)
     {
         Mock<IUfwClient> client = new();
         RuleInsertionResponse expected = CreateInsertionResponse(outcome);
@@ -225,9 +223,7 @@ public sealed class RulesControllerTests
     [DataRow(RuleReorderOutcome.PartiallyCompleted, StatusCodes.Status409Conflict)]
     [DataRow(RuleReorderOutcome.RecoveryFailed, StatusCodes.Status500InternalServerError)]
     [DataRow(RuleReorderOutcome.StateUncertain, StatusCodes.Status503ServiceUnavailable)]
-    public async Task TestReorderRulesAsync_PreservesStructuredNonSuccessReportAsync(
-        RuleReorderOutcome outcome,
-        int expectedStatusCode)
+    public async Task TestReorderRulesAsync_PreservesStructuredNonSuccessReportAsync(RuleReorderOutcome outcome, int expectedStatusCode)
     {
         Mock<IUfwClient> client = new();
         RuleReorderResponse expected = CreateReorderResponse(outcome);

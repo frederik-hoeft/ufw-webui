@@ -11,7 +11,11 @@ using Ufw.Client.Intent;
 using Ufw.Client.KnownHosts;
 using Ufw.Client.Localization;
 using Ufw.Client.NetworkInterfaces;
+using Ufw.Client.RuleInsertion;
 using Ufw.Client.RuleOrdering;
+using Ufw.Client.Rules;
+using Ufw.Client.Rules.Authoring;
+using Ufw.Client.Rules.Presentation;
 using Ufw.Client.Status;
 using Ufw.Client.Storage;
 using Ufw.Client.Theming;
@@ -37,6 +41,9 @@ public static class Program
         builder.Services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
         builder.Services.AddScoped<IFirewallRuleText, FirewallRuleText>();
         builder.Services.AddScoped<IRuleValidationMessageLocalizer, RuleValidationMessageLocalizer>();
+        builder.Services.AddScoped<IRuleEditorValidationService, RuleEditorValidationService>();
+        builder.Services.AddScoped<IRuleEditorReferenceDataService, RuleEditorReferenceDataService>();
+        builder.Services.AddSingleton<IRuleDraftFactory, RuleDraftFactory>();
 
         builder.Services.AddSingleton<IAccessTokenPrincipalFactory, AccessTokenPrincipalFactory>();
         builder.Services.AddScoped<AuthenticationSession>();
@@ -52,9 +59,13 @@ public static class Program
         builder.Services.AddScoped<IRuleMutationService, RuleMutationService>();
         builder.Services.AddScoped<IClientThemeService, BrowserClientThemeService>();
         builder.Services.AddScoped<IKnownHostInventoryService, KnownHostInventoryService>();
+        builder.Services.AddSingleton<IKnownHostSuggestionService, KnownHostSuggestionService>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IRuleOrderingService, RuleOrderingService>();
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
+        builder.Services.AddSingleton<IRuleTableProjectionService, RuleTableProjectionService>();
+        builder.Services.AddSingleton<IRuleInsertionNavigationService, RuleInsertionNavigationService>();
+        builder.Services.AddSingleton<IRuleMutationReconciliationService, RuleMutationReconciliationService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
 
         builder.Services.AddHttpClient<IManagementApiHealthClient, ManagementApiHealthClient>(client => client.BaseAddress = apiBaseAddress);

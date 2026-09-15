@@ -99,6 +99,8 @@ The `Auth` section in `Ufw.Web` controls Identity, JWT, refresh-token, and boots
 
 Refresh cookies are `Secure`, `HttpOnly`, `SameSite=Strict`, and path `/`. Production therefore requires HTTPS and a consistent same-site browser/API deployment.
 
+`Cors:AllowedOrigins` is a development/standalone-client setting for cases where `Ufw.Client` and `Ufw.Web` run on different origins. The production nginx topology is same-origin and does not require a browser CORS exception.
+
 ## Daemon settings
 
 The production template is `deploy/systemd/settings.json.example`.

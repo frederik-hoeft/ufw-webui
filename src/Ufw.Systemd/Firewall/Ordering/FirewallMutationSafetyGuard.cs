@@ -1,8 +1,6 @@
 ﻿namespace Ufw.Systemd.Firewall.Ordering;
 
-internal sealed class FirewallMutationSafetyGuard(
-    IReorderRecoveryJournal journal,
-    IRuleReorderRecoveryCoordinator recoveryCoordinator) : IFirewallMutationSafetyGuard
+internal sealed class FirewallMutationSafetyGuard(IReorderRecoveryJournal journal, IRuleReorderRecoveryCoordinator recoveryCoordinator) : IFirewallMutationSafetyGuard
 {
     public async Task EnsureSafeAsync(CancellationToken cancellationToken)
     {

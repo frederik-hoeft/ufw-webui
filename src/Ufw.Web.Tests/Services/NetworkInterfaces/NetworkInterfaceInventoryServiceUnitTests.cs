@@ -124,10 +124,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         public Task<NetworkInterfaceInventoryResponse> GetAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(new NetworkInterfaceInventoryResponse([], null));
 
-        public Task<NetworkInterfaceInventoryResponse> ReconcileAsync(
-            IReadOnlyList<string> currentNames,
-            DateTimeOffset reconciledAt,
-            CancellationToken cancellationToken = default)
+        public Task<NetworkInterfaceInventoryResponse> ReconcileAsync(IReadOnlyList<string> currentNames, DateTimeOffset reconciledAt, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ReconciledNames = currentNames;
@@ -135,10 +132,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
             return Task.FromResult(ReconcileResult);
         }
 
-        public Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(
-            Guid publicId,
-            string? comment,
-            CancellationToken cancellationToken = default)
+        public Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(Guid publicId, string? comment, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             UpdateCommentCallCount++;
@@ -147,10 +141,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
             return Task.FromResult(CommentResult);
         }
 
-        public Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(
-            Guid publicId,
-            bool isVisible,
-            CancellationToken cancellationToken = default)
+        public Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(Guid publicId, bool isVisible, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             VisibilityPublicId = publicId;

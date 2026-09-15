@@ -146,30 +146,26 @@ public sealed class InsertIntentCanonicalizerTests
         },
     };
 
-    private static InsertRulePayload Clone(
-        InsertRulePayload source,
-        string? baselineFingerprint = null,
-        int? anchorOccurrenceId = null,
-        RuleInsertionPlacement? placement = null) => new()
+    private static InsertRulePayload Clone(InsertRulePayload source, string? baselineFingerprint = null, int? anchorOccurrenceId = null, RuleInsertionPlacement? placement = null) => new()
+    {
+        BaselineFingerprint = baselineFingerprint ?? source.BaselineFingerprint,
+        AnchorOccurrenceId = anchorOccurrenceId ?? source.AnchorOccurrenceId,
+        Placement = placement ?? source.Placement,
+        Rule = new FirewallRuleSpecification
         {
-            BaselineFingerprint = baselineFingerprint ?? source.BaselineFingerprint,
-            AnchorOccurrenceId = anchorOccurrenceId ?? source.AnchorOccurrenceId,
-            Placement = placement ?? source.Placement,
-            Rule = new FirewallRuleSpecification
-            {
-                Action = source.Rule.Action,
-                AddressFamily = source.Rule.AddressFamily,
-                Direction = source.Rule.Direction,
-                Protocol = source.Rule.Protocol,
-                Source = source.Rule.Source,
-                SourcePorts = source.Rule.SourcePorts,
-                SourceInterface = source.Rule.SourceInterface,
-                Destination = source.Rule.Destination,
-                DestinationPorts = source.Rule.DestinationPorts,
-                DestinationInterface = source.Rule.DestinationInterface,
-                Comment = source.Rule.Comment,
-            },
-        };
+            Action = source.Rule.Action,
+            AddressFamily = source.Rule.AddressFamily,
+            Direction = source.Rule.Direction,
+            Protocol = source.Rule.Protocol,
+            Source = source.Rule.Source,
+            SourcePorts = source.Rule.SourcePorts,
+            SourceInterface = source.Rule.SourceInterface,
+            Destination = source.Rule.Destination,
+            DestinationPorts = source.Rule.DestinationPorts,
+            DestinationInterface = source.Rule.DestinationInterface,
+            Comment = source.Rule.Comment,
+        },
+    };
 
     private static TestIntent CreateIntent() => new()
     {

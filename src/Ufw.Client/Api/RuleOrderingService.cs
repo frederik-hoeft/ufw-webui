@@ -6,16 +6,9 @@ using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.Api;
 
-internal sealed class RuleOrderingService(
-    IRuleApiClient ruleApiClient,
-    IIntentContextApiClient intentContextApiClient,
-    IIntentSigningService intentSigningService) : IRuleOrderingService
+internal sealed class RuleOrderingService(IRuleApiClient ruleApiClient, IIntentContextApiClient intentContextApiClient, IIntentSigningService intentSigningService) : IRuleOrderingService
 {
-    public async Task<RuleReorderResponse> ApplyAsync(
-        RuleListResponse baseline,
-        IReadOnlyList<int> desiredOrder,
-        string privateKey,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleReorderResponse> ApplyAsync(RuleListResponse baseline, IReadOnlyList<int> desiredOrder, string privateKey, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(desiredOrder);

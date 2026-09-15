@@ -1,4 +1,6 @@
-﻿namespace Ufw.Client.Configuration;
+﻿using Ufw.Shared.Web;
+
+namespace Ufw.Client.Configuration;
 
 internal static class ClientRuntimeConfiguration
 {
@@ -47,6 +49,6 @@ internal static class ClientRuntimeConfiguration
         string absoluteUri = address.AbsoluteUri;
         return absoluteUri.EndsWith('/')
             ? address
-            : new Uri($"{absoluteUri}/", UriKind.Absolute);
+            : SimpleUriBuilder.Create(absoluteUri).AppendPath("/").BuildUri(UriKind.Absolute);
     }
 }

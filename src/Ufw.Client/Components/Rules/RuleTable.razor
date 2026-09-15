@@ -1,5 +1,6 @@
-﻿@inject IDialogService DialogService
+@inject IDialogService DialogService
 @inject IFirewallRuleText RuleText
+@inject IRuleTableProjectionService ProjectionService
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <section aria-labelledby="firewall-rule-list-heading" class="rule-list-section">
@@ -32,14 +33,14 @@
         }
         else
         {
-            @foreach (RuleFamilyGroup group in _ruleGroups)
+            @foreach (RuleFamilyProjection group in _projection.Families)
             {
                 <section class="rule-family-section" aria-labelledby="@FamilyHeadingId(group.AddressFamily)">
                     <div class="rule-family-heading">
                         <h3 id="@FamilyHeadingId(group.AddressFamily)">
                             @RulesText["AddressFamilyRulesHeading", RuleText.FormatAddressFamily(group.AddressFamily)]
                         </h3>
-                        <span>@DescribeFamilyRuleCount(group.Rules.Count)</span>
+                        <span>@DescribeFamilyRuleCount(group.Rows.Count)</span>
                     </div>
 
                     <div class="rule-table-scroll" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(group.AddressFamily)])">
@@ -58,42 +59,43 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (ListedFirewallRule rule in group.Rules)
+                                @foreach (RuleRowProjection row in group.Rows)
                                 {
+                                    ListedFirewallRule rule = row.Rule;
                                     if (rule.Parsed && rule.Rule is not null)
                                     {
-                                        <tr class="@RowClass(rule)"
-                                            @ondragenter="@DragEnterHandler(rule)"
+                                        <tr class="@RowClass(row)"
+                                            @ondragenter="@DragEnterHandler(row)"
                                             @ondragover:preventDefault
-                                            @ondrop="@(() => DropAsync(rule))">
+                                            @ondrop="@(() => DropAsync(row))">
                                             <td class="rule-drag-column">
                                                 <button type="button"
-                                                        class="@DragHandleClass(rule)"
-                                                        draggable="@DragEnabled(rule)"
-                                                        disabled="@(OrderingDisabled || !CanOrderRule(rule))"
-                                                        title="@DragHandleTitle(rule)"
-                                                        aria-label="@DragHandleLabel(rule)"
-                                                        @ondragstart="@BeginDragHandler(rule)"
+                                                        class="@DragHandleClass(row)"
+                                                        draggable="@DragEnabled(row)"
+                                                        disabled="@(OrderingDisabled || !row.CanOrder)"
+                                                        title="@DragHandleTitle(row)"
+                                                        aria-label="@DragHandleLabel(row)"
+                                                        @ondragstart="@BeginDragHandler(row)"
                                                         @ondragend="EndDrag">
                                                     <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                                                 </button>
                                             </td>
                                             <td class="rule-number-column">
-                                                @if (TryGetPositionChange(rule, out int originalPosition, out int currentPosition, out bool directlyMoved))
+                                                @if (row.PositionChange is { } positionChange)
                                                 {
-                                                    <span class="@PositionChangeClass(directlyMoved)"
-                                                          aria-label="@PositionChangeLabel(originalPosition, currentPosition, directlyMoved)">
+                                                    <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
+                                                          aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
                                                         <span aria-hidden="true" class="rule-position-change-values">
-                                                            @if (directlyMoved)
+                                                            @if (positionChange.DirectlyMoved)
                                                             {
-                                                                <s>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
+                                                                <s>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
                                                             }
                                                             else
                                                             {
-                                                                <span>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                                <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
                                                             }
                                                             <span class="rule-position-arrow">&rarr;</span>
-                                                            <span>@currentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                            <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
                                                         </span>
                                                     </span>
                                                 }
@@ -103,10 +105,10 @@
                                                 }
                                             </td>
                                             <td class="rule-action-column">
-                                                <span class="@FirewallRulePresentation.ActionClass(rule.Rule.Action)">
+                                                <span class="@ActionClass(rule.Rule.Action)">
                                                     @RuleText.FormatAction(rule.Rule.Action)
                                                 </span>
-                                            </td>
+                                            </td>   
                                             <td class="rule-direction-column">
                                                 <span class="rule-direction">@RuleText.FormatDirection(rule.Rule.Direction)</span>
                                             </td>
@@ -138,9 +140,9 @@
                                                                  OrderingDisabled="@OrderingDisabled"
                                                                  InsertionDisabled="@InsertionDisabled"
                                                                  MutationDisabled="@Disabled"
-                                                                 CanOrder="@CanOrderRule(rule)"
-                                                                 CanMutate="@CanMutateRule(rule)"
-                                                                 MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                                                 CanOrder="@row.CanOrder"
+                                                                 CanMutate="@row.CanMutate"
+                                                                 MoveToPositionRequested="@(() => RequestMoveToPositionAsync(row))"
                                                                  InsertionRequested="@InsertionRequested"
                                                                  DeleteRequested="@DeleteRequested" />
                                             </td>
@@ -148,10 +150,10 @@
                                     }
                                     else
                                     {
-                                        <tr class="@ReadOnlyRowClass(rule)"
-                                            @ondragenter="@DragEnterHandler(rule)"
+                                        <tr class="@ReadOnlyRowClass(row)"
+                                            @ondragenter="@DragEnterHandler(row)"
                                             @ondragover:preventDefault
-                                            @ondrop="@(() => DropAsync(rule))">
+                                            @ondrop="@(() => DropAsync(row))">
                                             <td class="rule-drag-column">
                                                 <span class="rule-drag-handle rule-drag-handle-disabled" aria-hidden="true">
                                                     <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
@@ -181,42 +183,43 @@
                     </div>
 
                     <div class="rule-mobile-list" aria-busy="@Loading">
-                        @foreach (ListedFirewallRule rule in group.Rules)
+                        @foreach (RuleRowProjection row in group.Rows)
                         {
+                            ListedFirewallRule rule = row.Rule;
                             if (rule.Parsed && rule.Rule is not null)
                             {
-                                <article class="@MobileCardClass(rule)"
-                                         @ondragenter="@DragEnterHandler(rule)"
+                                <article class="@MobileCardClass(row)"
+                                         @ondragenter="@DragEnterHandler(row)"
                                          @ondragover:preventDefault
-                                         @ondrop="@(() => DropAsync(rule))">
+                                         @ondrop="@(() => DropAsync(row))">
                                     <div class="rule-mobile-card-header">
                                         <div class="rule-mobile-card-leading">
                                             <button type="button"
-                                                    class="@DragHandleClass(rule)"
-                                                    draggable="@DragEnabled(rule)"
-                                                    disabled="@(OrderingDisabled || !CanOrderRule(rule))"
-                                                    title="@DragHandleTitle(rule)"
-                                                    aria-label="@DragHandleLabel(rule)"
-                                                    @ondragstart="@BeginDragHandler(rule)"
+                                                    class="@DragHandleClass(row)"
+                                                    draggable="@DragEnabled(row)"
+                                                    disabled="@(OrderingDisabled || !row.CanOrder)"
+                                                    title="@DragHandleTitle(row)"
+                                                    aria-label="@DragHandleLabel(row)"
+                                                    @ondragstart="@BeginDragHandler(row)"
                                                     @ondragend="EndDrag">
                                                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                                             </button>
                                             <div class="rule-mobile-card-identity">
-                                                @if (TryGetPositionChange(rule, out int originalPosition, out int currentPosition, out bool directlyMoved))
+                                                @if (row.PositionChange is { } positionChange)
                                                 {
-                                                    <span class="@PositionChangeClass(directlyMoved)"
-                                                          aria-label="@PositionChangeLabel(originalPosition, currentPosition, directlyMoved)">
+                                                    <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
+                                                          aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
                                                         <span aria-hidden="true" class="rule-position-change-values">
-                                                            @if (directlyMoved)
+                                                            @if (positionChange.DirectlyMoved)
                                                             {
-                                                                <s>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
+                                                                <s>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
                                                             }
                                                             else
                                                             {
-                                                                <span>@originalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                                <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
                                                             }
                                                             <span class="rule-position-arrow">&rarr;</span>
-                                                            <span>@currentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+                                                            <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
                                                         </span>
                                                     </span>
                                                 }
@@ -224,7 +227,7 @@
                                                 {
                                                     <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
                                                 }
-                                                <span class="@FirewallRulePresentation.ActionClass(rule.Rule.Action)">
+                                                <span class="@ActionClass(rule.Rule.Action)">
                                                     @RuleText.FormatAction(rule.Rule.Action)
                                                 </span>
                                             </div>
@@ -233,9 +236,9 @@
                                                          OrderingDisabled="@OrderingDisabled"
                                                          InsertionDisabled="@InsertionDisabled"
                                                          MutationDisabled="@Disabled"
-                                                         CanOrder="@CanOrderRule(rule)"
-                                                         CanMutate="@CanMutateRule(rule)"
-                                                         MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                                         CanOrder="@row.CanOrder"
+                                                         CanMutate="@row.CanMutate"
+                                                         MoveToPositionRequested="@(() => RequestMoveToPositionAsync(row))"
                                                          InsertionRequested="@InsertionRequested"
                                                          DeleteRequested="@DeleteRequested" />
                                     </div>
@@ -273,10 +276,10 @@
                             }
                             else
                             {
-                                <article class="@ReadOnlyMobileCardClass(rule)"
-                                         @ondragenter="@DragEnterHandler(rule)"
+                                <article class="@ReadOnlyMobileCardClass(row)"
+                                         @ondragenter="@DragEnterHandler(row)"
                                          @ondragover:preventDefault
-                                         @ondrop="@(() => DropAsync(rule))">
+                                         @ondrop="@(() => DropAsync(row))">
                                     <div class="rule-mobile-card-header">
                                         <span class="rule-number">#@(rule.DisplayNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "-")</span>
                                         <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">

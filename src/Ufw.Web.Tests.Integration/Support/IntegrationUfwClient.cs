@@ -36,11 +36,7 @@ internal sealed class IntegrationUfwClient : IUfwClient
         throw new NotSupportedException($"Unsupported integration request {typeof(TRequest).Name} -> {typeof(TResponse).Name}.");
     }
 
-    public Task<TResponse> SendAsync<TRequest, TResponse>(
-        RequestMethod method,
-        string route,
-        TRequest request,
-        CancellationToken cancellationToken = default)
+    public Task<TResponse> SendAsync<TRequest, TResponse>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default)
         where TResponse : IEquatable<TResponse> =>
         throw new NotSupportedException();
 
