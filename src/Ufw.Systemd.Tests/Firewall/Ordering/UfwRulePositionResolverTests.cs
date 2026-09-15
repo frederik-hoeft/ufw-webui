@@ -24,6 +24,35 @@ public sealed class UfwRulePositionResolverTests
     }
 
     [TestMethod]
+    public void GetUfwInsertPosition_UsesCombinedNumberedStatusCoordinate()
+    {
+        ListedFirewallRule[] rules =
+        [
+            Parsed(FirewallAddressFamily.IPv4),
+            Opaque("[ 2] unsupported ipv4 syntax"),
+            Parsed(FirewallAddressFamily.IPv6),
+            Opaque("[ 4] unsupported ipv6 syntax (v6)"),
+        ];
+
+        Assert.AreEqual(2, UfwRulePositionResolver.GetUfwInsertPosition(rules, 1));
+        Assert.AreEqual(4, UfwRulePositionResolver.GetUfwInsertPosition(rules, 3));
+        Assert.AreEqual(3, UfwRulePositionResolver.GetUfwInsertPosition(rules, FirewallAddressFamily.IPv6, 1));
+    }
+
+    [TestMethod]
+    public void GetUfwInsertPosition_RejectsPositionOutsideTargetFamily()
+    {
+        ListedFirewallRule[] rules =
+        [
+            Parsed(FirewallAddressFamily.IPv4),
+            Parsed(FirewallAddressFamily.IPv6),
+        ];
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            UfwRulePositionResolver.GetUfwInsertPosition(rules, FirewallAddressFamily.IPv6, 2));
+    }
+
+    [TestMethod]
     public void FindNextFamilyOccurrence_CanReturnOpaqueAnchor()
     {
         ListedFirewallRule[] rules =

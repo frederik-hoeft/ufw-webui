@@ -315,7 +315,7 @@ public sealed class UfwCliBlackboxTests
     }
 
     [TestMethod]
-    public async Task InsertUsesFamilyLocalNumberingForExplicitIpv6RulesAsync()
+    public async Task InsertUsesCombinedNumberingForExplicitIpv6RulesAsync()
     {
         _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp");
         _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "443", "proto", "tcp");
@@ -324,7 +324,7 @@ public sealed class UfwCliBlackboxTests
 
         CommandResult inserted = await InvokeAsync(
             "insert",
-            "2",
+            "4",
             "deny",
             "from",
             "::/0",
@@ -336,9 +336,9 @@ public sealed class UfwCliBlackboxTests
             "tcp");
         Assert.AreEqual(0, inserted.ExitCode);
 
-        CommandResult outOfRange = await InvokeAsync(
+        CommandResult wrongFamilySegment = await InvokeAsync(
             "insert",
-            "4",
+            "2",
             "deny",
             "from",
             "::/0",
@@ -348,8 +348,8 @@ public sealed class UfwCliBlackboxTests
             "25",
             "proto",
             "tcp");
-        Assert.AreEqual(1, outOfRange.ExitCode);
-        StringAssert.Contains(outOfRange.StdErr, "Invalid position '4'");
+        Assert.AreEqual(1, wrongFamilySegment.ExitCode);
+        StringAssert.Contains(wrongFamilySegment.StdErr, "Invalid position '2'");
 
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
@@ -362,7 +362,7 @@ public sealed class UfwCliBlackboxTests
     }
 
     [TestMethod]
-    public async Task FamilyNeutralInsertUsesSameFamilyLocalPositionInBothPartitionsAsync()
+    public async Task FamilyNeutralInsertMirrorsCombinedAnchorAcrossFamilyPartitionsAsync()
     {
         _ = await InvokeAsync("allow", "80/tcp");
         _ = await InvokeAsync("allow", "443/tcp");
@@ -380,6 +380,53 @@ public sealed class UfwCliBlackboxTests
         Assert.IsTrue(httpV4 > sshV4);
         Assert.IsTrue(sshV6 > httpV4);
         Assert.IsTrue(httpV6 > sshV6);
+    }
+
+    [TestMethod]
+    public async Task FamilyNeutralInsertAtIpv6CombinedPositionMirrorsMatchingIpv4AnchorAsync()
+    {
+        _ = await InvokeAsync("allow", "80/tcp");
+        _ = await InvokeAsync("allow", "443/tcp");
+
+        CommandResult inserted = await InvokeAsync("insert", "4", "deny", "22/tcp");
+        Assert.AreEqual(0, inserted.ExitCode);
+        _ = await InvokeAsync("--force", "enable");
+
+        CommandResult status = await InvokeAsync("status", "numbered");
+        int httpV4 = status.StdOut.IndexOf("80/tcp", StringComparison.Ordinal);
+        int sshV4 = status.StdOut.IndexOf("22/tcp", StringComparison.Ordinal);
+        int httpsV4 = status.StdOut.IndexOf("443/tcp", StringComparison.Ordinal);
+        int httpV6 = status.StdOut.IndexOf("80/tcp (v6)", StringComparison.Ordinal);
+        int sshV6 = status.StdOut.IndexOf("22/tcp (v6)", StringComparison.Ordinal);
+        int httpsV6 = status.StdOut.IndexOf("443/tcp (v6)", StringComparison.Ordinal);
+        Assert.IsTrue(httpV4 >= 0);
+        Assert.IsTrue(sshV4 > httpV4);
+        Assert.IsTrue(httpsV4 > sshV4);
+        Assert.IsTrue(httpV6 > httpsV4);
+        Assert.IsTrue(sshV6 > httpV6);
+        Assert.IsTrue(httpsV6 > sshV6);
+    }
+
+    [TestMethod]
+    public async Task ExplicitIpv4InsertRejectsCombinedPositionInIpv6SegmentAsync()
+    {
+        _ = await InvokeAsync("allow", "80/tcp");
+
+        CommandResult inserted = await InvokeAsync(
+            "insert",
+            "2",
+            "deny",
+            "from",
+            "0.0.0.0/0",
+            "to",
+            "0.0.0.0/0",
+            "port",
+            "22",
+            "proto",
+            "tcp");
+
+        Assert.AreEqual(1, inserted.ExitCode);
+        StringAssert.Contains(inserted.StdErr, "Invalid position '2'");
     }
 
     [TestMethod]

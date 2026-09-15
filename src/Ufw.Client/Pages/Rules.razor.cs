@@ -234,12 +234,6 @@ public sealed partial class Rules
         }
 
         IReadOnlyList<ListedFirewallRule> authoritativeRules = _state.Snapshot?.Rules ?? [];
-        if (request.TargetPosition < 1 || request.TargetPosition > DisplayedRules.Count)
-        {
-            Snackbar.Add(RulesText["PositionOutside"], Severity.Warning);
-            return Task.CompletedTask;
-        }
-
         try
         {
             RuleOrderingPreview preview = RuleOrderingProjection.Move(authoritativeRules, _orderingPreview, request);
@@ -250,7 +244,7 @@ public sealed partial class Rules
                 _orderingPrivateKey = string.Empty;
             }
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentOutOfRangeException)
         {
             Snackbar.Add(exception.Message, Severity.Warning);
         }

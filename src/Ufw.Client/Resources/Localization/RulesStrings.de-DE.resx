@@ -253,7 +253,7 @@
     <value>Signierte Regel löschen</value>
   </data>
   <data name="MoveDescription" xml:space="preserve">
-    <value>Wählen Sie die einsbasierte Position, die diese Regel in der geordneten Firewallliste einnehmen soll.</value>
+    <value>Wählen Sie die einsbasierte Position, die diese Regel innerhalb der {0}-Regelreihenfolge einnehmen soll.</value>
   </data>
   <data name="MovePreviewNotice" xml:space="preserve">
     <value>Diese Verschiebung ändert nur die lokale Vorschau. UFW wird erst geändert, nachdem die vollständige Vorschau geprüft, signiert und angewendet wurde.</value>
@@ -262,19 +262,22 @@
     <value>Zielposition</value>
   </data>
   <data name="TargetPositionHelp" xml:space="preserve">
-    <value>Die erste Firewallregel befindet sich an Position 1.</value>
+    <value>Position 1 ist die erste {0}-Regel. IPv4 und IPv6 werden von UFW unabhängig voneinander geordnet.</value>
   </data>
   <data name="PreviewMove" xml:space="preserve">
     <value>Verschiebung vorschauen</value>
   </data>
-  <data name="TableAria" xml:space="preserve">
-    <value>Firewallregeln</value>
+  <data name="FamilyTableAria" xml:space="preserve">
+    <value>{0}-Firewallregeln</value>
+  </data>
+  <data name="AddressFamilyRulesHeading" xml:space="preserve">
+    <value>{0}-Regeln</value>
   </data>
   <data name="ReorderColumn" xml:space="preserve">
     <value>Reihenfolge</value>
   </data>
   <data name="RuleNumberColumn" xml:space="preserve">
-    <value>#</value>
+    <value>UFW-Nr.</value>
   </data>
   <data name="ActionColumn" xml:space="preserve">
     <value>Aktion</value>
@@ -331,7 +334,7 @@
     <value>Reihenfolge</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>Ziehen Sie eine Regel am Griff oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden wird die vollständige gewünschte Reihenfolge gegen den angezeigten autoritativen Snapshot signiert. Aktionen zum Einfügen davor/danach öffnen die Regelerstellung mit dem ausgewählten Positionskontext.</value>
+    <value>IPv4 und IPv6 haben unabhängige UFW-Regelreihenfolgen. Die angezeigten UFW-Nummern entsprechen dem autoritativen nummerierten Snapshot; Verschiebepositionen gelten innerhalb einer Familie. Ziehen Sie Regeln innerhalb einer Familie oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden werden weiterhin der vollständige autoritative Snapshot und die gewünschte Permutation signiert. Einfügeaktionen verwenden die Familie der ausgewählten Regel.</value>
   </data>
   <data name="ActionsForRule" xml:space="preserve">
     <value>Aktionen für Firewallregel {0}</value>
@@ -399,6 +402,9 @@
   <data name="OrderingMissing" xml:space="preserve">
     <value>Die Regel ist im aktuellen Snapshot nicht vorhanden.</value>
   </data>
+  <data name="OrderingFamilyMismatch" xml:space="preserve">
+    <value>Regeln können nur innerhalb ihres IPv4- bzw. IPv6-UFW-Regelsatzes neu angeordnet werden.</value>
+  </data>
   <data name="PrivateKeyDetailedHelper" xml:space="preserve">
     <value>Für Passwortmanager wird data:application/pkcs8;base64,... empfohlen. PKCS#8-PEM und Base64-DER werden ebenfalls akzeptiert. Der Schlüssel wird nur für diese Anfrage verwendet und nicht gespeichert.</value>
   </data>
@@ -443,9 +449,6 @@
   </data>
   <data name="DeleteStateChanged" xml:space="preserve">
     <value>Der Firewallstatus hat sich während der Löschbestätigung geändert. Aktualisieren Sie den Status und versuchen Sie es erneut.</value>
-  </data>
-  <data name="PositionOutside" xml:space="preserve">
-    <value>Die angeforderte Regelposition liegt außerhalb der aktuellen Regelliste.</value>
   </data>
   <data name="StaleMutationCommittedList" xml:space="preserve">
     <value>Die Regeländerung war erfolgreich, aber der Client konnte die autoritative Regelliste nicht neu laden. Der zuletzt erfolgreich geladene Snapshot wird unten angezeigt und Mutationen bleiben deaktiviert, bis die Aktualisierung gelingt.</value>

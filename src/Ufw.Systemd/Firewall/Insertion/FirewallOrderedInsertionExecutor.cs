@@ -120,7 +120,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         FirewallAddressFamily family = anchor.Rule!.AddressFamily;
         if (payload.Placement == RuleInsertionPlacement.Before)
         {
-            int position = UfwRulePositionResolver.GetFamilyPosition(baseline.Rules, payload.AnchorOccurrenceId);
+            int position = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, payload.AnchorOccurrenceId);
             return new UfwInsertRuleCommand(position, rule, renderer);
         }
 
@@ -130,7 +130,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
             family);
         if (nextFamilyOccurrence.HasValue)
         {
-            int position = UfwRulePositionResolver.GetFamilyPosition(baseline.Rules, nextFamilyOccurrence.Value);
+            int position = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, nextFamilyOccurrence.Value);
             return new UfwInsertRuleCommand(position, rule, renderer);
         }
 
@@ -183,7 +183,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         {
             for (int index = 0; index < baseline.Count; index++)
             {
-                if (UfwRulePositionResolver.GetObservedFamily(baseline[index]) == FirewallAddressFamily.IPv6)
+                if (ListedFirewallRuleFamily.GetObservedFamily(baseline[index]) == FirewallAddressFamily.IPv6)
                 {
                     return index;
                 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
 
@@ -15,6 +16,9 @@ public sealed partial class MoveRuleDialog
 
     [Parameter]
     public int RuleCount { get; set; }
+
+    [Parameter]
+    public FirewallAddressFamily AddressFamily { get; set; }
 
     private bool CanConfirm => _targetPosition >= 1
         && _targetPosition <= RuleCount

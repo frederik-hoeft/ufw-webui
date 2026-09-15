@@ -20,7 +20,7 @@ public sealed class FirewallReorderRecoveryServiceTests
         ["insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"];
 
     private static readonly string[] s_ipv6RecoveryInsertArguments =
-        ["insert", "2", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"];
+        ["insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"];
 
     public required TestContext TestContext { get; set; }
 
@@ -81,7 +81,7 @@ public sealed class FirewallReorderRecoveryServiceTests
     }
 
     [TestMethod]
-    public async Task RecoverAsync_Ipv6FallbackPosition_UsesFamilyLocalNumberingAsync()
+    public async Task RecoverAsync_Ipv6FallbackPosition_UsesCombinedUfwNumberingAsync()
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "reorder-recovery.json");

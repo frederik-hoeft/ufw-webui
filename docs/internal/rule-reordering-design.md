@@ -132,7 +132,7 @@ Rows that cannot meet that requirement remain part of the signed permutation but
 
 This makes reliable UFW round-trip representation a prerequisite for enabling reorder on affected rule shapes. The implementation keeps rows immutable whenever their observed semantics cannot be reconstructed losslessly; reordering does not weaken semantic comparison merely to make such rows movable.
 
-Address-family-neutral authoring is not reconstructed during reordering. The reorder baseline consists of the concrete rows UFW actually exposes, including concrete IPv4 and IPv6 materializations. The signed permutation therefore targets the concrete authoritative list.
+Address-family-neutral authoring is not reconstructed during reordering. The reorder baseline consists of the concrete rows UFW actually exposes, including concrete IPv4 and IPv6 materializations. UFW stores those families in independent ordered rule sets and concatenates them for numbered status output, so the signed permutation targets that canonical projection while preserving its family partition. No cross-family ordering relation is inferred, and separately listed IPv4/IPv6 rows are not paired merely because they have equivalent semantics.
 
 ## Minimal move planning
 

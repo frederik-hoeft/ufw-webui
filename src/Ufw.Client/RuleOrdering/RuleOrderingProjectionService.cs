@@ -17,24 +17,41 @@ internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesString
         {
             throw new InvalidOperationException(rulesText["OrderingBaselineChanged"]);
         }
-
-        if (request.TargetPosition < 1 || request.TargetPosition > currentOrder.Count)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(request),
-                request.TargetPosition,
-                rulesText["OrderingTargetRange", currentOrder.Count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)]);
-        }
-
-        int sourceIndex = IndexOfOccurrence(currentOrder, request.OccurrenceId);
-        if (sourceIndex < 0)
+        if (request.OccurrenceId < 0 || request.OccurrenceId >= authoritativeRules.Count)
         {
             throw new InvalidOperationException(rulesText["OrderingMissing"]);
         }
 
-        List<int> desiredOrder = [.. currentOrder];
-        desiredOrder.RemoveAt(sourceIndex);
-        desiredOrder.Insert(request.TargetPosition - 1, request.OccurrenceId);
+        FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(authoritativeRules[request.OccurrenceId]);
+        if (request.AddressFamily != family)
+        {
+            throw new InvalidOperationException(rulesText["OrderingFamilyMismatch"]);
+        }
+
+        List<int> familyOrder = [.. currentOrder.Where(occurrenceId =>
+            ListedFirewallRuleFamily.GetObservedFamily(authoritativeRules[occurrenceId]) == family)];
+        if (request.TargetFamilyPosition < 1 || request.TargetFamilyPosition > familyOrder.Count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(request),
+                request.TargetFamilyPosition,
+                rulesText["OrderingTargetRange", familyOrder.Count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)]);
+        }
+
+        int sourceFamilyIndex = familyOrder.IndexOf(request.OccurrenceId);
+        if (sourceFamilyIndex < 0)
+        {
+            throw new InvalidOperationException(rulesText["OrderingMissing"]);
+        }
+
+        familyOrder.RemoveAt(sourceFamilyIndex);
+        familyOrder.Insert(request.TargetFamilyPosition - 1, request.OccurrenceId);
+
+        int nextFamilyOccurrence = 0;
+        int[] desiredOrder = [.. currentOrder.Select(occurrenceId =>
+            ListedFirewallRuleFamily.GetObservedFamily(authoritativeRules[occurrenceId]) == family
+                ? familyOrder[nextFamilyOccurrence++]
+                : occurrenceId)];
 
         HashSet<int> directlyMovedOccurrences = currentPreview is null
             ? []
@@ -45,19 +62,6 @@ internal sealed class RuleOrderingProjectionService(IStringLocalizer<RulesString
             CopyWithDisplayNumber(authoritativeRules[occurrenceId], index + 1))];
 
         return new RuleOrderingPreview(projected, desiredOrder, directlyMovedOccurrences);
-    }
-
-    private static int IndexOfOccurrence(IReadOnlyList<int> order, int occurrenceId)
-    {
-        for (int index = 0; index < order.Count; index++)
-        {
-            if (order[index] == occurrenceId)
-            {
-                return index;
-            }
-        }
-
-        return -1;
     }
 
     private static ListedFirewallRule CopyWithDisplayNumber(ListedFirewallRule rule, int displayNumber) => new()

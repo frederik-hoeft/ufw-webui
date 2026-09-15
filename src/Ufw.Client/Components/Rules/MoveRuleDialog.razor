@@ -1,10 +1,11 @@
 ﻿@inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
+@inject IFirewallRuleText RuleText
 
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-            @RulesText["MoveDescription"]
+            @RulesText["MoveDescription", RuleText.FormatAddressFamily(AddressFamily)]
         </MudText>
 
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
@@ -18,7 +19,7 @@
                          Max="@RuleCount"
                          Immediate="true"
                          Variant="Variant.Outlined"
-                         HelperText="@(RulesText["TargetPositionHelp"])" />
+                         HelperText="@(RulesText["TargetPositionHelp", RuleText.FormatAddressFamily(AddressFamily)])" />
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>

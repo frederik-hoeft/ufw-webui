@@ -99,7 +99,7 @@ Daemon-derived interface metadata is reconciled against host state, and host sta
 
 The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one rule snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
 
-The browser treats each successful response as an authoritative snapshot. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
+The browser treats each successful response as an authoritative snapshot. UFW keeps IPv4 and IPv6 in independent ordered rule sets and concatenates them for numbered status output, so the browser presents separate family sections while retaining the exact combined snapshot coordinates for signing and mutation addressing. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
 
 ### Mutating firewall state
 
