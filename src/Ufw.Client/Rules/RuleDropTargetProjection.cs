@@ -27,7 +27,7 @@ internal sealed record RuleDropTargetProjection
     public RuleDropIndicatorEdge IndicatorEdge { get; }
 }
 
-internal enum RuleDropIndicatorEdge
+public enum RuleDropIndicatorEdge
 {
     Before,
     After,
