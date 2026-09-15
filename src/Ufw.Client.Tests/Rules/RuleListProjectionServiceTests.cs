@@ -5,9 +5,9 @@ using Ufw.Shared.Firewall;
 namespace Ufw.Client.Tests.Rules;
 
 [TestClass]
-public sealed class RuleTableProjectionServiceTests
+public sealed class RuleListProjectionServiceTests
 {
-    private readonly RuleTableProjectionService _projection = new();
+    private readonly RuleListProjectionService _projection = new();
 
     [TestMethod]
     public void Create_DuplicateSemanticIdsRemainOrderableButAreNotMutable()
@@ -15,7 +15,7 @@ public sealed class RuleTableProjectionServiceTests
         ListedFirewallRule first = Rule("duplicate", FirewallAddressFamily.IPv4, displayNumber: 1);
         ListedFirewallRule second = Rule("duplicate", FirewallAddressFamily.IPv4, displayNumber: 2);
 
-        RuleTableProjection projection = _projection.Create([first, second], orderingPreview: null);
+        RuleListProjection projection = _projection.Create([first, second], orderingPreview: null);
 
         Assert.HasCount(1, projection.Families);
         Assert.IsTrue(projection.Families[0].Rows.All(static row => row.CanOrder));
@@ -48,7 +48,7 @@ public sealed class RuleTableProjectionServiceTests
         ListedFirewallRule ipv4Second = Rule("v4-b", FirewallAddressFamily.IPv4, displayNumber: 3);
         ListedFirewallRule ipv6Second = Rule("v6-b", FirewallAddressFamily.IPv6, displayNumber: 4);
 
-        RuleTableProjection projection = _projection.Create([ipv4First, ipv6First, ipv4Second, ipv6Second], orderingPreview: null);
+        RuleListProjection projection = _projection.Create([ipv4First, ipv6First, ipv4Second, ipv6Second], orderingPreview: null);
 
         Assert.HasCount(2, projection.Families);
         Assert.AreEqual(FirewallAddressFamily.IPv4, projection.Families[0].AddressFamily);
@@ -69,7 +69,7 @@ public sealed class RuleTableProjectionServiceTests
         ListedFirewallRule[] authoritative = [ipv4First, ipv6First, ipv4Second, ipv6Second];
         RuleOrderingPreview preview = new([2, 1, 0, 3], new HashSet<int> { 2 });
 
-        RuleTableProjection projection = _projection.Create(authoritative, preview);
+        RuleListProjection projection = _projection.Create(authoritative, preview);
         RuleFamilyProjection ipv4 = projection.Families.Single(static family => family.AddressFamily == FirewallAddressFamily.IPv4);
         RuleFamilyProjection ipv6 = projection.Families.Single(static family => family.AddressFamily == FirewallAddressFamily.IPv6);
 
@@ -93,7 +93,7 @@ public sealed class RuleTableProjectionServiceTests
         ListedFirewallRule third = Rule("third", FirewallAddressFamily.IPv4, displayNumber: 3);
         RuleOrderingPreview preview = new([2, 0, 1], new HashSet<int> { 2 });
 
-        RuleTableProjection projection = _projection.Create([first, opaque, third], preview);
+        RuleListProjection projection = _projection.Create([first, opaque, third], preview);
         RuleRowProjection projectedOpaque = projection.Families[0].Rows.Single(static row => !row.Rule.Parsed);
 
         Assert.AreEqual(3, projectedOpaque.FamilyPosition);
@@ -109,7 +109,7 @@ public sealed class RuleTableProjectionServiceTests
         ListedFirewallRule[] authoritative = [first, second];
         RuleOrderingPreview preview = new([1, 0], new HashSet<int> { 1 });
 
-        RuleTableProjection projection = _projection.Create(authoritative, preview);
+        RuleListProjection projection = _projection.Create(authoritative, preview);
         RuleRowProjection moved = projection.Families[0].Rows[0];
 
         Assert.AreSame(second, moved.Rule);

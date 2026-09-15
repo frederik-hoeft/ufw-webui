@@ -3,9 +3,9 @@ using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Rules;
 
-internal sealed class RuleTableProjectionService : IRuleTableProjectionService
+internal sealed class RuleListProjectionService : IRuleListProjectionService
 {
-    public RuleTableProjection Create(IReadOnlyList<ListedFirewallRule> rules, RuleOrderingPreview? orderingPreview)
+    public RuleListProjection Create(IReadOnlyList<ListedFirewallRule> rules, RuleOrderingPreview? orderingPreview)
     {
         ArgumentNullException.ThrowIfNull(rules);
 
@@ -74,7 +74,7 @@ internal sealed class RuleTableProjectionService : IRuleTableProjectionService
             families.Add(new RuleFamilyProjection(FirewallAddressFamily.IPv6, ipv6Rows));
         }
 
-        return new RuleTableProjection(families);
+        return new RuleListProjection(families);
     }
 
     private static IReadOnlyList<int> GetProjectedOrder(int ruleCount, RuleOrderingPreview? orderingPreview)

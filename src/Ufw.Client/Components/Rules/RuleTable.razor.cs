@@ -21,7 +21,7 @@ public sealed partial class RuleTable
 
     private RuleRowProjection? _draggedRow;
     private RuleDropTargetProjection? _dropTarget;
-    private RuleTableProjection _projection = RuleTableProjection.Empty;
+    private RuleListProjection _projection = RuleListProjection.Empty;
 
     [Parameter]
     public IReadOnlyList<ListedFirewallRule> Rules { get; set; } = [];
