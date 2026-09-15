@@ -17,7 +17,7 @@
 		<Compile Remove="**\*.Unix.cs"></Compile>
 		<None Include="**\*.Unix.cs"></None>
 	</ItemGroup>
-	
+
 	<ItemGroup Condition="'$(OS)' != 'Windows_NT'">
 		<Compile Remove="**\*.Win32.cs"></Compile>
 		<None Include="**\*.Win32.cs"></None>

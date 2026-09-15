@@ -64,26 +64,26 @@
     </MudAlert>
 }
 
-<MudPaper Class="interface-inventory-card" Elevation="1">
-    <div class="interface-inventory-heading">
+<MudPaper Class="inventory-card interface-inventory" Elevation="1">
+    <header>
         <div>
             <MudText Typo="Typo.h6" HtmlTag="h2">@InterfacesText["CachedInventoryTitle"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 @InterfacesText["CachedInventoryDescription"]
             </MudText>
         </div>
-    </div>
+    </header>
 
     @if (_loading && _inventory is null)
     {
-        <div class="interface-inventory-loading" role="status" aria-live="polite">
+        <div class="inventory-loading" role="status" aria-live="polite">
             <MudProgressLinear Indeterminate="true" aria-label="@(InterfacesText["LoadingAria"])" />
             <MudText Typo="Typo.body2" Color="Color.Secondary">@InterfacesText["LoadingInventory"]</MudText>
         </div>
     }
     else if (_inventory is { Interfaces.Count: 0 })
     {
-        <div class="interface-inventory-empty">
+        <div class="inventory-empty">
             <MudIcon Icon="@Icons.Material.Filled.Lan" Size="Size.Large" Color="Color.Secondary" />
             <MudText Typo="Typo.subtitle1">@InterfacesText["NoKnownInterfaces"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -98,7 +98,7 @@
                   Dense="true"
                   Hover="true"
                   Elevation="0"
-                  Class="interface-inventory-table interface-inventory-desktop">
+                  Class="inventory-desktop">
             <HeaderContent>
                 <MudTh Class="interface-visibility-column">@InterfacesText["VisibilityColumn"]</MudTh>
                 <MudTh>@InterfacesText["InterfaceColumn"]</MudTh>
@@ -106,7 +106,7 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="@(InterfacesText["VisibilityColumn"])" Class="interface-visibility-column">
-                    <div class="interface-visibility-cell">
+                    <div>
                         <MudTooltip Text="@VisibilityActionText(context)">
                             <MudIconButton Icon="@(context.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
                                            Color="@(context.IsVisible ? Color.Primary : Color.Default)"
@@ -136,11 +136,11 @@
             </RowTemplate>
         </MudTable>
 
-        <div class="interface-inventory-mobile">
+        <div class="inventory-mobile">
             @foreach (NetworkInterfaceInventoryItem item in _inventory.Interfaces)
             {
-                <div class="interface-mobile-row">
-                    <div class="interface-mobile-visibility">
+                <article>
+                    <div class="inventory-mobile-visibility">
                         <MudTooltip Text="@VisibilityActionText(item)">
                             <MudIconButton Icon="@(item.IsVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
                                            Color="@(item.IsVisible ? Color.Primary : Color.Default)"
@@ -150,13 +150,13 @@
                                            aria-label="@VisibilityActionText(item)" />
                         </MudTooltip>
                     </div>
-                    <div class="interface-mobile-copy">
+                    <div class="inventory-mobile-copy">
                         <code class="interface-name">@item.Name</code>
                         <span class="@(string.IsNullOrWhiteSpace(item.Comment) ? "interface-comment-empty" : "interface-comment")">
                             @(string.IsNullOrWhiteSpace(item.Comment) ? InterfacesText["NoComment"] : item.Comment)
                         </span>
                     </div>
-                    <div class="interface-mobile-actions">
+                    <div class="inventory-mobile-actions">
                         <MudButton Variant="Variant.Text"
                                    Size="Size.Small"
                                    Disabled="@IsBusy"
@@ -164,7 +164,7 @@
                             @InterfacesText["EditComment"]
                         </MudButton>
                     </div>
-                </div>
+                </article>
             }
         </div>
     }

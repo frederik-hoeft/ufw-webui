@@ -8,9 +8,7 @@ namespace Ufw.Shared.Firewall;
 /// </summary>
 public static class FirewallAddressValue
 {
-    public static bool TryNormalizeLiteral(
-        string? address,
-        [NotNullWhen(true)] out string? normalized,
+    public static bool TryNormalizeLiteral(string? address, [NotNullWhen(true)] out string? normalized,
         out FirewallAddressFamily addressFamily)
     {
         FirewallRuleSpecification probe = new() { Source = address };

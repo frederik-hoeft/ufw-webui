@@ -469,13 +469,11 @@ public sealed class IntentSignatureTests
         DestinationPorts = port,
     };
 
-    private static ReorderRulesPayload CreateReorderPayload(
-        string? baselineFingerprint = null,
-        int[]? desiredOrder = null) => new()
-        {
-            BaselineFingerprint = baselineFingerprint ?? FirewallRuleSnapshotFingerprint.Compute(active: true, []),
-            DesiredOrder = desiredOrder ?? [2, 0, 1],
-        };
+    private static ReorderRulesPayload CreateReorderPayload(string? baselineFingerprint = null, int[]? desiredOrder = null) => new()
+    {
+        BaselineFingerprint = baselineFingerprint ?? FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+        DesiredOrder = desiredOrder ?? [2, 0, 1],
+    };
 
     private static ReorderRulesRequest SignReorder(ECDsa key, TimeProvider clock) =>
         IntentRequestFactory.CreateReorderRequest(
@@ -485,15 +483,14 @@ public sealed class IntentSignatureTests
             MessageJsonSerializerContext.Default.ReorderRulesPayload,
             clock);
 
-    private static FirewallRuleSpecification CreateSshRule(
-        FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()
-        {
-            Action = FirewallAction.Allow,
-            AddressFamily = addressFamily,
-            Direction = FirewallDirection.In,
-            Protocol = FirewallProtocol.Tcp,
-            DestinationPorts = "22",
-        };
+    private static FirewallRuleSpecification CreateSshRule(FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()
+    {
+        Action = FirewallAction.Allow,
+        AddressFamily = addressFamily,
+        Direction = FirewallDirection.In,
+        Protocol = FirewallProtocol.Tcp,
+        DestinationPorts = "22",
+    };
 
     private static AddRuleRequest SignAdd(ECDsa key, TimeProvider clock, string deploymentId = DEPLOYMENT_ID) =>
         IntentRequestFactory.CreateAddRequest(

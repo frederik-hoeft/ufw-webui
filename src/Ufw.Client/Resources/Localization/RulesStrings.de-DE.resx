@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -28,7 +28,7 @@
     <value>Firewallregel hinzufügen</value>
   </data>
   <data name="CreateDescription" xml:space="preserve">
-    <value>Erstellen und autorisieren Sie eine neue Regel. Das aktuelle Backend hängt signierte neue Regeln an das Ende der Regelliste an.</value>
+    <value>Erstellen und autorisieren Sie eine neue Regel. Signierte neue Regeln werden an das Ende der Regelliste angehängt.</value>
   </data>
   <data name="CreateOrderedDescription" xml:space="preserve">
     <value>Erstellen Sie eine signierte Regel an der ausgewählten Position im geprüften Firewall-Snapshot.</value>
@@ -154,7 +154,7 @@
     <value>Regeldefinition</value>
   </data>
   <data name="DefinitionDescription" xml:space="preserve">
-    <value>Definieren Sie UFW-Match und Aktion. Die aktuelle API hängt neue Regeln an die bestehende Auswertungsreihenfolge an.</value>
+    <value>Definieren Sie UFW-Match und Aktion. Neue Regeln werden an die bestehende Auswertungsreihenfolge angehängt.</value>
   </data>
   <data name="Action" xml:space="preserve">
     <value>Aktion</value>
@@ -334,7 +334,7 @@
     <value>Reihenfolge</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>IPv4 und IPv6 haben unabhängige UFW-Regelreihenfolgen. Die angezeigten UFW-Nummern entsprechen dem autoritativen nummerierten Snapshot; Verschiebepositionen gelten innerhalb einer Familie. Ziehen Sie Regeln innerhalb einer Familie oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden werden weiterhin der vollständige autoritative Snapshot und die gewünschte Permutation signiert. Einfügeaktionen verwenden die Familie der ausgewählten Regel.</value>
+    <value>IPv4 und IPv6 haben unabhängige UFW-Regelreihenfolgen. Die angezeigten UFW-Nummern entsprechen dem autoritativen nummerierten Snapshot; Verschiebepositionen gelten innerhalb einer Familie. Ziehen Sie Regeln innerhalb einer Familie oder verwenden Sie „An Position verschieben...“, um eine neue Reihenfolge vorzumerken. Beim Anwenden werden der vollständige autoritative Snapshot und die gewünschte Permutation signiert. Einfügeaktionen verwenden die Familie der ausgewählten Regel.</value>
   </data>
   <data name="ActionsForRule" xml:space="preserve">
     <value>Aktionen für Firewallregel {0}</value>

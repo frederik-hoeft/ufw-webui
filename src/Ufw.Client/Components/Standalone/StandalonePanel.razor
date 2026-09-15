@@ -8,28 +8,28 @@
         </div>
     }
 
-    <div class="standalone-panel-copy">
+    <header>
         <MudText Typo="@TitleTypo" HtmlTag="h1">@Title</MudText>
         @if (!string.IsNullOrWhiteSpace(Description))
         {
-            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="standalone-panel-description">
+            <MudText Typo="Typo.body1" Color="Color.Secondary">
                 @Description
             </MudText>
         }
-    </div>
+    </header>
 
     @if (ChildContent is not null)
     {
-        <div class="standalone-panel-content">
+        <section>
             @ChildContent
-        </div>
+        </section>
     }
 
     @if (Actions is not null)
     {
-        <div class="standalone-panel-actions">
+        <footer>
             @Actions
-        </div>
+        </footer>
     }
 </MudPaper>
 

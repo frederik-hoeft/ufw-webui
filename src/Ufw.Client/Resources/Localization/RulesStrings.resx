@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -28,7 +28,7 @@
     <value>Add firewall rule</value>
   </data>
   <data name="CreateDescription" xml:space="preserve">
-    <value>Create and authorize a new rule. The current backend appends signed additions to the end of the rule list.</value>
+    <value>Create and authorize a new rule. Signed additions are appended to the end of the rule list.</value>
   </data>
   <data name="CreateOrderedDescription" xml:space="preserve">
     <value>Create a signed rule at the selected position in the reviewed firewall snapshot.</value>
@@ -154,7 +154,7 @@
     <value>Rule definition</value>
   </data>
   <data name="DefinitionDescription" xml:space="preserve">
-    <value>Define the UFW match and action. The current API appends new rules to the existing evaluation order.</value>
+    <value>Define the UFW match and action. New rules are appended to the existing evaluation order.</value>
   </data>
   <data name="Action" xml:space="preserve">
     <value>Action</value>
@@ -334,7 +334,7 @@
     <value>Ordering</value>
   </data>
   <data name="OrderingDescription" xml:space="preserve">
-    <value>IPv4 and IPv6 have independent UFW rule orders. Displayed UFW numbers match the authoritative numbered snapshot; move positions are family-local. Drag within one family or use "Move to position..." to stage a new order. Applying the preview still signs the complete authoritative snapshot and desired permutation. Insert-before/after actions use the selected rule's family.</value>
+    <value>IPv4 and IPv6 have independent UFW rule orders. Displayed UFW numbers match the authoritative numbered snapshot; move positions are family-local. Drag within one family or use "Move to position..." to stage a new order. Applying the preview signs the complete authoritative snapshot and desired permutation. Insert-before/after actions use the selected rule's family.</value>
   </data>
   <data name="ActionsForRule" xml:space="preserve">
     <value>Actions for firewall rule {0}</value>

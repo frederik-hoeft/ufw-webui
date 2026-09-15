@@ -1,7 +1,10 @@
 ﻿namespace Ufw.Shared.Parsing.Parsers;
 
 public sealed class Sequence<TParser1, TParser2, TParser3, TParser4, TParser5, TParser6, TParser7>(string? name = null)
-    : Sequence(parsers: [TParser1.Instance, TParser2.Instance, TParser3.Instance, TParser4.Instance, TParser5.Instance, TParser6.Instance, TParser7.Instance], name), IParser<Sequence<TParser1, TParser2, TParser3, TParser4, TParser5, TParser6, TParser7>>
+    : Sequence(
+        parsers: [TParser1.Instance, TParser2.Instance, TParser3.Instance, TParser4.Instance, TParser5.Instance, TParser6.Instance, TParser7.Instance],
+        name),
+      IParser<Sequence<TParser1, TParser2, TParser3, TParser4, TParser5, TParser6, TParser7>>
     where TParser1 : class, IParser<TParser1>
     where TParser2 : class, IParser<TParser2>
     where TParser3 : class, IParser<TParser3>

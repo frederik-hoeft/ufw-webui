@@ -24,8 +24,8 @@
         else
         {
             <div class="delete-rule-summary" aria-label="@(RulesText["RuleToDelete"])">
-                <MudText Typo="Typo.overline" HtmlTag="div" Class="delete-rule-summary-label">@RulesText["RuleToDelete"]</MudText>
-                <MudText Typo="Typo.body2" Class="delete-rule-summary-value">@Rule.RawLine</MudText>
+                <span>@RulesText["RuleToDelete"]</span>
+                <code>@Rule.RawLine</code>
             </div>
         }
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">

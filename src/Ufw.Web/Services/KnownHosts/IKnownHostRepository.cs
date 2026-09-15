@@ -7,13 +7,7 @@ internal interface IKnownHostRepository
 {
     Task<KnownHostInventoryResponse> GetAsync(CancellationToken cancellationToken = default);
 
-    Task<KnownHostMutationResult> CreateAsync(
-        string name,
-        string normalizedName,
-        string address,
-        string? comment,
-        bool isVisible,
-        CancellationToken cancellationToken = default);
+    Task<KnownHostMutationResult> CreateAsync(string name, string normalizedName, string address, string? comment, bool isVisible, CancellationToken cancellationToken = default);
 
     Task<KnownHostMutationResult> UpdateAsync(
         Guid publicId,

@@ -1,20 +1,18 @@
-﻿@using Ufw.Shared.Ipc.Model.Responses
-@inject IKnownHostInventoryService KnownHosts
-@inject INetworkInterfaceInventoryService NetworkInterfaces
-@inject IClientErrorMapper ClientErrors
+@implements IDisposable
+@inject IKnownHostSuggestionService HostSuggestions
+@inject IRuleEditorReferenceDataService ReferenceDataService
+@inject IRuleEditorValidationService EditorValidation
 @inject IFirewallRuleText RuleText
-@inject IRuleValidationMessageLocalizer ValidationMessages
-@inject IStringLocalizer<ValidationStrings> ValidationText
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <MudPaper Class="rule-editor-card" Elevation="1" role="region" aria-labelledby="rule-definition-heading">
-    <div class="rule-editor-section-heading">
+    <header>
         <MudText Typo="Typo.h6" HtmlTag="h2" id="rule-definition-heading">@RulesText["RuleDefinition"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
             @EffectiveDefinitionDescription
         </MudText>
-    </div>
+    </header>
 
     <MudForm @ref="_form"
              Model="@Rule"
@@ -118,7 +116,7 @@
                                        HelperText="@SourceInterfaceHelp"
                                        @bind-Value="Rule.SourceInterface"
                                        For="@(() => Rule.SourceInterface)"
-                                       Suggestions="@_visibleInterfaces"
+                                       Suggestions="@VisibleInterfaces"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
@@ -126,7 +124,7 @@
                                        HelperText="@DestinationInterfaceHelp"
                                        @bind-Value="Rule.DestinationInterface"
                                        For="@(() => Rule.DestinationInterface)"
-                                       Suggestions="@_visibleInterfaces"
+                                       Suggestions="@VisibleInterfaces"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12">
@@ -142,15 +140,15 @@
             @if (ShowAuthorization)
             {
                 <MudItem xs="12">
-                    <MudDivider Class="rule-editor-divider" />
+                    <MudDivider />
                 </MudItem>
                 <MudItem xs="12">
-                    <div class="rule-editor-section-heading rule-editor-authorization-heading">
+                    <header>
                         <MudText Typo="Typo.subtitle1" HtmlTag="h3">@RulesText["Authorization"]</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             @RulesText["AuthorizationDescription"]
                         </MudText>
-                    </div>
+                    </header>
                 </MudItem>
                 <MudItem xs="12">
                     <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["CanonicalUfwRule"])" />
@@ -160,7 +158,7 @@
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3" role="status">
                             @RulesText["UnknownInterfacesWarning"]
-                            <ul class="rule-editor-interface-warning-list">
+                            <ul>
                                 @if (IsUnknownInterface(Rule.SourceInterface))
                                 {
                                     <li><strong>@RulesText["SourceInterface"]:</strong> <code>@Rule.SourceInterface</code></li>
@@ -186,7 +184,7 @@
                 </MudItem>
             }
             <MudItem xs="12">
-                <div class="rule-editor-actions">
+                <footer>
                     <MudButton Variant="Variant.Text"
                                Disabled="@(Disabled || Submitting)"
                                OnClick="CancelAsync">
@@ -204,7 +202,7 @@
                         }
                         @(Submitting ? EffectiveSubmittingLabel : EffectiveSubmitLabel)
                     </MudButton>
-                </div>
+                </footer>
             </MudItem>
         </MudGrid>
     </MudForm>

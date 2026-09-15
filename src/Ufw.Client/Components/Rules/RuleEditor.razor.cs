@@ -1,20 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Client.Api;
-using Ufw.Client.KnownHosts;
+using Ufw.Client.Rules.Authoring;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Responses;
 
 namespace Ufw.Client.Components.Rules;
 
 public sealed partial class RuleEditor
 {
+    private readonly CancellationTokenSource _lifetime = new();
     private MudForm? _form;
-    private IReadOnlyList<KnownHostInventoryItem> _knownHosts = [];
+    private RuleEditorReferenceData _referenceData = new([], [], [], null);
     private IReadOnlyList<KnownHostInventoryItem> _visibleKnownHosts = [];
-    private IReadOnlyList<NetworkInterfaceInventoryItem> _knownInterfaces = [];
-    private IReadOnlyList<NetworkInterfaceInventoryItem> _visibleInterfaces = [];
-    private string? _interfaceInventoryError;
     private bool _isValid;
 
     private Func<object, string, IEnumerable<string>> RuleValidation => ValidateRule;
@@ -37,8 +34,13 @@ public sealed partial class RuleEditor
 
     private string DestinationInterfaceHelp => DescribeInterfaceHelp(RulesText["DestinationInterfaceHelp"]);
 
-    private bool HasUnknownInterfaces =>
-        IsUnknownInterface(Rule.SourceInterface) || IsUnknownInterface(Rule.DestinationInterface);
+    private bool HasUnknownInterfaces => IsUnknownInterface(Rule.SourceInterface) || IsUnknownInterface(Rule.DestinationInterface);
+
+    private IReadOnlyList<NetworkInterfaceInventoryItem> VisibleInterfaces => _referenceData.VisibleInterfaces;
+
+    private FirewallAddressFamily SourceKnownHostAddressFamily => HostSuggestions.ResolveCompatibleAddressFamily(Rule.AddressFamily, Rule.Destination);
+
+    private FirewallAddressFamily DestinationKnownHostAddressFamily => HostSuggestions.ResolveCompatibleAddressFamily(Rule.AddressFamily, Rule.Source);
 
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
@@ -82,106 +84,44 @@ public sealed partial class RuleEditor
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
-    protected override Task OnInitializedAsync() => Task.WhenAll(LoadKnownHostsAsync(), LoadNetworkInterfacesAsync());
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            _referenceData = await ReferenceDataService.LoadAsync(_lifetime.Token);
+            RefreshVisibleKnownHosts();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+    }
 
     protected override void OnParametersSet() => RefreshVisibleKnownHosts();
 
-    private async Task LoadKnownHostsAsync()
+    public void Dispose()
     {
-        try
-        {
-            KnownHostInventoryResponse inventory = await KnownHosts.RefreshAsync();
-            _knownHosts = inventory.Hosts;
-            RefreshVisibleKnownHosts();
-        }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
-        {
-            _ = ClientErrors.Describe(exception);
-            _knownHosts = [];
-            _visibleKnownHosts = [];
-        }
+        _lifetime.Cancel();
+        _lifetime.Dispose();
     }
 
-    private async Task LoadNetworkInterfacesAsync()
-    {
-        try
-        {
-            NetworkInterfaceInventoryResponse inventory = await NetworkInterfaces.RefreshAsync();
-            _knownInterfaces = inventory.Interfaces;
-            _visibleInterfaces = inventory.Interfaces.Where(static networkInterface => networkInterface.IsVisible).ToArray();
-        }
-        catch (Exception exception)
-        {
-            _interfaceInventoryError = ClientErrors.Describe(exception).Message;
-        }
-    }
-
-    private FirewallAddressFamily SourceKnownHostAddressFamily =>
-        KnownHostSuggestions.ResolveCompatibleAddressFamily(Rule.AddressFamily, Rule.Destination);
-
-    private FirewallAddressFamily DestinationKnownHostAddressFamily =>
-        KnownHostSuggestions.ResolveCompatibleAddressFamily(Rule.AddressFamily, Rule.Source);
-
-    private bool IsUnknownInterface(string? interfaceName) =>
-        _interfaceInventoryError is null
-        && !string.IsNullOrWhiteSpace(interfaceName)
-        && !_knownInterfaces.Any(candidate => string.Equals(candidate.Name, interfaceName, StringComparison.Ordinal));
+    private bool IsUnknownInterface(string? interfaceName) => ReferenceDataService.IsUnknownInterface(_referenceData, interfaceName);
 
     private string DescribeInterfaceHelp(string directionHelp)
     {
-        if (_interfaceInventoryError is not null)
+        if (_referenceData.InterfaceInventoryError is not null)
         {
             return RulesText["InterfaceSuggestionsUnavailable", directionHelp];
         }
 
-        return _visibleInterfaces.Count == 0
+        return VisibleInterfaces.Count == 0
             ? RulesText["InterfaceEnterValid", directionHelp]
             : RulesText["InterfaceChooseKnown", directionHelp];
     }
 
-    private IEnumerable<string> ValidateRule(object model, string propertyName)
-    {
-        if (model is not FirewallRuleSpecification specification)
-        {
-            return [];
-        }
+    private IEnumerable<string> ValidateRule(object model, string propertyName) =>
+        model is FirewallRuleSpecification specification ? EditorValidation.Validate(specification, propertyName, IPv6Enabled) : [];
 
-        int separator = propertyName.LastIndexOf('.');
-        string memberName = separator < 0 ? propertyName : propertyName[(separator + 1)..];
-        List<ModelValidationError> errors = [.. RuleSpecificationValidator.Validate(specification)];
-        if (!IPv6Enabled)
-        {
-            AddIPv6CapabilityErrors(specification, errors);
-        }
-
-        return errors
-            .Where(error => string.Equals(error.PropertyName, memberName, StringComparison.Ordinal))
-            .Select(ValidationMessages.Localize);
-    }
-
-    private void RefreshVisibleKnownHosts()
-    {
-        _visibleKnownHosts = _knownHosts
-            .Where(host => host.IsVisible && (IPv6Enabled || host.AddressFamily != FirewallAddressFamily.IPv6))
-            .ToArray();
-    }
-
-    private void AddIPv6CapabilityErrors(FirewallRuleSpecification specification, List<ModelValidationError> errors)
-    {
-        string message = ValidationText["Ipv6Disabled"];
-        if (specification.AddressFamily == FirewallAddressFamily.IPv6)
-        {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), message));
-        }
-        if (RuleSpecificationNormalizer.GetAddressFamily(specification.Source) == FirewallAddressFamily.IPv6)
-        {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Source), message));
-        }
-        if (RuleSpecificationNormalizer.GetAddressFamily(specification.Destination) == FirewallAddressFamily.IPv6)
-        {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Destination), message));
-        }
-    }
+    private void RefreshVisibleKnownHosts() => _visibleKnownHosts = ReferenceDataService.GetVisibleKnownHosts(_referenceData, IPv6Enabled);
 
     private async Task DirectionChangedAsync(FirewallDirection value)
     {

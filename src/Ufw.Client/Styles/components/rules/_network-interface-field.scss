@@ -2,27 +2,38 @@
     display: grid;
     align-content: start;
     gap: 0;
+
+    > label {
+        color: var(--mud-palette-text-primary);
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1rem;
+    }
+
+    > .mud-input-control {
+        margin-top: 0;
+    }
+
+    > small {
+        min-height: 2.15rem;
+        margin-top: 0.25rem;
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
 }
 
-.network-interface-label {
-    color: var(--mud-palette-text-primary);
-    font-size: 0.75rem;
-    font-weight: 500;
-    line-height: 1rem;
-}
+.network-interface-option {
+    display: grid;
+    gap: 0.125rem;
+    min-width: 0;
 
-.network-interface-field .mud-input-control {
-    margin-top: 0;
+    > small {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.75rem;
+        overflow-wrap: anywhere;
+    }
 }
-
-.network-interface-help {
-    min-height: 2.15rem;
-    margin-top: 0.25rem;
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
-    line-height: 1.45;
-}
-
 
 .network-interface-no-items {
     padding: 0.75rem 1rem;
@@ -32,21 +43,8 @@
     overflow-wrap: anywhere;
 }
 
-.network-interface-option {
-    display: grid;
-    gap: 0.125rem;
-    min-width: 0;
-}
-
-.network-interface-option span {
-    color: var(--mud-palette-text-secondary);
-    font-size: 0.75rem;
-    overflow-wrap: anywhere;
-}
-
 // MudAutocomplete gives both its popover and the nested MudList vertical overflow.
-// With a long interface inventory this produces two adjacent scrollbars. Keep the
-// list as the sole scroll container while preserving MudBlazor's MaxHeight limit.
+// Keep the list as the sole scroll container while preserving MudBlazor's MaxHeight limit.
 .network-interface-popover {
     overflow-y: hidden;
 }

@@ -3,20 +3,20 @@ using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.KnownHosts;
 
-internal sealed class KnownHostFieldState
+internal sealed class KnownHostFieldState(IKnownHostSuggestionService suggestions)
 {
     private Guid? _selectedHostId;
 
     public string? DisplayValue { get; private set; }
 
-    public void Synchronize(string? value, IReadOnlyList<KnownHostInventoryItem> suggestions)
+    public void Synchronize(string? value, IReadOnlyList<KnownHostInventoryItem> candidates)
     {
-        ArgumentNullException.ThrowIfNull(suggestions);
+        ArgumentNullException.ThrowIfNull(candidates);
 
-        KnownHostInventoryItem? selectedHost = FindSelectedHost(suggestions);
+        KnownHostInventoryItem? selectedHost = FindSelectedHost(candidates);
         if (selectedHost is not null && string.Equals(selectedHost.Address, value, StringComparison.Ordinal))
         {
-            DisplayValue = KnownHostSuggestions.GetSelectionValue(selectedHost);
+            DisplayValue = suggestions.GetSelectionValue(selectedHost);
             return;
         }
 
@@ -24,14 +24,11 @@ internal sealed class KnownHostFieldState
         DisplayValue = value;
     }
 
-    public string? ApplyInput(
-        string? value,
-        IReadOnlyList<KnownHostInventoryItem> suggestions,
-        FirewallAddressFamily addressFamily)
+    public string? ApplyInput(string? value, IReadOnlyList<KnownHostInventoryItem> candidates, FirewallAddressFamily addressFamily)
     {
-        ArgumentNullException.ThrowIfNull(suggestions);
+        ArgumentNullException.ThrowIfNull(candidates);
 
-        KnownHostInventoryItem? selectedHost = KnownHostSuggestions.ResolveSelectionValue(suggestions, addressFamily, value);
+        KnownHostInventoryItem? selectedHost = suggestions.ResolveSelectionValue(candidates, addressFamily, value);
         if (selectedHost is null)
         {
             _selectedHostId = null;
@@ -40,17 +37,17 @@ internal sealed class KnownHostFieldState
         }
 
         _selectedHostId = selectedHost.Id;
-        DisplayValue = KnownHostSuggestions.GetSelectionValue(selectedHost);
+        DisplayValue = suggestions.GetSelectionValue(selectedHost);
         return selectedHost.Address;
     }
 
-    private KnownHostInventoryItem? FindSelectedHost(IReadOnlyList<KnownHostInventoryItem> suggestions)
+    private KnownHostInventoryItem? FindSelectedHost(IReadOnlyList<KnownHostInventoryItem> candidates)
     {
         if (_selectedHostId is not Guid selectedHostId)
         {
             return null;
         }
 
-        return suggestions.FirstOrDefault(host => host.Id == selectedHostId);
+        return candidates.FirstOrDefault(host => host.Id == selectedHostId);
     }
 }

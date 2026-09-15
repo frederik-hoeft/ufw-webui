@@ -134,10 +134,7 @@ public sealed class RuleOrderingProjectionServiceTests
         Assert.IsFalse(second.HasChanges);
     }
 
-    private static ListedFirewallRule Rule(
-        string id,
-        int number,
-        FirewallAddressFamily family = FirewallAddressFamily.IPv4) => new()
+    private static ListedFirewallRule Rule(string id, int number, FirewallAddressFamily family = FirewallAddressFamily.IPv4) => new()
     {
         RuleId = id,
         DisplayNumber = number,

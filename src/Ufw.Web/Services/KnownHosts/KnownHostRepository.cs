@@ -15,13 +15,7 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
     public Task<KnownHostInventoryResponse> GetAsync(CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
-    public Task<KnownHostMutationResult> CreateAsync(
-        string name,
-        string normalizedName,
-        string address,
-        string? comment,
-        bool isVisible,
-        CancellationToken cancellationToken = default) =>
+    public Task<KnownHostMutationResult> CreateAsync(string name, string normalizedName, string address, string? comment, bool isVisible, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync<KnownHostMutationResult>(async (context, transaction) =>
         {
             if (await context.Set<KnownHostEntry>().AnyAsync(host => host.NormalizedName == normalizedName, cancellationToken))

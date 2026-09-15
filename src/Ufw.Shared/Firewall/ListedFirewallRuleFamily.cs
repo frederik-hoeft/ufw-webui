@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall;
+﻿namespace Ufw.Shared.Firewall;
 
 /// <summary>
 /// Resolves the concrete address-family partition in which UFW displayed a listed rule.

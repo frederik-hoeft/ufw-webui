@@ -2,7 +2,7 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
-namespace Ufw.Client.Components.Rules;
+namespace Ufw.Client.Rules;
 
 internal enum RulesPageStatus
 {
@@ -28,10 +28,7 @@ internal enum RuleSnapshotStaleReason
     MutationRejectedRequiresRefresh,
 }
 
-internal sealed record RuleSnapshot(
-    bool FirewallActive,
-    IReadOnlyList<ListedFirewallRule> Rules,
-    FirewallConfigurationSnapshot Configuration)
+internal sealed record RuleSnapshot(bool FirewallActive, IReadOnlyList<ListedFirewallRule> Rules, FirewallConfigurationSnapshot Configuration)
 {
     public static RuleSnapshot FromResponse(RuleListResponse response)
     {

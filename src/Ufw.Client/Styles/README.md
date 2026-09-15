@@ -10,6 +10,8 @@
 
 Responsive rules should normally live in the same file as the base selector they modify. A page stylesheet should not reach into MudBlazor internals to repair a reusable component; keep such customization in the owning control stylesheet and document why the framework override is necessary.
 
+Prefer one stable class on the owning page/component boundary and nest private descendants beneath it. Use semantic elements (`header`, `footer`, `article`, and similar) or short state/layout hooks within that boundary instead of repeating the owner name in one-off descendant classes. Keep globally descriptive classes when they are shared across components, represent state, or are required as framework integration hooks such as a MudBlazor popover class.
+
 The generated `wwwroot/css/app.css` is build output and is intentionally ignored by Git.
 
 ## Scoped component styles

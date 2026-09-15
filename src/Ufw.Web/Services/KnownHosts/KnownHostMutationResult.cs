@@ -2,6 +2,4 @@
 
 namespace Ufw.Web.Services.KnownHosts;
 
-public sealed record KnownHostMutationResult(
-    KnownHostMutationOutcome Outcome,
-    KnownHostInventoryResponse? Inventory = null);
+public sealed record KnownHostMutationResult(KnownHostMutationOutcome Outcome, KnownHostInventoryResponse? Inventory = null);

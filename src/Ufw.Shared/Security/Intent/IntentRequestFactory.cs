@@ -81,7 +81,12 @@ public static class IntentRequestFactory
         return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
     }
 
-    public static ReorderRulesRequest CreateReorderRequest(ECDsa privateKey, string deploymentId, ReorderRulesPayload payload, JsonTypeInfo<ReorderRulesPayload> payloadTypeInfo, TimeProvider timeProvider)
+    public static ReorderRulesRequest CreateReorderRequest(
+        ECDsa privateKey,
+        string deploymentId,
+        ReorderRulesPayload payload,
+        JsonTypeInfo<ReorderRulesPayload> payloadTypeInfo,
+        TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);

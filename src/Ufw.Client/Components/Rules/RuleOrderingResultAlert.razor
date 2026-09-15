@@ -1,0 +1,39 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudAlert Severity="@AlertSeverity" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+    <MudText Typo="Typo.subtitle1" GutterBottom="true">@ResultTitle</MudText>
+    @if (!string.IsNullOrWhiteSpace(Result.Diagnostic))
+    {
+        <MudText Typo="Typo.body2" Class="mb-3">@Result.Diagnostic</MudText>
+    }
+    @if (Result.Operations.Length > 0)
+    {
+        <MudText Typo="Typo.body2"><strong>@RulesText["OrderingCompletedOperations"]</strong></MudText>
+        <ul class="mb-3">
+            @foreach (RuleReorderOperationResponse operation in Result.Operations)
+            {
+                <li>@DescribeOperation(operation)</li>
+            }
+        </ul>
+    }
+    @if (Result.PendingOperations.Length > 0)
+    {
+        <MudText Typo="Typo.body2"><strong>@RulesText["OrderingPendingOperations"]</strong></MudText>
+        <ul class="mb-3">
+            @foreach (RuleReorderMoveResponse move in Result.PendingOperations)
+            {
+                <li>@DescribeMove(move)</li>
+            }
+        </ul>
+    }
+    @if (Result.BlockedOperations.Length > 0)
+    {
+        <MudText Typo="Typo.body2"><strong>@RulesText["OrderingBlockedOperations"]</strong></MudText>
+        <ul>
+            @foreach (RuleReorderMoveResponse move in Result.BlockedOperations)
+            {
+                <li>@DescribeMove(move)</li>
+            }
+        </ul>
+    }
+</MudAlert>

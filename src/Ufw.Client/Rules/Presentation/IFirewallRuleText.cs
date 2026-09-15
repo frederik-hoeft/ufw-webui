@@ -1,6 +1,6 @@
 ﻿using Ufw.Shared.Firewall;
 
-namespace Ufw.Client.Components.Rules;
+namespace Ufw.Client.Rules.Presentation;
 
 internal interface IFirewallRuleText
 {

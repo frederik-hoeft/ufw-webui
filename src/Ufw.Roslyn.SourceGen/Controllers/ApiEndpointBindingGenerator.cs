@@ -70,7 +70,9 @@ public sealed class ApiEndpointBindingGenerator : IIncrementalGenerator
 
     private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol> candidateClasses, SourceProductionContext context)
     {
-        if (candidateClasses.IsDefaultOrEmpty || ControllerGeneratorContracts.TryResolve(compilation, context, out ControllerGeneratorContracts? resolvedContracts) is false || resolvedContracts is null)
+        if (candidateClasses.IsDefaultOrEmpty
+            || ControllerGeneratorContracts.TryResolve(compilation, context, out ControllerGeneratorContracts? resolvedContracts) is false
+            || resolvedContracts is null)
         {
             return;
         }

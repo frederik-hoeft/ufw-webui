@@ -152,9 +152,5 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
         return null;
     }
 
-    private sealed record Model(
-        string Namespace,
-        INamedTypeSymbol Class,
-        AttributeData GeneratorAttribute,
-        ImmutableArray<AttributeData> JsonSerializableAttributes);
+    private sealed record Model(string Namespace, INamedTypeSymbol Class, AttributeData GeneratorAttribute, ImmutableArray<AttributeData> JsonSerializableAttributes);
 }

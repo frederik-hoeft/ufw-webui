@@ -16,10 +16,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
 {
     private readonly ILogger<RuleReorderRecoveryCoordinator> _logger = logger.Scoped<RuleReorderRecoveryCoordinator>();
 
-    public async Task<RuleRecoveryResult> EnsurePresentAsync(
-        ReorderRecoveryJournalEntry entry,
-        RuleListResponse? observedSnapshot,
-        CancellationToken cancellationToken)
+    public async Task<RuleRecoveryResult> EnsurePresentAsync(ReorderRecoveryJournalEntry entry, RuleListResponse? observedSnapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
         RuleListResponse? snapshot = observedSnapshot ?? await TryReadSnapshotAsync(cancellationToken);

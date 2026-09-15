@@ -7,12 +7,14 @@ namespace Ufw.Client.Tests.KnownHosts;
 [TestClass]
 public sealed class KnownHostFieldStateTests
 {
+    private readonly KnownHostSuggestionService _suggestions = new();
+
     [TestMethod]
     public void SelectedHost_PreservesFriendlyDisplayAcrossModelRerenders()
     {
         KnownHostInventoryItem host = Host("nas1.service.home.arpa", "10.100.100.2");
-        KnownHostFieldState state = new();
-        string selectionValue = KnownHostSuggestions.GetSelectionValue(host);
+        KnownHostFieldState state = new(_suggestions);
+        string selectionValue = _suggestions.GetSelectionValue(host);
 
         string? modelValue = state.ApplyInput(selectionValue, [host], FirewallAddressFamily.IPv4);
 
@@ -28,8 +30,8 @@ public sealed class KnownHostFieldStateTests
     public void SelectedHost_DropsFriendlyDisplayWhenUnderlyingLiteralChanges()
     {
         KnownHostInventoryItem host = Host("nas1.service.home.arpa", "10.100.100.2");
-        KnownHostFieldState state = new();
-        state.ApplyInput(KnownHostSuggestions.GetSelectionValue(host), [host], FirewallAddressFamily.IPv4);
+        KnownHostFieldState state = new(_suggestions);
+        state.ApplyInput(_suggestions.GetSelectionValue(host), [host], FirewallAddressFamily.IPv4);
 
         state.Synchronize("10.100.100.3", [host]);
 
@@ -40,8 +42,8 @@ public sealed class KnownHostFieldStateTests
     public void SelectedHost_DropsFriendlyDisplayWhenHostIsNoLongerSuggested()
     {
         KnownHostInventoryItem host = Host("nas1.service.home.arpa", "10.100.100.2");
-        KnownHostFieldState state = new();
-        state.ApplyInput(KnownHostSuggestions.GetSelectionValue(host), [host], FirewallAddressFamily.IPv4);
+        KnownHostFieldState state = new(_suggestions);
+        state.ApplyInput(_suggestions.GetSelectionValue(host), [host], FirewallAddressFamily.IPv4);
 
         state.Synchronize(host.Address, []);
 
@@ -52,7 +54,7 @@ public sealed class KnownHostFieldStateTests
     public void FreeText_RemainsFreeText()
     {
         KnownHostInventoryItem host = Host("nas1.service.home.arpa", "10.100.100.2");
-        KnownHostFieldState state = new();
+        KnownHostFieldState state = new(_suggestions);
 
         string? modelValue = state.ApplyInput("10.100.100.77", [host], FirewallAddressFamily.IPv4);
 

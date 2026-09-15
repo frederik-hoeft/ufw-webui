@@ -173,9 +173,7 @@ public sealed class FirewallOrderedInsertionServiceTests
     [DataRow(1, RuleInsertionOutcome.StaleBaseline)]
     [DataRow(2, RuleInsertionOutcome.PreconditionFailed)]
     [DataRow(3, RuleInsertionOutcome.StateUncertain)]
-    public async Task InsertAsync_MapsTypedExecutionOutcomeAsync(
-        int executionOutcomeValue,
-        RuleInsertionOutcome responseOutcome)
+    public async Task InsertAsync_MapsTypedExecutionOutcomeAsync(int executionOutcomeValue, RuleInsertionOutcome responseOutcome)
     {
         RuleInsertionExecutionOutcome executionOutcome = (RuleInsertionExecutionOutcome)executionOutcomeValue;
         using UfwExecutionGate gate = new();

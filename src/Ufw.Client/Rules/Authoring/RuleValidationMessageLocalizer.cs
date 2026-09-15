@@ -2,7 +2,7 @@
 using Ufw.Client.Localization;
 using Ufw.Shared.Ipc.Model.Responses;
 
-namespace Ufw.Client.Components.Rules;
+namespace Ufw.Client.Rules.Authoring;
 
 internal sealed class RuleValidationMessageLocalizer(IStringLocalizer<ValidationStrings> validationText)
     : IRuleValidationMessageLocalizer

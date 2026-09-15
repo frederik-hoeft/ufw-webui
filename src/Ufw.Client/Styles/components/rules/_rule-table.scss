@@ -1,4 +1,4 @@
-﻿@use "../../core/tokens" as *;
+@use "../../core/tokens" as *;
 
 .rule-list-section,
 .rule-table-card,
@@ -178,7 +178,6 @@
     background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
 }
 
-
 .rule-row-drop-target td {
     box-shadow: inset 0 2px 0 var(--mud-palette-primary);
 }
@@ -325,7 +324,7 @@
     }
 }
 
-.rule-ordering-preview-actions {
+.rule-ordering-preview-alert footer {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -412,7 +411,6 @@
     gap: 0.25rem;
 }
 
-
 .rule-mobile-endpoints {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -453,7 +451,6 @@
         gap: 0.5rem;
     }
 }
-
 
 @media (max-width: $mobile-breakpoint) {
     .rule-unsupported {

@@ -41,7 +41,7 @@
                 </MudButton>
             </div>
         </div>
-        <MudDivider Class="settings-divider" />
+        <MudDivider />
         <div class="settings-row">
             <div class="settings-row-copy">
                 <MudText Typo="Typo.subtitle2">@SettingsText["LanguageLabel"]</MudText>
@@ -56,8 +56,7 @@
                            Label="@(SettingsText["LanguageLabel"])"
                            aria-label="@(SettingsText["LanguageAria"])"
                            Variant="Variant.Outlined"
-                           ShrinkLabel="true"
-                           Class="settings-language-select">
+                           ShrinkLabel="true">
                     @foreach (ClientCultureOption option in Culture.SupportedCultures)
                     {
                         <MudSelectItem T="string" Value="@option.Name">@option.NativeDisplayName</MudSelectItem>

@@ -2,6 +2,7 @@
 using MudBlazor;
 using Ufw.Client.Api;
 using Ufw.Client.RuleOrdering;
+using Ufw.Client.Rules;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
@@ -18,10 +19,9 @@ public sealed partial class RuleTable
         MaxWidth = MaxWidth.ExtraSmall,
     };
 
-    private ListedFirewallRule? _draggedRule;
-    private ListedFirewallRule? _dragTargetRule;
-    private HashSet<string> _uniqueRuleIds = new(StringComparer.Ordinal);
-    private IReadOnlyList<RuleFamilyGroup> _ruleGroups = [];
+    private RuleRowProjection? _draggedRow;
+    private RuleRowProjection? _dragTargetRow;
+    private RuleTableProjection _projection = RuleTableProjection.Empty;
 
     [Parameter]
     public IReadOnlyList<ListedFirewallRule> Rules { get; set; } = [];
@@ -50,57 +50,25 @@ public sealed partial class RuleTable
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
 
-    protected override void OnParametersSet()
-    {
-        Dictionary<string, int> ruleIdCounts = new(StringComparer.Ordinal);
-        List<ListedFirewallRule> ipv4Rules = [];
-        List<ListedFirewallRule> ipv6Rules = [];
-        foreach (ListedFirewallRule rule in Rules)
-        {
-            if (!string.IsNullOrWhiteSpace(rule.RuleId))
-            {
-                ruleIdCounts[rule.RuleId] = ruleIdCounts.GetValueOrDefault(rule.RuleId) + 1;
-            }
-
-            if (ListedFirewallRuleFamily.GetObservedFamily(rule) == FirewallAddressFamily.IPv6)
-            {
-                ipv6Rules.Add(rule);
-            }
-            else
-            {
-                ipv4Rules.Add(rule);
-            }
-        }
-
-        _uniqueRuleIds = [.. ruleIdCounts.Where(static pair => pair.Value == 1).Select(static pair => pair.Key)];
-        List<RuleFamilyGroup> groups = [];
-        if (ipv4Rules.Count > 0)
-        {
-            groups.Add(new RuleFamilyGroup(FirewallAddressFamily.IPv4, ipv4Rules));
-        }
-        if (ipv6Rules.Count > 0)
-        {
-            groups.Add(new RuleFamilyGroup(FirewallAddressFamily.IPv6, ipv6Rules));
-        }
-        _ruleGroups = groups;
-    }
+    protected override void OnParametersSet() =>
+        _projection = ProjectionService.Create(Rules, OrderingPreview);
 
     // Keep dragover browser-only in the Razor markup. It fires continuously during a native drag, and a Blazor event handler
     // would otherwise schedule a full component render for every event. Dragenter only renders when the target row changes.
-    private Action BeginDragHandler(ListedFirewallRule rule)
-        => EventUtil.AsNonRenderingEventHandler(this, () => BeginDrag(rule));
+    private Action BeginDragHandler(RuleRowProjection row) =>
+        EventUtil.AsNonRenderingEventHandler(this, () => BeginDrag(row));
 
-    private Action DragEnterHandler(ListedFirewallRule rule)
-        => EventUtil.AsNonRenderingEventHandler(this, () => SetDragTarget(rule));
+    private Action DragEnterHandler(RuleRowProjection row) =>
+        EventUtil.AsNonRenderingEventHandler(this, () => SetDragTarget(row));
 
-    private string DragHandleLabel(ListedFirewallRule rule)
-        => rule.DisplayNumber is { } number
+    private string DragHandleLabel(RuleRowProjection row) =>
+        row.Rule.DisplayNumber is { } number
             ? RulesText["DragRuleNumber", number.ToString(System.Globalization.CultureInfo.CurrentCulture)]
             : RulesText["DragRule"];
 
-    private string DragHandleTitle(ListedFirewallRule rule)
+    private string DragHandleTitle(RuleRowProjection row)
     {
-        if (!CanOrderRule(rule))
+        if (!row.CanOrder)
         {
             return RulesText["CannotOrderReadOnly"];
         }
@@ -108,27 +76,27 @@ public sealed partial class RuleTable
         return RulesText["DragRealTitle"];
     }
 
-    private string DragHandleClass(ListedFirewallRule rule)
-        => OrderingDisabled || !CanOrderRule(rule)
+    private string DragHandleClass(RuleRowProjection row) =>
+        OrderingDisabled || !row.CanOrder
             ? "rule-drag-handle rule-drag-handle-disabled"
             : "rule-drag-handle";
 
-    private static string FamilyHeadingId(FirewallAddressFamily family)
-        => family == FirewallAddressFamily.IPv6 ? "firewall-ipv6-rules-heading" : "firewall-ipv4-rules-heading";
+    private static string FamilyHeadingId(FirewallAddressFamily family) =>
+        family == FirewallAddressFamily.IPv6 ? "firewall-ipv6-rules-heading" : "firewall-ipv4-rules-heading";
 
     private string DescribeFamilyRuleCount(int count) => count == 1
         ? RulesText["RuleCountOne"]
         : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
-    private string RowClass(ListedFirewallRule rule)
+    private string RowClass(RuleRowProjection row)
     {
         List<string> classes = [];
-        if (TryGetPositionChange(rule, out _, out _, out bool directlyMoved))
+        if (row.PositionChange is { DirectlyMoved: true })
         {
-            classes.Add(directlyMoved ? "rule-row-ordering-direct" : "rule-row-ordering-indirect");
+            classes.Add("rule-row-ordering-direct");
         }
 
-        if (ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule))
+        if (ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row))
         {
             classes.Add("rule-row-drop-target");
         }
@@ -136,25 +104,25 @@ public sealed partial class RuleTable
         return string.Join(' ', classes);
     }
 
-    private string ReadOnlyRowClass(ListedFirewallRule rule)
-        => ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule)
-            ? "rule-row-readonly rule-row-drop-target"
-            : "rule-row-readonly";
+    private string ReadOnlyRowClass(RuleRowProjection row) =>
+        ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row)
+            ? "rule-row-drop-target"
+            : string.Empty;
 
-    private string ReadOnlyMobileCardClass(ListedFirewallRule rule)
-        => ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule)
+    private string ReadOnlyMobileCardClass(RuleRowProjection row) =>
+        ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row)
             ? "rule-mobile-card rule-mobile-card-readonly rule-row-drop-target"
             : "rule-mobile-card rule-mobile-card-readonly";
 
-    private string MobileCardClass(ListedFirewallRule rule)
+    private string MobileCardClass(RuleRowProjection row)
     {
         List<string> classes = ["rule-mobile-card"];
-        if (TryGetPositionChange(rule, out _, out _, out bool directlyMoved) && directlyMoved)
+        if (row.PositionChange is { DirectlyMoved: true })
         {
             classes.Add("rule-mobile-card-ordering-direct");
         }
 
-        if (ReferenceEquals(_dragTargetRule, rule) && !ReferenceEquals(_draggedRule, rule))
+        if (ReferenceEquals(_dragTargetRow, row) && !ReferenceEquals(_draggedRow, row))
         {
             classes.Add("rule-mobile-card-drop-target");
         }
@@ -162,73 +130,62 @@ public sealed partial class RuleTable
         return string.Join(' ', classes);
     }
 
-    private string DragEnabled(ListedFirewallRule rule)
-        => !OrderingDisabled && CanOrderRule(rule) ? "true" : "false";
+    private string DragEnabled(RuleRowProjection row) =>
+        !OrderingDisabled && row.CanOrder ? "true" : "false";
 
-    internal static bool CanOrderRule(ListedFirewallRule rule) => rule.Parsed && rule.Rule is not null;
-
-    private bool CanMutateRule(ListedFirewallRule rule)
-        => rule.Parsed
-            && rule.Rule is not null
-            && rule.RuleId is { } ruleId
-            && _uniqueRuleIds.Contains(ruleId);
-
-    private void BeginDrag(ListedFirewallRule rule)
+    private void BeginDrag(RuleRowProjection row)
     {
-        if (!OrderingDisabled && CanOrderRule(rule))
+        if (!OrderingDisabled && row.CanOrder)
         {
-            _draggedRule = rule;
-            _dragTargetRule = rule;
+            _draggedRow = row;
+            _dragTargetRow = row;
         }
     }
 
-    private void SetDragTarget(ListedFirewallRule rule)
+    private void SetDragTarget(RuleRowProjection row)
     {
-        if (_draggedRule is null || ReferenceEquals(_dragTargetRule, rule))
+        if (_draggedRow is null || ReferenceEquals(_dragTargetRow, row))
         {
             return;
         }
 
-        if (ListedFirewallRuleFamily.GetObservedFamily(_draggedRule) != ListedFirewallRuleFamily.GetObservedFamily(rule))
+        if (_draggedRow.AddressFamily != row.AddressFamily)
         {
-            if (_dragTargetRule is not null)
+            if (_dragTargetRow is not null)
             {
-                _dragTargetRule = null;
+                _dragTargetRow = null;
                 StateHasChanged();
             }
             return;
         }
 
-        _dragTargetRule = rule;
+        _dragTargetRow = row;
         StateHasChanged();
     }
 
     private void EndDrag()
     {
-        _draggedRule = null;
-        _dragTargetRule = null;
+        _draggedRow = null;
+        _dragTargetRow = null;
     }
 
-    private async Task DropAsync(ListedFirewallRule target)
+    private async Task DropAsync(RuleRowProjection target)
     {
-        ListedFirewallRule? source = _draggedRule;
+        RuleRowProjection? source = _draggedRow;
         try
         {
             if (source is null
                 || ReferenceEquals(source, target)
                 || OrderingDisabled
-                || !CanOrderRule(source)
-                || ListedFirewallRuleFamily.GetObservedFamily(source) != ListedFirewallRuleFamily.GetObservedFamily(target))
+                || !source.CanOrder
+                || source.AddressFamily != target.AddressFamily)
             {
                 return;
             }
 
-            int occurrenceId = OrderingPreview?.GetOccurrenceId(source) ?? OccurrenceIdOf(source);
-            int targetFamilyPosition = FamilyPositionOf(target);
-            if (occurrenceId >= 0 && targetFamilyPosition > 0)
+            if (source.OccurrenceId >= 0 && target.FamilyPosition > 0)
             {
-                FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(source);
-                await MoveRequested.InvokeAsync(new RuleMoveRequest(occurrenceId, family, targetFamilyPosition));
+                await MoveRequested.InvokeAsync(new RuleMoveRequest(source.OccurrenceId, source.AddressFamily, target.FamilyPosition));
             }
         }
         finally
@@ -237,100 +194,42 @@ public sealed partial class RuleTable
         }
     }
 
-    private async Task RequestMoveToPositionAsync(ListedFirewallRule rule)
+    private async Task RequestMoveToPositionAsync(RuleRowProjection row)
     {
-        if (OrderingDisabled || !CanOrderRule(rule))
-        {
-            return;
-        }
-
-        FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rule);
-        int currentPosition = FamilyPositionOf(rule);
-        if (currentPosition < 1)
+        if (OrderingDisabled || !row.CanOrder || row.FamilyPosition < 1)
         {
             return;
         }
 
         DialogParameters<MoveRuleDialog> parameters = [];
-        parameters.Add(component => component.CurrentPosition, currentPosition);
-        parameters.Add(component => component.RuleCount, FamilyCount(family));
-        parameters.Add(component => component.AddressFamily, family);
+        parameters.Add(component => component.CurrentPosition, row.FamilyPosition);
+        parameters.Add(component => component.RuleCount, row.FamilyCount);
+        parameters.Add(component => component.AddressFamily, row.AddressFamily);
 
         IDialogReference dialog = await DialogService.ShowAsync<MoveRuleDialog>(RulesText["MoveDialogTitle"], parameters, s_moveDialogOptions);
         int? targetPosition = await dialog.GetReturnValueAsync<int?>();
-        if (targetPosition is not null && targetPosition.Value != currentPosition)
+        if (targetPosition is not null && targetPosition.Value != row.FamilyPosition && row.OccurrenceId >= 0)
         {
-            int occurrenceId = OrderingPreview?.GetOccurrenceId(rule) ?? OccurrenceIdOf(rule);
-            if (occurrenceId >= 0)
-            {
-                await MoveRequested.InvokeAsync(new RuleMoveRequest(occurrenceId, family, targetPosition.Value));
-            }
+            await MoveRequested.InvokeAsync(new RuleMoveRequest(row.OccurrenceId, row.AddressFamily, targetPosition.Value));
         }
     }
 
-    private bool TryGetPositionChange(ListedFirewallRule rule, out int originalPosition, out int currentPosition, out bool directlyMoved)
-    {
-        originalPosition = 0;
-        currentPosition = 0;
-        directlyMoved = false;
-
-        int? original = OrderingPreview?.GetOriginalPosition(rule);
-        if (original is null || rule.DisplayNumber is null || original.Value == rule.DisplayNumber.Value)
-        {
-            return false;
-        }
-
-        originalPosition = original.Value;
-        currentPosition = rule.DisplayNumber.Value;
-        directlyMoved = OrderingPreview!.WasDirectlyMoved(rule);
-        return true;
-    }
-
-    private static string PositionChangeClass(bool directlyMoved)
-        => directlyMoved
+    private static string PositionChangeClass(bool directlyMoved) =>
+        directlyMoved
             ? "rule-position-change rule-position-change-direct"
             : "rule-position-change rule-position-change-indirect";
 
-    private string PositionChangeLabel(int originalPosition, int currentPosition, bool directlyMoved)
-        => directlyMoved
+    private static string ActionClass(FirewallAction action) => action switch
+    {
+        FirewallAction.Allow => "rule-action rule-action-allow",
+        FirewallAction.Deny => "rule-action rule-action-deny",
+        FirewallAction.Reject => "rule-action rule-action-reject",
+        FirewallAction.Limit => "rule-action rule-action-limit",
+        _ => "rule-action",
+    };
+
+    private string PositionChangeLabel(int originalPosition, int currentPosition, bool directlyMoved) =>
+        directlyMoved
             ? RulesText["DirectMovePositionAria", originalPosition, currentPosition]
             : RulesText["IndirectShiftPositionAria", originalPosition, currentPosition];
-
-    private int OccurrenceIdOf(ListedFirewallRule rule)
-    {
-        for (int index = 0; index < Rules.Count; index++)
-        {
-            if (ReferenceEquals(Rules[index], rule))
-            {
-                return index;
-            }
-        }
-
-        return -1;
-    }
-
-    private int FamilyPositionOf(ListedFirewallRule rule)
-    {
-        FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rule);
-        int position = 0;
-        foreach (ListedFirewallRule candidate in Rules)
-        {
-            if (ListedFirewallRuleFamily.GetObservedFamily(candidate) != family)
-            {
-                continue;
-            }
-
-            position++;
-            if (ReferenceEquals(candidate, rule))
-            {
-                return position;
-            }
-        }
-        return 0;
-    }
-
-    private int FamilyCount(FirewallAddressFamily family)
-        => Rules.Count(rule => ListedFirewallRuleFamily.GetObservedFamily(rule) == family);
-
-    private sealed record RuleFamilyGroup(FirewallAddressFamily AddressFamily, IReadOnlyList<ListedFirewallRule> Rules);
 }

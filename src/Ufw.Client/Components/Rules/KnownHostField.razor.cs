@@ -8,7 +8,7 @@ namespace Ufw.Client.Components.Rules;
 
 public sealed partial class KnownHostField
 {
-    private readonly KnownHostFieldState _state = new();
+    private KnownHostFieldState _state = null!;
 
     [Parameter, EditorRequired]
     public string Label { get; set; } = string.Empty;
@@ -38,16 +38,17 @@ public sealed partial class KnownHostField
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        IEnumerable<KnownHostInventoryItem> matches = KnownHostSuggestions.Search(Suggestions, AddressFamily, value);
-        return Task.FromResult(matches.Select(KnownHostSuggestions.GetSelectionValue));
+        IEnumerable<KnownHostInventoryItem> matches = HostSuggestions.Search(Suggestions, AddressFamily, value);
+        return Task.FromResult(matches.Select(HostSuggestions.GetSelectionValue));
     }
 
-    protected override void OnParametersSet() =>
-        _state.Synchronize(Value, Suggestions);
+    protected override void OnInitialized() => _state = new KnownHostFieldState(HostSuggestions);
+
+    protected override void OnParametersSet() => _state.Synchronize(Value, Suggestions);
 
     private Task ValueChangedAsync(string? value) =>
         ValueChanged.InvokeAsync(_state.ApplyInput(value, Suggestions, AddressFamily));
 
     private KnownHostInventoryItem? FindSuggestion(string? selectionValue) =>
-        KnownHostSuggestions.ResolveSelectionValue(Suggestions, AddressFamily, selectionValue);
+        HostSuggestions.ResolveSelectionValue(Suggestions, AddressFamily, selectionValue);
 }

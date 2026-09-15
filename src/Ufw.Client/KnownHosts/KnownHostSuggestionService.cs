@@ -3,12 +3,9 @@ using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.KnownHosts;
 
-internal static class KnownHostSuggestions
+internal sealed class KnownHostSuggestionService : IKnownHostSuggestionService
 {
-    public static IEnumerable<KnownHostInventoryItem> Search(
-        IReadOnlyList<KnownHostInventoryItem> suggestions,
-        FirewallAddressFamily addressFamily,
-        string? query)
+    public IEnumerable<KnownHostInventoryItem> Search(IReadOnlyList<KnownHostInventoryItem> suggestions, FirewallAddressFamily addressFamily, string? query)
     {
         ArgumentNullException.ThrowIfNull(suggestions);
         IEnumerable<KnownHostInventoryItem> compatible = suggestions.Where(host => IsCompatible(host, addressFamily));
@@ -23,21 +20,16 @@ internal static class KnownHostSuggestions
             || host.Comment?.Contains(query, StringComparison.OrdinalIgnoreCase) == true);
     }
 
-    public static FirewallAddressFamily ResolveCompatibleAddressFamily(FirewallAddressFamily declaredFamily, string? oppositeAddress) =>
-        declaredFamily != FirewallAddressFamily.Any
-            ? declaredFamily
-            : RuleSpecificationNormalizer.GetAddressFamily(oppositeAddress);
+    public FirewallAddressFamily ResolveCompatibleAddressFamily(FirewallAddressFamily declaredFamily, string? oppositeAddress) =>
+        declaredFamily != FirewallAddressFamily.Any ? declaredFamily : RuleSpecificationNormalizer.GetAddressFamily(oppositeAddress);
 
-    public static string GetSelectionValue(KnownHostInventoryItem host)
+    public string GetSelectionValue(KnownHostInventoryItem host)
     {
         ArgumentNullException.ThrowIfNull(host);
         return $"{host.Name} [{host.Address}]";
     }
 
-    public static KnownHostInventoryItem? ResolveSelectionValue(
-        IReadOnlyList<KnownHostInventoryItem> suggestions,
-        FirewallAddressFamily addressFamily,
-        string? selectionValue)
+    public KnownHostInventoryItem? ResolveSelectionValue(IReadOnlyList<KnownHostInventoryItem> suggestions, FirewallAddressFamily addressFamily, string? selectionValue)
     {
         ArgumentNullException.ThrowIfNull(suggestions);
         if (string.IsNullOrWhiteSpace(selectionValue))

@@ -1,8 +1,8 @@
-﻿using Ufw.Client.Components.Rules;
+﻿using Ufw.Client.Rules;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
-namespace Ufw.Client.Tests.Components.Rules;
+namespace Ufw.Client.Tests.Rules;
 
 [TestClass]
 public sealed class RulesPageStateTests
