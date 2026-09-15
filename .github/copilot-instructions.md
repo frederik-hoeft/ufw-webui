@@ -13,6 +13,26 @@ UFW WebUI is a .NET 10 solution with a Blazor WebAssembly client, a network-faci
 
 Read [the architecture overview](../docs/architecture/architecture-overview.md) before changing subsystem boundaries and [the security architecture](../docs/architecture/security.md) before working on authentication, authorization, IPC security, or firewall mutations.
 
+## Engineering conventions
+
+Treat [`code-style.md`](../code-style.md) and the repository `.editorconfig` as authoritative for C# style. Apply them to new code and keep touched code consistent rather than introducing a second local convention. In particular, prefer explicit types over `var`, file-scoped namespaces, one top-level type per file, and the repository naming/modifier conventions.
+
+Do not wrap code mechanically at 80 or 120 columns. Keep ordinary declarations, calls, and parameter lists on one line while they remain readable; use roughly 190-200 characters as the point where length alone justifies wrapping. Wrap earlier only when the structure is materially clearer that way, such as one logical item per line in a long initializer or fluent expression.
+
+Keep types specialized. A service or component should own one coherent responsibility and expose the smallest useful boundary for it. When a component, controller, or service starts combining independent orchestration, validation, projection, persistence, navigation, or host-integration concerns, extract those concerns behind focused DI services instead of growing a monolith or introducing a page-sized manager/facade. Prefer interfaces at boundaries that benefit from substitution or isolated tests; do not add interfaces mechanically to value objects or self-contained implementation details. Do not split a cohesive parser, algorithm, concurrency primitive, protocol implementation, or state machine merely because the file is long.
+
+Treat static helpers as a design smell when they encode application policy, depend on replaceable collaborators, or make behavior difficult to test in isolation. Move those responsibilities into injected services. Pure algorithms, constants, extension methods, and other genuinely stateless language-level utilities may remain static when DI would add no useful boundary.
+
+Group namespaces by stable subsystem/domain boundaries rather than mirroring every directory. Reorganizing a namespace is appropriate when it makes ownership clearer, but avoid subnamespaces that only add ceremony.
+
+Treat generated output as generated output. Do not hand-edit EF migration designer files, compiled Sass output, or source-generator artifacts for style cleanup; fix the source/template when generated output is actually wrong.
+
+For URLs and query strings, use the shared `Ufw.Shared.Web` URI utilities instead of composing routes through string interpolation or manual delimiter/escaping logic.
+
+For component-specific Sass, prefer nesting under the component's meaningful root class or semantic element instead of adding one-off presentation classes to the DOM. Introduce a class when it represents a reusable state, role, or styling hook, not merely to address one descendant once.
+
+User-facing copy and permanent documentation describe the steady-state product. Avoid changelog phrasing such as "now supports", "was changed to", or "new behavior" unless history itself is relevant to the user or architectural constraint.
+
 ## Security constraints
 
 Treat `Ufw.Web` as untrusted relative to the daemon for privileged mutation authority. HTTP authentication, IPC reachability, and optional mTLS peer authentication are not sufficient proof for a firewall change.
@@ -56,4 +76,4 @@ Daemon IPC controllers use the existing route attributes and source-generated en
 
 All daemon-managed UFW reads and mutations share the execution gate. Keep state-conditioned operations conservative: exact-snapshot insertion/reorder must fail rather than reinterpret stale occurrence coordinates, and any reorder delete/reinsert obligation must be recovered or left as a durable fail-closed condition before later mutations proceed.
 
-Follow [`code-style.md`](../code-style.md) for C# style. Permanent documentation should describe steady-state architecture and behavior; temporary implementation sequencing belongs only under `docs/internal` while it remains active.
+Permanent documentation should describe steady-state architecture and behavior; temporary implementation sequencing belongs only under `docs/internal` while it remains active.
