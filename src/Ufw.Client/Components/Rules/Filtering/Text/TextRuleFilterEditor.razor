@@ -1,0 +1,12 @@
+@inherits RuleFilterEditorBase
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTextField T="string"
+              Label="@(RulesText["SearchRules"])"
+              Placeholder="@(RulesText["SearchRulesPlaceholder"])"
+              Value="@_value"
+              ValueChanged="ValueChanged"
+              Error="@(_error is not null)"
+              ErrorText="@_error"
+              autocomplete="off"
+              spellcheck="false" />

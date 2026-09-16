@@ -608,4 +608,16 @@
   <data name="NoMatchingRulesDescription" xml:space="preserve"><value>Passen Sie Suchbegriffe oder strukturierte Filter an, um Regeln dieser Adressfamilie anzuzeigen.</value></data>
   <data name="FilteredRuleCount" xml:space="preserve"><value>{0} von {1} Regeln werden angezeigt</value></data>
   <data name="FilteringDisablesOrdering" xml:space="preserve"><value>Entfernen Sie die aktive Abfrage, bevor bestehende Regeln neu angeordnet werden.</value></data>
+  <data name="AddFilter" xml:space="preserve"><value>Filter hinzufügen</value></data>
+  <data name="EditFilter" xml:space="preserve"><value>Filter bearbeiten</value></data>
+  <data name="SaveFilter" xml:space="preserve"><value>Filter speichern</value></data>
+  <data name="FilterSelectorSearch" xml:space="preserve"><value>Filter suchen</value></data>
+  <data name="FilterSelectorSearchPlaceholder" xml:space="preserve"><value>Nach Filtername oder Kategorie suchen</value></data>
+  <data name="BackToFilterSelector" xml:space="preserve"><value>Zurück zur Filterauswahl</value></data>
+  <data name="NoFiltersFound" xml:space="preserve"><value>Keine passenden Filter.</value></data>
+  <data name="FilterCategoryGeneral" xml:space="preserve"><value>Allgemein</value></data>
+  <data name="FilterCategoryAddressing" xml:space="preserve"><value>Adressierung</value></data>
+  <data name="FilterCategoryTraffic" xml:space="preserve"><value>Verkehr</value></data>
+  <data name="FilterCategoryRule" xml:space="preserve"><value>Regel</value></data>
+  <data name="FilterValueRequired" xml:space="preserve"><value>Geben Sie einen Wert für diesen Filter ein.</value></data>
 </root>

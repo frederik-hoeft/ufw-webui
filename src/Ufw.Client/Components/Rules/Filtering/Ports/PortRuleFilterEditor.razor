@@ -1,0 +1,13 @@
+@inherits RuleFilterEditorBase
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTextField T="string"
+              Label="@(RulesText["PortFilter"])"
+              Placeholder="443,8000:8100"
+              Value="@_value"
+              ValueChanged="ValueChanged"
+              Error="@(_error is not null)"
+              ErrorText="@_error"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false" />

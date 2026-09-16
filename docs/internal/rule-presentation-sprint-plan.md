@@ -280,6 +280,8 @@ When the fixed form becomes crowded, replace it with the filter-selector/editor 
 
 This phase should preserve the same query model and evaluator pipeline introduced in phase 1.
 
+The implemented client shape keeps the dedicated free-text field as a convenience entry point for the same `TextRuleFilter` model while structural filters are composed through `+ Filter`. UI registrations are supplied per filter domain and aggregated by a generic catalogue; each registration owns its stable key, category/name metadata, editor component, configured-filter matching, and chip presentation. The current editor host is a dialog, but the editors and catalogue are independent of that host so a later popover/sheet presentation does not change filter semantics.
+
 #### Phase 3: optional shorthand query grammar
 
 A compact context-search grammar can be added later as a power-user convenience, for example:

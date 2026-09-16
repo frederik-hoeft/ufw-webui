@@ -608,4 +608,16 @@
   <data name="NoMatchingRulesDescription" xml:space="preserve"><value>Adjust the search terms or structured filters to show rules in this address family.</value></data>
   <data name="FilteredRuleCount" xml:space="preserve"><value>Showing {0} of {1} rules</value></data>
   <data name="FilteringDisablesOrdering" xml:space="preserve"><value>Clear the active query before reordering existing rules.</value></data>
+  <data name="AddFilter" xml:space="preserve"><value>Add filter</value></data>
+  <data name="EditFilter" xml:space="preserve"><value>Edit filter</value></data>
+  <data name="SaveFilter" xml:space="preserve"><value>Save filter</value></data>
+  <data name="FilterSelectorSearch" xml:space="preserve"><value>Find a filter</value></data>
+  <data name="FilterSelectorSearchPlaceholder" xml:space="preserve"><value>Search by filter name or category</value></data>
+  <data name="BackToFilterSelector" xml:space="preserve"><value>Back to filters</value></data>
+  <data name="NoFiltersFound" xml:space="preserve"><value>No matching filters.</value></data>
+  <data name="FilterCategoryGeneral" xml:space="preserve"><value>General</value></data>
+  <data name="FilterCategoryAddressing" xml:space="preserve"><value>Addressing</value></data>
+  <data name="FilterCategoryTraffic" xml:space="preserve"><value>Traffic</value></data>
+  <data name="FilterCategoryRule" xml:space="preserve"><value>Rule</value></data>
+  <data name="FilterValueRequired" xml:space="preserve"><value>Enter a value for this filter.</value></data>
 </root>
