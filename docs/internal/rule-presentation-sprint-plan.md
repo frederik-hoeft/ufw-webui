@@ -1,4 +1,4 @@
-# Rule presentation and enrichment sprint baseline
+﻿# Rule presentation and enrichment sprint baseline
 
 This document captures the agreed architectural direction for the next rule-presentation sprint. Here, **sprint** is only a convenient name for a coherent body of work: the plan is organized into work-based phases and sub-phases rather than a time-boxed schedule with deadlines. It is temporary maintainer guidance rather than steady-state architecture documentation; exact database entities, REST resources, filter catalogues, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
 
@@ -78,15 +78,15 @@ No age-based retention policy or orphan timestamp is required for the initial im
 
 IPv4 and IPv6 are independently ordered UFW rule sets. Their concatenated `ufw status numbered` coordinates remain important to daemon/protocol compatibility, but cross-family relative position has no packet-processing meaning.
 
-The UI should therefore move toward family-relative presentation coordinates:
+The browser therefore uses family-relative presentation coordinates:
 
-- render a family-local `#` or `Position` instead of presenting the combined UFW number as the primary user-facing ordinal;
-- preserve the authoritative combined UFW display number in the underlying snapshot for protocol/subprocess semantics;
-- compute ordering previews and position-change indicators in family-local coordinates;
-- keep snapshot-local occurrence identity distinct from user-facing family position;
-- permit only family-local reordering.
+- the visible `Position` is one-based within the selected address family;
+- the authoritative combined UFW display number remains part of the underlying snapshot for protocol/subprocess semantics only;
+- ordering previews, move targets, position-change indicators, and ordering-result messages use family-local coordinates;
+- snapshot-local occurrence identity remains distinct from user-facing family position;
+- reordering is limited to one address family.
 
-This makes IPv4 and IPv6 self-contained presentation units. The preparatory refactor presents them as tab-selected family workspaces within the shared `/rules` page, while keeping the component boundary independent enough that a later navigation/layout change would not alter rule authority or ordering semantics.
+The shared `/rules` page presents IPv4 and IPv6 as tab-selected `RuleFamilyWorkspace` instances. Global firewall state, refresh/mutation orchestration, and family selection stay at page level; drag/drop and move interaction remain family-local. The component boundary is independent of the tab layout, so a later navigation change would not alter rule authority or ordering semantics.
 
 ## Rule-list projection
 
@@ -344,45 +344,42 @@ These two regions must not share one generic `Expanded` flag or otherwise become
 
 ## Component boundaries
 
-The current rule table is long partly because it contains legitimate interaction complexity, but the enrichment/search work would add multiple independent axes of behavior. The useful split is by interaction responsibility, not by arbitrary markup size.
+The presentation foundation is already decomposed along interaction boundaries. The feature sprint should extend those boundaries rather than rebuilding family separation or collapsing the row presenters back into a monolith.
 
-The intended component shape is approximately:
+The current and planned component shape is approximately:
 
 ```text
 Rules page
-  RuleListToolbar
-    free-text search
-    applied filter chips
-    filter editor/selector host
-    sorting
-
-  RuleList / RuleTable shell
-    RuleFamilyView (IPv4)
+  global firewall state / mutation orchestration
+  IPv4 | IPv6 tabs
+    RuleFamilyWorkspace (selected family)
+      RuleListToolbar                 planned
+        free-text search
+        applied filter chips
+        filter editor/selector host
+        sorting
       RuleDesktopRow*
-        RuleMatchContext?
-        RuleMetadataDetails?
+        RuleMatchContext?             planned
+        RuleMetadataDetails?          planned
       RuleMobileCard*
-        RuleMatchContext?
-        RuleMetadataDetails?
-
-    RuleFamilyView (IPv6)
-      ...
+        RuleMatchContext?             planned
+        RuleMetadataDetails?          planned
 ```
 
 Responsibilities should remain narrow:
 
-- the rules page owns authoritative refresh/mutation lifecycle and page-level interaction mode;
+- the rules page owns authoritative refresh/mutation lifecycle, selected-family navigation, URL-backed query state, and page-level interaction mode;
+- `IRuleListProjectionService` derives the canonical family partitions, occurrence identity, family positions, duplicate/mutation capabilities, and ordering state before query evaluation;
+- `RuleFamilyWorkspace` owns one family's drag source/drop target, move interaction, family-local empty state, and the presentation surface for that family's future query controls/results;
 - the query/filter layer owns configured filter state, evaluation, sorting state, and structured match evidence without depending on Razor rendering;
 - the toolbar owns free-text entry, applied-filter chip interaction, filter-editor hosting, and sort selection, but delegates filter semantics to the query layer;
-- the list/table shell owns family composition and cross-family presentation only;
-- `RuleFamilyView` owns one family's drag source/drop target, family-local ordering interactions, heading/count, family query context, and family-local empty state;
 - desktop rows and mobile cards render one rule through their naturally different DOM structures and emit explicit callbacks for actions;
 - match-context presentation renders structured query evidence;
 - metadata-details presentation renders enriched rule context but does not perform persistence or daemon operations.
 
 Avoid Razor component inheritance as the mechanism for IPv4/IPv6 specialization. Shared layout should use component composition, while family-sensitive parsing/validation/search behavior should be supplied through focused policies/services. This keeps Blazor lifecycle/render state out of inheritance hierarchies and allows most query predicates to remain family-independent.
 
-High-frequency browser drag events should retain their current non-rendering treatment; component extraction must not introduce avoidable render churn during drag interaction.
+High-frequency browser drag events should retain their current non-rendering treatment; future feature work must not introduce avoidable render churn during drag interaction.
 
 ## Templates
 
@@ -421,18 +418,19 @@ Templates remain independent after creation. Re-enabling from a template creates
 
 Whether templates retain optional provenance such as "created from rule" or whether selected metadata is copied into a template is deferred to the detailed template/data-model design.
 
-## Preparatory work before feature implementation
+## Existing presentation foundation
 
-Before designing concrete metadata entities and endpoints, the existing UI should receive one focused structural preparation pass:
+The presentation preparation is complete and is treated as the baseline for this sprint. In particular:
 
-1. **Make family-relative position first-class in presentation.** Stop treating combined UFW numbering as the visible ordering model. Preserve the combined number only where authoritative snapshot/protocol semantics require it.
-2. **Separate authoritative rules from ordering-preview state.** Ordering previews should describe desired occurrence order without cloning rules or rewriting authoritative UFW display numbers.
-3. **Generalize the projection vocabulary.** The existing rule-table projection increasingly represents a reusable rule-list presentation model rather than HTML-table state. Rename/generalize where that improves the boundary without speculative abstraction.
-4. **Move family separation to a real UI boundary.** Keep one `/rules` page for global firewall state and mutation orchestration, but compose IPv4/IPv6 as tab-selected family workspaces with family-local interaction state.
-5. **Decompose the rule UI at interaction seams.** Extract family-level drag/move behavior and focused desktop/mobile row presenters. Do not create placeholder search/match or metadata components before those features exist.
-6. **Preserve behavior and protocol boundaries.** No search/filter implementation, daemon protocol, signing, EF schema, enriched REST endpoint, metadata, or template changes belong in this preparatory refactor.
+- authoritative `ListedFirewallRule.DisplayNumber` values are no longer rewritten for local ordering previews;
+- browser-visible positions and ordering feedback are family-relative while daemon/protocol coordinates remain combined-snapshot values;
+- rule-list projection terminology and services are rendering-agnostic;
+- `/rules` owns tab-based IPv4/IPv6 family selection and composes one `RuleFamilyWorkspace` at a time;
+- family-local drag/drop and move state are isolated from page-global refresh/mutation state;
+- desktop rows and mobile cards are focused presenters rather than branches inside one monolithic table component;
+- component-specific Sass follows those ownership boundaries.
 
-The implementation sequence and acceptance criteria are tracked in [Rule-presentation foundation refactor plan](rule-presentation-foundation-refactor-plan.md). After this preparation, search/filtering, ASP enrichment/grouping, and templates can be developed as separate feature slices over a stable presentation foundation.
+The feature sprint should build on these contracts. Reworking family separation, numbering, ordering-preview authority, or the row/card decomposition is out of scope unless a concrete feature exposes a defect in the established foundation.
 
 ## Deferred detailed design
 
