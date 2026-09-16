@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -588,7 +588,7 @@
   <data name="IPv6CapabilityDisabled" xml:space="preserve"><value>IPv6 disabled</value></data>
   <data name="RuleFiltersAria" xml:space="preserve"><value>Rule search and filters</value></data>
   <data name="SearchRules" xml:space="preserve"><value>Search rules</value></data>
-  <data name="SearchRulesPlaceholder" xml:space="preserve"><value>Search comments, addresses, interfaces, protocol, action, or raw rules</value></data>
+  <data name="SearchRulesPlaceholder" xml:space="preserve"><value>Search comments, metadata, addresses, interfaces, protocol, action, or raw rules</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Clear</value></data>
   <data name="SourceNetworkFilter" xml:space="preserve"><value>Source network</value></data>
   <data name="DestinationNetworkFilter" xml:space="preserve"><value>Destination network</value></data>
@@ -620,4 +620,8 @@
   <data name="FilterCategoryTraffic" xml:space="preserve"><value>Traffic</value></data>
   <data name="FilterCategoryRule" xml:space="preserve"><value>Rule</value></data>
   <data name="FilterValueRequired" xml:space="preserve"><value>Enter a value for this filter.</value></data>
+  <data name="FilterCategoryMetadata" xml:space="preserve"><value>Metadata</value></data>
+  <data name="TagFilter" xml:space="preserve"><value>Tag</value></data>
+  <data name="GroupFilter" xml:space="preserve"><value>Group</value></data>
+  <data name="Notes" xml:space="preserve"><value>Notes</value></data>
 </root>

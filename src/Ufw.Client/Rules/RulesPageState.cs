@@ -1,4 +1,6 @@
-﻿using Ufw.Client.Errors;
+﻿using Ufw.Client.Api;
+using Ufw.Client.Errors;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -28,12 +30,61 @@ internal enum RuleSnapshotStaleReason
     MutationRejectedRequiresRefresh,
 }
 
-internal sealed record RuleSnapshot(bool FirewallActive, IReadOnlyList<ListedFirewallRule> Rules, FirewallConfigurationSnapshot Configuration)
+internal sealed record RuleSnapshot(
+    bool FirewallActive,
+    IReadOnlyList<ListedFirewallRule> Rules,
+    FirewallConfigurationSnapshot Configuration,
+    IReadOnlyDictionary<string, RuleMetadata> Metadata)
 {
-    public static RuleSnapshot FromResponse(RuleListResponse response)
+    public RuleSnapshot(
+        bool firewallActive,
+        IReadOnlyList<ListedFirewallRule> rules,
+        FirewallConfigurationSnapshot configuration)
+        : this(firewallActive, rules, configuration, new Dictionary<string, RuleMetadata>(StringComparer.Ordinal))
+    {
+    }
+
+    public static RuleSnapshot FromResponse(RuleInventoryResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
-        return new(response.Active, response.Rules.ToArray(), response.Configuration);
+        ArgumentNullException.ThrowIfNull(response.Firewall);
+
+        Dictionary<string, RuleMetadata> metadata = new(StringComparer.Ordinal);
+        foreach (RuleMetadataItem item in response.Metadata)
+        {
+            if (string.IsNullOrWhiteSpace(item.RuleId) || !metadata.TryAdd(
+                    item.RuleId,
+                    new RuleMetadata(item.Group, item.Notes, item.Tags.ToArray())))
+            {
+                throw new InvalidDataException("The enriched rule response contains invalid or duplicate metadata identities.");
+            }
+        }
+
+        return FromFirewallResponse(response.Firewall, metadata);
+    }
+
+    public static RuleSnapshot FromFirewallResponse(
+        RuleListResponse response,
+        IReadOnlyDictionary<string, RuleMetadata>? metadata = null)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        Dictionary<string, RuleMetadata> liveMetadata = new(StringComparer.Ordinal);
+        if (metadata is not null)
+        {
+            HashSet<string> liveRuleIds = [.. response.Rules
+                .Select(static rule => rule.RuleId)
+                .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
+                .Cast<string>()];
+            foreach ((string ruleId, RuleMetadata value) in metadata)
+            {
+                if (liveRuleIds.Contains(ruleId))
+                {
+                    liveMetadata.Add(ruleId, value);
+                }
+            }
+        }
+
+        return new(response.Active, response.Rules.ToArray(), response.Configuration, liveMetadata);
     }
 }
 
@@ -69,7 +120,7 @@ internal sealed record RulesPageState
     public RulesPageState BeginRefresh(RuleRefreshReason reason) =>
         new(Snapshot is null ? RulesPageStatus.Loading : RulesPageStatus.Refreshing, Snapshot, error: null, refreshReason: reason, staleReason: StaleReason);
 
-    public static RulesPageState CompleteRefresh(RuleListResponse response) =>
+    public static RulesPageState CompleteRefresh(RuleInventoryResponse response) =>
         new(RulesPageStatus.Current, RuleSnapshot.FromResponse(response), error: null, refreshReason: null, staleReason: null);
 
     public RulesPageState FailRefresh(ClientError error)
@@ -91,7 +142,8 @@ internal sealed record RulesPageState
         ArgumentNullException.ThrowIfNull(response);
         if (response.FinalSnapshot is not null)
         {
-            return CompleteRefresh(response.FinalSnapshot);
+            RuleSnapshot snapshot = RuleSnapshot.FromFirewallResponse(response.FinalSnapshot, Snapshot?.Metadata);
+            return new RulesPageState(RulesPageStatus.Current, snapshot, error: null, refreshReason: null, staleReason: null);
         }
 
         if (Snapshot is null)
@@ -112,7 +164,8 @@ internal sealed record RulesPageState
         ArgumentNullException.ThrowIfNull(response);
         if (response.FinalSnapshot is not null)
         {
-            return CompleteRefresh(response.FinalSnapshot);
+            RuleSnapshot snapshot = RuleSnapshot.FromFirewallResponse(response.FinalSnapshot, Snapshot?.Metadata);
+            return new RulesPageState(RulesPageStatus.Current, snapshot, error: null, refreshReason: null, staleReason: null);
         }
 
         if (Snapshot is null)

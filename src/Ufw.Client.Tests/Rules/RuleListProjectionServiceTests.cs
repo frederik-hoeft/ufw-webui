@@ -1,5 +1,6 @@
 ﻿using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Tests.Rules;
@@ -69,6 +70,23 @@ public sealed class RuleListProjectionServiceTests
         Assert.AreEqual(FirewallAddressFamily.IPv6, projection.Families[1].AddressFamily);
         CollectionAssert.AreEqual(new[] { 1, 2 }, projection.Families[1].Rows.Select(static row => row.FamilyPosition).ToArray());
         Assert.IsTrue(projection.Families[1].Rows.All(static row => row.FamilyCount == 2));
+    }
+
+    [TestMethod]
+    public void Create_AttachesMetadataBySemanticIdentityToEveryDuplicateOccurrence()
+    {
+        ListedFirewallRule first = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 1);
+        ListedFirewallRule second = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 2);
+        RuleMetadata metadata = new("edge", "managed rule", ["prod", "ssh"]);
+        Dictionary<string, RuleMetadata> metadataByRuleId = new(StringComparer.Ordinal)
+        {
+            ["shared"] = metadata,
+        };
+
+        RuleListProjection projection = _projection.Create([first, second], orderingPreview: null, metadataByRuleId);
+
+        RuleFamilyProjection ipv4 = projection.GetFamily(FirewallAddressFamily.IPv4);
+        Assert.IsTrue(ipv4.Rows.All(row => ReferenceEquals(metadata, row.Metadata)));
     }
 
     [TestMethod]

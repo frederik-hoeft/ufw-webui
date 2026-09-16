@@ -2,10 +2,13 @@
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
+using Ufw.Client.Rules.Filtering.Groups;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
+using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Filtering.Text;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Tests.Rules.Filtering;
@@ -20,6 +23,8 @@ public sealed class RuleQueryServiceTests
         new ProtocolRuleFilterEvaluator(),
         new ActionRuleFilterEvaluator(),
         new DirectionRuleFilterEvaluator(),
+        new GroupRuleFilterEvaluator(),
+        new TagRuleFilterEvaluator(),
         new TextRuleFilterEvaluator(),
     ]);
 
@@ -162,6 +167,41 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void Evaluate_MetadataFiltersMatchEnrichedProjectionAndProduceEvidence()
+    {
+        RuleMetadata metadata = new("Edge", "Managed by platform", ["observability", "prod"]);
+        RuleRowProjection row = Row(0, 1, metadata: metadata);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [row]);
+        RuleQuery query = new([new GroupRuleFilter("edge"), new TagRuleFilter("OBSERVABILITY")]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, query);
+
+        Assert.HasCount(1, result.Rows);
+        Assert.AreSame(row, result.Rows[0].Row);
+        Assert.HasCount(2, result.Rows[0].Evidence);
+        Assert.AreEqual("Edge", ((GroupRuleMatchEvidence)result.Rows[0].Evidence[0]).Group);
+        Assert.AreEqual("observability", ((TagRuleMatchEvidence)result.Rows[0].Evidence[1]).Tag);
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterSearchesMetadataAndReturnsFieldSpecificEvidence()
+    {
+        RuleMetadata metadata = new("Edge", "Owned by platform team", ["observability"]);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("platform observability")]));
+
+        Assert.HasCount(1, result.Rows);
+        Assert.HasCount(2, result.Rows[0].Evidence);
+        TextRuleMatchEvidence notes = (TextRuleMatchEvidence)result.Rows[0].Evidence[0];
+        TextRuleMatchEvidence tag = (TextRuleMatchEvidence)result.Rows[0].Evidence[1];
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.Notes, notes.Field);
+        Assert.AreEqual("platform", notes.Term);
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.Tag, tag.Field);
+        Assert.AreEqual("observability", tag.Value);
+    }
+
+    [TestMethod]
     public void Evaluate_TextSearchCanMatchOpaqueRawRuleButStructuredFilterCannot()
     {
         ListedFirewallRule opaque = new() { Parsed = false, RawLine = "custom opaque rule for monitoring" };
@@ -205,7 +245,8 @@ public sealed class RuleQueryServiceTests
         FirewallProtocol protocol = FirewallProtocol.Any,
         FirewallAction action = FirewallAction.Allow,
         FirewallDirection direction = FirewallDirection.In,
-        string? comment = null)
+        string? comment = null,
+        RuleMetadata? metadata = null)
     {
         FirewallRuleSpecification specification = new()
         {
@@ -220,6 +261,6 @@ public sealed class RuleQueryServiceTests
             Comment = comment,
         };
         ListedFirewallRule rule = new() { Parsed = true, RuleId = $"rule-{occurrenceId}", RawLine = $"raw rule {occurrenceId}", Rule = specification };
-        return new RuleRowProjection(rule, addressFamily, occurrenceId, familyPosition, 4, true, true, null);
+        return new RuleRowProjection(rule, addressFamily, occurrenceId, familyPosition, 4, true, true, null, metadata);
     }
 }

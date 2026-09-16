@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Api.V1.Models.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -17,10 +18,24 @@ public sealed partial class RulesController
     /// Returns the daemon-authoritative firewall rule snapshot.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType<RuleListResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<RuleInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
-    public partial Task<ActionResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleInventoryResponse>> GetRulesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Creates, updates, or clears application-owned metadata for a live semantic rule identity.
+    /// </summary>
+    [HttpPut("{ruleId}/metadata")]
+    [ProducesResponseType<RuleMetadataMutationResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(
+        [FromRoute] string ruleId,
+        [FromBody] UpdateRuleMetadataRequest request,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed add-rule intent to the privileged daemon.

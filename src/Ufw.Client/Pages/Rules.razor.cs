@@ -123,7 +123,7 @@ public sealed partial class Rules
         _state = _state.BeginRefresh(reason);
         try
         {
-            Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
+            RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
             RefreshRuleListProjection();
         }
@@ -336,7 +336,10 @@ public sealed partial class Rules
 
     private void RefreshRuleListProjection()
     {
-        _ruleListProjection = RuleListProjectionService.Create(_state.Snapshot?.Rules ?? [], _orderingPreview);
+        _ruleListProjection = RuleListProjectionService.Create(
+            _state.Snapshot?.Rules ?? [],
+            _orderingPreview,
+            _state.Snapshot?.Metadata);
         RefreshRuleQueryProjection();
         _familySelection = _familySelection.Reconcile(IPv6FamilyAvailable);
     }

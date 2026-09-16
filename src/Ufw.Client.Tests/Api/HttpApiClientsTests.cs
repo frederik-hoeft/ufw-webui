@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Ufw.Client.Api;
 using Ufw.Client.Tests.Support;
+using Ufw.Client.Serialization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -66,31 +67,35 @@ public sealed class HttpApiClientsTests
 
         using RecordingHttpMessageHandler rulesHandler = new((request, call) => call switch
         {
-            1 => Json(HttpStatusCode.OK, "{\"active\":true,\"rules\":[]}"),
-            2 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.ADD_RULE)),
-            3 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
-            4 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
-            5 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
+            1 => Json(HttpStatusCode.OK, InventoryResponseJson()),
+            2 => Json(HttpStatusCode.OK, "{\"metadata\":{\"ruleId\":\"rule/id\",\"group\":\"edge\",\"notes\":null,\"tags\":[\"prod\"]}}"),
+            3 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.ADD_RULE)),
+            4 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
+            5 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
+            6 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
         RuleApiClient rules = new(rulesHttp);
-        await rules.GetRulesAsync();
+        await rules.GetInventoryAsync();
+        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { Group = "edge", Tags = ["prod"] });
         await rules.AddRuleAsync(AddRequest());
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
         await rules.ReorderRulesAsync(ReorderRequest());
 
         CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
+            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
             rulesHandler.Requests.Select(static request => request.Method).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
+            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
-        using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[3].Content!);
+        using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
+        Assert.AreEqual("edge", metadataBody.RootElement.GetProperty("group").GetString());
+        using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
-        using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
+        using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
     }
 
@@ -242,6 +247,13 @@ public sealed class HttpApiClientsTests
         Payload = JsonSerializer.SerializeToElement(new { ruleId = "id", rule = new FirewallRuleSpecification() }),
         Signature = "signature",
     };
+
+    private static string InventoryResponseJson() => JsonSerializer.Serialize(
+        new RuleInventoryResponse
+        {
+            Firewall = new RuleListResponse(true, [], TestFirewallConfiguration.Enabled),
+        },
+        ClientJsonSerializerContext.Default.RuleInventoryResponse);
 
     private static string InsertionResponseJson(RuleInsertionOutcome outcome)
     {

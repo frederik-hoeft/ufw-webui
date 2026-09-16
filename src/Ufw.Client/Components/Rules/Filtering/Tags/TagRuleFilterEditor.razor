@@ -1,0 +1,9 @@
+@inherits RuleFilterEditorBase
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTextField T="string"
+              Label="@(RulesText["TagFilter"])"
+              @bind-Value="_tag"
+              Immediate="false"
+              Placeholder="observability"
+              MaxLength="64" />

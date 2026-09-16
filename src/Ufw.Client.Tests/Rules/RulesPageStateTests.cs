@@ -1,4 +1,5 @@
-﻿using Ufw.Client.Rules;
+﻿using Ufw.Client.Api;
+using Ufw.Client.Rules;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -8,9 +9,46 @@ namespace Ufw.Client.Tests.Rules;
 public sealed class RulesPageStateTests
 {
     [TestMethod]
+    public void CompleteRefresh_LoadsMetadataBySemanticIdentity()
+    {
+        RuleInventoryResponse response = Inventory(
+            new RuleListResponse(true, [Rule("shared"), Rule("shared")], TestFirewallConfiguration.Enabled),
+            [new RuleMetadataItem { RuleId = "shared", Group = "edge", Notes = "managed", Tags = ["prod"] }]);
+
+        RulesPageState state = RulesPageState.CompleteRefresh(response);
+
+        Assert.IsNotNull(state.Snapshot);
+        Assert.HasCount(1, state.Snapshot.Metadata);
+        Assert.AreEqual("edge", state.Snapshot.Metadata["shared"].Group);
+        CollectionAssert.AreEqual(new[] { "prod" }, state.Snapshot.Metadata["shared"].Tags.ToArray());
+    }
+
+    [TestMethod]
+    public void AfterMutationSnapshot_PreservesOnlyMetadataForStillLiveSemanticIdentities()
+    {
+        RuleInventoryResponse response = Inventory(
+            new RuleListResponse(true, [Rule("keep"), Rule("remove")], TestFirewallConfiguration.Enabled),
+            [
+                new RuleMetadataItem { RuleId = "keep", Group = "edge", Tags = [] },
+                new RuleMetadataItem { RuleId = "remove", Group = "legacy", Tags = [] },
+            ]);
+        RulesPageState state = RulesPageState.CompleteRefresh(response);
+        RuleListResponse finalSnapshot = new(true, [Rule("keep"), Rule("new")], TestFirewallConfiguration.Enabled);
+        RuleInsertionResponse report = new(RuleInsertionOutcome.Completed, finalSnapshot, Rule("new"), Diagnostic: null);
+
+        RulesPageState updated = state.AfterInsertion(report);
+
+        Assert.IsNotNull(updated.Snapshot);
+        Assert.HasCount(1, updated.Snapshot.Metadata);
+        Assert.IsTrue(updated.Snapshot.Metadata.ContainsKey("keep"));
+        Assert.IsFalse(updated.Snapshot.Metadata.ContainsKey("remove"));
+        Assert.IsFalse(updated.Snapshot.Metadata.ContainsKey("new"));
+    }
+
+    [TestMethod]
     public void AfterInsertion_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")], TestFirewallConfiguration.Disabled);
         RuleInsertionResponse report = new(
             RuleInsertionOutcome.PreconditionFailed,
@@ -31,7 +69,7 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterInsertion_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleInsertionResponse report = new(
             RuleInsertionOutcome.StateUncertain,
             FinalSnapshot: null,
@@ -48,7 +86,7 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterReorder_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleListResponse finalSnapshot = new(false, [Rule("new")], TestFirewallConfiguration.Enabled);
         RuleReorderResponse report = new(
             RuleReorderOutcome.PartiallyCompleted,
@@ -70,7 +108,7 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterReorder_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled));
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleReorderResponse report = new(
             RuleReorderOutcome.StateUncertain,
             FinalSnapshot: null,
@@ -85,6 +123,15 @@ public sealed class RulesPageStateTests
         Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
         Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
     }
+
+
+    private static RuleInventoryResponse Inventory(
+        RuleListResponse firewall,
+        IReadOnlyList<RuleMetadataItem>? metadata = null) => new()
+    {
+        Firewall = firewall,
+        Metadata = metadata ?? [],
+    };
 
     private static ListedFirewallRule Rule(string id) => new()
     {

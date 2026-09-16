@@ -1,0 +1,8 @@
+@inherits RuleFilterEditorBase
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTextField T="string"
+              Label="@(RulesText["GroupFilter"])"
+              @bind-Value="_group"
+              Immediate="false"
+              MaxLength="128" />

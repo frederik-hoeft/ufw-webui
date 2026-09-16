@@ -23,8 +23,8 @@ public sealed class OperationalStatusServiceTests
         Mock<IIntentContextApiClient> intent = new();
         Mock<IClientErrorMapper> errors = new(MockBehavior.Strict);
         MutableTimeProvider clock = new(s_now);
-        TaskCompletionSource<RuleListResponse> rulesResult = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        rules.Setup(client => client.GetRulesAsync(It.IsAny<CancellationToken>())).Returns(rulesResult.Task);
+        TaskCompletionSource<RuleInventoryResponse> rulesResult = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        rules.Setup(client => client.GetInventoryAsync(It.IsAny<CancellationToken>())).Returns(rulesResult.Task);
         intent.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
         using OperationalStatusService service = CreateService(management, daemon, rules, intent, errors, clock);
@@ -34,7 +34,7 @@ public sealed class OperationalStatusServiceTests
         Task refresh = service.RefreshAsync();
         Assert.IsTrue(service.IsRefreshing);
         clock.Advance(TimeSpan.FromMilliseconds(125));
-        rulesResult.SetResult(new RuleListResponse(true, [new ListedFirewallRule(), new ListedFirewallRule()], TestFirewallConfiguration.Enabled));
+        rulesResult.SetResult(Inventory(new RuleListResponse(true, [new ListedFirewallRule(), new ListedFirewallRule()], TestFirewallConfiguration.Enabled)));
         await refresh;
 
         Assert.IsFalse(service.IsRefreshing);
@@ -62,8 +62,8 @@ public sealed class OperationalStatusServiceTests
         HttpRequestException daemonFailure = new("daemon unavailable");
         ClientError mapped = new(ClientErrorKind.Unavailable, "unavailable", true);
         daemon.Setup(client => client.ProbeAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException(daemonFailure));
-        rules.Setup(client => client.GetRulesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled));
+        rules.Setup(client => client.GetInventoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Inventory(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled)));
         intent.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
         errors.Setup(mapper => mapper.Describe(daemonFailure)).Returns(mapped);
@@ -92,7 +92,7 @@ public sealed class OperationalStatusServiceTests
         HttpRequestException intentFailure = new("intent");
         management.Setup(client => client.ProbeAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException(managementFailure));
         daemon.Setup(client => client.ProbeAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException(daemonFailure));
-        rules.Setup(client => client.GetRulesAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException<RuleListResponse>(rulesFailure));
+        rules.Setup(client => client.GetInventoryAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException<RuleInventoryResponse>(rulesFailure));
         intent.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException<IntentContextResponse>(intentFailure));
         errors.Setup(mapper => mapper.Describe(It.IsAny<Exception>()))
             .Returns((Exception exception) => new ClientError(ClientErrorKind.Unavailable, exception.Message, true));
@@ -118,8 +118,8 @@ public sealed class OperationalStatusServiceTests
         Mock<IClientErrorMapper> errors = new();
         HttpRequestException managementFailure = new("management");
         management.Setup(client => client.ProbeAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException(managementFailure));
-        rules.Setup(client => client.GetRulesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleListResponse(false, [], TestFirewallConfiguration.Enabled));
+        rules.Setup(client => client.GetInventoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Inventory(new RuleListResponse(false, [], TestFirewallConfiguration.Enabled)));
         intent.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
         errors.Setup(mapper => mapper.Describe(managementFailure))
@@ -144,8 +144,8 @@ public sealed class OperationalStatusServiceTests
         Mock<IClientErrorMapper> errors = new();
         InvalidOperationException failure = new("intent metadata unavailable");
         ClientError mapped = new(ClientErrorKind.Unexpected, failure.Message, true);
-        rules.Setup(client => client.GetRulesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled));
+        rules.Setup(client => client.GetInventoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Inventory(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled)));
         intent.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromException<IntentContextResponse>(failure));
         errors.Setup(mapper => mapper.Describe(failure)).Returns(mapped);
@@ -176,6 +176,11 @@ public sealed class OperationalStatusServiceTests
 
         Assert.IsFalse(service.IsRefreshing);
     }
+
+    private static RuleInventoryResponse Inventory(RuleListResponse firewall) => new()
+    {
+        Firewall = firewall,
+    };
 
     private static OperationalStatusService CreateService(
         Mock<IManagementApiHealthClient> management,

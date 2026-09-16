@@ -74,6 +74,8 @@ The operator can then remove unmatched records deliberately. The project already
 
 No age-based retention policy or orphan timestamp is required for the initial implementation. Those can be added later if stale metadata volume becomes operationally relevant.
 
+The initial enrichment infrastructure stores typed optional group/notes fields plus case-insensitive tags under the semantic `RuleId`. `GET /api/v1/rules` now returns the daemon `RuleListResponse` as an authoritative sub-model alongside only metadata matching identities in that snapshot. Metadata writes verify that the semantic identity is currently live before persisting, and a successful in-band delete performs best-effort metadata cleanup after the firewall mutation is confirmed. Explicit orphan discovery/removal remains a later reconciliation slice.
+
 ## Family-local presentation and ordering
 
 IPv4 and IPv6 are independently ordered UFW rule sets. Their concatenated `ufw status numbered` coordinates remain important to daemon/protocol compatibility, but cross-family relative position has no packet-processing meaning.

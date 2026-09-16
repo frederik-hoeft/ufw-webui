@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using System.Globalization;
+using Ufw.Client.Api;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Errors;
 using Ufw.Client.RuleInsertion;
@@ -121,9 +122,9 @@ public sealed partial class CreateRule
         _state = _state.BeginRefresh(reason);
         try
         {
-            RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
+            RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
-            ResolveOrderedInsertionContext(response);
+            ResolveOrderedInsertionContext(response.Firewall);
 
             if (_mutationMayHaveCompleted)
             {

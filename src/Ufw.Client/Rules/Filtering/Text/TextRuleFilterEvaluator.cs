@@ -39,6 +39,15 @@ internal sealed class TextRuleFilterEvaluator : RuleFilterEvaluator<TextRuleFilt
             Add(fields, TextRuleMatchEvidence.FieldKind.Direction, RuleSpecificationNormalizer.FormatDirection(rule.Direction));
             Add(fields, TextRuleMatchEvidence.FieldKind.Protocol, RuleSpecificationNormalizer.FormatProtocol(rule.Protocol));
         }
+        Add(fields, TextRuleMatchEvidence.FieldKind.Group, row.Metadata?.Group);
+        Add(fields, TextRuleMatchEvidence.FieldKind.Notes, row.Metadata?.Notes);
+        if (row.Metadata is { } metadata)
+        {
+            foreach (string tag in metadata.Tags)
+            {
+                Add(fields, TextRuleMatchEvidence.FieldKind.Tag, tag);
+            }
+        }
         Add(fields, TextRuleMatchEvidence.FieldKind.RawLine, row.Rule.RawLine);
         return fields;
     }

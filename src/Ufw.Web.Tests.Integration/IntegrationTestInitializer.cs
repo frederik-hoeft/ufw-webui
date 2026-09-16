@@ -11,6 +11,7 @@ using Ufw.Web.Data;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.KnownHosts;
 using Ufw.Web.Services.NetworkInterfaces;
+using Ufw.Web.Services.Rules;
 using Ufw.Web.Tests.Integration.Support;
 using Wkg.AspNetCore.TestAdapters.Initialization;
 using Wkg.AspNetCore.TestAdapters.Initialization.Extensions;
@@ -84,6 +85,10 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddScoped<IntegrationUfwClient>();
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
+        services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
+        services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleInventoryService, RuleInventoryService>();
+        services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<NetworkInterfacesController>();
         services.AddScoped<RulesController>();
 

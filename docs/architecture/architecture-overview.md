@@ -46,7 +46,7 @@ Browser-side rule validation is not an authorization boundary. The daemon repeat
 
 `Ufw.Web` owns HTTP concerns: API authentication, user/session state, application metadata, PostgreSQL persistence, and adaptation between REST and the local daemon protocol. It can ask the daemon to list state or submit a signed mutation, but it cannot manufacture mutation authority.
 
-The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, and application-owned authoring metadata such as network-interface comments and known-host aliases.
+The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, application-owned authoring metadata such as network-interface comments and known-host aliases, and presentation metadata attached to opaque semantic rule identities. Rule metadata currently consists of optional group and notes values plus case-insensitive tags; it never substitutes for a live daemon rule.
 
 Database-backed workflows preserve one transactional boundary across related Identity and application state. Authentication therefore does not commit a refreshed token while rolling back the corresponding Identity state, or vice versa. Expected failures may still commit security-relevant state such as failed-login counters or refresh-family revocation.
 
@@ -87,17 +87,20 @@ The architecture distinguishes authoritative state from caches and presentation 
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
 | Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
 | Users, refresh-token families, interface metadata, known-host aliases | `Ufw.Web` / PostgreSQL | Application state only |
+| Rule groups, notes, and tags | `Ufw.Web` / PostgreSQL | Joined to live rules by opaque semantic `RuleId`; never evidence that a firewall rule exists |
 | Access token | Browser memory | Short-lived bearer credential |
 | Mutation private key | Administrator/browser signing workflow | Never sent to the server or persisted by the application |
 | Production frontend assets | nginx image | Built/deployed independently from ASP |
 
-Daemon-derived interface metadata is reconciled against host state, and host state wins when they disagree. Known-host aliases are independently ASP-owned authoring metadata and have no daemon inventory to reconcile. Neither kind of metadata can create firewall authority: it must resolve to literal firewall semantics before signing.
+Daemon-derived interface metadata is reconciled against host state, and host state wins when they disagree. Known-host aliases are independently ASP-owned authoring metadata and have no daemon inventory to reconcile. Rule presentation metadata is also ASP-owned, but follows a different lifecycle: normal rule reads join only metadata whose semantic identity is currently live without creating or deleting database rows. A successful in-band delete removes metadata for the deleted identity; metadata whose rule disappears out-of-band remains stored and unmatched until an explicit reconciliation workflow removes it. None of these metadata types can create firewall authority: authoring metadata must resolve to literal firewall semantics before signing, while presentation metadata is excluded from signed rule semantics entirely.
 
 ## Primary request flows
 
 ### Reading firewall state
 
-The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one rule snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
+The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one daemon snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
+
+Before returning `GET /api/v1/rules`, `Ufw.Web` loads presentation metadata only for the semantic identities present in that daemon snapshot and returns an enriched inventory containing the authoritative firewall snapshot plus the matching ASP-owned metadata. Duplicate live occurrences with one semantic identity intentionally share that metadata. The read path is side-effect free: it neither creates metadata for newly observed rules nor deletes unmatched metadata.
 
 The browser treats each successful response as an authoritative snapshot. UFW keeps IPv4 and IPv6 in independent ordered rule sets and concatenates them for numbered status output, so the browser presents separate family sections while retaining the exact combined snapshot coordinates for signing and mutation addressing. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
 

@@ -13,6 +13,9 @@ namespace Ufw.Client.Serialization;
 [JsonSerializable(typeof(CreateKnownHostRequest))]
 [JsonSerializable(typeof(UpdateKnownHostRequest))]
 [JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
+[JsonSerializable(typeof(RuleInventoryResponse))]
+[JsonSerializable(typeof(RuleMetadataMutationResponse))]
+[JsonSerializable(typeof(UpdateRuleMetadataRequest))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceCommentRequest))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceVisibilityRequest))]
 internal sealed partial class ClientJsonSerializerContext : JsonSerializerContext;

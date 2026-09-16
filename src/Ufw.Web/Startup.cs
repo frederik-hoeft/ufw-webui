@@ -16,6 +16,7 @@ using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.ErrorHandling;
 using Ufw.Web.Services.KnownHosts;
 using Ufw.Web.Services.NetworkInterfaces;
+using Ufw.Web.Services.Rules;
 using Wkg.AspNetCore.Configuration;
 using Wkg.AspNetCore.ErrorHandling;
 using Wkg.AspNetCore.Transactions;
@@ -82,6 +83,10 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
+        services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
+        services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleInventoryService, RuleInventoryService>();
+        services.AddScoped<IRuleMetadataService, RuleMetadataService>();
 
         services.AddAuthentication(options =>
         {

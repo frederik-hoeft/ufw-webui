@@ -393,6 +393,74 @@ namespace Ufw.Web.Data.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Group")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("Group");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("Notes");
+
+                    b.Property<string>("RuleId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("RuleId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RuleId")
+                        .IsUnique();
+
+                    b.ToTable("RuleMetadata", (string)null);
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataTagEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("Name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("NormalizedName");
+
+                    b.Property<long>("RuleMetadataId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("RuleMetadataId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName");
+
+                    b.HasIndex("RuleMetadataId", "NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("RuleMetadataTags", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -453,6 +521,22 @@ namespace Ufw.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataTagEntry", b =>
+                {
+                    b.HasOne("Ufw.Web.Data.Model.RuleMetadataEntry", "RuleMetadata")
+                        .WithMany("Tags")
+                        .HasForeignKey("RuleMetadataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RuleMetadata");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
+                {
+                    b.Navigation("Tags");
                 });
 #pragma warning restore 612, 618
         }
