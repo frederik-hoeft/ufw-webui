@@ -9,6 +9,7 @@
 @inject IRuleOrderingService RuleOrdering
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IRuleListProjectionService RuleListProjectionService
+@inject IRuleQueryService RuleQueryService
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
@@ -20,7 +21,7 @@
 <PageHeader Title="@(RulesText["RulesTitle"])"
             Description="@(RulesText["RulesDescription"])"
             Breadcrumbs="@Breadcrumbs"
-            ShowStatus="@(_state.Snapshot is not null)">
+            ShowStatus="false">
     <Actions>
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.Refresh"
@@ -38,26 +39,6 @@
             @RulesText["AddRule"]
         </MudButton>
     </Actions>
-    <Status>
-        @if (_state.Snapshot is { } headerSnapshot)
-        {
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(headerSnapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(headerSnapshot.FirewallActive ? RulesText["FirewallActive"] : RulesText["FirewallInactive"])
-            </MudChip>
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeRuleCount(headerSnapshot.Rules.Count)
-            </MudChip>
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
-                @DescribeSnapshotStatus()
-            </MudChip>
-        }
-    </Status>
 </PageHeader>
 
 @if (_state.Status == RulesPageStatus.Failed)
@@ -120,24 +101,46 @@ else if (_state.Snapshot is { })
         </MudAlert>
     }
 
-    <MudPaper Elevation="0" Class="pa-4 mb-5" role="region" aria-labelledby="firewall-defaults-heading">
-        <MudText Typo="Typo.subtitle2" HtmlTag="h2" id="firewall-defaults-heading" Class="mb-2">@RulesText["FirewallDefaults"]</MudText>
-        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="mr-2 mb-1">
-            @RulesText["DefaultIncoming"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.IncomingPolicy)
-        </MudChip>
-        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="mr-2 mb-1">
-            @RulesText["DefaultOutgoing"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.OutgoingPolicy)
-        </MudChip>
-        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="mr-2 mb-1">
-            @RulesText["DefaultRouted"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.RoutedPolicy)
-        </MudChip>
-        <MudChip T="string"
-                 Size="Size.Small"
-                 Variant="Variant.Filled"
-                 Class="@(_state.Snapshot.Configuration.IPv6Enabled ? "page-status-chip page-status-chip-success mb-1" : "page-status-chip page-status-chip-warning mb-1")">
-            @(_state.Snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
-        </MudChip>
-    </MudPaper>
+    <div class="rules-summary-grid">
+        <MudPaper Elevation="1" Class="rules-summary-card rules-firewall-status-card" role="region" aria-labelledby="firewall-status-heading">
+            <header>
+                <MudIcon Icon="@Icons.Material.Filled.Security" Color="@(_state.Snapshot.FirewallActive ? Color.Success : Color.Warning)" />
+                <div>
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">@RulesText["FirewallBreadcrumb"]</MudText>
+                    <MudText Typo="Typo.h6" HtmlTag="h2" id="firewall-status-heading">
+                        @(_state.Snapshot.FirewallActive ? CommonText["Active"] : CommonText["Inactive"])
+                    </MudText>
+                </div>
+            </header>
+            <div class="rules-firewall-status-meta">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeRuleCount(_state.Snapshot.Rules.Count)</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeSnapshotStatus()</MudText>
+            </div>
+        </MudPaper>
+
+        <MudPaper Elevation="1" Class="rules-summary-card rules-defaults-card" role="region" aria-labelledby="firewall-defaults-heading">
+            <header>
+                <MudText Typo="Typo.subtitle2" HtmlTag="h2" id="firewall-defaults-heading">@RulesText["FirewallDefaults"]</MudText>
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Variant="Variant.Filled"
+                         Class="@(_state.Snapshot.Configuration.IPv6Enabled ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
+                    @(_state.Snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
+                </MudChip>
+            </header>
+            <div class="rules-default-policy-list">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                    @RulesText["DefaultIncoming"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.IncomingPolicy)
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                    @RulesText["DefaultOutgoing"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.OutgoingPolicy)
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                    @RulesText["DefaultRouted"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.RoutedPolicy)
+                </MudChip>
+            </div>
+        </MudPaper>
+    </div>
 
     @if (HasOrderingPreview)
     {
@@ -181,25 +184,35 @@ else if (_state.Snapshot is { })
              TabPanelsClass="rule-family-tab-panels">
         <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv4)" BadgeData="@IPv4Family.Rows.Count">
             <RuleFamilyWorkspace Family="@IPv4Family"
-                       Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
-                       Disabled="@(!CanMutateFirewall)"
-                       OrderingDisabled="@(!CanPreviewOrdering)"
-                       InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
-                       DeleteRequested="BeginDeleteAsync"
-                       InsertionRequested="BeginOrderedInsertionAsync"
-                       MoveRequested="MoveRuleAsync" />
+                                 VisibleRows="@IPv4VisibleRows"
+                                 Query="@_ruleQuery"
+                                 QueryActive="@_ruleQuery.IsActive"
+                                 QueryChangesDisabled="@(!InteractionState.CanChangeQuery)"
+                                 QueryChanged="ChangeQueryAsync"
+                                 Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+                                 Disabled="@(!CanMutateFirewall)"
+                                 OrderingDisabled="@(!CanPreviewOrdering)"
+                                 InsertionDisabled="@(!CanMutateFirewall)"
+                                 DeleteRequested="BeginDeleteAsync"
+                                 InsertionRequested="BeginOrderedInsertionAsync"
+                                 MoveRequested="MoveRuleAsync" />
         </MudTabPanel>
         @if (IPv6FamilyAvailable)
         {
             <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv6)" BadgeData="@IPv6Family.Rows.Count">
                 <RuleFamilyWorkspace Family="@IPv6Family"
-                           Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
-                           Disabled="@(!CanMutateFirewall)"
-                           OrderingDisabled="@(!CanPreviewOrdering)"
-                           InsertionDisabled="@(!CanPreviewOrdering || HasOrderingPreview)"
-                           DeleteRequested="BeginDeleteAsync"
-                           InsertionRequested="BeginOrderedInsertionAsync"
-                           MoveRequested="MoveRuleAsync" />
+                                     VisibleRows="@IPv6VisibleRows"
+                                     Query="@_ruleQuery"
+                                     QueryActive="@_ruleQuery.IsActive"
+                                     QueryChangesDisabled="@(!InteractionState.CanChangeQuery)"
+                                     QueryChanged="ChangeQueryAsync"
+                                     Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+                                     Disabled="@(!CanMutateFirewall)"
+                                     OrderingDisabled="@(!CanPreviewOrdering)"
+                                     InsertionDisabled="@(!CanMutateFirewall)"
+                                     DeleteRequested="BeginDeleteAsync"
+                                     InsertionRequested="BeginOrderedInsertionAsync"
+                                     MoveRequested="MoveRuleAsync" />
             </MudTabPanel>
         }
     </MudTabs>

@@ -1,0 +1,108 @@
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<section class="rule-list-toolbar" aria-label="@(RulesText["RuleFiltersAria"])">
+    <div class="search-row">
+        <MudTextField T="string"
+                      Label="@(RulesText["SearchRules"] )"
+                      Placeholder="@(RulesText["SearchRulesPlaceholder"] )"
+                      @bind-Value="_searchText"
+                      Immediate="true"
+                      Disabled="@Disabled"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense" />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@Disabled"
+                   OnClick="ApplyAsync">
+            @RulesText["ApplyFilters"]
+        </MudButton>
+        @if (Query.IsActive)
+        {
+            <MudButton Variant="Variant.Text"
+                       Disabled="@Disabled"
+                       OnClick="ClearAsync">
+                @RulesText["ClearFilters"]
+            </MudButton>
+        }
+    </div>
+
+    <div class="filter-grid">
+        <MudTextField T="string"
+                      Label="@(RulesText["SourceNetworkFilter"] )"
+                      Placeholder="@(AddressFamily == FirewallAddressFamily.IPv6 ? "2001:db8::/32" : "10.0.0.0/8")"
+                      @bind-Value="_sourceNetwork"
+                      Immediate="true"
+                      Disabled="@Disabled"
+                      Error="@(_sourceNetworkError is not null)"
+                      ErrorText="@_sourceNetworkError"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense" />
+        <MudTextField T="string"
+                      Label="@(RulesText["DestinationNetworkFilter"] )"
+                      Placeholder="@(AddressFamily == FirewallAddressFamily.IPv6 ? "2001:db8::1" : "192.0.2.10")"
+                      @bind-Value="_destinationNetwork"
+                      Immediate="true"
+                      Disabled="@Disabled"
+                      Error="@(_destinationNetworkError is not null)"
+                      ErrorText="@_destinationNetworkError"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense" />
+        <MudTextField T="string"
+                      Label="@(RulesText["PortFilter"] )"
+                      Placeholder="443,8000:8100"
+                      @bind-Value="_ports"
+                      Immediate="true"
+                      Disabled="@Disabled"
+                      Error="@(_portsError is not null)"
+                      ErrorText="@_portsError"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense" />
+        <MudSelect T="string"
+                   Label="@(RulesText["ProtocolFilter"] )"
+                   @bind-Value="_protocol"
+                   Clearable="true"
+                   Disabled="@Disabled"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense">
+            <MudSelectItem T="string" Value="@TCP_FILTER_VALUE">@RuleText.FormatProtocol(FirewallProtocol.Tcp)</MudSelectItem>
+            <MudSelectItem T="string" Value="@UDP_FILTER_VALUE">@RuleText.FormatProtocol(FirewallProtocol.Udp)</MudSelectItem>
+            <MudSelectItem T="string" Value="@ANY_FILTER_VALUE">@RuleText.FormatProtocol(FirewallProtocol.Any)</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="string"
+                   Label="@(RulesText["ActionFilter"] )"
+                   @bind-Value="_action"
+                   Clearable="true"
+                   Disabled="@Disabled"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense">
+            <MudSelectItem T="string" Value="@ALLOW_FILTER_VALUE">@RuleText.FormatAction(FirewallAction.Allow)</MudSelectItem>
+            <MudSelectItem T="string" Value="@DENY_FILTER_VALUE">@RuleText.FormatAction(FirewallAction.Deny)</MudSelectItem>
+            <MudSelectItem T="string" Value="@REJECT_FILTER_VALUE">@RuleText.FormatAction(FirewallAction.Reject)</MudSelectItem>
+            <MudSelectItem T="string" Value="@LIMIT_FILTER_VALUE">@RuleText.FormatAction(FirewallAction.Limit)</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="string"
+                   Label="@(RulesText["DirectionFilter"] )"
+                   @bind-Value="_direction"
+                   Clearable="true"
+                   Disabled="@Disabled"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense">
+            <MudSelectItem T="string" Value="@IN_FILTER_VALUE">@RuleText.FormatDirection(FirewallDirection.In)</MudSelectItem>
+            <MudSelectItem T="string" Value="@OUT_FILTER_VALUE">@RuleText.FormatDirection(FirewallDirection.Out)</MudSelectItem>
+            <MudSelectItem T="string" Value="@FORWARD_FILTER_VALUE">@RuleText.FormatDirection(FirewallDirection.Forward)</MudSelectItem>
+        </MudSelect>
+    </div>
+
+    @if (Query.Filters.Count > 0)
+    {
+        <div class="applied-filters" aria-label="@(RulesText["AppliedFilters"])">
+            @foreach (string label in AppliedFilterLabels)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@label</MudChip>
+            }
+        </div>
+    }
+</section>

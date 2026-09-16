@@ -5,6 +5,7 @@ using Ufw.Client.Errors;
 using Ufw.Client.RuleInsertion;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
+using Ufw.Client.Rules.Filtering;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -32,6 +33,9 @@ public sealed partial class Rules
     private RuleOrderingResultContext? _orderingResult;
     private RuleListProjection _ruleListProjection = RuleListProjection.Empty;
     private RuleFamilySelectionState _familySelection = RuleFamilySelectionState.Initial;
+    private RuleQuery _ruleQuery = RuleQuery.Empty;
+    private RuleFamilyQueryResult _ipv4QueryResult = new(FirewallAddressFamily.IPv4, [], 0);
+    private RuleFamilyQueryResult _ipv6QueryResult = new(FirewallAddressFamily.IPv6, [], 0);
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -45,6 +49,12 @@ public sealed partial class Rules
 
     private RuleFamilyProjection IPv6Family => _ruleListProjection.GetFamily(FirewallAddressFamily.IPv6);
 
+    private IReadOnlyList<RuleRowProjection> IPv4VisibleRows => _ipv4QueryResult.VisibleRows;
+
+    private IReadOnlyList<RuleRowProjection> IPv6VisibleRows => _ipv6QueryResult.VisibleRows;
+
+    private RuleListInteractionState InteractionState => RuleListInteractionState.Resolve(_ruleQuery.IsActive, HasOrderingPreview);
+
     private bool IPv6FamilyAvailable =>
         _state.Snapshot is { } snapshot && RuleFamilySelectionState.IsIPv6Available(snapshot.Configuration.IPv6Enabled, IPv6Family.Rows.Count);
 
@@ -55,7 +65,7 @@ public sealed partial class Rules
 
     private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !HasOrderingPreview;
 
-    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering;
+    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && InteractionState.CanOrder;
 
     private string RefreshButtonLabel => _state.Status switch
     {
@@ -327,7 +337,27 @@ public sealed partial class Rules
     private void RefreshRuleListProjection()
     {
         _ruleListProjection = RuleListProjectionService.Create(_state.Snapshot?.Rules ?? [], _orderingPreview);
+        RefreshRuleQueryProjection();
         _familySelection = _familySelection.Reconcile(IPv6FamilyAvailable);
+    }
+
+    private void RefreshRuleQueryProjection()
+    {
+        _ipv4QueryResult = RuleQueryService.Evaluate(IPv4Family, _ruleQuery);
+        _ipv6QueryResult = RuleQueryService.Evaluate(IPv6Family, _ruleQuery);
+    }
+
+    private Task ChangeQueryAsync(RuleQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (!InteractionState.CanChangeQuery)
+        {
+            return Task.CompletedTask;
+        }
+
+        _ruleQuery = query;
+        RefreshRuleQueryProjection();
+        return Task.CompletedTask;
     }
 
     private void HandleMutationFailure(ClientError error)
