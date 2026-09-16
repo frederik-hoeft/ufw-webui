@@ -1,6 +1,6 @@
 # Rule presentation and enrichment sprint baseline
 
-This document captures the agreed architectural direction for the next rule-presentation sprint. It is temporary maintainer guidance rather than steady-state architecture documentation: exact database entities, REST resources, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
+This document captures the agreed architectural direction for the next rule-presentation sprint. Here, **sprint** is only a convenient name for a coherent body of work: the plan is organized into work-based phases and sub-phases rather than a time-boxed schedule with deadlines. It is temporary maintainer guidance rather than steady-state architecture documentation; exact database entities, REST resources, filter catalogues, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
 
 The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, grouping, and reusable rule templates without turning PostgreSQL into a second firewall database.
 
@@ -129,15 +129,175 @@ Expected rule counts are small enough that transferring the complete enriched sn
 
 ASP remains responsible for assembling truth; the client owns view projection.
 
-Search/filter implementation should still be separated from Razor rendering. A pure query evaluator should consume the current rule-list projection plus a structured query and return visible rows together with structured match information. Match results should identify semantic fields and text ranges rather than emitting HTML, allowing desktop and mobile renderers to highlight the same result safely.
+### Structured query model
 
-Client-side evaluation does not preclude navigable query URLs. Query state can be parsed from and synchronized to the rules route, for example:
+Filtering should be modelled as a collection/pipeline of independently configured filters rather than one monolithic options object that knows every supported predicate. A query may additionally contain free-text search terms, but structured filter instances remain the canonical representation for field-specific semantics.
+
+Conceptually:
 
 ```text
-/rules?q=ssh&family=v4&action=allow&tag=observability
+RuleQuery
+  free-text terms*
+  configured filters*
+    SourceFilter
+    DestinationFilter
+    PortFilter
+    ProtocolFilter
+    ActionFilter
+    DirectionFilter
+    TagFilter
+    GroupFilter
+    ...
 ```
 
-Reloading or browser navigation fetches the current enriched snapshot and reapplies the URL query. A refresh atomically replaces the loaded snapshot while preserving/reapplying the active query.
+The initial combination rule should be simple conjunction: every configured filter must pass for a row to remain visible. More expressive boolean query trees are intentionally deferred until a concrete use case justifies the added UI and evaluation complexity.
+
+Each configured filter is an instance with its own data model. Filter semantics should live in focused evaluator logic rather than in Razor components or one central `RuleFilterOptions` class. The exact interface names are implementation details, but the responsibility split should remain approximately:
+
+```text
+filter data model
+      |
+      v
+filter evaluator
+  row + family/query context
+      |
+      v
+pass/fail + structured match evidence
+```
+
+A filter evaluator must not emit HTML, `RenderFragment`, Blazor component types, or other presentation objects.
+
+The selected IP-family workspace is evaluation context rather than another filter. IPv4 filtering operates over the IPv4 projection and IPv6 filtering over the IPv6 projection. Family-sensitive parsing and network predicates can therefore specialize cleanly without adding `family=v4` as an ordinary user-visible filter inside a family-local workspace.
+
+Sorting is also separate from filtering. Filters determine which rows are visible; sorting determines how the resulting view is presented. Firewall-order sorting remains the mode in which reordering semantics are meaningful.
+
+### Structured match evidence
+
+Search/filter evaluation should return visible rows together with typed, semantic evidence explaining why a row matched. This evidence is accumulated by the configured filters that a surviving row passes through.
+
+Examples include:
+
+```text
+TagMatch
+  tag = observability
+
+NetworkMatch
+  field = Source
+  rule network = 10.100.20.0/24
+  query network = 10.100.20.17
+  relationship = Contains
+
+TextMatch
+  field = Comment
+  range = [12, 22)
+```
+
+The concrete evidence types are implementation details, but they should describe domain/query semantics rather than rendering instructions. Desktop and mobile presenters can then render the same evidence safely and consistently.
+
+This extends the existing rule-list projection without changing authority:
+
+```text
+canonical presentation row
+        |
+        + RuleQuery
+        |
+        v
+visible row
+  + RuleMatchEvidence*
+```
+
+A row that fails one filter can be discarded immediately. A row that survives the complete filter pipeline retains the accumulated evidence needed for match-context presentation.
+
+### Filter UI direction
+
+The long-term UI should treat filters as composable objects rather than expose every possible field permanently.
+
+Applied filters are represented compactly as removable chips/tags, for example:
+
+```text
+[ Source: 10.0.0.0/8 × ] [ Protocol: TCP × ] [ Tag: observability × ]
+```
+
+Removing a chip removes that filter instance. Selecting an existing chip should be able to reopen its editor with the current filter data pre-filled.
+
+The eventual dynamic filter-builder direction is:
+
+```text
++ Filter
+   |
+   v
+filter selector / autocomplete
+   |
+   v
+selected filter editor
+  filter-specific input fields
+   |
+   v
+configured filter instance
+   |
+   v
+applied-filter chip
+```
+
+The available-filter catalogue and configured-filter instances are distinct concepts. A filter definition/registration can provide a stable key, display name/category, editor registration, and presentation metadata, while a configured filter instance contains only the values needed by that filter's semantics.
+
+Blazor can host a filter-specific editor dynamically, but dynamic component types belong in client-side UI registration rather than the filter/evaluator domain model. Most filter chips and match evidence should use shared generic presenters fed by small presentation models; bespoke components should be reserved for cases that genuinely need them.
+
+The editor host does not need to be fixed to a modal dialog. A desktop implementation may use a compact popover anchored to `+ Filter` or an existing chip, while a narrow/mobile layout may present the same editor component inside a dialog or sheet.
+
+### Phased filtering implementation
+
+The filtering feature should evolve in work-based phases so that the architectural work remains useful even before the dynamic UI exists.
+
+#### Phase 1: structured baseline
+
+Start with a straightforward, hard-coded structural filter form and modular code behind it.
+
+The first slice should establish:
+
+- configured filter models rather than one monolithic filter state object;
+- focused filter evaluators/pipeline composition;
+- typed match evidence;
+- free-text search as a separate query concern that can coexist with structural filters;
+- applied-filter chip presentation where practical;
+- family-local evaluation context;
+- query/filter state separated from sorting and ordering state;
+- tests for filter composition, CIDR-aware semantics, text matching, evidence generation, and interaction-mode invariants.
+
+The hard-coded form is deliberately replaceable UI, but the query/evaluator/evidence model is not throwaway work.
+
+#### Phase 2: dynamic filter composition
+
+When the fixed form becomes crowded, replace it with the filter-selector/editor flow:
+
+- `+ Filter` opens a searchable/category-aware filter selector;
+- selecting a filter dynamically renders that filter's editor;
+- applying the editor adds one configured filter instance;
+- clicking an applied-filter chip reopens that editor with existing values;
+- removing a chip removes only that filter instance;
+- new filter types can be added primarily through registration plus their model/evaluator/editor/presentation pieces rather than by expanding a central form.
+
+This phase should preserve the same query model and evaluator pipeline introduced in phase 1.
+
+#### Phase 3: optional shorthand query grammar
+
+A compact context-search grammar can be added later as a power-user convenience, for example:
+
+```text
+from:10.0.0.0/8 to:10.1.2.3 proto:tcp tag:observability "prometheus"
+```
+
+The grammar must compile into the same configured filter models/free-text terms used by the structural UI. It must not become a second filtering implementation.
+
+Unqualified text should remain ordinary text search rather than being aggressively inferred as an address, port, tag, or other structured predicate. Explicit prefixes can add precision without making normal search surprising.
+
+The shorthand grammar is optional. It should only be implemented if the structural UI and real usage demonstrate that the convenience is worth the grammar, completion, validation, and discoverability work.
+
+### Navigation and refresh behavior
+
+Client-side evaluation does not preclude navigable query URLs. Query state can be parsed from and synchronized to the rules route. The exact encoding is deferred because the filter collection may outgrow a fixed set of scalar query parameters.
+
+Reloading or browser navigation fetches the current enriched snapshot and reapplies the current query. A refresh atomically replaces the loaded snapshot while preserving/reapplying active query state.
 
 A dedicated server-side `/rules/search` endpoint is not part of the baseline. It should only be introduced later if a concrete server-side use case appears.
 
@@ -191,7 +351,10 @@ The intended component shape is approximately:
 ```text
 Rules page
   RuleListToolbar
-    search + filters
+    free-text search
+    applied filter chips
+    filter editor/selector host
+    sorting
 
   RuleList / RuleTable shell
     RuleFamilyView (IPv4)
@@ -209,10 +372,12 @@ Rules page
 Responsibilities should remain narrow:
 
 - the rules page owns authoritative refresh/mutation lifecycle and page-level interaction mode;
+- the query/filter layer owns configured filter state, evaluation, sorting state, and structured match evidence without depending on Razor rendering;
+- the toolbar owns free-text entry, applied-filter chip interaction, filter-editor hosting, and sort selection, but delegates filter semantics to the query layer;
 - the list/table shell owns family composition and cross-family presentation only;
-- `RuleFamilyView` owns one family's drag source/drop target, family-local ordering interactions, heading/count, and family-local empty state;
+- `RuleFamilyView` owns one family's drag source/drop target, family-local ordering interactions, heading/count, family query context, and family-local empty state;
 - desktop rows and mobile cards render one rule through their naturally different DOM structures and emit explicit callbacks for actions;
-- match-context presentation renders structured query matches;
+- match-context presentation renders structured query evidence;
 - metadata-details presentation renders enriched rule context but does not perform persistence or daemon operations.
 
 Avoid Razor component inheritance as the mechanism for IPv4/IPv6 specialization. Shared layout should use component composition, while family-sensitive parsing/validation/search behavior should be supplied through focused policies/services. This keeps Blazor lifecycle/render state out of inheritance hierarchies and allows most query predicates to remain family-independent.
@@ -276,7 +441,7 @@ The following are intentionally not fixed by this baseline and should be worked 
 - exact EF entities, keys, relationships, indexes, concurrency fields, and migrations;
 - exact browser-facing REST contract and whether enriched contracts warrant a dedicated API-contract project;
 - concrete metadata fields and grouping semantics;
-- exact query grammar, filter controls, URL encoding, and highlighting rules;
+- exact future shorthand query grammar, URL encoding, filter-editor hosting surface, filter catalogue, and highlighting/presentation polish;
 - whether ordered insertion remains available while a filter is active;
 - template schema, metadata-copy behavior, provenance, and template-manager UX;
 - reconciliation endpoint/command shape and orphan-cleanup confirmation UX;
