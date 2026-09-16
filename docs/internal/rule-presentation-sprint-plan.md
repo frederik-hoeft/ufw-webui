@@ -1,8 +1,8 @@
-# Rule presentation and enrichment sprint baseline
+﻿# Rule presentation and enrichment sprint baseline
 
-This document captures the agreed architectural direction for the next rule-presentation sprint. It is temporary maintainer guidance rather than steady-state architecture documentation: exact database entities, REST resources, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
+This document captures the agreed architectural direction for the next rule-presentation sprint. Here, **sprint** is only a convenient name for a coherent body of work: the plan is organized into work-based phases and sub-phases rather than a time-boxed schedule with deadlines. It is temporary maintainer guidance rather than steady-state architecture documentation; exact database entities, REST resources, filter catalogues, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
 
-The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, grouping, and reusable rule templates without turning PostgreSQL into a second firewall database.
+The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, and grouping without turning PostgreSQL into a second firewall database. Reusable rule templates and other larger follow-on capabilities are tracked separately in the [long-term feature backlog](long-term-feature-backlog.md).
 
 ## Authority and data flow
 
@@ -78,15 +78,15 @@ No age-based retention policy or orphan timestamp is required for the initial im
 
 IPv4 and IPv6 are independently ordered UFW rule sets. Their concatenated `ufw status numbered` coordinates remain important to daemon/protocol compatibility, but cross-family relative position has no packet-processing meaning.
 
-The UI should therefore move toward family-relative presentation coordinates:
+The browser therefore uses family-relative presentation coordinates:
 
-- render a family-local `#` or `Position` instead of presenting the combined UFW number as the primary user-facing ordinal;
-- preserve the authoritative combined UFW display number in the underlying snapshot for protocol/subprocess semantics;
-- compute ordering previews and position-change indicators in family-local coordinates;
-- keep snapshot-local occurrence identity distinct from user-facing family position;
-- permit only family-local reordering.
+- the visible `Position` is one-based within the selected address family;
+- the authoritative combined UFW display number remains part of the underlying snapshot for protocol/subprocess semantics only;
+- ordering previews, move targets, position-change indicators, and ordering-result messages use family-local coordinates;
+- snapshot-local occurrence identity remains distinct from user-facing family position;
+- reordering is limited to one address family.
 
-This makes IPv4 and IPv6 self-contained presentation units. The preparatory refactor presents them as tab-selected family workspaces within the shared `/rules` page, while keeping the component boundary independent enough that a later navigation/layout change would not alter rule authority or ordering semantics.
+The shared `/rules` page presents IPv4 and IPv6 as tab-selected `RuleFamilyWorkspace` instances. Global firewall state, refresh/mutation orchestration, and family selection stay at page level; drag/drop and move interaction remain family-local. The component boundary is independent of the tab layout, so a later navigation change would not alter rule authority or ordering semantics.
 
 ## Rule-list projection
 
@@ -129,15 +129,175 @@ Expected rule counts are small enough that transferring the complete enriched sn
 
 ASP remains responsible for assembling truth; the client owns view projection.
 
-Search/filter implementation should still be separated from Razor rendering. A pure query evaluator should consume the current rule-list projection plus a structured query and return visible rows together with structured match information. Match results should identify semantic fields and text ranges rather than emitting HTML, allowing desktop and mobile renderers to highlight the same result safely.
+### Structured query model
 
-Client-side evaluation does not preclude navigable query URLs. Query state can be parsed from and synchronized to the rules route, for example:
+Filtering should be modelled as a collection/pipeline of independently configured filters rather than one monolithic options object that knows every supported predicate. A query may additionally contain free-text search terms, but structured filter instances remain the canonical representation for field-specific semantics.
+
+Conceptually:
 
 ```text
-/rules?q=ssh&family=v4&action=allow&tag=observability
+RuleQuery
+  free-text terms*
+  configured filters*
+    SourceFilter
+    DestinationFilter
+    PortFilter
+    ProtocolFilter
+    ActionFilter
+    DirectionFilter
+    TagFilter
+    GroupFilter
+    ...
 ```
 
-Reloading or browser navigation fetches the current enriched snapshot and reapplies the URL query. A refresh atomically replaces the loaded snapshot while preserving/reapplying the active query.
+The initial combination rule should be simple conjunction: every configured filter must pass for a row to remain visible. More expressive boolean query trees are intentionally deferred until a concrete use case justifies the added UI and evaluation complexity.
+
+Each configured filter is an instance with its own data model. Filter semantics should live in focused evaluator logic rather than in Razor components or one central `RuleFilterOptions` class. The exact interface names are implementation details, but the responsibility split should remain approximately:
+
+```text
+filter data model
+      |
+      v
+filter evaluator
+  row + family/query context
+      |
+      v
+pass/fail + structured match evidence
+```
+
+A filter evaluator must not emit HTML, `RenderFragment`, Blazor component types, or other presentation objects.
+
+The selected IP-family workspace is evaluation context rather than another filter. IPv4 filtering operates over the IPv4 projection and IPv6 filtering over the IPv6 projection. Family-sensitive parsing and network predicates can therefore specialize cleanly without adding `family=v4` as an ordinary user-visible filter inside a family-local workspace.
+
+Sorting is also separate from filtering. Filters determine which rows are visible; sorting determines how the resulting view is presented. Firewall-order sorting remains the mode in which reordering semantics are meaningful.
+
+### Structured match evidence
+
+Search/filter evaluation should return visible rows together with typed, semantic evidence explaining why a row matched. This evidence is accumulated by the configured filters that a surviving row passes through.
+
+Examples include:
+
+```text
+TagMatch
+  tag = observability
+
+NetworkMatch
+  field = Source
+  rule network = 10.100.20.0/24
+  query network = 10.100.20.17
+  relationship = Contains
+
+TextMatch
+  field = Comment
+  range = [12, 22)
+```
+
+The concrete evidence types are implementation details, but they should describe domain/query semantics rather than rendering instructions. Desktop and mobile presenters can then render the same evidence safely and consistently.
+
+This extends the existing rule-list projection without changing authority:
+
+```text
+canonical presentation row
+        |
+        + RuleQuery
+        |
+        v
+visible row
+  + RuleMatchEvidence*
+```
+
+A row that fails one filter can be discarded immediately. A row that survives the complete filter pipeline retains the accumulated evidence needed for match-context presentation.
+
+### Filter UI direction
+
+The long-term UI should treat filters as composable objects rather than expose every possible field permanently.
+
+Applied filters are represented compactly as removable chips/tags, for example:
+
+```text
+[ Source: 10.0.0.0/8 × ] [ Protocol: TCP × ] [ Tag: observability × ]
+```
+
+Removing a chip removes that filter instance. Selecting an existing chip should be able to reopen its editor with the current filter data pre-filled.
+
+The eventual dynamic filter-builder direction is:
+
+```text
++ Filter
+   |
+   v
+filter selector / autocomplete
+   |
+   v
+selected filter editor
+  filter-specific input fields
+   |
+   v
+configured filter instance
+   |
+   v
+applied-filter chip
+```
+
+The available-filter catalogue and configured-filter instances are distinct concepts. A filter definition/registration can provide a stable key, display name/category, editor registration, and presentation metadata, while a configured filter instance contains only the values needed by that filter's semantics.
+
+Blazor can host a filter-specific editor dynamically, but dynamic component types belong in client-side UI registration rather than the filter/evaluator domain model. Most filter chips and match evidence should use shared generic presenters fed by small presentation models; bespoke components should be reserved for cases that genuinely need them.
+
+The editor host does not need to be fixed to a modal dialog. A desktop implementation may use a compact popover anchored to `+ Filter` or an existing chip, while a narrow/mobile layout may present the same editor component inside a dialog or sheet.
+
+### Phased filtering implementation
+
+The filtering feature should evolve in work-based phases so that the architectural work remains useful even before the dynamic UI exists.
+
+#### Phase 1: structured baseline
+
+Start with a straightforward, hard-coded structural filter form and modular code behind it.
+
+The first slice should establish:
+
+- configured filter models rather than one monolithic filter state object;
+- focused filter evaluators/pipeline composition;
+- typed match evidence;
+- free-text search as a separate query concern that can coexist with structural filters;
+- applied-filter chip presentation where practical;
+- family-local evaluation context;
+- query/filter state separated from sorting and ordering state;
+- tests for filter composition, CIDR-aware semantics, text matching, evidence generation, and interaction-mode invariants.
+
+The hard-coded form is deliberately replaceable UI, but the query/evaluator/evidence model is not throwaway work.
+
+#### Phase 2: dynamic filter composition
+
+When the fixed form becomes crowded, replace it with the filter-selector/editor flow:
+
+- `+ Filter` opens a searchable/category-aware filter selector;
+- selecting a filter dynamically renders that filter's editor;
+- applying the editor adds one configured filter instance;
+- clicking an applied-filter chip reopens that editor with existing values;
+- removing a chip removes only that filter instance;
+- new filter types can be added primarily through registration plus their model/evaluator/editor/presentation pieces rather than by expanding a central form.
+
+This phase should preserve the same query model and evaluator pipeline introduced in phase 1.
+
+#### Phase 3: optional shorthand query grammar
+
+A compact context-search grammar can be added later as a power-user convenience, for example:
+
+```text
+from:10.0.0.0/8 to:10.1.2.3 proto:tcp tag:observability "prometheus"
+```
+
+The grammar must compile into the same configured filter models/free-text terms used by the structural UI. It must not become a second filtering implementation.
+
+Unqualified text should remain ordinary text search rather than being aggressively inferred as an address, port, tag, or other structured predicate. Explicit prefixes can add precision without making normal search surprising.
+
+The shorthand grammar is optional. It should only be implemented if the structural UI and real usage demonstrate that the convenience is worth the grammar, completion, validation, and discoverability work.
+
+### Navigation and refresh behavior
+
+Client-side evaluation does not preclude navigable query URLs. Query state can be parsed from and synchronized to the rules route. The exact encoding is deferred because the filter collection may outgrow a fixed set of scalar query parameters.
+
+Reloading or browser navigation fetches the current enriched snapshot and reapplies the current query. A refresh atomically replaces the loaded snapshot while preserving/reapplying active query state.
 
 A dedicated server-side `/rules/search` endpoint is not part of the baseline. It should only be introduced later if a concrete server-side use case appears.
 
@@ -184,90 +344,56 @@ These two regions must not share one generic `Expanded` flag or otherwise become
 
 ## Component boundaries
 
-The current rule table is long partly because it contains legitimate interaction complexity, but the enrichment/search work would add multiple independent axes of behavior. The useful split is by interaction responsibility, not by arbitrary markup size.
+The presentation foundation is already decomposed along interaction boundaries. The feature sprint should extend those boundaries rather than rebuilding family separation or collapsing the row presenters back into a monolith.
 
-The intended component shape is approximately:
+The current and planned component shape is approximately:
 
 ```text
 Rules page
-  RuleListToolbar
-    search + filters
-
-  RuleList / RuleTable shell
-    RuleFamilyView (IPv4)
+  global firewall state / mutation orchestration
+  IPv4 | IPv6 tabs
+    RuleFamilyWorkspace (selected family)
+      RuleListToolbar                 planned
+        free-text search
+        applied filter chips
+        filter editor/selector host
+        sorting
       RuleDesktopRow*
-        RuleMatchContext?
-        RuleMetadataDetails?
+        RuleMatchContext?             planned
+        RuleMetadataDetails?          planned
       RuleMobileCard*
-        RuleMatchContext?
-        RuleMetadataDetails?
-
-    RuleFamilyView (IPv6)
-      ...
+        RuleMatchContext?             planned
+        RuleMetadataDetails?          planned
 ```
 
 Responsibilities should remain narrow:
 
-- the rules page owns authoritative refresh/mutation lifecycle and page-level interaction mode;
-- the list/table shell owns family composition and cross-family presentation only;
-- `RuleFamilyView` owns one family's drag source/drop target, family-local ordering interactions, heading/count, and family-local empty state;
+- the rules page owns authoritative refresh/mutation lifecycle, selected-family navigation, URL-backed query state, and page-level interaction mode;
+- `IRuleListProjectionService` derives the canonical family partitions, occurrence identity, family positions, duplicate/mutation capabilities, and ordering state before query evaluation;
+- `RuleFamilyWorkspace` owns one family's drag source/drop target, move interaction, family-local empty state, and the presentation surface for that family's future query controls/results;
+- the query/filter layer owns configured filter state, evaluation, sorting state, and structured match evidence without depending on Razor rendering;
+- the toolbar owns free-text entry, applied-filter chip interaction, filter-editor hosting, and sort selection, but delegates filter semantics to the query layer;
 - desktop rows and mobile cards render one rule through their naturally different DOM structures and emit explicit callbacks for actions;
-- match-context presentation renders structured query matches;
+- match-context presentation renders structured query evidence;
 - metadata-details presentation renders enriched rule context but does not perform persistence or daemon operations.
 
 Avoid Razor component inheritance as the mechanism for IPv4/IPv6 specialization. Shared layout should use component composition, while family-sensitive parsing/validation/search behavior should be supplied through focused policies/services. This keeps Blazor lifecycle/render state out of inheritance hierarchies and allows most query predicates to remain family-independent.
 
-High-frequency browser drag events should retain their current non-rendering treatment; component extraction must not introduce avoidable render churn during drag interaction.
+High-frequency browser drag events should retain their current non-rendering treatment; future feature work must not introduce avoidable render churn during drag interaction.
 
-## Templates
+## Existing presentation foundation
 
-Templates are ASP-owned authoring artifacts, not live rules and not part of live-rule identity.
+The presentation preparation is complete and is treated as the baseline for this sprint. In particular:
 
-The intended relationship is:
+- authoritative `ListedFirewallRule.DisplayNumber` values are no longer rewritten for local ordering previews;
+- browser-visible positions and ordering feedback are family-relative while daemon/protocol coordinates remain combined-snapshot values;
+- rule-list projection terminology and services are rendering-agnostic;
+- `/rules` owns tab-based IPv4/IPv6 family selection and composes one `RuleFamilyWorkspace` at a time;
+- family-local drag/drop and move state are isolated from page-global refresh/mutation state;
+- desktop rows and mobile cards are focused presenters rather than branches inside one monolithic table component;
+- component-specific Sass follows those ownership boundaries.
 
-```text
-Rule template
-    |
-    | load
-    v
-FirewallRuleSpecification draft
-    |
-    | edit / validate / sign
-    v
-UFW mutation
-```
-
-A template can pre-populate the existing rule editor, after which normal validation, signing, and daemon enforcement apply. Editing or deleting a template has no UFW side effects.
-
-The live-rule action menu can offer **Save as template**. A separate template manager can create, edit, and delete templates without touching UFW.
-
-### Disable rule
-
-**Disable rule** is an application workflow built from existing concepts rather than a new daemon mutation:
-
-1. persist a reusable template representation successfully;
-2. issue the ordinary signed UFW delete;
-3. if deletion fails, keep the template and report that the live rule remains active;
-4. if deletion succeeds, clean up live-rule metadata according to the normal in-band deletion policy.
-
-Persisting first is intentional. A failed delete can leave an extra template, while deleting first could lose the rule definition if template persistence subsequently fails.
-
-Templates remain independent after creation. Re-enabling from a template creates a normal rule from the template's current draft values; it does not resurrect a hidden firewall object or bypass normal mutation validation.
-
-Whether templates retain optional provenance such as "created from rule" or whether selected metadata is copied into a template is deferred to the detailed template/data-model design.
-
-## Preparatory work before feature implementation
-
-Before designing concrete metadata entities and endpoints, the existing UI should receive one focused structural preparation pass:
-
-1. **Make family-relative position first-class in presentation.** Stop treating combined UFW numbering as the visible ordering model. Preserve the combined number only where authoritative snapshot/protocol semantics require it.
-2. **Separate authoritative rules from ordering-preview state.** Ordering previews should describe desired occurrence order without cloning rules or rewriting authoritative UFW display numbers.
-3. **Generalize the projection vocabulary.** The existing rule-table projection increasingly represents a reusable rule-list presentation model rather than HTML-table state. Rename/generalize where that improves the boundary without speculative abstraction.
-4. **Move family separation to a real UI boundary.** Keep one `/rules` page for global firewall state and mutation orchestration, but compose IPv4/IPv6 as tab-selected family workspaces with family-local interaction state.
-5. **Decompose the rule UI at interaction seams.** Extract family-level drag/move behavior and focused desktop/mobile row presenters. Do not create placeholder search/match or metadata components before those features exist.
-6. **Preserve behavior and protocol boundaries.** No search/filter implementation, daemon protocol, signing, EF schema, enriched REST endpoint, metadata, or template changes belong in this preparatory refactor.
-
-The implementation sequence and acceptance criteria are tracked in [Rule-presentation foundation refactor plan](rule-presentation-foundation-refactor-plan.md). After this preparation, search/filtering, ASP enrichment/grouping, and templates can be developed as separate feature slices over a stable presentation foundation.
+The feature sprint should build on these contracts. Reworking family separation, numbering, ordering-preview authority, or the row/card decomposition is out of scope unless a concrete feature exposes a defect in the established foundation.
 
 ## Deferred detailed design
 
@@ -276,9 +402,8 @@ The following are intentionally not fixed by this baseline and should be worked 
 - exact EF entities, keys, relationships, indexes, concurrency fields, and migrations;
 - exact browser-facing REST contract and whether enriched contracts warrant a dedicated API-contract project;
 - concrete metadata fields and grouping semantics;
-- exact query grammar, filter controls, URL encoding, and highlighting rules;
+- exact future shorthand query grammar, URL encoding, filter-editor hosting surface, filter catalogue, and highlighting/presentation polish;
 - whether ordered insertion remains available while a filter is active;
-- template schema, metadata-copy behavior, provenance, and template-manager UX;
 - reconciliation endpoint/command shape and orphan-cleanup confirmation UX;
 - optional direct rule-detail navigation;
 - any future automated orphan-retention policy.
