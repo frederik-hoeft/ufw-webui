@@ -2,7 +2,7 @@
 
 This document captures the agreed architectural direction for the next rule-presentation sprint. Here, **sprint** is only a convenient name for a coherent body of work: the plan is organized into work-based phases and sub-phases rather than a time-boxed schedule with deadlines. It is temporary maintainer guidance rather than steady-state architecture documentation; exact database entities, REST resources, filter catalogues, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
 
-The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, grouping, and reusable rule templates without turning PostgreSQL into a second firewall database.
+The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, and grouping without turning PostgreSQL into a second firewall database. Reusable rule templates and other larger follow-on capabilities are tracked separately in the [long-term feature backlog](long-term-feature-backlog.md).
 
 ## Authority and data flow
 
@@ -381,43 +381,6 @@ Avoid Razor component inheritance as the mechanism for IPv4/IPv6 specialization.
 
 High-frequency browser drag events should retain their current non-rendering treatment; future feature work must not introduce avoidable render churn during drag interaction.
 
-## Templates
-
-Templates are ASP-owned authoring artifacts, not live rules and not part of live-rule identity.
-
-The intended relationship is:
-
-```text
-Rule template
-    |
-    | load
-    v
-FirewallRuleSpecification draft
-    |
-    | edit / validate / sign
-    v
-UFW mutation
-```
-
-A template can pre-populate the existing rule editor, after which normal validation, signing, and daemon enforcement apply. Editing or deleting a template has no UFW side effects.
-
-The live-rule action menu can offer **Save as template**. A separate template manager can create, edit, and delete templates without touching UFW.
-
-### Disable rule
-
-**Disable rule** is an application workflow built from existing concepts rather than a new daemon mutation:
-
-1. persist a reusable template representation successfully;
-2. issue the ordinary signed UFW delete;
-3. if deletion fails, keep the template and report that the live rule remains active;
-4. if deletion succeeds, clean up live-rule metadata according to the normal in-band deletion policy.
-
-Persisting first is intentional. A failed delete can leave an extra template, while deleting first could lose the rule definition if template persistence subsequently fails.
-
-Templates remain independent after creation. Re-enabling from a template creates a normal rule from the template's current draft values; it does not resurrect a hidden firewall object or bypass normal mutation validation.
-
-Whether templates retain optional provenance such as "created from rule" or whether selected metadata is copied into a template is deferred to the detailed template/data-model design.
-
 ## Existing presentation foundation
 
 The presentation preparation is complete and is treated as the baseline for this sprint. In particular:
@@ -441,7 +404,6 @@ The following are intentionally not fixed by this baseline and should be worked 
 - concrete metadata fields and grouping semantics;
 - exact future shorthand query grammar, URL encoding, filter-editor hosting surface, filter catalogue, and highlighting/presentation polish;
 - whether ordered insertion remains available while a filter is active;
-- template schema, metadata-copy behavior, provenance, and template-manager UX;
 - reconciliation endpoint/command shape and orphan-cleanup confirmation UX;
 - optional direct rule-detail navigation;
 - any future automated orphan-retention policy.
