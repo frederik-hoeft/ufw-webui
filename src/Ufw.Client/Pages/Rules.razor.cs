@@ -49,9 +49,9 @@ public sealed partial class Rules
 
     private RuleFamilyProjection IPv6Family => _ruleListProjection.GetFamily(FirewallAddressFamily.IPv6);
 
-    private IReadOnlyList<RuleRowProjection> IPv4VisibleRows => _ipv4QueryResult.VisibleRows;
+    private IReadOnlyList<RuleQueryRow> IPv4QueryRows => _ipv4QueryResult.Rows;
 
-    private IReadOnlyList<RuleRowProjection> IPv6VisibleRows => _ipv6QueryResult.VisibleRows;
+    private IReadOnlyList<RuleQueryRow> IPv6QueryRows => _ipv6QueryResult.Rows;
 
     private RuleListInteractionState InteractionState => RuleListInteractionState.Resolve(_ruleQuery.IsActive, HasOrderingPreview);
 

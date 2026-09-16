@@ -1,6 +1,7 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Client.Rules.Filtering;
+using Ufw.Shared.Firewall;
 
-namespace Ufw.Client.Rules.Filtering;
+namespace Ufw.Client.Rules.Filtering.Protocols;
 
 internal sealed class ProtocolRuleFilterEvaluator : RuleFilterEvaluator<ProtocolRuleFilter>
 {
@@ -9,7 +10,7 @@ internal sealed class ProtocolRuleFilterEvaluator : RuleFilterEvaluator<Protocol
         _ = context;
         FirewallRuleSpecification? rule = row.Rule.Rule;
         return row.Rule.Parsed && rule is not null && rule.Protocol == filter.Protocol
-            ? RuleMatchEvaluation.Match(new FieldRuleMatchEvidence(FieldRuleMatchEvidence.FieldKind.Protocol, RuleSpecificationNormalizer.FormatProtocol(rule.Protocol)))
+            ? RuleMatchEvaluation.Match(new ProtocolRuleMatchEvidence(RuleSpecificationNormalizer.FormatProtocol(rule.Protocol)))
             : RuleMatchEvaluation.NoMatch;
     }
 }

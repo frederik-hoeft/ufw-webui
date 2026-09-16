@@ -1,4 +1,4 @@
-@page "/rules"
+﻿@page "/rules"
 @attribute [Authorize]
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
@@ -184,7 +184,7 @@ else if (_state.Snapshot is { })
              TabPanelsClass="rule-family-tab-panels">
         <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv4)" BadgeData="@IPv4Family.Rows.Count">
             <RuleFamilyWorkspace Family="@IPv4Family"
-                                 VisibleRows="@IPv4VisibleRows"
+                                 QueryRows="@IPv4QueryRows"
                                  Query="@_ruleQuery"
                                  QueryActive="@_ruleQuery.IsActive"
                                  QueryChangesDisabled="@(!InteractionState.CanChangeQuery)"
@@ -201,7 +201,7 @@ else if (_state.Snapshot is { })
         {
             <MudTabPanel Text="@RuleText.FormatAddressFamily(FirewallAddressFamily.IPv6)" BadgeData="@IPv6Family.Rows.Count">
                 <RuleFamilyWorkspace Family="@IPv6Family"
-                                     VisibleRows="@IPv6VisibleRows"
+                                     QueryRows="@IPv6QueryRows"
                                      Query="@_ruleQuery"
                                      QueryActive="@_ruleQuery.IsActive"
                                      QueryChangesDisabled="@(!InteractionState.CanChangeQuery)"

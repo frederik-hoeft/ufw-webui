@@ -1,4 +1,4 @@
-@inject IFirewallRuleText RuleText
+﻿@inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 @{
@@ -132,6 +132,14 @@ else
                     <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
                 </span>
             </MudTooltip>
+        </td>
+    </tr>
+}
+@if (MatchEvidence.Count > 0)
+{
+    <tr class="rule-match-context-row">
+        <td colspan="9">
+            <RuleMatchContext Evidence="@MatchEvidence" />
         </td>
     </tr>
 }

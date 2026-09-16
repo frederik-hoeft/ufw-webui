@@ -1,6 +1,7 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Client.Rules.Filtering;
+using Ufw.Shared.Firewall;
 
-namespace Ufw.Client.Rules.Filtering;
+namespace Ufw.Client.Rules.Filtering.Networks;
 
 internal sealed class NetworkRuleFilterEvaluator : RuleFilterEvaluator<NetworkRuleFilter>
 {

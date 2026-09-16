@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Client.Rules;
+using Ufw.Client.Rules.Filtering;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
@@ -9,6 +10,9 @@ public sealed partial class RuleDesktopRow
 {
     [Parameter, EditorRequired]
     public RuleRowProjection Row { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<RuleMatchEvidence> MatchEvidence { get; set; } = [];
 
     [Parameter]
     public bool OrderingDisabled { get; set; }
@@ -72,6 +76,10 @@ public sealed partial class RuleDesktopRow
             {
                 classes.Add("ordering-direct");
             }
+            if (MatchEvidence.Count > 0)
+            {
+                classes.Add("has-match-context");
+            }
 
             if (DropIndicatorEdge is { } edge)
             {
@@ -82,12 +90,22 @@ public sealed partial class RuleDesktopRow
         }
     }
 
-    private string ReadOnlyRowClass => DropIndicatorEdge switch
+    private string ReadOnlyRowClass
     {
-        RuleDropIndicatorEdge.Before => "rule-desktop-row drop-before",
-        RuleDropIndicatorEdge.After => "rule-desktop-row drop-after",
-        _ => "rule-desktop-row",
-    };
+        get
+        {
+            List<string> classes = ["rule-desktop-row"];
+            if (MatchEvidence.Count > 0)
+            {
+                classes.Add("has-match-context");
+            }
+            if (DropIndicatorEdge is { } edge)
+            {
+                classes.Add(edge == RuleDropIndicatorEdge.Before ? "drop-before" : "drop-after");
+            }
+            return string.Join(' ', classes);
+        }
+    }
 
     private Task DropAsync() => DropRequested(Row);
 

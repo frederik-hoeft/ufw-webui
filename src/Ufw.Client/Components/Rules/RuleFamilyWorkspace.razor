@@ -61,9 +61,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (RuleRowProjection row in DisplayedRows)
+                        @foreach (RuleQueryRow result in DisplayedRows)
                         {
+                            RuleRowProjection row = result.Row;
                             <RuleDesktopRow Row="@row"
+                                            MatchEvidence="@result.Evidence"
                                             OrderingDisabled="@OrderingDisabled"
                                             InsertionDisabled="@InsertionDisabled"
                                             MutationDisabled="@Disabled"
@@ -81,9 +83,11 @@
             </div>
 
             <div class="mobile-list" aria-busy="@Loading">
-                @foreach (RuleRowProjection row in DisplayedRows)
+                @foreach (RuleQueryRow result in DisplayedRows)
                 {
+                    RuleRowProjection row = result.Row;
                     <RuleMobileCard Row="@row"
+                                    MatchEvidence="@result.Evidence"
                                     OrderingDisabled="@OrderingDisabled"
                                     InsertionDisabled="@InsertionDisabled"
                                     MutationDisabled="@Disabled"

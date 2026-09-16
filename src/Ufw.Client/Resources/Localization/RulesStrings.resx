@@ -589,7 +589,6 @@
   <data name="RuleFiltersAria" xml:space="preserve"><value>Rule search and filters</value></data>
   <data name="SearchRules" xml:space="preserve"><value>Search rules</value></data>
   <data name="SearchRulesPlaceholder" xml:space="preserve"><value>Search comments, addresses, interfaces, protocol, action, or raw rules</value></data>
-  <data name="ApplyFilters" xml:space="preserve"><value>Apply</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Clear</value></data>
   <data name="SourceNetworkFilter" xml:space="preserve"><value>Source network</value></data>
   <data name="DestinationNetworkFilter" xml:space="preserve"><value>Destination network</value></data>
@@ -601,6 +600,10 @@
   <data name="InvalidPortFilter" xml:space="preserve"><value>Enter a port, comma-separated ports, or port ranges such as 443,8000:8100.</value></data>
   <data name="InvalidNetworkFilter" xml:space="preserve"><value>Enter a literal IP address or CIDR network.</value></data>
   <data name="WrongFamilyNetworkFilter" xml:space="preserve"><value>Enter a {0} address or CIDR for this rule list.</value></data>
+  <data name="RuleMatchContextAria" xml:space="preserve"><value>Rule match context</value></data>
+  <data name="RuleMatchContextLabel" xml:space="preserve"><value>Matched by</value></data>
+  <data name="RuleEndpointAny" xml:space="preserve"><value>Endpoint</value></data>
+  <data name="RawRule" xml:space="preserve"><value>Raw rule</value></data>
   <data name="NoMatchingRules" xml:space="preserve"><value>No rules match this query</value></data>
   <data name="NoMatchingRulesDescription" xml:space="preserve"><value>Adjust the search terms or structured filters to show rules in this address family.</value></data>
   <data name="FilteredRuleCount" xml:space="preserve"><value>Showing {0} of {1} rules</value></data>

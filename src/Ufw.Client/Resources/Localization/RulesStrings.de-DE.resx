@@ -589,7 +589,6 @@
   <data name="RuleFiltersAria" xml:space="preserve"><value>Regelsuche und Filter</value></data>
   <data name="SearchRules" xml:space="preserve"><value>Regeln durchsuchen</value></data>
   <data name="SearchRulesPlaceholder" xml:space="preserve"><value>Kommentare, Adressen, Interfaces, Protokoll, Aktion oder Rohregeln durchsuchen</value></data>
-  <data name="ApplyFilters" xml:space="preserve"><value>Anwenden</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Zurücksetzen</value></data>
   <data name="SourceNetworkFilter" xml:space="preserve"><value>Quellnetz</value></data>
   <data name="DestinationNetworkFilter" xml:space="preserve"><value>Zielnetz</value></data>
@@ -601,6 +600,10 @@
   <data name="InvalidPortFilter" xml:space="preserve"><value>Geben Sie einen Port, kommagetrennte Ports oder Portbereiche wie 443,8000:8100 ein.</value></data>
   <data name="InvalidNetworkFilter" xml:space="preserve"><value>Geben Sie eine konkrete IP-Adresse oder ein CIDR-Netz ein.</value></data>
   <data name="WrongFamilyNetworkFilter" xml:space="preserve"><value>Geben Sie für diese Regelliste eine {0}-Adresse oder ein {0}-CIDR ein.</value></data>
+  <data name="RuleMatchContextAria" xml:space="preserve"><value>Trefferkontext der Regel</value></data>
+  <data name="RuleMatchContextLabel" xml:space="preserve"><value>Treffer durch</value></data>
+  <data name="RuleEndpointAny" xml:space="preserve"><value>Endpunkt</value></data>
+  <data name="RawRule" xml:space="preserve"><value>Rohregel</value></data>
   <data name="NoMatchingRules" xml:space="preserve"><value>Keine Regel entspricht dieser Abfrage</value></data>
   <data name="NoMatchingRulesDescription" xml:space="preserve"><value>Passen Sie Suchbegriffe oder strukturierte Filter an, um Regeln dieser Adressfamilie anzuzeigen.</value></data>
   <data name="FilteredRuleCount" xml:space="preserve"><value>{0} von {1} Regeln werden angezeigt</value></data>

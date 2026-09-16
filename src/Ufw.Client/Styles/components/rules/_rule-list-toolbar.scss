@@ -11,8 +11,8 @@
 
     > .search-row {
         display: grid;
-        grid-template-columns: minmax(16rem, 1fr) auto auto;
-        align-items: start;
+        grid-template-columns: minmax(16rem, 1fr) auto;
+        align-items: center;
         gap: 0.5rem;
 
         > .mud-input-control {

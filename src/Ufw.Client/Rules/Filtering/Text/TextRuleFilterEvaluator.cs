@@ -1,21 +1,16 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Client.Rules.Filtering;
+using Ufw.Shared.Firewall;
 
-namespace Ufw.Client.Rules.Filtering;
+namespace Ufw.Client.Rules.Filtering.Text;
 
-internal sealed class RuleTextSearchService : IRuleTextSearchService
+internal sealed class TextRuleFilterEvaluator : RuleFilterEvaluator<TextRuleFilter>
 {
-    public RuleMatchEvaluation Evaluate(RuleRowProjection row, IReadOnlyList<string> terms)
+    protected override RuleMatchEvaluation Evaluate(RuleRowProjection row, TextRuleFilter filter, RuleFilterContext context)
     {
-        ArgumentNullException.ThrowIfNull(row);
-        ArgumentNullException.ThrowIfNull(terms);
-        if (terms.Count == 0)
-        {
-            return new RuleMatchEvaluation(true, []);
-        }
-
+        _ = context;
         IReadOnlyList<SearchField> fields = CreateFields(row);
         List<RuleMatchEvidence> evidence = [];
-        foreach (string term in terms)
+        foreach (string term in filter.Terms)
         {
             TextRuleMatchEvidence? match = FindFirst(fields, term);
             if (match is null)

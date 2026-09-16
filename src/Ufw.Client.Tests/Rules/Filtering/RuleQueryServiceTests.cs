@@ -1,5 +1,11 @@
 ﻿using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
+using Ufw.Client.Rules.Filtering.Actions;
+using Ufw.Client.Rules.Filtering.Directions;
+using Ufw.Client.Rules.Filtering.Networks;
+using Ufw.Client.Rules.Filtering.Ports;
+using Ufw.Client.Rules.Filtering.Protocols;
+using Ufw.Client.Rules.Filtering.Text;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Tests.Rules.Filtering;
@@ -14,8 +20,8 @@ public sealed class RuleQueryServiceTests
         new ProtocolRuleFilterEvaluator(),
         new ActionRuleFilterEvaluator(),
         new DirectionRuleFilterEvaluator(),
-    ],
-        new RuleTextSearchService());
+        new TextRuleFilterEvaluator(),
+    ]);
 
     [TestMethod]
     public void Evaluate_ComposesFiltersConjunctivelyWithoutChangingCanonicalProjection()
@@ -25,7 +31,7 @@ public sealed class RuleQueryServiceTests
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [first, second]);
         Assert.IsTrue(RuleNetwork.TryParse("10.20.30.40", out RuleNetwork? network));
         Assert.IsTrue(RulePortSet.TryParse("443", out RulePortSet? ports));
-        RuleQuery query = new([], [
+        RuleQuery query = new([
             new NetworkRuleFilter(RuleEndpointField.Source, network!),
             new PortRuleFilter(RuleEndpointField.Destination, ports!),
             new ProtocolRuleFilter(FirewallProtocol.Tcp),
@@ -52,7 +58,7 @@ public sealed class RuleQueryServiceTests
             Row(3, 4, source: "10.100.21.0/24"),
         ]);
         Assert.IsTrue(RuleNetwork.TryParse("10.100.20.0/28", out RuleNetwork? queryNetwork));
-        RuleQuery query = new([], [new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]);
+        RuleQuery query = new([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, query);
 
@@ -69,7 +75,7 @@ public sealed class RuleQueryServiceTests
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, destination: "192.0.2.40")]);
         Assert.IsTrue(RuleNetwork.TryParse("192.0.2.0/24", out RuleNetwork? queryNetwork));
 
-        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([], [new NetworkRuleFilter(RuleEndpointField.Destination, queryNetwork!)]));
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Destination, queryNetwork!)]));
 
         Assert.HasCount(1, result.Rows);
         NetworkRuleMatchEvidence evidence = (NetworkRuleMatchEvidence)result.Rows[0].Evidence.Single();
@@ -82,7 +88,7 @@ public sealed class RuleQueryServiceTests
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, source: "any")]);
         Assert.IsTrue(RuleNetwork.TryParse("2001:db8::1", out RuleNetwork? queryNetwork));
 
-        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([], [new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
 
         Assert.IsEmpty(result.Rows);
     }
@@ -98,7 +104,7 @@ public sealed class RuleQueryServiceTests
         ]);
         Assert.IsTrue(RuleNetwork.TryParse("2001:db8:10::1234", out RuleNetwork? queryNetwork));
 
-        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([], [new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
 
         CollectionAssert.AreEqual(new[] { 0, 1 }, result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
         Assert.AreEqual("::/0", ((NetworkRuleMatchEvidence)result.Rows[1].Evidence.Single()).RuleNetwork);
@@ -132,19 +138,19 @@ public sealed class RuleQueryServiceTests
         ]);
         Assert.IsTrue(RulePortSet.TryParse("1500,8443", out RulePortSet? ports));
 
-        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([], [new PortRuleFilter(RuleEndpointField.Destination, ports!)]));
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new PortRuleFilter(RuleEndpointField.Destination, ports!)]));
 
         CollectionAssert.AreEqual(new[] { 0, 2 }, result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
         Assert.AreEqual("any", ((PortRuleMatchEvidence)result.Rows[1].Evidence.Single()).RulePorts);
     }
 
     [TestMethod]
-    public void Evaluate_TextTermsMatchAcrossFieldsAndReturnRanges()
+    public void Evaluate_TextFilterMatchesAcrossFieldsAndReturnsRanges()
     {
         RuleRowProjection row = Row(0, 1, source: "10.0.0.0/8", destinationPorts: "443", comment: "Prometheus metrics", protocol: FirewallProtocol.Tcp);
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [row]);
 
-        RuleFamilyQueryResult result = _service.Evaluate(family, RuleQuery.Create("prometheus tcp"));
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("prometheus tcp")]));
 
         Assert.HasCount(1, result.Rows);
         Assert.HasCount(2, result.Rows[0].Evidence);
@@ -162,8 +168,8 @@ public sealed class RuleQueryServiceTests
         RuleRowProjection row = new(opaque, FirewallAddressFamily.IPv4, 0, 1, 1, false, false, null);
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [row]);
 
-        Assert.HasCount(1, _service.Evaluate(family, RuleQuery.Create("monitoring")).Rows);
-        RuleQuery structured = new([], [new ActionRuleFilter(FirewallAction.Allow)]);
+        Assert.HasCount(1, _service.Evaluate(family, new RuleQuery([new TextRuleFilter("monitoring")])).Rows);
+        RuleQuery structured = new([new ActionRuleFilter(FirewallAction.Allow)]);
         Assert.IsEmpty(_service.Evaluate(family, structured).Rows);
     }
 
@@ -171,7 +177,7 @@ public sealed class RuleQueryServiceTests
     public void Evaluate_RejectsUnregisteredFilterEvenWhenFamilyHasNoRows()
     {
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, []);
-        RuleQuery query = new([], [new UnregisteredRuleFilter()]);
+        RuleQuery query = new([new UnregisteredRuleFilter()]);
 
         InvalidOperationException exception = Assert.ThrowsExactly<InvalidOperationException>(() => _service.Evaluate(family, query));
 
@@ -179,11 +185,11 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
-    public void RuleQuery_ParsesQuotedFreeTextAsOneTerm()
+    public void TextRuleFilter_ParsesQuotedFreeTextAsOneTerm()
     {
-        RuleQuery query = RuleQuery.Create("prometheus \"home network\" tcp");
+        TextRuleFilter filter = new("prometheus \"home network\" tcp");
 
-        CollectionAssert.AreEqual(new[] { "prometheus", "home network", "tcp" }, query.TextTerms.ToArray());
+        CollectionAssert.AreEqual(new[] { "prometheus", "home network", "tcp" }, filter.Terms.ToArray());
     }
 
     private sealed record UnregisteredRuleFilter : RuleFilter;

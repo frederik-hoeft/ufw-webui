@@ -3,12 +3,10 @@
 internal sealed class RuleQueryService : IRuleQueryService
 {
     private readonly IReadOnlyDictionary<Type, IRuleFilterEvaluator> _evaluators;
-    private readonly IRuleTextSearchService _textSearch;
 
-    public RuleQueryService(IEnumerable<IRuleFilterEvaluator> evaluators, IRuleTextSearchService textSearch)
+    public RuleQueryService(IEnumerable<IRuleFilterEvaluator> evaluators)
     {
         ArgumentNullException.ThrowIfNull(evaluators);
-        _textSearch = textSearch ?? throw new ArgumentNullException(nameof(textSearch));
         _evaluators = evaluators.ToDictionary(static evaluator => evaluator.FilterType);
     }
 
@@ -22,13 +20,7 @@ internal sealed class RuleQueryService : IRuleQueryService
         List<RuleQueryRow> visibleRows = [];
         foreach (RuleRowProjection row in family.Rows)
         {
-            RuleMatchEvaluation textResult = _textSearch.Evaluate(row, query.TextTerms);
-            if (!textResult.Matches)
-            {
-                continue;
-            }
-
-            List<RuleMatchEvidence> evidence = [.. textResult.Evidence];
+            List<RuleMatchEvidence> evidence = [];
             bool matches = true;
             foreach (ConfiguredEvaluator configured in configuredEvaluators)
             {

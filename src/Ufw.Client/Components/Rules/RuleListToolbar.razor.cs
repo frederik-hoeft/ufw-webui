@@ -1,5 +1,11 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Ufw.Client.Rules.Filtering;
+using Ufw.Client.Rules.Filtering.Actions;
+using Ufw.Client.Rules.Filtering.Directions;
+using Ufw.Client.Rules.Filtering.Networks;
+using Ufw.Client.Rules.Filtering.Ports;
+using Ufw.Client.Rules.Filtering.Protocols;
+using Ufw.Client.Rules.Filtering.Text;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
@@ -42,6 +48,15 @@ public sealed partial class RuleListToolbar
 
     private IReadOnlyList<string> AppliedFilterLabels => Query.Filters.Select(DescribeFilter).ToArray();
 
+    private bool HasFilterInput =>
+        !string.IsNullOrWhiteSpace(_searchText)
+        || !string.IsNullOrWhiteSpace(_sourceNetwork)
+        || !string.IsNullOrWhiteSpace(_destinationNetwork)
+        || !string.IsNullOrWhiteSpace(_ports)
+        || _protocol is not null
+        || _action is not null
+        || _direction is not null;
+
     protected override void OnParametersSet()
     {
         if (ReferenceEquals(_loadedQuery, Query))
@@ -50,7 +65,7 @@ public sealed partial class RuleListToolbar
         }
 
         _loadedQuery = Query;
-        _searchText = string.Join(' ', Query.TextTerms.Select(static term => term.Contains(' ', StringComparison.Ordinal) ? $"\"{term}\"" : term));
+        _searchText = Query.Filters.OfType<TextRuleFilter>().FirstOrDefault()?.Text ?? string.Empty;
         _sourceNetwork = Query.Filters.OfType<NetworkRuleFilter>().FirstOrDefault(static filter => filter.Endpoint == RuleEndpointField.Source)?.Network.CanonicalValue ?? string.Empty;
         _destinationNetwork = Query.Filters.OfType<NetworkRuleFilter>().FirstOrDefault(static filter => filter.Endpoint == RuleEndpointField.Destination)?.Network.CanonicalValue ?? string.Empty;
         _ports = Query.Filters.OfType<PortRuleFilter>().FirstOrDefault()?.Ports.CanonicalValue ?? string.Empty;
@@ -60,7 +75,49 @@ public sealed partial class RuleListToolbar
         ClearValidationErrors();
     }
 
-    private async Task ApplyAsync()
+    private Task SearchTextChangedAsync(string value)
+    {
+        _searchText = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private Task SourceNetworkChangedAsync(string value)
+    {
+        _sourceNetwork = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private Task DestinationNetworkChangedAsync(string value)
+    {
+        _destinationNetwork = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private Task PortsChangedAsync(string value)
+    {
+        _ports = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private Task ProtocolChangedAsync(string? value)
+    {
+        _protocol = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private Task ActionChangedAsync(string? value)
+    {
+        _action = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private Task DirectionChangedAsync(string? value)
+    {
+        _direction = value;
+        return ApplyCurrentQueryAsync();
+    }
+
+    private async Task ApplyCurrentQueryAsync()
     {
         if (Disabled)
         {
@@ -69,6 +126,10 @@ public sealed partial class RuleListToolbar
 
         ClearValidationErrors();
         List<RuleFilter> filters = [];
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            filters.Add(new TextRuleFilter(_searchText));
+        }
         AddNetworkFilter(_sourceNetwork, RuleEndpointField.Source, filters, ref _sourceNetworkError);
         AddNetworkFilter(_destinationNetwork, RuleEndpointField.Destination, filters, ref _destinationNetworkError);
         if (!string.IsNullOrWhiteSpace(_ports))
@@ -89,7 +150,7 @@ public sealed partial class RuleListToolbar
             return;
         }
 
-        await QueryChanged.InvokeAsync(RuleQuery.Create(_searchText, filters));
+        await QueryChanged.InvokeAsync(new RuleQuery(filters));
     }
 
     private async Task ClearAsync()
@@ -136,8 +197,8 @@ public sealed partial class RuleListToolbar
         {
             filters.Add(new ProtocolRuleFilter(_protocol switch
             {
-                "tcp" => FirewallProtocol.Tcp,
-                "udp" => FirewallProtocol.Udp,
+                TCP_FILTER_VALUE => FirewallProtocol.Tcp,
+                UDP_FILTER_VALUE => FirewallProtocol.Udp,
                 _ => FirewallProtocol.Any,
             }));
         }
@@ -145,9 +206,9 @@ public sealed partial class RuleListToolbar
         {
             filters.Add(new ActionRuleFilter(_action switch
             {
-                "deny" => FirewallAction.Deny,
-                "reject" => FirewallAction.Reject,
-                "limit" => FirewallAction.Limit,
+                DENY_FILTER_VALUE => FirewallAction.Deny,
+                REJECT_FILTER_VALUE => FirewallAction.Reject,
+                LIMIT_FILTER_VALUE => FirewallAction.Limit,
                 _ => FirewallAction.Allow,
             }));
         }
@@ -155,8 +216,8 @@ public sealed partial class RuleListToolbar
         {
             filters.Add(new DirectionRuleFilter(_direction switch
             {
-                "out" => FirewallDirection.Out,
-                "forward" => FirewallDirection.Forward,
+                OUT_FILTER_VALUE => FirewallDirection.Out,
+                FORWARD_FILTER_VALUE => FirewallDirection.Forward,
                 _ => FirewallDirection.In,
             }));
         }
@@ -164,6 +225,7 @@ public sealed partial class RuleListToolbar
 
     private string DescribeFilter(RuleFilter filter) => filter switch
     {
+        TextRuleFilter text => $"{RulesText["SearchRules"]}: {text.Text}",
         NetworkRuleFilter network when network.Endpoint == RuleEndpointField.Source => $"{RulesText["FromColumn"]}: {network.Network.CanonicalValue}",
         NetworkRuleFilter network => $"{RulesText["ToColumn"]}: {network.Network.CanonicalValue}",
         PortRuleFilter ports => $"{RulesText["PortFilter"]}: {ports.Ports.CanonicalValue}",

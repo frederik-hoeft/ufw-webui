@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Client.Rules;
+using Ufw.Client.Rules.Filtering;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
@@ -9,6 +10,9 @@ public sealed partial class RuleMobileCard
 {
     [Parameter, EditorRequired]
     public RuleRowProjection Row { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<RuleMatchEvidence> MatchEvidence { get; set; } = [];
 
     [Parameter]
     public bool OrderingDisabled { get; set; }

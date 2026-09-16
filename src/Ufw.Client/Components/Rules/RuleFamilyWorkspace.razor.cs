@@ -29,7 +29,7 @@ public sealed partial class RuleFamilyWorkspace
     public required RuleQuery Query { get; set; }
 
     [Parameter]
-    public IReadOnlyList<RuleRowProjection>? VisibleRows { get; set; }
+    public IReadOnlyList<RuleQueryRow>? QueryRows { get; set; }
 
     [Parameter]
     public bool QueryActive { get; set; }
@@ -61,7 +61,7 @@ public sealed partial class RuleFamilyWorkspace
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
 
-    private IReadOnlyList<RuleRowProjection> DisplayedRows => VisibleRows ?? Family.Rows;
+    private IReadOnlyList<RuleQueryRow> DisplayedRows => QueryRows ?? Family.Rows.Select(static row => new RuleQueryRow(row, [])).ToArray();
 
     private RuleDropIndicatorEdge? DropIndicatorEdge(RuleRowProjection row) =>
         ReferenceEquals(_dropTarget?.Row, row) ? _dropTarget.IndicatorEdge : null;

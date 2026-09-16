@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Ufw.Client.Rules.Filtering;
 
-namespace Ufw.Client.Rules.Filtering;
+namespace Ufw.Client.Rules.Filtering.Ports;
 
 internal sealed class RulePortSet
 {
