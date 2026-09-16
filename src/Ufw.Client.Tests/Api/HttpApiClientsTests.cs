@@ -65,10 +65,15 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual(HttpMethod.Get, intentHandler.Requests[0].Method);
         Assert.AreEqual("/api/v1/intent/context", intentHandler.Requests[0].RequestUri!.AbsolutePath);
 
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
         using RecordingHttpMessageHandler rulesHandler = new((request, call) => call switch
         {
             1 => Json(HttpStatusCode.OK, InventoryResponseJson()),
-            2 => Json(HttpStatusCode.OK, "{\"metadata\":{\"ruleId\":\"rule/id\",\"group\":\"edge\",\"notes\":null,\"tags\":[\"prod\"]}}"),
+            2 => Json(
+                HttpStatusCode.OK,
+                $"{{\"metadata\":{{\"id\":\"{metadataId:D}\",\"ruleId\":\"rule/id\",\"notes\":null,"
+                    + $"\"tags\":[{{\"id\":\"{tagId:D}\",\"name\":\"prod\",\"color\":\"#336699\"}}]}}}}"),
             3 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.ADD_RULE)),
             4 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
             5 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
@@ -78,7 +83,7 @@ public sealed class HttpApiClientsTests
         using HttpClient rulesHttp = CreateClient(rulesHandler);
         RuleApiClient rules = new(rulesHttp);
         await rules.GetInventoryAsync();
-        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { Group = "edge", Tags = ["prod"] });
+        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId] });
         await rules.AddRuleAsync(AddRequest());
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
@@ -92,11 +97,56 @@ public sealed class HttpApiClientsTests
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
         using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
-        Assert.AreEqual("edge", metadataBody.RootElement.GetProperty("group").GetString());
+        Assert.AreEqual(tagId, metadataBody.RootElement.GetProperty("tagIds")[0].GetGuid());
         using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
         using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
+    }
+
+    [TestMethod]
+    public async Task RuleTagApiClient_UsesCatalogEndpointsAndUuidReferencesAsync()
+    {
+        Guid tagId = Guid.Parse("01993b41-fdad-7000-8000-000000000001");
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"tags\":[]}"),
+            2 => Json(HttpStatusCode.OK, $"{{\"tags\":[{{\"id\":\"{tagId:D}\",\"name\":\"prod\",\"color\":\"#112233\"}}]}}"),
+            3 => Json(HttpStatusCode.OK, $"{{\"tags\":[{{\"id\":\"{tagId:D}\",\"name\":\"production\",\"color\":\"#AABBCC\"}}]}}"),
+            4 => Json(HttpStatusCode.OK, "{\"tags\":[]}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleTagApiClient client = new(http);
+
+        await client.GetAsync();
+        await client.CreateAsync(new CreateRuleTagRequest { Name = "prod", Color = "#112233" });
+        await client.UpdateAsync(tagId, new UpdateRuleTagRequest { Name = "production", Color = "#aabbcc" });
+        await client.DeleteAsync(tagId);
+
+        CollectionAssert.AreEqual(
+            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
+            handler.Requests.Select(static request => request.Method).ToArray());
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "/api/v1/rule-tags",
+                "/api/v1/rule-tags",
+                $"/api/v1/rule-tags/{tagId:D}",
+                $"/api/v1/rule-tags/{tagId:D}",
+            },
+            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+
+        using JsonDocument createBody = JsonDocument.Parse(handler.Requests[1].Content!);
+        Assert.AreEqual("prod", createBody.RootElement.GetProperty("name").GetString());
+        Assert.AreEqual("#112233", createBody.RootElement.GetProperty("color").GetString());
+        using JsonDocument updateBody = JsonDocument.Parse(handler.Requests[2].Content!);
+        Assert.AreEqual("production", updateBody.RootElement.GetProperty("name").GetString());
+        Assert.AreEqual("#aabbcc", updateBody.RootElement.GetProperty("color").GetString());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTagRequest()));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+        Assert.HasCount(4, handler.Requests);
     }
 
     [TestMethod]

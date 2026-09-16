@@ -15,28 +15,35 @@ internal sealed partial class KnownHostEntry : IDiscoverableModelConfiguration<K
 
         self.Property(static host => host.Id)
             .HasColumnName("Id")
+            .HasColumnType("bigint")
             .ValueGeneratedOnAdd();
         self.Property(static host => host.PublicId)
             .HasColumnName("PublicId")
+            .HasColumnType("uuid")
             .ValueGeneratedNever()
             .IsRequired();
         self.Property(static host => host.Name)
             .HasColumnName("Name")
+            .HasColumnType("character varying(128)")
             .HasMaxLength(MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static host => host.NormalizedName)
             .HasColumnName("NormalizedName")
+            .HasColumnType("character varying(128)")
             .HasMaxLength(MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static host => host.Address)
             .HasColumnName("Address")
+            .HasColumnType("character varying(64)")
             .HasMaxLength(MAX_ADDRESS_LENGTH)
             .IsRequired();
         self.Property(static host => host.Comment)
             .HasColumnName("Comment")
+            .HasColumnType("character varying(200)")
             .HasMaxLength(MAX_COMMENT_LENGTH);
         self.Property(static host => host.IsVisible)
             .HasColumnName("IsVisible")
+            .HasColumnType("boolean")
             .HasDefaultValue(true)
             .IsRequired();
 

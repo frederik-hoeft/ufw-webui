@@ -1,7 +1,6 @@
 ﻿using Ufw.Client.Components.Rules.Filtering;
 using Ufw.Client.Components.Rules.Filtering.Actions;
 using Ufw.Client.Components.Rules.Filtering.Directions;
-using Ufw.Client.Components.Rules.Filtering.Groups;
 using Ufw.Client.Components.Rules.Filtering.Networks;
 using Ufw.Client.Components.Rules.Filtering.Ports;
 using Ufw.Client.Components.Rules.Filtering.Protocols;
@@ -10,12 +9,12 @@ using Ufw.Client.Components.Rules.Filtering.Text;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
-using Ufw.Client.Rules.Filtering.Groups;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
 using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Filtering.Text;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Tests.Rules.Filtering;
@@ -32,7 +31,7 @@ public sealed class RuleFilterCatalogTests
 
         Assert.AreEqual(definitions.Count, definitions.Select(static definition => definition.Key).Distinct(StringComparer.Ordinal).Count());
         Assert.IsTrue(definitions.All(static definition => typeof(IRuleFilterEditor).IsAssignableFrom(definition.EditorComponentType)));
-        Assert.HasCount(8, definitions.Where(static definition => definition.Selectable));
+        Assert.HasCount(7, definitions.Where(static definition => definition.Selectable));
         Assert.IsFalse(definitions.Single(static definition => definition.Key == "text").Selectable);
     }
 
@@ -62,13 +61,12 @@ public sealed class RuleFilterCatalogTests
             new ProtocolRuleFilter(FirewallProtocol.Tcp),
             new ActionRuleFilter(FirewallAction.Allow),
             new DirectionRuleFilter(FirewallDirection.In),
-            new GroupRuleFilter("edge"),
-            new TagRuleFilter("prod"),
+            new TagRuleFilter(new RuleTag(Guid.CreateVersion7(), "prod", "#336699")),
         ];
 
         string[] keys = filters.Select(filter => _catalog.Resolve(filter).Key).ToArray();
 
-        CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "group", "tag" }, keys);
+        CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag" }, keys);
     }
 
     [TestMethod]
@@ -106,7 +104,6 @@ public sealed class RuleFilterCatalogTests
         new ProtocolRuleFilterDefinitionProvider(),
         new ActionRuleFilterDefinitionProvider(),
         new DirectionRuleFilterDefinitionProvider(),
-        new GroupRuleFilterDefinitionProvider(),
         new TagRuleFilterDefinitionProvider(),
         new TextRuleFilterDefinitionProvider(),
     ]);

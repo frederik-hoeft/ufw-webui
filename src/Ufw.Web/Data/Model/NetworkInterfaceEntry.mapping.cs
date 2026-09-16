@@ -15,20 +15,25 @@ internal sealed partial class NetworkInterfaceEntry : IDiscoverableModelConfigur
 
         self.Property(static networkInterface => networkInterface.Id)
             .HasColumnName("Id")
+            .HasColumnType("bigint")
             .ValueGeneratedOnAdd();
         self.Property(static networkInterface => networkInterface.PublicId)
             .HasColumnName("PublicId")
+            .HasColumnType("uuid")
             .ValueGeneratedNever()
             .IsRequired();
         self.Property(static networkInterface => networkInterface.Name)
             .HasColumnName("Name")
+            .HasColumnType("character varying(256)")
             .HasMaxLength(MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static networkInterface => networkInterface.Comment)
             .HasColumnName("Comment")
+            .HasColumnType("character varying(200)")
             .HasMaxLength(MAX_COMMENT_LENGTH);
         self.Property(static networkInterface => networkInterface.IsVisible)
             .HasColumnName("IsVisible")
+            .HasColumnType("boolean")
             .HasDefaultValue(true)
             .IsRequired();
 

@@ -622,6 +622,5 @@
   <data name="FilterValueRequired" xml:space="preserve"><value>Enter a value for this filter.</value></data>
   <data name="FilterCategoryMetadata" xml:space="preserve"><value>Metadata</value></data>
   <data name="TagFilter" xml:space="preserve"><value>Tag</value></data>
-  <data name="GroupFilter" xml:space="preserve"><value>Group</value></data>
   <data name="Notes" xml:space="preserve"><value>Notes</value></data>
 </root>

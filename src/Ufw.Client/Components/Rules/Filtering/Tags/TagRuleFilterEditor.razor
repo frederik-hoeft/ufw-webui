@@ -1,9 +1,20 @@
 @inherits RuleFilterEditorBase
+@using Ufw.Client.Rules.Metadata
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<MudTextField T="string"
-              Label="@(RulesText["TagFilter"])"
-              @bind-Value="_tag"
-              Immediate="false"
-              Placeholder="observability"
-              MaxLength="64" />
+<MudAutocomplete T="RuleTag"
+                 Label="@(RulesText["TagFilter"])"
+                 @bind-Value="_tag"
+                 SearchFunc="SearchAsync"
+                 ToStringFunc="FormatTag"
+                 CoerceValue="false"
+                 ResetValueOnEmptyText="true"
+                 Clearable="true"
+                 MaxItems="@((int?)null)">
+    <ItemTemplate Context="tag">
+        <span class="rule-tag-select-option">
+            <span class="rule-tag-color" style="background-color: @tag.Color"></span>
+            <span>@tag.Name</span>
+        </span>
+    </ItemTemplate>
+</MudAutocomplete>

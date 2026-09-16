@@ -26,3 +26,17 @@
         margin-left: -0.75rem;
     }
 }
+
+.rule-tag-select-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    > .rule-tag-color {
+        width: 0.75rem;
+        height: 0.75rem;
+        flex: 0 0 auto;
+        border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+        border-radius: 50%;
+    }
+}

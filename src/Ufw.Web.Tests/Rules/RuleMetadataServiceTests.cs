@@ -7,6 +7,7 @@ using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Models.Rules;
 using Ufw.Web.Data;
+using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Services.Rules;
 using Wkg.AspNetCore.Transactions;
@@ -25,35 +26,42 @@ public sealed class RuleMetadataServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live", "sha256:other");
+        RuleTagItem production = await host.CreateTagAsync(" Production ", "#12ab34", TestContext.CancellationToken);
+        RuleTagItem ssh = await host.CreateTagAsync("SSH", "#AABBCC", TestContext.CancellationToken);
 
         RuleMetadataUpdateResult updated = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest
             {
-                Group = " edge ",
                 Notes = " managed by platform ",
-                Tags = [" Prod ", "prod", "SSH"],
+                TagIds = [production.Id, production.Id, ssh.Id],
             },
             TestContext.CancellationToken);
 
         Assert.AreEqual(RuleMetadataUpdateOutcome.Success, updated.Outcome);
         Assert.IsNotNull(updated.Response?.Metadata);
-        Assert.AreEqual("edge", updated.Response.Metadata.Group);
+        Assert.AreEqual('7', updated.Response.Metadata.Id.ToString("D")[14]);
         Assert.AreEqual("managed by platform", updated.Response.Metadata.Notes);
-        CollectionAssert.AreEqual(new[] { "Prod", "SSH" }, updated.Response.Metadata.Tags.ToArray());
+        Assert.HasCount(2, updated.Response.Metadata.Tags);
+        Assert.AreEqual("Production", updated.Response.Metadata.Tags[0].Name);
+        Assert.AreEqual("#12AB34", updated.Response.Metadata.Tags[0].Color);
+        Assert.AreEqual("SSH", updated.Response.Metadata.Tags[1].Name);
         Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(2, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(2, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
 
         RuleInventoryResponse inventory = await host.Inventory.GetAsync(TestContext.CancellationToken);
         Assert.HasCount(2, inventory.Firewall.Rules);
         Assert.HasCount(1, inventory.Metadata);
         Assert.AreEqual("sha256:live", inventory.Metadata[0].RuleId);
+        Assert.AreEqual(updated.Response.Metadata.Id, inventory.Metadata[0].Id);
 
         host.SetRules("sha256:other");
         RuleInventoryResponse afterExternalRemoval = await host.Inventory.GetAsync(TestContext.CancellationToken);
 
         Assert.IsEmpty(afterExternalRemoval.Metadata);
         Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(2, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -70,44 +78,102 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
-    public async Task Update_RejectsMissingRuleAndInvalidMetadataWithoutPersistingAsync()
+    public async Task Update_RejectsMissingRuleInvalidMetadataAndUnknownTagsWithoutPersistingAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live");
 
         RuleMetadataUpdateResult missing = await host.Metadata.UpdateAsync(
             "sha256:missing",
-            new UpdateRuleMetadataRequest { Group = "edge" },
+            new UpdateRuleMetadataRequest { Notes = "edge" },
             TestContext.CancellationToken);
         RuleMetadataUpdateResult invalid = await host.Metadata.UpdateAsync(
             "sha256:live",
-            new UpdateRuleMetadataRequest { Tags = Enumerable.Range(0, 33).Select(static index => $"tag-{index}").ToArray() },
+            new UpdateRuleMetadataRequest { TagIds = Enumerable.Repeat(Guid.CreateVersion7(), 33).ToArray() },
+            TestContext.CancellationToken);
+        RuleMetadataUpdateResult unknownTag = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [Guid.CreateVersion7()] },
             TestContext.CancellationToken);
 
         Assert.AreEqual(RuleMetadataUpdateOutcome.RuleNotFound, missing.Outcome);
         Assert.AreEqual(RuleMetadataUpdateOutcome.InvalidMetadata, invalid.Outcome);
+        Assert.AreEqual(RuleMetadataUpdateOutcome.TagNotFound, unknownTag.Outcome);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
-    public async Task Update_EmptyMetadataRemovesExistingMetadataAsync()
+    public async Task Update_EmptyMetadataRemovesRelationButPreservesReusableTagAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live");
+        RuleTagItem production = await host.CreateTagAsync("prod", "#112233", TestContext.CancellationToken);
         _ = await host.Metadata.UpdateAsync(
             "sha256:live",
-            new UpdateRuleMetadataRequest { Group = "edge", Tags = ["prod"] },
+            new UpdateRuleMetadataRequest { TagIds = [production.Id] },
             TestContext.CancellationToken);
 
         RuleMetadataUpdateResult cleared = await host.Metadata.UpdateAsync(
             "sha256:live",
-            new UpdateRuleMetadataRequest { Group = "  ", Notes = null, Tags = [] },
+            new UpdateRuleMetadataRequest { Notes = "  ", TagIds = [] },
             TestContext.CancellationToken);
 
         Assert.AreEqual(RuleMetadataUpdateOutcome.Success, cleared.Outcome);
         Assert.IsNull(cleared.Response?.Metadata);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task RuleTags_UseUuidV7IdentityAndCannotBeDeletedWhileAttachedAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live");
+
+        RuleTagMutationResult created = await host.Tags.CreateAsync(
+            new CreateRuleTagRequest { Name = "  Production  ", Color = "#12ab34" },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleTagMutationOutcome.Success, created.Outcome);
+        RuleTagItem tag = created.Inventory!.Tags.Single();
+        Assert.AreEqual('7', tag.Id.ToString("D")[14]);
+        Assert.AreEqual("Production", tag.Name);
+        Assert.AreEqual("#12AB34", tag.Color);
+
+        RuleTagMutationResult duplicate = await host.Tags.CreateAsync(
+            new CreateRuleTagRequest { Name = "PRODUCTION", Color = "#FFFFFF" },
+            TestContext.CancellationToken);
+        Assert.AreEqual(RuleTagMutationOutcome.NameConflict, duplicate.Outcome);
+
+        RuleTagMutationResult updated = await host.Tags.UpdateAsync(
+            tag.Id,
+            new UpdateRuleTagRequest { Name = "Prod", Color = "#0011aa" },
+            TestContext.CancellationToken);
+        Assert.AreEqual(RuleTagMutationOutcome.Success, updated.Outcome);
+        RuleTagItem renamed = updated.Inventory!.Tags.Single();
+        Assert.AreEqual(tag.Id, renamed.Id);
+        Assert.AreEqual("Prod", renamed.Name);
+        Assert.AreEqual("#0011AA", renamed.Color);
+
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken);
+
+        RuleTagMutationResult inUse = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
+        Assert.AreEqual(RuleTagMutationOutcome.InUse, inUse.Outcome);
+        Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
+
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest(),
+            TestContext.CancellationToken);
+        RuleTagMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleTagMutationOutcome.Success, deleted.Outcome);
+        Assert.IsEmpty(deleted.Inventory!.Tags);
+        Assert.AreEqual(0, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -140,7 +206,8 @@ public sealed class RuleMetadataServiceTests
             TestDaemonRuleSource daemon,
             ApplicationDbContext context,
             RuleMetadataService metadata,
-            RuleInventoryService inventory)
+            RuleInventoryService inventory,
+            RuleTagService tags)
         {
             _connection = connection;
             _services = services;
@@ -149,11 +216,14 @@ public sealed class RuleMetadataServiceTests
             _context = context;
             Metadata = metadata;
             Inventory = inventory;
+            Tags = tags;
         }
 
         public RuleMetadataService Metadata { get; }
 
         public RuleInventoryService Inventory { get; }
+
+        public RuleTagService Tags { get; }
 
         public static async Task<TestHost> CreateAsync(CancellationToken cancellationToken)
         {
@@ -161,7 +231,7 @@ public sealed class RuleMetadataServiceTests
             await connection.OpenAsync(cancellationToken);
             ServiceCollection services = new();
             services.AddLogging();
-            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+            services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
             services.AddTransactionManagement<ApplicationDbContext>(options =>
                 options.UseIsolationLevel(IsolationLevel.ReadCommitted));
@@ -173,13 +243,15 @@ public sealed class RuleMetadataServiceTests
 
             TestDaemonRuleSource daemon = new();
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
-            RuleMetadataRepository repository = new(transactionHandle);
+            RuleMetadataRepository metadataRepository = new(transactionHandle);
+            RuleTagRepository tagRepository = new(transactionHandle);
             RuleMetadataService metadata = new(
                 daemon,
-                repository,
+                metadataRepository,
                 scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
-            RuleInventoryService inventory = new(daemon, repository);
-            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory);
+            RuleInventoryService inventory = new(daemon, metadataRepository);
+            RuleTagService tags = new(tagRepository);
+            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, tags);
         }
 
         public void SetRules(params string[] ruleIds)
@@ -195,6 +267,14 @@ public sealed class RuleMetadataServiceTests
             _daemon.Response = new RuleListResponse(true, rules, TestFirewallConfiguration.Enabled);
         }
 
+        public async Task<RuleTagItem> CreateTagAsync(string name, string color, CancellationToken cancellationToken)
+        {
+            RuleTagMutationResult result = await Tags.CreateAsync(new CreateRuleTagRequest { Name = name, Color = color }, cancellationToken);
+            Assert.AreEqual(RuleTagMutationOutcome.Success, result.Outcome);
+            Assert.IsNotNull(result.Inventory);
+            return result.Inventory.Tags.Single(tag => string.Equals(tag.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
         public async Task<int> MetadataRowCountAsync(CancellationToken cancellationToken)
         {
             _context.ChangeTracker.Clear();
@@ -205,6 +285,12 @@ public sealed class RuleMetadataServiceTests
         {
             _context.ChangeTracker.Clear();
             return await _context.Set<RuleMetadataTagEntry>().CountAsync(cancellationToken);
+        }
+
+        public async Task<int> RuleTagRowCountAsync(CancellationToken cancellationToken)
+        {
+            _context.ChangeTracker.Clear();
+            return await _context.Set<RuleTagEntry>().CountAsync(cancellationToken);
         }
 
         private sealed class TestDaemonRuleSource : IDaemonRuleSource

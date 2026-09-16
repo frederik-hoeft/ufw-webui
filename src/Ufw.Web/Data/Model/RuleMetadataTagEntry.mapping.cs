@@ -15,17 +15,15 @@ internal sealed partial class RuleMetadataTagEntry : IDiscoverableModelConfigura
 
         self.Property(static tag => tag.Id)
             .HasColumnName("Id")
+            .HasColumnType("bigint")
             .ValueGeneratedOnAdd();
         self.Property(static tag => tag.RuleMetadataId)
             .HasColumnName("RuleMetadataId")
+            .HasColumnType("bigint")
             .IsRequired();
-        self.Property(static tag => tag.Name)
-            .HasColumnName("Name")
-            .HasMaxLength(MAX_NAME_LENGTH)
-            .IsRequired();
-        self.Property(static tag => tag.NormalizedName)
-            .HasColumnName("NormalizedName")
-            .HasMaxLength(MAX_NAME_LENGTH)
+        self.Property(static tag => tag.TagId)
+            .HasColumnName("TagId")
+            .HasColumnType("bigint")
             .IsRequired();
 
         self.HasOne(static tag => tag.RuleMetadata)
@@ -33,8 +31,13 @@ internal sealed partial class RuleMetadataTagEntry : IDiscoverableModelConfigura
             .HasForeignKey(static tag => tag.RuleMetadataId)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
+        self.HasOne(static tag => tag.Tag)
+            .WithMany(static tag => tag.RuleMetadata)
+            .HasForeignKey(static tag => tag.TagId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
-        self.HasIndex(static tag => new { tag.RuleMetadataId, tag.NormalizedName }).IsUnique();
-        self.HasIndex(static tag => tag.NormalizedName);
+        self.HasIndex(static tag => new { tag.RuleMetadataId, tag.TagId }).IsUnique();
+        self.HasIndex(static tag => tag.TagId);
     }
 }

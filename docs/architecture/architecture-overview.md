@@ -46,9 +46,11 @@ Browser-side rule validation is not an authorization boundary. The daemon repeat
 
 `Ufw.Web` owns HTTP concerns: API authentication, user/session state, application metadata, PostgreSQL persistence, and adaptation between REST and the local daemon protocol. It can ask the daemon to list state or submit a signed mutation, but it cannot manufacture mutation authority.
 
-The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, application-owned authoring metadata such as network-interface comments and known-host aliases, and presentation metadata attached to opaque semantic rule identities. Rule metadata currently consists of optional group and notes values plus case-insensitive tags; it never substitutes for a live daemon rule.
+The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, application-owned authoring metadata such as network-interface comments and known-host aliases, and presentation metadata attached to opaque semantic rule identities. Rule metadata currently consists of optional notes plus reusable tags; it never substitutes for a live daemon rule. Tags are first-class application entities with a display name, a simple `#RRGGBB` color, and a UUIDv7 public identity, and rules relate to them through an explicit many-to-many connection table.
 
 Database-backed workflows preserve one transactional boundary across related Identity and application state. Authentication therefore does not commit a refreshed token while rolling back the corresponding Identity state, or vice versa. Expected failures may still commit security-relevant state such as failed-login counters or refresh-family revocation.
+
+Application-owned relational entities use numeric surrogate primary keys internally. Entities exposed outside the persistence boundary use separate UUIDv7 public identities rather than leaking database keys; relationship tables also retain an internal numeric key and enforce relationship uniqueness separately. Project-owned EF mappings specify their PostgreSQL column types explicitly instead of relying on provider conventions.
 
 ### Privileged daemon
 
@@ -87,7 +89,7 @@ The architecture distinguishes authoritative state from caches and presentation 
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
 | Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
 | Users, refresh-token families, interface metadata, known-host aliases | `Ufw.Web` / PostgreSQL | Application state only |
-| Rule groups, notes, and tags | `Ufw.Web` / PostgreSQL | Joined to live rules by opaque semantic `RuleId`; never evidence that a firewall rule exists |
+| Rule notes and reusable tags | `Ufw.Web` / PostgreSQL | Metadata is joined to live rules by opaque semantic `RuleId`; tags have independent UUIDv7 identities and are related many-to-many; neither is evidence that a firewall rule exists |
 | Access token | Browser memory | Short-lived bearer credential |
 | Mutation private key | Administrator/browser signing workflow | Never sent to the server or persisted by the application |
 | Production frontend assets | nginx image | Built/deployed independently from ASP |

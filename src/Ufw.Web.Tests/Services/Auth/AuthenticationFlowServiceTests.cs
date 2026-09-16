@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Data;
 using Ufw.Web.Data;
+using Ufw.Web.Tests.Data;
 using Ufw.Web.Services.Auth;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
@@ -143,7 +144,7 @@ public sealed class AuthenticationFlowServiceTests
 
             ServiceCollection services = new();
             services.AddLogging();
-            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+            services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
             services.AddHttpContextAccessor();
             services.AddAuthentication();

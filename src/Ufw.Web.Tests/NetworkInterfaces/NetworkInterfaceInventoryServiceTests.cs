@@ -8,6 +8,7 @@ using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Models.NetworkInterfaces;
 using Ufw.Web.Data;
+using Ufw.Web.Tests.Data;
 using Ufw.Web.Services.NetworkInterfaces;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
@@ -169,7 +170,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
 
             ServiceCollection services = new();
             services.AddLogging();
-            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+            services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
             services.AddTransactionManagement<ApplicationDbContext>(options =>
                 options.UseIsolationLevel(IsolationLevel.ReadCommitted));

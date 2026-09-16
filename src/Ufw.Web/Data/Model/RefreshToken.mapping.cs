@@ -15,32 +15,42 @@ internal sealed partial class RefreshToken : IDiscoverableModelConfiguration<Ref
 
         self.Property(static token => token.Id)
             .HasColumnName("Id")
+            .HasColumnType("bigint")
             .ValueGeneratedOnAdd();
         self.Property(static token => token.UserId)
             .HasColumnName("UserId")
+            .HasColumnType("text")
             .IsRequired();
         self.Property(static token => token.TokenHash)
             .HasColumnName("TokenHash")
+            .HasColumnType("character varying(64)")
             .HasMaxLength(64)
             .IsRequired();
         self.Property(static token => token.FamilyId)
             .HasColumnName("FamilyId")
+            .HasColumnType("uuid")
             .IsRequired();
         self.Property(static token => token.SecurityStamp)
-            .HasColumnName("SecurityStamp");
+            .HasColumnName("SecurityStamp")
+            .HasColumnType("text");
         self.Property(static token => token.CreatedAt)
             .HasColumnName("CreatedAt")
+            .HasColumnType("timestamp with time zone")
             .IsRequired();
         self.Property(static token => token.ExpiresAt)
             .HasColumnName("ExpiresAt")
+            .HasColumnType("timestamp with time zone")
             .IsRequired();
         self.Property(static token => token.RevokedAt)
-            .HasColumnName("RevokedAt");
+            .HasColumnName("RevokedAt")
+            .HasColumnType("timestamp with time zone");
         self.Property(static token => token.ReplacedByTokenHash)
             .HasColumnName("ReplacedByTokenHash")
+            .HasColumnType("character varying(64)")
             .HasMaxLength(64);
         self.Property(static token => token.ConcurrencyToken)
             .HasColumnName("ConcurrencyToken")
+            .HasColumnType("character varying(32)")
             .HasMaxLength(32)
             .IsConcurrencyToken()
             .IsRequired();

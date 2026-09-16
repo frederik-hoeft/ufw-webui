@@ -4,5 +4,6 @@ public enum RuleMetadataUpdateOutcome
 {
     Success,
     RuleNotFound,
+    TagNotFound,
     InvalidMetadata,
 }

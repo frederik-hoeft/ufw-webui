@@ -41,6 +41,7 @@ public sealed partial class RulesController(
             {
                 RuleMetadataUpdateOutcome.Success => Ok(result.Response),
                 RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
+                RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
                 RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
                 _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
             };

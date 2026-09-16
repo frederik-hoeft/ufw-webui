@@ -43,9 +43,11 @@ public sealed class RulesControllerTests
                 },
             ],
             TestFirewallConfiguration.Enabled);
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
         RuleInventoryResponse expected = new(
             firewall,
-            [new RuleMetadataItem("sha256:abc", "edge", "ssh", ["prod"])]);
+            [new RuleMetadataItem(metadataId, "sha256:abc", "ssh", [new RuleTagItem(tagId, "prod", "#336699")])]);
         inventory.Setup(service => service.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
         RulesController controller = CreateController(client.Object, inventory.Object);
@@ -60,8 +62,11 @@ public sealed class RulesControllerTests
     {
         Mock<IUfwClient> client = new();
         Mock<IRuleMetadataService> metadata = new();
-        UpdateRuleMetadataRequest request = new() { Group = "edge", Tags = ["prod"] };
-        RuleMetadataMutationResponse expected = new(new RuleMetadataItem("sha256:abc", "edge", null, ["prod"]));
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
+        UpdateRuleMetadataRequest request = new() { TagIds = [tagId] };
+        RuleMetadataMutationResponse expected = new(
+            new RuleMetadataItem(metadataId, "sha256:abc", null, [new RuleTagItem(tagId, "prod", "#336699")]));
         metadata.Setup(service => service.UpdateAsync("sha256:abc", request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, expected));
 
@@ -80,19 +85,25 @@ public sealed class RulesControllerTests
         Mock<IRuleMetadataService> metadata = new();
         UpdateRuleMetadataRequest missingRequest = new();
         UpdateRuleMetadataRequest invalidRequest = new();
+        UpdateRuleMetadataRequest missingTagRequest = new();
         metadata.Setup(service => service.UpdateAsync("missing", missingRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound));
         metadata.Setup(service => service.UpdateAsync("invalid", invalidRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata));
+        metadata.Setup(service => service.UpdateAsync("missing-tag", missingTagRequest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound));
         RulesController controller = CreateController(client.Object, metadata: metadata.Object);
 
         ActionResult<RuleMetadataMutationResponse> missing = await controller.UpdateMetadataAsync(
             "missing", missingRequest, TestContext.CancellationToken);
         ActionResult<RuleMetadataMutationResponse> invalid = await controller.UpdateMetadataAsync(
             "invalid", invalidRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> missingTag = await controller.UpdateMetadataAsync(
+            "missing-tag", missingTagRequest, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<NotFoundResult>(missing.Result);
         Assert.IsInstanceOfType<BadRequestObjectResult>(invalid.Result);
+        Assert.IsInstanceOfType<BadRequestObjectResult>(missingTag.Result);
     }
 
     [TestMethod]

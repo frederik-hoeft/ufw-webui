@@ -31,10 +31,15 @@ internal sealed partial class RuleMetadataService(
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound);
         }
 
-        RuleMetadataItem? metadata = await repository.SaveAsync(ruleId, values, cancellationToken);
-        return new RuleMetadataUpdateResult(
-            RuleMetadataUpdateOutcome.Success,
-            new RuleMetadataMutationResponse(metadata));
+        RuleMetadataSaveResult save = await repository.SaveAsync(ruleId, values, cancellationToken);
+        return save.Outcome switch
+        {
+            RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(
+                RuleMetadataUpdateOutcome.Success,
+                new RuleMetadataMutationResponse(save.Metadata)),
+            RuleMetadataSaveOutcome.TagNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
+            _ => throw new InvalidOperationException($"Unknown metadata save outcome '{save.Outcome}'."),
+        };
     }
 
     public async Task RemoveForDeletedRuleAsync(string ruleId, CancellationToken cancellationToken = default)
@@ -55,39 +60,18 @@ internal sealed partial class RuleMetadataService(
 
     private static bool TryNormalize(UpdateRuleMetadataRequest request, [NotNullWhen(true)] out RuleMetadataValues? values)
     {
-        string? group = NormalizeOptional(request.Group);
         string? notes = NormalizeOptional(request.Notes);
-        if (group?.Length > RuleMetadataEntry.MAX_GROUP_LENGTH
-            || notes?.Length > RuleMetadataEntry.MAX_NOTES_LENGTH
-            || request.Tags is null
-            || request.Tags.Count > MAX_TAG_COUNT)
+        if (notes?.Length > RuleMetadataEntry.MAX_NOTES_LENGTH
+            || request.TagIds is null
+            || request.TagIds.Count > MAX_TAG_COUNT
+            || request.TagIds.Any(static id => id == Guid.Empty))
         {
             values = null;
             return false;
         }
 
-        Dictionary<string, RuleMetadataTagValues> tags = new(StringComparer.Ordinal);
-        foreach (string? candidate in request.Tags)
-        {
-            string? name = NormalizeOptional(candidate);
-            if (name is null || name.Length > RuleMetadataTagEntry.MAX_NAME_LENGTH)
-            {
-                values = null;
-                return false;
-            }
-
-            string normalizedName = name.ToUpperInvariant();
-            if (normalizedName.Length > RuleMetadataTagEntry.MAX_NAME_LENGTH)
-            {
-                values = null;
-                return false;
-            }
-
-            tags.TryAdd(normalizedName, new RuleMetadataTagValues(name, normalizedName));
-        }
-
-        RuleMetadataTagValues[] normalizedTags = [.. tags.Values.OrderBy(static tag => tag.NormalizedName, StringComparer.Ordinal)];
-        values = new RuleMetadataValues(group, notes, normalizedTags);
+        Guid[] tagIds = [.. request.TagIds.Distinct().Order()];
+        values = new RuleMetadataValues(notes, tagIds);
         return true;
     }
 

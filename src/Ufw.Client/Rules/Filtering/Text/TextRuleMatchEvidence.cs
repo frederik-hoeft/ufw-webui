@@ -21,7 +21,6 @@ internal sealed record TextRuleMatchEvidence(
         Action,
         Direction,
         Protocol,
-        Group,
         Notes,
         Tag,
         RawLine,

@@ -8,7 +8,6 @@ using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Filtering;
 using Ufw.Client.Components.Rules.Filtering.Actions;
 using Ufw.Client.Components.Rules.Filtering.Directions;
-using Ufw.Client.Components.Rules.Filtering.Groups;
 using Ufw.Client.Components.Rules.Filtering.Networks;
 using Ufw.Client.Components.Rules.Filtering.Ports;
 using Ufw.Client.Components.Rules.Filtering.Protocols;
@@ -27,7 +26,6 @@ using Ufw.Client.Rules.Authoring;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
-using Ufw.Client.Rules.Filtering.Groups;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
@@ -88,7 +86,6 @@ public static class Program
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, ProtocolRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, ActionRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, DirectionRuleFilterDefinitionProvider>();
-        builder.Services.AddSingleton<IRuleFilterDefinitionProvider, GroupRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, TagRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, TextRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterCatalog, RuleFilterCatalog>();
@@ -97,7 +94,6 @@ public static class Program
         builder.Services.AddSingleton<IRuleFilterEvaluator, ProtocolRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, ActionRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, DirectionRuleFilterEvaluator>();
-        builder.Services.AddSingleton<IRuleFilterEvaluator, GroupRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, TagRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, TextRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleQueryService, RuleQueryService>();
@@ -116,6 +112,9 @@ public static class Program
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleApiClient, RuleApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleTagApiClient, RuleTagApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IKnownHostApiClient, KnownHostApiClient>(client => client.BaseAddress = apiBaseAddress)

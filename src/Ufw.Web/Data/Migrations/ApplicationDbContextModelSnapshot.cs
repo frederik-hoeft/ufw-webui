@@ -20,6 +20,7 @@ namespace Ufw.Web.Data.Migrations
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -402,15 +403,14 @@ namespace Ufw.Web.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("Group")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("Group");
-
                     b.Property<string>("Notes")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("Notes");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("PublicId");
 
                     b.Property<string>("RuleId")
                         .IsRequired()
@@ -419,6 +419,9 @@ namespace Ufw.Web.Data.Migrations
                         .HasColumnName("RuleId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
 
                     b.HasIndex("RuleId")
                         .IsUnique();
@@ -435,30 +438,59 @@ namespace Ufw.Web.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("Name");
-
-                    b.Property<string>("NormalizedName")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("NormalizedName");
-
                     b.Property<long>("RuleMetadataId")
                         .HasColumnType("bigint")
                         .HasColumnName("RuleMetadataId");
 
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("TagId");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName");
+                    b.HasIndex("TagId");
 
-                    b.HasIndex("RuleMetadataId", "NormalizedName")
+                    b.HasIndex("RuleMetadataId", "TagId")
                         .IsUnique();
 
                     b.ToTable("RuleMetadataTags", (string)null);
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTagEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("Color")
+                        .IsFixedLength();
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("citext")
+                        .HasColumnName("Name");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("PublicId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.ToTable("RuleTags", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -531,12 +563,25 @@ namespace Ufw.Web.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Ufw.Web.Data.Model.RuleTagEntry", "Tag")
+                        .WithMany("RuleMetadata")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("RuleMetadata");
+
+                    b.Navigation("Tag");
                 });
 
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
                 {
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTagEntry", b =>
+                {
+                    b.Navigation("RuleMetadata");
                 });
 #pragma warning restore 612, 618
         }

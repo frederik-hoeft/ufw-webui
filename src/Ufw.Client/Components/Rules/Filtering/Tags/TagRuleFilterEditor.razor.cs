@@ -1,35 +1,66 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Ufw.Client.Api;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Tags;
+using Ufw.Client.Rules.Metadata;
 
 namespace Ufw.Client.Components.Rules.Filtering.Tags;
 
-public sealed partial class TagRuleFilterEditor : RuleFilterEditorBase
+public sealed partial class TagRuleFilterEditor(IRuleTagApiClient tagApiClient) : RuleFilterEditorBase
 {
     private RuleFilter? _loadedFilter;
-    private string _tag = string.Empty;
+    private IReadOnlyList<RuleTag> _tags = [];
+    private RuleTag? _tag;
 
-    protected override void OnParametersSet()
+    protected async override Task OnInitializedAsync()
     {
-        if (ReferenceEquals(_loadedFilter, Filter))
-        {
-            return;
-        }
-
-        _loadedFilter = Filter;
-        _tag = Filter is TagRuleFilter tag ? tag.Tag : string.Empty;
+        RuleTagInventoryResponse response = await tagApiClient.GetAsync();
+        _tags = response.Tags
+            .Select(static tag => new RuleTag(tag.Id, tag.Name, tag.Color))
+            .OrderBy(static tag => tag.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray();
+        SynchronizeFilter(force: true);
     }
+
+    protected override void OnParametersSet() => SynchronizeFilter(force: false);
 
     public override bool TryBuildFilter([NotNullWhen(true)] out RuleFilter? filter)
     {
-        string tag = _tag.Trim();
-        if (tag.Length == 0)
+        if (_tag is null)
         {
             filter = null;
             return false;
         }
 
-        filter = new TagRuleFilter(tag);
+        filter = new TagRuleFilter(_tag);
         return true;
     }
+
+    private Task<IEnumerable<RuleTag>> SearchAsync(string? value, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        IEnumerable<RuleTag> matches = string.IsNullOrWhiteSpace(value)
+            ? _tags
+            : _tags.Where(tag => tag.Name.Contains(value.Trim(), StringComparison.CurrentCultureIgnoreCase));
+        return Task.FromResult(matches);
+    }
+
+    private void SynchronizeFilter(bool force)
+    {
+        if (!force && ReferenceEquals(_loadedFilter, Filter))
+        {
+            return;
+        }
+
+        _loadedFilter = Filter;
+        if (Filter is not TagRuleFilter tagFilter)
+        {
+            _tag = null;
+            return;
+        }
+
+        _tag = _tags.FirstOrDefault(tag => tag.Id == tagFilter.Tag.Id) ?? tagFilter.Tag;
+    }
+
+    private static string FormatTag(RuleTag? tag) => tag?.Name ?? string.Empty;
 }

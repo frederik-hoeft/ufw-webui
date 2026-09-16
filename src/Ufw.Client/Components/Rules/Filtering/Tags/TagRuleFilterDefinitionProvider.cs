@@ -12,6 +12,6 @@ internal sealed class TagRuleFilterDefinitionProvider : IRuleFilterDefinitionPro
             "FilterCategoryMetadata",
             typeof(TagRuleFilterEditor),
             static filter => filter is TagRuleFilter,
-            static (filter, _, text) => $"{text["TagFilter"]}: {((TagRuleFilter)filter).Tag}"),
+            static (filter, _, text) => $"{text["TagFilter"]}: {((TagRuleFilter)filter).Tag.Name}"),
     ];
 }

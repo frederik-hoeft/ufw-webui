@@ -29,7 +29,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
 
         services.AddLogging();
         services.AddControllers();
-        services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+        services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
         services.AddSingleton(static _ => new SqliteConnection("Data Source=:memory:"));
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
             options.UseSqlite(serviceProvider.GetRequiredService<SqliteConnection>()));
@@ -87,10 +87,13 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
         services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleTagRepository, RuleTagRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
+        services.AddScoped<IRuleTagService, RuleTagService>();
         services.AddScoped<NetworkInterfacesController>();
         services.AddScoped<RulesController>();
+        services.AddScoped<RuleTagsController>();
 
         return ValueTask.CompletedTask;
     }

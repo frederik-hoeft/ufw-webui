@@ -15,18 +15,24 @@ internal sealed partial class RuleMetadataEntry : IDiscoverableModelConfiguratio
 
         self.Property(static metadata => metadata.Id)
             .HasColumnName("Id")
+            .HasColumnType("bigint")
             .ValueGeneratedOnAdd();
+        self.Property(static metadata => metadata.PublicId)
+            .HasColumnName("PublicId")
+            .HasColumnType("uuid")
+            .ValueGeneratedNever()
+            .IsRequired();
         self.Property(static metadata => metadata.RuleId)
             .HasColumnName("RuleId")
+            .HasColumnType("character varying(128)")
             .HasMaxLength(MAX_RULE_ID_LENGTH)
             .IsRequired();
-        self.Property(static metadata => metadata.Group)
-            .HasColumnName("Group")
-            .HasMaxLength(MAX_GROUP_LENGTH);
         self.Property(static metadata => metadata.Notes)
             .HasColumnName("Notes")
+            .HasColumnType("character varying(4000)")
             .HasMaxLength(MAX_NOTES_LENGTH);
 
+        self.HasIndex(static metadata => metadata.PublicId).IsUnique();
         self.HasIndex(static metadata => metadata.RuleId).IsUnique();
     }
 }

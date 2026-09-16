@@ -11,16 +11,28 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void CompleteRefresh_LoadsMetadataBySemanticIdentity()
     {
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
         RuleInventoryResponse response = Inventory(
             new RuleListResponse(true, [Rule("shared"), Rule("shared")], TestFirewallConfiguration.Enabled),
-            [new RuleMetadataItem { RuleId = "shared", Group = "edge", Notes = "managed", Tags = ["prod"] }]);
+            [new RuleMetadataItem
+            {
+                Id = metadataId,
+                RuleId = "shared",
+                Notes = "managed",
+                Tags = [new RuleTagItem { Id = tagId, Name = "prod", Color = "#336699" }],
+            }]);
 
         RulesPageState state = RulesPageState.CompleteRefresh(response);
 
         Assert.IsNotNull(state.Snapshot);
         Assert.HasCount(1, state.Snapshot.Metadata);
-        Assert.AreEqual("edge", state.Snapshot.Metadata["shared"].Group);
-        CollectionAssert.AreEqual(new[] { "prod" }, state.Snapshot.Metadata["shared"].Tags.ToArray());
+        Assert.AreEqual(metadataId, state.Snapshot.Metadata["shared"].Id);
+        Assert.AreEqual("managed", state.Snapshot.Metadata["shared"].Notes);
+        Assert.HasCount(1, state.Snapshot.Metadata["shared"].Tags);
+        Assert.AreEqual(tagId, state.Snapshot.Metadata["shared"].Tags[0].Id);
+        Assert.AreEqual("prod", state.Snapshot.Metadata["shared"].Tags[0].Name);
+        Assert.AreEqual("#336699", state.Snapshot.Metadata["shared"].Tags[0].Color);
     }
 
     [TestMethod]
@@ -29,8 +41,8 @@ public sealed class RulesPageStateTests
         RuleInventoryResponse response = Inventory(
             new RuleListResponse(true, [Rule("keep"), Rule("remove")], TestFirewallConfiguration.Enabled),
             [
-                new RuleMetadataItem { RuleId = "keep", Group = "edge", Tags = [] },
-                new RuleMetadataItem { RuleId = "remove", Group = "legacy", Tags = [] },
+                new RuleMetadataItem { Id = Guid.CreateVersion7(), RuleId = "keep", Tags = [] },
+                new RuleMetadataItem { Id = Guid.CreateVersion7(), RuleId = "remove", Tags = [] },
             ]);
         RulesPageState state = RulesPageState.CompleteRefresh(response);
         RuleListResponse finalSnapshot = new(true, [Rule("keep"), Rule("new")], TestFirewallConfiguration.Enabled);

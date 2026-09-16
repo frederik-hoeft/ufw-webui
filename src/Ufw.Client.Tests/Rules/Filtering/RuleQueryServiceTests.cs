@@ -2,7 +2,6 @@
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
-using Ufw.Client.Rules.Filtering.Groups;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
@@ -23,7 +22,6 @@ public sealed class RuleQueryServiceTests
         new ProtocolRuleFilterEvaluator(),
         new ActionRuleFilterEvaluator(),
         new DirectionRuleFilterEvaluator(),
-        new GroupRuleFilterEvaluator(),
         new TagRuleFilterEvaluator(),
         new TextRuleFilterEvaluator(),
     ]);
@@ -167,26 +165,46 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
-    public void Evaluate_MetadataFiltersMatchEnrichedProjectionAndProduceEvidence()
+    public void Evaluate_TagFilterMatchesEnrichedProjectionAndProducesEntityEvidence()
     {
-        RuleMetadata metadata = new("Edge", "Managed by platform", ["observability", "prod"]);
+        RuleTag observability = new(Guid.CreateVersion7(), "observability", "#336699");
+        RuleMetadata metadata = new(Guid.CreateVersion7(), "Managed by platform", [observability, new RuleTag(Guid.CreateVersion7(), "prod", "#123456")]);
         RuleRowProjection row = Row(0, 1, metadata: metadata);
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [row]);
-        RuleQuery query = new([new GroupRuleFilter("edge"), new TagRuleFilter("OBSERVABILITY")]);
+        RuleTag filterTag = new(observability.Id, "renamed elsewhere", "#000000");
+        RuleQuery query = new([new TagRuleFilter(filterTag)]);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, query);
 
         Assert.HasCount(1, result.Rows);
         Assert.AreSame(row, result.Rows[0].Row);
-        Assert.HasCount(2, result.Rows[0].Evidence);
-        Assert.AreEqual("Edge", ((GroupRuleMatchEvidence)result.Rows[0].Evidence[0]).Group);
-        Assert.AreEqual("observability", ((TagRuleMatchEvidence)result.Rows[0].Evidence[1]).Tag);
+        TagRuleMatchEvidence evidence = Assert.IsInstanceOfType<TagRuleMatchEvidence>(result.Rows[0].Evidence.Single());
+        Assert.AreEqual(observability.Id, evidence.Tag.Id);
+        Assert.AreEqual("observability", evidence.Tag.Name);
+        Assert.AreEqual("#336699", evidence.Tag.Color);
+    }
+
+
+    [TestMethod]
+    public void Evaluate_TagFilterDoesNotUseDisplayNameAsIdentity()
+    {
+        RuleTag attachedTag = new(Guid.CreateVersion7(), "prod", "#336699");
+        RuleMetadata metadata = new(Guid.CreateVersion7(), null, [attachedTag]);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+        RuleTag differentTag = new(Guid.CreateVersion7(), "prod", "#336699");
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TagRuleFilter(differentTag)]));
+
+        Assert.IsEmpty(result.Rows);
     }
 
     [TestMethod]
     public void Evaluate_TextFilterSearchesMetadataAndReturnsFieldSpecificEvidence()
     {
-        RuleMetadata metadata = new("Edge", "Owned by platform team", ["observability"]);
+        RuleMetadata metadata = new(
+            Guid.CreateVersion7(),
+            "Owned by platform team",
+            [new RuleTag(Guid.CreateVersion7(), "observability", "#336699")]);
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("platform observability")]));

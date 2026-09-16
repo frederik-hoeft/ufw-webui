@@ -85,8 +85,10 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleTagRepository, RuleTagRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
+        services.AddScoped<IRuleTagService, RuleTagService>();
 
         services.AddAuthentication(options =>
         {

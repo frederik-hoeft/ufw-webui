@@ -52,9 +52,11 @@ internal sealed record RuleSnapshot(
         Dictionary<string, RuleMetadata> metadata = new(StringComparer.Ordinal);
         foreach (RuleMetadataItem item in response.Metadata)
         {
-            if (string.IsNullOrWhiteSpace(item.RuleId) || !metadata.TryAdd(
-                    item.RuleId,
-                    new RuleMetadata(item.Group, item.Notes, item.Tags.ToArray())))
+            RuleTag[] tags = [.. item.Tags.Select(static tag => new RuleTag(tag.Id, tag.Name, tag.Color))];
+            if (item.Id == Guid.Empty
+                || string.IsNullOrWhiteSpace(item.RuleId)
+                || tags.Any(static tag => tag.Id == Guid.Empty || string.IsNullOrWhiteSpace(tag.Name) || string.IsNullOrWhiteSpace(tag.Color))
+                || !metadata.TryAdd(item.RuleId, new RuleMetadata(item.Id, item.Notes, tags)))
             {
                 throw new InvalidDataException("The enriched rule response contains invalid or duplicate metadata identities.");
             }

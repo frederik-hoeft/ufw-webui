@@ -1,5 +1,6 @@
 using Ufw.Client.Rules.Filtering;
+using Ufw.Client.Rules.Metadata;
 
 namespace Ufw.Client.Rules.Filtering.Tags;
 
-internal sealed record TagRuleFilter(string Tag) : RuleFilter;
+internal sealed record TagRuleFilter(RuleTag Tag) : RuleFilter;

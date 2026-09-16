@@ -1,6 +1,6 @@
 namespace Ufw.Web.Services.Rules;
 
-internal sealed record RuleMetadataValues(string? Group, string? Notes, IReadOnlyList<RuleMetadataTagValues> Tags)
+internal sealed record RuleMetadataValues(string? Notes, IReadOnlyList<Guid> TagIds)
 {
-    public bool IsEmpty => Group is null && Notes is null && Tags.Count == 0;
+    public bool IsEmpty => Notes is null && TagIds.Count == 0;
 }

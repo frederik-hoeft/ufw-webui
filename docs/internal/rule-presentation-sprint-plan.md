@@ -2,7 +2,7 @@
 
 This document captures the agreed architectural direction for the next rule-presentation sprint. Here, **sprint** is only a convenient name for a coherent body of work: the plan is organized into work-based phases and sub-phases rather than a time-boxed schedule with deadlines. It is temporary maintainer guidance rather than steady-state architecture documentation; exact database entities, REST resources, filter catalogues, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
 
-The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, and grouping without turning PostgreSQL into a second firewall database. Reusable rule templates and other larger follow-on capabilities are tracked separately in the [long-term feature backlog](long-term-feature-backlog.md).
+The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, and richer row presentation without turning PostgreSQL into a second firewall database. Reusable rule templates and other larger follow-on capabilities are tracked separately in the [long-term feature backlog](long-term-feature-backlog.md).
 
 ## Authority and data flow
 
@@ -43,7 +43,7 @@ The enriched browser model should preserve the distinction between:
 
 - authoritative UFW state and capabilities;
 - authoritative structural rule data and semantic identity;
-- ASP-owned presentation metadata such as tags, groups, notes, or other contextual fields;
+- ASP-owned presentation metadata such as reusable tags, notes, or other contextual fields;
 - snapshot-local presentation/ordering coordinates.
 
 The details surface should be extensible, but known metadata concepts should use typed contracts rather than an unstructured `Dictionary<string, object>` style property bag. Extensibility belongs at the presentation/contract boundary, not in Razor-specific ad hoc data structures.
@@ -74,7 +74,9 @@ The operator can then remove unmatched records deliberately. The project already
 
 No age-based retention policy or orphan timestamp is required for the initial implementation. Those can be added later if stale metadata volume becomes operationally relevant.
 
-The initial enrichment infrastructure stores typed optional group/notes fields plus case-insensitive tags under the semantic `RuleId`. `GET /api/v1/rules` now returns the daemon `RuleListResponse` as an authoritative sub-model alongside only metadata matching identities in that snapshot. Metadata writes verify that the semantic identity is currently live before persisting, and a successful in-band delete performs best-effort metadata cleanup after the firewall mutation is confirmed. Explicit orphan discovery/removal remains a later reconciliation slice.
+The initial enrichment infrastructure stores optional notes under the semantic `RuleId` and relates rule metadata many-to-many to reusable tag entities. Tags have UUIDv7 public identities, case-insensitively unique display names, and a simple `#RRGGBB` color for visual scanning. `GET /api/v1/rules` returns the daemon `RuleListResponse` as an authoritative sub-model alongside only metadata matching identities in that snapshot. Metadata mutations reference tags by UUID rather than by display name, verify that the semantic rule identity is currently live before persisting, and a successful in-band delete performs best-effort metadata cleanup after the firewall mutation is confirmed. Explicit orphan discovery/removal remains a later reconciliation slice.
+
+The persistence model follows the project-wide database conventions established with this phase: project-owned columns declare their PostgreSQL store type explicitly, ordinary entities use numeric surrogate primary keys, and any identity exposed through the client/API is a separate UUIDv7. The rule-metadata/tag connection is represented by an explicit join entity with its own numeric key plus a unique `(RuleMetadataId, TagId)` relationship constraint. A singular `Group` field is intentionally omitted; tags cover classification until a future grouping concept has concrete semantics that justify a distinct model.
 
 ## Family-local presentation and ordering
 
@@ -149,7 +151,6 @@ RuleQuery
     ActionFilter
     DirectionFilter
     TagFilter
-    GroupFilter
     ...
 ```
 
@@ -342,9 +343,9 @@ Rule row/card
   Rule metadata details        user-controlled, independently collapsible
 ```
 
-The match section exists because of the current query. It may show information such as `Matched tag: observability` or a highlighted excerpt from notes, comments, canonical command text, group names, or other searchable metadata. It disappears when the corresponding query state disappears.
+The match section exists because of the current query. It may show information such as `Matched tag: observability` or a highlighted excerpt from notes, comments, canonical command text, tag names, or other searchable metadata. It disappears when the corresponding query state disappears.
 
-The metadata details section is explicit user interaction and may present richer ASP-owned context such as tags, group, notes, state, audit/context fields, canonical command text, or future typed metadata. Its expansion state is independent from search-match presentation.
+The metadata details section is explicit user interaction and may present richer ASP-owned context such as tags, notes, state, audit/context fields, canonical command text, or future typed metadata. Its expansion state is independent from search-match presentation.
 
 These two regions must not share one generic `Expanded` flag or otherwise become coupled merely because both render beneath the summary.
 
@@ -405,9 +406,8 @@ The feature sprint should build on these contracts. Reworking family separation,
 
 The following are intentionally not fixed by this baseline and should be worked through in the feature-design phase:
 
-- exact EF entities, keys, relationships, indexes, concurrency fields, and migrations;
 - exact browser-facing REST contract and whether enriched contracts warrant a dedicated API-contract project;
-- concrete metadata fields and grouping semantics;
+- future metadata fields and any future grouping/collection semantics;
 - exact future shorthand query grammar, URL encoding, filter-editor hosting surface, filter catalogue, and highlighting/presentation polish;
 - whether ordered insertion remains available while a filter is active;
 - reconciliation endpoint/command shape and orphan-cleanup confirmation UX;

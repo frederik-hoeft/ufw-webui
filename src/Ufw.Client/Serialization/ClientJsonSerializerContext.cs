@@ -16,6 +16,9 @@ namespace Ufw.Client.Serialization;
 [JsonSerializable(typeof(RuleInventoryResponse))]
 [JsonSerializable(typeof(RuleMetadataMutationResponse))]
 [JsonSerializable(typeof(UpdateRuleMetadataRequest))]
+[JsonSerializable(typeof(RuleTagInventoryResponse))]
+[JsonSerializable(typeof(CreateRuleTagRequest))]
+[JsonSerializable(typeof(UpdateRuleTagRequest))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceCommentRequest))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceVisibilityRequest))]
 internal sealed partial class ClientJsonSerializerContext : JsonSerializerContext;
