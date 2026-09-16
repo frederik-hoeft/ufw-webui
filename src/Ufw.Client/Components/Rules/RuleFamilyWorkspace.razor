@@ -49,6 +49,7 @@
                 <table aria-busy="@Loading">
                     <thead>
                         <tr>
+                            <th scope="col" class="expand"><span class="visually-hidden">@RulesText["RuleMetadata"]</span></th>
                             <th scope="col" class="drag"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
                             <th scope="col" class="position">@RulesText["RulePositionColumn"]</th>
                             <th scope="col" class="action">@RulesText["ActionColumn"]</th>
@@ -56,6 +57,7 @@
                             <th scope="col" class="endpoint">@RulesText["FromColumn"]</th>
                             <th scope="col" class="endpoint">@RulesText["ToColumn"]</th>
                             <th scope="col" class="protocol">@RulesText["ProtocolColumn"]</th>
+                            <th scope="col" class="tags">@RulesText["TagsColumn"]</th>
                             <th scope="col" class="comment">@RulesText["CommentColumn"]</th>
                             <th scope="col" class="actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
                         </tr>
@@ -64,7 +66,8 @@
                         @foreach (RuleQueryRow result in DisplayedRows)
                         {
                             RuleRowProjection row = result.Row;
-                            <RuleDesktopRow Row="@row"
+                            <RuleDesktopRow @key="row.OccurrenceId"
+                                            Row="@row"
                                             MatchEvidence="@result.Evidence"
                                             OrderingDisabled="@OrderingDisabled"
                                             InsertionDisabled="@InsertionDisabled"
@@ -76,7 +79,9 @@
                                             DropRequested="@DropAsync"
                                             MoveToPositionRequested="@RequestMoveToPositionAsync"
                                             InsertionRequested="@InsertionRequested"
-                                            DeleteRequested="@DeleteRequested" />
+                                            DeleteRequested="@DeleteRequested"
+                                            MetadataEditDisabled="@MetadataEditDisabled"
+                                            MetadataEditRequested="@MetadataEditRequested" />
                         }
                     </tbody>
                 </table>
@@ -86,7 +91,8 @@
                 @foreach (RuleQueryRow result in DisplayedRows)
                 {
                     RuleRowProjection row = result.Row;
-                    <RuleMobileCard Row="@row"
+                    <RuleMobileCard @key="row.OccurrenceId"
+                                    Row="@row"
                                     MatchEvidence="@result.Evidence"
                                     OrderingDisabled="@OrderingDisabled"
                                     InsertionDisabled="@InsertionDisabled"
@@ -98,7 +104,9 @@
                                     DropRequested="@DropAsync"
                                     MoveToPositionRequested="@RequestMoveToPositionAsync"
                                     InsertionRequested="@InsertionRequested"
-                                    DeleteRequested="@DeleteRequested" />
+                                    DeleteRequested="@DeleteRequested"
+                                    MetadataEditDisabled="@MetadataEditDisabled"
+                                    MetadataEditRequested="@MetadataEditRequested" />
                 }
             </div>
         }

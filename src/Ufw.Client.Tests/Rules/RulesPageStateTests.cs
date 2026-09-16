@@ -58,6 +58,73 @@ public sealed class RulesPageStateTests
     }
 
     [TestMethod]
+    public void AfterMetadataMutation_UpdatesAndClearsMetadataWithoutReplacingFirewallState()
+    {
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled)));
+        RuleMetadataMutationResponse saved = new()
+        {
+            Metadata = new RuleMetadataItem
+            {
+                Id = metadataId,
+                RuleId = "rule",
+                Notes = "  owned by platform  ",
+                Tags = [new RuleTagItem { Id = tagId, Name = " prod ", Color = "#aabbcc" }],
+            },
+        };
+
+        RulesPageState updated = state.AfterMetadataMutation("rule", saved);
+
+        Assert.IsTrue(updated.IsCurrent);
+        Assert.AreSame(state.Snapshot!.Rules, updated.Snapshot!.Rules);
+        Assert.AreEqual("owned by platform", updated.Snapshot.Metadata["rule"].Notes);
+        Assert.AreEqual("prod", updated.Snapshot.Metadata["rule"].Tags.Single().Name);
+        Assert.AreEqual("#AABBCC", updated.Snapshot.Metadata["rule"].Tags.Single().Color);
+
+        RulesPageState cleared = updated.AfterMetadataMutation("rule", new RuleMetadataMutationResponse());
+        Assert.IsEmpty(cleared.Snapshot!.Metadata);
+        Assert.AreSame(updated.Snapshot.Rules, cleared.Snapshot.Rules);
+    }
+
+    [TestMethod]
+    public void AfterMetadataMutation_RejectsMismatchedOrUnknownRuleIdentity()
+    {
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled)));
+        RuleMetadataMutationResponse mismatched = new()
+        {
+            Metadata = new RuleMetadataItem
+            {
+                Id = Guid.CreateVersion7(),
+                RuleId = "other",
+                Tags = [],
+            },
+        };
+
+        Assert.ThrowsExactly<ApiProtocolException>(() => state.AfterMetadataMutation("rule", mismatched));
+        Assert.ThrowsExactly<InvalidOperationException>(() => state.AfterMetadataMutation("missing", new RuleMetadataMutationResponse()));
+    }
+
+    [TestMethod]
+    public void ReconcileTagCatalog_RefreshesTagPresentationByStableIdentity()
+    {
+        Guid tagId = Guid.CreateVersion7();
+        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(
+            new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled),
+            [new RuleMetadataItem
+            {
+                Id = Guid.CreateVersion7(),
+                RuleId = "rule",
+                Tags = [new RuleTagItem { Id = tagId, Name = "old", Color = "#112233" }],
+            }]));
+
+        RulesPageState updated = state.ReconcileTagCatalog([new Ufw.Client.Rules.Metadata.RuleTag(tagId, "new", "#AABBCC")]);
+
+        Assert.AreEqual("new", updated.Snapshot!.Metadata["rule"].Tags.Single().Name);
+        Assert.AreEqual("#AABBCC", updated.Snapshot.Metadata["rule"].Tags.Single().Color);
+    }
+
+    [TestMethod]
     public void AfterInsertion_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
         RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));

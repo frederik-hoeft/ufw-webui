@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Ufw.Client.Api;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Metadata;
 
 namespace Ufw.Client.Components.Rules.Filtering.Tags;
 
-public sealed partial class TagRuleFilterEditor(IRuleTagApiClient tagApiClient) : RuleFilterEditorBase
+public sealed partial class TagRuleFilterEditor(IRuleTagCatalogService tagCatalog) : RuleFilterEditorBase
 {
     private RuleFilter? _loadedFilter;
     private IReadOnlyList<RuleTag> _tags = [];
@@ -14,11 +13,7 @@ public sealed partial class TagRuleFilterEditor(IRuleTagApiClient tagApiClient) 
 
     protected async override Task OnInitializedAsync()
     {
-        RuleTagInventoryResponse response = await tagApiClient.GetAsync();
-        _tags = response.Tags
-            .Select(static tag => new RuleTag(tag.Id, tag.Name, tag.Color))
-            .OrderBy(static tag => tag.Name, StringComparer.CurrentCultureIgnoreCase)
-            .ToArray();
+        _tags = await tagCatalog.RefreshAsync();
         SynchronizeFilter(force: true);
     }
 

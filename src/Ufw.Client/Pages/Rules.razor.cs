@@ -1,11 +1,14 @@
 ﻿using MudBlazor;
 using Ufw.Client.Api;
 using Ufw.Client.Components.Rules;
+using Ufw.Client.Components.Rules.Metadata;
 using Ufw.Client.Errors;
 using Ufw.Client.RuleInsertion;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
+using Ufw.Client.Rules.Filtering.Tags;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -23,10 +26,31 @@ public sealed partial class Rules
         MaxWidth = MaxWidth.Small,
     };
 
+    private static readonly DialogOptions s_metadataDialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        FullWidth = true,
+        MaxWidth = MaxWidth.Small,
+    };
+
+    private static readonly DialogOptions s_tagManagerDialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        FullWidth = true,
+        MaxWidth = MaxWidth.Small,
+    };
+
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
     private bool _deleteDialogOpen;
     private bool _deleting;
+    private bool _metadataDialogOpen;
+    private bool _metadataSaving;
+    private bool _tagDialogOpen;
     private bool _reordering;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
@@ -61,11 +85,22 @@ public sealed partial class Rules
     private int SelectedFamilyTabIndex =>
         _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;
 
-    private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering;
+    private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering || _metadataDialogOpen || _metadataSaving || _tagDialogOpen;
 
-    private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !HasOrderingPreview;
+    private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !_metadataDialogOpen && !_metadataSaving && !_tagDialogOpen && !HasOrderingPreview;
 
-    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && InteractionState.CanOrder;
+    private bool CanEditMetadata => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !_metadataDialogOpen && !_metadataSaving && !_tagDialogOpen;
+
+    private bool CanManageTags => !_state.IsLoading
+        && !_deleting
+        && !_deleteDialogOpen
+        && !_reordering
+        && !_metadataDialogOpen
+        && !_metadataSaving
+        && !_tagDialogOpen
+        && InteractionState.CanChangeQuery;
+
+    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !_tagDialogOpen && InteractionState.CanOrder;
 
     private string RefreshButtonLabel => _state.Status switch
     {
@@ -133,6 +168,95 @@ public sealed partial class Rules
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             _state = _state.FailRefresh(ClientErrors.Describe(exception));
+        }
+    }
+
+    private async Task EditMetadataAsync(RuleRowProjection row)
+    {
+        string? ruleId = row.Rule.RuleId;
+        if (!CanEditMetadata || string.IsNullOrWhiteSpace(ruleId))
+        {
+            return;
+        }
+
+        _metadataDialogOpen = true;
+        try
+        {
+            IReadOnlyList<RuleTag> tags = await RuleTags.RefreshAsync(_lifetime.Token);
+            DialogParameters<EditRuleMetadataDialog> parameters = [];
+            parameters.Add(component => component.Metadata, row.Metadata);
+            parameters.Add(component => component.AvailableTags, tags);
+            IDialogReference dialog = await DialogService.ShowAsync<EditRuleMetadataDialog>(RulesText["EditMetadata"], parameters, s_metadataDialogOptions);
+            RuleMetadataEditorResult? result = await dialog.GetReturnValueAsync<RuleMetadataEditorResult>();
+            if (result is not null)
+            {
+                await SaveMetadataAsync(ruleId, result);
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
+        }
+        finally
+        {
+            _metadataDialogOpen = false;
+        }
+    }
+
+    private async Task SaveMetadataAsync(string ruleId, RuleMetadataEditorResult result)
+    {
+        _metadataSaving = true;
+        try
+        {
+            RuleMetadataMutationResponse response = await RuleApiClient.UpdateMetadataAsync(ruleId, new UpdateRuleMetadataRequest
+            {
+                Notes = result.Notes,
+                TagIds = result.TagIds,
+            }, _lifetime.Token);
+            _state = _state.AfterMetadataMutation(ruleId, response);
+            RefreshRuleListProjection();
+            Snackbar.Add(RulesText["MetadataSaved"], Severity.Success);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
+        }
+        finally
+        {
+            _metadataSaving = false;
+        }
+    }
+
+    private async Task ManageTagsAsync()
+    {
+        if (!CanManageTags)
+        {
+            return;
+        }
+
+        long version = RuleTags.Version;
+        _tagDialogOpen = true;
+        try
+        {
+            IDialogReference dialog = await DialogService.ShowAsync<ManageRuleTagsDialog>(RulesText["ManageTags"], s_tagManagerDialogOptions);
+            await dialog.Result;
+        }
+        finally
+        {
+            _tagDialogOpen = false;
+        }
+
+        if (RuleTags.Version != version)
+        {
+            _state = _state.ReconcileTagCatalog(RuleTags.Current);
+            _ruleQuery = RuleTagFilters.Reconcile(_ruleQuery, RuleTags.Current);
+            RefreshRuleListProjection();
         }
     }
 

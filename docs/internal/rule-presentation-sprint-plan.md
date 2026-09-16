@@ -349,6 +349,10 @@ The metadata details section is explicit user interaction and may present richer
 
 These two regions must not share one generic `Expanded` flag or otherwise become coupled merely because both render beneath the summary.
 
+The implemented metadata-presentation slice follows that separation. Desktop rows and mobile cards show compact colored tag labels in their stable summaries and own a per-occurrence metadata-details expansion state that is independent from query evidence. `RuleMetadataDetails` remains presentational: it renders tags/notes and emits an edit request, while the rules page coordinates persistence and patches the enriched client snapshot after a successful metadata mutation without forcing a UFW refresh.
+
+Reusable tags are managed through a scoped client tag-catalog service and a dedicated management dialog. Tag rename/color changes are reconciled into loaded rule metadata and configured tag filters by UUID identity, so presentation changes do not alter filter meaning. Tag creation, editing, and deletion remain ASP-owned application-state operations and never enter signed firewall intents.
+
 ## Component boundaries
 
 The presentation foundation is already decomposed along interaction boundaries. The feature sprint should extend those boundaries rather than rebuilding family separation or collapsing the row presenters back into a monolith.
@@ -360,17 +364,17 @@ Rules page
   global firewall state / mutation orchestration
   IPv4 | IPv6 tabs
     RuleFamilyWorkspace (selected family)
-      RuleListToolbar                 planned
+      RuleListToolbar
         free-text search
         applied filter chips
         filter editor/selector host
-        sorting
+        sorting                       planned
       RuleDesktopRow*
-        RuleMatchContext?             planned
-        RuleMetadataDetails?          planned
+        RuleMatchContext?
+        RuleMetadataDetails?
       RuleMobileCard*
-        RuleMatchContext?             planned
-        RuleMetadataDetails?          planned
+        RuleMatchContext?
+        RuleMetadataDetails?
 ```
 
 Responsibilities should remain narrow:

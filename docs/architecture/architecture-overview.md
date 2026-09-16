@@ -106,6 +106,12 @@ Before returning `GET /api/v1/rules`, `Ufw.Web` loads presentation metadata only
 
 The browser treats each successful response as an authoritative snapshot. UFW keeps IPv4 and IPv6 in independent ordered rule sets and concatenates them for numbered status output, so the browser presents separate family sections while retaining the exact combined snapshot coordinates for signing and mutation addressing. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
 
+### Managing rule presentation metadata
+
+Rule metadata is edited independently from firewall mutation. The browser submits notes and selected tag UUIDs for a live semantic `RuleId`; `Ufw.Web` revalidates that the identity exists in a fresh daemon snapshot before persisting the application-owned metadata. A successful metadata response can therefore update the browser's enriched presentation snapshot in place without pretending that UFW state changed or requiring a firewall refresh.
+
+Reusable tags are managed through a separate ASP-owned catalog. Their UUIDv7 identity is stable across display-name and color changes, so the browser reconciles loaded metadata and active tag filters by UUID rather than by label text. Creating, renaming, recoloring, or deleting an unused tag does not cross the signed-intent boundary and cannot modify firewall semantics. Rule rows may expose compact tag labels and independently expandable metadata details, but those presentation controls remain separate from query-derived match evidence and from firewall mutation capability.
+
 ### Mutating firewall state
 
 A firewall mutation uses two independent authorization layers. The HTTP request requires a valid web session, and the mutation body carries a browser-created signature that the daemon verifies independently.

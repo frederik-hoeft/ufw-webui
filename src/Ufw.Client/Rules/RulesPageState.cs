@@ -52,17 +52,81 @@ internal sealed record RuleSnapshot(
         Dictionary<string, RuleMetadata> metadata = new(StringComparer.Ordinal);
         foreach (RuleMetadataItem item in response.Metadata)
         {
-            RuleTag[] tags = [.. item.Tags.Select(static tag => new RuleTag(tag.Id, tag.Name, tag.Color))];
-            if (item.Id == Guid.Empty
-                || string.IsNullOrWhiteSpace(item.RuleId)
-                || tags.Any(static tag => tag.Id == Guid.Empty || string.IsNullOrWhiteSpace(tag.Name) || string.IsNullOrWhiteSpace(tag.Color))
-                || !metadata.TryAdd(item.RuleId, new RuleMetadata(item.Id, item.Notes, tags)))
+            if (string.IsNullOrWhiteSpace(item.RuleId) || !metadata.TryAdd(item.RuleId, FromMetadataItem(item)))
             {
-                throw new InvalidDataException("The enriched rule response contains invalid or duplicate metadata identities.");
+                throw new ApiProtocolException("The enriched rule response contains invalid or duplicate metadata identities.");
             }
         }
 
         return FromFirewallResponse(response.Firewall, metadata);
+    }
+
+    public RuleSnapshot ApplyMetadataMutation(string ruleId, RuleMetadataMutationResponse response)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
+        ArgumentNullException.ThrowIfNull(response);
+        if (!Rules.Any(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException("Rule metadata cannot be applied to a rule outside the current snapshot.");
+        }
+
+        Dictionary<string, RuleMetadata> metadata = new(Metadata, StringComparer.Ordinal);
+        if (response.Metadata is null)
+        {
+            metadata.Remove(ruleId);
+        }
+        else
+        {
+            if (!string.Equals(response.Metadata.RuleId, ruleId, StringComparison.Ordinal))
+            {
+                throw new ApiProtocolException("The metadata mutation response refers to a different rule identity.");
+            }
+            metadata[ruleId] = FromMetadataItem(response.Metadata);
+        }
+
+        return this with { Metadata = metadata };
+    }
+
+    public RuleSnapshot ReconcileTagCatalog(IReadOnlyList<RuleTag> tags)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+        Dictionary<Guid, RuleTag> byId = tags.ToDictionary(static tag => tag.Id);
+        Dictionary<string, RuleMetadata> metadata = new(Metadata.Count, StringComparer.Ordinal);
+        foreach ((string ruleId, RuleMetadata value) in Metadata)
+        {
+            RuleTag[] reconciledTags = [.. value.Tags.Select(tag => byId.GetValueOrDefault(tag.Id) ?? tag)];
+            metadata.Add(ruleId, value with { Tags = reconciledTags });
+        }
+        return this with { Metadata = metadata };
+    }
+
+    private static RuleMetadata FromMetadataItem(RuleMetadataItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (item.Tags is null)
+        {
+            throw new ApiProtocolException("The enriched rule response contains metadata without a tag list.");
+        }
+
+        List<RuleTag> tags = new(item.Tags.Count);
+        foreach (RuleTagItem tag in item.Tags)
+        {
+            if (tag is null
+                || tag.Id == Guid.Empty
+                || string.IsNullOrWhiteSpace(tag.Name)
+                || !RuleTagColor.TryNormalize(tag.Color, out string? color))
+            {
+                throw new ApiProtocolException("The enriched rule response contains invalid metadata.");
+            }
+            tags.Add(new RuleTag(tag.Id, tag.Name.Trim(), color));
+        }
+
+        if (item.Id == Guid.Empty || tags.Select(static tag => tag.Id).Distinct().Count() != tags.Count)
+        {
+            throw new ApiProtocolException("The enriched rule response contains invalid metadata.");
+        }
+
+        return new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags);
     }
 
     public static RuleSnapshot FromFirewallResponse(
@@ -137,6 +201,25 @@ internal sealed record RulesPageState
             ? RuleSnapshotStaleReason.MutationCommitted
             : StaleReason ?? RuleSnapshotStaleReason.RefreshFailed;
         return new(RulesPageStatus.Stale, Snapshot, error, refreshReason: null, staleReason);
+    }
+
+    public RulesPageState AfterMetadataMutation(string ruleId, RuleMetadataMutationResponse response)
+    {
+        if (Snapshot is null)
+        {
+            throw new InvalidOperationException("Rule metadata cannot be updated against an unloaded rule snapshot.");
+        }
+
+        return new RulesPageState(Status, Snapshot.ApplyMetadataMutation(ruleId, response), Error, RefreshReason, StaleReason);
+    }
+
+    public RulesPageState ReconcileTagCatalog(IReadOnlyList<RuleTag> tags)
+    {
+        if (Snapshot is null)
+        {
+            return this;
+        }
+        return new RulesPageState(Status, Snapshot.ReconcileTagCatalog(tags), Error, RefreshReason, StaleReason);
     }
 
     public RulesPageState AfterInsertion(RuleInsertionResponse response)

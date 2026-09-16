@@ -31,6 +31,7 @@ using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
 using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Filtering.Text;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Client.Rules.Presentation;
 using Ufw.Client.Status;
 using Ufw.Client.Storage;
@@ -81,6 +82,8 @@ public static class Program
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
         builder.Services.AddSingleton<IRuleOrderingResultProjectionService, RuleOrderingResultProjectionService>();
         builder.Services.AddSingleton<IRuleListProjectionService, RuleListProjectionService>();
+        builder.Services.AddScoped<IRuleTagCatalogService, RuleTagCatalogService>();
+        builder.Services.AddSingleton<IRuleTagFilterReconciler, RuleTagFilterReconciler>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, NetworkRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, PortRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, ProtocolRuleFilterDefinitionProvider>();

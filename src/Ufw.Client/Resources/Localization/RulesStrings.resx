@@ -623,4 +623,42 @@
   <data name="FilterCategoryMetadata" xml:space="preserve"><value>Metadata</value></data>
   <data name="TagFilter" xml:space="preserve"><value>Tag</value></data>
   <data name="Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="RuleMetadata" xml:space="preserve"><value>Rule metadata</value></data>
+  <data name="RuleMetadataAria" xml:space="preserve"><value>Rule metadata details</value></data>
+  <data name="RuleMetadataDescription" xml:space="preserve"><value>Application-owned context attached to this semantic rule.</value></data>
+  <data name="EditMetadata" xml:space="preserve"><value>Edit metadata</value></data>
+  <data name="NoRuleMetadata" xml:space="preserve"><value>No notes or tags are attached to this rule.</value></data>
+  <data name="Tags" xml:space="preserve"><value>Tags</value></data>
+  <data name="EditMetadataDescription" xml:space="preserve"><value>Add notes and reusable tags without changing the firewall rule itself.</value></data>
+  <data name="NotesPlaceholder" xml:space="preserve"><value>Add operational context, ownership notes, or other useful details</value></data>
+  <data name="RemoveTag" xml:space="preserve"><value>Remove tag {0}</value></data>
+  <data name="NoTagsAvailable" xml:space="preserve"><value>No tags are defined yet. Use Manage tags to create one.</value></data>
+  <data name="AddTagToRule" xml:space="preserve"><value>Add tag</value></data>
+  <data name="MetadataIdentityHint" xml:space="preserve"><value>Metadata is attached to semantic rule identity and is shared by identical rule occurrences.</value></data>
+  <data name="SaveMetadata" xml:space="preserve"><value>Save metadata</value></data>
+  <data name="ManageTags" xml:space="preserve"><value>Manage tags</value></data>
+  <data name="ManageTagsDescription" xml:space="preserve"><value>Create reusable rule tags. Tag names are unique, and colors are only visual presentation metadata.</value></data>
+  <data name="CreateTag" xml:space="preserve"><value>Create tag</value></data>
+  <data name="EditTag" xml:space="preserve"><value>Edit tag</value></data>
+  <data name="TagEditorAria" xml:space="preserve"><value>Rule tag editor</value></data>
+  <data name="TagName" xml:space="preserve"><value>Name</value></data>
+  <data name="TagColor" xml:space="preserve"><value>Color</value></data>
+  <data name="TagColorHex" xml:space="preserve"><value>Hex color</value></data>
+  <data name="SavingTag" xml:space="preserve"><value>Saving...</value></data>
+  <data name="SaveTag" xml:space="preserve"><value>Save tag</value></data>
+  <data name="LoadingTags" xml:space="preserve"><value>Loading tags...</value></data>
+  <data name="NoTagsDefined" xml:space="preserve"><value>No reusable tags have been defined yet.</value></data>
+  <data name="EditTagAria" xml:space="preserve"><value>Edit tag {0}</value></data>
+  <data name="DeleteTagAria" xml:space="preserve"><value>Delete tag {0}</value></data>
+  <data name="Close" xml:space="preserve"><value>Close</value></data>
+  <data name="DeleteTagConfirmation" xml:space="preserve"><value>Delete tag “{0}”?</value></data>
+  <data name="DeleteTagDescription" xml:space="preserve"><value>Tags that are still attached to rule metadata cannot be deleted.</value></data>
+  <data name="DeleteTag" xml:space="preserve"><value>Delete tag</value></data>
+  <data name="InvalidTagColor" xml:space="preserve"><value>Enter a hexadecimal color in #RRGGBB format.</value></data>
+  <data name="TagSaved" xml:space="preserve"><value>Tag saved.</value></data>
+  <data name="TagDeleted" xml:space="preserve"><value>Tag deleted.</value></data>
+  <data name="MetadataSaved" xml:space="preserve"><value>Rule metadata saved.</value></data>
+  <data name="ShowRuleMetadata" xml:space="preserve"><value>Show metadata for rule {0}</value></data>
+  <data name="HideRuleMetadata" xml:space="preserve"><value>Hide metadata for rule {0}</value></data>
+  <data name="TagsColumn" xml:space="preserve"><value>Tags</value></data>
 </root>

@@ -623,4 +623,42 @@
   <data name="FilterCategoryMetadata" xml:space="preserve"><value>Metadaten</value></data>
   <data name="TagFilter" xml:space="preserve"><value>Tag</value></data>
   <data name="Notes" xml:space="preserve"><value>Notizen</value></data>
+  <data name="RuleMetadata" xml:space="preserve"><value>Regel-Metadaten</value></data>
+  <data name="RuleMetadataAria" xml:space="preserve"><value>Regel-Metadaten-Details</value></data>
+  <data name="RuleMetadataDescription" xml:space="preserve"><value>Anwendungsseitiger Kontext für diese semantische Regel.</value></data>
+  <data name="EditMetadata" xml:space="preserve"><value>Metadaten bearbeiten</value></data>
+  <data name="NoRuleMetadata" xml:space="preserve"><value>Für diese Regel sind keine Notizen oder Tags hinterlegt.</value></data>
+  <data name="Tags" xml:space="preserve"><value>Tags</value></data>
+  <data name="EditMetadataDescription" xml:space="preserve"><value>Notizen und wiederverwendbare Tags hinzufügen, ohne die Firewall-Regel selbst zu ändern.</value></data>
+  <data name="NotesPlaceholder" xml:space="preserve"><value>Betriebskontext, Zuständigkeit oder andere hilfreiche Details hinzufügen</value></data>
+  <data name="RemoveTag" xml:space="preserve"><value>Tag {0} entfernen</value></data>
+  <data name="NoTagsAvailable" xml:space="preserve"><value>Es sind noch keine Tags definiert. Über „Tags verwalten“ kann ein Tag angelegt werden.</value></data>
+  <data name="AddTagToRule" xml:space="preserve"><value>Tag hinzufügen</value></data>
+  <data name="MetadataIdentityHint" xml:space="preserve"><value>Metadaten sind an die semantische Regelidentität gebunden und werden von identischen Regelvorkommen gemeinsam verwendet.</value></data>
+  <data name="SaveMetadata" xml:space="preserve"><value>Metadaten speichern</value></data>
+  <data name="ManageTags" xml:space="preserve"><value>Tags verwalten</value></data>
+  <data name="ManageTagsDescription" xml:space="preserve"><value>Wiederverwendbare Regel-Tags verwalten. Tag-Namen sind eindeutig; Farben dienen nur der visuellen Darstellung.</value></data>
+  <data name="CreateTag" xml:space="preserve"><value>Tag erstellen</value></data>
+  <data name="EditTag" xml:space="preserve"><value>Tag bearbeiten</value></data>
+  <data name="TagEditorAria" xml:space="preserve"><value>Regel-Tag-Editor</value></data>
+  <data name="TagName" xml:space="preserve"><value>Name</value></data>
+  <data name="TagColor" xml:space="preserve"><value>Farbe</value></data>
+  <data name="TagColorHex" xml:space="preserve"><value>Hex-Farbe</value></data>
+  <data name="SavingTag" xml:space="preserve"><value>Wird gespeichert...</value></data>
+  <data name="SaveTag" xml:space="preserve"><value>Tag speichern</value></data>
+  <data name="LoadingTags" xml:space="preserve"><value>Tags werden geladen...</value></data>
+  <data name="NoTagsDefined" xml:space="preserve"><value>Es wurden noch keine wiederverwendbaren Tags definiert.</value></data>
+  <data name="EditTagAria" xml:space="preserve"><value>Tag {0} bearbeiten</value></data>
+  <data name="DeleteTagAria" xml:space="preserve"><value>Tag {0} löschen</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="DeleteTagConfirmation" xml:space="preserve"><value>Tag „{0}“ löschen?</value></data>
+  <data name="DeleteTagDescription" xml:space="preserve"><value>Tags, die noch Regel-Metadaten zugeordnet sind, können nicht gelöscht werden.</value></data>
+  <data name="DeleteTag" xml:space="preserve"><value>Tag löschen</value></data>
+  <data name="InvalidTagColor" xml:space="preserve"><value>Eine hexadezimale Farbe im Format #RRGGBB eingeben.</value></data>
+  <data name="TagSaved" xml:space="preserve"><value>Tag gespeichert.</value></data>
+  <data name="TagDeleted" xml:space="preserve"><value>Tag gelöscht.</value></data>
+  <data name="MetadataSaved" xml:space="preserve"><value>Regel-Metadaten gespeichert.</value></data>
+  <data name="ShowRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} anzeigen</value></data>
+  <data name="HideRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} ausblenden</value></data>
+  <data name="TagsColumn" xml:space="preserve"><value>Tags</value></data>
 </root>

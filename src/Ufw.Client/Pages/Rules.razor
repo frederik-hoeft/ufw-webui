@@ -1,5 +1,7 @@
 ﻿@page "/rules"
 @attribute [Authorize]
+@using Ufw.Client.Rules.Filtering.Tags
+@using Ufw.Client.Rules.Metadata
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
 @inject IRuleMutationService RuleMutations
@@ -10,6 +12,8 @@
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IRuleListProjectionService RuleListProjectionService
 @inject IRuleQueryService RuleQueryService
+@inject IRuleTagFilterReconciler RuleTagFilters
+@inject IRuleTagCatalogService RuleTags
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
@@ -29,6 +33,13 @@
                    OnClick="RefreshAsync"
                    Class="page-header-button">
             @RefreshButtonLabel
+        </MudButton>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Outlined.Label"
+                   Disabled="@(!CanManageTags)"
+                   OnClick="ManageTagsAsync"
+                   Class="page-header-button">
+            @RulesText["ManageTags"]
         </MudButton>
         <MudButton Href="/rules/create"
                    Variant="Variant.Filled"
@@ -193,6 +204,8 @@ else if (_state.Snapshot is { })
                                  Disabled="@(!CanMutateFirewall)"
                                  OrderingDisabled="@(!CanPreviewOrdering)"
                                  InsertionDisabled="@(!CanMutateFirewall)"
+                                 MetadataEditDisabled="@(!CanEditMetadata)"
+                                 MetadataEditRequested="EditMetadataAsync"
                                  DeleteRequested="BeginDeleteAsync"
                                  InsertionRequested="BeginOrderedInsertionAsync"
                                  MoveRequested="MoveRuleAsync" />
@@ -210,6 +223,8 @@ else if (_state.Snapshot is { })
                                      Disabled="@(!CanMutateFirewall)"
                                      OrderingDisabled="@(!CanPreviewOrdering)"
                                      InsertionDisabled="@(!CanMutateFirewall)"
+                                     MetadataEditDisabled="@(!CanEditMetadata)"
+                                     MetadataEditRequested="EditMetadataAsync"
                                      DeleteRequested="BeginDeleteAsync"
                                      InsertionRequested="BeginOrderedInsertionAsync"
                                      MoveRequested="MoveRuleAsync" />

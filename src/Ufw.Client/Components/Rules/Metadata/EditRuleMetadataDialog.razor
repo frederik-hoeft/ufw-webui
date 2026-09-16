@@ -1,0 +1,73 @@
+@using Ufw.Client.Rules.Metadata
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @RulesText["EditMetadataDescription"]
+        </MudText>
+        <MudForm @ref="_form">
+            <MudTextField T="string"
+                          Label="@(RulesText["Notes"])"
+                          @bind-Value="_notes"
+                          Lines="5"
+                          Immediate="true"
+                          Counter="@MAX_NOTES_LENGTH"
+                          MaxLength="@MAX_NOTES_LENGTH"
+                          Placeholder="@(RulesText["NotesPlaceholder"])" />
+
+            <div class="rule-metadata-editor-tags mt-4">
+                <MudText Typo="Typo.subtitle2">@RulesText["Tags"]</MudText>
+                @if (SelectedTags.Count > 0)
+                {
+                    <div class="rule-metadata-editor-selected-tags">
+                        @foreach (RuleTag tag in SelectedTags)
+                        {
+                            <button type="button"
+                                    class="rule-tag-remove-button"
+                                    title="@RulesText["RemoveTag", tag.Name]"
+                                    aria-label="@RulesText["RemoveTag", tag.Name]"
+                                    @onclick="@(() => RemoveTag(tag.Id))">
+                                <RuleTagChip Tag="@tag" />
+                                <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                            </button>
+                        }
+                    </div>
+                }
+
+                @if (AvailableTags.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["NoTagsAvailable"]</MudText>
+                }
+                else
+                {
+                    <MudAutocomplete T="RuleTag"
+                                     Label="@(RulesText["AddTagToRule"])"
+                                     Value="@_tagToAdd"
+                                     ValueChanged="AddTag"
+                                     SearchFunc="SearchTagsAsync"
+                                     ToStringFunc="FormatTag"
+                                     CoerceValue="false"
+                                     ResetValueOnEmptyText="true"
+                                     Clearable="true"
+                                     MaxItems="@((int?)null)">
+                        <ItemTemplate Context="tag">
+                            <span class="rule-tag-select-option">
+                                <span class="rule-tag-color" style="background-color: @tag.Color"></span>
+                                <span>@tag.Name</span>
+                            </span>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                }
+            </div>
+        </MudForm>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-4 d-block">
+            @RulesText["MetadataIdentityHint"]
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">@RulesText["SaveMetadata"]</MudButton>
+    </DialogActions>
+</MudDialog>

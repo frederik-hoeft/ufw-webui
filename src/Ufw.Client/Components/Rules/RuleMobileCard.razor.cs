@@ -8,6 +8,8 @@ namespace Ufw.Client.Components.Rules;
 
 public sealed partial class RuleMobileCard
 {
+    private bool _metadataExpanded;
+
     [Parameter, EditorRequired]
     public RuleRowProjection Row { get; set; } = null!;
 
@@ -46,6 +48,12 @@ public sealed partial class RuleMobileCard
 
     [Parameter]
     public EventCallback<RuleInsertionActionRequest> InsertionRequested { get; set; }
+
+    [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
 
     // Native dragenter may bubble repeatedly while crossing descendants of the same card. Keep the callback non-rendering;
     // the workspace schedules a render only when the effective drop target actually changes.
@@ -92,6 +100,20 @@ public sealed partial class RuleMobileCard
         RuleDropIndicatorEdge.After => "rule-mobile-card readonly drop-after",
         _ => "rule-mobile-card readonly",
     };
+
+    private bool MetadataAvailable => !string.IsNullOrWhiteSpace(Row.Rule.RuleId);
+
+    private string MetadataToggleLabel => _metadataExpanded
+        ? RulesText["HideRuleMetadata", Row.FamilyPosition]
+        : RulesText["ShowRuleMetadata", Row.FamilyPosition];
+
+    private void ToggleMetadata()
+    {
+        if (MetadataAvailable)
+        {
+            _metadataExpanded = !_metadataExpanded;
+        }
+    }
 
     private Task DropAsync() => DropRequested(Row);
 

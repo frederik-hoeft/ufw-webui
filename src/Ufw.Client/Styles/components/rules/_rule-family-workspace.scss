@@ -34,7 +34,7 @@
 
             > table {
                 width: 100%;
-                min-width: 66rem;
+                min-width: 76rem;
                 border-spacing: 0;
                 border-collapse: collapse;
                 color: var(--mud-palette-text-primary);
@@ -75,6 +75,7 @@
                     }
                 }
 
+                .expand,
                 .drag {
                     width: 2.75rem;
                     min-width: 2.75rem;
@@ -100,6 +101,11 @@
                 .protocol {
                     width: 6rem;
                     min-width: 6rem;
+                }
+
+                .tags {
+                    width: 13rem;
+                    min-width: 10rem;
                 }
 
                 .comment {
