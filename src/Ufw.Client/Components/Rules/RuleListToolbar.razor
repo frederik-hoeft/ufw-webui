@@ -28,7 +28,6 @@
                       Placeholder="@(AddressFamily == FirewallAddressFamily.IPv6 ? "2001:db8::/32" : "10.0.0.0/8")"
                       Value="@_sourceNetwork"
                       ValueChanged="SourceNetworkChangedAsync"
-                      Immediate="true"
                       Disabled="@Disabled"
                       Error="@(_sourceNetworkError is not null)"
                       ErrorText="@_sourceNetworkError" />
@@ -37,7 +36,6 @@
                       Placeholder="@(AddressFamily == FirewallAddressFamily.IPv6 ? "2001:db8::1" : "192.0.2.10")"
                       Value="@_destinationNetwork"
                       ValueChanged="DestinationNetworkChangedAsync"
-                      Immediate="true"
                       Disabled="@Disabled"
                       Error="@(_destinationNetworkError is not null)"
                       ErrorText="@_destinationNetworkError" />
@@ -46,7 +44,6 @@
                       Placeholder="443,8000:8100"
                       Value="@_ports"
                       ValueChanged="PortsChangedAsync"
-                      Immediate="true"
                       Disabled="@Disabled"
                       Error="@(_portsError is not null)"
                       ErrorText="@_portsError" />
