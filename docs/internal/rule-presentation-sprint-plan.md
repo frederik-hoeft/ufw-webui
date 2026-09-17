@@ -131,14 +131,15 @@ ASP remains responsible for assembling truth; the client owns view projection.
 
 ### Structured query model
 
-Filtering should be modelled as a collection/pipeline of independently configured filters rather than one monolithic options object that knows every supported predicate. A query may additionally contain free-text search terms, but structured filter instances remain the canonical representation for field-specific semantics.
+Filtering should be modelled as a collection/pipeline of independently configured filters rather than one monolithic options object that knows every supported predicate.
+In the initial client implementation, free-text search is also represented by a configured `TextFilter` so every active constraint follows the same evaluator and evidence pipeline.
 
 Conceptually:
 
 ```text
 RuleQuery
-  free-text terms*
   configured filters*
+    TextFilter
     SourceFilter
     DestinationFilter
     PortFilter
@@ -258,7 +259,7 @@ The first slice should establish:
 - configured filter models rather than one monolithic filter state object;
 - focused filter evaluators/pipeline composition;
 - typed match evidence;
-- free-text search as a separate query concern that can coexist with structural filters;
+- free-text search represented as a normal configured filter that can coexist with structural filters;
 - applied-filter chip presentation where practical;
 - family-local evaluation context;
 - query/filter state separated from sorting and ordering state;
@@ -279,6 +280,8 @@ When the fixed form becomes crowded, replace it with the filter-selector/editor 
 
 This phase should preserve the same query model and evaluator pipeline introduced in phase 1.
 
+The implemented client shape keeps the dedicated free-text field as a convenience entry point for the same `TextRuleFilter` model while structural filters are composed through `+ Filter`. UI registrations are supplied per filter domain and aggregated by a generic catalogue; each registration owns its stable key, category/name metadata, editor component, configured-filter matching, and chip presentation. The current editor host is a dialog, but the editors and catalogue are independent of that host so a later popover/sheet presentation does not change filter semantics.
+
 #### Phase 3: optional shorthand query grammar
 
 A compact context-search grammar can be added later as a power-user convenience, for example:
@@ -287,7 +290,8 @@ A compact context-search grammar can be added later as a power-user convenience,
 from:10.0.0.0/8 to:10.1.2.3 proto:tcp tag:observability "prometheus"
 ```
 
-The grammar must compile into the same configured filter models/free-text terms used by the structural UI. It must not become a second filtering implementation.
+The grammar must compile into the same configured filter models used by the structural UI. Unqualified text should compile to the same text-filter model rather than become a second
+filtering implementation.
 
 Unqualified text should remain ordinary text search rather than being aggressively inferred as an address, port, tag, or other structured predicate. Explicit prefixes can add precision without making normal search surprising.
 

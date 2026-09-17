@@ -2,6 +2,7 @@
 using MudBlazor;
 using Ufw.Client.Api;
 using Ufw.Client.Rules;
+using Ufw.Client.Rules.Filtering;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules;
@@ -24,6 +25,21 @@ public sealed partial class RuleFamilyWorkspace
     [Parameter, EditorRequired]
     public required RuleFamilyProjection Family { get; set; }
 
+    [Parameter, EditorRequired]
+    public required RuleQuery Query { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<RuleQueryRow>? QueryRows { get; set; }
+
+    [Parameter]
+    public bool QueryActive { get; set; }
+
+    [Parameter]
+    public bool QueryChangesDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleQuery> QueryChanged { get; set; }
+
     [Parameter]
     public bool Loading { get; set; }
 
@@ -44,6 +60,8 @@ public sealed partial class RuleFamilyWorkspace
 
     [Parameter]
     public EventCallback<RuleMoveRequest> MoveRequested { get; set; }
+
+    private IReadOnlyList<RuleQueryRow> DisplayedRows => QueryRows ?? Family.Rows.Select(static row => new RuleQueryRow(row, [])).ToArray();
 
     private RuleDropIndicatorEdge? DropIndicatorEdge(RuleRowProjection row) =>
         ReferenceEquals(_dropTarget?.Row, row) ? _dropTarget.IndicatorEdge : null;

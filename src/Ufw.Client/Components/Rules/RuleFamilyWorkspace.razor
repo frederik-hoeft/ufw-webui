@@ -4,6 +4,10 @@
 
 <section aria-labelledby="firewall-rule-list-heading" class="rule-family-workspace">
     <h2 id="firewall-rule-list-heading" class="visually-hidden">@RulesText["CurrentAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</h2>
+    <RuleListToolbar Query="@Query"
+                     AddressFamily="@Family.AddressFamily"
+                     Disabled="@QueryChangesDisabled"
+                     QueryChanged="@QueryChanged" />
     <MudPaper Elevation="0" Class="surface">
         @if (Loading)
         {
@@ -12,22 +16,31 @@
                                aria-label="@(RulesText["LoadingStateAria"])" />
         }
 
-        @if (Family.Rows.Count == 0)
+        @if (DisplayedRows.Count == 0)
         {
             <div class="empty-state">
-                <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.subtitle1">@RulesText["NoAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @RulesText["NoAddressFamilyRulesDescription", RuleText.FormatAddressFamily(Family.AddressFamily)]
-                </MudText>
-                <MudButton Href="/rules/create"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Disabled="@Disabled"
-                           Class="mt-2">
-                    @RulesText["AddRule"]
-                </MudButton>
+                @if (QueryActive && Family.Rows.Count > 0)
+                {
+                    <MudIcon Icon="@Icons.Material.Outlined.FilterAltOff" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.subtitle1">@RulesText["NoMatchingRules"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["NoMatchingRulesDescription"]</MudText>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.subtitle1">@RulesText["NoAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @RulesText["NoAddressFamilyRulesDescription", RuleText.FormatAddressFamily(Family.AddressFamily)]
+                    </MudText>
+                    <MudButton Href="/rules/create"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@Disabled"
+                               Class="mt-2">
+                        @RulesText["AddRule"]
+                    </MudButton>
+                }
             </div>
         }
         else
@@ -48,9 +61,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (RuleRowProjection row in Family.Rows)
+                        @foreach (RuleQueryRow result in DisplayedRows)
                         {
+                            RuleRowProjection row = result.Row;
                             <RuleDesktopRow Row="@row"
+                                            MatchEvidence="@result.Evidence"
                                             OrderingDisabled="@OrderingDisabled"
                                             InsertionDisabled="@InsertionDisabled"
                                             MutationDisabled="@Disabled"
@@ -68,9 +83,11 @@
             </div>
 
             <div class="mobile-list" aria-busy="@Loading">
-                @foreach (RuleRowProjection row in Family.Rows)
+                @foreach (RuleQueryRow result in DisplayedRows)
                 {
+                    RuleRowProjection row = result.Row;
                     <RuleMobileCard Row="@row"
+                                    MatchEvidence="@result.Evidence"
                                     OrderingDisabled="@OrderingDisabled"
                                     InsertionDisabled="@InsertionDisabled"
                                     MutationDisabled="@Disabled"
@@ -90,8 +107,16 @@
     @if (Family.Rows.Count > 0)
     {
         <div class="ordering-note" role="note">
-            <strong>@RulesText["OrderingLabel"]</strong>
-            <span>@RulesText["OrderingDescription"]</span>
+            @if (QueryActive)
+            {
+                <strong>@RulesText["FilteredRuleCount", DisplayedRows.Count, Family.Rows.Count]</strong>
+                <span>@RulesText["FilteringDisablesOrdering"]</span>
+            }
+            else
+            {
+                <strong>@RulesText["OrderingLabel"]</strong>
+                <span>@RulesText["OrderingDescription"]</span>
+            }
         </div>
     }
 </section>

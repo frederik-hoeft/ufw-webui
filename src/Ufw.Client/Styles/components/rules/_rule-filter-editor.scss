@@ -1,0 +1,28 @@
+.rule-filter-selector {
+    display: grid;
+    gap: 1rem;
+
+    .rule-filter-selector-groups {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .rule-filter-selector-options {
+        display: grid;
+        margin-top: 0.125rem;
+
+        .mud-button-root {
+            justify-content: flex-start;
+        }
+    }
+}
+
+.rule-filter-editor {
+    display: grid;
+    gap: 0.5rem;
+
+    > .mud-button-root {
+        justify-self: start;
+        margin-left: -0.75rem;
+    }
+}

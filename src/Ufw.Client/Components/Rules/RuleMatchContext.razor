@@ -1,0 +1,23 @@
+@using Ufw.Client.Rules.Filtering.Text
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<div class="rule-match-context" role="note" aria-label="@(RulesText["RuleMatchContextAria"])">
+    <MudIcon Icon="@Icons.Material.Outlined.Search" Size="Size.Small" />
+    <span class="rule-match-context-label">@RulesText["RuleMatchContextLabel"]</span>
+    <div class="rule-match-evidence-list">
+        @foreach (RuleMatchEvidence evidence in Evidence)
+        {
+            @if (evidence is TextRuleMatchEvidence text)
+            {
+                <span class="rule-match-evidence rule-match-evidence-text">
+                    <span class="rule-match-evidence-field">@DescribeTextField(text.Field):</span>
+                    <span>@text.Value[..text.Start]<mark>@text.Value.Substring(text.Start, text.Length)</mark>@text.Value[(text.Start + text.Length)..]</span>
+                </span>
+            }
+            else
+            {
+                <span class="rule-match-evidence">@DescribeEvidence(evidence)</span>
+            }
+        }
+    </div>
+</div>

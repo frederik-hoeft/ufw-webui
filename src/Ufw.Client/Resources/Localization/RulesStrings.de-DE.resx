@@ -586,4 +586,38 @@
   <data name="DefaultRouted" xml:space="preserve"><value>Weitergeleitet</value></data>
   <data name="IPv6CapabilityEnabled" xml:space="preserve"><value>IPv6 aktiviert</value></data>
   <data name="IPv6CapabilityDisabled" xml:space="preserve"><value>IPv6 deaktiviert</value></data>
+  <data name="RuleFiltersAria" xml:space="preserve"><value>Regelsuche und Filter</value></data>
+  <data name="SearchRules" xml:space="preserve"><value>Regeln durchsuchen</value></data>
+  <data name="SearchRulesPlaceholder" xml:space="preserve"><value>Kommentare, Adressen, Interfaces, Protokoll, Aktion oder Rohregeln durchsuchen</value></data>
+  <data name="ClearFilters" xml:space="preserve"><value>Zurücksetzen</value></data>
+  <data name="SourceNetworkFilter" xml:space="preserve"><value>Quellnetz</value></data>
+  <data name="DestinationNetworkFilter" xml:space="preserve"><value>Zielnetz</value></data>
+  <data name="PortFilter" xml:space="preserve"><value>Port</value></data>
+  <data name="ProtocolFilter" xml:space="preserve"><value>Protokoll</value></data>
+  <data name="ActionFilter" xml:space="preserve"><value>Aktion</value></data>
+  <data name="DirectionFilter" xml:space="preserve"><value>Richtung</value></data>
+  <data name="AppliedFilters" xml:space="preserve"><value>Aktive Filter</value></data>
+  <data name="InvalidPortFilter" xml:space="preserve"><value>Geben Sie einen Port, kommagetrennte Ports oder Portbereiche wie 443,8000:8100 ein.</value></data>
+  <data name="InvalidNetworkFilter" xml:space="preserve"><value>Geben Sie eine konkrete IP-Adresse oder ein CIDR-Netz ein.</value></data>
+  <data name="WrongFamilyNetworkFilter" xml:space="preserve"><value>Geben Sie für diese Regelliste eine {0}-Adresse oder ein {0}-CIDR ein.</value></data>
+  <data name="RuleMatchContextAria" xml:space="preserve"><value>Trefferkontext der Regel</value></data>
+  <data name="RuleMatchContextLabel" xml:space="preserve"><value>Treffer durch</value></data>
+  <data name="RuleEndpointAny" xml:space="preserve"><value>Endpunkt</value></data>
+  <data name="RawRule" xml:space="preserve"><value>Rohregel</value></data>
+  <data name="NoMatchingRules" xml:space="preserve"><value>Keine Regel entspricht dieser Abfrage</value></data>
+  <data name="NoMatchingRulesDescription" xml:space="preserve"><value>Passen Sie Suchbegriffe oder strukturierte Filter an, um Regeln dieser Adressfamilie anzuzeigen.</value></data>
+  <data name="FilteredRuleCount" xml:space="preserve"><value>{0} von {1} Regeln werden angezeigt</value></data>
+  <data name="FilteringDisablesOrdering" xml:space="preserve"><value>Entfernen Sie die aktive Abfrage, bevor bestehende Regeln neu angeordnet werden.</value></data>
+  <data name="AddFilter" xml:space="preserve"><value>Filter hinzufügen</value></data>
+  <data name="EditFilter" xml:space="preserve"><value>Filter bearbeiten</value></data>
+  <data name="SaveFilter" xml:space="preserve"><value>Filter speichern</value></data>
+  <data name="FilterSelectorSearch" xml:space="preserve"><value>Filter suchen</value></data>
+  <data name="FilterSelectorSearchPlaceholder" xml:space="preserve"><value>Nach Filtername oder Kategorie suchen</value></data>
+  <data name="BackToFilterSelector" xml:space="preserve"><value>Zurück zur Filterauswahl</value></data>
+  <data name="NoFiltersFound" xml:space="preserve"><value>Keine passenden Filter.</value></data>
+  <data name="FilterCategoryGeneral" xml:space="preserve"><value>Allgemein</value></data>
+  <data name="FilterCategoryAddressing" xml:space="preserve"><value>Adressierung</value></data>
+  <data name="FilterCategoryTraffic" xml:space="preserve"><value>Verkehr</value></data>
+  <data name="FilterCategoryRule" xml:space="preserve"><value>Regel</value></data>
+  <data name="FilterValueRequired" xml:space="preserve"><value>Geben Sie einen Wert für diesen Filter ein.</value></data>
 </root>

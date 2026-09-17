@@ -1,4 +1,4 @@
-@inject IFirewallRuleText RuleText
+﻿@inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 @{
@@ -92,6 +92,10 @@
                 <span class="rule-comment">@rule.Rule.Comment</span>
             </div>
         }
+        @if (MatchEvidence.Count > 0)
+        {
+            <RuleMatchContext Evidence="@MatchEvidence" />
+        }
     </article>
 }
 else
@@ -124,5 +128,9 @@ else
         </header>
         <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
         <span class="rule-raw-line">@rule.RawLine</span>
+        @if (MatchEvidence.Count > 0)
+        {
+            <RuleMatchContext Evidence="@MatchEvidence" />
+        }
     </article>
 }

@@ -1,0 +1,12 @@
+@inherits RuleFilterEditorBase
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudSelect T="FirewallDirection"
+           Label="@(RulesText["DirectionFilter"])"
+           @bind-Value="_direction">
+    @foreach (FirewallDirection value in Enum.GetValues<FirewallDirection>())
+    {
+        <MudSelectItem T="FirewallDirection" Value="@value">@RuleText.FormatDirection(value)</MudSelectItem>
+    }
+</MudSelect>

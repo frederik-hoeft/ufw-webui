@@ -1,0 +1,14 @@
+@inherits RuleFilterEditorBase
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTextField T="string"
+              Label="@EditorLabel"
+              Placeholder="@Placeholder"
+              Value="@_value"
+              ValueChanged="ValueChanged"
+              Error="@(_error is not null)"
+              ErrorText="@_error"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false" />
