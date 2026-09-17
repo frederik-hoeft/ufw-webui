@@ -53,6 +53,12 @@ public sealed partial class RuleFamilyWorkspace
     public bool InsertionDisabled { get; set; }
 
     [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
+
+    [Parameter]
     public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }
 
     [Parameter]

@@ -1,0 +1,79 @@
+@using Ufw.Client.Rules.Metadata
+@inject IRuleTagCatalogService TagCatalog
+@inject IRuleTagColorGenerator TagColors
+@inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudForm @ref="_form">
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3" role="alert">
+            @_error.Message
+        </MudAlert>
+    }
+
+    <MudTextField T="string"
+                  Label="@(RulesText["Notes"])"
+                  Value="@Value.Notes"
+                  ValueChanged="NotesChangedAsync"
+                  Lines="5"
+                  Immediate="true"
+                  Counter="@MAX_NOTES_LENGTH"
+                  MaxLength="@MAX_NOTES_LENGTH"
+                  Disabled="@Disabled"
+                  Placeholder="@(RulesText["NotesPlaceholder"])" />
+
+    <div class="rule-metadata-editor-tags mt-4">
+        <MudText Typo="Typo.subtitle2">@RulesText["Tags"]</MudText>
+        @if (SelectedTags.Count > 0)
+        {
+            <div class="rule-metadata-editor-selected-tags">
+                @foreach (RuleTag tag in SelectedTags)
+                {
+                    <button type="button"
+                            class="rule-tag-remove-button"
+                            disabled="@Disabled"
+                            title="@RulesText["RemoveTag", tag.Name]"
+                            aria-label="@RulesText["RemoveTag", tag.Name]"
+                            @onclick="@(() => RemoveTagAsync(tag.Id))">
+                        <RuleTagChip Tag="@tag" />
+                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                    </button>
+                }
+            </div>
+        }
+
+        <MudAutocomplete T="TagOption"
+                         Label="@(RulesText["AddTagToRule"])"
+                         Value="@_tagToAdd"
+                         ValueChanged="AddTagAsync"
+                         SearchFunc="SearchTagsAsync"
+                         ToStringFunc="FormatOption"
+                         CoerceValue="false"
+                         ResetValueOnEmptyText="true"
+                         Clearable="true"
+                         Disabled="@(Disabled || _creatingTag)"
+                         MaxItems="@((int?)null)"
+                         Placeholder="@(RulesText["AddOrCreateTagPlaceholder"])">
+            <ItemTemplate Context="option">
+                @if (option.Tag is { } tag)
+                {
+                    <span class="rule-tag-select-option">
+                        <span class="rule-tag-color" style="background-color: @tag.Color"></span>
+                        <span>@tag.Name</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="rule-tag-create-option">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" />
+                        <span>@RulesText["CreateInlineTag", option.CreateName ?? string.Empty]</span>
+                    </span>
+                }
+            </ItemTemplate>
+        </MudAutocomplete>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @RulesText["InlineTagCreationHint"]
+        </MudText>
+    </div>
+</MudForm>

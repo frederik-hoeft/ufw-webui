@@ -1,17 +1,22 @@
-﻿@inject IFirewallRuleText RuleText
+﻿@using Ufw.Client.Components.Rules.Metadata
+@inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 @{
     ListedFirewallRule rule = Row.Rule;
 }
 
+<tbody class="@GroupClass">
 @if (rule.Parsed && rule.Rule is not null)
 {
     <tr class="@RowClass"
+        tabindex="@(DetailsAvailable ? "0" : null)"
+        @onclick="ToggleMetadata"
+        @onkeydown="HandleKeyDown"
         @ondragenter="@DragEnterHandler"
         @ondragover:preventDefault
         @ondrop="DropAsync">
-        <td class="drag">
+        <td class="drag" @onclick:stopPropagation="true">
             <button type="button"
                     class="@DragHandleClass"
                     draggable="@DragEnabled"
@@ -68,6 +73,16 @@
         <td class="protocol">
             <span class="rule-protocol">@RuleText.FormatProtocol(rule.Rule.Protocol)</span>
         </td>
+        <td class="tags">
+            @if (Row.Metadata is { Tags.Count: > 0 } metadata)
+            {
+                <RuleTagList Tags="@metadata.Tags" MaxVisible="3" />
+            }
+            else
+            {
+                <span class="rule-comment-empty">@RulesText["None"]</span>
+            }
+        </td>
         <td class="comment">
             @if (!string.IsNullOrWhiteSpace(rule.Rule.Comment))
             {
@@ -78,17 +93,28 @@
                 <span class="rule-comment-empty">@RulesText["None"]</span>
             }
         </td>
-        <td class="actions">
-            <RuleActionsMenu Rule="@rule"
-                             FamilyPosition="@Row.FamilyPosition"
-                             OrderingDisabled="@OrderingDisabled"
-                             InsertionDisabled="@InsertionDisabled"
-                             MutationDisabled="@MutationDisabled"
-                             CanOrder="@Row.CanOrder"
-                             CanMutate="@Row.CanMutate"
-                             MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                             InsertionRequested="@InsertionRequested"
-                             DeleteRequested="@DeleteRequested" />
+        <td class="actions" @onclick:stopPropagation="true">
+            @if (_metadataExpanded)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                               Size="Size.Small"
+                               OnClick="ToggleMetadata"
+                               aria-label="@MetadataToggleLabel"
+                               aria-expanded="true" />
+            }
+            else
+            {
+                <RuleActionsMenu Rule="@rule"
+                                 FamilyPosition="@Row.FamilyPosition"
+                                 OrderingDisabled="@OrderingDisabled"
+                                 InsertionDisabled="@InsertionDisabled"
+                                 MutationDisabled="@MutationDisabled"
+                                 CanOrder="@Row.CanOrder"
+                                 CanMutate="@Row.CanMutate"
+                                 MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                 InsertionRequested="@InsertionRequested"
+                                 DeleteRequested="@DeleteRequested" />
+            }
         </td>
     </tr>
 }
@@ -120,7 +146,7 @@ else
                 <span class="rule-number">@Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
             }
         </td>
-        <td colspan="6">
+        <td colspan="7">
             <div class="unsupported">
                 <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
                 <span class="rule-raw-line">@rule.RawLine</span>
@@ -138,8 +164,34 @@ else
 @if (MatchEvidence.Count > 0)
 {
     <tr class="rule-match-context-row">
-        <td colspan="9">
+        <td colspan="10">
             <RuleMatchContext Evidence="@MatchEvidence" />
         </td>
     </tr>
 }
+@if (_metadataExpanded && DetailsAvailable)
+{
+    <tr class="rule-metadata-details-row">
+        <td colspan="10">
+            <RuleMetadataDetails Metadata="@Row.Metadata"
+                                 CanonicalCommand="@Row.CanonicalCommand"
+                                 EditDisabled="@MetadataEditDisabled"
+                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))">
+                <Actions>
+                    <RuleActionsMenu Rule="@rule"
+                                     FamilyPosition="@Row.FamilyPosition"
+                                     OrderingDisabled="@OrderingDisabled"
+                                     InsertionDisabled="@InsertionDisabled"
+                                     MutationDisabled="@MutationDisabled"
+                                     CanOrder="@Row.CanOrder"
+                                     CanMutate="@Row.CanMutate"
+                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                     InsertionRequested="@InsertionRequested"
+                                     DeleteRequested="@DeleteRequested" />
+                </Actions>
+            </RuleMetadataDetails>
+        </td>
+    </tr>
+}
+
+</tbody>

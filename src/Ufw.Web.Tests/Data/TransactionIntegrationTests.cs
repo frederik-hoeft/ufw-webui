@@ -53,7 +53,7 @@ public sealed class TransactionIntegrationTests
 
             ServiceCollection services = new();
             services.AddLogging();
-            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+            services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
             services.AddIdentityCore<IdentityUser>(options =>
                 {

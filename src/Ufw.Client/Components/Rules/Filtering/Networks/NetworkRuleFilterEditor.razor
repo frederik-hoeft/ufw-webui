@@ -2,13 +2,13 @@
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<MudTextField T="string"
-              Label="@EditorLabel"
-              Placeholder="@Placeholder"
-              Value="@_value"
-              ValueChanged="ValueChanged"
-              Error="@(_error is not null)"
-              ErrorText="@_error"
-              autocomplete="off"
-              autocapitalize="off"
-              spellcheck="false" />
+<KnownHostField Label="@EditorLabel"
+                Placeholder="@Placeholder"
+                Value="@_value"
+                ValueChanged="ValueChanged"
+                Suggestions="@_suggestions"
+                AddressFamily="@AddressFamily" />
+@if (_error is not null)
+{
+    <MudText Typo="Typo.caption" Color="Color.Error">@_error</MudText>
+}

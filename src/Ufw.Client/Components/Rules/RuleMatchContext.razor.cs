@@ -5,6 +5,7 @@ using Ufw.Client.Rules.Filtering.Directions;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
+using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Filtering.Text;
 
 namespace Ufw.Client.Components.Rules;
@@ -21,8 +22,15 @@ public sealed partial class RuleMatchContext
         ProtocolRuleMatchEvidence protocol => $"{RulesText["ProtocolColumn"]}: {protocol.Value}",
         NetworkRuleMatchEvidence network => $"{DescribeEndpoint(network.Endpoint)}: {network.RuleNetwork}",
         PortRuleMatchEvidence ports => $"{DescribeEndpoint(ports.Endpoint)} {RulesText["PortFilter"]}: {ports.RulePorts}",
+        TagRuleMatchEvidence tag => $"{RulesText["TagFilter"]}: {tag.Tag.Name}",
         _ => evidence.GetType().Name,
     };
+
+    private static RuleMatchTextSnippet DescribeTextMatch(TextRuleMatchEvidence evidence)
+    {
+        int contextLength = evidence.Field is TextRuleMatchEvidence.FieldKind.Comment or TextRuleMatchEvidence.FieldKind.Notes ? 20 : evidence.Value.Length;
+        return RuleMatchTextSnippet.Create(evidence.Value, evidence.Start, evidence.Length, contextLength);
+    }
 
     private string DescribeEndpoint(RuleEndpointField endpoint) => endpoint switch
     {
@@ -43,6 +51,11 @@ public sealed partial class RuleMatchContext
         TextRuleMatchEvidence.FieldKind.Action => RulesText["Action"],
         TextRuleMatchEvidence.FieldKind.Direction => RulesText["Direction"],
         TextRuleMatchEvidence.FieldKind.Protocol => RulesText["Protocol"],
+        TextRuleMatchEvidence.FieldKind.Notes => RulesText["Notes"],
+        TextRuleMatchEvidence.FieldKind.Tag => RulesText["TagFilter"],
+        TextRuleMatchEvidence.FieldKind.CanonicalCommand => RulesText["CanonicalCommand"],
+        TextRuleMatchEvidence.FieldKind.SourceKnownHost => $"{RulesText["FromColumn"]} {RulesText["KnownHost"]}",
+        TextRuleMatchEvidence.FieldKind.DestinationKnownHost => $"{RulesText["ToColumn"]} {RulesText["KnownHost"]}",
         TextRuleMatchEvidence.FieldKind.RawLine => RulesText["RawRule"],
         _ => field.ToString(),
     };

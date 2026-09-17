@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
@@ -8,6 +9,8 @@ namespace Ufw.Client.Components.Rules;
 
 public sealed partial class RuleMobileCard
 {
+    private bool _metadataExpanded;
+
     [Parameter, EditorRequired]
     public RuleRowProjection Row { get; set; } = null!;
 
@@ -47,6 +50,12 @@ public sealed partial class RuleMobileCard
     [Parameter]
     public EventCallback<RuleInsertionActionRequest> InsertionRequested { get; set; }
 
+    [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
+
     // Native dragenter may bubble repeatedly while crossing descendants of the same card. Keep the callback non-rendering;
     // the workspace schedules a render only when the effective drop target actually changes.
     private Action DragEnterHandler => EventUtil.AsNonRenderingEventHandler(this, () => DragEntered(Row));
@@ -77,6 +86,11 @@ public sealed partial class RuleMobileCard
                 classes.Add("ordering-direct");
             }
 
+            if (_metadataExpanded)
+            {
+                classes.Add("metadata-expanded");
+            }
+
             if (DropIndicatorEdge is { } edge)
             {
                 classes.Add(edge == RuleDropIndicatorEdge.Before ? "drop-before" : "drop-after");
@@ -92,6 +106,28 @@ public sealed partial class RuleMobileCard
         RuleDropIndicatorEdge.After => "rule-mobile-card readonly drop-after",
         _ => "rule-mobile-card readonly",
     };
+
+    private bool DetailsAvailable => !string.IsNullOrWhiteSpace(Row.Rule.RuleId) || !string.IsNullOrWhiteSpace(Row.CanonicalCommand);
+
+    private string MetadataToggleLabel => _metadataExpanded
+        ? RulesText["HideRuleMetadata", Row.FamilyPosition]
+        : RulesText["ShowRuleMetadata", Row.FamilyPosition];
+
+    private void ToggleMetadata()
+    {
+        if (DetailsAvailable)
+        {
+            _metadataExpanded = !_metadataExpanded;
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            ToggleMetadata();
+        }
+    }
 
     private Task DropAsync() => DropRequested(Row);
 

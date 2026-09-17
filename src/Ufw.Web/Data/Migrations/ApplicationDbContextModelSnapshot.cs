@@ -20,6 +20,7 @@ namespace Ufw.Web.Data.Migrations
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -393,6 +394,105 @@ namespace Ufw.Web.Data.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("Notes");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("PublicId");
+
+                    b.Property<string>("RuleId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("RuleId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("RuleId")
+                        .IsUnique();
+
+                    b.ToTable("RuleMetadata", (string)null);
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataTagEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("RuleMetadataId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("RuleMetadataId");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("TagId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("RuleMetadataId", "TagId")
+                        .IsUnique();
+
+                    b.ToTable("RuleMetadataTags", (string)null);
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTagEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("Color")
+                        .IsFixedLength();
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("citext")
+                        .HasColumnName("Name");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("PublicId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.ToTable("RuleTags", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -453,6 +553,35 @@ namespace Ufw.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataTagEntry", b =>
+                {
+                    b.HasOne("Ufw.Web.Data.Model.RuleMetadataEntry", "RuleMetadata")
+                        .WithMany("Tags")
+                        .HasForeignKey("RuleMetadataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ufw.Web.Data.Model.RuleTagEntry", "Tag")
+                        .WithMany("RuleMetadata")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RuleMetadata");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
+                {
+                    b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTagEntry", b =>
+                {
+                    b.Navigation("RuleMetadata");
                 });
 #pragma warning restore 612, 618
         }

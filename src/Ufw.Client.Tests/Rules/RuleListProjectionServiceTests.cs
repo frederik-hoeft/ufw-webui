@@ -1,13 +1,15 @@
 ﻿using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall.Rendering;
 
 namespace Ufw.Client.Tests.Rules;
 
 [TestClass]
 public sealed class RuleListProjectionServiceTests
 {
-    private readonly RuleListProjectionService _projection = new();
+    private readonly RuleListProjectionService _projection = new(new UfwRuleCommandRenderer());
 
     [TestMethod]
     public void Create_AlwaysExposesBothAddressFamilyPartitions()
@@ -69,6 +71,70 @@ public sealed class RuleListProjectionServiceTests
         Assert.AreEqual(FirewallAddressFamily.IPv6, projection.Families[1].AddressFamily);
         CollectionAssert.AreEqual(new[] { 1, 2 }, projection.Families[1].Rows.Select(static row => row.FamilyPosition).ToArray());
         Assert.IsTrue(projection.Families[1].Rows.All(static row => row.FamilyCount == 2));
+    }
+
+    [TestMethod]
+    public void Create_AttachesMetadataBySemanticIdentityToEveryDuplicateOccurrence()
+    {
+        ListedFirewallRule first = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 1);
+        ListedFirewallRule second = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 2);
+        RuleMetadata metadata = new(
+            Guid.CreateVersion7(),
+            "managed rule",
+            [
+                new RuleTag(Guid.CreateVersion7(), "prod", "#336699"),
+                new RuleTag(Guid.CreateVersion7(), "ssh", "#663399"),
+            ]);
+        Dictionary<string, RuleMetadata> metadataByRuleId = new(StringComparer.Ordinal)
+        {
+            ["shared"] = metadata,
+        };
+
+        RuleListProjection projection = _projection.Create([first, second], orderingPreview: null, metadataByRuleId);
+
+        RuleFamilyProjection ipv4 = projection.GetFamily(FirewallAddressFamily.IPv4);
+        Assert.IsTrue(ipv4.Rows.All(row => ReferenceEquals(metadata, row.Metadata)));
+    }
+
+    [TestMethod]
+    public void Create_ComputesCanonicalCommandOnceForParsedRules()
+    {
+        ListedFirewallRule rule = new()
+        {
+            RuleId = "canonical",
+            DisplayNumber = 1,
+            Parsed = true,
+            RawLine = "canonical",
+            Rule = new FirewallRuleSpecification
+            {
+                AddressFamily = FirewallAddressFamily.IPv4,
+                Action = FirewallAction.Allow,
+                Direction = FirewallDirection.In,
+                Source = "10.0.0.0/8",
+                Destination = "192.0.2.10",
+                DestinationPorts = "22",
+                Protocol = FirewallProtocol.Tcp,
+            },
+        };
+
+        RuleRowProjection row = _projection.Create([rule], orderingPreview: null).GetFamily(FirewallAddressFamily.IPv4).Rows.Single();
+
+        Assert.AreEqual("allow in from 10.0.0.0/8 to 192.0.2.10 port 22 proto tcp", row.CanonicalCommand);
+    }
+
+    [TestMethod]
+    public void Create_OpaqueRuleHasNoCanonicalCommand()
+    {
+        ListedFirewallRule opaque = new()
+        {
+            DisplayNumber = 1,
+            Parsed = false,
+            RawLine = "opaque",
+        };
+
+        RuleRowProjection row = _projection.Create([opaque], orderingPreview: null).Families[0].Rows.Single();
+
+        Assert.IsNull(row.CanonicalCommand);
     }
 
     [TestMethod]

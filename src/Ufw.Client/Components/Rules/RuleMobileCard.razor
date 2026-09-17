@@ -1,4 +1,5 @@
-﻿@inject IFirewallRuleText RuleText
+﻿@using Ufw.Client.Components.Rules.Metadata
+@inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 @{
@@ -8,6 +9,9 @@
 @if (rule.Parsed && rule.Rule is not null)
 {
     <article class="@CardClass"
+             tabindex="@(DetailsAvailable ? "0" : null)"
+             @onclick="ToggleMetadata"
+             @onkeydown="HandleKeyDown"
              @ondragenter="@DragEnterHandler"
              @ondragover:preventDefault
              @ondrop="DropAsync">
@@ -19,6 +23,7 @@
                         disabled="@(OrderingDisabled || !Row.CanOrder)"
                         title="@DragHandleTitle"
                         aria-label="@DragHandleLabel"
+                        @onclick:stopPropagation="true"
                         @ondragstart="@BeginDragHandler"
                         @ondragend="@EndDragHandler">
                     <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
@@ -51,16 +56,29 @@
                     </span>
                 </div>
             </div>
-            <RuleActionsMenu Rule="@rule"
-                             FamilyPosition="@Row.FamilyPosition"
-                             OrderingDisabled="@OrderingDisabled"
-                             InsertionDisabled="@InsertionDisabled"
-                             MutationDisabled="@MutationDisabled"
-                             CanOrder="@Row.CanOrder"
-                             CanMutate="@Row.CanMutate"
-                             MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                             InsertionRequested="@InsertionRequested"
-                             DeleteRequested="@DeleteRequested" />
+            <div class="trailing" @onclick:stopPropagation="true">
+                @if (_metadataExpanded)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                   Size="Size.Small"
+                                   OnClick="ToggleMetadata"
+                                   aria-label="@MetadataToggleLabel"
+                                   aria-expanded="true" />
+                }
+                else
+                {
+                    <RuleActionsMenu Rule="@rule"
+                                     FamilyPosition="@Row.FamilyPosition"
+                                     OrderingDisabled="@OrderingDisabled"
+                                     InsertionDisabled="@InsertionDisabled"
+                                     MutationDisabled="@MutationDisabled"
+                                     CanOrder="@Row.CanOrder"
+                                     CanMutate="@Row.CanMutate"
+                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                     InsertionRequested="@InsertionRequested"
+                                     DeleteRequested="@DeleteRequested" />
+                }
+            </div>
         </header>
 
         <div class="details">
@@ -74,16 +92,17 @@
             </div>
         </div>
 
-        <dl>
+        <div class="rule-mobile-endpoints">
             <div>
-                <dt>@RulesText["FromColumn"]</dt>
-                <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)</dd>
+                <span class="visually-hidden">@RulesText["FromColumn"]</span>
+                <span class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)</span>
             </div>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" aria-hidden="true" />
             <div>
-                <dt>@RulesText["ToColumn"]</dt>
-                <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)</dd>
+                <span class="visually-hidden">@RulesText["ToColumn"]</span>
+                <span class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)</span>
             </div>
-        </dl>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(rule.Rule.Comment))
         {
@@ -92,9 +111,36 @@
                 <span class="rule-comment">@rule.Rule.Comment</span>
             </div>
         }
+        @if (Row.Metadata is { Tags.Count: > 0 } metadata)
+        {
+            <div class="mobile-tags">
+                <span class="field-label">@RulesText["Tags"]</span>
+                <RuleTagList Tags="@metadata.Tags" MaxVisible="4" />
+            </div>
+        }
         @if (MatchEvidence.Count > 0)
         {
             <RuleMatchContext Evidence="@MatchEvidence" />
+        }
+        @if (_metadataExpanded && DetailsAvailable)
+        {
+            <RuleMetadataDetails Metadata="@Row.Metadata"
+                                 CanonicalCommand="@Row.CanonicalCommand"
+                                 EditDisabled="@MetadataEditDisabled"
+                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))">
+                <Actions>
+                    <RuleActionsMenu Rule="@rule"
+                                     FamilyPosition="@Row.FamilyPosition"
+                                     OrderingDisabled="@OrderingDisabled"
+                                     InsertionDisabled="@InsertionDisabled"
+                                     MutationDisabled="@MutationDisabled"
+                                     CanOrder="@Row.CanOrder"
+                                     CanMutate="@Row.CanMutate"
+                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                     InsertionRequested="@InsertionRequested"
+                                     DeleteRequested="@DeleteRequested" />
+                </Actions>
+            </RuleMetadataDetails>
         }
     </article>
 }

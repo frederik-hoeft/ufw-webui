@@ -35,7 +35,7 @@ internal sealed class OperationalStatusService
             Task managementTask = managementHealth.ProbeAsync(cancellationToken);
             Task daemonTask = daemonStatus.ProbeAsync(cancellationToken);
             Task<IntentContextResponse> intentContextTask = intentContextApiClient.GetAsync(cancellationToken);
-            Task<RuleListResponse> rulesTask = rulesApiClient.GetRulesAsync(cancellationToken);
+            Task<RuleInventoryResponse> rulesTask = rulesApiClient.GetInventoryAsync(cancellationToken);
 
             try
             {
@@ -56,7 +56,7 @@ internal sealed class OperationalStatusService
                 ? await intentContextTask
                 : null;
             RuleListResponse? rules = rulesTask.Status == TaskStatus.RanToCompletion
-                ? await rulesTask
+                ? (await rulesTask).Firewall
                 : null;
 
             OperationalAvailability managementAvailability = managementSucceeded

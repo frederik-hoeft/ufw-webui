@@ -1,4 +1,4 @@
-@inject IDialogService DialogService
+﻿@inject IDialogService DialogService
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -56,29 +56,31 @@
                             <th scope="col" class="endpoint">@RulesText["FromColumn"]</th>
                             <th scope="col" class="endpoint">@RulesText["ToColumn"]</th>
                             <th scope="col" class="protocol">@RulesText["ProtocolColumn"]</th>
+                            <th scope="col" class="tags">@RulesText["TagsColumn"]</th>
                             <th scope="col" class="comment">@RulesText["CommentColumn"]</th>
                             <th scope="col" class="actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach (RuleQueryRow result in DisplayedRows)
-                        {
-                            RuleRowProjection row = result.Row;
-                            <RuleDesktopRow Row="@row"
-                                            MatchEvidence="@result.Evidence"
-                                            OrderingDisabled="@OrderingDisabled"
-                                            InsertionDisabled="@InsertionDisabled"
-                                            MutationDisabled="@Disabled"
-                                            DropIndicatorEdge="@DropIndicatorEdge(row)"
-                                            DragStarted="@BeginDrag"
-                                            DragEntered="@SetDragTarget"
-                                            DragEnded="@EndDrag"
-                                            DropRequested="@DropAsync"
-                                            MoveToPositionRequested="@RequestMoveToPositionAsync"
-                                            InsertionRequested="@InsertionRequested"
-                                            DeleteRequested="@DeleteRequested" />
-                        }
-                    </tbody>
+                    @foreach (RuleQueryRow result in DisplayedRows)
+                    {
+                        RuleRowProjection row = result.Row;
+                        <RuleDesktopRow @key="row.OccurrenceId"
+                                        Row="@row"
+                                        MatchEvidence="@result.Evidence"
+                                        OrderingDisabled="@OrderingDisabled"
+                                        InsertionDisabled="@InsertionDisabled"
+                                        MutationDisabled="@Disabled"
+                                        DropIndicatorEdge="@DropIndicatorEdge(row)"
+                                        DragStarted="@BeginDrag"
+                                        DragEntered="@SetDragTarget"
+                                        DragEnded="@EndDrag"
+                                        DropRequested="@DropAsync"
+                                        MoveToPositionRequested="@RequestMoveToPositionAsync"
+                                        InsertionRequested="@InsertionRequested"
+                                        DeleteRequested="@DeleteRequested"
+                                        MetadataEditDisabled="@MetadataEditDisabled"
+                                        MetadataEditRequested="@MetadataEditRequested" />
+                    }
                 </table>
             </div>
 
@@ -86,7 +88,8 @@
                 @foreach (RuleQueryRow result in DisplayedRows)
                 {
                     RuleRowProjection row = result.Row;
-                    <RuleMobileCard Row="@row"
+                    <RuleMobileCard @key="row.OccurrenceId"
+                                    Row="@row"
                                     MatchEvidence="@result.Evidence"
                                     OrderingDisabled="@OrderingDisabled"
                                     InsertionDisabled="@InsertionDisabled"
@@ -98,7 +101,9 @@
                                     DropRequested="@DropAsync"
                                     MoveToPositionRequested="@RequestMoveToPositionAsync"
                                     InsertionRequested="@InsertionRequested"
-                                    DeleteRequested="@DeleteRequested" />
+                                    DeleteRequested="@DeleteRequested"
+                                    MetadataEditDisabled="@MetadataEditDisabled"
+                                    MetadataEditRequested="@MetadataEditRequested" />
                 }
             </div>
         }

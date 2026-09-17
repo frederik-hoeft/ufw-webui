@@ -130,7 +130,10 @@ Network-interface metadata is attached to daemon-observed host inventory. `Ufw.W
 
 Known-host metadata is different because it is entirely ASP-owned. Each alias maps a human-facing name and optional comment to one canonical literal IPv4/IPv6 host address or CIDR, with an independent suggestion-visibility preference. Selecting an alias writes that literal address directly into `FirewallRuleSpecification`; its application identity and descriptive metadata are discarded at that boundary. The daemon therefore receives exactly the same rule as if the address had been entered manually, and it requires no known-host endpoint or reconciliation logic.
 
-Changing or deleting a known-host alias cannot mutate previously authored rules because those rules retain only the resolved literal. An existing alias may move within its current address family, but the API rejects IPv4-to-IPv6 or IPv6-to-IPv4 changes so a persistent alias identity cannot silently change family semantics. Visibility affects discovery only and never address validity.
+Changing or deleting a known-host alias cannot mutate previously authored rules because those rules retain only the resolved literal. An existing alias may move within its current address
+family, but the API rejects IPv4-to-IPv6 or IPv6-to-IPv4 changes so a persistent alias identity cannot silently change family semantics. Visibility affects discovery only and never address
+validity. The browser may also project visible same-family aliases over already-loaded rule source/destination networks for autocomplete and free-text discovery; this reverse lookup uses
+network-overlap semantics only as presentation/query context and never reattaches alias identity to the firewall rule.
 
 ## Out-of-band changes
 

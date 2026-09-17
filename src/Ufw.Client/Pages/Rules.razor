@@ -1,5 +1,6 @@
 ﻿@page "/rules"
 @attribute [Authorize]
+@using Ufw.Client.Rules.Metadata
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
 @inject IRuleMutationService RuleMutations
@@ -10,6 +11,7 @@
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IRuleListProjectionService RuleListProjectionService
 @inject IRuleQueryService RuleQueryService
+@inject IKnownHostInventoryService KnownHosts
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
@@ -193,6 +195,8 @@ else if (_state.Snapshot is { })
                                  Disabled="@(!CanMutateFirewall)"
                                  OrderingDisabled="@(!CanPreviewOrdering)"
                                  InsertionDisabled="@(!CanMutateFirewall)"
+                                 MetadataEditDisabled="@(!CanEditMetadata)"
+                                 MetadataEditRequested="EditMetadataAsync"
                                  DeleteRequested="BeginDeleteAsync"
                                  InsertionRequested="BeginOrderedInsertionAsync"
                                  MoveRequested="MoveRuleAsync" />
@@ -210,6 +214,8 @@ else if (_state.Snapshot is { })
                                      Disabled="@(!CanMutateFirewall)"
                                      OrderingDisabled="@(!CanPreviewOrdering)"
                                      InsertionDisabled="@(!CanMutateFirewall)"
+                                     MetadataEditDisabled="@(!CanEditMetadata)"
+                                     MetadataEditRequested="EditMetadataAsync"
                                      DeleteRequested="BeginDeleteAsync"
                                      InsertionRequested="BeginOrderedInsertionAsync"
                                      MoveRequested="MoveRuleAsync" />

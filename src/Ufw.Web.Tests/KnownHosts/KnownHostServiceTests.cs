@@ -5,6 +5,7 @@ using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Api.V1.Models.KnownHosts;
 using Ufw.Web.Data;
+using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Services.KnownHosts;
 using Wkg.AspNetCore.Exceptions;
@@ -199,7 +200,7 @@ public sealed class KnownHostServiceTests
 
             ServiceCollection services = new();
             services.AddLogging();
-            services.AddSingleton<IModelLoader, ApplicationModelLoader>();
+            services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
             services.AddTransactionManagement<ApplicationDbContext>(options => options.UseIsolationLevel(IsolationLevel.ReadCommitted));
 

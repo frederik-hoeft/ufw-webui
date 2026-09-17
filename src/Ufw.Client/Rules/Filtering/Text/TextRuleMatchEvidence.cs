@@ -21,6 +21,11 @@ internal sealed record TextRuleMatchEvidence(
         Action,
         Direction,
         Protocol,
+        Notes,
+        Tag,
+        CanonicalCommand,
+        SourceKnownHost,
+        DestinationKnownHost,
         RawLine,
     }
 }

@@ -9,6 +9,8 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Api.V1;
 
@@ -18,10 +20,11 @@ public sealed class RulesControllerTests
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
-    public async Task TestGetRulesAsync_ReturnsDaemonSnapshotAsync()
+    public async Task TestGetRulesAsync_ReturnsEnrichedInventoryAsync()
     {
         Mock<IUfwClient> client = new();
-        RuleListResponse expected = new(
+        Mock<IRuleInventoryService> inventory = new();
+        RuleListResponse firewall = new(
             Active: true,
             [
                 new ListedFirewallRule
@@ -36,19 +39,71 @@ public sealed class RulesControllerTests
                         Direction = FirewallDirection.In,
                         Protocol = FirewallProtocol.Tcp,
                         DestinationPorts = "22",
-                    }
-                }
+                    },
+                },
             ],
             TestFirewallConfiguration.Enabled);
-        client
-            .Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
+        RuleInventoryResponse expected = new(
+            firewall,
+            [new RuleMetadataItem(metadataId, "sha256:abc", "ssh", [new RuleTagItem(tagId, "prod", "#336699")])]);
+        inventory.Setup(service => service.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RulesController controller = CreateController(client.Object);
-        ActionResult<RuleListResponse> result = await controller.GetRulesAsync(TestContext.CancellationToken);
+        RulesController controller = CreateController(client.Object, inventory.Object);
+        ActionResult<RuleInventoryResponse> result = await controller.GetRulesAsync(TestContext.CancellationToken);
 
         OkObjectResult ok = (OkObjectResult)result.Result!;
         Assert.AreSame(expected, ok.Value);
+    }
+
+    [TestMethod]
+    public async Task TestUpdateMetadataAsync_ReturnsServiceResultAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
+        UpdateRuleMetadataRequest request = new() { TagIds = [tagId] };
+        RuleMetadataMutationResponse expected = new(
+            new RuleMetadataItem(metadataId, "sha256:abc", null, [new RuleTagItem(tagId, "prod", "#336699")]));
+        metadata.Setup(service => service.UpdateAsync("sha256:abc", request, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, expected));
+
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+        ActionResult<RuleMetadataMutationResponse> result = await controller.UpdateMetadataAsync(
+            "sha256:abc", request, TestContext.CancellationToken);
+
+        OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result.Result);
+        Assert.AreSame(expected, ok.Value);
+    }
+
+    [TestMethod]
+    public async Task TestUpdateMetadataAsync_MapsMissingAndInvalidMetadataAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        UpdateRuleMetadataRequest missingRequest = new();
+        UpdateRuleMetadataRequest invalidRequest = new();
+        UpdateRuleMetadataRequest missingTagRequest = new();
+        metadata.Setup(service => service.UpdateAsync("missing", missingRequest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound));
+        metadata.Setup(service => service.UpdateAsync("invalid", invalidRequest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata));
+        metadata.Setup(service => service.UpdateAsync("missing-tag", missingTagRequest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound));
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleMetadataMutationResponse> missing = await controller.UpdateMetadataAsync(
+            "missing", missingRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> invalid = await controller.UpdateMetadataAsync(
+            "invalid", invalidRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> missingTag = await controller.UpdateMetadataAsync(
+            "missing-tag", missingTagRequest, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<NotFoundResult>(missing.Result);
+        Assert.IsInstanceOfType<BadRequestObjectResult>(invalid.Result);
+        Assert.IsInstanceOfType<BadRequestObjectResult>(missingTag.Result);
     }
 
     [TestMethod]
@@ -281,6 +336,31 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public async Task TestDeleteRuleAsync_RemovesMetadataForAuthoritativeDeletedIdentityAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        ListedFirewallRule deleted = new()
+        {
+            RuleId = "sha256:deleted",
+            Parsed = true,
+            RawLine = "deleted",
+            Rule = new FirewallRuleSpecification(),
+        };
+        RuleMutationResponse expected = new(IntentOperations.DELETE_RULE, deleted);
+        client.Setup(static c => c.SendAsync<DeleteRuleRequest, RuleMutationResponse>(
+                It.IsAny<DeleteRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleMutationResponse> result = await controller.DeleteRuleAsync(
+            CreateSignedDelete(), TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<OkObjectResult>(result.Result);
+        metadata.Verify(service => service.RemoveForDeletedRuleAsync("sha256:deleted", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
     public async Task TestDeleteRuleAsync_MapsDaemonConflictAsync()
     {
         Mock<IUfwClient> client = new();
@@ -295,9 +375,14 @@ public sealed class RulesControllerTests
         Assert.AreEqual(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
-    private static RulesController CreateController(IUfwClient client)
+    private static RulesController CreateController(
+        IUfwClient client,
+        IRuleInventoryService? inventory = null,
+        IRuleMetadataService? metadata = null)
     {
-        RulesController controller = new(client, new DaemonApiErrorMapper())
+        inventory ??= new Mock<IRuleInventoryService>().Object;
+        metadata ??= new Mock<IRuleMetadataService>().Object;
+        RulesController controller = new(client, inventory, metadata, new DaemonApiErrorMapper())
         {
             ControllerContext = new ControllerContext
             {

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
+using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Services.Auth;
 
@@ -23,7 +24,7 @@ public sealed class RefreshTokenServiceTests
         DbContextOptions<ApplicationDbContext> databaseOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(connection)
             .Options;
-        await using ApplicationDbContext context = new(databaseOptions, new ApplicationModelLoader());
+        await using ApplicationDbContext context = new(databaseOptions, new SqliteApplicationModelLoader());
         await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
 
         IdentityUser user = new()
@@ -67,7 +68,7 @@ public sealed class RefreshTokenServiceTests
         DbContextOptions<ApplicationDbContext> databaseOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(connection)
             .Options;
-        await using ApplicationDbContext context = new(databaseOptions, new ApplicationModelLoader());
+        await using ApplicationDbContext context = new(databaseOptions, new SqliteApplicationModelLoader());
         await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
 
         IdentityUser user = new()

@@ -1,11 +1,15 @@
-﻿using Ufw.Client.Rules;
+﻿using Ufw.Client.Api;
+using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
+using Ufw.Client.Rules.Filtering.KnownHosts;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
+using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Filtering.Text;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Tests.Rules.Filtering;
@@ -20,7 +24,8 @@ public sealed class RuleQueryServiceTests
         new ProtocolRuleFilterEvaluator(),
         new ActionRuleFilterEvaluator(),
         new DirectionRuleFilterEvaluator(),
-        new TextRuleFilterEvaluator(),
+        new TagRuleFilterEvaluator(),
+        new TextRuleFilterEvaluator(new RuleKnownHostProjectionService()),
     ]);
 
     [TestMethod]
@@ -162,6 +167,165 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void Evaluate_TagFilterMatchesEnrichedProjectionAndProducesEntityEvidence()
+    {
+        RuleTag observability = new(Guid.CreateVersion7(), "observability", "#336699");
+        RuleMetadata metadata = new(Guid.CreateVersion7(), "Managed by platform", [observability, new RuleTag(Guid.CreateVersion7(), "prod", "#123456")]);
+        RuleRowProjection row = Row(0, 1, metadata: metadata);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [row]);
+        RuleTag filterTag = new(observability.Id, "renamed elsewhere", "#000000");
+        RuleQuery query = new([new TagRuleFilter(filterTag)]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, query);
+
+        Assert.HasCount(1, result.Rows);
+        Assert.AreSame(row, result.Rows[0].Row);
+        TagRuleMatchEvidence evidence = Assert.IsInstanceOfType<TagRuleMatchEvidence>(result.Rows[0].Evidence.Single());
+        Assert.AreEqual(observability.Id, evidence.Tag.Id);
+        Assert.AreEqual("observability", evidence.Tag.Name);
+        Assert.AreEqual("#336699", evidence.Tag.Color);
+    }
+
+
+    [TestMethod]
+    public void Evaluate_TagFilterDoesNotUseDisplayNameAsIdentity()
+    {
+        RuleTag attachedTag = new(Guid.CreateVersion7(), "prod", "#336699");
+        RuleMetadata metadata = new(Guid.CreateVersion7(), null, [attachedTag]);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+        RuleTag differentTag = new(Guid.CreateVersion7(), "prod", "#336699");
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TagRuleFilter(differentTag)]));
+
+        Assert.IsEmpty(result.Rows);
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterSearchesMetadataAndReturnsFieldSpecificEvidence()
+    {
+        RuleMetadata metadata = new(
+            Guid.CreateVersion7(),
+            "Owned by platform team",
+            [new RuleTag(Guid.CreateVersion7(), "observability", "#336699")]);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("platform observability")]));
+
+        Assert.HasCount(1, result.Rows);
+        Assert.HasCount(2, result.Rows[0].Evidence);
+        TextRuleMatchEvidence notes = (TextRuleMatchEvidence)result.Rows[0].Evidence[0];
+        TextRuleMatchEvidence tag = (TextRuleMatchEvidence)result.Rows[0].Evidence[1];
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.Notes, notes.Field);
+        Assert.AreEqual("platform", notes.Term);
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.Tag, tag.Field);
+        Assert.AreEqual("observability", tag.Value);
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterMatchesKnownHostProjectedThroughContainingEndpointNetwork()
+    {
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4,
+        [
+            Row(0, 1, source: "10.100.20.0/24", destination: "192.0.2.1"),
+            Row(1, 2, source: "10.100.30.0/24", destination: "192.0.2.2"),
+        ]);
+        KnownHostInventoryItem host = new()
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "nas1.service.home.arpa",
+            Address = "10.100.20.17",
+            AddressFamily = FirewallAddressFamily.IPv4,
+            IsVisible = true,
+        };
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("nas1")]), [host]);
+
+        Assert.HasCount(1, result.Rows);
+        Assert.AreEqual(0, result.Rows[0].Row.OccurrenceId);
+        TextRuleMatchEvidence evidence = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence.Single());
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.SourceKnownHost, evidence.Field);
+        StringAssert.Contains(evidence.Value, "nas1.service.home.arpa");
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterKnownHostProjectionRespectsVisibilityAndAddressFamily()
+    {
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4,
+        [
+            Row(0, 1, source: "10.100.20.0/24", destination: "192.0.2.1"),
+            Row(1, 2, source: "10.100.30.0/24", destination: "192.0.2.2"),
+        ]);
+        KnownHostInventoryItem[] hosts =
+        [
+            KnownHost("nas-visible", "10.100.20.17", FirewallAddressFamily.IPv4, isVisible: true),
+            KnownHost("nas-hidden", "10.100.30.17", FirewallAddressFamily.IPv4, isVisible: false),
+            KnownHost("nas-v6", "2001:db8::17", FirewallAddressFamily.IPv6, isVisible: true),
+        ];
+
+        RuleFamilyQueryResult visible = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("visible")]), hosts);
+        RuleFamilyQueryResult hidden = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("hidden")]), hosts);
+        RuleFamilyQueryResult otherFamily = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("nas-v6")]), hosts);
+
+        CollectionAssert.AreEqual(new[] { 0 }, visible.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
+        Assert.IsEmpty(hidden.Rows);
+        Assert.IsEmpty(otherFamily.Rows);
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterKnownHostProjectionTreatsAnyAsContainingAndReportsDestination()
+    {
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4,
+        [
+            Row(0, 1, source: "192.0.2.1", destination: "any"),
+        ]);
+        KnownHostInventoryItem host = KnownHost(
+            "db1.service.home.arpa",
+            "10.100.20.17",
+            FirewallAddressFamily.IPv4,
+            isVisible: true,
+            comment: "primary database");
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("database")]), [host]);
+
+        Assert.HasCount(1, result.Rows);
+        TextRuleMatchEvidence evidence = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence.Single());
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.DestinationKnownHost, evidence.Field);
+        StringAssert.Contains(evidence.Value, "db1.service.home.arpa [10.100.20.17] primary database");
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterKnownHostProjectionMatchesRuleContainedByKnownNetworkAlias()
+    {
+        RuleFamilyProjection family = new(
+            FirewallAddressFamily.IPv4,
+            [Row(0, 1, source: "10.100.20.17", destination: "192.0.2.1")]);
+        KnownHostInventoryItem host = KnownHost(
+            "storage-net",
+            "10.100.20.0/24",
+            FirewallAddressFamily.IPv4,
+            isVisible: true);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("storage")]), [host]);
+
+        Assert.HasCount(1, result.Rows);
+        TextRuleMatchEvidence evidence = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence.Single());
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.SourceKnownHost, evidence.Field);
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterKnownHostProjectionDoesNotMatchHostOutsideRuleNetwork()
+    {
+        RuleFamilyProjection family = new(
+            FirewallAddressFamily.IPv4,
+            [Row(0, 1, source: "10.100.20.0/24", destination: "192.0.2.1")]);
+        KnownHostInventoryItem host = KnownHost("nas1.service.home.arpa", "10.100.21.17", FirewallAddressFamily.IPv4, isVisible: true);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("nas1")]), [host]);
+
+        Assert.IsEmpty(result.Rows);
+    }
+
+    [TestMethod]
     public void Evaluate_TextSearchCanMatchOpaqueRawRuleButStructuredFilterCannot()
     {
         ListedFirewallRule opaque = new() { Parsed = false, RawLine = "custom opaque rule for monitoring" };
@@ -194,6 +358,21 @@ public sealed class RuleQueryServiceTests
 
     private sealed record UnregisteredRuleFilter : RuleFilter;
 
+    private static KnownHostInventoryItem KnownHost(
+        string name,
+        string address,
+        FirewallAddressFamily addressFamily,
+        bool isVisible,
+        string? comment = null) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Name = name,
+        Address = address,
+        AddressFamily = addressFamily,
+        IsVisible = isVisible,
+        Comment = comment,
+    };
+
     private static RuleRowProjection Row(
         int occurrenceId,
         int familyPosition,
@@ -205,7 +384,8 @@ public sealed class RuleQueryServiceTests
         FirewallProtocol protocol = FirewallProtocol.Any,
         FirewallAction action = FirewallAction.Allow,
         FirewallDirection direction = FirewallDirection.In,
-        string? comment = null)
+        string? comment = null,
+        RuleMetadata? metadata = null)
     {
         FirewallRuleSpecification specification = new()
         {
@@ -220,6 +400,6 @@ public sealed class RuleQueryServiceTests
             Comment = comment,
         };
         ListedFirewallRule rule = new() { Parsed = true, RuleId = $"rule-{occurrenceId}", RawLine = $"raw rule {occurrenceId}", Rule = specification };
-        return new RuleRowProjection(rule, addressFamily, occurrenceId, familyPosition, 4, true, true, null);
+        return new RuleRowProjection(rule, addressFamily, occurrenceId, familyPosition, 4, true, true, null, metadata);
     }
 }

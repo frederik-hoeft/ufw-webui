@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
@@ -8,6 +9,8 @@ namespace Ufw.Client.Components.Rules;
 
 public sealed partial class RuleDesktopRow
 {
+    private bool _metadataExpanded;
+
     [Parameter, EditorRequired]
     public RuleRowProjection Row { get; set; } = null!;
 
@@ -47,6 +50,12 @@ public sealed partial class RuleDesktopRow
     [Parameter]
     public EventCallback<RuleInsertionActionRequest> InsertionRequested { get; set; }
 
+    [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
+
     // Native dragenter may bubble repeatedly while crossing descendants of the same row. Keep the callback non-rendering;
     // the workspace schedules a render only when the effective drop target actually changes.
     private Action DragEnterHandler => EventUtil.AsNonRenderingEventHandler(this, () => DragEntered(Row));
@@ -67,18 +76,22 @@ public sealed partial class RuleDesktopRow
 
     private string DragEnabled => !OrderingDisabled && Row.CanOrder ? "true" : "false";
 
+    private string GroupClass => _metadataExpanded
+        ? "rule-row-group metadata-expanded"
+        : "rule-row-group";
+
     private string RowClass
     {
         get
         {
             List<string> classes = ["rule-desktop-row"];
-            if (Row.PositionChange is { DirectlyMoved: true })
+            if (MatchEvidence.Count > 0 || _metadataExpanded)
             {
-                classes.Add("ordering-direct");
+                classes.Add("has-expanded-content");
             }
-            if (MatchEvidence.Count > 0)
+            if (DetailsAvailable)
             {
-                classes.Add("has-match-context");
+                classes.Add("rule-details-available");
             }
 
             if (DropIndicatorEdge is { } edge)
@@ -95,15 +108,37 @@ public sealed partial class RuleDesktopRow
         get
         {
             List<string> classes = ["rule-desktop-row"];
-            if (MatchEvidence.Count > 0)
+            if (MatchEvidence.Count > 0 || _metadataExpanded)
             {
-                classes.Add("has-match-context");
+                classes.Add("has-expanded-content");
             }
             if (DropIndicatorEdge is { } edge)
             {
                 classes.Add(edge == RuleDropIndicatorEdge.Before ? "drop-before" : "drop-after");
             }
             return string.Join(' ', classes);
+        }
+    }
+
+    private bool DetailsAvailable => !string.IsNullOrWhiteSpace(Row.Rule.RuleId) || !string.IsNullOrWhiteSpace(Row.CanonicalCommand);
+
+    private string MetadataToggleLabel => _metadataExpanded
+        ? RulesText["HideRuleMetadata", Row.FamilyPosition]
+        : RulesText["ShowRuleMetadata", Row.FamilyPosition];
+
+    private void ToggleMetadata()
+    {
+        if (DetailsAvailable)
+        {
+            _metadataExpanded = !_metadataExpanded;
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            ToggleMetadata();
         }
     }
 

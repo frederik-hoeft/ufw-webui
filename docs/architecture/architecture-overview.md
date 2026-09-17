@@ -46,9 +46,11 @@ Browser-side rule validation is not an authorization boundary. The daemon repeat
 
 `Ufw.Web` owns HTTP concerns: API authentication, user/session state, application metadata, PostgreSQL persistence, and adaptation between REST and the local daemon protocol. It can ask the daemon to list state or submit a signed mutation, but it cannot manufacture mutation authority.
 
-The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, and application-owned authoring metadata such as network-interface comments and known-host aliases.
+The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, application-owned authoring metadata such as network-interface comments and known-host aliases, and presentation metadata attached to opaque semantic rule identities. Rule metadata currently consists of optional notes plus reusable tags; it never substitutes for a live daemon rule. Tags are first-class application entities with a display name, a simple `#RRGGBB` color, and a UUIDv7 public identity, and rules relate to them through an explicit many-to-many connection table.
 
 Database-backed workflows preserve one transactional boundary across related Identity and application state. Authentication therefore does not commit a refreshed token while rolling back the corresponding Identity state, or vice versa. Expected failures may still commit security-relevant state such as failed-login counters or refresh-family revocation.
+
+Application-owned relational entities use numeric surrogate primary keys internally. Entities exposed outside the persistence boundary use separate UUIDv7 public identities rather than leaking database keys; relationship tables also retain an internal numeric key and enforce relationship uniqueness separately. Project-owned EF mappings specify their PostgreSQL column types explicitly instead of relying on provider conventions.
 
 ### Privileged daemon
 
@@ -87,19 +89,40 @@ The architecture distinguishes authoritative state from caches and presentation 
 | Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
 | Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
 | Users, refresh-token families, interface metadata, known-host aliases | `Ufw.Web` / PostgreSQL | Application state only |
+| Rule notes and reusable tags | `Ufw.Web` / PostgreSQL | Metadata is joined to live rules by opaque semantic `RuleId`; tags have independent UUIDv7 identities and are related many-to-many; neither is evidence that a firewall rule exists |
 | Access token | Browser memory | Short-lived bearer credential |
 | Mutation private key | Administrator/browser signing workflow | Never sent to the server or persisted by the application |
 | Production frontend assets | nginx image | Built/deployed independently from ASP |
 
-Daemon-derived interface metadata is reconciled against host state, and host state wins when they disagree. Known-host aliases are independently ASP-owned authoring metadata and have no daemon inventory to reconcile. Neither kind of metadata can create firewall authority: it must resolve to literal firewall semantics before signing.
+Daemon-derived interface metadata is reconciled against host state, and host state wins when they disagree. Known-host aliases are independently ASP-owned authoring metadata and have no daemon inventory to reconcile. Rule presentation metadata is also ASP-owned, but follows a different lifecycle: normal rule reads join only metadata whose semantic identity is currently live without creating or deleting database rows. A successful in-band delete removes metadata for the deleted identity; metadata whose rule disappears out-of-band remains stored and unmatched until an explicit reconciliation workflow removes it. None of these metadata types can create firewall authority: authoring metadata must resolve to literal firewall semantics before signing, while presentation metadata is excluded from signed rule semantics entirely.
 
 ## Primary request flows
 
 ### Reading firewall state
 
-The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one rule snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
+The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one daemon snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
+
+Before returning `GET /api/v1/rules`, `Ufw.Web` loads presentation metadata only for the semantic identities present in that daemon snapshot and returns an enriched inventory containing the authoritative firewall snapshot plus the matching ASP-owned metadata. Duplicate live occurrences with one semantic identity intentionally share that metadata. The read path is side-effect free: it neither creates metadata for newly observed rules nor deletes unmatched metadata.
 
 The browser treats each successful response as an authoritative snapshot. UFW keeps IPv4 and IPv6 in independent ordered rule sets and concatenates them for numbered status output, so the browser presents separate family sections while retaining the exact combined snapshot coordinates for signing and mutation addressing. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
+
+### Managing rule presentation metadata
+
+Rule metadata is edited independently from firewall mutation. The browser submits notes and selected tag UUIDs for a live semantic `RuleId`; `Ufw.Web` revalidates that the identity exists in a fresh daemon snapshot before persisting the application-owned metadata. A successful metadata response can therefore update the browser's enriched presentation snapshot in place without pretending that UFW state changed or requiring a firewall refresh.
+
+Reusable tags are managed through a separate ASP-owned catalog. Their UUIDv7 identity is stable across display-name and color changes, so the browser reconciles loaded metadata and active
+tag filters by UUID rather than by label text. Creating, renaming, recoloring, or deleting an unused tag does not cross the signed-intent boundary and cannot modify firewall semantics. New
+tags may also be created lazily from the shared rule-metadata editor; the client assigns an initial high-saturation color for visual scanning, while later rename/recolor operations remain
+ordinary catalog mutations. Tag management and orphan reconciliation live on a dedicated metadata-management surface rather than adding application-state administration to the main
+firewall-rules page.
+
+The same metadata editor is used when editing an existing semantic rule and while authoring a new firewall rule. For a new rule, the firewall mutation still completes first and remains
+authoritative; after a successful add/insertion the browser attaches the prepared metadata to the returned semantic `RuleId`. Failure to attach optional presentation metadata is reported
+separately and never rewrites a successful firewall mutation as a firewall failure. Rule rows expose compact tag labels and independently expandable metadata details, but those presentation
+controls remain separate from query-derived match evidence and from firewall mutation capability. The expanded details also expose a read-only canonical UFW command computed client-side from
+the canonical rule projection with the shared rule renderer; it is searchable and copyable, but it is not persisted as ASP metadata.
+
+Out-of-band rule removal is reconciled explicitly rather than during normal reads. The metadata-reconciliation endpoint compares all stored rule metadata with a fresh daemon-authoritative snapshot and reports only records whose opaque semantic `RuleId` is unmatched. Cleanup is operator-selected: the browser submits reviewed metadata UUIDs, ASP fetches authoritative rule state again, and only selected records that remain unmatched in that cleanup snapshot are deleted. Recreated semantic rules are therefore preserved and naturally regain their retained metadata. Reconciliation never creates firewall state and does not introduce an age-based garbage-collection policy.
 
 ### Mutating firewall state
 
@@ -119,7 +142,14 @@ The cached inventory is an authoring aid, not firewall authority. Selecting an i
 
 `Ufw.Web` owns a separate PostgreSQL catalog of known-host aliases. Each entry has an application identity, a human-facing name and optional comment, a visibility preference, and one canonical literal IPv4/IPv6 host address or CIDR. Unlike network-interface metadata, these entries are not derived from daemon or operating-system inventory and require no daemon reconciliation.
 
-The browser uses visible aliases only as autocomplete suggestions while preserving unrestricted literal address entry. Selecting an alias immediately writes its canonical address into the source or destination field of `FirewallRuleSpecification`; the alias ID, name, comment, and visibility flag do not enter rule rendering, signed intents, REST mutation payloads, IPC, or daemon processing. Changing or deleting an alias therefore cannot change a rule that was already authored.
+The browser uses visible aliases as autocomplete suggestions while preserving unrestricted literal address entry. The same known-host-aware field is reused by source/destination network
+filters. Selecting an alias immediately writes its canonical address into `FirewallRuleSpecification` or the configured network-filter model; the alias ID, name, comment, and visibility flag
+never enter signed intents, REST firewall-mutation payloads, IPC, or daemon processing. Changing or deleting an alias therefore cannot change a rule that was already authored.
+
+Free-text rule search may project visible known-host aliases back over the already-loaded canonical rule model for discovery. For the selected address family, an alias contributes searchable
+name/address/comment text only when its literal host/network overlaps the rule's source or destination network; unrestricted `any` endpoints therefore include compatible known hosts. This
+projection is query-time presentation context only: it does not attach alias identity to the authoritative rule, does not alter semantic rule identity, and does not make known-host metadata
+part of firewall authority.
 
 An alias keeps its address family for its lifetime. Same-family address changes are allowed, but changing an existing IPv4 alias into IPv6 or vice versa is rejected so one persistent alias identity cannot silently change network-family meaning. Hiding an alias affects suggestions only and has no effect on firewall validity.
 

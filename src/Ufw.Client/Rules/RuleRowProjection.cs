@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Client.Rules.Metadata;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Rules;
 
@@ -10,4 +11,6 @@ public sealed record RuleRowProjection(
     int FamilyCount,
     bool CanOrder,
     bool CanMutate,
-    RulePositionChange? PositionChange);
+    RulePositionChange? PositionChange,
+    RuleMetadata? Metadata = null,
+    string? CanonicalCommand = null);

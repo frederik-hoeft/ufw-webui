@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using System.Globalization;
+using Ufw.Client.Api;
 using Ufw.Client.Components.Rules;
+using Ufw.Client.Components.Rules.Metadata;
 using Ufw.Client.Errors;
 using Ufw.Client.RuleInsertion;
 using Ufw.Client.Rules;
@@ -18,6 +20,8 @@ public sealed partial class CreateRule
     private OrderedRuleInsertionNavigationContext? _orderedInsertionContext;
     private OrderedRuleInsertionContextError _orderedInsertionContextError;
     private RuleInsertionResponse? _insertionResult;
+    private RuleMetadataEditor? _metadataEditor;
+    private RuleMetadataEditorResult _metadataDraft = RuleMetadataEditorResult.Empty;
     private string _privateKey = string.Empty;
     private string? _reconciliationRuleIdentity;
     private bool _mutationMayHaveCompleted;
@@ -121,9 +125,9 @@ public sealed partial class CreateRule
         _state = _state.BeginRefresh(reason);
         try
         {
-            RuleListResponse response = await RuleApiClient.GetRulesAsync(_lifetime.Token);
+            RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
-            ResolveOrderedInsertionContext(response);
+            ResolveOrderedInsertionContext(response.Firewall);
 
             if (_mutationMayHaveCompleted)
             {
@@ -170,6 +174,12 @@ public sealed partial class CreateRule
 
     private async Task SubmitRuleAsync()
     {
+        if (_metadataEditor is not null && !await _metadataEditor.ValidateAsync())
+        {
+            return;
+        }
+
+        _metadataDraft = _metadataDraft.Normalize();
         if (IsOrderedInsertionRequested)
         {
             await InsertRuleAsync();
@@ -197,6 +207,7 @@ public sealed partial class CreateRule
         {
             RuleMutationResponse mutation = await RuleMutations.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
             _reconciliationRuleIdentity = MutationReconciliation.GetMutationIdentity(mutation, _reconciliationRuleIdentity);
+            await SaveCreatedRuleMetadataAsync(mutation.Rule.RuleId);
             _mutationMayHaveCompleted = true;
             _submitting = false;
             await LoadRulesAsync(RuleRefreshReason.AfterMutation);
@@ -250,6 +261,7 @@ public sealed partial class CreateRule
 
             if (response.Outcome == RuleInsertionOutcome.Completed)
             {
+                await SaveCreatedRuleMetadataAsync(response.InsertedRule?.RuleId);
                 Snackbar.Add(RulesText["OrderedInsertionApplied"], Severity.Success);
                 Navigation.NavigateTo("/rules");
                 return;
@@ -282,6 +294,40 @@ public sealed partial class CreateRule
         {
             _privateKey = string.Empty;
             _submitting = false;
+        }
+    }
+
+    private Task MetadataChanged(RuleMetadataEditorResult value)
+    {
+        _metadataDraft = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveCreatedRuleMetadataAsync(string? ruleId)
+    {
+        if (_metadataDraft.IsEmpty || string.IsNullOrWhiteSpace(ruleId))
+        {
+            return;
+        }
+
+        try
+        {
+            await RuleApiClient.UpdateMetadataAsync(ruleId, new UpdateRuleMetadataRequest
+            {
+                Notes = _metadataDraft.Notes,
+                TagIds = _metadataDraft.TagIds,
+            }, _lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            string diagnostic = ClientErrors.TryDescribe(exception, out ClientError error)
+                ? error.Message
+                : RulesText["MetadataSaveAfterCreateFailed"];
+            Snackbar.Add(RulesText["MetadataSaveAfterCreateFailedWithReason", diagnostic], Severity.Warning);
         }
     }
 

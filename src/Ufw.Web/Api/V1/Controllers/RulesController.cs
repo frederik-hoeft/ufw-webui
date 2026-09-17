@@ -1,21 +1,50 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RulesController(IUfwClient ufwClient, IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class RulesController(
+    IUfwClient ufwClient,
+    IRuleInventoryService inventory,
+    IRuleMetadataService metadata,
+    IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
-    public async partial Task<ActionResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleInventoryResponse>> GetRulesAsync(CancellationToken cancellationToken)
     {
         try
         {
-            RuleListResponse response = await ufwClient.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
+            RuleInventoryResponse response = await inventory.GetAsync(cancellationToken);
             return Ok(response);
+        }
+        catch (UfwIpcException exception)
+        {
+            return MapDaemonError(exception);
+        }
+    }
+
+    public async partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(
+        string ruleId,
+        UpdateRuleMetadataRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        try
+        {
+            RuleMetadataUpdateResult result = await metadata.UpdateAsync(ruleId, request, cancellationToken);
+            return result.Outcome switch
+            {
+                RuleMetadataUpdateOutcome.Success => Ok(result.Response),
+                RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
+                RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
+                RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
+                _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
+            };
         }
         catch (UfwIpcException exception)
         {
@@ -91,6 +120,10 @@ public sealed partial class RulesController(IUfwClient ufwClient, IDaemonApiErro
         try
         {
             RuleMutationResponse response = await ufwClient.SendAsync<DeleteRuleRequest, RuleMutationResponse>(request, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(response.Rule.RuleId))
+            {
+                await metadata.RemoveForDeletedRuleAsync(response.Rule.RuleId, CancellationToken.None);
+            }
             return Ok(response);
         }
         catch (UfwIpcException exception)

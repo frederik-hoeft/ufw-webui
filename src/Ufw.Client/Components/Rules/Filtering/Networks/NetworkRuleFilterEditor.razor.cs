@@ -1,17 +1,20 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
+using Ufw.Client.Api;
+using Ufw.Client.KnownHosts;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Components.Rules.Filtering.Networks;
 
-public sealed partial class NetworkRuleFilterEditor : RuleFilterEditorBase
+public sealed partial class NetworkRuleFilterEditor(IKnownHostInventoryService knownHosts) : RuleFilterEditorBase
 {
     private RuleFilter? _loadedFilter;
     private bool? _loadedSourceEndpoint;
     private string _value = string.Empty;
     private string? _error;
+    private IReadOnlyList<KnownHostInventoryItem> _suggestions = [];
 
     [Parameter]
     public bool SourceEndpoint { get; set; }
@@ -33,6 +36,7 @@ public sealed partial class NetworkRuleFilterEditor : RuleFilterEditorBase
 
         _loadedFilter = Filter;
         _loadedSourceEndpoint = SourceEndpoint;
+        _suggestions = knownHosts.Current?.Hosts.Where(static host => host.IsVisible).ToArray() ?? [];
         _value = Filter is NetworkRuleFilter network && network.Endpoint == Endpoint ? network.Network.CanonicalValue : string.Empty;
         _error = null;
     }
@@ -59,9 +63,9 @@ public sealed partial class NetworkRuleFilterEditor : RuleFilterEditorBase
         return true;
     }
 
-    private void ValueChanged(string value)
+    private void ValueChanged(string? value)
     {
-        _value = value;
+        _value = value ?? string.Empty;
         _error = null;
     }
 }

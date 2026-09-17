@@ -2,7 +2,7 @@
 
 This document captures the agreed architectural direction for the next rule-presentation sprint. Here, **sprint** is only a convenient name for a coherent body of work: the plan is organized into work-based phases and sub-phases rather than a time-boxed schedule with deadlines. It is temporary maintainer guidance rather than steady-state architecture documentation; exact database entities, REST resources, filter catalogues, query syntax, and UI details should be designed against these invariants and moved into permanent documentation when implemented.
 
-The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, richer row presentation, and grouping without turning PostgreSQL into a second firewall database. Reusable rule templates and other larger follow-on capabilities are tracked separately in the [long-term feature backlog](long-term-feature-backlog.md).
+The sprint extends the current authoritative UFW rule view with application-owned metadata, filtering/search, and richer row presentation without turning PostgreSQL into a second firewall database. Reusable rule templates and other larger follow-on capabilities are tracked separately in the [long-term feature backlog](long-term-feature-backlog.md).
 
 ## Authority and data flow
 
@@ -43,7 +43,7 @@ The enriched browser model should preserve the distinction between:
 
 - authoritative UFW state and capabilities;
 - authoritative structural rule data and semantic identity;
-- ASP-owned presentation metadata such as tags, groups, notes, or other contextual fields;
+- ASP-owned presentation metadata such as reusable tags, notes, or other contextual fields;
 - snapshot-local presentation/ordering coordinates.
 
 The details surface should be extensible, but known metadata concepts should use typed contracts rather than an unstructured `Dictionary<string, object>` style property bag. Extensibility belongs at the presentation/contract boundary, not in Razor-specific ad hoc data structures.
@@ -73,6 +73,12 @@ Orphan cleanup is explicit. A reconciliation operation can compare current autho
 The operator can then remove unmatched records deliberately. The project already uses explicit reconciliation for other host-derived application state, so this is a familiar operational concept.
 
 No age-based retention policy or orphan timestamp is required for the initial implementation. Those can be added later if stale metadata volume becomes operationally relevant.
+
+The implemented reconciliation slice exposes a dedicated ASP-owned reconciliation resource. Discovery reads all stored rule metadata and compares it with a fresh daemon-authoritative rule snapshot without mutating either side. Cleanup accepts only the metadata UUIDs explicitly reviewed by the operator, fetches authoritative UFW state again, and removes selected records only when their semantic `RuleId` remains unmatched in that cleanup snapshot. A rule recreated between discovery and cleanup is therefore protected from the reviewed cleanup request. The browser presents the unmatched notes/tags plus an abbreviated opaque rule identity, supports explicit selection, and requires a destructive confirmation before cleanup.
+
+The initial enrichment infrastructure stores optional notes under the semantic `RuleId` and relates rule metadata many-to-many to reusable tag entities. Tags have UUIDv7 public identities, case-insensitively unique display names, and a simple `#RRGGBB` color for visual scanning. `GET /api/v1/rules` returns the daemon `RuleListResponse` as an authoritative sub-model alongside only metadata matching identities in that snapshot. Metadata mutations reference tags by UUID rather than by display name, verify that the semantic rule identity is currently live before persisting, and a successful in-band delete performs best-effort metadata cleanup after the firewall mutation is confirmed. Explicit orphan discovery/removal remains a later reconciliation slice.
+
+The persistence model follows the project-wide database conventions established with this phase: project-owned columns declare their PostgreSQL store type explicitly, ordinary entities use numeric surrogate primary keys, and any identity exposed through the client/API is a separate UUIDv7. The rule-metadata/tag connection is represented by an explicit join entity with its own numeric key plus a unique `(RuleMetadataId, TagId)` relationship constraint. A singular `Group` field is intentionally omitted; tags cover classification until a future grouping concept has concrete semantics that justify a distinct model.
 
 ## Family-local presentation and ordering
 
@@ -147,7 +153,6 @@ RuleQuery
     ActionFilter
     DirectionFilter
     TagFilter
-    GroupFilter
     ...
 ```
 
@@ -340,11 +345,27 @@ Rule row/card
   Rule metadata details        user-controlled, independently collapsible
 ```
 
-The match section exists because of the current query. It may show information such as `Matched tag: observability` or a highlighted excerpt from notes, comments, canonical command text, group names, or other searchable metadata. It disappears when the corresponding query state disappears.
+The match section exists because of the current query. It may show information such as `Matched tag: observability` or a highlighted excerpt from notes, comments, canonical command text, tag names, or other searchable metadata. It disappears when the corresponding query state disappears.
 
-The metadata details section is explicit user interaction and may present richer ASP-owned context such as tags, group, notes, state, audit/context fields, canonical command text, or future typed metadata. Its expansion state is independent from search-match presentation.
+The metadata details section is explicit user interaction and may present richer ASP-owned context such as tags, notes, state, audit/context fields, canonical command text, or future typed metadata. Its expansion state is independent from search-match presentation.
 
 These two regions must not share one generic `Expanded` flag or otherwise become coupled merely because both render beneath the summary.
+
+The implemented metadata-presentation slice follows that separation. Desktop rows and mobile cards show compact colored tag labels in their stable summaries and own a per-occurrence
+metadata-details expansion state that is independent from query evidence. Clicking a parsed row/card toggles details; the collapsed summary keeps the normal action menu, while the expanded
+summary replaces it with the collapse affordance and moves the action menu into the details pane. `RuleMetadataDetails` remains presentational: it renders tags/notes plus the read-only
+canonical UFW command computed during canonical projection, exposes copy/edit actions, and emits edit requests while the rules page coordinates persistence.
+
+Match evidence uses the same rule-row surface rather than a second tinted panel and is presented as one compact evidence pill. Free-text comment/note evidence renders a bounded context
+window around the actual match instead of repeating potentially large metadata values. Canonical-command and known-host projections participate in that same typed text-evidence pipeline.
+
+Reusable tags are managed through a scoped client tag-catalog service and a dedicated metadata-management page. Tag rename/color changes are reconciled into loaded rule metadata and
+configured tag filters by UUID identity, so presentation changes do not alter filter meaning. The shared rule-metadata editor supports lazy tag creation and assigns generated high-saturation
+initial colors; explicit tag management can reshuffle the color before persisting. The same editor is embedded in rule creation, where prepared metadata is attached only after a successful
+firewall mutation and metadata failure is reported independently. Tag creation, editing, and deletion remain ASP-owned application-state operations and never enter signed firewall intents.
+
+Network filter editors reuse the known-host-aware authoring field. Free-text search additionally projects visible same-family known-host aliases over source/destination rule networks using
+CIDR overlap semantics. The projected alias text is searchable evidence only and never becomes part of the canonical rule or its semantic identity.
 
 ## Component boundaries
 
@@ -357,17 +378,17 @@ Rules page
   global firewall state / mutation orchestration
   IPv4 | IPv6 tabs
     RuleFamilyWorkspace (selected family)
-      RuleListToolbar                 planned
+      RuleListToolbar
         free-text search
         applied filter chips
         filter editor/selector host
-        sorting
+        sorting                       planned
       RuleDesktopRow*
-        RuleMatchContext?             planned
-        RuleMetadataDetails?          planned
+        RuleMatchContext?
+        RuleMetadataDetails?
       RuleMobileCard*
-        RuleMatchContext?             planned
-        RuleMetadataDetails?          planned
+        RuleMatchContext?
+        RuleMetadataDetails?
 ```
 
 Responsibilities should remain narrow:
@@ -403,12 +424,10 @@ The feature sprint should build on these contracts. Reworking family separation,
 
 The following are intentionally not fixed by this baseline and should be worked through in the feature-design phase:
 
-- exact EF entities, keys, relationships, indexes, concurrency fields, and migrations;
 - exact browser-facing REST contract and whether enriched contracts warrant a dedicated API-contract project;
-- concrete metadata fields and grouping semantics;
+- future metadata fields and any future grouping/collection semantics;
 - exact future shorthand query grammar, URL encoding, filter-editor hosting surface, filter catalogue, and highlighting/presentation polish;
 - whether ordered insertion remains available while a filter is active;
-- reconciliation endpoint/command shape and orphan-cleanup confirmation UX;
 - optional direct rule-detail navigation;
 - any future automated orphan-retention policy.
 

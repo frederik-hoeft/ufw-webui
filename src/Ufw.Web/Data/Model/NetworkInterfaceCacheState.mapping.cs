@@ -15,9 +15,11 @@ internal sealed partial class NetworkInterfaceCacheState : IDiscoverableModelCon
 
         self.Property(static state => state.Id)
             .HasColumnName("Id")
+            .HasColumnType("integer")
             .ValueGeneratedNever();
         self.Property(static state => state.ReconciledAt)
             .HasColumnName("ReconciledAt")
+            .HasColumnType("timestamp with time zone")
             .IsRequired();
     }
 }

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Ufw.Client.Api;
 using Ufw.Client.Tests.Support;
+using Ufw.Client.Serialization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -64,34 +65,114 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual(HttpMethod.Get, intentHandler.Requests[0].Method);
         Assert.AreEqual("/api/v1/intent/context", intentHandler.Requests[0].RequestUri!.AbsolutePath);
 
+        Guid metadataId = Guid.CreateVersion7();
+        Guid tagId = Guid.CreateVersion7();
         using RecordingHttpMessageHandler rulesHandler = new((request, call) => call switch
         {
-            1 => Json(HttpStatusCode.OK, "{\"active\":true,\"rules\":[]}"),
-            2 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.ADD_RULE)),
-            3 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
-            4 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
-            5 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
+            1 => Json(HttpStatusCode.OK, InventoryResponseJson()),
+            2 => Json(
+                HttpStatusCode.OK,
+                $"{{\"metadata\":{{\"id\":\"{metadataId:D}\",\"ruleId\":\"rule/id\",\"notes\":null,"
+                    + $"\"tags\":[{{\"id\":\"{tagId:D}\",\"name\":\"prod\",\"color\":\"#336699\"}}]}}}}"),
+            3 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.ADD_RULE)),
+            4 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
+            5 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
+            6 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
         RuleApiClient rules = new(rulesHttp);
-        await rules.GetRulesAsync();
+        await rules.GetInventoryAsync();
+        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId] });
         await rules.AddRuleAsync(AddRequest());
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
         await rules.ReorderRulesAsync(ReorderRequest());
 
         CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
+            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
             rulesHandler.Requests.Select(static request => request.Method).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
+            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
-        using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[3].Content!);
+        using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
+        Assert.AreEqual(tagId, metadataBody.RootElement.GetProperty("tagIds")[0].GetGuid());
+        using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
-        using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
+        using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
+    }
+
+    [TestMethod]
+    public async Task RuleMetadataReconciliationApiClient_UsesDiscoveryAndCleanupEndpointsAsync()
+    {
+        Guid metadataId = Guid.Parse("01993b41-fdad-7000-8000-000000000002");
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, $"{{\"orphans\":[{{\"id\":\"{metadataId:D}\",\"ruleId\":\"sha256:old\",\"notes\":null,\"tags\":[]}}],\"removedCount\":0}}"),
+            2 => Json(HttpStatusCode.OK, "{\"orphans\":[],\"removedCount\":1}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleMetadataReconciliationApiClient client = new(http);
+
+        RuleMetadataReconciliationResponse discovered = await client.GetAsync();
+        RuleMetadataReconciliationResponse cleaned = await client.CleanupAsync(new CleanupRuleMetadataRequest { MetadataIds = [metadataId] });
+
+        Assert.HasCount(1, discovered.Orphans);
+        Assert.AreEqual(1, cleaned.RemovedCount);
+        CollectionAssert.AreEqual(new[] { HttpMethod.Get, HttpMethod.Post }, handler.Requests.Select(static request => request.Method).ToArray());
+        CollectionAssert.AreEqual(
+            new[] { "/api/v1/rule-metadata/reconciliation", "/api/v1/rule-metadata/reconciliation/cleanup" },
+            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        using JsonDocument body = JsonDocument.Parse(handler.Requests[1].Content!);
+        Assert.AreEqual(metadataId, body.RootElement.GetProperty("metadataIds")[0].GetGuid());
+    }
+
+    [TestMethod]
+    public async Task RuleTagApiClient_UsesCatalogEndpointsAndUuidReferencesAsync()
+    {
+        Guid tagId = Guid.Parse("01993b41-fdad-7000-8000-000000000001");
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"tags\":[]}"),
+            2 => Json(HttpStatusCode.OK, $"{{\"tags\":[{{\"id\":\"{tagId:D}\",\"name\":\"prod\",\"color\":\"#112233\"}}]}}"),
+            3 => Json(HttpStatusCode.OK, $"{{\"tags\":[{{\"id\":\"{tagId:D}\",\"name\":\"production\",\"color\":\"#AABBCC\"}}]}}"),
+            4 => Json(HttpStatusCode.OK, "{\"tags\":[]}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleTagApiClient client = new(http);
+
+        await client.GetAsync();
+        await client.CreateAsync(new CreateRuleTagRequest { Name = "prod", Color = "#112233" });
+        await client.UpdateAsync(tagId, new UpdateRuleTagRequest { Name = "production", Color = "#aabbcc" });
+        await client.DeleteAsync(tagId);
+
+        CollectionAssert.AreEqual(
+            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
+            handler.Requests.Select(static request => request.Method).ToArray());
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "/api/v1/rule-tags",
+                "/api/v1/rule-tags",
+                $"/api/v1/rule-tags/{tagId:D}",
+                $"/api/v1/rule-tags/{tagId:D}",
+            },
+            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+
+        using JsonDocument createBody = JsonDocument.Parse(handler.Requests[1].Content!);
+        Assert.AreEqual("prod", createBody.RootElement.GetProperty("name").GetString());
+        Assert.AreEqual("#112233", createBody.RootElement.GetProperty("color").GetString());
+        using JsonDocument updateBody = JsonDocument.Parse(handler.Requests[2].Content!);
+        Assert.AreEqual("production", updateBody.RootElement.GetProperty("name").GetString());
+        Assert.AreEqual("#aabbcc", updateBody.RootElement.GetProperty("color").GetString());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTagRequest()));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+        Assert.HasCount(4, handler.Requests);
     }
 
     [TestMethod]
@@ -242,6 +323,13 @@ public sealed class HttpApiClientsTests
         Payload = JsonSerializer.SerializeToElement(new { ruleId = "id", rule = new FirewallRuleSpecification() }),
         Signature = "signature",
     };
+
+    private static string InventoryResponseJson() => JsonSerializer.Serialize(
+        new RuleInventoryResponse
+        {
+            Firewall = new RuleListResponse(true, [], TestFirewallConfiguration.Enabled),
+        },
+        ClientJsonSerializerContext.Default.RuleInventoryResponse);
 
     private static string InsertionResponseJson(RuleInsertionOutcome outcome)
     {

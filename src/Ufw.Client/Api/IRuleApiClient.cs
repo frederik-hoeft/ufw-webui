@@ -5,7 +5,12 @@ namespace Ufw.Client.Api;
 
 internal interface IRuleApiClient
 {
-    Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default);
+    Task<RuleInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken = default);
+
+    Task<RuleMetadataMutationResponse> UpdateMetadataAsync(
+        string ruleId,
+        UpdateRuleMetadataRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<RuleMutationResponse> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default);
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
+using Ufw.Client.Clipboard;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Filtering;
 using Ufw.Client.Components.Rules.Filtering.Actions;
@@ -11,6 +12,7 @@ using Ufw.Client.Components.Rules.Filtering.Directions;
 using Ufw.Client.Components.Rules.Filtering.Networks;
 using Ufw.Client.Components.Rules.Filtering.Ports;
 using Ufw.Client.Components.Rules.Filtering.Protocols;
+using Ufw.Client.Components.Rules.Filtering.Tags;
 using Ufw.Client.Components.Rules.Filtering.Text;
 using Ufw.Client.Configuration;
 using Ufw.Client.Errors;
@@ -25,10 +27,13 @@ using Ufw.Client.Rules.Authoring;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
+using Ufw.Client.Rules.Filtering.KnownHosts;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
+using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Filtering.Text;
+using Ufw.Client.Rules.Metadata;
 using Ufw.Client.Rules.Presentation;
 using Ufw.Client.Status;
 using Ufw.Client.Storage;
@@ -49,6 +54,7 @@ public static class Program
 
         builder.Services.AddMudServices();
         builder.Services.AddScoped<ILocalStorage, BrowserLocalStorage>();
+        builder.Services.AddScoped<IClipboardService, BrowserClipboardService>();
         builder.Services.AddClientLocalization(builder.Configuration);
         builder.Services.AddAuthorizationCore();
         builder.Services.AddSingleton(TimeProvider.System);
@@ -79,18 +85,25 @@ public static class Program
         builder.Services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
         builder.Services.AddSingleton<IRuleOrderingResultProjectionService, RuleOrderingResultProjectionService>();
         builder.Services.AddSingleton<IRuleListProjectionService, RuleListProjectionService>();
+        builder.Services.AddScoped<IRuleTagCatalogService, RuleTagCatalogService>();
+        builder.Services.AddSingleton<IRuleTagColorGenerator, RuleTagColorGenerator>();
+        builder.Services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
+        builder.Services.AddSingleton<IRuleTagFilterReconciler, RuleTagFilterReconciler>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, NetworkRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, PortRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, ProtocolRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, ActionRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, DirectionRuleFilterDefinitionProvider>();
+        builder.Services.AddSingleton<IRuleFilterDefinitionProvider, TagRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, TextRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterCatalog, RuleFilterCatalog>();
+        builder.Services.AddSingleton<IRuleKnownHostProjectionService, RuleKnownHostProjectionService>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, NetworkRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, PortRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, ProtocolRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, ActionRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, DirectionRuleFilterEvaluator>();
+        builder.Services.AddSingleton<IRuleFilterEvaluator, TagRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, TextRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleQueryService, RuleQueryService>();
         builder.Services.AddSingleton<IRuleInsertionNavigationService, RuleInsertionNavigationService>();
@@ -108,6 +121,12 @@ public static class Program
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleApiClient, RuleApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleMetadataReconciliationApiClient, RuleMetadataReconciliationApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleTagApiClient, RuleTagApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IKnownHostApiClient, KnownHostApiClient>(client => client.BaseAddress = apiBaseAddress)
