@@ -86,6 +86,11 @@ public sealed partial class RuleMobileCard
                 classes.Add("ordering-direct");
             }
 
+            if (_metadataExpanded)
+            {
+                classes.Add("metadata-expanded");
+            }
+
             if (DropIndicatorEdge is { } edge)
             {
                 classes.Add(edge == RuleDropIndicatorEdge.Before ? "drop-before" : "drop-after");

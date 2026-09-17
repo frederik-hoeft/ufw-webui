@@ -6,6 +6,7 @@
     ListedFirewallRule rule = Row.Rule;
 }
 
+<tbody class="@GroupClass">
 @if (rule.Parsed && rule.Rule is not null)
 {
     <tr class="@RowClass"
@@ -192,3 +193,5 @@ else
         </td>
     </tr>
 }
+
+</tbody>

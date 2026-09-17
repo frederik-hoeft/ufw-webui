@@ -76,15 +76,15 @@ public sealed partial class RuleDesktopRow
 
     private string DragEnabled => !OrderingDisabled && Row.CanOrder ? "true" : "false";
 
+    private string GroupClass => _metadataExpanded
+        ? "rule-row-group metadata-expanded"
+        : "rule-row-group";
+
     private string RowClass
     {
         get
         {
             List<string> classes = ["rule-desktop-row"];
-            if (Row.PositionChange is { DirectlyMoved: true })
-            {
-                classes.Add("ordering-direct");
-            }
             if (MatchEvidence.Count > 0 || _metadataExpanded)
             {
                 classes.Add("has-expanded-content");

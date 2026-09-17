@@ -63,7 +63,7 @@
                     font-size: 0.8125rem;
                 }
 
-                tbody tr:last-child td {
+                tbody:last-of-type tr:last-child td {
                     border-bottom: 0;
                 }
 
