@@ -1,50 +1,65 @@
 @using Ufw.Client.Rules.Metadata
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<section class="rule-metadata-details" aria-label="@(RulesText["RuleMetadataAria"])">
-    <header>
-        <div>
+<section class="rule-metadata-details" aria-label="@(RulesText["RuleMetadataAria"])" @onclick:stopPropagation="true">
+    <div class="rule-metadata-overview">
+        <header>
             <span class="rule-metadata-title">@RulesText["RuleMetadata"]</span>
             <span class="rule-metadata-description">@RulesText["RuleMetadataDescription"]</span>
+        </header>
+        <div class="rule-metadata-command">
+            <span class="rule-metadata-field-label">@RulesText["CanonicalCommand"]</span>
+            @if (!string.IsNullOrWhiteSpace(CanonicalCommand))
+            {
+                <div class="rule-metadata-command-block">
+                    <code>@CanonicalCommand</code>
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                   Size="Size.Small"
+                                   OnClick="CopyCanonicalCommandAsync"
+                                   aria-label="@RulesText["CopyCanonicalCommand"]" />
+                </div>
+            }
+            else
+            {
+                <span class="rule-metadata-empty">@RulesText["None"]</span>
+            }
         </div>
-        <MudButton Variant="Variant.Text"
-                   Size="Size.Small"
-                   StartIcon="@Icons.Material.Filled.Edit"
-                   Disabled="@EditDisabled"
-                   OnClick="@EditRequested">
-            @RulesText["EditMetadata"]
-        </MudButton>
-    </header>
+        <div class="rule-metadata-actions">
+            @Actions
+        </div>
+    </div>
 
-    @if (Metadata is null)
-    {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["NoRuleMetadata"]</MudText>
-    }
-    else
-    {
-        <div class="rule-metadata-fields">
-            <div>
-                <span class="rule-metadata-field-label">@RulesText["Tags"]</span>
-                @if (Metadata.Tags.Count == 0)
-                {
-                    <span class="rule-metadata-empty">@RulesText["None"]</span>
-                }
-                else
-                {
-                    <RuleTagList Tags="@Metadata.Tags" />
-                }
-            </div>
-            <div>
-                <span class="rule-metadata-field-label">@RulesText["Notes"]</span>
-                @if (string.IsNullOrWhiteSpace(Metadata.Notes))
-                {
-                    <span class="rule-metadata-empty">@RulesText["None"]</span>
-                }
-                else
-                {
-                    <span class="rule-metadata-notes">@Metadata.Notes</span>
-                }
-            </div>
+    <div class="rule-metadata-fields">
+        <div>
+            <span class="rule-metadata-field-label">@RulesText["Tags"]</span>
+            @if (Metadata is not { Tags.Count: > 0 } metadata)
+            {
+                <span class="rule-metadata-empty">@RulesText["None"]</span>
+            }
+            else
+            {
+                <RuleTagList Tags="@metadata.Tags" />
+            }
         </div>
-    }
+        <div>
+            <span class="rule-metadata-field-label">@RulesText["Notes"]</span>
+            @if (string.IsNullOrWhiteSpace(Metadata?.Notes))
+            {
+                <span class="rule-metadata-empty">@RulesText["None"]</span>
+            }
+            else
+            {
+                <span class="rule-metadata-notes">@Metadata.Notes</span>
+            }
+        </div>
+        <div class="rule-metadata-edit-action">
+            <MudButton Variant="Variant.Text"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Edit"
+                       Disabled="@EditDisabled"
+                       OnClick="@EditRequested">
+                @RulesText["EditMetadata"]
+            </MudButton>
+        </div>
+    </div>
 </section>

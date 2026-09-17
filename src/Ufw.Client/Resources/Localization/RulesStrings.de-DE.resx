@@ -680,4 +680,23 @@
   <data name="CleanupSelectedMetadata" xml:space="preserve"><value>Ausgewählte entfernen</value></data>
   <data name="CleaningMetadata" xml:space="preserve"><value>Wird entfernt…</value></data>
   <data name="MetadataCleanupCompleted" xml:space="preserve"><value>{0} nicht zugeordnete Metadatensätze entfernt.</value></data>
+  <data name="CanonicalCommand" xml:space="preserve"><value>Kanonischer Befehl</value></data>
+  <data name="CopyCanonicalCommand" xml:space="preserve"><value>Kanonischen Befehl kopieren</value></data>
+  <data name="CanonicalCommandCopied" xml:space="preserve"><value>Kanonischer Befehl kopiert.</value></data>
+  <data name="CanonicalCommandCopyFailed" xml:space="preserve"><value>Der kanonische Befehl konnte nicht kopiert werden.</value></data>
+  <data name="AddOrCreateTagPlaceholder" xml:space="preserve"><value>Tags suchen oder neuen Tag eingeben</value></data>
+  <data name="CreateInlineTag" xml:space="preserve"><value>Tag „{0}“ erstellen</value></data>
+  <data name="InlineTagCreationHint" xml:space="preserve"><value>Einen neuen Namen eingeben, um einen wiederverwendbaren Tag mit automatisch erzeugter Farbe zu erstellen.</value></data>
+  <data name="ReshuffleTagColor" xml:space="preserve"><value>Andere Tag-Farbe erzeugen</value></data>
+  <data name="MetadataManagementPageTitle" xml:space="preserve"><value>Regel-Metadaten</value></data>
+  <data name="MetadataManagementTitle" xml:space="preserve"><value>Regel-Metadaten</value></data>
+  <data name="MetadataManagementDescription" xml:space="preserve">
+    <value>Wiederverwendbare Tags verwalten und Anwendungs-Metadaten abgleichen, die keiner aktiven Firewall-Regel mehr entsprechen.</value>
+  </data>
+  <data name="CreateRuleMetadataDescription" xml:space="preserve">
+    <value>Optional Tags und Notizen an die neue semantische Regel anhängen. Die Metadaten werden nach dem Erstellen der Firewall-Regel gespeichert.</value>
+  </data>
+  <data name="MetadataSaveAfterCreateFailed" xml:space="preserve"><value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden.</value></data>
+  <data name="MetadataSaveAfterCreateFailedWithReason" xml:space="preserve"><value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden: {0}</value></data>
+  <data name="KnownHost" xml:space="preserve"><value>Bekannter Host</value></data>
 </root>

@@ -680,4 +680,21 @@
   <data name="CleanupSelectedMetadata" xml:space="preserve"><value>Remove selected</value></data>
   <data name="CleaningMetadata" xml:space="preserve"><value>Removing…</value></data>
   <data name="MetadataCleanupCompleted" xml:space="preserve"><value>Removed {0} unmatched metadata record(s).</value></data>
+  <data name="CanonicalCommand" xml:space="preserve"><value>Canonical command</value></data>
+  <data name="CopyCanonicalCommand" xml:space="preserve"><value>Copy canonical command</value></data>
+  <data name="CanonicalCommandCopied" xml:space="preserve"><value>Canonical command copied.</value></data>
+  <data name="CanonicalCommandCopyFailed" xml:space="preserve"><value>Could not copy the canonical command.</value></data>
+  <data name="AddOrCreateTagPlaceholder" xml:space="preserve"><value>Search tags or type a new tag</value></data>
+  <data name="CreateInlineTag" xml:space="preserve"><value>Create tag “{0}”</value></data>
+  <data name="InlineTagCreationHint" xml:space="preserve"><value>Type a new name to create a reusable tag with an automatically generated color.</value></data>
+  <data name="ReshuffleTagColor" xml:space="preserve"><value>Generate another tag color</value></data>
+  <data name="MetadataManagementPageTitle" xml:space="preserve"><value>Rule metadata</value></data>
+  <data name="MetadataManagementTitle" xml:space="preserve"><value>Rule metadata</value></data>
+  <data name="MetadataManagementDescription" xml:space="preserve"><value>Manage reusable tags and reconcile application metadata that no longer matches a live firewall rule.</value></data>
+  <data name="CreateRuleMetadataDescription" xml:space="preserve">
+    <value>Optionally attach tags and notes to the new semantic rule. Metadata is stored after the firewall rule is created.</value>
+  </data>
+  <data name="MetadataSaveAfterCreateFailed" xml:space="preserve"><value>The firewall rule was created, but its metadata could not be saved.</value></data>
+  <data name="MetadataSaveAfterCreateFailedWithReason" xml:space="preserve"><value>The firewall rule was created, but its metadata could not be saved: {0}</value></data>
+  <data name="KnownHost" xml:space="preserve"><value>Known host</value></data>
 </root>

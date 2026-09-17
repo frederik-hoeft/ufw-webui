@@ -72,19 +72,26 @@
 
 .rule-metadata-details {
     display: grid;
-    gap: 0.75rem;
+    gap: 1rem;
     padding: 0.25rem 0;
 
-    > header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+    .rule-metadata-overview {
+        display: grid;
+        grid-template-columns: minmax(12rem, 0.9fr) minmax(16rem, 1.4fr) auto;
+        align-items: start;
         gap: 1rem;
 
-        > div:first-child {
+        > header,
+        .rule-metadata-command {
             display: grid;
-            gap: 0.125rem;
+            min-width: 0;
+            gap: 0.25rem;
         }
+    }
+
+    .rule-metadata-actions {
+        display: flex;
+        justify-content: flex-end;
     }
 
     .rule-metadata-title {
@@ -100,16 +107,44 @@
         font-size: 0.75rem;
     }
 
+    .rule-metadata-command-block {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.4rem 0.45rem 0.4rem 0.625rem;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: var(--mud-default-borderradius);
+        background: var(--mud-palette-background-gray);
+
+        code {
+            min-width: 0;
+            flex: 1 1 auto;
+            overflow: hidden;
+            font-family: var(--ufw-font-mono);
+            font-size: 0.75rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
     .rule-metadata-fields {
         display: grid;
-        grid-template-columns: minmax(10rem, 0.8fr) minmax(14rem, 1.5fr);
+        grid-template-columns: minmax(10rem, 0.8fr) minmax(14rem, 1.5fr) auto;
+        align-items: start;
         gap: 1rem;
 
-        > div {
+        > div:not(.rule-metadata-edit-action) {
             display: grid;
             align-content: start;
             gap: 0.35rem;
         }
+    }
+
+    .rule-metadata-edit-action {
+        display: flex;
+        align-self: end;
+        justify-content: flex-end;
     }
 
     .rule-metadata-notes {
@@ -177,25 +212,17 @@
 }
 
 .rule-tag-color-editor {
-    display: grid;
-    grid-template-columns: auto 3rem minmax(8rem, 1fr);
+    display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.625rem;
 
-    > label {
-        color: var(--mud-palette-text-secondary);
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-
-    > input[type="color"] {
-        width: 3rem;
-        height: 2.5rem;
-        padding: 0.15rem;
-        border: 1px solid var(--mud-palette-lines-default);
-        border-radius: var(--mud-default-borderradius);
-        background: var(--mud-palette-surface);
-        cursor: pointer;
+    .rule-tag-color-preview {
+        width: 1.25rem;
+        height: 1.25rem;
+        flex: 0 0 auto;
+        border: 1px solid color-mix(in srgb, var(--mud-palette-text-primary) 20%, transparent);
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--mud-palette-surface) 80%, transparent);
     }
 }
 
@@ -237,13 +264,17 @@
 
 @media (max-width: $mobile-breakpoint) {
     .rule-metadata-details {
-        > header {
-            align-items: stretch;
-            flex-direction: column;
-        }
-
+        .rule-metadata-overview,
         .rule-metadata-fields {
             grid-template-columns: 1fr;
+        }
+
+        .rule-metadata-actions {
+            justify-content: flex-start;
+        }
+
+        .rule-metadata-edit-action {
+            justify-content: flex-end;
         }
     }
 
@@ -252,13 +283,6 @@
         flex-direction: column;
     }
 
-    .rule-tag-color-editor {
-        grid-template-columns: 3rem minmax(0, 1fr);
-
-        > label {
-            grid-column: 1 / -1;
-        }
-    }
 }
 
 .rule-metadata-reconciliation-header {

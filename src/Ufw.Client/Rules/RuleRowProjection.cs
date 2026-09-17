@@ -12,4 +12,5 @@ public sealed record RuleRowProjection(
     bool CanOrder,
     bool CanMutate,
     RulePositionChange? PositionChange,
-    RuleMetadata? Metadata = null);
+    RuleMetadata? Metadata = null,
+    string? CanonicalCommand = null);

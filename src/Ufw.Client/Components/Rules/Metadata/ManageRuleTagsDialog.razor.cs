@@ -8,7 +8,6 @@ namespace Ufw.Client.Components.Rules.Metadata;
 public sealed partial class ManageRuleTagsDialog
 {
     private const int MAX_TAG_NAME_LENGTH = 64;
-    private const string DEFAULT_COLOR = "#3B82F6";
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
         BackdropClick = false,
@@ -22,8 +21,7 @@ public sealed partial class ManageRuleTagsDialog
     private ClientError? _error;
     private RuleTag? _editingTag;
     private string _name = string.Empty;
-    private string _color = DEFAULT_COLOR;
-    private string? _colorError;
+    private string _color = string.Empty;
     private bool _loading;
     private bool _saving;
     private bool _editing;
@@ -32,8 +30,6 @@ public sealed partial class ManageRuleTagsDialog
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private bool IsBusy => _loading || _saving;
-
-    private string PickerColor => RuleTagColor.TryNormalize(_color, out string? color) ? color : DEFAULT_COLOR;
 
     protected override Task OnInitializedAsync() => RefreshAsync();
 
@@ -63,8 +59,7 @@ public sealed partial class ManageRuleTagsDialog
         }
         _editingTag = null;
         _name = string.Empty;
-        _color = DEFAULT_COLOR;
-        _colorError = null;
+        _color = TagColors.Generate();
         _editing = true;
     }
 
@@ -77,7 +72,6 @@ public sealed partial class ManageRuleTagsDialog
         _editingTag = tag;
         _name = tag.Name;
         _color = tag.Color;
-        _colorError = null;
         _editing = true;
     }
 
@@ -87,21 +81,10 @@ public sealed partial class ManageRuleTagsDialog
         {
             _editing = false;
             _editingTag = null;
-            _colorError = null;
         }
     }
 
-    private void ColorPickerChanged(ChangeEventArgs args)
-    {
-        _color = args.Value?.ToString() ?? DEFAULT_COLOR;
-        _colorError = null;
-    }
-
-    private void ColorTextChanged(string value)
-    {
-        _color = value;
-        _colorError = null;
-    }
+    private void ReshuffleColor() => _color = TagColors.Generate();
 
     private async Task SaveTagAsync()
     {
@@ -117,8 +100,7 @@ public sealed partial class ManageRuleTagsDialog
         }
         if (!RuleTagColor.TryNormalize(_color, out string? color))
         {
-            _colorError = RulesText["InvalidTagColor"];
-            return;
+            throw new InvalidOperationException("Generated tag color is invalid.");
         }
 
         _saving = true;

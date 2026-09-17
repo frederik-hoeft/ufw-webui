@@ -9,23 +9,13 @@
 @if (rule.Parsed && rule.Rule is not null)
 {
     <tr class="@RowClass"
+        tabindex="@(DetailsAvailable ? "0" : null)"
+        @onclick="ToggleMetadata"
+        @onkeydown="HandleKeyDown"
         @ondragenter="@DragEnterHandler"
         @ondragover:preventDefault
         @ondrop="DropAsync">
-        <td class="expand">
-            @if (MetadataAvailable)
-            {
-                <button type="button"
-                        class="rule-metadata-toggle"
-                        title="@MetadataToggleLabel"
-                        aria-label="@MetadataToggleLabel"
-                        aria-expanded="@_metadataExpanded"
-                        @onclick="ToggleMetadata">
-                    <MudIcon Icon="@(_metadataExpanded ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)" Size="Size.Small" />
-                </button>
-            }
-        </td>
-        <td class="drag">
+        <td class="drag" @onclick:stopPropagation="true">
             <button type="button"
                     class="@DragHandleClass"
                     draggable="@DragEnabled"
@@ -102,17 +92,28 @@
                 <span class="rule-comment-empty">@RulesText["None"]</span>
             }
         </td>
-        <td class="actions">
-            <RuleActionsMenu Rule="@rule"
-                             FamilyPosition="@Row.FamilyPosition"
-                             OrderingDisabled="@OrderingDisabled"
-                             InsertionDisabled="@InsertionDisabled"
-                             MutationDisabled="@MutationDisabled"
-                             CanOrder="@Row.CanOrder"
-                             CanMutate="@Row.CanMutate"
-                             MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                             InsertionRequested="@InsertionRequested"
-                             DeleteRequested="@DeleteRequested" />
+        <td class="actions" @onclick:stopPropagation="true">
+            @if (_metadataExpanded)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                               Size="Size.Small"
+                               OnClick="ToggleMetadata"
+                               aria-label="@MetadataToggleLabel"
+                               aria-expanded="true" />
+            }
+            else
+            {
+                <RuleActionsMenu Rule="@rule"
+                                 FamilyPosition="@Row.FamilyPosition"
+                                 OrderingDisabled="@OrderingDisabled"
+                                 InsertionDisabled="@InsertionDisabled"
+                                 MutationDisabled="@MutationDisabled"
+                                 CanOrder="@Row.CanOrder"
+                                 CanMutate="@Row.CanMutate"
+                                 MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                 InsertionRequested="@InsertionRequested"
+                                 DeleteRequested="@DeleteRequested" />
+            }
         </td>
     </tr>
 }
@@ -122,7 +123,6 @@ else
         @ondragenter="@DragEnterHandler"
         @ondragover:preventDefault
         @ondrop="DropAsync">
-        <td class="expand"></td>
         <td class="drag">
             <span class="rule-drag-handle rule-drag-handle-disabled" aria-hidden="true">
                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
@@ -163,18 +163,32 @@ else
 @if (MatchEvidence.Count > 0)
 {
     <tr class="rule-match-context-row">
-        <td colspan="11">
+        <td colspan="10">
             <RuleMatchContext Evidence="@MatchEvidence" />
         </td>
     </tr>
 }
-@if (_metadataExpanded && MetadataAvailable)
+@if (_metadataExpanded && DetailsAvailable)
 {
     <tr class="rule-metadata-details-row">
-        <td colspan="11">
+        <td colspan="10">
             <RuleMetadataDetails Metadata="@Row.Metadata"
+                                 CanonicalCommand="@Row.CanonicalCommand"
                                  EditDisabled="@MetadataEditDisabled"
-                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))" />
+                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))">
+                <Actions>
+                    <RuleActionsMenu Rule="@rule"
+                                     FamilyPosition="@Row.FamilyPosition"
+                                     OrderingDisabled="@OrderingDisabled"
+                                     InsertionDisabled="@InsertionDisabled"
+                                     MutationDisabled="@MutationDisabled"
+                                     CanOrder="@Row.CanOrder"
+                                     CanMutate="@Row.CanMutate"
+                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                     InsertionRequested="@InsertionRequested"
+                                     DeleteRequested="@DeleteRequested" />
+                </Actions>
+            </RuleMetadataDetails>
         </td>
     </tr>
 }

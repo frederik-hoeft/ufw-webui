@@ -3,11 +3,11 @@ using Ufw.Client.Api;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Metadata;
 using Ufw.Client.Errors;
+using Ufw.Client.KnownHosts;
 using Ufw.Client.RuleInsertion;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
-using Ufw.Client.Rules.Filtering.Tags;
 using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -35,32 +35,12 @@ public sealed partial class Rules
         MaxWidth = MaxWidth.Small,
     };
 
-    private static readonly DialogOptions s_tagManagerDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
-
-    private static readonly DialogOptions s_reconciliationDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Medium,
-    };
-
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
     private bool _deleteDialogOpen;
     private bool _deleting;
     private bool _metadataDialogOpen;
     private bool _metadataSaving;
-    private bool _tagDialogOpen;
-    private bool _reconciliationDialogOpen;
     private bool _reordering;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
@@ -68,6 +48,7 @@ public sealed partial class Rules
     private RuleListProjection _ruleListProjection = RuleListProjection.Empty;
     private RuleFamilySelectionState _familySelection = RuleFamilySelectionState.Initial;
     private RuleQuery _ruleQuery = RuleQuery.Empty;
+    private IReadOnlyList<KnownHostInventoryItem> _knownHosts = [];
     private RuleFamilyQueryResult _ipv4QueryResult = new(FirewallAddressFamily.IPv4, [], 0);
     private RuleFamilyQueryResult _ipv6QueryResult = new(FirewallAddressFamily.IPv6, [], 0);
 
@@ -100,9 +81,7 @@ public sealed partial class Rules
         || _deleteDialogOpen
         || _reordering
         || _metadataDialogOpen
-        || _metadataSaving
-        || _tagDialogOpen
-        || _reconciliationDialogOpen;
+        || _metadataSaving;
 
     private bool CanMutateFirewall => _state.IsCurrent
         && !_deleting
@@ -110,8 +89,6 @@ public sealed partial class Rules
         && !_reordering
         && !_metadataDialogOpen
         && !_metadataSaving
-        && !_tagDialogOpen
-        && !_reconciliationDialogOpen
         && !HasOrderingPreview;
 
     private bool CanEditMetadata => _state.IsCurrent
@@ -119,36 +96,12 @@ public sealed partial class Rules
         && !_deleteDialogOpen
         && !_reordering
         && !_metadataDialogOpen
-        && !_metadataSaving
-        && !_tagDialogOpen
-        && !_reconciliationDialogOpen;
-
-    private bool CanManageTags => !_state.IsLoading
-        && !_deleting
-        && !_deleteDialogOpen
-        && !_reordering
-        && !_metadataDialogOpen
-        && !_metadataSaving
-        && !_tagDialogOpen
-        && !_reconciliationDialogOpen
-        && InteractionState.CanChangeQuery;
-
-    private bool CanReconcileMetadata => !_state.IsLoading
-        && !_deleting
-        && !_deleteDialogOpen
-        && !_reordering
-        && !_metadataDialogOpen
-        && !_metadataSaving
-        && !_tagDialogOpen
-        && !_reconciliationDialogOpen
-        && !HasOrderingPreview;
+        && !_metadataSaving;
 
     private bool CanPreviewOrdering => _state.IsCurrent
         && !_deleting
         && !_deleteDialogOpen
         && !_reordering
-        && !_tagDialogOpen
-        && !_reconciliationDialogOpen
         && InteractionState.CanOrder;
 
     private string RefreshButtonLabel => _state.Status switch
@@ -209,6 +162,7 @@ public sealed partial class Rules
         {
             RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
             _state = RulesPageState.CompleteRefresh(response);
+            await RefreshKnownHostsAsync();
             RefreshRuleListProjection();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -217,6 +171,23 @@ public sealed partial class Rules
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             _state = _state.FailRefresh(ClientErrors.Describe(exception));
+        }
+    }
+
+    private async Task RefreshKnownHostsAsync()
+    {
+        try
+        {
+            KnownHostInventoryResponse response = await KnownHosts.RefreshAsync(_lifetime.Token);
+            _knownHosts = response.Hosts.Where(static host => host.IsVisible).ToArray();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _knownHosts = KnownHosts.Current?.Hosts.Where(static host => host.IsVisible).ToArray() ?? [];
         }
     }
 
@@ -231,10 +202,8 @@ public sealed partial class Rules
         _metadataDialogOpen = true;
         try
         {
-            IReadOnlyList<RuleTag> tags = await RuleTags.RefreshAsync(_lifetime.Token);
             DialogParameters<EditRuleMetadataDialog> parameters = [];
             parameters.Add(component => component.Metadata, row.Metadata);
-            parameters.Add(component => component.AvailableTags, tags);
             IDialogReference dialog = await DialogService.ShowAsync<EditRuleMetadataDialog>(RulesText["EditMetadata"], parameters, s_metadataDialogOptions);
             RuleMetadataEditorResult? result = await dialog.GetReturnValueAsync<RuleMetadataEditorResult>();
             if (result is not null)
@@ -279,54 +248,6 @@ public sealed partial class Rules
         finally
         {
             _metadataSaving = false;
-        }
-    }
-
-    private async Task ReconcileMetadataAsync()
-    {
-        if (!CanReconcileMetadata)
-        {
-            return;
-        }
-
-        _reconciliationDialogOpen = true;
-        try
-        {
-            IDialogReference dialog = await DialogService.ShowAsync<ReconcileRuleMetadataDialog>(
-                RulesText["ReconcileMetadata"],
-                s_reconciliationDialogOptions);
-            await dialog.Result;
-        }
-        finally
-        {
-            _reconciliationDialogOpen = false;
-        }
-    }
-
-    private async Task ManageTagsAsync()
-    {
-        if (!CanManageTags)
-        {
-            return;
-        }
-
-        long version = RuleTags.Version;
-        _tagDialogOpen = true;
-        try
-        {
-            IDialogReference dialog = await DialogService.ShowAsync<ManageRuleTagsDialog>(RulesText["ManageTags"], s_tagManagerDialogOptions);
-            await dialog.Result;
-        }
-        finally
-        {
-            _tagDialogOpen = false;
-        }
-
-        if (RuleTags.Version != version)
-        {
-            _state = _state.ReconcileTagCatalog(RuleTags.Current);
-            _ruleQuery = RuleTagFilters.Reconcile(_ruleQuery, RuleTags.Current);
-            RefreshRuleListProjection();
         }
     }
 
@@ -540,8 +461,8 @@ public sealed partial class Rules
 
     private void RefreshRuleQueryProjection()
     {
-        _ipv4QueryResult = RuleQueryService.Evaluate(IPv4Family, _ruleQuery);
-        _ipv6QueryResult = RuleQueryService.Evaluate(IPv6Family, _ruleQuery);
+        _ipv4QueryResult = RuleQueryService.Evaluate(IPv4Family, _ruleQuery, _knownHosts);
+        _ipv6QueryResult = RuleQueryService.Evaluate(IPv6Family, _ruleQuery, _knownHosts);
     }
 
     private Task ChangeQueryAsync(RuleQuery query)

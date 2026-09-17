@@ -110,7 +110,17 @@ The browser treats each successful response as an authoritative snapshot. UFW ke
 
 Rule metadata is edited independently from firewall mutation. The browser submits notes and selected tag UUIDs for a live semantic `RuleId`; `Ufw.Web` revalidates that the identity exists in a fresh daemon snapshot before persisting the application-owned metadata. A successful metadata response can therefore update the browser's enriched presentation snapshot in place without pretending that UFW state changed or requiring a firewall refresh.
 
-Reusable tags are managed through a separate ASP-owned catalog. Their UUIDv7 identity is stable across display-name and color changes, so the browser reconciles loaded metadata and active tag filters by UUID rather than by label text. Creating, renaming, recoloring, or deleting an unused tag does not cross the signed-intent boundary and cannot modify firewall semantics. Rule rows may expose compact tag labels and independently expandable metadata details, but those presentation controls remain separate from query-derived match evidence and from firewall mutation capability.
+Reusable tags are managed through a separate ASP-owned catalog. Their UUIDv7 identity is stable across display-name and color changes, so the browser reconciles loaded metadata and active
+tag filters by UUID rather than by label text. Creating, renaming, recoloring, or deleting an unused tag does not cross the signed-intent boundary and cannot modify firewall semantics. New
+tags may also be created lazily from the shared rule-metadata editor; the client assigns an initial high-saturation color for visual scanning, while later rename/recolor operations remain
+ordinary catalog mutations. Tag management and orphan reconciliation live on a dedicated metadata-management surface rather than adding application-state administration to the main
+firewall-rules page.
+
+The same metadata editor is used when editing an existing semantic rule and while authoring a new firewall rule. For a new rule, the firewall mutation still completes first and remains
+authoritative; after a successful add/insertion the browser attaches the prepared metadata to the returned semantic `RuleId`. Failure to attach optional presentation metadata is reported
+separately and never rewrites a successful firewall mutation as a firewall failure. Rule rows expose compact tag labels and independently expandable metadata details, but those presentation
+controls remain separate from query-derived match evidence and from firewall mutation capability. The expanded details also expose a read-only canonical UFW command computed client-side from
+the canonical rule projection with the shared rule renderer; it is searchable and copyable, but it is not persisted as ASP metadata.
 
 Out-of-band rule removal is reconciled explicitly rather than during normal reads. The metadata-reconciliation endpoint compares all stored rule metadata with a fresh daemon-authoritative snapshot and reports only records whose opaque semantic `RuleId` is unmatched. Cleanup is operator-selected: the browser submits reviewed metadata UUIDs, ASP fetches authoritative rule state again, and only selected records that remain unmatched in that cleanup snapshot are deleted. Recreated semantic rules are therefore preserved and naturally regain their retained metadata. Reconciliation never creates firewall state and does not introduce an age-based garbage-collection policy.
 
@@ -132,7 +142,14 @@ The cached inventory is an authoring aid, not firewall authority. Selecting an i
 
 `Ufw.Web` owns a separate PostgreSQL catalog of known-host aliases. Each entry has an application identity, a human-facing name and optional comment, a visibility preference, and one canonical literal IPv4/IPv6 host address or CIDR. Unlike network-interface metadata, these entries are not derived from daemon or operating-system inventory and require no daemon reconciliation.
 
-The browser uses visible aliases only as autocomplete suggestions while preserving unrestricted literal address entry. Selecting an alias immediately writes its canonical address into the source or destination field of `FirewallRuleSpecification`; the alias ID, name, comment, and visibility flag do not enter rule rendering, signed intents, REST mutation payloads, IPC, or daemon processing. Changing or deleting an alias therefore cannot change a rule that was already authored.
+The browser uses visible aliases as autocomplete suggestions while preserving unrestricted literal address entry. The same known-host-aware field is reused by source/destination network
+filters. Selecting an alias immediately writes its canonical address into `FirewallRuleSpecification` or the configured network-filter model; the alias ID, name, comment, and visibility flag
+never enter signed intents, REST firewall-mutation payloads, IPC, or daemon processing. Changing or deleting an alias therefore cannot change a rule that was already authored.
+
+Free-text rule search may project visible known-host aliases back over the already-loaded canonical rule model for discovery. For the selected address family, an alias contributes searchable
+name/address/comment text only when its literal host/network overlaps the rule's source or destination network; unrestricted `any` endpoints therefore include compatible known hosts. This
+projection is query-time presentation context only: it does not attach alias identity to the authoritative rule, does not alter semantic rule identity, and does not make known-host metadata
+part of firewall authority.
 
 An alias keeps its address family for its lifetime. Same-family address changes are allowed, but changing an existing IPv4 alias into IPv6 or vice versa is rejected so one persistent alias identity cannot silently change network-family meaning. Hiding an alias affects suggestions only and has no effect on firewall validity.
 

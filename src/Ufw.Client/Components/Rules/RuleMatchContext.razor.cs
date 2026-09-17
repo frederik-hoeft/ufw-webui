@@ -26,6 +26,12 @@ public sealed partial class RuleMatchContext
         _ => evidence.GetType().Name,
     };
 
+    private static RuleMatchTextSnippet DescribeTextMatch(TextRuleMatchEvidence evidence)
+    {
+        int contextLength = evidence.Field is TextRuleMatchEvidence.FieldKind.Comment or TextRuleMatchEvidence.FieldKind.Notes ? 20 : evidence.Value.Length;
+        return RuleMatchTextSnippet.Create(evidence.Value, evidence.Start, evidence.Length, contextLength);
+    }
+
     private string DescribeEndpoint(RuleEndpointField endpoint) => endpoint switch
     {
         RuleEndpointField.Source => RulesText["FromColumn"],
@@ -47,6 +53,9 @@ public sealed partial class RuleMatchContext
         TextRuleMatchEvidence.FieldKind.Protocol => RulesText["Protocol"],
         TextRuleMatchEvidence.FieldKind.Notes => RulesText["Notes"],
         TextRuleMatchEvidence.FieldKind.Tag => RulesText["TagFilter"],
+        TextRuleMatchEvidence.FieldKind.CanonicalCommand => RulesText["CanonicalCommand"],
+        TextRuleMatchEvidence.FieldKind.SourceKnownHost => $"{RulesText["FromColumn"]} {RulesText["KnownHost"]}",
+        TextRuleMatchEvidence.FieldKind.DestinationKnownHost => $"{RulesText["ToColumn"]} {RulesText["KnownHost"]}",
         TextRuleMatchEvidence.FieldKind.RawLine => RulesText["RawRule"],
         _ => field.ToString(),
     };

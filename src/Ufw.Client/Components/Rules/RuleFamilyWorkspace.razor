@@ -1,4 +1,4 @@
-@inject IDialogService DialogService
+﻿@inject IDialogService DialogService
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -49,7 +49,6 @@
                 <table aria-busy="@Loading">
                     <thead>
                         <tr>
-                            <th scope="col" class="expand"><span class="visually-hidden">@RulesText["RuleMetadata"]</span></th>
                             <th scope="col" class="drag"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
                             <th scope="col" class="position">@RulesText["RulePositionColumn"]</th>
                             <th scope="col" class="action">@RulesText["ActionColumn"]</th>

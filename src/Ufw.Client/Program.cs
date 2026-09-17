@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
+using Ufw.Client.Clipboard;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Filtering;
 using Ufw.Client.Components.Rules.Filtering.Actions;
@@ -26,6 +27,7 @@ using Ufw.Client.Rules.Authoring;
 using Ufw.Client.Rules.Filtering;
 using Ufw.Client.Rules.Filtering.Actions;
 using Ufw.Client.Rules.Filtering.Directions;
+using Ufw.Client.Rules.Filtering.KnownHosts;
 using Ufw.Client.Rules.Filtering.Networks;
 using Ufw.Client.Rules.Filtering.Ports;
 using Ufw.Client.Rules.Filtering.Protocols;
@@ -52,6 +54,7 @@ public static class Program
 
         builder.Services.AddMudServices();
         builder.Services.AddScoped<ILocalStorage, BrowserLocalStorage>();
+        builder.Services.AddScoped<IClipboardService, BrowserClipboardService>();
         builder.Services.AddClientLocalization(builder.Configuration);
         builder.Services.AddAuthorizationCore();
         builder.Services.AddSingleton(TimeProvider.System);
@@ -83,6 +86,7 @@ public static class Program
         builder.Services.AddSingleton<IRuleOrderingResultProjectionService, RuleOrderingResultProjectionService>();
         builder.Services.AddSingleton<IRuleListProjectionService, RuleListProjectionService>();
         builder.Services.AddScoped<IRuleTagCatalogService, RuleTagCatalogService>();
+        builder.Services.AddSingleton<IRuleTagColorGenerator, RuleTagColorGenerator>();
         builder.Services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
         builder.Services.AddSingleton<IRuleTagFilterReconciler, RuleTagFilterReconciler>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, NetworkRuleFilterDefinitionProvider>();
@@ -93,6 +97,7 @@ public static class Program
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, TagRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, TextRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterCatalog, RuleFilterCatalog>();
+        builder.Services.AddSingleton<IRuleKnownHostProjectionService, RuleKnownHostProjectionService>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, NetworkRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, PortRuleFilterEvaluator>();
         builder.Services.AddSingleton<IRuleFilterEvaluator, ProtocolRuleFilterEvaluator>();

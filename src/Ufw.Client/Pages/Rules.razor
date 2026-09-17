@@ -1,6 +1,5 @@
 ﻿@page "/rules"
 @attribute [Authorize]
-@using Ufw.Client.Rules.Filtering.Tags
 @using Ufw.Client.Rules.Metadata
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
@@ -12,8 +11,7 @@
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IRuleListProjectionService RuleListProjectionService
 @inject IRuleQueryService RuleQueryService
-@inject IRuleTagFilterReconciler RuleTagFilters
-@inject IRuleTagCatalogService RuleTags
+@inject IKnownHostInventoryService KnownHosts
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
@@ -33,20 +31,6 @@
                    OnClick="RefreshAsync"
                    Class="page-header-button">
             @RefreshButtonLabel
-        </MudButton>
-        <MudButton Variant="Variant.Outlined"
-                   StartIcon="@Icons.Material.Outlined.Label"
-                   Disabled="@(!CanManageTags)"
-                   OnClick="ManageTagsAsync"
-                   Class="page-header-button">
-            @RulesText["ManageTags"]
-        </MudButton>
-        <MudButton Variant="Variant.Outlined"
-                   StartIcon="@Icons.Material.Filled.Rule"
-                   Disabled="@(!CanReconcileMetadata)"
-                   OnClick="ReconcileMetadataAsync"
-                   Class="page-header-button">
-            @RulesText["ReconcileMetadata"]
         </MudButton>
         <MudButton Href="/rules/create"
                    Variant="Variant.Filled"

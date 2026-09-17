@@ -1,15 +1,15 @@
 ﻿using Ufw.Client.Rules.Filtering;
+using Ufw.Client.Rules.Filtering.KnownHosts;
 using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Rules.Filtering.Text;
 
-internal sealed class TextRuleFilterEvaluator : RuleFilterEvaluator<TextRuleFilter>
+internal sealed class TextRuleFilterEvaluator(IRuleKnownHostProjectionService knownHostProjection) : RuleFilterEvaluator<TextRuleFilter>
 {
     protected override RuleMatchEvaluation Evaluate(RuleRowProjection row, TextRuleFilter filter, RuleFilterContext context)
     {
-        _ = context;
-        IReadOnlyList<SearchField> fields = CreateFields(row);
+        IReadOnlyList<SearchField> fields = CreateFields(row, context);
         List<RuleMatchEvidence> evidence = [];
         foreach (string term in filter.Terms)
         {
@@ -23,7 +23,7 @@ internal sealed class TextRuleFilterEvaluator : RuleFilterEvaluator<TextRuleFilt
         return new RuleMatchEvaluation(true, evidence);
     }
 
-    private static IReadOnlyList<SearchField> CreateFields(RuleRowProjection row)
+    private IReadOnlyList<SearchField> CreateFields(RuleRowProjection row, RuleFilterContext context)
     {
         List<SearchField> fields = [];
         FirewallRuleSpecification? rule = row.Rule.Rule;
@@ -48,8 +48,24 @@ internal sealed class TextRuleFilterEvaluator : RuleFilterEvaluator<TextRuleFilt
                 Add(fields, TextRuleMatchEvidence.FieldKind.Tag, tag.Name);
             }
         }
+        Add(fields, TextRuleMatchEvidence.FieldKind.CanonicalCommand, row.CanonicalCommand);
+        foreach (RuleKnownHostProjection projection in knownHostProjection.Project(row, context))
+        {
+            TextRuleMatchEvidence.FieldKind field = projection.Endpoint == RuleEndpointField.Source
+                ? TextRuleMatchEvidence.FieldKind.SourceKnownHost
+                : TextRuleMatchEvidence.FieldKind.DestinationKnownHost;
+            Add(fields, field, FormatKnownHost(projection));
+        }
         Add(fields, TextRuleMatchEvidence.FieldKind.RawLine, row.Rule.RawLine);
         return fields;
+    }
+
+    private static string FormatKnownHost(RuleKnownHostProjection projection)
+    {
+        string value = $"{projection.Host.Name} [{projection.Host.Address}]";
+        return string.IsNullOrWhiteSpace(projection.Host.Comment)
+            ? value
+            : $"{value} {projection.Host.Comment}";
     }
 
     private static void Add(List<SearchField> fields, TextRuleMatchEvidence.FieldKind kind, string? value)

@@ -17,4 +17,5 @@
   <data name="DaemonUnknown" xml:space="preserve"><value>ufw-systemd status unknown</value></data>
   <data name="NoStatusCheck" xml:space="preserve"><value>No ufw-systemd liveness check has completed yet.</value></data>
   <data name="LastChecked" xml:space="preserve"><value>Last checked {0}.</value></data>
+  <data name="Metadata" xml:space="preserve"><value>Metadata</value></data>
 </root>

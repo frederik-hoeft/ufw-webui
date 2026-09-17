@@ -1,4 +1,6 @@
-﻿namespace Ufw.Client.Rules.Filtering;
+using Ufw.Client.Api;
+
+namespace Ufw.Client.Rules.Filtering;
 
 internal sealed class RuleQueryService : IRuleQueryService
 {
@@ -10,12 +12,15 @@ internal sealed class RuleQueryService : IRuleQueryService
         _evaluators = evaluators.ToDictionary(static evaluator => evaluator.FilterType);
     }
 
-    public RuleFamilyQueryResult Evaluate(RuleFamilyProjection family, RuleQuery query)
+    public RuleFamilyQueryResult Evaluate(
+        RuleFamilyProjection family,
+        RuleQuery query,
+        IReadOnlyList<KnownHostInventoryItem>? knownHosts = null)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentNullException.ThrowIfNull(query);
 
-        RuleFilterContext context = new(family.AddressFamily);
+        RuleFilterContext context = new(family.AddressFamily, knownHosts ?? []);
         IReadOnlyList<ConfiguredEvaluator> configuredEvaluators = ResolveEvaluators(query.Filters);
         List<RuleQueryRow> visibleRows = [];
         foreach (RuleRowProjection row in family.Rows)

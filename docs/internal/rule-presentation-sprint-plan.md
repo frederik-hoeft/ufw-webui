@@ -351,9 +351,21 @@ The metadata details section is explicit user interaction and may present richer
 
 These two regions must not share one generic `Expanded` flag or otherwise become coupled merely because both render beneath the summary.
 
-The implemented metadata-presentation slice follows that separation. Desktop rows and mobile cards show compact colored tag labels in their stable summaries and own a per-occurrence metadata-details expansion state that is independent from query evidence. `RuleMetadataDetails` remains presentational: it renders tags/notes and emits an edit request, while the rules page coordinates persistence and patches the enriched client snapshot after a successful metadata mutation without forcing a UFW refresh.
+The implemented metadata-presentation slice follows that separation. Desktop rows and mobile cards show compact colored tag labels in their stable summaries and own a per-occurrence
+metadata-details expansion state that is independent from query evidence. Clicking a parsed row/card toggles details; the collapsed summary keeps the normal action menu, while the expanded
+summary replaces it with the collapse affordance and moves the action menu into the details pane. `RuleMetadataDetails` remains presentational: it renders tags/notes plus the read-only
+canonical UFW command computed during canonical projection, exposes copy/edit actions, and emits edit requests while the rules page coordinates persistence.
 
-Reusable tags are managed through a scoped client tag-catalog service and a dedicated management dialog. Tag rename/color changes are reconciled into loaded rule metadata and configured tag filters by UUID identity, so presentation changes do not alter filter meaning. Tag creation, editing, and deletion remain ASP-owned application-state operations and never enter signed firewall intents.
+Match evidence uses the same rule-row surface rather than a second tinted panel and is presented as one compact evidence pill. Free-text comment/note evidence renders a bounded context
+window around the actual match instead of repeating potentially large metadata values. Canonical-command and known-host projections participate in that same typed text-evidence pipeline.
+
+Reusable tags are managed through a scoped client tag-catalog service and a dedicated metadata-management page. Tag rename/color changes are reconciled into loaded rule metadata and
+configured tag filters by UUID identity, so presentation changes do not alter filter meaning. The shared rule-metadata editor supports lazy tag creation and assigns generated high-saturation
+initial colors; explicit tag management can reshuffle the color before persisting. The same editor is embedded in rule creation, where prepared metadata is attached only after a successful
+firewall mutation and metadata failure is reported independently. Tag creation, editing, and deletion remain ASP-owned application-state operations and never enter signed firewall intents.
+
+Network filter editors reuse the known-host-aware authoring field. Free-text search additionally projects visible same-family known-host aliases over source/destination rule networks using
+CIDR overlap semantics. The projected alias text is searchable evidence only and never becomes part of the canonical rule or its semantic identity.
 
 ## Component boundaries
 

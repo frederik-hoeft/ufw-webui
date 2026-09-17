@@ -9,6 +9,9 @@
 @if (rule.Parsed && rule.Rule is not null)
 {
     <article class="@CardClass"
+             tabindex="@(DetailsAvailable ? "0" : null)"
+             @onclick="ToggleMetadata"
+             @onkeydown="HandleKeyDown"
              @ondragenter="@DragEnterHandler"
              @ondragover:preventDefault
              @ondrop="DropAsync">
@@ -20,6 +23,7 @@
                         disabled="@(OrderingDisabled || !Row.CanOrder)"
                         title="@DragHandleTitle"
                         aria-label="@DragHandleLabel"
+                        @onclick:stopPropagation="true"
                         @ondragstart="@BeginDragHandler"
                         @ondragend="@EndDragHandler">
                     <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
@@ -52,25 +56,28 @@
                     </span>
                 </div>
             </div>
-            <div class="trailing">
-                @if (MetadataAvailable)
+            <div class="trailing" @onclick:stopPropagation="true">
+                @if (_metadataExpanded)
                 {
-                    <MudIconButton Icon="@(_metadataExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
                                    Size="Size.Small"
                                    OnClick="ToggleMetadata"
                                    aria-label="@MetadataToggleLabel"
-                                   aria-expanded="@_metadataExpanded" />
+                                   aria-expanded="true" />
                 }
-                <RuleActionsMenu Rule="@rule"
-                                 FamilyPosition="@Row.FamilyPosition"
-                                 OrderingDisabled="@OrderingDisabled"
-                                 InsertionDisabled="@InsertionDisabled"
-                                 MutationDisabled="@MutationDisabled"
-                                 CanOrder="@Row.CanOrder"
-                                 CanMutate="@Row.CanMutate"
-                                 MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                                 InsertionRequested="@InsertionRequested"
-                                 DeleteRequested="@DeleteRequested" />
+                else
+                {
+                    <RuleActionsMenu Rule="@rule"
+                                     FamilyPosition="@Row.FamilyPosition"
+                                     OrderingDisabled="@OrderingDisabled"
+                                     InsertionDisabled="@InsertionDisabled"
+                                     MutationDisabled="@MutationDisabled"
+                                     CanOrder="@Row.CanOrder"
+                                     CanMutate="@Row.CanMutate"
+                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                     InsertionRequested="@InsertionRequested"
+                                     DeleteRequested="@DeleteRequested" />
+                }
             </div>
         </header>
 
@@ -85,16 +92,17 @@
             </div>
         </div>
 
-        <dl>
+        <div class="rule-mobile-endpoints">
             <div>
-                <dt>@RulesText["FromColumn"]</dt>
-                <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)</dd>
+                <span class="visually-hidden">@RulesText["FromColumn"]</span>
+                <span class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Source, rule.Rule.SourcePorts, rule.Rule.SourceInterface)</span>
             </div>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" aria-hidden="true" />
             <div>
-                <dt>@RulesText["ToColumn"]</dt>
-                <dd class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)</dd>
+                <span class="visually-hidden">@RulesText["ToColumn"]</span>
+                <span class="rule-endpoint">@RuleText.DescribeEndpoint(rule.Rule.Destination, rule.Rule.DestinationPorts, rule.Rule.DestinationInterface)</span>
             </div>
-        </dl>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(rule.Rule.Comment))
         {
@@ -114,11 +122,25 @@
         {
             <RuleMatchContext Evidence="@MatchEvidence" />
         }
-        @if (_metadataExpanded && MetadataAvailable)
+        @if (_metadataExpanded && DetailsAvailable)
         {
             <RuleMetadataDetails Metadata="@Row.Metadata"
+                                 CanonicalCommand="@Row.CanonicalCommand"
                                  EditDisabled="@MetadataEditDisabled"
-                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))" />
+                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))">
+                <Actions>
+                    <RuleActionsMenu Rule="@rule"
+                                     FamilyPosition="@Row.FamilyPosition"
+                                     OrderingDisabled="@OrderingDisabled"
+                                     InsertionDisabled="@InsertionDisabled"
+                                     MutationDisabled="@MutationDisabled"
+                                     CanOrder="@Row.CanOrder"
+                                     CanMutate="@Row.CanMutate"
+                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                                     InsertionRequested="@InsertionRequested"
+                                     DeleteRequested="@DeleteRequested" />
+                </Actions>
+            </RuleMetadataDetails>
         }
     </article>
 }

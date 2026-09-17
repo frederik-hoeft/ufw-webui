@@ -1,5 +1,6 @@
 @using Ufw.Client.Rules.Metadata
 @inject IRuleTagCatalogService TagCatalog
+@inject IRuleTagColorGenerator TagColors
 @inject IClientErrorMapper ClientErrors
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -40,20 +41,13 @@
                               autofocus="true"
                               Class="mt-3" />
                 <div class="rule-tag-color-editor mt-3">
-                    <label for="rule-tag-color-picker">@RulesText["TagColor"]</label>
-                    <input id="rule-tag-color-picker"
-                           type="color"
-                           value="@PickerColor"
-                           disabled="@_saving"
-                           @oninput="ColorPickerChanged" />
-                    <MudTextField T="string"
-                                  Label="@(RulesText["TagColorHex"])"
-                                  Value="@_color"
-                                  ValueChanged="ColorTextChanged"
-                                  Immediate="true"
-                                  Error="@(_colorError is not null)"
-                                  ErrorText="@_colorError"
-                                  Disabled="@_saving" />
+                    <span class="rule-metadata-field-label">@RulesText["TagColor"]</span>
+                    <span class="rule-tag-color-preview" style="background-color: @_color" aria-hidden="true"></span>
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                   Size="Size.Small"
+                                   Disabled="@_saving"
+                                   OnClick="ReshuffleColor"
+                                   aria-label="@RulesText["ReshuffleTagColor"]" />
                 </div>
                 <footer>
                     <MudButton Variant="Variant.Text" Disabled="@_saving" OnClick="CancelEdit">@CommonText["Cancel"]</MudButton>

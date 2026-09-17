@@ -1,10 +1,11 @@
 ﻿using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall.Rendering;
 
 namespace Ufw.Client.Rules;
 
-internal sealed class RuleListProjectionService : IRuleListProjectionService
+internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandRenderer) : IRuleListProjectionService
 {
     public RuleListProjection Create(
         IReadOnlyList<ListedFirewallRule> rules,
@@ -62,7 +63,8 @@ internal sealed class RuleListProjectionService : IRuleListProjectionService
                 canOrder,
                 canMutate,
                 positionChange,
-                metadata);
+                metadata,
+                CreateCanonicalCommand(rule));
 
             if (family == FirewallAddressFamily.IPv6)
             {
@@ -79,6 +81,16 @@ internal sealed class RuleListProjectionService : IRuleListProjectionService
             new RuleFamilyProjection(FirewallAddressFamily.IPv4, ipv4Rows),
             new RuleFamilyProjection(FirewallAddressFamily.IPv6, ipv6Rows),
         ]);
+    }
+
+    private string? CreateCanonicalCommand(ListedFirewallRule rule)
+    {
+        if (!rule.Parsed || rule.Rule is null || !commandRenderer.TryRender(rule.Rule, out UfwRenderedRule? rendered))
+        {
+            return null;
+        }
+
+        return rendered.DisplayText;
     }
 
     private static IReadOnlyList<int> GetProjectedOrder(int ruleCount, RuleOrderingPreview? orderingPreview)

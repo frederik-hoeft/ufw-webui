@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
@@ -88,6 +89,10 @@ public sealed partial class RuleDesktopRow
             {
                 classes.Add("has-expanded-content");
             }
+            if (DetailsAvailable)
+            {
+                classes.Add("rule-details-available");
+            }
 
             if (DropIndicatorEdge is { } edge)
             {
@@ -115,7 +120,7 @@ public sealed partial class RuleDesktopRow
         }
     }
 
-    private bool MetadataAvailable => !string.IsNullOrWhiteSpace(Row.Rule.RuleId);
+    private bool DetailsAvailable => !string.IsNullOrWhiteSpace(Row.Rule.RuleId) || !string.IsNullOrWhiteSpace(Row.CanonicalCommand);
 
     private string MetadataToggleLabel => _metadataExpanded
         ? RulesText["HideRuleMetadata", Row.FamilyPosition]
@@ -123,9 +128,17 @@ public sealed partial class RuleDesktopRow
 
     private void ToggleMetadata()
     {
-        if (MetadataAvailable)
+        if (DetailsAvailable)
         {
             _metadataExpanded = !_metadataExpanded;
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            ToggleMetadata();
         }
     }
 
