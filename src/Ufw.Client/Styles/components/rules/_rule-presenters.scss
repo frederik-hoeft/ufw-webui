@@ -280,12 +280,9 @@
         background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
     }
 
-    &:hover > tr {
+    > .rule-desktop-row:hover,
+    > .rule-desktop-row:hover ~ tr {
         background: var(--mud-palette-table-hover);
-    }
-
-    > .rule-match-context-row:not(:last-child) > td {
-        border-bottom: 0;
     }
 }
 

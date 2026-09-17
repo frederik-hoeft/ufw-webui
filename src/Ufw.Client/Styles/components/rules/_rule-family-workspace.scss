@@ -69,10 +69,10 @@
 
                 tbody tr {
                     transition: background-color 120ms ease;
+                }
 
-                    &:hover {
-                        background: var(--mud-palette-table-hover);
-                    }
+                tbody.rule-row-group > .rule-match-context-row:not(:last-child) > td {
+                    border-bottom: 0;
                 }
 
                 .expand,
