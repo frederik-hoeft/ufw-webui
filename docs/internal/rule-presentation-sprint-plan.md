@@ -74,6 +74,8 @@ The operator can then remove unmatched records deliberately. The project already
 
 No age-based retention policy or orphan timestamp is required for the initial implementation. Those can be added later if stale metadata volume becomes operationally relevant.
 
+The implemented reconciliation slice exposes a dedicated ASP-owned reconciliation resource. Discovery reads all stored rule metadata and compares it with a fresh daemon-authoritative rule snapshot without mutating either side. Cleanup accepts only the metadata UUIDs explicitly reviewed by the operator, fetches authoritative UFW state again, and removes selected records only when their semantic `RuleId` remains unmatched in that cleanup snapshot. A rule recreated between discovery and cleanup is therefore protected from the reviewed cleanup request. The browser presents the unmatched notes/tags plus an abbreviated opaque rule identity, supports explicit selection, and requires a destructive confirmation before cleanup.
+
 The initial enrichment infrastructure stores optional notes under the semantic `RuleId` and relates rule metadata many-to-many to reusable tag entities. Tags have UUIDv7 public identities, case-insensitively unique display names, and a simple `#RRGGBB` color for visual scanning. `GET /api/v1/rules` returns the daemon `RuleListResponse` as an authoritative sub-model alongside only metadata matching identities in that snapshot. Metadata mutations reference tags by UUID rather than by display name, verify that the semantic rule identity is currently live before persisting, and a successful in-band delete performs best-effort metadata cleanup after the firewall mutation is confirmed. Explicit orphan discovery/removal remains a later reconciliation slice.
 
 The persistence model follows the project-wide database conventions established with this phase: project-owned columns declare their PostgreSQL store type explicitly, ordinary entities use numeric surrogate primary keys, and any identity exposed through the client/API is a separate UUIDv7. The rule-metadata/tag connection is represented by an explicit join entity with its own numeric key plus a unique `(RuleMetadataId, TagId)` relationship constraint. A singular `Group` field is intentionally omitted; tags cover classification until a future grouping concept has concrete semantics that justify a distinct model.
@@ -414,7 +416,6 @@ The following are intentionally not fixed by this baseline and should be worked 
 - future metadata fields and any future grouping/collection semantics;
 - exact future shorthand query grammar, URL encoding, filter-editor hosting surface, filter catalogue, and highlighting/presentation polish;
 - whether ordered insertion remains available while a filter is active;
-- reconciliation endpoint/command shape and orphan-cleanup confirmation UX;
 - optional direct rule-detail navigation;
 - any future automated orphan-retention policy.
 

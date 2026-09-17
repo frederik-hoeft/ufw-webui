@@ -15,6 +15,8 @@ namespace Ufw.Client.Serialization;
 [JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
 [JsonSerializable(typeof(RuleInventoryResponse))]
 [JsonSerializable(typeof(RuleMetadataMutationResponse))]
+[JsonSerializable(typeof(RuleMetadataReconciliationResponse))]
+[JsonSerializable(typeof(CleanupRuleMetadataRequest))]
 [JsonSerializable(typeof(UpdateRuleMetadataRequest))]
 [JsonSerializable(typeof(RuleTagInventoryResponse))]
 [JsonSerializable(typeof(CreateRuleTagRequest))]

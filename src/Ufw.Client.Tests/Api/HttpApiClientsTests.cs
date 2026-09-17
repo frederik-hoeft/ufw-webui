@@ -105,6 +105,32 @@ public sealed class HttpApiClientsTests
     }
 
     [TestMethod]
+    public async Task RuleMetadataReconciliationApiClient_UsesDiscoveryAndCleanupEndpointsAsync()
+    {
+        Guid metadataId = Guid.Parse("01993b41-fdad-7000-8000-000000000002");
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, $"{{\"orphans\":[{{\"id\":\"{metadataId:D}\",\"ruleId\":\"sha256:old\",\"notes\":null,\"tags\":[]}}],\"removedCount\":0}}"),
+            2 => Json(HttpStatusCode.OK, "{\"orphans\":[],\"removedCount\":1}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleMetadataReconciliationApiClient client = new(http);
+
+        RuleMetadataReconciliationResponse discovered = await client.GetAsync();
+        RuleMetadataReconciliationResponse cleaned = await client.CleanupAsync(new CleanupRuleMetadataRequest { MetadataIds = [metadataId] });
+
+        Assert.HasCount(1, discovered.Orphans);
+        Assert.AreEqual(1, cleaned.RemovedCount);
+        CollectionAssert.AreEqual(new[] { HttpMethod.Get, HttpMethod.Post }, handler.Requests.Select(static request => request.Method).ToArray());
+        CollectionAssert.AreEqual(
+            new[] { "/api/v1/rule-metadata/reconciliation", "/api/v1/rule-metadata/reconciliation/cleanup" },
+            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        using JsonDocument body = JsonDocument.Parse(handler.Requests[1].Content!);
+        Assert.AreEqual(metadataId, body.RootElement.GetProperty("metadataIds")[0].GetGuid());
+    }
+
+    [TestMethod]
     public async Task RuleTagApiClient_UsesCatalogEndpointsAndUuidReferencesAsync()
     {
         Guid tagId = Guid.Parse("01993b41-fdad-7000-8000-000000000001");

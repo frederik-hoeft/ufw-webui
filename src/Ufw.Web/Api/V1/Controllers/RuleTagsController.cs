@@ -46,7 +46,7 @@ public sealed partial class RuleTagsController(IRuleTagService tags) : Controlle
         {
             Status = StatusCodes.Status409Conflict,
             Title = "Rule tag is still in use",
-            Detail = "Remove the tag from all rule metadata before deleting it.",
+            Detail = "Remove the tag from live rule metadata or reconcile unmatched metadata before deleting it.",
         }),
         RuleTagMutationOutcome.InvalidTag => BadRequest(new ProblemDetails
         {

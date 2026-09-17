@@ -44,6 +44,15 @@ public sealed partial class Rules
         MaxWidth = MaxWidth.Small,
     };
 
+    private static readonly DialogOptions s_reconciliationDialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        FullWidth = true,
+        MaxWidth = MaxWidth.Medium,
+    };
+
     private readonly CancellationTokenSource _lifetime = new();
     private RulesPageState _state = RulesPageState.Initial;
     private bool _deleteDialogOpen;
@@ -51,6 +60,7 @@ public sealed partial class Rules
     private bool _metadataDialogOpen;
     private bool _metadataSaving;
     private bool _tagDialogOpen;
+    private bool _reconciliationDialogOpen;
     private bool _reordering;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
@@ -85,11 +95,33 @@ public sealed partial class Rules
     private int SelectedFamilyTabIndex =>
         _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;
 
-    private bool IsBusy => _state.IsLoading || _deleting || _deleteDialogOpen || _reordering || _metadataDialogOpen || _metadataSaving || _tagDialogOpen;
+    private bool IsBusy => _state.IsLoading
+        || _deleting
+        || _deleteDialogOpen
+        || _reordering
+        || _metadataDialogOpen
+        || _metadataSaving
+        || _tagDialogOpen
+        || _reconciliationDialogOpen;
 
-    private bool CanMutateFirewall => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !_metadataDialogOpen && !_metadataSaving && !_tagDialogOpen && !HasOrderingPreview;
+    private bool CanMutateFirewall => _state.IsCurrent
+        && !_deleting
+        && !_deleteDialogOpen
+        && !_reordering
+        && !_metadataDialogOpen
+        && !_metadataSaving
+        && !_tagDialogOpen
+        && !_reconciliationDialogOpen
+        && !HasOrderingPreview;
 
-    private bool CanEditMetadata => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !_metadataDialogOpen && !_metadataSaving && !_tagDialogOpen;
+    private bool CanEditMetadata => _state.IsCurrent
+        && !_deleting
+        && !_deleteDialogOpen
+        && !_reordering
+        && !_metadataDialogOpen
+        && !_metadataSaving
+        && !_tagDialogOpen
+        && !_reconciliationDialogOpen;
 
     private bool CanManageTags => !_state.IsLoading
         && !_deleting
@@ -98,9 +130,26 @@ public sealed partial class Rules
         && !_metadataDialogOpen
         && !_metadataSaving
         && !_tagDialogOpen
+        && !_reconciliationDialogOpen
         && InteractionState.CanChangeQuery;
 
-    private bool CanPreviewOrdering => _state.IsCurrent && !_deleting && !_deleteDialogOpen && !_reordering && !_tagDialogOpen && InteractionState.CanOrder;
+    private bool CanReconcileMetadata => !_state.IsLoading
+        && !_deleting
+        && !_deleteDialogOpen
+        && !_reordering
+        && !_metadataDialogOpen
+        && !_metadataSaving
+        && !_tagDialogOpen
+        && !_reconciliationDialogOpen
+        && !HasOrderingPreview;
+
+    private bool CanPreviewOrdering => _state.IsCurrent
+        && !_deleting
+        && !_deleteDialogOpen
+        && !_reordering
+        && !_tagDialogOpen
+        && !_reconciliationDialogOpen
+        && InteractionState.CanOrder;
 
     private string RefreshButtonLabel => _state.Status switch
     {
@@ -230,6 +279,27 @@ public sealed partial class Rules
         finally
         {
             _metadataSaving = false;
+        }
+    }
+
+    private async Task ReconcileMetadataAsync()
+    {
+        if (!CanReconcileMetadata)
+        {
+            return;
+        }
+
+        _reconciliationDialogOpen = true;
+        try
+        {
+            IDialogReference dialog = await DialogService.ShowAsync<ReconcileRuleMetadataDialog>(
+                RulesText["ReconcileMetadata"],
+                s_reconciliationDialogOptions);
+            await dialog.Result;
+        }
+        finally
+        {
+            _reconciliationDialogOpen = false;
         }
     }
 

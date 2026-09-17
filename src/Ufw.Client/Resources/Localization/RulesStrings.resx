@@ -661,4 +661,23 @@
   <data name="ShowRuleMetadata" xml:space="preserve"><value>Show metadata for rule {0}</value></data>
   <data name="HideRuleMetadata" xml:space="preserve"><value>Hide metadata for rule {0}</value></data>
   <data name="TagsColumn" xml:space="preserve"><value>Tags</value></data>
+  <data name="ReconcileMetadata" xml:space="preserve"><value>Reconcile metadata</value></data>
+  <data name="ReconcileMetadataDescription" xml:space="preserve"><value>Review application metadata whose semantic rule identity is no longer present in the authoritative UFW snapshot.</value></data>
+  <data name="LoadingMetadataReconciliation" xml:space="preserve"><value>Checking authoritative rules against stored metadata…</value></data>
+  <data name="NoOrphanedMetadata" xml:space="preserve"><value>No unmatched metadata</value></data>
+  <data name="NoOrphanedMetadataDescription" xml:space="preserve"><value>Every stored metadata record currently corresponds to an authoritative firewall rule.</value></data>
+  <data name="OrphanedMetadata" xml:space="preserve"><value>Unmatched metadata</value></data>
+  <data name="OrphanedMetadataNoContext" xml:space="preserve"><value>No notes or tags are attached to this metadata record.</value></data>
+  <data name="OrphanedMetadataCountOne" xml:space="preserve"><value>1 metadata record no longer matches an active firewall rule.</value></data>
+  <data name="OrphanedMetadataCountMany" xml:space="preserve"><value>{0} metadata records no longer match active firewall rules.</value></data>
+  <data name="SelectAll" xml:space="preserve"><value>Select all</value></data>
+  <data name="ClearSelection" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="SelectedMetadataCount" xml:space="preserve"><value>{0} selected</value></data>
+  <data name="SelectOrphanedMetadata" xml:space="preserve"><value>Select unmatched metadata for rule identity {0}</value></data>
+  <data name="CleanupOrphanedMetadata" xml:space="preserve"><value>Remove unmatched metadata</value></data>
+  <data name="CleanupOrphanedMetadataConfirmation" xml:space="preserve"><value>Remove {0} selected metadata record(s)?</value></data>
+  <data name="CleanupOrphanedMetadataDescription" xml:space="preserve"><value>The server will compare the selected records with a fresh authoritative UFW snapshot and remove only records that are still unmatched.</value></data>
+  <data name="CleanupSelectedMetadata" xml:space="preserve"><value>Remove selected</value></data>
+  <data name="CleaningMetadata" xml:space="preserve"><value>Removing…</value></data>
+  <data name="MetadataCleanupCompleted" xml:space="preserve"><value>Removed {0} unmatched metadata record(s).</value></data>
 </root>

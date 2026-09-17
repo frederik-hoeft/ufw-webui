@@ -21,10 +21,7 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
 
         return Transaction.Scoped.RunReadOnlyAsync(async context =>
         {
-            RuleMetadataEntry[] metadata = await context.Set<RuleMetadataEntry>()
-                .AsNoTracking()
-                .Include(static entry => entry.Tags)
-                .ThenInclude(static relation => relation.Tag)
+            RuleMetadataEntry[] metadata = await CreateMetadataQuery(context)
                 .Where(entry => identities.Contains(entry.RuleId))
                 .OrderBy(static entry => entry.RuleId)
                 .ToArrayAsync(cancellationToken);
@@ -32,6 +29,16 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
             return result;
         });
     }
+
+    public Task<IReadOnlyList<RuleMetadataItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        Transaction.Scoped.RunReadOnlyAsync(async context =>
+        {
+            RuleMetadataEntry[] metadata = await CreateMetadataQuery(context)
+                .OrderBy(static entry => entry.RuleId)
+                .ToArrayAsync(cancellationToken);
+            IReadOnlyList<RuleMetadataItem> result = metadata.Select(ToItem).ToArray();
+            return result;
+        });
 
     public Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default)
     {
@@ -106,6 +113,44 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
             return transaction.Commit(true);
         });
     }
+
+    public Task<int> DeleteUnmatchedAsync(
+        IReadOnlyCollection<Guid> metadataIds,
+        IReadOnlyCollection<string> liveRuleIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(metadataIds);
+        ArgumentNullException.ThrowIfNull(liveRuleIds);
+        Guid[] identities = [.. metadataIds.Distinct()];
+        if (identities.Length == 0)
+        {
+            return Task.FromResult(0);
+        }
+
+        string[] liveIdentities = [.. liveRuleIds.Distinct(StringComparer.Ordinal)];
+        return Transaction.Scoped.RunAsync<int>(async (context, transaction) =>
+        {
+            IQueryable<RuleMetadataEntry> query = context.Set<RuleMetadataEntry>()
+                .Where(entry => identities.Contains(entry.PublicId));
+            if (liveIdentities.Length > 0)
+            {
+                query = query.Where(entry => !liveIdentities.Contains(entry.RuleId));
+            }
+
+            RuleMetadataEntry[] metadata = await query.ToArrayAsync(cancellationToken);
+            if (metadata.Length > 0)
+            {
+                context.RemoveRange(metadata);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            return transaction.Commit(metadata.Length);
+        });
+    }
+
+    private static IQueryable<RuleMetadataEntry> CreateMetadataQuery(ApplicationDbContext context) => context.Set<RuleMetadataEntry>()
+        .AsNoTracking()
+        .Include(static entry => entry.Tags)
+        .ThenInclude(static relation => relation.Tag);
 
     private static RuleMetadataItem ToItem(RuleMetadataEntry metadata)
     {

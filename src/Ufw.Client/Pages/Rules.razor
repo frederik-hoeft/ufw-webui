@@ -41,6 +41,13 @@
                    Class="page-header-button">
             @RulesText["ManageTags"]
         </MudButton>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Rule"
+                   Disabled="@(!CanReconcileMetadata)"
+                   OnClick="ReconcileMetadataAsync"
+                   Class="page-header-button">
+            @RulesText["ReconcileMetadata"]
+        </MudButton>
         <MudButton Href="/rules/create"
                    Variant="Variant.Filled"
                    Color="Color.Primary"

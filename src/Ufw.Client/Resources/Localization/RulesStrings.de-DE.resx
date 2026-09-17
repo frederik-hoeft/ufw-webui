@@ -661,4 +661,23 @@
   <data name="ShowRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} anzeigen</value></data>
   <data name="HideRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} ausblenden</value></data>
   <data name="TagsColumn" xml:space="preserve"><value>Tags</value></data>
+  <data name="ReconcileMetadata" xml:space="preserve"><value>Metadaten abgleichen</value></data>
+  <data name="ReconcileMetadataDescription" xml:space="preserve"><value>Anwendungsmetadaten prüfen, deren semantische Regelidentität nicht mehr im autoritativen UFW-Snapshot vorhanden ist.</value></data>
+  <data name="LoadingMetadataReconciliation" xml:space="preserve"><value>Autoritative Regeln werden mit gespeicherten Metadaten abgeglichen…</value></data>
+  <data name="NoOrphanedMetadata" xml:space="preserve"><value>Keine nicht zugeordneten Metadaten</value></data>
+  <data name="NoOrphanedMetadataDescription" xml:space="preserve"><value>Jeder gespeicherte Metadatensatz entspricht derzeit einer autoritativen Firewall-Regel.</value></data>
+  <data name="OrphanedMetadata" xml:space="preserve"><value>Nicht zugeordnete Metadaten</value></data>
+  <data name="OrphanedMetadataNoContext" xml:space="preserve"><value>Für diesen Metadatensatz sind keine Notizen oder Tags hinterlegt.</value></data>
+  <data name="OrphanedMetadataCountOne" xml:space="preserve"><value>1 Metadatensatz entspricht keiner aktiven Firewall-Regel mehr.</value></data>
+  <data name="OrphanedMetadataCountMany" xml:space="preserve"><value>{0} Metadatensätze entsprechen keinen aktiven Firewall-Regeln mehr.</value></data>
+  <data name="SelectAll" xml:space="preserve"><value>Alle auswählen</value></data>
+  <data name="ClearSelection" xml:space="preserve"><value>Auswahl aufheben</value></data>
+  <data name="SelectedMetadataCount" xml:space="preserve"><value>{0} ausgewählt</value></data>
+  <data name="SelectOrphanedMetadata" xml:space="preserve"><value>Nicht zugeordnete Metadaten für Regelidentität {0} auswählen</value></data>
+  <data name="CleanupOrphanedMetadata" xml:space="preserve"><value>Nicht zugeordnete Metadaten entfernen</value></data>
+  <data name="CleanupOrphanedMetadataConfirmation" xml:space="preserve"><value>{0} ausgewählte Metadatensätze entfernen?</value></data>
+  <data name="CleanupOrphanedMetadataDescription" xml:space="preserve"><value>Der Server gleicht die ausgewählten Datensätze mit einem neuen autoritativen UFW-Snapshot ab und entfernt nur weiterhin nicht zugeordnete Datensätze.</value></data>
+  <data name="CleanupSelectedMetadata" xml:space="preserve"><value>Ausgewählte entfernen</value></data>
+  <data name="CleaningMetadata" xml:space="preserve"><value>Wird entfernt…</value></data>
+  <data name="MetadataCleanupCompleted" xml:space="preserve"><value>{0} nicht zugeordnete Metadatensätze entfernt.</value></data>
 </root>

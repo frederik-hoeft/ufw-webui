@@ -112,6 +112,8 @@ Rule metadata is edited independently from firewall mutation. The browser submit
 
 Reusable tags are managed through a separate ASP-owned catalog. Their UUIDv7 identity is stable across display-name and color changes, so the browser reconciles loaded metadata and active tag filters by UUID rather than by label text. Creating, renaming, recoloring, or deleting an unused tag does not cross the signed-intent boundary and cannot modify firewall semantics. Rule rows may expose compact tag labels and independently expandable metadata details, but those presentation controls remain separate from query-derived match evidence and from firewall mutation capability.
 
+Out-of-band rule removal is reconciled explicitly rather than during normal reads. The metadata-reconciliation endpoint compares all stored rule metadata with a fresh daemon-authoritative snapshot and reports only records whose opaque semantic `RuleId` is unmatched. Cleanup is operator-selected: the browser submits reviewed metadata UUIDs, ASP fetches authoritative rule state again, and only selected records that remain unmatched in that cleanup snapshot are deleted. Recreated semantic rules are therefore preserved and naturally regain their retained metadata. Reconciliation never creates firewall state and does not introduce an age-based garbage-collection policy.
+
 ### Mutating firewall state
 
 A firewall mutation uses two independent authorization layers. The HTTP request requires a valid web session, and the mutation body carries a browser-created signature that the daemon verifies independently.

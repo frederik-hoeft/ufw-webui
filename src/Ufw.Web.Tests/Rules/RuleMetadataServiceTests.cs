@@ -177,6 +177,67 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
+    public async Task Reconciliation_DiscoveryIsSideEffectFreeAndReturnsOnlyUnmatchedMetadataAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live", "sha256:orphan");
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { Notes = "still attached" },
+            TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:orphan",
+            new UpdateRuleMetadataRequest { Notes = "review me" },
+            TestContext.CancellationToken);
+        host.SetRules("sha256:live");
+
+        RuleMetadataReconciliationResponse response = await host.Reconciliation.GetAsync(TestContext.CancellationToken);
+
+        Assert.AreEqual(0, response.RemovedCount);
+        Assert.HasCount(1, response.Orphans);
+        Assert.AreEqual("sha256:orphan", response.Orphans[0].RuleId);
+        Assert.AreEqual("review me", response.Orphans[0].Notes);
+        Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task Reconciliation_CleanupRemovesOnlySelectedRecordsThatAreStillUnmatchedAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:reattached", "sha256:remove", "sha256:keep");
+        RuleMetadataItem reattached = (await host.Metadata.UpdateAsync(
+            "sha256:reattached",
+            new UpdateRuleMetadataRequest { Notes = "reattached" },
+            TestContext.CancellationToken)).Response!.Metadata!;
+        RuleMetadataItem remove = (await host.Metadata.UpdateAsync(
+            "sha256:remove",
+            new UpdateRuleMetadataRequest { Notes = "remove" },
+            TestContext.CancellationToken)).Response!.Metadata!;
+        RuleMetadataItem keep = (await host.Metadata.UpdateAsync(
+            "sha256:keep",
+            new UpdateRuleMetadataRequest { Notes = "keep" },
+            TestContext.CancellationToken)).Response!.Metadata!;
+        host.SetRules();
+
+        RuleMetadataReconciliationResponse discovered = await host.Reconciliation.GetAsync(TestContext.CancellationToken);
+        Assert.HasCount(3, discovered.Orphans);
+
+        host.SetRules("sha256:reattached");
+        RuleMetadataReconciliationResponse cleaned = await host.Reconciliation.CleanupAsync(
+            new CleanupRuleMetadataRequest { MetadataIds = [reattached.Id, remove.Id] },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(1, cleaned.RemovedCount);
+        Assert.HasCount(1, cleaned.Orphans);
+        Assert.AreEqual(keep.Id, cleaned.Orphans[0].Id);
+        Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+
+        RuleInventoryResponse inventory = await host.Inventory.GetAsync(TestContext.CancellationToken);
+        Assert.HasCount(1, inventory.Metadata);
+        Assert.AreEqual(reattached.Id, inventory.Metadata[0].Id);
+    }
+
+    [TestMethod]
     public async Task RemoveForDeletedRule_RemovesMetadataForInBandDeletionAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
@@ -207,6 +268,7 @@ public sealed class RuleMetadataServiceTests
             ApplicationDbContext context,
             RuleMetadataService metadata,
             RuleInventoryService inventory,
+            RuleMetadataReconciliationService reconciliation,
             RuleTagService tags)
         {
             _connection = connection;
@@ -216,12 +278,15 @@ public sealed class RuleMetadataServiceTests
             _context = context;
             Metadata = metadata;
             Inventory = inventory;
+            Reconciliation = reconciliation;
             Tags = tags;
         }
 
         public RuleMetadataService Metadata { get; }
 
         public RuleInventoryService Inventory { get; }
+
+        public RuleMetadataReconciliationService Reconciliation { get; }
 
         public RuleTagService Tags { get; }
 
@@ -250,8 +315,9 @@ public sealed class RuleMetadataServiceTests
                 metadataRepository,
                 scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository);
+            RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
             RuleTagService tags = new(tagRepository);
-            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, tags);
+            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, tags);
         }
 
         public void SetRules(params string[] ruleIds)

@@ -83,6 +83,7 @@ public static class Program
         builder.Services.AddSingleton<IRuleOrderingResultProjectionService, RuleOrderingResultProjectionService>();
         builder.Services.AddSingleton<IRuleListProjectionService, RuleListProjectionService>();
         builder.Services.AddScoped<IRuleTagCatalogService, RuleTagCatalogService>();
+        builder.Services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
         builder.Services.AddSingleton<IRuleTagFilterReconciler, RuleTagFilterReconciler>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, NetworkRuleFilterDefinitionProvider>();
         builder.Services.AddSingleton<IRuleFilterDefinitionProvider, PortRuleFilterDefinitionProvider>();
@@ -115,6 +116,9 @@ public static class Program
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleApiClient, RuleApiClient>(client => client.BaseAddress = apiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleMetadataReconciliationApiClient, RuleMetadataReconciliationApiClient>(client => client.BaseAddress = apiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleTagApiClient, RuleTagApiClient>(client => client.BaseAddress = apiBaseAddress)

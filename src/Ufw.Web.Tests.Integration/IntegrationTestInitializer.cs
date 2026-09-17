@@ -90,9 +90,11 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IRuleTagRepository, RuleTagRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
+        services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
         services.AddScoped<IRuleTagService, RuleTagService>();
         services.AddScoped<NetworkInterfacesController>();
         services.AddScoped<RulesController>();
+        services.AddScoped<RuleMetadataController>();
         services.AddScoped<RuleTagsController>();
 
         return ValueTask.CompletedTask;
