@@ -12,9 +12,12 @@
         <div class="rule-tag-manager">
             <header>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["ManageTagsDescription"]</MudText>
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Disabled="@IsBusy" OnClick="BeginCreate">
-                    @RulesText["CreateTag"]
-                </MudButton>
+                @if (!IsCreating)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Disabled="@IsBusy" OnClick="BeginCreate">
+                        @RulesText["CreateTag"]
+                    </MudButton>
+                }
             </header>
 
             @if (_error is not null)
@@ -34,9 +37,8 @@
                                   Counter="@MAX_TAG_NAME_LENGTH"
                                   MaxLength="@MAX_TAG_NAME_LENGTH"
                                   Disabled="@_saving"
-                                  autofocus="true"
-                                  Class="mt-3" />
-                    <div class="color-editor mt-3">
+                                  autofocus="true" />
+                    <div class="color-editor">
                         <span>@RulesText["TagColor"]</span>
                         <RuleTagChip Tag="@PreviewTag" />
                         <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Disabled="@_saving" OnClick="ReshuffleColor" aria-label="@RulesText["ReshuffleTagColor"]" />
