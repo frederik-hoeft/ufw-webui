@@ -1,6 +1,18 @@
 @using Ufw.Client.Rules.Metadata
+@inject IStringLocalizer<RulesStrings> RulesText
 
 <span class="rule-tag-chip" style="--rule-tag-color: @Tag.Color">
     <span aria-hidden="true"></span>
     <span>@Tag.Name</span>
+    @if (OnRemove.HasDelegate)
+    {
+        <button type="button"
+                disabled="@Disabled"
+                title="@RulesText["RemoveTag", Tag.Name]"
+                aria-label="@RulesText["RemoveTag", Tag.Name]"
+                @onclick="OnRemove"
+                @onclick:stopPropagation="true">
+            <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+        </button>
+    }
 </span>

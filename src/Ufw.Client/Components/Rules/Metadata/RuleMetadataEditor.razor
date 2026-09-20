@@ -30,15 +30,7 @@
             <div class="selected-tags">
                 @foreach (RuleTag tag in SelectedTags)
                 {
-                    <button type="button"
-                            class="rule-tag-remove-button"
-                            disabled="@Disabled"
-                            title="@RulesText["RemoveTag", tag.Name]"
-                            aria-label="@RulesText["RemoveTag", tag.Name]"
-                            @onclick="@(() => RemoveTagAsync(tag.Id))">
-                        <RuleTagChip Tag="@tag" />
-                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
-                    </button>
+                    <RuleTagChip Tag="@tag" Disabled="@Disabled" OnRemove="@(() => RemoveTagAsync(tag.Id))" />
                 }
             </div>
         }
