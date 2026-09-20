@@ -12,8 +12,5 @@ internal interface IRuleMetadataRepository
 
     Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default);
 
-    Task<int> DeleteUnmatchedAsync(
-        IReadOnlyCollection<Guid> metadataIds,
-        IReadOnlyCollection<string> liveRuleIds,
-        CancellationToken cancellationToken = default);
+    Task<int> DeleteUnmatchedAsync(IReadOnlyCollection<Guid> metadataIds, IReadOnlyCollection<string> liveRuleIds, CancellationToken cancellationToken = default);
 }

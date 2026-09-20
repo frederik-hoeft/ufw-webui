@@ -6,9 +6,7 @@ using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RuleMetadataController(
-    IRuleMetadataReconciliationService reconciliation,
-    IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class RuleMetadataController(IRuleMetadataReconciliationService reconciliation, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
     public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> GetReconciliationAsync(CancellationToken cancellationToken)
     {
@@ -22,9 +20,7 @@ public sealed partial class RuleMetadataController(
         }
     }
 
-    public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync(
-        CleanupRuleMetadataRequest request,
-        CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.MetadataIds is null || request.MetadataIds.Count == 0 || request.MetadataIds.Any(static id => id == Guid.Empty))

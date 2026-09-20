@@ -62,10 +62,7 @@ public sealed partial class ReconcileRuleMetadataDialog
 
         DialogParameters<CleanupRuleMetadataDialog> parameters = [];
         parameters.Add(component => component.Count, _selected.Count);
-        IDialogReference dialog = await DialogService.ShowAsync<CleanupRuleMetadataDialog>(
-            RulesText["CleanupOrphanedMetadata"],
-            parameters,
-            s_cleanupDialogOptions);
+        IDialogReference dialog = await DialogService.ShowAsync<CleanupRuleMetadataDialog>(RulesText["CleanupOrphanedMetadata"], parameters, s_cleanupDialogOptions);
         if (await dialog.GetReturnValueAsync<bool?>() != true)
         {
             return;

@@ -14,10 +14,7 @@ internal sealed class FileReorderRecoveryJournal(IConfiguration configuration) :
         }
 
         await using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
-        ReorderRecoveryJournalEntry entry = await JsonSerializer.DeserializeAsync(
-            stream,
-            ReorderRecoveryJsonSerializerContext.Default.ReorderRecoveryJournalEntry,
-            cancellationToken)
+        ReorderRecoveryJournalEntry entry = await JsonSerializer.DeserializeAsync(stream, ReorderRecoveryJsonSerializerContext.Default.ReorderRecoveryJournalEntry, cancellationToken)
             ?? throw new InvalidDataException("Reorder recovery journal is empty.");
         Validate(entry);
         return entry;
@@ -30,19 +27,9 @@ internal sealed class FileReorderRecoveryJournal(IConfiguration configuration) :
         EnsureParentDirectory(path);
         string temporaryPath = path + ".tmp";
 
-        await using (FileStream stream = new(
-            temporaryPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            4096,
-            FileOptions.Asynchronous | FileOptions.WriteThrough))
+        await using (FileStream stream = new(temporaryPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous | FileOptions.WriteThrough))
         {
-            await JsonSerializer.SerializeAsync(
-                stream,
-                entry,
-                ReorderRecoveryJsonSerializerContext.Default.ReorderRecoveryJournalEntry,
-                cancellationToken);
+            await JsonSerializer.SerializeAsync(stream, entry, ReorderRecoveryJsonSerializerContext.Default.ReorderRecoveryJournalEntry, cancellationToken);
             await stream.WriteAsync("\n"u8.ToArray(), cancellationToken);
 #pragma warning disable CA1849 // Flush(bool) is intentionally synchronous to guarantee durable recovery-state persistence.
             stream.Flush(flushToDisk: true);

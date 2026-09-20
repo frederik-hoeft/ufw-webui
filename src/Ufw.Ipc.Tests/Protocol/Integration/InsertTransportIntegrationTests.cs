@@ -30,17 +30,14 @@ public sealed class InsertTransportIntegrationTests : IpcProtocolTestBase
                 }),
             actAsync: async (context, cancellationToken) =>
             {
-                RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
-                    request,
-                    cancellationToken);
+                RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
 
                 Assert.IsNotNull(received);
                 Assert.AreEqual(request.DeploymentId, received.DeploymentId);
                 Assert.AreEqual(request.Nonce, received.Nonce);
                 Assert.AreEqual(request.Operation, received.Operation);
                 Assert.AreEqual(request.Signature, received.Signature);
-                InsertRulePayload? receivedPayload = received.Payload.Deserialize(
-                    MessageJsonSerializerContext.Default.InsertRulePayload);
+                InsertRulePayload? receivedPayload = received.Payload.Deserialize(MessageJsonSerializerContext.Default.InsertRulePayload);
                 Assert.IsNotNull(receivedPayload);
                 Assert.AreEqual(CreatePayload().BaselineFingerprint, receivedPayload.BaselineFingerprint);
                 Assert.AreEqual(1, receivedPayload.AnchorOccurrenceId);
@@ -70,9 +67,7 @@ public sealed class InsertTransportIntegrationTests : IpcProtocolTestBase
                 (_, _) => ValueTask.FromResult(expected)),
             actAsync: async (context, cancellationToken) =>
             {
-                RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
-                    CreateRequest(),
-                    cancellationToken);
+                RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(CreateRequest(), cancellationToken);
 
                 Assert.AreEqual(outcome, response.Outcome);
                 Assert.IsNotNull(response.FinalSnapshot);
@@ -90,9 +85,7 @@ public sealed class InsertTransportIntegrationTests : IpcProtocolTestBase
         IssuedAtUnix = 123,
         Nonce = "nonce",
         Operation = IntentOperations.INSERT_RULE,
-        Payload = JsonSerializer.SerializeToElement(
-            CreatePayload(),
-            MessageJsonSerializerContext.Default.InsertRulePayload),
+        Payload = JsonSerializer.SerializeToElement(CreatePayload(), MessageJsonSerializerContext.Default.InsertRulePayload),
         Signature = "signature",
     };
 
@@ -108,11 +101,7 @@ public sealed class InsertTransportIntegrationTests : IpcProtocolTestBase
     {
         ListedFirewallRule baseline = Listed("sha256:baseline", 1, "80");
         ListedFirewallRule inserted = Listed("sha256:inserted", 2, "22");
-        return new RuleInsertionResponse(
-            RuleInsertionOutcome.Completed,
-            new RuleListResponse(Active: true, [baseline, inserted], TestFirewallConfiguration.Enabled),
-            inserted,
-            "completed");
+        return new RuleInsertionResponse(RuleInsertionOutcome.Completed, new RuleListResponse(Active: true, [baseline, inserted], TestFirewallConfiguration.Enabled), inserted, "completed");
     }
 
     private static ListedFirewallRule Listed(string ruleId, int displayNumber, string port) => new()

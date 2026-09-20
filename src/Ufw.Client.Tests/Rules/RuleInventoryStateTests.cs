@@ -1,4 +1,5 @@
 ﻿using Ufw.Client.Api;
+using Ufw.Client.Errors;
 using Ufw.Client.Rules;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -6,7 +7,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 namespace Ufw.Client.Tests.Rules;
 
 [TestClass]
-public sealed class RulesPageStateTests
+public sealed class RuleInventoryStateTests
 {
     [TestMethod]
     public void CompleteRefresh_LoadsMetadataBySemanticIdentity()
@@ -23,7 +24,7 @@ public sealed class RulesPageStateTests
                 Tags = [new RuleTagItem { Id = tagId, Name = "prod", Color = "#336699" }],
             }]);
 
-        RulesPageState state = RulesPageState.CompleteRefresh(response);
+        RuleInventoryState state = Loaded(response);
 
         Assert.IsNotNull(state.Snapshot);
         Assert.HasCount(1, state.Snapshot.Metadata);
@@ -44,11 +45,11 @@ public sealed class RulesPageStateTests
                 new RuleMetadataItem { Id = Guid.CreateVersion7(), RuleId = "keep", Tags = [] },
                 new RuleMetadataItem { Id = Guid.CreateVersion7(), RuleId = "remove", Tags = [] },
             ]);
-        RulesPageState state = RulesPageState.CompleteRefresh(response);
+        RuleInventoryState state = Loaded(response);
         RuleListResponse finalSnapshot = new(true, [Rule("keep"), Rule("new")], TestFirewallConfiguration.Enabled);
         RuleInsertionResponse report = new(RuleInsertionOutcome.Completed, finalSnapshot, Rule("new"), Diagnostic: null);
 
-        RulesPageState updated = state.AfterInsertion(report);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.InsertionCompleted(report));
 
         Assert.IsNotNull(updated.Snapshot);
         Assert.HasCount(1, updated.Snapshot.Metadata);
@@ -62,7 +63,7 @@ public sealed class RulesPageStateTests
     {
         Guid metadataId = Guid.CreateVersion7();
         Guid tagId = Guid.CreateVersion7();
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled)));
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled)));
         RuleMetadataMutationResponse saved = new()
         {
             Metadata = new RuleMetadataItem
@@ -74,7 +75,7 @@ public sealed class RulesPageStateTests
             },
         };
 
-        RulesPageState updated = state.AfterMetadataMutation("rule", saved);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted("rule", saved));
 
         Assert.IsTrue(updated.IsCurrent);
         Assert.AreSame(state.Snapshot!.Rules, updated.Snapshot!.Rules);
@@ -82,7 +83,7 @@ public sealed class RulesPageStateTests
         Assert.AreEqual("prod", updated.Snapshot.Metadata["rule"].Tags.Single().Name);
         Assert.AreEqual("#AABBCC", updated.Snapshot.Metadata["rule"].Tags.Single().Color);
 
-        RulesPageState cleared = updated.AfterMetadataMutation("rule", new RuleMetadataMutationResponse());
+        RuleInventoryState cleared = updated.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted("rule", new RuleMetadataMutationResponse()));
         Assert.IsEmpty(cleared.Snapshot!.Metadata);
         Assert.AreSame(updated.Snapshot.Rules, cleared.Snapshot.Rules);
     }
@@ -90,7 +91,7 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterMetadataMutation_RejectsMismatchedOrUnknownRuleIdentity()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled)));
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled)));
         RuleMetadataMutationResponse mismatched = new()
         {
             Metadata = new RuleMetadataItem
@@ -101,15 +102,15 @@ public sealed class RulesPageStateTests
             },
         };
 
-        Assert.ThrowsExactly<ApiProtocolException>(() => state.AfterMetadataMutation("rule", mismatched));
-        Assert.ThrowsExactly<InvalidOperationException>(() => state.AfterMetadataMutation("missing", new RuleMetadataMutationResponse()));
+        Assert.ThrowsExactly<ApiProtocolException>(() => state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted("rule", mismatched)));
+        Assert.ThrowsExactly<InvalidOperationException>(() => state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted("missing", new RuleMetadataMutationResponse())));
     }
 
     [TestMethod]
     public void ReconcileTagCatalog_RefreshesTagPresentationByStableIdentity()
     {
         Guid tagId = Guid.CreateVersion7();
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(
+        RuleInventoryState state = Loaded(Inventory(
             new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled),
             [new RuleMetadataItem
             {
@@ -118,7 +119,7 @@ public sealed class RulesPageStateTests
                 Tags = [new RuleTagItem { Id = tagId, Name = "old", Color = "#112233" }],
             }]));
 
-        RulesPageState updated = state.ReconcileTagCatalog([new Ufw.Client.Rules.Metadata.RuleTag(tagId, "new", "#AABBCC")]);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.TagCatalogReconciled([new Ufw.Client.Rules.Metadata.RuleTag(tagId, "new", "#AABBCC")]));
 
         Assert.AreEqual("new", updated.Snapshot!.Metadata["rule"].Tags.Single().Name);
         Assert.AreEqual("#AABBCC", updated.Snapshot.Metadata["rule"].Tags.Single().Color);
@@ -127,15 +128,11 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterInsertion_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")], TestFirewallConfiguration.Disabled);
-        RuleInsertionResponse report = new(
-            RuleInsertionOutcome.PreconditionFailed,
-            finalSnapshot,
-            InsertedRule: null,
-            Diagnostic: "rejected");
+        RuleInsertionResponse report = new(RuleInsertionOutcome.PreconditionFailed, finalSnapshot, InsertedRule: null, Diagnostic: "rejected");
 
-        RulesPageState updated = state.AfterInsertion(report);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.InsertionCompleted(report));
 
         Assert.IsTrue(updated.IsCurrent);
         Assert.IsNotNull(updated.Snapshot);
@@ -148,14 +145,14 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterInsertion_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleInsertionResponse report = new(
             RuleInsertionOutcome.StateUncertain,
             FinalSnapshot: null,
             InsertedRule: null,
             Diagnostic: "unreadable");
 
-        RulesPageState updated = state.AfterInsertion(report);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.InsertionCompleted(report));
 
         Assert.IsTrue(updated.IsStale);
         Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
@@ -165,17 +162,11 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterReorder_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
         RuleListResponse finalSnapshot = new(false, [Rule("new")], TestFirewallConfiguration.Enabled);
-        RuleReorderResponse report = new(
-            RuleReorderOutcome.PartiallyCompleted,
-            finalSnapshot,
-            [],
-            [],
-            [],
-            Diagnostic: "partial");
+        RuleReorderResponse report = new(RuleReorderOutcome.PartiallyCompleted, finalSnapshot, [], [], [], Diagnostic: "partial");
 
-        RulesPageState updated = state.AfterReorder(report);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.ReorderCompleted(report));
 
         Assert.IsTrue(updated.IsCurrent);
         Assert.IsNotNull(updated.Snapshot);
@@ -187,21 +178,44 @@ public sealed class RulesPageStateTests
     [TestMethod]
     public void AfterReorder_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
     {
-        RulesPageState state = RulesPageState.CompleteRefresh(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
-        RuleReorderResponse report = new(
-            RuleReorderOutcome.StateUncertain,
-            FinalSnapshot: null,
-            [],
-            [],
-            [],
-            Diagnostic: "unreadable");
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleReorderResponse report = new(RuleReorderOutcome.StateUncertain, FinalSnapshot: null, [], [], [], Diagnostic: "unreadable");
 
-        RulesPageState updated = state.AfterReorder(report);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.ReorderCompleted(report));
 
         Assert.IsTrue(updated.IsStale);
         Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
         Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
     }
+
+
+    [TestMethod]
+    public void MoveNext_RejectsOverlappingRefreshesAndCompletionWithoutRefresh()
+    {
+        RuleInventoryState refreshing = RuleInventoryState.Initial.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual));
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => refreshing.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual)));
+        Assert.ThrowsExactly<InvalidOperationException>(() => RuleInventoryState.Initial.MoveNext(
+            new RuleInventoryTransition.RefreshCompleted(Inventory(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled)))));
+    }
+
+    [TestMethod]
+    public void MoveNext_FailedPostMutationRefreshMarksSnapshotStaleAsCommitted()
+    {
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleInventoryState refreshing = state.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.AfterMutation));
+        ClientError error = new(ClientErrorKind.Unavailable, "unavailable", Retryable: true);
+
+        RuleInventoryState failed = refreshing.MoveNext(new RuleInventoryTransition.RefreshFailed(error));
+
+        Assert.IsTrue(failed.IsStale);
+        Assert.AreEqual(RuleSnapshotStaleReason.MutationCommitted, failed.StaleReason);
+        Assert.AreSame(state.Snapshot, failed.Snapshot);
+    }
+
+    private static RuleInventoryState Loaded(RuleInventoryResponse response) => RuleInventoryState.Initial
+        .MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual))
+        .MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
 
 
     private static RuleInventoryResponse Inventory(

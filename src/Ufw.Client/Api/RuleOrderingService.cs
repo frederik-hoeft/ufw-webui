@@ -16,12 +16,7 @@ internal sealed class RuleOrderingService(IRuleApiClient ruleApiClient, IIntentC
 
         IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
         string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
-        ReorderRulesRequest request = await intentSigningService.CreateReorderRulesRequestAsync(
-            context.DeploymentId,
-            baselineFingerprint,
-            desiredOrder,
-            privateKey,
-            cancellationToken);
+        ReorderRulesRequest request = await intentSigningService.CreateReorderRulesRequestAsync(context.DeploymentId, baselineFingerprint, desiredOrder, privateKey, cancellationToken);
         return await ruleApiClient.ReorderRulesAsync(request, cancellationToken);
     }
 

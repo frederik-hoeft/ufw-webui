@@ -56,15 +56,7 @@ internal sealed class HttpRequestReplaySnapshot
                 StringComparer.OrdinalIgnoreCase);
         }
 
-        return new HttpRequestReplaySnapshot(
-            request.Method,
-            request.RequestUri,
-            request.Version,
-            request.VersionPolicy,
-            headers,
-            options,
-            content,
-            contentHeaders);
+        return new HttpRequestReplaySnapshot(request.Method, request.RequestUri, request.Version, request.VersionPolicy, headers, options, content, contentHeaders);
     }
 
     public HttpRequestMessage CreateRequest()

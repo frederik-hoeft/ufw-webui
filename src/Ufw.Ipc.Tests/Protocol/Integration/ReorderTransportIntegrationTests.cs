@@ -30,17 +30,14 @@ public sealed class ReorderTransportIntegrationTests : IpcProtocolTestBase
                 }),
             actAsync: async (context, cancellationToken) =>
             {
-                RuleReorderResponse response = await context.Client.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
-                    request,
-                    cancellationToken);
+                RuleReorderResponse response = await context.Client.SendAsync<ReorderRulesRequest, RuleReorderResponse>(request, cancellationToken);
 
                 Assert.IsNotNull(received);
                 Assert.AreEqual(request.DeploymentId, received.DeploymentId);
                 Assert.AreEqual(request.Nonce, received.Nonce);
                 Assert.AreEqual(request.Operation, received.Operation);
                 Assert.AreEqual(request.Signature, received.Signature);
-                ReorderRulesPayload? receivedPayload = received.Payload.Deserialize(
-                    MessageJsonSerializerContext.Default.ReorderRulesPayload);
+                ReorderRulesPayload? receivedPayload = received.Payload.Deserialize(MessageJsonSerializerContext.Default.ReorderRulesPayload);
                 Assert.IsNotNull(receivedPayload);
                 Assert.AreEqual(CreatePayload().BaselineFingerprint, receivedPayload.BaselineFingerprint);
                 CollectionAssert.AreEqual(CreatePayload().DesiredOrder, receivedPayload.DesiredOrder);
@@ -65,9 +62,7 @@ public sealed class ReorderTransportIntegrationTests : IpcProtocolTestBase
         IssuedAtUnix = 123,
         Nonce = "nonce",
         Operation = IntentOperations.REORDER_RULES,
-        Payload = JsonSerializer.SerializeToElement(
-            CreatePayload(),
-            MessageJsonSerializerContext.Default.ReorderRulesPayload),
+        Payload = JsonSerializer.SerializeToElement(CreatePayload(), MessageJsonSerializerContext.Default.ReorderRulesPayload),
         Signature = "signature",
     };
 

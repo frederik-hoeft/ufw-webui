@@ -23,12 +23,7 @@ public sealed class RuleOrderingServiceTests
         context.Setup(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
         ReorderRulesRequest signed = Request();
-        signer.Setup(candidate => candidate.CreateReorderRulesRequestAsync(
-                "deployment",
-                It.IsAny<string>(),
-                It.IsAny<IReadOnlyList<int>>(),
-                "private-key",
-                It.IsAny<CancellationToken>()))
+        signer.Setup(candidate => candidate.CreateReorderRulesRequestAsync("deployment", It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), "private-key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(signed);
         api.Setup(candidate => candidate.ReorderRulesAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
         RuleOrderingService service = new(api.Object, context.Object, signer.Object);
@@ -101,11 +96,5 @@ public sealed class RuleOrderingServiceTests
         Signature = "signature",
     };
 
-    private static RuleReorderResponse Response(RuleReorderOutcome outcome, RuleListResponse snapshot) => new(
-        outcome,
-        snapshot,
-        [],
-        [],
-        [],
-        Diagnostic: null);
+    private static RuleReorderResponse Response(RuleReorderOutcome outcome, RuleListResponse snapshot) => new(outcome, snapshot, [], [], [], Diagnostic: null);
 }

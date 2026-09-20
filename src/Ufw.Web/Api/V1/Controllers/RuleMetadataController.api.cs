@@ -29,7 +29,5 @@ public sealed partial class RuleMetadataController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
-    public partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync(
-        [FromBody] CleanupRuleMetadataRequest request,
-        CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync([FromBody] CleanupRuleMetadataRequest request, CancellationToken cancellationToken);
 }

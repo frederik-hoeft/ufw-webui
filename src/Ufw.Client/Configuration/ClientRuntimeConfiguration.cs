@@ -1,16 +1,22 @@
-﻿using Ufw.Shared.Web;
+using Ufw.Shared.Web;
 
 namespace Ufw.Client.Configuration;
 
-internal static class ClientRuntimeConfiguration
+internal sealed class ClientRuntimeConfiguration
 {
     private const string API_BASE_URL_KEY = "ApiBaseUrl";
 
-    public static Uri GetApiBaseAddress(IConfiguration configuration, Uri applicationBaseAddress)
+    public ClientRuntimeConfiguration(IConfiguration configuration, Uri applicationBaseAddress)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(applicationBaseAddress);
+        ApiBaseAddress = ResolveApiBaseAddress(configuration, applicationBaseAddress);
+    }
 
+    public Uri ApiBaseAddress { get; }
+
+    private static Uri ResolveApiBaseAddress(IConfiguration configuration, Uri applicationBaseAddress)
+    {
         string? configuredValue = configuration[API_BASE_URL_KEY];
         if (string.IsNullOrWhiteSpace(configuredValue))
         {
@@ -18,8 +24,7 @@ internal static class ClientRuntimeConfiguration
         }
 
         Uri? address;
-        if (Uri.IsWellFormedUriString(configuredValue, UriKind.Absolute)
-            && Uri.TryCreate(configuredValue, UriKind.Absolute, out Uri? absoluteAddress))
+        if (Uri.IsWellFormedUriString(configuredValue, UriKind.Absolute) && Uri.TryCreate(configuredValue, UriKind.Absolute, out Uri? absoluteAddress))
         {
             address = absoluteAddress;
         }
@@ -39,16 +44,12 @@ internal static class ClientRuntimeConfiguration
             throw new InvalidOperationException("API base URL must use HTTPS because refresh-token cookies are Secure.");
         }
 
-        if (!string.IsNullOrEmpty(address.UserInfo)
-            || !string.IsNullOrEmpty(address.Query)
-            || !string.IsNullOrEmpty(address.Fragment))
+        if (!string.IsNullOrEmpty(address.UserInfo) || !string.IsNullOrEmpty(address.Query) || !string.IsNullOrEmpty(address.Fragment))
         {
             throw new InvalidOperationException("API base URL cannot contain user information, a query string, or a fragment.");
         }
 
         string absoluteUri = address.AbsoluteUri;
-        return absoluteUri.EndsWith('/')
-            ? address
-            : SimpleUriBuilder.Create(absoluteUri).AppendPath("/").BuildUri(UriKind.Absolute);
+        return absoluteUri.EndsWith('/') ? address : SimpleUriBuilder.Create(absoluteUri).AppendPath("/").BuildUri(UriKind.Absolute);
     }
 }

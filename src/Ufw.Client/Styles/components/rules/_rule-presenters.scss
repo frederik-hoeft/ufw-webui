@@ -318,13 +318,13 @@
         flex: 0 0 auto;
     }
 
-    > .rule-match-context-label {
+    > span:first-of-type {
         flex: 0 0 auto;
         color: var(--mud-palette-text-primary);
         font-weight: 500;
     }
 
-    .rule-match-evidence-separator {
+    > span:nth-of-type(2) {
         color: var(--mud-palette-text-disabled);
     }
 

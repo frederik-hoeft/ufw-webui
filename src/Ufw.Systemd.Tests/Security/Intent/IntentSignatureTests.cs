@@ -228,9 +228,7 @@ public sealed class IntentSignatureTests
         {
             InsertRuleRequest request = signed with
             {
-                Payload = System.Text.Json.JsonSerializer.SerializeToElement(
-                    payload,
-                    MessageJsonSerializerContext.Default.InsertRulePayload),
+                Payload = System.Text.Json.JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.InsertRulePayload),
             };
             AssertRejected<ForbiddenResponse>(verifier.VerifyInsert(request));
         }
@@ -261,18 +259,14 @@ public sealed class IntentSignatureTests
         InsertRulePayload malformedFingerprint = CreateInsertPayload(baselineFingerprint: "sha256:not-a-digest");
         request = request with
         {
-            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
-                malformedFingerprint,
-                MessageJsonSerializerContext.Default.InsertRulePayload),
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(malformedFingerprint, MessageJsonSerializerContext.Default.InsertRulePayload),
         };
         AssertRejected<BadRequestResponse>(verifier.VerifyInsert(request));
 
         InsertRulePayload familyNeutral = CreateInsertPayload(rule: CreateRule(FirewallAddressFamily.Any, "22"));
         request = request with
         {
-            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
-                familyNeutral,
-                MessageJsonSerializerContext.Default.InsertRulePayload),
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(familyNeutral, MessageJsonSerializerContext.Default.InsertRulePayload),
         };
         AssertRejected<BadRequestResponse>(verifier.VerifyInsert(request));
     }
@@ -296,13 +290,10 @@ public sealed class IntentSignatureTests
         using ECDsa key = IntentSigner.CreateP256();
         TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
         ReorderRulesRequest request = SignReorder(key, clock);
-        ReorderRulesPayload tamperedPayload = CreateReorderPayload(
-            baselineFingerprint: FirewallRuleSnapshotFingerprint.Compute(active: false, []));
+        ReorderRulesPayload tamperedPayload = CreateReorderPayload(baselineFingerprint: FirewallRuleSnapshotFingerprint.Compute(active: false, []));
         request = request with
         {
-            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
-                tamperedPayload,
-                MessageJsonSerializerContext.Default.ReorderRulesPayload),
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(tamperedPayload, MessageJsonSerializerContext.Default.ReorderRulesPayload),
         };
         IntentVerifier verifier = CreateVerifier(key, clock);
 
@@ -318,9 +309,7 @@ public sealed class IntentSignatureTests
         ReorderRulesPayload tamperedPayload = CreateReorderPayload(desiredOrder: [0, 2, 1]);
         request = request with
         {
-            Payload = System.Text.Json.JsonSerializer.SerializeToElement(
-                tamperedPayload,
-                MessageJsonSerializerContext.Default.ReorderRulesPayload),
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(tamperedPayload, MessageJsonSerializerContext.Default.ReorderRulesPayload),
         };
         IntentVerifier verifier = CreateVerifier(key, clock);
 
@@ -366,12 +355,7 @@ public sealed class IntentSignatureTests
         using ECDsa key = IntentSigner.CreateP256();
         TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
         ReorderRulesPayload payload = CreateReorderPayload(baselineFingerprint: "sha256:not-a-digest");
-        ReorderRulesRequest request = IntentRequestFactory.CreateReorderRequest(
-            key,
-            DEPLOYMENT_ID,
-            payload,
-            MessageJsonSerializerContext.Default.ReorderRulesPayload,
-            clock);
+        ReorderRulesRequest request = IntentRequestFactory.CreateReorderRequest(key, DEPLOYMENT_ID, payload, MessageJsonSerializerContext.Default.ReorderRulesPayload, clock);
         IntentVerifier verifier = CreateVerifier(key, clock);
 
         AssertRejected<BadRequestResponse>(verifier.VerifyReorder(request));
@@ -453,12 +437,7 @@ public sealed class IntentSignatureTests
         };
 
     private static InsertRuleRequest SignInsert(ECDsa key, TimeProvider clock) =>
-        IntentRequestFactory.CreateInsertRequest(
-            key,
-            DEPLOYMENT_ID,
-            CreateInsertPayload(),
-            MessageJsonSerializerContext.Default.InsertRulePayload,
-            clock);
+        IntentRequestFactory.CreateInsertRequest(key, DEPLOYMENT_ID, CreateInsertPayload(), MessageJsonSerializerContext.Default.InsertRulePayload, clock);
 
     private static FirewallRuleSpecification CreateRule(FirewallAddressFamily family, string port) => new()
     {
@@ -476,12 +455,7 @@ public sealed class IntentSignatureTests
     };
 
     private static ReorderRulesRequest SignReorder(ECDsa key, TimeProvider clock) =>
-        IntentRequestFactory.CreateReorderRequest(
-            key,
-            DEPLOYMENT_ID,
-            CreateReorderPayload(),
-            MessageJsonSerializerContext.Default.ReorderRulesPayload,
-            clock);
+        IntentRequestFactory.CreateReorderRequest(key, DEPLOYMENT_ID, CreateReorderPayload(), MessageJsonSerializerContext.Default.ReorderRulesPayload, clock);
 
     private static FirewallRuleSpecification CreateSshRule(FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()
     {

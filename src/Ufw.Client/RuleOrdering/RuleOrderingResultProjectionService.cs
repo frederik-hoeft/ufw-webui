@@ -66,10 +66,7 @@ internal sealed class RuleOrderingResultProjectionService : IRuleOrderingResultP
             throw new InvalidOperationException("The reorder result target does not match the reviewed desired order.");
         }
 
-        return new RuleOrderingMoveProjection(
-            move,
-            baselineFamilyPositions[move.OccurrenceId],
-            targetFamilyPositions[move.OccurrenceId]);
+        return new RuleOrderingMoveProjection(move, baselineFamilyPositions[move.OccurrenceId], targetFamilyPositions[move.OccurrenceId]);
     }
 
     private static void ValidateDesiredOrder(IReadOnlyList<int> desiredOrder, int occurrenceCount)

@@ -114,10 +114,7 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
         });
     }
 
-    public Task<int> DeleteUnmatchedAsync(
-        IReadOnlyCollection<Guid> metadataIds,
-        IReadOnlyCollection<string> liveRuleIds,
-        CancellationToken cancellationToken = default)
+    public Task<int> DeleteUnmatchedAsync(IReadOnlyCollection<Guid> metadataIds, IReadOnlyCollection<string> liveRuleIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(metadataIds);
         ArgumentNullException.ThrowIfNull(liveRuleIds);

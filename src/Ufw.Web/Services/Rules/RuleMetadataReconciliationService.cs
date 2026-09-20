@@ -3,9 +3,7 @@ using Ufw.Web.Api.V1.Models.Rules;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleMetadataReconciliationService(
-    IDaemonRuleSource daemonRules,
-    IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
+internal sealed class RuleMetadataReconciliationService(IDaemonRuleSource daemonRules, IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
 {
     public async Task<RuleMetadataReconciliationResponse> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -14,9 +12,7 @@ internal sealed class RuleMetadataReconciliationService(
         return BuildResponse(snapshot, metadata, removedCount: 0);
     }
 
-    public async Task<RuleMetadataReconciliationResponse> CleanupAsync(
-        CleanupRuleMetadataRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMetadataReconciliationResponse> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.MetadataIds is null || request.MetadataIds.Count == 0 || request.MetadataIds.Any(static id => id == Guid.Empty))
@@ -32,10 +28,7 @@ internal sealed class RuleMetadataReconciliationService(
         return BuildResponse(snapshot, metadata, removedCount);
     }
 
-    private static RuleMetadataReconciliationResponse BuildResponse(
-        RuleListResponse snapshot,
-        IReadOnlyList<RuleMetadataItem> metadata,
-        int removedCount)
+    private static RuleMetadataReconciliationResponse BuildResponse(RuleListResponse snapshot, IReadOnlyList<RuleMetadataItem> metadata, int removedCount)
     {
         HashSet<string> liveRuleIds = GetLiveRuleIds(snapshot).ToHashSet(StringComparer.Ordinal);
         RuleMetadataItem[] orphans = [.. metadata

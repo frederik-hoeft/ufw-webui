@@ -12,11 +12,7 @@ internal sealed record JsonGeneratorContracts(
 {
     public static bool TryResolve(Compilation compilation, SourceProductionContext context, out JsonGeneratorContracts? contracts)
     {
-        if (!GeneratorContractResolver.TryResolve(
-            compilation,
-            context,
-            out ImmutableDictionary<JsonGeneratorContract, INamedTypeSymbol>? registrations) ||
-            registrations is null)
+        if (!GeneratorContractResolver.TryResolve(compilation, context, out ImmutableDictionary<JsonGeneratorContract, INamedTypeSymbol>? registrations) || registrations is null)
         {
             contracts = null;
             return false;

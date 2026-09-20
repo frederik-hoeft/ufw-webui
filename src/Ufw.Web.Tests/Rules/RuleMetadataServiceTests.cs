@@ -165,10 +165,7 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual(RuleTagMutationOutcome.InUse, inUse.Outcome);
         Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
 
-        _ = await host.Metadata.UpdateAsync(
-            "sha256:live",
-            new UpdateRuleMetadataRequest(),
-            TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync("sha256:live", new UpdateRuleMetadataRequest(), TestContext.CancellationToken);
         RuleTagMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleTagMutationOutcome.Success, deleted.Outcome);
@@ -310,10 +307,7 @@ public sealed class RuleMetadataServiceTests
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             RuleMetadataRepository metadataRepository = new(transactionHandle);
             RuleTagRepository tagRepository = new(transactionHandle);
-            RuleMetadataService metadata = new(
-                daemon,
-                metadataRepository,
-                scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
+            RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
             RuleTagService tags = new(tagRepository);

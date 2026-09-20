@@ -78,13 +78,7 @@ public sealed class RuleListProjectionServiceTests
     {
         ListedFirewallRule first = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 1);
         ListedFirewallRule second = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 2);
-        RuleMetadata metadata = new(
-            Guid.CreateVersion7(),
-            "managed rule",
-            [
-                new RuleTag(Guid.CreateVersion7(), "prod", "#336699"),
-                new RuleTag(Guid.CreateVersion7(), "ssh", "#663399"),
-            ]);
+        RuleMetadata metadata = new(Guid.CreateVersion7(), "managed rule", [new RuleTag(Guid.CreateVersion7(), "prod", "#336699"), new RuleTag(Guid.CreateVersion7(), "ssh", "#663399"),]);
         Dictionary<string, RuleMetadata> metadataByRuleId = new(StringComparer.Ordinal)
         {
             ["shared"] = metadata,

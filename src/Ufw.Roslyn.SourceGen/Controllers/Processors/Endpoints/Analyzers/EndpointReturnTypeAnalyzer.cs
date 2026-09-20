@@ -31,9 +31,7 @@ internal sealed class EndpointReturnTypeAnalyzer(SourceProductionContext context
         analyzerContext.ResponseType = responseType;
         while (responseType is INamedTypeSymbol namedType)
         {
-            if (namedType.AllInterfaces.Any(interfaceType => SymbolEqualityComparer.Default.Equals(
-                interfaceType.OriginalDefinition,
-                contracts.IdentifiableResponse.OriginalDefinition)))
+            if (namedType.AllInterfaces.Any(interfaceType => SymbolEqualityComparer.Default.Equals(interfaceType.OriginalDefinition, contracts.IdentifiableResponse.OriginalDefinition)))
             {
                 return true;
             }

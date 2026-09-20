@@ -11,10 +11,7 @@ public sealed class RuleMetadataEditorResultTests
     {
         Guid firstTagId = Guid.CreateVersion7();
         Guid secondTagId = Guid.CreateVersion7();
-        RuleMetadata metadata = new(
-            Guid.CreateVersion7(),
-            "  operator note  ",
-            [new RuleTag(secondTagId, "two", "#112233"), new RuleTag(firstTagId, "one", "#445566")]);
+        RuleMetadata metadata = new(Guid.CreateVersion7(), "  operator note  ", [new RuleTag(secondTagId, "two", "#112233"), new RuleTag(firstTagId, "one", "#445566")]);
 
         RuleMetadataEditorResult result = RuleMetadataEditorResult.FromMetadata(metadata).Normalize();
 

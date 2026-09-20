@@ -113,12 +113,7 @@ public sealed class RuleMutationServiceTests
             .ReturnsAsync(signed);
         host.Rules.Setup(client => client.InsertRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RuleInsertionResponse actual = await host.Service.InsertRuleAsync(
-            baseline,
-            anchorOccurrenceId: 0,
-            RuleInsertionPlacement.After,
-            rule,
-            "key");
+        RuleInsertionResponse actual = await host.Service.InsertRuleAsync(baseline, anchorOccurrenceId: 0, RuleInsertionPlacement.After, rule, "key");
 
         Assert.AreSame(expected, actual);
     }

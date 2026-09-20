@@ -14,7 +14,7 @@ namespace Ufw.Client.Pages;
 public sealed partial class CreateRule
 {
     private readonly CancellationTokenSource _lifetime = new();
-    private RulesPageState _state = RulesPageState.Initial;
+    private RuleInventoryState _state = RuleInventoryState.Initial;
     private FirewallRuleSpecification _draft = null!;
     private OrderedRuleInsertionNavigationContext? _orderedInsertionContext;
     private OrderedRuleInsertionContextError _orderedInsertionContextError;
@@ -34,12 +34,7 @@ public sealed partial class CreateRule
         new BreadcrumbItem(RulesText["AddRuleBreadcrumb"], null, disabled: true),
     ];
 
-    private RuleInsertionNavigationQuery InsertionQuery => new(
-        InsertionBaselineFingerprint,
-        InsertionAnchorValue,
-        InsertionPlacementValue,
-        LegacyBeforeRuleId,
-        LegacyAfterRuleId);
+    private RuleInsertionNavigationQuery InsertionQuery => new(InsertionBaselineFingerprint, InsertionAnchorValue, InsertionPlacementValue, LegacyBeforeRuleId, LegacyAfterRuleId);
 
     private bool HasLegacyInsertionTarget => InsertionQuery.HasLegacyTarget;
 
@@ -78,7 +73,7 @@ public sealed partial class CreateRule
     protected async override Task OnInitializedAsync()
     {
         _draft = RuleDraftFactory.Create();
-        await LoadRulesAsync(RuleRefreshReason.Manual);
+        await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
     }
 
     public void Dispose()
@@ -99,7 +94,7 @@ public sealed partial class CreateRule
             return RulesText["AuthoritativeSnapshotStale"];
         }
 
-        return _state.Status == RulesPageStatus.Refreshing
+        return _state.Status == RuleInventoryStatus.Refreshing
             ? RulesText["AuthoritativeSnapshotRefreshing"]
             : RulesText["AuthoritativeSnapshotCurrent"];
     }
@@ -111,21 +106,21 @@ public sealed partial class CreateRule
             return Task.CompletedTask;
         }
 
-        return LoadRulesAsync(RuleRefreshReason.Manual);
+        return LoadRulesAsync(RuleInventoryRefreshReason.Manual);
     }
 
-    private async Task LoadRulesAsync(RuleRefreshReason reason)
+    private async Task LoadRulesAsync(RuleInventoryRefreshReason reason)
     {
         if (_state.IsLoading)
         {
             return;
         }
 
-        _state = _state.BeginRefresh(reason);
+        _state = _state.MoveNext(new RuleInventoryTransition.RefreshStarted(reason));
         try
         {
             RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
-            _state = RulesPageState.CompleteRefresh(response);
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
             ResolveOrderedInsertionContext(response.Firewall);
 
             if (_mutationMayHaveCompleted)
@@ -146,7 +141,7 @@ public sealed partial class CreateRule
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            _state = _state.FailRefresh(ClientErrors.Describe(exception));
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
         }
     }
 
@@ -209,7 +204,7 @@ public sealed partial class CreateRule
             await SaveCreatedRuleMetadataAsync(mutation.Rule.RuleId);
             _mutationMayHaveCompleted = true;
             _submitting = false;
-            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+            await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -217,7 +212,7 @@ public sealed partial class CreateRule
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             ClientError error = ClientErrors.Describe(exception);
-            _state = _state.AfterMutationFailure(error);
+            _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
             _mutationMayHaveCompleted = _state.StaleReason == RuleSnapshotStaleReason.MutationOutcomeUnknown;
             if (!_mutationMayHaveCompleted)
             {
@@ -248,15 +243,9 @@ public sealed partial class CreateRule
         _submitting = true;
         try
         {
-            RuleInsertionResponse response = await RuleMutations.InsertRuleAsync(
-                baseline,
-                context.AnchorOccurrenceId,
-                context.Placement,
-                normalized,
-                _privateKey,
-                _lifetime.Token);
+            RuleInsertionResponse response = await RuleMutations.InsertRuleAsync(baseline, context.AnchorOccurrenceId, context.Placement, normalized, _privateKey, _lifetime.Token);
             _insertionResult = response;
-            _state = _state.AfterInsertion(response);
+            _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response));
 
             if (response.Outcome == RuleInsertionOutcome.Completed)
             {
@@ -282,7 +271,7 @@ public sealed partial class CreateRule
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             ClientError error = ClientErrors.Describe(exception);
-            _state = _state.AfterMutationFailure(error);
+            _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
             if (_state.IsStale)
             {
                 InvalidateOrderedInsertionContext();

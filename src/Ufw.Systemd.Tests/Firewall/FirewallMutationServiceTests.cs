@@ -52,8 +52,7 @@ public sealed class FirewallMutationServiceTests
     public async Task TestAddAsync_ExecutesValidatedArgumentsAndRejectsDuplicatesAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
-        harness.SetStatusAfterNextMutation(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
         AddRuleRequest request = harness.SignAdd(CreateSshRule());
 
         RuleMutationResponse added = (RuleMutationResponse)await harness.Service.AddAsync(request, TestContext.CancellationToken);
@@ -90,8 +89,7 @@ public sealed class FirewallMutationServiceTests
         harness.MutationSafetyGuard
             .Setup(static guard => guard.EnsureSafeAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        harness.SetStatusAfterNextMutation(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
 
         RuleMutationResponse response = (RuleMutationResponse)await harness.Service.AddAsync(request, TestContext.CancellationToken);
 
@@ -170,8 +168,7 @@ public sealed class FirewallMutationServiceTests
         harness.UfwDefaultsReader
             .Setup(static reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestFirewallConfiguration.Disabled);
-        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules(
-            "[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
 
         IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(CreateSshRule()), TestContext.CancellationToken);
 
@@ -284,14 +281,12 @@ public sealed class FirewallMutationServiceTests
     [TestMethod]
     public async Task TestDeleteAsync_UsesFreshNumberFromCurrentListAsync()
     {
-        await using FirewallHarness harness = CreateHarness(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
         RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
         FirewallRuleSpecification rule = listed.Rules[0].Rule!;
         DeleteRuleRequest request = harness.SignDelete(rule);
 
-        harness.SetStatus(
-            UfwStatusFixtures.WithRules("[ 7] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatus(UfwStatusFixtures.WithRules("[7] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
         harness.SetStatusAfterNextMutation(UfwStatusFixtures.EMPTY_ACTIVE);
 
         RuleMutationResponse deleted = (RuleMutationResponse)await harness.Service.DeleteAsync(request, TestContext.CancellationToken);
@@ -307,8 +302,7 @@ public sealed class FirewallMutationServiceTests
     [TestMethod]
     public async Task TestDeleteAsync_RejectsMissingAndAmbiguousMatchesAsync()
     {
-        await using FirewallHarness harness = CreateHarness(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere"));
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere"));
         RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
         FirewallRuleSpecification rule = listed.Rules[0].Rule!;
 
@@ -364,8 +358,7 @@ public sealed class FirewallMutationServiceTests
     public async Task TestAddAsync_ConcurrentReplayCrossesMutationBoundaryAtMostOnceAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
-        harness.SetStatusAfterNextMutation(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
         AddRuleRequest request = harness.SignAdd(CreateSshRule());
 
         IResponsePayload[] results = await Task.WhenAll(
@@ -385,8 +378,7 @@ public sealed class FirewallMutationServiceTests
     public async Task TestAddAsync_ReplayIsRejectedAfterNonceStoreRestartAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
-        harness.SetStatusAfterNextMutation(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatusAfterNextMutation(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
         AddRuleRequest request = harness.SignAdd(CreateSshRule());
         IResponsePayload first = await harness.Service.AddAsync(request, TestContext.CancellationToken);
         Assert.IsInstanceOfType<RuleMutationResponse>(first);
@@ -410,8 +402,7 @@ public sealed class FirewallMutationServiceTests
     [TestMethod]
     public async Task TestDeleteAsync_SuccessfulExitWhileRuleRemainsFailsReconciliationAsync()
     {
-        await using FirewallHarness harness = CreateHarness(
-            UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere"));
+        await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere"));
         RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
 
         IResponsePayload response = await harness.Service.DeleteAsync(harness.SignDelete(listed.Rules[0].Rule!), TestContext.CancellationToken);

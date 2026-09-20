@@ -28,7 +28,7 @@
     }
 }
 
-.operational-status-details {
+.operational-status-card > dl {
     display: grid;
     gap: 0.75rem;
     margin: 0;
@@ -76,7 +76,7 @@
         grid-template-columns: 1fr;
     }
 
-    .operational-status-details > div {
+    .operational-status-card > dl > div {
         grid-template-columns: 1fr;
         gap: 0.25rem;
     }

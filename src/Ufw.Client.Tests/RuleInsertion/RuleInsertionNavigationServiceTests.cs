@@ -72,9 +72,7 @@ public sealed class RuleInsertionNavigationServiceTests
     {
         RuleListResponse baseline = new(Active: true, [Rule("v6", FirewallAddressFamily.IPv6, 1)], TestFirewallConfiguration.Disabled);
 
-        RuleInsertionNavigationResolution resolution = _service.Resolve(
-            baseline,
-            Query(FirewallRuleSnapshotFingerprint.Compute(baseline), "0", "before"));
+        RuleInsertionNavigationResolution resolution = _service.Resolve(baseline, Query(FirewallRuleSnapshotFingerprint.Compute(baseline), "0", "before"));
 
         Assert.IsFalse(resolution.Succeeded);
         Assert.AreEqual(OrderedRuleInsertionContextError.CapabilityUnavailable, resolution.Error);
@@ -84,14 +82,9 @@ public sealed class RuleInsertionNavigationServiceTests
     public void Resolve_RejectsStaleSnapshotBeforeResolvingOccurrence()
     {
         RuleListResponse baseline = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1)], TestFirewallConfiguration.Enabled);
-        RuleListResponse changed = new(
-            Active: true,
-            [Rule("one", FirewallAddressFamily.IPv4, 1), Rule("two", FirewallAddressFamily.IPv4, 2)],
-            TestFirewallConfiguration.Enabled);
+        RuleListResponse changed = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1), Rule("two", FirewallAddressFamily.IPv4, 2)], TestFirewallConfiguration.Enabled);
 
-        RuleInsertionNavigationResolution resolution = _service.Resolve(
-            changed,
-            Query(FirewallRuleSnapshotFingerprint.Compute(baseline), "0", "before"));
+        RuleInsertionNavigationResolution resolution = _service.Resolve(changed, Query(FirewallRuleSnapshotFingerprint.Compute(baseline), "0", "before"));
 
         Assert.IsFalse(resolution.Succeeded);
         Assert.AreEqual(OrderedRuleInsertionContextError.StaleBaseline, resolution.Error);
@@ -104,15 +97,11 @@ public sealed class RuleInsertionNavigationServiceTests
             Active: true,
             [new ListedFirewallRule { DisplayNumber = 1, Parsed = false, RawLine = "opaque" }],
             TestFirewallConfiguration.Enabled);
-        RuleInsertionNavigationResolution opaqueResolution = _service.Resolve(
-            opaque,
-            Query(FirewallRuleSnapshotFingerprint.Compute(opaque), "0", "after"));
+        RuleInsertionNavigationResolution opaqueResolution = _service.Resolve(opaque, Query(FirewallRuleSnapshotFingerprint.Compute(opaque), "0", "after"));
         Assert.AreEqual(OrderedRuleInsertionContextError.AnchorUnavailable, opaqueResolution.Error);
 
         RuleListResponse familyNeutral = new(Active: true, [Rule("any", FirewallAddressFamily.Any, 1)], TestFirewallConfiguration.Enabled);
-        RuleInsertionNavigationResolution familyResolution = _service.Resolve(
-            familyNeutral,
-            Query(FirewallRuleSnapshotFingerprint.Compute(familyNeutral), "0", "after"));
+        RuleInsertionNavigationResolution familyResolution = _service.Resolve(familyNeutral, Query(FirewallRuleSnapshotFingerprint.Compute(familyNeutral), "0", "after"));
         Assert.AreEqual(OrderedRuleInsertionContextError.AnchorUnavailable, familyResolution.Error);
     }
 
@@ -125,9 +114,7 @@ public sealed class RuleInsertionNavigationServiceTests
         Assert.AreEqual(OrderedRuleInsertionContextError.Incomplete, _service.Resolve(baseline, Query(fingerprint, null, "before")).Error);
         Assert.AreEqual(OrderedRuleInsertionContextError.InvalidPlacement, _service.Resolve(baseline, Query(fingerprint, "0", "sideways")).Error);
         Assert.AreEqual(OrderedRuleInsertionContextError.Incomplete, _service.Resolve(baseline, Query(fingerprint, "not-a-number", "before")).Error);
-        Assert.AreEqual(
-            OrderedRuleInsertionContextError.Incomplete,
-            _service.Resolve(baseline, new RuleInsertionNavigationQuery(null, null, null, "legacy-id", null)).Error);
+        Assert.AreEqual(OrderedRuleInsertionContextError.Incomplete, _service.Resolve(baseline, new RuleInsertionNavigationQuery(null, null, null, "legacy-id", null)).Error);
     }
 
     private static RuleInsertionNavigationQuery Query(string? fingerprint, string? occurrenceId, string? placement)

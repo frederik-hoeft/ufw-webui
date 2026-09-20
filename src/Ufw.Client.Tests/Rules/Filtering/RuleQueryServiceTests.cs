@@ -186,7 +186,6 @@ public sealed class RuleQueryServiceTests
         Assert.AreEqual("#336699", evidence.Tag.Color);
     }
 
-
     [TestMethod]
     public void Evaluate_TagFilterDoesNotUseDisplayNameAsIdentity()
     {
@@ -203,10 +202,7 @@ public sealed class RuleQueryServiceTests
     [TestMethod]
     public void Evaluate_TextFilterSearchesMetadataAndReturnsFieldSpecificEvidence()
     {
-        RuleMetadata metadata = new(
-            Guid.CreateVersion7(),
-            "Owned by platform team",
-            [new RuleTag(Guid.CreateVersion7(), "observability", "#336699")]);
+        RuleMetadata metadata = new(Guid.CreateVersion7(), "Owned by platform team", [new RuleTag(Guid.CreateVersion7(), "observability", "#336699")]);
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("platform observability")]));
@@ -278,12 +274,7 @@ public sealed class RuleQueryServiceTests
         [
             Row(0, 1, source: "192.0.2.1", destination: "any"),
         ]);
-        KnownHostInventoryItem host = KnownHost(
-            "db1.service.home.arpa",
-            "10.100.20.17",
-            FirewallAddressFamily.IPv4,
-            isVisible: true,
-            comment: "primary database");
+        KnownHostInventoryItem host = KnownHost("db1.service.home.arpa", "10.100.20.17", FirewallAddressFamily.IPv4, isVisible: true, comment: "primary database");
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("database")]), [host]);
 
@@ -296,14 +287,8 @@ public sealed class RuleQueryServiceTests
     [TestMethod]
     public void Evaluate_TextFilterKnownHostProjectionMatchesRuleContainedByKnownNetworkAlias()
     {
-        RuleFamilyProjection family = new(
-            FirewallAddressFamily.IPv4,
-            [Row(0, 1, source: "10.100.20.17", destination: "192.0.2.1")]);
-        KnownHostInventoryItem host = KnownHost(
-            "storage-net",
-            "10.100.20.0/24",
-            FirewallAddressFamily.IPv4,
-            isVisible: true);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, source: "10.100.20.17", destination: "192.0.2.1")]);
+        KnownHostInventoryItem host = KnownHost("storage-net", "10.100.20.0/24", FirewallAddressFamily.IPv4, isVisible: true);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("storage")]), [host]);
 
@@ -315,9 +300,7 @@ public sealed class RuleQueryServiceTests
     [TestMethod]
     public void Evaluate_TextFilterKnownHostProjectionDoesNotMatchHostOutsideRuleNetwork()
     {
-        RuleFamilyProjection family = new(
-            FirewallAddressFamily.IPv4,
-            [Row(0, 1, source: "10.100.20.0/24", destination: "192.0.2.1")]);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, source: "10.100.20.0/24", destination: "192.0.2.1")]);
         KnownHostInventoryItem host = KnownHost("nas1.service.home.arpa", "10.100.21.17", FirewallAddressFamily.IPv4, isVisible: true);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("nas1")]), [host]);

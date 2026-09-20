@@ -6,6 +6,7 @@ using Ufw.Client.Errors;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
+using Ufw.Client.Services.Rules;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -33,21 +34,15 @@ public sealed partial class Rules
     };
 
     private readonly CancellationTokenSource _lifetime = new();
-    private RulesPageState _state = RulesPageState.Initial;
-    private bool _deleteDialogOpen;
-    private bool _deleting;
-    private bool _metadataDialogOpen;
-    private bool _metadataSaving;
-    private bool _reordering;
+    private RuleInventoryState _state = RuleInventoryState.Initial;
+    private RulesPageInteractionState _pageInteraction = RulesPageInteractionState.Initial;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
     private RuleOrderingResultContext? _orderingResult;
-    private RuleListProjection _ruleListProjection = RuleListProjection.Empty;
+    private RulesPageProjection _projection = RulesPageProjection.Empty;
     private RuleFamilySelectionState _familySelection = RuleFamilySelectionState.Initial;
     private RuleQuery _ruleQuery = RuleQuery.Empty;
     private IReadOnlyList<KnownHostInventoryItem> _knownHosts = [];
-    private RuleFamilyQueryResult _ipv4QueryResult = new(FirewallAddressFamily.IPv4, [], 0);
-    private RuleFamilyQueryResult _ipv6QueryResult = new(FirewallAddressFamily.IPv6, [], 0);
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -57,54 +52,33 @@ public sealed partial class Rules
 
     private bool HasOrderingPreview => _orderingPreview is not null;
 
-    private RuleFamilyProjection IPv4Family => _ruleListProjection.GetFamily(FirewallAddressFamily.IPv4);
+    private RuleFamilyProjection IPv4Family => _projection.IPv4Family;
 
-    private RuleFamilyProjection IPv6Family => _ruleListProjection.GetFamily(FirewallAddressFamily.IPv6);
+    private RuleFamilyProjection IPv6Family => _projection.IPv6Family;
 
-    private IReadOnlyList<RuleQueryRow> IPv4QueryRows => _ipv4QueryResult.Rows;
+    private IReadOnlyList<RuleQueryRow> IPv4QueryRows => _projection.IPv4Query.Rows;
 
-    private IReadOnlyList<RuleQueryRow> IPv6QueryRows => _ipv6QueryResult.Rows;
+    private IReadOnlyList<RuleQueryRow> IPv6QueryRows => _projection.IPv6Query.Rows;
 
     private RuleListInteractionState InteractionState => RuleListInteractionState.Resolve(_ruleQuery.IsActive, HasOrderingPreview);
 
-    private bool IPv6FamilyAvailable =>
-        _state.Snapshot is { } snapshot && RuleFamilySelectionState.IsIPv6Available(snapshot.Configuration.IPv6Enabled, IPv6Family.Rows.Count);
+    private bool IPv6FamilyAvailable => _projection.IPv6Available;
 
     private int SelectedFamilyTabIndex =>
         _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;
 
-    private bool IsBusy => _state.IsLoading
-        || _deleting
-        || _deleteDialogOpen
-        || _reordering
-        || _metadataDialogOpen
-        || _metadataSaving;
+    private bool IsBusy => _state.IsLoading || _pageInteraction.IsBusy;
 
-    private bool CanMutateFirewall => _state.IsCurrent
-        && !_deleting
-        && !_deleteDialogOpen
-        && !_reordering
-        && !_metadataDialogOpen
-        && !_metadataSaving
-        && !HasOrderingPreview;
+    private bool CanMutateFirewall => _state.IsCurrent && _pageInteraction.CanMutateFirewall && !HasOrderingPreview;
 
-    private bool CanEditMetadata => _state.IsCurrent
-        && !_deleting
-        && !_deleteDialogOpen
-        && !_reordering
-        && !_metadataDialogOpen
-        && !_metadataSaving;
+    private bool CanEditMetadata => _state.IsCurrent && _pageInteraction.CanEditMetadata;
 
-    private bool CanPreviewOrdering => _state.IsCurrent
-        && !_deleting
-        && !_deleteDialogOpen
-        && !_reordering
-        && InteractionState.CanOrder;
+    private bool CanPreviewOrdering => _state.IsCurrent && _pageInteraction.CanPreviewOrdering && InteractionState.CanOrder;
 
     private string RefreshButtonLabel => _state.Status switch
     {
-        RulesPageStatus.Loading => RulesText["LoadingEllipsis"],
-        RulesPageStatus.Refreshing => RulesText["RefreshingEllipsis"],
+        RuleInventoryStatus.Loading => RulesText["LoadingEllipsis"],
+        RuleInventoryStatus.Refreshing => RulesText["RefreshingEllipsis"],
         _ => CommonText["Refresh"],
     };
 
@@ -119,12 +93,12 @@ public sealed partial class Rules
             return RulesText["AuthoritativeSnapshotStale"];
         }
 
-        return _state.Status == RulesPageStatus.Refreshing
+        return _state.Status == RuleInventoryStatus.Refreshing
             ? RulesText["AuthoritativeSnapshotRefreshing"]
             : RulesText["AuthoritativeSnapshotCurrent"];
     }
 
-    protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleRefreshReason.Manual);
+    protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
 
     public void Dispose()
     {
@@ -140,10 +114,10 @@ public sealed partial class Rules
             return Task.CompletedTask;
         }
 
-        return LoadRulesAsync(RuleRefreshReason.Manual);
+        return LoadRulesAsync(RuleInventoryRefreshReason.Manual);
     }
 
-    private async Task LoadRulesAsync(RuleRefreshReason reason)
+    private async Task LoadRulesAsync(RuleInventoryRefreshReason reason)
     {
         if (_state.IsLoading)
         {
@@ -154,11 +128,11 @@ public sealed partial class Rules
         _orderingPrivateKey = string.Empty;
         _orderingResult = null;
         RefreshRuleListProjection();
-        _state = _state.BeginRefresh(reason);
+        _state = _state.MoveNext(new RuleInventoryTransition.RefreshStarted(reason));
         try
         {
             RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
-            _state = RulesPageState.CompleteRefresh(response);
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
             await RefreshKnownHostsAsync();
             RefreshRuleListProjection();
         }
@@ -167,7 +141,7 @@ public sealed partial class Rules
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            _state = _state.FailRefresh(ClientErrors.Describe(exception));
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
         }
     }
 
@@ -196,7 +170,7 @@ public sealed partial class Rules
             return;
         }
 
-        _metadataDialogOpen = true;
+        _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.MetadataDialogOpened());
         try
         {
             DialogParameters<EditRuleMetadataDialog> parameters = [];
@@ -217,13 +191,16 @@ public sealed partial class Rules
         }
         finally
         {
-            _metadataDialogOpen = false;
+            if (_pageInteraction.Mode == RulesPageInteractionMode.MetadataDialog)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.MetadataDialogClosed());
+            }
         }
     }
 
     private async Task SaveMetadataAsync(string ruleId, RuleMetadataEditorResult result)
     {
-        _metadataSaving = true;
+        _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.MetadataSaveStarted());
         try
         {
             RuleMetadataMutationResponse response = await RuleApiClient.UpdateMetadataAsync(ruleId, new UpdateRuleMetadataRequest
@@ -231,7 +208,7 @@ public sealed partial class Rules
                 Notes = result.Notes,
                 TagIds = result.TagIds,
             }, _lifetime.Token);
-            _state = _state.AfterMetadataMutation(ruleId, response);
+            _state = _state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted(ruleId, response));
             RefreshRuleListProjection();
             Snackbar.Add(RulesText["MetadataSaved"], Severity.Success);
         }
@@ -244,7 +221,7 @@ public sealed partial class Rules
         }
         finally
         {
-            _metadataSaving = false;
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.MetadataSaveCompleted());
         }
     }
 
@@ -256,7 +233,7 @@ public sealed partial class Rules
         }
 
         string? privateKey = null;
-        _deleteDialogOpen = true;
+        _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteDialogOpened());
         try
         {
             DialogParameters<DeleteRuleDialog> parameters = new()
@@ -269,7 +246,10 @@ public sealed partial class Rules
         }
         finally
         {
-            _deleteDialogOpen = false;
+            if (string.IsNullOrWhiteSpace(privateKey))
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteDialogClosed());
+            }
         }
 
         if (string.IsNullOrWhiteSpace(privateKey))
@@ -281,15 +261,11 @@ public sealed partial class Rules
         {
             if (_lifetime.IsCancellationRequested)
             {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteDialogClosed());
                 return;
             }
 
-            if (!CanMutateFirewall)
-            {
-                Snackbar.Add(RulesText["DeleteStateChanged"], Severity.Warning);
-                return;
-            }
-
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteConfirmed());
             await DeleteRuleAsync(rule, privateKey);
         }
         finally
@@ -300,12 +276,11 @@ public sealed partial class Rules
 
     private async Task DeleteRuleAsync(ListedFirewallRule rule, string privateKey)
     {
-        _deleting = true;
         try
         {
             await RuleMutations.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
-            _deleting = false;
-            await LoadRulesAsync(RuleRefreshReason.AfterMutation);
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteCompleted());
+            await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -316,7 +291,10 @@ public sealed partial class Rules
         }
         finally
         {
-            _deleting = false;
+            if (_pageInteraction.Mode == RulesPageInteractionMode.Deleting)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteCompleted());
+            }
         }
     }
 
@@ -384,26 +362,22 @@ public sealed partial class Rules
     {
         if (_orderingPreview is null
             || _state.Snapshot is not { } snapshot
-            || _reordering
+            || !_pageInteraction.CanPreviewOrdering
             || string.IsNullOrWhiteSpace(_orderingPrivateKey))
         {
             return;
         }
 
-        _reordering = true;
+        _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.ReorderStarted());
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
             int[] desiredOrder = [.. _orderingPreview.DesiredOrder];
-            RuleReorderResponse response = await RuleOrdering.ApplyAsync(
-                baseline,
-                desiredOrder,
-                _orderingPrivateKey,
-                _lifetime.Token);
+            RuleReorderResponse response = await RuleOrdering.ApplyAsync(baseline, desiredOrder, _orderingPrivateKey, _lifetime.Token);
 
             _orderingPreview = null;
             _orderingResult = new RuleOrderingResultContext(response, baseline.Rules.ToArray(), desiredOrder);
-            _state = _state.AfterReorder(response);
+            _state = _state.MoveNext(new RuleInventoryTransition.ReorderCompleted(response));
             RefreshRuleListProjection();
             if (response.Outcome == RuleReorderOutcome.Completed)
             {
@@ -426,13 +400,13 @@ public sealed partial class Rules
         finally
         {
             _orderingPrivateKey = string.Empty;
-            _reordering = false;
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.ReorderCompleted());
         }
     }
 
     private void DiscardOrderingPreview()
     {
-        if (!_reordering)
+        if (!_pageInteraction.IsReordering)
         {
             _orderingPreview = null;
             _orderingPrivateKey = string.Empty;
@@ -450,18 +424,8 @@ public sealed partial class Rules
 
     private void RefreshRuleListProjection()
     {
-        _ruleListProjection = RuleListProjectionService.Create(
-            _state.Snapshot?.Rules ?? [],
-            _orderingPreview,
-            _state.Snapshot?.Metadata);
-        RefreshRuleQueryProjection();
+        _projection = RulesPageProjectionService.Create(_state.Snapshot, _orderingPreview, _ruleQuery, _knownHosts);
         _familySelection = _familySelection.Reconcile(IPv6FamilyAvailable);
-    }
-
-    private void RefreshRuleQueryProjection()
-    {
-        _ipv4QueryResult = RuleQueryService.Evaluate(IPv4Family, _ruleQuery, _knownHosts);
-        _ipv6QueryResult = RuleQueryService.Evaluate(IPv6Family, _ruleQuery, _knownHosts);
     }
 
     private Task ChangeQueryAsync(RuleQuery query)
@@ -473,13 +437,13 @@ public sealed partial class Rules
         }
 
         _ruleQuery = query;
-        RefreshRuleQueryProjection();
+        RefreshRuleListProjection();
         return Task.CompletedTask;
     }
 
     private void HandleMutationFailure(ClientError error)
     {
-        _state = _state.AfterMutationFailure(error);
+        _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
         Snackbar.Add(error.Message, Severity.Error);
     }
 

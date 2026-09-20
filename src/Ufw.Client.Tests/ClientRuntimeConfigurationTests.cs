@@ -10,13 +10,13 @@ public sealed class ClientRuntimeConfigurationTests
     [DataRow("https://api.example.invalid", "https://api.example.invalid/")]
     [DataRow("api", "https://app.example.invalid/base/api/")]
     [DataRow("/api", "https://app.example.invalid/api/")]
-    public void GetApiBaseAddress_AcceptsHttpsAbsoluteOrApplicationRelativeValues(string configured, string expected)
+    public void Constructor_AcceptsHttpsAbsoluteOrApplicationRelativeValues(string configured, string expected)
     {
         IConfiguration configuration = Configuration(configured);
 
-        Uri result = ClientRuntimeConfiguration.GetApiBaseAddress(configuration, new Uri("https://app.example.invalid/base/"));
+        ClientRuntimeConfiguration result = new(configuration, new Uri("https://app.example.invalid/base/"));
 
-        Assert.AreEqual(expected, result.AbsoluteUri);
+        Assert.AreEqual(expected, result.ApiBaseAddress.AbsoluteUri);
     }
 
     [TestMethod]
@@ -27,12 +27,11 @@ public sealed class ClientRuntimeConfigurationTests
     [DataRow("https://user:pass@api.example.invalid")]
     [DataRow("https://api.example.invalid?query=1")]
     [DataRow("https://api.example.invalid/#fragment")]
-    public void GetApiBaseAddress_RejectsUnsafeOrAmbiguousValues(string? configured)
+    public void Constructor_RejectsUnsafeOrAmbiguousValues(string? configured)
     {
         IConfiguration configuration = Configuration(configured);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            ClientRuntimeConfiguration.GetApiBaseAddress(configuration, new Uri("https://app.example.invalid/base/")));
+        Assert.ThrowsExactly<InvalidOperationException>(() => new ClientRuntimeConfiguration(configuration, new Uri("https://app.example.invalid/base/")));
     }
 
     private static IConfiguration Configuration(string? apiBaseUrl) =>

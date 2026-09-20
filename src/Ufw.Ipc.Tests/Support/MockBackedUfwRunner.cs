@@ -25,12 +25,7 @@ internal sealed class MockBackedUfwRunner(string statePath) : IUfwRunner
             await AfterCommandAsync(arguments, cancellationToken);
         }
 
-        return new UfwProcessResult(
-            result.ExitCode,
-            result.StandardOutput,
-            result.StandardError,
-            arguments,
-            CancellationRequested: false);
+        return new UfwProcessResult(result.ExitCode, result.StandardOutput, result.StandardError, arguments, CancellationRequested: false);
     }
 
     public static async Task<MockCommandResult> InvokeAsync(string statePath, IEnumerable<string> arguments, CancellationToken cancellationToken = default)

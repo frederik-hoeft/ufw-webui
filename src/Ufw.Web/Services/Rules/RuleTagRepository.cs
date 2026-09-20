@@ -105,11 +105,7 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
         return new RuleTagInventoryResponse(tags);
     }
 
-    private static async Task<bool> NameExistsAsync(
-        ApplicationDbContext context,
-        string name,
-        long? excludingId,
-        CancellationToken cancellationToken)
+    private static async Task<bool> NameExistsAsync(ApplicationDbContext context, string name, long? excludingId, CancellationToken cancellationToken)
     {
         IQueryable<RuleTagEntry> query = context.Set<RuleTagEntry>().AsNoTracking();
         if (excludingId.HasValue)

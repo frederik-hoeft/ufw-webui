@@ -44,9 +44,7 @@ public sealed class RulesControllerTests
             TestFirewallConfiguration.Enabled);
         Guid metadataId = Guid.CreateVersion7();
         Guid tagId = Guid.CreateVersion7();
-        RuleInventoryResponse expected = new(
-            firewall,
-            [new RuleMetadataItem(metadataId, "sha256:abc", "ssh", [new RuleTagItem(tagId, "prod", "#336699")])]);
+        RuleInventoryResponse expected = new(firewall, [new RuleMetadataItem(metadataId, "sha256:abc", "ssh", [new RuleTagItem(tagId, "prod", "#336699")])]);
         inventory.Setup(service => service.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
         RulesController controller = CreateController(client.Object, inventory.Object);
@@ -64,14 +62,12 @@ public sealed class RulesControllerTests
         Guid metadataId = Guid.CreateVersion7();
         Guid tagId = Guid.CreateVersion7();
         UpdateRuleMetadataRequest request = new() { TagIds = [tagId] };
-        RuleMetadataMutationResponse expected = new(
-            new RuleMetadataItem(metadataId, "sha256:abc", null, [new RuleTagItem(tagId, "prod", "#336699")]));
+        RuleMetadataMutationResponse expected = new(new RuleMetadataItem(metadataId, "sha256:abc", null, [new RuleTagItem(tagId, "prod", "#336699")]));
         metadata.Setup(service => service.UpdateAsync("sha256:abc", request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, expected));
 
         RulesController controller = CreateController(client.Object, metadata: metadata.Object);
-        ActionResult<RuleMetadataMutationResponse> result = await controller.UpdateMetadataAsync(
-            "sha256:abc", request, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> result = await controller.UpdateMetadataAsync("sha256:abc", request, TestContext.CancellationToken);
 
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result.Result);
         Assert.AreSame(expected, ok.Value);
@@ -93,12 +89,9 @@ public sealed class RulesControllerTests
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound));
         RulesController controller = CreateController(client.Object, metadata: metadata.Object);
 
-        ActionResult<RuleMetadataMutationResponse> missing = await controller.UpdateMetadataAsync(
-            "missing", missingRequest, TestContext.CancellationToken);
-        ActionResult<RuleMetadataMutationResponse> invalid = await controller.UpdateMetadataAsync(
-            "invalid", invalidRequest, TestContext.CancellationToken);
-        ActionResult<RuleMetadataMutationResponse> missingTag = await controller.UpdateMetadataAsync(
-            "missing-tag", missingTagRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> missing = await controller.UpdateMetadataAsync("missing", missingRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> invalid = await controller.UpdateMetadataAsync("invalid", invalidRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> missingTag = await controller.UpdateMetadataAsync("missing-tag", missingTagRequest, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<NotFoundResult>(missing.Result);
         Assert.IsInstanceOfType<BadRequestObjectResult>(invalid.Result);
@@ -160,8 +153,7 @@ public sealed class RulesControllerTests
         Mock<IUfwClient> client = new();
         InsertRuleRequest request = CreateSignedInsert();
         RuleInsertionResponse expected = CreateInsertionResponse(RuleInsertionOutcome.Completed);
-        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
-                It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
+        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
         RulesController controller = CreateController(client.Object);
 
@@ -187,13 +179,11 @@ public sealed class RulesControllerTests
     {
         Mock<IUfwClient> client = new();
         RuleInsertionResponse expected = CreateInsertionResponse(outcome);
-        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
-                It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
+        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
         RulesController controller = CreateController(client.Object);
 
-        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(
-            CreateSignedInsert(), TestContext.CancellationToken);
+        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(CreateSignedInsert(), TestContext.CancellationToken);
 
         ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
         Assert.AreEqual(expectedStatusCode, response.StatusCode);
@@ -210,21 +200,18 @@ public sealed class RulesControllerTests
         ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(request, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
-        client.Verify(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
-            It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
     public async Task TestInsertRuleAsync_MapsDaemonReplayConflictAsProblemDetailsAsync()
     {
         Mock<IUfwClient> client = new();
-        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(
-                It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
+        client.Setup(static c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UfwIpcException(StatusCodes.Status409Conflict, "Intent nonce has already been used."));
         RulesController controller = CreateController(client.Object);
 
-        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(
-            CreateSignedInsert(), TestContext.CancellationToken);
+        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(CreateSignedInsert(), TestContext.CancellationToken);
 
         ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
         Assert.AreEqual(StatusCodes.Status409Conflict, response.StatusCode);
@@ -249,9 +236,7 @@ public sealed class RulesControllerTests
         ReorderRulesRequest request = CreateSignedReorder();
         RuleReorderResponse expected = CreateReorderResponse(RuleReorderOutcome.Completed);
         client
-            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
-                It.IsAny<ReorderRulesRequest>(),
-                It.IsAny<CancellationToken>()))
+            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         RulesController controller = CreateController(client.Object);
@@ -282,15 +267,11 @@ public sealed class RulesControllerTests
         Mock<IUfwClient> client = new();
         RuleReorderResponse expected = CreateReorderResponse(outcome);
         client
-            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
-                It.IsAny<ReorderRulesRequest>(),
-                It.IsAny<CancellationToken>()))
+            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
         RulesController controller = CreateController(client.Object);
 
-        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(
-            CreateSignedReorder(),
-            TestContext.CancellationToken);
+        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(CreateSignedReorder(), TestContext.CancellationToken);
 
         ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
         Assert.AreEqual(expectedStatusCode, response.StatusCode);
@@ -308,9 +289,7 @@ public sealed class RulesControllerTests
 
         Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
         client.Verify(
-            static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
-                It.IsAny<ReorderRulesRequest>(),
-                It.IsAny<CancellationToken>()),
+            static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -319,15 +298,11 @@ public sealed class RulesControllerTests
     {
         Mock<IUfwClient> client = new();
         client
-            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
-                It.IsAny<ReorderRulesRequest>(),
-                It.IsAny<CancellationToken>()))
+            .Setup(static c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UfwIpcException(StatusCodes.Status409Conflict, "Intent nonce has already been used."));
         RulesController controller = CreateController(client.Object);
 
-        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(
-            CreateSignedReorder(),
-            TestContext.CancellationToken);
+        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(CreateSignedReorder(), TestContext.CancellationToken);
 
         ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
         Assert.AreEqual(StatusCodes.Status409Conflict, response.StatusCode);
@@ -347,13 +322,11 @@ public sealed class RulesControllerTests
             Rule = new FirewallRuleSpecification(),
         };
         RuleMutationResponse expected = new(IntentOperations.DELETE_RULE, deleted);
-        client.Setup(static c => c.SendAsync<DeleteRuleRequest, RuleMutationResponse>(
-                It.IsAny<DeleteRuleRequest>(), It.IsAny<CancellationToken>()))
+        client.Setup(static c => c.SendAsync<DeleteRuleRequest, RuleMutationResponse>(It.IsAny<DeleteRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
         RulesController controller = CreateController(client.Object, metadata: metadata.Object);
 
-        ActionResult<RuleMutationResponse> result = await controller.DeleteRuleAsync(
-            CreateSignedDelete(), TestContext.CancellationToken);
+        ActionResult<RuleMutationResponse> result = await controller.DeleteRuleAsync(CreateSignedDelete(), TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<OkObjectResult>(result.Result);
         metadata.Verify(service => service.RemoveForDeletedRuleAsync("sha256:deleted", It.IsAny<CancellationToken>()), Times.Once);
@@ -446,10 +419,7 @@ public sealed class RulesControllerTests
     private static RuleReorderResponse CreateReorderResponse(RuleReorderOutcome outcome) => new(
         outcome,
         new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
-        [new RuleReorderOperationResponse(
-            new RuleReorderMoveResponse(1, 0, 0),
-            RuleReorderOperationOutcome.FailedAndRestored,
-            "diagnostic")],
+        [new RuleReorderOperationResponse(new RuleReorderMoveResponse(1, 0, 0), RuleReorderOperationOutcome.FailedAndRestored, "diagnostic")],
         [new RuleReorderMoveResponse(0, 1, null)],
         [new RuleReorderMoveResponse(0, 1, null)],
         "diagnostic");

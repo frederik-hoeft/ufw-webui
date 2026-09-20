@@ -12,10 +12,7 @@ internal sealed class RuleQueryService : IRuleQueryService
         _evaluators = evaluators.ToDictionary(static evaluator => evaluator.FilterType);
     }
 
-    public RuleFamilyQueryResult Evaluate(
-        RuleFamilyProjection family,
-        RuleQuery query,
-        IReadOnlyList<KnownHostInventoryItem>? knownHosts = null)
+    public RuleFamilyQueryResult Evaluate(RuleFamilyProjection family, RuleQuery query, IReadOnlyList<KnownHostInventoryItem>? knownHosts = null)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentNullException.ThrowIfNull(query);

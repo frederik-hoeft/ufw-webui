@@ -8,9 +8,7 @@ internal sealed class RuleMetadataReconciliationService(IRuleMetadataReconciliat
     public async Task<RuleMetadataReconciliationSnapshot> RefreshAsync(CancellationToken cancellationToken = default) =>
         Normalize(await apiClient.GetAsync(cancellationToken));
 
-    public async Task<RuleMetadataReconciliationSnapshot> CleanupAsync(
-        IReadOnlyCollection<Guid> metadataIds,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMetadataReconciliationSnapshot> CleanupAsync(IReadOnlyCollection<Guid> metadataIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(metadataIds);
         if (metadataIds.Count == 0 || metadataIds.Any(static id => id == Guid.Empty))
@@ -61,9 +59,7 @@ internal sealed class RuleMetadataReconciliationService(IRuleMetadataReconciliat
                 tags.Add(new RuleTag(tag.Id, tag.Name.Trim(), color));
             }
 
-            orphans.Add(new OrphanedRuleMetadata(
-                item.RuleId,
-                new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags)));
+            orphans.Add(new OrphanedRuleMetadata(item.RuleId, new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags)));
         }
 
         return new RuleMetadataReconciliationSnapshot(

@@ -122,12 +122,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
             IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
             FirewallRuleSpecification inserted = Rule("53", FirewallAddressFamily.IPv4, FirewallAction.Allow, FirewallProtocol.Udp);
-            InsertRuleRequest request = CreateSignedRequest(
-                intentContext.DeploymentId,
-                baseline,
-                anchorOccurrenceId: 1,
-                RuleInsertionPlacement.Before,
-                inserted);
+            InsertRuleRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, anchorOccurrenceId: 1, RuleInsertionPlacement.Before, inserted);
 
             RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
 
@@ -165,12 +160,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
                 .First(static item => item.rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6)
                 .index;
             FirewallRuleSpecification inserted = Rule("8443", FirewallAddressFamily.IPv4, FirewallAction.Allow, FirewallProtocol.Tcp);
-            InsertRuleRequest request = CreateSignedRequest(
-                intentContext.DeploymentId,
-                baseline,
-                lastIpv4Occurrence,
-                RuleInsertionPlacement.After,
-                inserted);
+            InsertRuleRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, lastIpv4Occurrence, RuleInsertionPlacement.After, inserted);
 
             RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
 
@@ -266,12 +256,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             Placement = placement,
             Rule = rule,
         };
-        return IntentRequestFactory.CreateInsertRequest(
-            _signingKey,
-            deploymentId,
-            payload,
-            MessageJsonSerializerContext.Default.InsertRulePayload,
-            TimeProvider.System);
+        return IntentRequestFactory.CreateInsertRequest(_signingKey, deploymentId, payload, MessageJsonSerializerContext.Default.InsertRulePayload, TimeProvider.System);
     }
 
     private static Task<RuleListResponse> GetRulesAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
@@ -309,10 +294,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
 
     private async Task EnableAsync()
     {
-        MockCommandResult enabled = await MockBackedUfwRunner.InvokeAsync(
-            _mockStatePath,
-            ["--force", "enable"],
-            TestContext.CancellationToken);
+        MockCommandResult enabled = await MockBackedUfwRunner.InvokeAsync(_mockStatePath, ["--force", "enable"], TestContext.CancellationToken);
         Assert.AreEqual(0, enabled.ExitCode);
     }
 

@@ -64,7 +64,7 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
                 <MudText Typo="Typo.h6" HtmlTag="h2">@ManagementApiStatusLabel</MudText>
             </div>
         </header>
-        <dl class="operational-status-details">
+        <dl>
             <div>
                 <dt>@StatusText["Probe"]</dt>
                 <dd><code>/api/health</code></dd>
@@ -88,7 +88,7 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
                 <MudText Typo="Typo.h6" HtmlTag="h2">@DaemonStatusLabel</MudText>
             </div>
         </header>
-        <dl class="operational-status-details">
+        <dl>
             <div>
                 <dt>@StatusText["Deployment"]</dt>
                 <dd><code>@ValueOrUnavailable(OperationalStatus.Current.DeploymentId)</code></dd>
@@ -116,7 +116,7 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
                 <MudText Typo="Typo.h6" HtmlTag="h2">@FirewallStatusLabel</MudText>
             </div>
         </header>
-        <dl class="operational-status-details">
+        <dl>
             <div>
                 <dt>@StatusText["Rules"]</dt>
                 <dd>@DescribeRuleCount()</dd>

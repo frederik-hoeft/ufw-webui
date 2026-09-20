@@ -25,9 +25,7 @@ public sealed class AuthControllerTests
             .ReturnsAsync((AuthenticationTokenResult?)null);
         AuthController controller = CreateController(authentication.Object);
 
-        IActionResult result = await controller.LoginAsync(
-            new LoginRequest("operator@example.invalid", "wrong-password"),
-            TestContext.CancellationToken);
+        IActionResult result = await controller.LoginAsync(new LoginRequest("operator@example.invalid", "wrong-password"), TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<UnauthorizedResult>(result);
         Assert.IsFalse(controller.Response.Headers.ContainsKey("Set-Cookie"));

@@ -9,11 +9,7 @@ using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RulesController(
-    IUfwClient ufwClient,
-    IRuleInventoryService inventory,
-    IRuleMetadataService metadata,
-    IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventoryService inventory, IRuleMetadataService metadata, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
     public async partial Task<ActionResult<RuleInventoryResponse>> GetRulesAsync(CancellationToken cancellationToken)
     {
@@ -28,10 +24,7 @@ public sealed partial class RulesController(
         }
     }
 
-    public async partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(
-        string ruleId,
-        UpdateRuleMetadataRequest request,
-        CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         try

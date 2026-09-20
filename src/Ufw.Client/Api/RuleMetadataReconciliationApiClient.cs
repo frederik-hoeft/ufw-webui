@@ -14,9 +14,7 @@ internal sealed class RuleMetadataReconciliationApiClient(HttpClient httpClient)
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.RuleMetadataReconciliationResponse, cancellationToken);
     }
 
-    public async Task<RuleMetadataReconciliationResponse> CleanupAsync(
-        CleanupRuleMetadataRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMetadataReconciliationResponse> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.CleanupRuleMetadataRequest);

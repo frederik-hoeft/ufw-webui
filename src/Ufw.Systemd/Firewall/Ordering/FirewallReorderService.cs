@@ -35,9 +35,7 @@ internal sealed class FirewallReorderService(
             return new ConflictResponse("Intent nonce has already been used.");
         }
 
-        RuleReorderExecutionRequest executionRequest = new(
-            accepted.Payload.BaselineFingerprint,
-            accepted.Payload.DesiredOrder);
+        RuleReorderExecutionRequest executionRequest = new(accepted.Payload.BaselineFingerprint, accepted.Payload.DesiredOrder);
         RuleReorderExecutionResult result = await executor.ExecuteAsync(executionRequest, cancellationToken);
         return ToResponse(result);
     }
@@ -63,10 +61,7 @@ internal sealed class FirewallReorderService(
         },
         report.Diagnostic);
 
-    private static RuleReorderMoveResponse MapMove(RuleReorderMove move) => new(
-        move.OccurrenceId,
-        move.TargetIndex,
-        move.BeforeOccurrenceId);
+    private static RuleReorderMoveResponse MapMove(RuleReorderMove move) => new(move.OccurrenceId, move.TargetIndex, move.BeforeOccurrenceId);
 
     private static RuleReorderOutcome MapOutcome(RuleReorderExecutionOutcome outcome) => outcome switch
     {

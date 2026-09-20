@@ -1,6 +1,7 @@
 ﻿@page "/rules"
 @attribute [Authorize]
 @using Ufw.Client.Rules.Metadata
+@using Ufw.Client.Services.Rules
 @implements IDisposable
 @inject IRuleApiClient RuleApiClient
 @inject IRuleMutationService RuleMutations
@@ -9,8 +10,7 @@
 @inject IClientErrorMapper ClientErrors
 @inject IRuleOrderingService RuleOrdering
 @inject IRuleOrderingProjectionService RuleOrderingProjection
-@inject IRuleListProjectionService RuleListProjectionService
-@inject IRuleQueryService RuleQueryService
+@inject IRulesPageProjectionService RulesPageProjectionService
 @inject IKnownHostInventoryService KnownHosts
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
@@ -43,7 +43,7 @@
     </Actions>
 </PageHeader>
 
-@if (_state.Status == RulesPageStatus.Failed)
+@if (_state.Status == RuleInventoryStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
         <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LoadFailed"]</MudText>
@@ -86,17 +86,17 @@ else if (_state.Snapshot is { })
             </MudButton>
         </MudAlert>
     }
-    else if (_state.Status == RulesPageStatus.Refreshing)
+    else if (_state.Status == RuleInventoryStatus.Refreshing)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">
-                @(_state.RefreshReason == RuleRefreshReason.AfterMutation
+                @(_state.RefreshReason == RuleInventoryRefreshReason.AfterMutation
                     ? RulesText["RuleChangeAcceptedRefreshing"]
                     : RulesText["RefreshingAuthoritative"])
             </MudText>
         </MudAlert>
     }
-    else if (_deleting)
+    else if (_pageInteraction.IsDeleting)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">@RulesText["DeletingRule"]</MudText>
@@ -114,7 +114,7 @@ else if (_state.Snapshot is { })
                     </MudText>
                 </div>
             </header>
-            <div class="rules-firewall-status-meta">
+            <div>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeRuleCount(_state.Snapshot.Rules.Count)</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeSnapshotStatus()</MudText>
             </div>
@@ -130,7 +130,7 @@ else if (_state.Snapshot is { })
                     @(_state.Snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
                 </MudChip>
             </header>
-            <div class="rules-default-policy-list">
+            <div>
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
                     @RulesText["DefaultIncoming"]: @RuleText.FormatDefaultPolicy(_state.Snapshot.Configuration.IncomingPolicy)
                 </MudChip>
@@ -150,23 +150,23 @@ else if (_state.Snapshot is { })
             <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LocalOrderingPreview"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-3">@RulesText["LocalOrderingPreviewDescription"]</MudText>
             <div class="mb-3">
-                <MutationAuthorizationField @bind-Value="_orderingPrivateKey" Disabled="@_reordering" />
+                <MutationAuthorizationField @bind-Value="_orderingPrivateKey" Disabled="@_pageInteraction.IsReordering" />
             </div>
             <footer>
-                <MudButton Variant="Variant.Text" Disabled="@_reordering" OnClick="DiscardOrderingPreview">
+                <MudButton Variant="Variant.Text" Disabled="@_pageInteraction.IsReordering" OnClick="DiscardOrderingPreview">
                     @RulesText["DiscardPreview"]
                 </MudButton>
                 <MudButton Variant="Variant.Outlined"
                            StartIcon="@Icons.Material.Filled.Refresh"
-                           Disabled="@_reordering"
+                           Disabled="@_pageInteraction.IsReordering"
                            OnClick="RefreshAsync">
                     @RulesText["ReloadAuthoritativeState"]
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
-                           Disabled="@(_reordering || string.IsNullOrWhiteSpace(_orderingPrivateKey))"
+                           Disabled="@(_pageInteraction.IsReordering || string.IsNullOrWhiteSpace(_orderingPrivateKey))"
                            OnClick="ApplyOrderingPreviewAsync">
-                    @(_reordering ? RulesText["ApplyingReordering"] : RulesText["ApplyReordering"])
+                    @(_pageInteraction.IsReordering ? RulesText["ApplyingReordering"] : RulesText["ApplyReordering"])
                 </MudButton>
             </footer>
         </MudAlert>
@@ -191,7 +191,7 @@ else if (_state.Snapshot is { })
                                  QueryActive="@_ruleQuery.IsActive"
                                  QueryChangesDisabled="@(!InteractionState.CanChangeQuery)"
                                  QueryChanged="ChangeQueryAsync"
-                                 Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+                                 Loading="@(_state.Status == RuleInventoryStatus.Refreshing || _pageInteraction.IsReordering)"
                                  Disabled="@(!CanMutateFirewall)"
                                  OrderingDisabled="@(!CanPreviewOrdering)"
                                  InsertionDisabled="@(!CanMutateFirewall)"
@@ -210,7 +210,7 @@ else if (_state.Snapshot is { })
                                      QueryActive="@_ruleQuery.IsActive"
                                      QueryChangesDisabled="@(!InteractionState.CanChangeQuery)"
                                      QueryChanged="ChangeQueryAsync"
-                                     Loading="@(_state.Status == RulesPageStatus.Refreshing || _reordering)"
+                                     Loading="@(_state.Status == RuleInventoryStatus.Refreshing || _pageInteraction.IsReordering)"
                                      Disabled="@(!CanMutateFirewall)"
                                      OrderingDisabled="@(!CanPreviewOrdering)"
                                      InsertionDisabled="@(!CanMutateFirewall)"

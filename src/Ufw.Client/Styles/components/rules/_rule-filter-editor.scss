@@ -2,17 +2,20 @@
     display: grid;
     gap: 1rem;
 
-    .rule-filter-selector-groups {
+    > ul {
         display: grid;
         gap: 1rem;
-    }
+        padding: 0;
+        margin: 0;
+        list-style: none;
 
-    .rule-filter-selector-options {
-        display: grid;
-        margin-top: 0.125rem;
+        > li > div {
+            display: grid;
+            margin-top: 0.125rem;
 
-        .mud-button-root {
-            justify-content: flex-start;
+            .mud-button-root {
+                justify-content: flex-start;
+            }
         }
     }
 }

@@ -30,6 +30,7 @@ public sealed partial class ManageRuleTagsDialog
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private bool IsBusy => _loading || _saving;
+    private RuleTag PreviewTag => new(Guid.Empty, string.IsNullOrWhiteSpace(_name) ? "\u2026" : _name.Trim(), _color);
 
     protected override Task OnInitializedAsync() => RefreshAsync();
 

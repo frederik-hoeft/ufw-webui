@@ -3,14 +3,14 @@
 
 <div class="rule-match-context" role="note" aria-label="@(RulesText["RuleMatchContextAria"])" @onclick:stopPropagation="true">
     <MudIcon Icon="@Icons.Material.Outlined.Search" Size="Size.Small" />
-    <span class="rule-match-context-label">@RulesText["RuleMatchContextLabel"]</span>
+    <span>@RulesText["RuleMatchContextLabel"]</span>
     @foreach (RuleMatchEvidence evidence in Evidence)
     {
-        <span class="rule-match-evidence-separator" aria-hidden="true">&middot;</span>
+        <span aria-hidden="true">&middot;</span>
         @if (evidence is TextRuleMatchEvidence text)
         {
             RuleMatchTextSnippet snippet = DescribeTextMatch(text);
-            <span class="rule-match-evidence rule-match-evidence-text">
+            <span class="rule-match-evidence">
                 <span>@DescribeTextField(text.Field): </span>
                 @if (snippet.HasLeadingEllipsis)
                 {

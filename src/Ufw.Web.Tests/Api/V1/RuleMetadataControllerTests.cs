@@ -30,9 +30,7 @@ public sealed class RuleMetadataControllerTests
         Mock<IRuleMetadataReconciliationService> service = new(MockBehavior.Strict);
         RuleMetadataController controller = CreateController(service.Object);
 
-        ActionResult<RuleMetadataReconciliationResponse> action = await controller.CleanupAsync(
-            new CleanupRuleMetadataRequest(),
-            CancellationToken.None);
+        ActionResult<RuleMetadataReconciliationResponse> action = await controller.CleanupAsync(new CleanupRuleMetadataRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<BadRequestObjectResult>(action.Result);
         service.VerifyNoOtherCalls();

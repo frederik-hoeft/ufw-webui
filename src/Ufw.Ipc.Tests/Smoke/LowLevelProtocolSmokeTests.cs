@@ -117,8 +117,7 @@ public sealed class LowLevelProtocolSmokeTests : IpcProtocolTestBase
         configuration: new IpcTestRunConfiguration
         {
             ConfigureServerServices = services =>
-                services.Replace(ServiceDescriptor.Singleton<ITransportSecurityService>(
-                    new FailOnceTransportSecurityService(connectionFailure))),
+                services.Replace(ServiceDescriptor.Singleton<ITransportSecurityService>(new FailOnceTransportSecurityService(connectionFailure))),
         }).AsTask();
 
     private sealed class FailingTransportLayerService : ITransportLayerService

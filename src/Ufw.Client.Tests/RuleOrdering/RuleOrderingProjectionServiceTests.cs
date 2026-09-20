@@ -16,10 +16,7 @@ public sealed class RuleOrderingProjectionServiceTests
     {
         ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2), Rule("c", 3)];
 
-        RuleOrderingPreview preview = _service.Move(
-            authoritative,
-            null,
-            new RuleMoveRequest(2, FirewallAddressFamily.IPv4, 1));
+        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(2, FirewallAddressFamily.IPv4, 1));
 
         CollectionAssert.AreEqual(new[] { 2, 0, 1 }, preview.DesiredOrder.ToArray());
         CollectionAssert.AreEqual(new int?[] { 1, 2, 3 }, authoritative.Select(static rule => rule.DisplayNumber).ToArray());
@@ -32,15 +29,9 @@ public sealed class RuleOrderingProjectionServiceTests
     public void Move_SubsequentMoveBuildsOnOccurrencePermutation()
     {
         ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2), Rule("c", 3)];
-        RuleOrderingPreview first = _service.Move(
-            authoritative,
-            null,
-            new RuleMoveRequest(2, FirewallAddressFamily.IPv4, 1));
+        RuleOrderingPreview first = _service.Move(authoritative, null, new RuleMoveRequest(2, FirewallAddressFamily.IPv4, 1));
 
-        RuleOrderingPreview second = _service.Move(
-            authoritative,
-            first,
-            new RuleMoveRequest(0, FirewallAddressFamily.IPv4, 3));
+        RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest(0, FirewallAddressFamily.IPv4, 3));
 
         CollectionAssert.AreEqual(new[] { 2, 1, 0 }, second.DesiredOrder.ToArray());
         CollectionAssert.AreEquivalent(new[] { 0, 2 }, second.DirectlyMovedOccurrences.ToArray());
@@ -53,10 +44,7 @@ public sealed class RuleOrderingProjectionServiceTests
         ListedFirewallRule second = Rule("dup", 2);
         ListedFirewallRule[] authoritative = [first, second];
 
-        RuleOrderingPreview preview = _service.Move(
-            authoritative,
-            null,
-            new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 1));
+        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 1));
 
         CollectionAssert.AreEqual(new[] { 1, 0 }, preview.DesiredOrder.ToArray());
         Assert.IsTrue(preview.WasDirectlyMoved(1));
@@ -74,10 +62,7 @@ public sealed class RuleOrderingProjectionServiceTests
             Rule("v6-b", 4, FirewallAddressFamily.IPv6),
         ];
 
-        RuleOrderingPreview preview = _service.Move(
-            authoritative,
-            null,
-            new RuleMoveRequest(3, FirewallAddressFamily.IPv6, 1));
+        RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(3, FirewallAddressFamily.IPv6, 1));
 
         CollectionAssert.AreEqual(new[] { 0, 1, 3, 2 }, preview.DesiredOrder.ToArray());
         CollectionAssert.AreEqual(new int?[] { 1, 2, 3, 4 }, authoritative.Select(static rule => rule.DisplayNumber).ToArray());
@@ -115,15 +100,9 @@ public sealed class RuleOrderingProjectionServiceTests
     public void Move_ReturningToBaselineProducesUnchangedPreview()
     {
         ListedFirewallRule[] authoritative = [Rule("a", 1), Rule("b", 2)];
-        RuleOrderingPreview first = _service.Move(
-            authoritative,
-            null,
-            new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 1));
+        RuleOrderingPreview first = _service.Move(authoritative, null, new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 1));
 
-        RuleOrderingPreview second = _service.Move(
-            authoritative,
-            first,
-            new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 2));
+        RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 2));
 
         CollectionAssert.AreEqual(new[] { 0, 1 }, second.DesiredOrder.ToArray());
         Assert.IsFalse(second.HasChanges);

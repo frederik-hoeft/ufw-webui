@@ -58,7 +58,7 @@
     </Status>
 </PageHeader>
 
-@if (_state.Status == RulesPageStatus.Failed)
+@if (_state.Status == RuleInventoryStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
         <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LoadFailed"]</MudText>
@@ -101,7 +101,7 @@ else
             </MudButton>
         </MudAlert>
     }
-    else if (_state.Status == RulesPageStatus.Refreshing)
+    else if (_state.Status == RuleInventoryStatus.Refreshing)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">

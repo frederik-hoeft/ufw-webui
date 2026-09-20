@@ -17,25 +17,13 @@ internal sealed class IntentVerifier
     MessageJsonSerializerContext jsonContext
 ) : IIntentVerifier
 {
-    public IntentVerificationResult VerifyAdd(ISignedIntent intent) => Verify(
-        intent,
-        IntentOperations.ADD_RULE,
-        ParseAddPayload);
+    public IntentVerificationResult VerifyAdd(ISignedIntent intent) => Verify(intent, IntentOperations.ADD_RULE, ParseAddPayload);
 
-    public IntentVerificationResult VerifyDelete(ISignedIntent intent) => Verify(
-        intent,
-        IntentOperations.DELETE_RULE,
-        ParseDeletePayload);
+    public IntentVerificationResult VerifyDelete(ISignedIntent intent) => Verify(intent, IntentOperations.DELETE_RULE, ParseDeletePayload);
 
-    public IntentVerificationResult VerifyInsert(ISignedIntent intent) => Verify(
-        intent,
-        IntentOperations.INSERT_RULE,
-        ParseInsertPayload);
+    public IntentVerificationResult VerifyInsert(ISignedIntent intent) => Verify(intent, IntentOperations.INSERT_RULE, ParseInsertPayload);
 
-    public IntentVerificationResult VerifyReorder(ISignedIntent intent) => Verify(
-        intent,
-        IntentOperations.REORDER_RULES,
-        ParseReorderPayload);
+    public IntentVerificationResult VerifyReorder(ISignedIntent intent) => Verify(intent, IntentOperations.REORDER_RULES, ParseReorderPayload);
 
     private IntentVerificationResult Verify(ISignedIntent intent, string expectedOperation, Func<ISignedIntent, PayloadVerification> payloadVerifier)
     {
@@ -166,8 +154,7 @@ internal sealed class IntentVerifier
         DeleteRulePayload? payload = intent.Payload.Deserialize(jsonContext.DeleteRulePayload);
         if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.RuleId))
         {
-            return PayloadVerification.Reject(
-                new BadRequestResponse("Delete-rule payload must include ruleId and a rule specification."));
+            return PayloadVerification.Reject(new BadRequestResponse("Delete-rule payload must include ruleId and a rule specification."));
         }
 
         if (!RuleSpecificationValidator.TryValidate(payload.Rule, out ModelValidationErrorResponse? validationError))
@@ -178,8 +165,7 @@ internal sealed class IntentVerifier
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(payload.Rule);
         if (normalized.AddressFamily == FirewallAddressFamily.Any)
         {
-            return PayloadVerification.Reject(new BadRequestResponse(
-                "Delete-rule specifications must use a concrete address family from the current rule listing."));
+            return PayloadVerification.Reject(new BadRequestResponse("Delete-rule specifications must use a concrete address family from the current rule listing."));
         }
 
         string computed = RuleIdentity.Compute(normalized);
@@ -205,8 +191,7 @@ internal sealed class IntentVerifier
         InsertRulePayload? payload = intent.Payload.Deserialize(jsonContext.InsertRulePayload);
         if (payload?.Rule is null || string.IsNullOrWhiteSpace(payload.BaselineFingerprint))
         {
-            return PayloadVerification.Reject(
-                new BadRequestResponse("Insert-rule payload must include a baseline fingerprint and rule specification."));
+            return PayloadVerification.Reject(new BadRequestResponse("Insert-rule payload must include a baseline fingerprint and rule specification."));
         }
 
         if (!RuleSpecificationValidator.TryValidate(payload.Rule, out ModelValidationErrorResponse? validationError))
@@ -247,8 +232,7 @@ internal sealed class IntentVerifier
             || string.IsNullOrWhiteSpace(payload.BaselineFingerprint)
             || payload.DesiredOrder is null)
         {
-            return PayloadVerification.Reject(
-                new BadRequestResponse("Reorder payload must include a baseline fingerprint and desired order."));
+            return PayloadVerification.Reject(new BadRequestResponse("Reorder payload must include a baseline fingerprint and desired order."));
         }
 
         if (!FirewallRuleSnapshotFingerprint.IsValid(payload.BaselineFingerprint))

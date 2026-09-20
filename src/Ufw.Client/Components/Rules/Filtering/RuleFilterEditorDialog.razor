@@ -16,12 +16,12 @@
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Search" />
 
-                <div class="rule-filter-selector-groups">
+                <ul>
                     @foreach (RuleFilterDefinitionGroup group in VisibleGroups)
                     {
-                        <section>
+                        <li>
                             <MudText Typo="Typo.overline" Color="Color.Secondary">@group.Category</MudText>
-                            <div class="rule-filter-selector-options">
+                            <div>
                                 @foreach (RuleFilterDefinition definition in group.Definitions)
                                 {
                                     <MudButton Variant="Variant.Text"
@@ -31,9 +31,9 @@
                                     </MudButton>
                                 }
                             </div>
-                        </section>
+                        </li>
                     }
-                </div>
+                </ul>
 
                 @if (VisibleGroups.Count == 0)
                 {

@@ -64,13 +64,7 @@ internal static class UfwOutputFormatter
             specification.AddressFamily,
             rule,
             destination: true);
-        string source = FormatEndpoint(
-            specification.Source,
-            specification.SourcePorts,
-            specification.SourceInterface,
-            specification.AddressFamily,
-            rule,
-            destination: false);
+        string source = FormatEndpoint(specification.Source, specification.SourcePorts, specification.SourceInterface, specification.AddressFamily, rule, destination: false);
         string action = $"{RuleSpecificationNormalizer.FormatAction(specification.Action).ToUpperInvariant()} {FormatDirection(specification.Direction)}";
 
         string row = string.Format(CultureInfo.InvariantCulture, "{0,-27} {1,-11} {2}", destination, action, source);
@@ -233,8 +227,7 @@ internal static class UfwOutputFormatter
             return false;
         }
 
-        string endpointAddress = RuleSpecificationNormalizer.NormalizeAddress(
-            destination ? specification.Destination : specification.Source);
+        string endpointAddress = RuleSpecificationNormalizer.NormalizeAddress(destination ? specification.Destination : specification.Source);
         if (endpointAddress != RuleSpecificationNormalizer.ANY)
         {
             return true;

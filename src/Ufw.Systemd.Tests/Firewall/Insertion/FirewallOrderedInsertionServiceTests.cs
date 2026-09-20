@@ -56,8 +56,7 @@ public sealed class FirewallOrderedInsertionServiceTests
                 calls.Add("executor");
                 return Task.FromResult(CompletedResult());
             });
-        FirewallOrderedInsertionService service = new(
-            verifier.Object, nonceStore.Object, gate.Object, guard.Object, executor.Object);
+        FirewallOrderedInsertionService service = new(verifier.Object, nonceStore.Object, gate.Object, guard.Object, executor.Object);
 
         IResponsePayload result = await service.InsertAsync(CreateRequest(), TestContext.CancellationToken);
 
@@ -75,8 +74,7 @@ public sealed class FirewallOrderedInsertionServiceTests
         Mock<IUfwExecutionGate> gate = new(MockBehavior.Strict);
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
         Mock<IFirewallOrderedInsertionExecutor> executor = new(MockBehavior.Strict);
-        FirewallOrderedInsertionService service = new(
-            verifier.Object, nonceStore.Object, gate.Object, guard.Object, executor.Object);
+        FirewallOrderedInsertionService service = new(verifier.Object, nonceStore.Object, gate.Object, guard.Object, executor.Object);
 
         IResponsePayload result = await service.InsertAsync(CreateRequest(), TestContext.CancellationToken);
 
@@ -98,8 +96,7 @@ public sealed class FirewallOrderedInsertionServiceTests
             .ReturnsAsync(false);
         Mock<IFirewallMutationSafetyGuard> guard = CreateSafetyGuard();
         Mock<IFirewallOrderedInsertionExecutor> executor = CreateExecutor();
-        FirewallOrderedInsertionService service = new(
-            verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallOrderedInsertionService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
         InsertRuleRequest request = CreateRequest();
 
         Assert.IsInstanceOfType<RuleInsertionResponse>(await service.InsertAsync(request, TestContext.CancellationToken));
@@ -118,8 +115,7 @@ public sealed class FirewallOrderedInsertionServiceTests
             .ReturnsAsync(() => Interlocked.Increment(ref consumed) == 1);
         Mock<IFirewallMutationSafetyGuard> guard = CreateSafetyGuard();
         Mock<IFirewallOrderedInsertionExecutor> executor = CreateExecutor();
-        FirewallOrderedInsertionService service = new(
-            verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallOrderedInsertionService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
         InsertRuleRequest request = CreateRequest();
 
         IResponsePayload[] results = await Task.WhenAll(
@@ -149,17 +145,13 @@ public sealed class FirewallOrderedInsertionServiceTests
 
             using (FileNonceStore firstStore = new(configuration, clock))
             {
-                FirewallOrderedInsertionService first = new(
-                    verifier.Object, firstStore, gate, guard.Object, executor.Object);
-                Assert.IsInstanceOfType<RuleInsertionResponse>(
-                    await first.InsertAsync(request, TestContext.CancellationToken));
+                FirewallOrderedInsertionService first = new(verifier.Object, firstStore, gate, guard.Object, executor.Object);
+                Assert.IsInstanceOfType<RuleInsertionResponse>(await first.InsertAsync(request, TestContext.CancellationToken));
             }
 
             using FileNonceStore restartedStore = new(configuration, clock);
-            FirewallOrderedInsertionService restarted = new(
-                verifier.Object, restartedStore, gate, guard.Object, executor.Object);
-            Assert.IsInstanceOfType<ConflictResponse>(
-                await restarted.InsertAsync(request, TestContext.CancellationToken));
+            FirewallOrderedInsertionService restarted = new(verifier.Object, restartedStore, gate, guard.Object, executor.Object);
+            Assert.IsInstanceOfType<ConflictResponse>(await restarted.InsertAsync(request, TestContext.CancellationToken));
             executor.Verify(value => value.ExecuteAsync(It.IsAny<InsertRulePayload>(), It.IsAny<CancellationToken>()), Times.Once);
         }
         finally
@@ -184,8 +176,7 @@ public sealed class FirewallOrderedInsertionServiceTests
         RuleListResponse snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         executor.Setup(value => value.ExecuteAsync(It.IsAny<InsertRulePayload>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleInsertionExecutionResult(executionOutcome, snapshot, null, "diagnostic"));
-        FirewallOrderedInsertionService service = new(
-            verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallOrderedInsertionService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
 
         IResponsePayload result = await service.InsertAsync(CreateRequest(), TestContext.CancellationToken);
 

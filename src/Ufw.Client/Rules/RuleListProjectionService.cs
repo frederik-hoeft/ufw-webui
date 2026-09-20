@@ -54,17 +54,7 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
                 && metadataByRuleId.TryGetValue(ruleIdentity, out RuleMetadata? matchedMetadata)
                     ? matchedMetadata
                     : null;
-            RuleRowProjection row = new(
-                rule,
-                family,
-                occurrenceId,
-                familyPosition,
-                familyCounts[family],
-                canOrder,
-                canMutate,
-                positionChange,
-                metadata,
-                CreateCanonicalCommand(rule));
+            RuleRowProjection row = new(rule, family, occurrenceId, familyPosition, familyCounts[family], canOrder, canMutate, positionChange, metadata, CreateCanonicalCommand(rule));
 
             if (family == FirewallAddressFamily.IPv6)
             {
@@ -76,11 +66,7 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
             }
         }
 
-        return new RuleListProjection(
-        [
-            new RuleFamilyProjection(FirewallAddressFamily.IPv4, ipv4Rows),
-            new RuleFamilyProjection(FirewallAddressFamily.IPv6, ipv6Rows),
-        ]);
+        return new RuleListProjection([new RuleFamilyProjection(FirewallAddressFamily.IPv4, ipv4Rows), new RuleFamilyProjection(FirewallAddressFamily.IPv6, ipv6Rows),]);
     }
 
     private string? CreateCanonicalCommand(ListedFirewallRule rule)
@@ -118,9 +104,6 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
             return null;
         }
 
-        return new RulePositionChange(
-            originalFamilyPosition,
-            currentFamilyPosition,
-            orderingPreview.WasDirectlyMoved(occurrenceId));
+        return new RulePositionChange(originalFamilyPosition, currentFamilyPosition, orderingPreview.WasDirectlyMoved(occurrenceId));
     }
 }

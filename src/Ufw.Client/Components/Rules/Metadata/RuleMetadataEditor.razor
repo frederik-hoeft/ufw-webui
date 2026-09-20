@@ -23,11 +23,11 @@
                   Disabled="@Disabled"
                   Placeholder="@(RulesText["NotesPlaceholder"])" />
 
-    <div class="rule-metadata-editor-tags mt-4">
+    <div class="rule-metadata-editor mt-4">
         <MudText Typo="Typo.subtitle2">@RulesText["Tags"]</MudText>
         @if (SelectedTags.Count > 0)
         {
-            <div class="rule-metadata-editor-selected-tags">
+            <div class="selected-tags">
                 @foreach (RuleTag tag in SelectedTags)
                 {
                     <button type="button"

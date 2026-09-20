@@ -44,10 +44,7 @@ internal static class UfwRulePositionResolver
         int familyCount = CountFamily(rules, family);
         if (familyPosition <= 0 || familyPosition > familyCount)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(familyPosition),
-                familyPosition,
-                "UFW insert positions must identify an existing rule in the target family.");
+            throw new ArgumentOutOfRangeException(nameof(familyPosition), familyPosition, "UFW insert positions must identify an existing rule in the target family.");
         }
 
         return family == FirewallAddressFamily.IPv6
