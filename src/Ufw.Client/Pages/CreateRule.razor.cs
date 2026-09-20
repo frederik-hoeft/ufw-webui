@@ -2,7 +2,6 @@
 using MudBlazor;
 using System.Globalization;
 using Ufw.Client.Api;
-using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Metadata;
 using Ufw.Client.Errors;
 using Ufw.Client.RuleInsertion;

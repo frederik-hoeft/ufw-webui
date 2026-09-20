@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.WebAssembly.Http;
-using System.Net;
+﻿using System.Net;
 using Ufw.Client.Auth;
 using Ufw.Client.Tests.Support;
 

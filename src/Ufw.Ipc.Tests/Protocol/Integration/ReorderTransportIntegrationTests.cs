@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;

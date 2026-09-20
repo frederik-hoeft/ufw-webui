@@ -1,5 +1,4 @@
-﻿using Ufw.Client.Rules.Filtering;
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Rules.Filtering.Networks;
 

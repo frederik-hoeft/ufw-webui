@@ -1,5 +1,4 @@
-using Ufw.Client.Rules.Filtering;
-using Ufw.Client.Rules.Metadata;
+﻿using Ufw.Client.Rules.Metadata;
 
 namespace Ufw.Client.Rules.Filtering.Tags;
 

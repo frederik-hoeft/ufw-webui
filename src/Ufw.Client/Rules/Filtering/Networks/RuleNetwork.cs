@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
-using System.Net.Sockets;
-using Ufw.Client.Rules.Filtering;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Client.Rules.Filtering.Networks;

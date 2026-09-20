@@ -1,6 +1,5 @@
 ﻿using ConsoleAppFramework;
 using Microsoft.Extensions.DependencyInjection;
-using Ufw.Mock.Cli;
 using Ufw.Mock.Commands;
 using Ufw.Mock.Rules;
 using Ufw.Mock.Services;

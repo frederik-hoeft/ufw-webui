@@ -1,6 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Client.RuleInsertion;
 

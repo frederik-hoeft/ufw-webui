@@ -1,5 +1,4 @@
 ﻿using Ufw.Mock.Cli;
-using Ufw.Mock.Rules;
 using Ufw.Mock.State;
 using Ufw.Shared.Firewall;
 

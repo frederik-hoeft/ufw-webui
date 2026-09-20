@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Ufw.Ipc.Client;
 using Ufw.Ipc.Client.Configuration;
-using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
 using Ufw.Ipc.Tests.Adapter.Configuration;
 using Ufw.Ipc.Tests.Adapter.Endpoints;

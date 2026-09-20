@@ -1,5 +1,4 @@
 ﻿using Moq;
-using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Firewall.Ordering;
 
 namespace Ufw.Systemd.Tests.Firewall.Ordering;

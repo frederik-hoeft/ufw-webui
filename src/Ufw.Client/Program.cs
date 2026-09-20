@@ -5,7 +5,6 @@ using MudBlazor.Services;
 using Ufw.Client.Api;
 using Ufw.Client.Auth;
 using Ufw.Client.Clipboard;
-using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Filtering;
 using Ufw.Client.Components.Rules.Filtering.Actions;
 using Ufw.Client.Components.Rules.Filtering.Directions;

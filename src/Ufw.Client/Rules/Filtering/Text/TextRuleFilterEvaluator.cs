@@ -1,5 +1,4 @@
-﻿using Ufw.Client.Rules.Filtering;
-using Ufw.Client.Rules.Filtering.KnownHosts;
+﻿using Ufw.Client.Rules.Filtering.KnownHosts;
 using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 

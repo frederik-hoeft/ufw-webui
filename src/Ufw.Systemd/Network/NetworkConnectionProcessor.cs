@@ -1,5 +1,4 @@
-﻿using Ufw.Shared.Ipc.Model;
-using Ufw.Shared.Ipc.Model.Responses;
+﻿using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Transport;

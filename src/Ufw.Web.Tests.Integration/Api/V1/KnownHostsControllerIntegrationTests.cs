@@ -6,7 +6,6 @@ using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Models.KnownHosts;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
-using Ufw.Web.Tests.Integration.Support;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;
 

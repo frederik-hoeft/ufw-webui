@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Ufw.Roslyn.SourceGen.Contracts;
+﻿namespace Ufw.Roslyn.SourceGen.Contracts;
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 internal sealed class GeneratorContractRegistrationAttribute<TContract>(TContract contract, Type type) : Attribute where TContract : struct, Enum

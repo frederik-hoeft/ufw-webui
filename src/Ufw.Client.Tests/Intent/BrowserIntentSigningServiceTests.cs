@@ -1,5 +1,4 @@
 ﻿using Moq;
-using System.Text;
 using Ufw.Client.Intent;
 using Ufw.Client.Tests.Support;
 using Ufw.Shared.Firewall;

@@ -3,12 +3,9 @@ using Ufw.Client.Api;
 using Ufw.Client.Components.Rules;
 using Ufw.Client.Components.Rules.Metadata;
 using Ufw.Client.Errors;
-using Ufw.Client.KnownHosts;
-using Ufw.Client.RuleInsertion;
 using Ufw.Client.RuleOrdering;
 using Ufw.Client.Rules;
 using Ufw.Client.Rules.Filtering;
-using Ufw.Client.Rules.Metadata;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -262,8 +259,10 @@ public sealed partial class Rules
         _deleteDialogOpen = true;
         try
         {
-            DialogParameters<DeleteRuleDialog> parameters = new();
-            parameters.Add(component => component.Rule, rule);
+            DialogParameters<DeleteRuleDialog> parameters = new()
+            {
+                { component => component.Rule, rule }
+            };
 
             IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(RulesText["DeleteDialogTitle"], parameters, s_deleteDialogOptions);
             privateKey = await dialog.GetReturnValueAsync<string>();
@@ -395,7 +394,7 @@ public sealed partial class Rules
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
-            int[] desiredOrder = _orderingPreview.DesiredOrder.ToArray();
+            int[] desiredOrder = [.. _orderingPreview.DesiredOrder];
             RuleReorderResponse response = await RuleOrdering.ApplyAsync(
                 baseline,
                 desiredOrder,

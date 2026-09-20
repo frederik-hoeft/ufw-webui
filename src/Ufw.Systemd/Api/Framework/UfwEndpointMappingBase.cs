@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Roslyn.Controllers;
+﻿using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Serialization;

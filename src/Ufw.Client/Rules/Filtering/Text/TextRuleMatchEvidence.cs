@@ -1,6 +1,4 @@
-﻿using Ufw.Client.Rules.Filtering;
-
-namespace Ufw.Client.Rules.Filtering.Text;
+﻿namespace Ufw.Client.Rules.Filtering.Text;
 
 internal sealed record TextRuleMatchEvidence(
     TextRuleMatchEvidence.FieldKind Field,
