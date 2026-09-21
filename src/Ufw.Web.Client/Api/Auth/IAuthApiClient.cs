@@ -1,4 +1,5 @@
-﻿using Ufw.Web.Client.Api.Auth.Model;
+﻿using Ufw.Web.Model.V1.Auth;
+
 namespace Ufw.Web.Client.Api.Auth;
 
 public interface IAuthApiClient

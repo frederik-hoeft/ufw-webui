@@ -79,6 +79,7 @@ The source tree follows trust and deployment boundaries:
 | Project | Role |
 | --- | --- |
 | `Ufw.Web.Client` | Blazor WebAssembly browser application |
+| `Ufw.Web.Model` | pure, versioned browser REST request/response DTOs shared by ASP and Blazor |
 | `Ufw.Web` | ASP.NET Core REST API, authentication, PostgreSQL-backed application state, and daemon IPC client |
 | `Ufw.Systemd` | privileged host daemon and UFW execution boundary |
 | `Ufw.Shared` | cross-process firewall semantics, security primitives, and IPC contracts |

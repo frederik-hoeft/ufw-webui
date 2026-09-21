@@ -1,6 +1,6 @@
 ﻿using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Api.Rules;
 

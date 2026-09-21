@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Models.KnownHosts;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 
@@ -29,7 +29,7 @@ public sealed class KnownHostsControllerIntegrationTests : ControllerIntegration
                 cancellationToken);
             OkObjectResult createOk = Assert.IsInstanceOfType<OkObjectResult>(createResult);
             KnownHostInventoryResponse created = Assert.IsInstanceOfType<KnownHostInventoryResponse>(createOk.Value);
-            KnownHostItem item = created.Hosts.Single();
+            KnownHostInventoryItem item = created.Hosts.Single();
             Assert.AreEqual("database", item.Name);
             Assert.AreEqual("192.0.2.0/24", item.Address);
             Assert.AreEqual(FirewallAddressFamily.IPv4, item.AddressFamily);
@@ -48,7 +48,7 @@ public sealed class KnownHostsControllerIntegrationTests : ControllerIntegration
                 cancellationToken);
             OkObjectResult updateOk = Assert.IsInstanceOfType<OkObjectResult>(updateResult);
             KnownHostInventoryResponse updated = Assert.IsInstanceOfType<KnownHostInventoryResponse>(updateOk.Value);
-            KnownHostItem updatedItem = updated.Hosts.Single();
+            KnownHostInventoryItem updatedItem = updated.Hosts.Single();
             Assert.AreEqual(item.Id, updatedItem.Id);
             Assert.AreEqual("198.51.100.10", updatedItem.Address);
             Assert.IsFalse(updatedItem.IsVisible);

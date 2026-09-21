@@ -8,7 +8,8 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Api.V1;

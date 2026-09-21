@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
@@ -100,9 +100,9 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
             .AsNoTracking()
             .OrderBy(static tag => tag.Name)
             .ThenBy(static tag => tag.PublicId)
-            .Select(static tag => new RuleTagItem(tag.PublicId, tag.Name, tag.Color))
+            .Select(static tag => new RuleTagItem { Id = tag.PublicId, Name = tag.Name, Color = tag.Color })
             .ToArrayAsync(cancellationToken);
-        return new RuleTagInventoryResponse(tags);
+        return new RuleTagInventoryResponse { Tags = tags };
     }
 
     private static async Task<bool> NameExistsAsync(ApplicationDbContext context, string name, long? excludingId, CancellationToken cancellationToken)

@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Client.Api.KnownHosts.Model;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.Features.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Components.Rules;

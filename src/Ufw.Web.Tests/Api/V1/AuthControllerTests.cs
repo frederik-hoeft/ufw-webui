@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Models.Auth;
+using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Configuration;
 using Ufw.Web.Services.Auth;
 

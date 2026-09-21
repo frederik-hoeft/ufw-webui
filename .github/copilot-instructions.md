@@ -7,6 +7,7 @@ UFWeb is a .NET 10 UFW management platform with a Blazor WebAssembly client, a n
 - `Ufw.Web.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, rule-authoring interaction, and browser-side signed-intent creation.
 - `Ufw.Web` is the REST API. It owns ASP.NET Core Identity, PostgreSQL-backed application state, JWT/refresh-token handling, application authorization, browser-facing metadata, and the local
   IPC client.
+- `Ufw.Web.Model` owns pure, versioned browser REST request/response DTOs shared by `Ufw.Web` and `Ufw.Web.Client`.
 - `Ufw.Systemd` is the privileged daemon and the authority for actual UFW observation and execution.
 - `Ufw.Shared` owns cross-process firewall semantics, security primitives, and the `Ufw.Shared.Ipc` protocol/serialization contract.
 - `Ufw.Ipc.Client` implements the typed local IPC client on top of `Ufw.Shared.Ipc`.
@@ -61,8 +62,8 @@ rules or host state.
 
 ## Web API and client conventions
 
-Use controller-based, versioned browser APIs under `Ufw.Web/Api/V{N}`. Keep request/response contracts near the versioned API surface and place reusable application logic behind focused
-services.
+Use controller-based, versioned browser APIs under `Ufw.Web/Api/V{N}`. Keep pure versioned request/response DTOs in `Ufw.Web.Model/V{N}` so ASP and Blazor compile against one wire contract;
+keep controller behavior and reusable application logic in `Ufw.Web` rather than leaking server dependencies into the model project.
 
 Authentication infrastructure consists of:
 
@@ -78,8 +79,8 @@ Bootstrap users are initial provisioning only. Keep `Auth:Bootstrap:Users` idemp
 password from configuration, and never delete users merely because they disappear from bootstrap configuration. Standard ASP.NET Core configuration providers, including Docker environment
 variables, must remain sufficient to drive bootstrap.
 
-Keep browser code in `Ufw.Web.Client` with explicit ownership boundaries: Razor presentation lives under `UI`, ASP REST clients/contracts live under `Api` with controller-shaped resource
-namespaces and `Model` DTO subnamespaces, client domain/application behavior lives under `Features/<domain>`, immutable runtime configuration lives under `Configuration`, and only truly
+Keep browser code in `Ufw.Web.Client` with explicit ownership boundaries: Razor presentation lives under `UI`, ASP REST client implementations/interfaces live under `Api` with controller-shaped
+resource namespaces, versioned REST DTOs live in the separate `Ufw.Web.Model` project, client domain/application behavior lives under `Features/<domain>`, immutable runtime configuration lives under `Configuration`, and only truly
 domain-agnostic browser/application services live under `Services`. Do not add a generic `Infrastructure` dumping ground. Keep page/component SCSS beside its Razor owner under `UI`; use
 `.razor.scss` for natural CSS isolation and ordinary `.scss` when MudBlazor/portal/render-fragment styling would otherwise require pervasive `::deep`; register isolated Sass companions
 explicitly in `sasscompiler.json` so isolation remains a per-component choice. `UI/Styles/app.scss`, generated `wwwroot/css/app.css`, and the generated isolated stylesheet bundle are build

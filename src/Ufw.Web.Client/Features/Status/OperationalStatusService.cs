@@ -1,7 +1,7 @@
 ﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Status;
 using Ufw.Web.Client.Api.Intent;

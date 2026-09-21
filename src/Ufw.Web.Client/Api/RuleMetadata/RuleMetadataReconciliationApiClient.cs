@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using Ufw.Web.Client.Api;
-using Ufw.Web.Client.Api.RuleMetadata.Model;
+using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Client.Api.RuleMetadata;
 

@@ -17,6 +17,7 @@
 
   <ItemGroup>
       <ProjectReference Include="..\Ufw.Web\Ufw.Web.csproj" />
+      <ProjectReference Include="..\Ufw.Web.Model\Ufw.Web.Model.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Ufw.Web\appsettings.default.json" Link="appsettings.default.json" CopyToOutputDirectory="PreserveNewest" />

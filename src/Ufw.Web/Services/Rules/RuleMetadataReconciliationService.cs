@@ -1,5 +1,6 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Services.Rules;
 
@@ -35,7 +36,7 @@ internal sealed class RuleMetadataReconciliationService(IDaemonRuleSource daemon
             .Where(item => !liveRuleIds.Contains(item.RuleId))
             .OrderBy(static item => item.RuleId, StringComparer.Ordinal)
             .ThenBy(static item => item.Id)];
-        return new RuleMetadataReconciliationResponse(orphans, removedCount);
+        return new RuleMetadataReconciliationResponse { Orphans = orphans, RemovedCount = removedCount };
     }
 
     private static string[] GetLiveRuleIds(RuleListResponse snapshot) => [.. snapshot.Rules

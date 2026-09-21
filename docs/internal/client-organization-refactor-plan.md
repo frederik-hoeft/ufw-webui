@@ -5,13 +5,15 @@
 Reorganize the Blazor WebAssembly client around explicit UI, REST API, domain-feature, configuration, and general-purpose service boundaries; rename the client assembly to `Ufw.Web.Client`;
 and colocate component/page SCSS with its owning Razor UI without forcing CSS isolation where MudBlazor renders the relevant DOM outside the component scope.
 
-The important architectural boundary is ownership rather than implementation mechanism: REST transport contracts belong to `Api`, client-side application/domain behavior belongs to
-`Features`, reusable browser/application services belong to `Services`, and Razor presentation belongs to `UI`.
+The important architectural boundary is ownership rather than implementation mechanism: browser REST client mechanics belong to `Api`, pure versioned REST DTOs belong to the shared
+`Ufw.Web.Model` project, client-side application/domain behavior belongs to `Features`, reusable browser/application services belong to `Services`, and Razor presentation belongs to `UI`.
 
 ## Target structure
 
-- `Api/` owns the browser-to-ASP REST boundary. General HTTP response/error/serialization infrastructure lives at the API root. Resource subnamespaces mirror ASP controllers (`Auth`,
-  `Intent`, `KnownHosts`, `NetworkInterfaces`, `Rules`, `RuleMetadata`, `RuleTags`, and `Status`), and resource-owned browser DTOs live under each resource's `Model/` namespace.
+- `Api/` owns browser-side HTTP clients and general HTTP response/error/serialization infrastructure. Resource subnamespaces mirror ASP controllers (`Auth`, `Intent`, `KnownHosts`,
+  `NetworkInterfaces`, `Rules`, `RuleMetadata`, `RuleTags`, and `Status`) but do not redefine wire DTOs.
+- `Ufw.Web.Model/V{N}/` owns pure versioned request/response DTOs shared by ASP and Blazor. Resource namespaces mirror the versioned REST resources and may depend on lower-level `Ufw.Shared`
+  contracts, but not on ASP persistence/services or client features/UI.
 - `Configuration/` owns immutable browser runtime configuration and other true client configuration concepts.
 - `Features/<domain>/` owns client-side domain/application state and DI services. Features consume `Api` contracts but do not define REST DTOs or HTTP clients. Rule intent crypto/signing and
   signed-mutation orchestration live under `Features/Rules/Intent`; rule ordering application stays under `Features/Rules/Ordering`.
@@ -36,30 +38,24 @@ Api/
   Auth/
     IAuthApiClient.cs
     AuthApiClient.cs
-    Model/
   Intent/
     IIntentContextApiClient.cs
     IntentContextApiClient.cs
   KnownHosts/
     IKnownHostApiClient.cs
     KnownHostApiClient.cs
-    Model/
   NetworkInterfaces/
     INetworkInterfaceApiClient.cs
     NetworkInterfaceApiClient.cs
-    Model/
   Rules/
     IRuleApiClient.cs
     RuleApiClient.cs
-    Model/
   RuleMetadata/
     IRuleMetadataReconciliationApiClient.cs
     RuleMetadataReconciliationApiClient.cs
-    Model/
   RuleTags/
     IRuleTagApiClient.cs
     RuleTagApiClient.cs
-    Model/
   Status/
     IDaemonStatusApiClient.cs
     DaemonStatusApiClient.cs
@@ -82,7 +78,7 @@ output.
 1. Rename `Ufw.Client` and `Ufw.Client.Tests` projects/assemblies/namespaces to `Ufw.Web.Client` and `Ufw.Web.Client.Tests`; update solution, build/deployment scripts, docs, and friend
 assembly references.
 2. Reorganize domain/application code under `Features/` and domain-agnostic DI services under `Services/`.
-3. Establish `Api/` as the sole REST boundary, split API clients by ASP resource, place resource DTOs under `Model/`, and move generic HTTP/JSON mechanics to the API root.
+3. Establish `Api/` as the client HTTP boundary, split API clients by ASP resource, move generic HTTP/JSON mechanics to the API root, and extract duplicated ASP/client REST DTOs into the shared versioned `Ufw.Web.Model` project.
 4. Remove the ambiguous `Infrastructure/` root: move runtime configuration to `Configuration/` and rule intent behavior to `Features/Rules/Intent`.
 5. Unify Razor presentation under `UI/` and update namespaces/imports accordingly.
 6. Move localization resources with their marker namespace so resource base names remain correct.
@@ -96,8 +92,10 @@ assembly references.
 - Renamed the client and client-test projects/assemblies/namespaces to `Ufw.Web.Client` / `Ufw.Web.Client.Tests` and updated solution, deployment, scripts, documentation, generated-asset
   paths, and friend-assembly references.
 - Reorganized client domain/application code under `Features/` and truly cross-domain DI services under `Services/`.
-- Established the root `Api/` boundary with controller-shaped resource namespaces and `Model/` DTO namespaces. HTTP protocol errors/extensions and the source-generated client JSON context
-  now live at the API root, while client-side rule mutation/ordering orchestration no longer masquerades as REST infrastructure.
+- Established the root `Api/` boundary with controller-shaped resource namespaces. HTTP protocol errors/extensions and the source-generated client JSON context now live at the API root, while
+  client-side rule mutation/ordering orchestration no longer masquerades as REST infrastructure.
+- Added `Ufw.Web.Model` as the single shared home for pure versioned browser REST DTOs and removed the duplicate ASP/client model trees. `Ufw.Web` and `Ufw.Web.Client` now compile against the same
+  `Ufw.Web.Model.V1.*` request/response types.
 - Removed `Infrastructure/`; moved runtime configuration to `Configuration/`, intent context transport to `Api/Intent`, and browser intent crypto/signing/mutation behavior to
   `Features/Rules/Intent`.
 - Unified the Razor presentation tree under `UI/`, including `App`, `_Imports`, `Components`, `Layout`, `Pages`, and `Styles`.
@@ -106,5 +104,6 @@ assembly references.
 - CSS isolation is opt-in per component through explicit `sasscompiler.json` `Compilations`. `SettingsSection.razor.scss` exercises the path without requiring `::deep`; ordinary colocated
   `.scss` continues to flow only through `UI/Styles/app.scss`.
 - Split UI filter-definition/catalog registration from `Features.Rules.Services`, so feature/API layers no longer depend on UI namespaces; the application composition root wires both boundaries explicitly.
-- Offline restore succeeded with package feeds disabled; the full solution builds with 0 warnings/errors; all 987 tests pass. Debug publish contains both `css/app.css` and
-  `Ufw.Web.Client.styles.css`, and the isolated bundle contains the expected scoped `SettingsSection` selector. Stale namespace/path scans and `git diff --check` are clean.
+- Offline restore succeeded with package feeds disabled; the full solution builds with 0 warnings/errors; all 987 tests pass. Debug publish contains the shared `Ufw.Web.Model` assembly in both
+  ASP and WASM output, retains `css/app.css` and `Ufw.Web.Client.styles.css`, and the isolated bundle contains the expected scoped `SettingsSection` selector. Stale namespace/path scans and
+  `git diff --check` are clean.

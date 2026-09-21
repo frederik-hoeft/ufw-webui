@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text;
 using Ufw.Web.Client.Api.Auth;
-using Ufw.Web.Client.Api.Auth.Model;
+using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Tests.Api;

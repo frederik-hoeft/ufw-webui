@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Ufw.Web.Api.V1.Models.NetworkInterfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
@@ -79,7 +79,13 @@ internal sealed class NetworkInterfaceInventoryRepository(ITransactionServiceHan
         NetworkInterfaceInventoryItem[] interfaces = await context.Set<NetworkInterfaceEntry>()
             .AsNoTracking()
             .OrderBy(static networkInterface => networkInterface.Name)
-            .Select(static networkInterface => new NetworkInterfaceInventoryItem(networkInterface.PublicId, networkInterface.Name, networkInterface.Comment, networkInterface.IsVisible))
+            .Select(static networkInterface => new NetworkInterfaceInventoryItem
+            {
+                Id = networkInterface.PublicId,
+                Name = networkInterface.Name,
+                Comment = networkInterface.Comment,
+                IsVisible = networkInterface.IsVisible,
+            })
             .ToArrayAsync(cancellationToken);
         DateTimeOffset? reconciledAt = await context.Set<NetworkInterfaceCacheState>()
             .AsNoTracking()
@@ -87,6 +93,6 @@ internal sealed class NetworkInterfaceInventoryRepository(ITransactionServiceHan
             .Select(static state => (DateTimeOffset?)state.ReconciledAt)
             .SingleOrDefaultAsync(cancellationToken);
 
-        return new NetworkInterfaceInventoryResponse(interfaces, reconciledAt);
+        return new NetworkInterfaceInventoryResponse { Interfaces = interfaces, ReconciledAt = reconciledAt };
     }
 }

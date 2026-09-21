@@ -15,5 +15,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Ufw.Web.Client\Ufw.Web.Client.csproj" />
+        <ProjectReference Include="..\Ufw.Web.Model\Ufw.Web.Model.csproj" />
     </ItemGroup>
 </Project>

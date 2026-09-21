@@ -1,4 +1,5 @@
-using Ufw.Web.Client.Api.RuleTags.Model;
+using Ufw.Web.Model.V1.RuleTags;
+
 namespace Ufw.Web.Client.Api.RuleTags;
 
 public interface IRuleTagApiClient

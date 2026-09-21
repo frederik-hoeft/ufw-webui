@@ -1,5 +1,5 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Services.Rules;
 
@@ -14,6 +14,6 @@ internal sealed class RuleInventoryService(IDaemonRuleSource daemonRules, IRuleM
             .Cast<string>()
             .Distinct(StringComparer.Ordinal)];
         IReadOnlyList<RuleMetadataItem> enrichment = await metadata.GetForRuleIdsAsync(ruleIds, cancellationToken);
-        return new RuleInventoryResponse(firewall, enrichment);
+        return new RuleInventoryResponse { Firewall = firewall, Metadata = enrichment };
     }
 }

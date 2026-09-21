@@ -1,9 +1,9 @@
 using Moq;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleMetadata;
-using Ufw.Web.Client.Api.RuleMetadata.Model;
-using Ufw.Web.Client.Api.RuleTags.Model;
-using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Metadata;

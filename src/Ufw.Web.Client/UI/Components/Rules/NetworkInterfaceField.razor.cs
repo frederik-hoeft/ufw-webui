@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using System.Linq.Expressions;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Client.Api.NetworkInterfaces.Model;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 
 namespace Ufw.Web.Client.UI.Components.Rules;
 

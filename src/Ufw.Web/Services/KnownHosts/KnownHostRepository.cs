@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Api.V1.Models.KnownHosts;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
@@ -121,17 +121,25 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             .Select(static host => new KnownHostProjection(host.PublicId, host.Name, host.Address, host.Comment, host.IsVisible))
             .ToArrayAsync(cancellationToken);
 
-        return new KnownHostInventoryResponse([.. hosts.Select(ToInventoryItem)]);
+        return new KnownHostInventoryResponse { Hosts = [.. hosts.Select(ToInventoryItem)] };
     }
 
-    private static KnownHostItem ToInventoryItem(KnownHostProjection host)
+    private static KnownHostInventoryItem ToInventoryItem(KnownHostProjection host)
     {
         if (!FirewallAddressValue.TryNormalizeLiteral(host.Address, out string? address, out FirewallAddressFamily addressFamily))
         {
             throw new InvalidDataException($"Known host '{host.Id:D}' contains an invalid persisted address.");
         }
 
-        return new KnownHostItem(host.Id, host.Name, address, addressFamily, host.Comment, host.IsVisible);
+        return new KnownHostInventoryItem
+        {
+            Id = host.Id,
+            Name = host.Name,
+            Address = address,
+            AddressFamily = addressFamily,
+            Comment = host.Comment,
+            IsVisible = host.IsVisible,
+        };
     }
 
     private static bool IsUniqueConstraintViolation(DbUpdateException exception) =>

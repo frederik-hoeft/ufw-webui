@@ -1,10 +1,10 @@
 ﻿using System.Text.Json.Serialization;
-using Ufw.Web.Client.Api.Auth.Model;
-using Ufw.Web.Client.Api.KnownHosts.Model;
-using Ufw.Web.Client.Api.NetworkInterfaces.Model;
-using Ufw.Web.Client.Api.RuleMetadata.Model;
-using Ufw.Web.Client.Api.RuleTags.Model;
-using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Api;
 

@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
-using Ufw.Web.Client.Api.KnownHosts.Model;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.Api.KnownHosts;
 

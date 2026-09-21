@@ -4,7 +4,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
-using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Api.Rules;
 

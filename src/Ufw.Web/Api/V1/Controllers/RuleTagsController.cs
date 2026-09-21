@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;

@@ -1,10 +1,10 @@
 ﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Client.Api.KnownHosts.Model;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Client.Api.NetworkInterfaces.Model;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Features.Rules.Authoring;
 using Ufw.Web.Client.Services.Errors;

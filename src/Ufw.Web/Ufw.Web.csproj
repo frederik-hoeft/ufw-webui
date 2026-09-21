@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ufw.Ipc.Client\Ufw.Ipc.Client.csproj" />
+    <ProjectReference Include="..\Ufw.Web.Model\Ufw.Web.Model.csproj" />
   </ItemGroup>
 
   <ItemGroup>

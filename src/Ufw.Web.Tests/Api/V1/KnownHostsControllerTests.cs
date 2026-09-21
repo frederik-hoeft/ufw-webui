@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Models.KnownHosts;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Services.KnownHosts;
 
 namespace Ufw.Web.Tests.Api.V1;

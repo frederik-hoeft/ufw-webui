@@ -1,7 +1,7 @@
 ﻿using MudBlazor;
 using Ufw.Web.Client.UI.Components.Interfaces;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Client.Api.NetworkInterfaces.Model;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
 
 namespace Ufw.Web.Client.UI.Pages;
