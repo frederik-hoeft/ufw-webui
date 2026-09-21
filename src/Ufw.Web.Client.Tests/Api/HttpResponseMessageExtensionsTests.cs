@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Text;
-using Ufw.Web.Client.Features.Authentication.Api;
-using Ufw.Web.Client.Infrastructure.Http;
-using Ufw.Web.Client.Infrastructure.Serialization;
+using Ufw.Web.Client.Api.Auth;
+using Ufw.Web.Client.Api.Auth.Model;
+using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Tests.Api;
 

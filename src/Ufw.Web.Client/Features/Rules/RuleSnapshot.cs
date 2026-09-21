@@ -1,8 +1,9 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.Features.Rules.Api;
+using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Client.Api.RuleTags.Model;
 using Ufw.Web.Client.Features.Rules.Metadata;
-using Ufw.Web.Client.Infrastructure.Http;
+using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Features.Rules;
 

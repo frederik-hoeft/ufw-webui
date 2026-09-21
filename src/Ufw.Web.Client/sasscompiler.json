@@ -1,15 +1,15 @@
 {
-  "Source": "Styles/app.scss",
+  "Source": "UI/Styles/app.scss",
   "Target": "wwwroot/css/app.css",
   "Arguments": "--style=expanded --no-source-map",
   "GenerateScopedCss": false,
   "IncludePaths": [
-    "Styles"
+    "UI/Styles"
   ],
   "Compilations": [
     {
-      "Source": "Components/Settings/SettingsSection.razor.scss",
-      "Target": "Components/Settings/SettingsSection.razor.css"
+      "Source": "UI/Components/Settings/SettingsSection.razor.scss",
+      "Target": "UI/Components/Settings/SettingsSection.razor.css"
     }
   ],
   "Configurations": {

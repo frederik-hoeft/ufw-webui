@@ -1,6 +1,6 @@
 ﻿using System.Net;
-using Ufw.Web.Client.Features.Status.Api;
-using Ufw.Web.Client.Infrastructure.Http;
+using Ufw.Web.Client.Api.Status;
+using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Tests.Support;
 
 namespace Ufw.Web.Client.Tests.Api;

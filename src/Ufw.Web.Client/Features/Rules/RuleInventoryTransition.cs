@@ -1,5 +1,5 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.Features.Rules.Api;
+using Ufw.Web.Client.Api.Rules.Model;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
 

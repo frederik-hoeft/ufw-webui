@@ -1,5 +1,8 @@
-using Ufw.Web.Client.Features.Rules.Api;
-using Ufw.Web.Client.Infrastructure.Http;
+using Ufw.Web.Client.Api.RuleMetadata;
+using Ufw.Web.Client.Api.RuleMetadata.Model;
+using Ufw.Web.Client.Api.RuleTags.Model;
+using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Features.Rules.Metadata;
 

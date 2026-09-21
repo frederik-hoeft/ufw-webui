@@ -1,0 +1,27 @@
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
+
+namespace Ufw.Web.Client.Features.Rules.Intent;
+
+public interface IIntentSigningService
+{
+    Task<AddRuleRequest> CreateAddRuleRequestAsync(string deploymentId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
+
+    Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(string deploymentId, string ruleId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
+
+    Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        int anchorOccurrenceId,
+        RuleInsertionPlacement placement,
+        FirewallRuleSpecification rule,
+        string privateKey,
+        CancellationToken cancellationToken = default);
+
+    Task<ReorderRulesRequest> CreateReorderRulesRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        IReadOnlyList<int> desiredOrder,
+        string privateKey,
+        CancellationToken cancellationToken = default);
+}

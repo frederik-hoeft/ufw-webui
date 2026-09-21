@@ -1,6 +1,7 @@
 ﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Client.Features.KnownHosts.Api;
-using Ufw.Web.Client.Infrastructure.Http;
+using Ufw.Web.Client.Api.KnownHosts;
+using Ufw.Web.Client.Api.KnownHosts.Model;
+using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Features.KnownHosts;
 

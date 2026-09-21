@@ -2,23 +2,29 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
-using Ufw.Web.Client.Features.Authentication.Api;
+using Ufw.Web.Client.Api;
+using Ufw.Web.Client.Api.Auth;
+using Ufw.Web.Client.Api.Intent;
+using Ufw.Web.Client.Api.KnownHosts;
+using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.RuleMetadata;
+using Ufw.Web.Client.Api.RuleTags;
+using Ufw.Web.Client.Api.Rules;
+using Ufw.Web.Client.Api.Status;
+using Ufw.Web.Client.Configuration;
 using Ufw.Web.Client.Features.Authentication;
-using Ufw.Web.Client.Features.KnownHosts.Api;
 using Ufw.Web.Client.Features.KnownHosts;
-using Ufw.Web.Client.Features.NetworkInterfaces.Api;
 using Ufw.Web.Client.Features.NetworkInterfaces;
-using Ufw.Web.Client.Features.Rules.Api;
+using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Client.Features.Rules.Services;
-using Ufw.Web.Client.Features.Status.Api;
 using Ufw.Web.Client.Features.Status;
-using Ufw.Web.Client.Infrastructure.Configuration;
-using Ufw.Web.Client.Infrastructure.Intent;
 using Ufw.Web.Client.Services.Clipboard;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.Services.Localization;
 using Ufw.Web.Client.Services.Storage;
 using Ufw.Web.Client.Services.Theming;
+using Ufw.Web.Client.UI;
+using Ufw.Web.Client.UI.Components.Rules.Filtering;
 
 namespace Ufw.Web.Client;
 
@@ -40,6 +46,7 @@ public static class Program
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton(runtimeConfiguration);
         builder.Services.AddRuleManagementServices();
+        builder.Services.AddRuleFilterUiServices();
 
         builder.Services.AddSingleton<IAccessTokenPrincipalFactory, AccessTokenPrincipalFactory>();
         builder.Services.AddScoped<AuthenticationSession>();

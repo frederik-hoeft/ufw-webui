@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using System.Net;
-using Ufw.Web.Client.Infrastructure.Http;
+using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Services.Localization;
 
 namespace Ufw.Web.Client.Services.Errors;

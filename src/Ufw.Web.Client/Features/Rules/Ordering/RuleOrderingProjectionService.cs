@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Localization;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Client.Features.Rules.Api;
 using Ufw.Web.Client.Services.Localization;
 
 namespace Ufw.Web.Client.Features.Rules.Ordering;

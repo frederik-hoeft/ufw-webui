@@ -1,5 +1,7 @@
-﻿using Ufw.Web.Client.Features.KnownHosts.Api;
-using Ufw.Web.Client.Features.NetworkInterfaces.Api;
+﻿using Ufw.Web.Client.Api.KnownHosts;
+using Ufw.Web.Client.Api.KnownHosts.Model;
+using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.NetworkInterfaces.Model;
 
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 

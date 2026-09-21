@@ -1,4 +1,5 @@
-﻿using Ufw.Web.Client.Features.Authentication.Api;
+﻿using Ufw.Web.Client.Api.Auth;
+using Ufw.Web.Client.Api.Auth.Model;
 
 namespace Ufw.Web.Client.Features.Authentication;
 

@@ -1,8 +1,10 @@
 ﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
-using Ufw.Web.Client.Features.Rules.Api;
-using Ufw.Web.Client.Features.Status.Api;
-using Ufw.Web.Client.Infrastructure.Intent;
+using Ufw.Web.Client.Api.Rules;
+using Ufw.Web.Client.Api.Rules.Model;
+using Ufw.Web.Client.Api;
+using Ufw.Web.Client.Api.Status;
+using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Services.Errors;
 
 namespace Ufw.Web.Client.Features.Status;

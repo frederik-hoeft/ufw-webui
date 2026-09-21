@@ -1,5 +1,6 @@
-﻿using Ufw.Web.Client.Features.NetworkInterfaces.Api;
-using Ufw.Web.Client.Infrastructure.Http;
+﻿using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.NetworkInterfaces.Model;
+using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Features.NetworkInterfaces;
 

@@ -1,7 +1,9 @@
 ﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Client.Features.KnownHosts.Api;
+using Ufw.Web.Client.Api.KnownHosts;
+using Ufw.Web.Client.Api.KnownHosts.Model;
 using Ufw.Web.Client.Features.KnownHosts;
-using Ufw.Web.Client.Features.NetworkInterfaces.Api;
+using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.NetworkInterfaces.Model;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
 
