@@ -4,7 +4,7 @@
 
 UFWeb is a .NET 10 UFW management platform with a Blazor WebAssembly client, a network-facing ASP.NET Core API, and a privileged host daemon.
 
-- `Ufw.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, rule-authoring interaction, and browser-side signed-intent creation.
+- `Ufw.Web.Client` is the MudBlazor-based browser frontend. It owns presentation, in-memory HTTP authentication state, rule-authoring interaction, and browser-side signed-intent creation.
 - `Ufw.Web` is the REST API. It owns ASP.NET Core Identity, PostgreSQL-backed application state, JWT/refresh-token handling, application authorization, browser-facing metadata, and the local IPC client.
 - `Ufw.Systemd` is the privileged daemon and the authority for actual UFW observation and execution.
 - `Ufw.Shared` owns cross-process firewall semantics, security primitives, and the `Ufw.Shared.Ipc` protocol/serialization contract.
@@ -58,7 +58,7 @@ Authentication infrastructure consists of:
 
 Bootstrap users are initial provisioning only. Keep `Auth:Bootstrap:Users` idempotent and non-destructive: create missing accounts through ASP.NET Core Identity, never reset an existing password from configuration, and never delete users merely because they disappear from bootstrap configuration. Standard ASP.NET Core configuration providers, including Docker environment variables, must remain sufficient to drive bootstrap.
 
-Keep browser UI code in `Ufw.Client`. Maintain global client styles in `src/Ufw.Client/Styles/app.scss`; `src/Ufw.Client/wwwroot/css/app.css` is generated during build/publish and must not be edited or committed. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser.
+Keep browser UI code in `Ufw.Web.Client`. Organize domain/application code under `Features/<domain>`, cross-cutting protocol/runtime plumbing under `Infrastructure`, and only truly domain-agnostic browser/application services under `Services`. Keep page/component SCSS beside its Razor owner; use `.razor.scss` for natural CSS isolation and ordinary `.scss` when MudBlazor/portal/render-fragment styling would otherwise require pervasive `::deep`; register isolated Sass companions explicitly in `sasscompiler.json` so isolation remains a per-component choice. `Styles/app.scss`, generated `wwwroot/css/app.css`, and the generated isolated stylesheet bundle are build concerns and generated CSS must not be edited or committed. Do not reintroduce Razor Pages or UI assets into `Ufw.Web`, and do not move privileged host behavior into the browser.
 
 Access tokens stay in memory; refresh-token cookies remain `HttpOnly`. Client operations that mutate the rotating refresh-token cookie must use the shared authentication-operation coordinator so concurrent tabs cannot consume the same token family member. Production uses one HTTPS origin for browser and API traffic; development may use the configured CORS origin because the processes run separately.
 

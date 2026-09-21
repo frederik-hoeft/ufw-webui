@@ -21,7 +21,7 @@ Ufw.Web
   + expose one enriched read model
         |
         v
-Ufw.Client
+Ufw.Web.Client
   retain the current enriched snapshot
   + apply local presentation/query state
         |

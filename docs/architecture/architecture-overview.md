@@ -10,7 +10,7 @@ A production deployment has five application/runtime components around UFW itsel
 
 ```mermaid
 flowchart LR
-    Browser[Browser\nUfw.Client]
+    Browser[Browser\nUfw.Web.Client]
 
     subgraph Containers[Application containers]
         Nginx[nginx\nstatic frontend + TLS]
@@ -36,7 +36,7 @@ The split between nginx and `Ufw.Web` is security-significant. The browser creat
 
 ### Browser application
 
-`Ufw.Client` presents firewall state and application metadata, manages the browser side of authentication, validates rule input for usability, and creates signed mutation intents. It talks only to the versioned REST API; it has no knowledge of daemon transports or UFW process execution.
+`Ufw.Web.Client` presents firewall state and application metadata, manages the browser side of authentication, validates rule input for usability, and creates signed mutation intents. It talks only to the versioned REST API; it has no knowledge of daemon transports or UFW process execution.
 
 Access JWTs stay in memory. The refresh token is an `HttpOnly` cookie managed by the browser, and mutation private keys are supplied to the signing workflow without being persisted by the application. Appearance and culture preferences are the only browser-local persisted state.
 
@@ -182,7 +182,7 @@ The source tree follows deployment and responsibility boundaries rather than mir
 
 | Project | Architectural role |
 | --- | --- |
-| `Ufw.Client` | browser application and REST client |
+| `Ufw.Web.Client` | browser application and REST client |
 | `Ufw.Web` | web/API application and PostgreSQL-backed application state |
 | `Ufw.Systemd` | privileged firewall daemon |
 | `Ufw.Shared` | cross-process domain/protocol contracts |

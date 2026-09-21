@@ -22,9 +22,9 @@ The daemon `serve` command loads one explicit JSON settings file. The systemd in
 
 The installer preserves an existing settings file on update unless `--settings PATH` is supplied explicitly.
 
-### Ufw.Client
+### Ufw.Web.Client
 
-Production `Ufw.Client` uses a same-origin API base (`/`). The development settings override this with the standalone local Web API URL. Culture configuration is also shipped with the static client assets.
+Production `Ufw.Web.Client` uses a same-origin API base (`/`). The development settings override this with the standalone local Web API URL. Culture configuration is also shipped with the static client assets.
 
 Do not place secrets in client configuration: browser configuration is public by definition.
 
@@ -99,7 +99,7 @@ The `Auth` section in `Ufw.Web` controls Identity, JWT, refresh-token, and boots
 
 Refresh cookies are `Secure`, `HttpOnly`, `SameSite=Strict`, and path `/`. Production therefore requires HTTPS and a consistent same-site browser/API deployment.
 
-`Cors:AllowedOrigins` is a development/standalone-client setting for cases where `Ufw.Client` and `Ufw.Web` run on different origins. The production nginx topology is same-origin and does not require a browser CORS exception.
+`Cors:AllowedOrigins` is a development/standalone-client setting for cases where `Ufw.Web.Client` and `Ufw.Web` run on different origins. The production nginx topology is same-origin and does not require a browser CORS exception.
 
 ## Daemon settings
 

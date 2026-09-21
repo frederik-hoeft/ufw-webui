@@ -6,8 +6,8 @@ WORKDIR /source
 COPY src ./src
 COPY deploy/docker/nginx/security-headers.conf.template /tmp/security-headers.conf.template
 COPY deploy/docker/nginx/render-security-headers.ps1 /tmp/render-security-headers.ps1
-RUN dotnet restore src/Ufw.Client/Ufw.Client.csproj
-RUN dotnet publish src/Ufw.Client/Ufw.Client.csproj \
+RUN dotnet restore src/Ufw.Web.Client/Ufw.Web.Client.csproj
+RUN dotnet publish src/Ufw.Web.Client/Ufw.Web.Client.csproj \
         --configuration Release \
         --no-restore \
         --output /out/client \

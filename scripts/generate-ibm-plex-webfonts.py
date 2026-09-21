@@ -26,7 +26,7 @@ LICENSE_MEMBERS = (
     "IBM_Plex_Sans/OFL.txt",
     "IBM_Plex_Mono/OFL.txt",
 )
-DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "src/Ufw.Client/wwwroot/fonts/ibm-plex"
+DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "src/Ufw.Web.Client/wwwroot/fonts/ibm-plex"
 
 
 def parse_args() -> argparse.Namespace:

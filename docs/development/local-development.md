@@ -74,7 +74,7 @@ dotnet run --project src/Ufw.Web
 ```
 
 ```bash
-dotnet run --project src/Ufw.Client
+dotnet run --project src/Ufw.Web.Client
 ```
 
 The default launch profiles expose the web API at `https://localhost:7259` and the Blazor client at `https://localhost:7298`. The browser client talks to the API using its development configuration and `Ufw.Web` permits that explicit development origin through CORS. Production does not use this split-origin browser path: nginx serves the client and proxies `/api/*` on one HTTPS origin. The web application reaches the daemon through the generated local IPC endpoint.

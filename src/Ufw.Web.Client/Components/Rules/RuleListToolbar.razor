@@ -1,0 +1,52 @@
+﻿@using Ufw.Web.Client.Components.Rules.Filtering
+@inject IDialogService DialogService
+@inject IFirewallRuleText RuleText
+@inject IRuleFilterCatalog FilterCatalog
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<section class="rule-list-toolbar" aria-label="@(RulesText["RuleFiltersAria"])">
+    <div class="search-row">
+        <MudTextField T="string"
+                      Label="@(RulesText["SearchRules"])"
+                      Placeholder="@(RulesText["SearchRulesPlaceholder"])"
+                      Value="@_searchText"
+                      ValueChanged="SearchTextChangedAsync"
+                      Immediate="true"
+                      Disabled="@Disabled"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" />
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.FilterAlt"
+                   Disabled="@Disabled"
+                   OnClick="AddFilterAsync">
+            @RulesText["AddFilter"]
+        </MudButton>
+        @if (Query.IsActive)
+        {
+            <MudButton Variant="Variant.Text"
+                       Disabled="@Disabled"
+                       OnClick="ClearAsync">
+                @RulesText["ClearFilters"]
+            </MudButton>
+        }
+    </div>
+
+    @if (Query.Filters.Count > 0)
+    {
+        <div class="applied-filters" aria-label="@(RulesText["AppliedFilters"])">
+            @for (int index = 0; index < Query.Filters.Count; index++)
+            {
+                int filterIndex = index;
+                RuleFilter filter = Query.Filters[filterIndex];
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Variant="Variant.Outlined"
+                         Disabled="@Disabled"
+                         OnClick="@(() => EditFilterAsync(filterIndex))"
+                         OnClose="@(() => RemoveFilterAsync(filterIndex))">
+                    @DescribeFilter(filter)
+                </MudChip>
+            }
+        </div>
+    }
+</section>

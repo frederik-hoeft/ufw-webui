@@ -35,7 +35,7 @@ The metadata stylesheet contains several one-use descendant class names, especia
 
 The client currently mixes DI services and domain/view models across top-level namespaces such as `Rules`, `RuleOrdering`, `RuleInsertion`, `KnownHosts`, and `NetworkInterfaces`, while UI types live under `Components` and `Pages`. The existing hierarchy is understandable but service ownership is not consistently visible from the namespace.
 
-For this phase, introduce a `Ufw.Client.Services` root for application services touched by the refactor and group rule-list orchestration under `Ufw.Client.Services.Rules`. Keep domain/view-state records under `Ufw.Client.Rules` and UI components under the existing `Ufw.Client.Components` / `Ufw.Client.Pages` roots to avoid namespace churn that provides no architectural value. Future migrations can move other service areas when they are actively touched.
+For this phase, introduce a `Ufw.Web.Client.Services` root for application services touched by the refactor and group rule-list orchestration under `Ufw.Web.Client.Features.Rules.Services`. Keep domain/view-state records under `Ufw.Web.Client.Features.Rules` and UI components under the existing `Ufw.Web.Client.Components` / `Ufw.Web.Client.Pages` roots to avoid namespace churn that provides no architectural value. Future migrations can move other service areas when they are actively touched.
 
 ### Static helpers
 
@@ -62,7 +62,7 @@ The largest non-generated production files were reviewed by responsibility rathe
    - Add unit tests for legal transitions, invalid transitions, and derived capabilities.
 
 3. **Extract rule-list presentation derivation into a focused DI service.**
-   - Add `IRulesPageProjectionService` / `RulesPageProjectionService` under `Ufw.Client.Services.Rules`.
+   - Add `IRulesPageProjectionService` / `RulesPageProjectionService` under `Ufw.Web.Client.Features.Rules.Services`.
    - Return one immutable projection containing list projection, family-specific query results, and IPv6 availability; keep the user-selected family as page-owned interaction state.
    - Make the page own only authoritative inputs (inventory, query, known hosts, ordering preview, selected family) and ask the service to derive presentation output.
    - Unit test IPv4/IPv6 availability, selection reconciliation, query projection, metadata projection, and ordering-preview projection.
@@ -84,7 +84,7 @@ The largest non-generated production files were reviewed by responsibility rathe
    - Do not edit generated `wwwroot/css/app.css`.
 
 7. **Clarify client service namespaces and composition registration.**
-   - Place newly extracted rule-page services under `Ufw.Client.Services.Rules`.
+   - Place newly extracted rule-page services under `Ufw.Web.Client.Features.Rules.Services`.
    - Add a focused service-registration extension for rule-management services so `Program` remains composition-root code rather than a long flat registration list.
    - Move existing rule-management service registrations into that extension without hiding unrelated browser/auth/API setup.
    - Avoid directory/namespace churn for untouched areas.
@@ -106,7 +106,7 @@ The phase was completed against the supplied baseline with the following outcome
 
 - Replaced the shared `RulesPageState` bag/method API with `RuleInventoryState.MoveNext(RuleInventoryTransition)` and one-type-per-file transition/status/snapshot primitives. Both rule listing and rule creation now use the same inventory-freshness state machine.
 - Replaced the rules page's delete/metadata/reorder Boolean matrix with `RulesPageInteractionState.MoveNext(RulesPageInteractionTransition)`, making mutually exclusive UI workflows and invalid transitions explicit.
-- Added `IRulesPageProjectionService` / `RulesPageProjectionService` under `Ufw.Client.Services.Rules` so rule-list projection, family query projection, and IPv6 availability are derived together instead of maintained as parallel mutable page fields.
+- Added `IRulesPageProjectionService` / `RulesPageProjectionService` under `Ufw.Web.Client.Features.Rules.Services` so rule-list projection, family query projection, and IPv6 availability are derived together instead of maintained as parallel mutable page fields.
 - Added `RuleManagementServiceCollectionExtensions` to keep rule-management composition together while leaving unrelated browser/auth/API setup visible in `Program`.
 - Converted `ClientRuntimeConfiguration` from a static application-policy helper into an immutable runtime configuration object registered through DI and used by typed management API clients.
 - Reused `RuleTagChip` for tag-editor preview and removed the independent color-preview implementation.

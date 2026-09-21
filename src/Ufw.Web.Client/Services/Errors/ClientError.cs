@@ -1,0 +1,16 @@
+﻿namespace Ufw.Web.Client.Services.Errors;
+
+public enum ClientErrorKind
+{
+    Unavailable,
+    Unauthorized,
+    Forbidden,
+    RequestRejected,
+    Conflict,
+    Protocol,
+    Browser,
+    Canceled,
+    Unexpected,
+}
+
+public sealed record ClientError(ClientErrorKind Kind, string Message, bool Retryable, string? DiagnosticReference = null);
