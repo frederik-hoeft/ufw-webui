@@ -7,4 +7,8 @@ public enum KnownHostMutationOutcome
     NameConflict,
     AddressFamilyConflict,
     InvalidAddress,
+    InvalidDnsConfiguration,
+    DnsResolutionFailed,
+    NotDnsManaged,
+    DnsConfigurationChanged,
 }

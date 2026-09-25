@@ -4,6 +4,7 @@ using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Features.Rules.Ordering;
 using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Components.Rules;
 
@@ -57,6 +58,9 @@ public sealed partial class RuleFamilyWorkspace
 
     [Parameter]
     public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
 
     [Parameter]
     public EventCallback<ListedFirewallRule> DeleteRequested { get; set; }

@@ -24,6 +24,7 @@ using Ufw.Web.Client.Services.Localization;
 using Ufw.Web.Client.Services.Storage;
 using Ufw.Web.Client.Services.Theming;
 using Ufw.Web.Client.UI;
+using Ufw.Web.Client.UI.Components.Hosts;
 using Ufw.Web.Client.UI.Components.Rules.Filtering;
 
 namespace Ufw.Web.Client;
@@ -61,6 +62,7 @@ public static class Program
         builder.Services.AddScoped<IIntentSigningService, BrowserIntentSigningService>();
         builder.Services.AddScoped<IClientThemeService, BrowserClientThemeService>();
         builder.Services.AddScoped<IKnownHostInventoryService, KnownHostInventoryService>();
+        builder.Services.AddScoped<IKnownHostEditorDialogService, KnownHostEditorDialogService>();
         builder.Services.AddSingleton<IKnownHostSuggestionService, KnownHostSuggestionService>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();

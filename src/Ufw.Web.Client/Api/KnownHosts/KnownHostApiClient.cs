@@ -34,6 +34,18 @@ internal sealed class KnownHostApiClient(HttpClient httpClient) : IKnownHostApiC
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
     }
 
+    public async Task<KnownHostInventoryResponse> ReconcileDnsAsync(Guid hostId, CancellationToken cancellationToken = default)
+    {
+        ValidateHostId(hostId);
+        Uri uri = SimpleUriBuilder.Create(HOSTS_PATH)
+            .AppendPath(hostId.ToString("D"))
+            .AppendPath("dns")
+            .AppendPath("reconcile")
+            .BuildUri(UriKind.Relative);
+        using HttpResponseMessage response = await httpClient.PostAsync(uri, content: null, cancellationToken);
+        return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
+    }
+
     public async Task<KnownHostInventoryResponse> DeleteAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
         ValidateHostId(hostId);

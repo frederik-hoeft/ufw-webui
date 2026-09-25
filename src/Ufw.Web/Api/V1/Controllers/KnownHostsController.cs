@@ -26,6 +26,12 @@ public sealed partial class KnownHostsController(IKnownHostService knownHosts) :
         return MapMutation(result);
     }
 
+    public async partial Task<IActionResult> ReconcileDnsAsync(Guid id, CancellationToken cancellationToken)
+    {
+        KnownHostMutationResult result = await knownHosts.ReconcileDnsAsync(id, cancellationToken);
+        return MapMutation(result);
+    }
+
     public async partial Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         KnownHostMutationResult result = await knownHosts.DeleteAsync(id, cancellationToken);
@@ -53,6 +59,30 @@ public sealed partial class KnownHostsController(IKnownHostService knownHosts) :
             Status = StatusCodes.Status400BadRequest,
             Title = "Known host address is invalid",
             Detail = "The address must be a literal IPv4 or IPv6 host or CIDR network.",
+        }),
+        KnownHostMutationOutcome.InvalidDnsConfiguration => BadRequest(new ProblemDetails
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Known host DNS configuration is invalid",
+            Detail = "DNS-backed aliases require an IPv4 or IPv6 address family.",
+        }),
+        KnownHostMutationOutcome.DnsResolutionFailed => UnprocessableEntity(new ProblemDetails
+        {
+            Status = StatusCodes.Status422UnprocessableEntity,
+            Title = "Known host DNS resolution failed",
+            Detail = "The alias name did not resolve to an address in the configured address family.",
+        }),
+        KnownHostMutationOutcome.NotDnsManaged => Conflict(new ProblemDetails
+        {
+            Status = StatusCodes.Status409Conflict,
+            Title = "Known host is not DNS-backed",
+            Detail = "Only DNS-backed known hosts can be reconciled from DNS.",
+        }),
+        KnownHostMutationOutcome.DnsConfigurationChanged => Conflict(new ProblemDetails
+        {
+            Status = StatusCodes.Status409Conflict,
+            Title = "Known host DNS configuration changed",
+            Detail = "The known host changed while DNS was being resolved. Retry the reconciliation against the current configuration.",
         }),
         _ => throw new InvalidOperationException($"Unknown known-host mutation outcome '{result.Outcome}'."),
     };

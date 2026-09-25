@@ -24,6 +24,8 @@ public sealed class KnownHostInventoryServiceTests
                     Name = "  hidden  ",
                     Address = "2001:0db8::1",
                     AddressFamily = FirewallAddressFamily.IPv6,
+                    AddressSource = KnownHostAddressSource.Dns,
+                    DnsResolvedAt = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero),
                     Comment = "  secondary  ",
                     IsVisible = false,
                 },
@@ -47,6 +49,8 @@ public sealed class KnownHostInventoryServiceTests
         Assert.AreEqual("hidden", response.Hosts[1].Name);
         Assert.AreEqual("2001:db8::1", response.Hosts[1].Address);
         Assert.AreEqual("secondary", response.Hosts[1].Comment);
+        Assert.AreEqual(KnownHostAddressSource.Dns, response.Hosts[1].AddressSource);
+        Assert.AreEqual(new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero), response.Hosts[1].DnsResolvedAt);
         Assert.AreSame(response, service.Current);
     }
 
@@ -64,6 +68,29 @@ public sealed class KnownHostInventoryServiceTests
                     Name = "router",
                     Address = "192.0.2.1",
                     AddressFamily = FirewallAddressFamily.IPv6,
+                },
+            ],
+        });
+        KnownHostInventoryService service = new(api.Object);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+    }
+
+    [TestMethod]
+    public async Task RefreshAsync_DnsSourceWithoutResolutionTimestamp_RejectsProtocolResponseAsync()
+    {
+        Mock<IKnownHostApiClient> api = new();
+        api.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new KnownHostInventoryResponse
+        {
+            Hosts =
+            [
+                new KnownHostInventoryItem
+                {
+                    Id = Guid.CreateVersion7(),
+                    Name = "dns.example.test",
+                    Address = "192.0.2.1",
+                    AddressFamily = FirewallAddressFamily.IPv4,
+                    AddressSource = KnownHostAddressSource.Dns,
                 },
             ],
         });
@@ -96,11 +123,13 @@ public sealed class KnownHostInventoryServiceTests
         Guid id = Guid.CreateVersion7();
         KnownHostInventoryResponse created = new() { Hosts = [Host("one", "192.0.2.1", id)] };
         KnownHostInventoryResponse updated = new() { Hosts = [Host("renamed", "192.0.2.2", id)] };
+        KnownHostInventoryResponse reconciled = new() { Hosts = [Host("renamed", "192.0.2.3", id)] };
         KnownHostInventoryResponse deleted = new();
         CreateKnownHostRequest createRequest = new() { Name = "one", Address = "192.0.2.1" };
         UpdateKnownHostRequest updateRequest = new() { Name = "renamed", Address = "192.0.2.2" };
         api.Setup(client => client.CreateAsync(createRequest, It.IsAny<CancellationToken>())).ReturnsAsync(created);
         api.Setup(client => client.UpdateAsync(id, updateRequest, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
+        api.Setup(client => client.ReconcileDnsAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(reconciled);
         api.Setup(client => client.DeleteAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(deleted);
         KnownHostInventoryService service = new(api.Object);
 
@@ -111,6 +140,10 @@ public sealed class KnownHostInventoryServiceTests
         _ = await service.UpdateAsync(id, updateRequest);
         Assert.IsNotNull(service.Current);
         Assert.AreEqual("renamed", service.Current.Hosts.Single().Name);
+
+        _ = await service.ReconcileDnsAsync(id);
+        Assert.IsNotNull(service.Current);
+        Assert.AreEqual("192.0.2.3", service.Current.Hosts.Single().Address);
 
         _ = await service.DeleteAsync(id);
         Assert.IsNotNull(service.Current);

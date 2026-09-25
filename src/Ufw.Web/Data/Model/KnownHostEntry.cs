@@ -1,4 +1,6 @@
-﻿namespace Ufw.Web.Data.Model;
+﻿using Ufw.Web.Model.V1.KnownHosts;
+
+namespace Ufw.Web.Data.Model;
 
 internal sealed partial class KnownHostEntry
 {
@@ -15,6 +17,10 @@ internal sealed partial class KnownHostEntry
     public required string NormalizedName { get; set; }
 
     public required string Address { get; set; }
+
+    public KnownHostAddressSource AddressSource { get; set; }
+
+    public DateTimeOffset? DnsResolvedAt { get; set; }
 
     public string? Comment { get; set; }
 

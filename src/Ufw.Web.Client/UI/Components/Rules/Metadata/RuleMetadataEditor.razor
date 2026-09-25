@@ -36,6 +36,7 @@
         }
 
         <MudAutocomplete T="TagOption"
+                         @ref="_tagAutocomplete"
                          Label="@(RulesText["AddTagToRule"])"
                          Value="@_tagToAdd"
                          ValueChanged="AddTagAsync"

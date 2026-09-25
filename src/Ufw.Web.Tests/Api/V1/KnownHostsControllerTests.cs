@@ -34,6 +34,26 @@ public sealed class KnownHostsControllerTests
     }
 
     [TestMethod]
+    public async Task ReconcileDnsAsync_ResolutionFailure_ReturnsUnprocessableEntityAsync()
+    {
+        Mock<IKnownHostService> service = new();
+        Guid id = Guid.CreateVersion7();
+        service.Setup(candidate => candidate.ReconcileDnsAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KnownHostMutationResult(KnownHostMutationOutcome.DnsResolutionFailed));
+        KnownHostsController controller = new(service.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+
+        IActionResult result = await controller.ReconcileDnsAsync(id, TestContext.CancellationToken);
+
+        ObjectResult failure = Assert.IsInstanceOfType<ObjectResult>(result);
+        Assert.AreEqual(StatusCodes.Status422UnprocessableEntity, failure.StatusCode);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(failure.Value);
+        Assert.AreEqual(StatusCodes.Status422UnprocessableEntity, problem.Status);
+    }
+
+    [TestMethod]
     public async Task DeleteAsync_NotFound_ReturnsNotFoundAsync()
     {
         Mock<IKnownHostService> service = new();

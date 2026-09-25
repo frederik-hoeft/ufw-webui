@@ -125,12 +125,13 @@
                         <span class="@(string.IsNullOrWhiteSpace(context.Comment) ? "interface-comment-empty" : "interface-comment")">
                             @(string.IsNullOrWhiteSpace(context.Comment) ? InterfacesText["NoComment"] : context.Comment)
                         </span>
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Disabled="@IsBusy"
-                                   OnClick="@(() => EditCommentAsync(context))">
-                            @InterfacesText["EditComment"]
-                        </MudButton>
+                        <MudTooltip Text="@(InterfacesText["EditComment"])">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => EditCommentAsync(context))"
+                                           aria-label="@(InterfacesText["EditCommentAria", context.Name])" />
+                        </MudTooltip>
                     </div>
                 </MudTd>
             </RowTemplate>
@@ -157,12 +158,13 @@
                         </span>
                     </div>
                     <div class="inventory-mobile-actions">
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Disabled="@IsBusy"
-                                   OnClick="@(() => EditCommentAsync(item))">
-                            @InterfacesText["EditComment"]
-                        </MudButton>
+                        <MudTooltip Text="@(InterfacesText["EditComment"])">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => EditCommentAsync(item))"
+                                           aria-label="@(InterfacesText["EditCommentAria", item.Name])" />
+                        </MudTooltip>
                     </div>
                 </article>
             }

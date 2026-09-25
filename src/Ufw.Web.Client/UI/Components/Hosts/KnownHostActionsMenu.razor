@@ -1,0 +1,30 @@
+@inject IStringLocalizer<KnownHostsStrings> HostsText
+
+<MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+         Size="Size.Small"
+         Dense="true"
+         Class="known-host-actions-menu"
+         PopoverClass="known-host-actions-menu-popover"
+         aria-label="@HostsText["ActionsForHost", Host.Name]">
+    <MudMenuItem Disabled="@Disabled"
+                 Icon="@Icons.Material.Filled.Edit"
+                 OnClick="@(() => EditRequested.InvokeAsync(Host))">
+        @HostsText["EditHost"]
+    </MudMenuItem>
+    @if (Host.AddressSource == KnownHostAddressSource.Dns)
+    {
+        <MudMenuItem Disabled="@Disabled"
+                     Icon="@Icons.Material.Filled.Sync"
+                     OnClick="@(() => ReconcileDnsRequested.InvokeAsync(Host))">
+            @HostsText["ReconcileDns"]
+        </MudMenuItem>
+    }
+    <MudDivider />
+    <MudMenuItem Disabled="@Disabled"
+                 Icon="@Icons.Material.Filled.Delete"
+                 IconColor="Color.Error"
+                 OnClick="@(() => DeleteRequested.InvokeAsync(Host))"
+                 Class="delete">
+        @HostsText["DeleteHost"]
+    </MudMenuItem>
+</MudMenu>

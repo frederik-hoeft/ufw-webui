@@ -4,7 +4,10 @@
 <section class="rule-metadata-details" aria-label="@(RulesText["RuleMetadataAria"])" @onclick:stopPropagation="true">
     <header>
         <strong>@RulesText["RuleMetadata"]</strong>
-        <span>@RulesText["RuleMetadataDescription"]</span>
+        <div>
+            <RuleKnownHostEndpoint Label="@(RulesText["Source"])" Endpoint="@Source" KnownHostsChanged="@KnownHostsChanged" />
+            <RuleKnownHostEndpoint Label="@(RulesText["Destination"])" Endpoint="@Destination" KnownHostsChanged="@KnownHostsChanged" />
+        </div>
     </header>
     <section>
         <span>@RulesText["CanonicalCommand"]</span>

@@ -67,6 +67,10 @@ public sealed partial class RulesPage
 
     private bool IPv6FamilyAvailable => _projection.IPv6Available;
 
+    private string CreateRuleHref => _familySelection.SelectedFamily == FirewallAddressFamily.IPv6
+        ? "/rules/create?family=ipv6"
+        : "/rules/create?family=ipv4";
+
     private int SelectedFamilyTabIndex =>
         _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;
 
@@ -89,17 +93,12 @@ public sealed partial class RulesPage
         ? RulesText["RuleCountOne"]
         : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
-    private string DescribeSnapshotStatus()
-    {
-        if (_state.IsStale)
-        {
-            return RulesText["AuthoritativeSnapshotStale"];
-        }
+    private string DescribeSnapshotCapturedAt() => _state.Snapshot is RuleSnapshot snapshot
+        ? RulesText["SnapshotCapturedAt", FormatLocalDateTime(snapshot.CapturedAt)]
+        : string.Empty;
 
-        return _state.Status == RuleInventoryStatus.Refreshing
-            ? RulesText["AuthoritativeSnapshotRefreshing"]
-            : RulesText["AuthoritativeSnapshotCurrent"];
-    }
+    private static string FormatLocalDateTime(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 
     protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
 
@@ -163,6 +162,12 @@ public sealed partial class RulesPage
         {
             _knownHosts = KnownHosts.Current?.Hosts.Where(static host => host.IsVisible).ToArray() ?? [];
         }
+    }
+
+    private void KnownHostsChanged(KnownHostInventoryResponse response)
+    {
+        _knownHosts = response.Hosts.Where(static host => host.IsVisible).ToArray();
+        RefreshRuleListProjection();
     }
 
     private async Task EditMetadataAsync(RuleRowProjection row)
@@ -380,7 +385,7 @@ public sealed partial class RulesPage
 
             _orderingPreview = null;
             _orderingResult = new RuleOrderingResultContext(response, baseline.Rules.ToArray(), desiredOrder);
-            _state = _state.MoveNext(new RuleInventoryTransition.ReorderCompleted(response));
+            _state = _state.MoveNext(new RuleInventoryTransition.ReorderCompleted(response, TimeProvider.GetUtcNow()));
             RefreshRuleListProjection();
             if (response.Outcome == RuleReorderOutcome.Completed)
             {

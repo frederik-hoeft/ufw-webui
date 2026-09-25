@@ -12,6 +12,7 @@
 
 @use "../Components/Layout/AppBrand";
 @use "../Components/Layout/PageHeader";
+@use "../Components/Hosts/KnownHostActionsMenu";
 @use "../Components/Rules/KnownHostField";
 @use "../Components/Rules/NetworkInterfaceField";
 @use "../Components/Rules/RuleActionsMenu";

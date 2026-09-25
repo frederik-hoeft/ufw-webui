@@ -8,15 +8,6 @@ namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class KnownHostsPage
 {
-    private static readonly DialogOptions s_editorDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
-
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
         BackdropClick = false,
@@ -74,54 +65,52 @@ public sealed partial class KnownHostsPage
         }
     }
 
-    private async Task CreateAsync()
+    private Task CreateAsync() => RunEditorAsync(cancellationToken => HostEditor.CreateAsync(cancellationToken: cancellationToken));
+
+    private Task EditAsync(KnownHostInventoryItem host) => RunEditorAsync(cancellationToken => HostEditor.EditAsync(host, cancellationToken));
+
+    private async Task RunEditorAsync(Func<CancellationToken, Task<KnownHostInventoryResponse?>> operation)
     {
         if (IsBusy)
         {
             return;
         }
 
-        IDialogReference dialog = await DialogService.ShowAsync<EditKnownHostDialog>(HostsText["CreateDialogTitle"], s_editorDialogOptions);
-        KnownHostEditorResult? result = await dialog.GetReturnValueAsync<KnownHostEditorResult>();
-        if (result is null)
+        _saving = true;
+        _error = null;
+        try
         {
-            return;
+            KnownHostInventoryResponse? response = await operation(_lifetime.Token);
+            if (response is not null)
+            {
+                _inventory = response;
+            }
         }
-
-        CreateKnownHostRequest request = new()
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
-            Name = result.Name,
-            Address = result.Address,
-            Comment = result.Comment,
-            IsVisible = result.IsVisible,
-        };
-        await SaveAsync(cancellationToken => HostInventory.CreateAsync(request, cancellationToken));
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _error = ClientErrors.Describe(exception);
+            Snackbar.Add(_error.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
-    private async Task EditAsync(KnownHostInventoryItem host)
+    private async Task ReconcileDnsAsync(KnownHostInventoryItem host)
     {
-        if (IsBusy)
+        if (IsBusy || host.AddressSource != KnownHostAddressSource.Dns)
         {
             return;
         }
 
-        DialogParameters<EditKnownHostDialog> parameters = new();
-        parameters.Add(component => component.Host, host);
-        IDialogReference dialog = await DialogService.ShowAsync<EditKnownHostDialog>(HostsText["EditDialogTitle"], parameters, s_editorDialogOptions);
-        KnownHostEditorResult? result = await dialog.GetReturnValueAsync<KnownHostEditorResult>();
-        if (result is null)
+        if (await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken)))
         {
-            return;
+            Snackbar.Add(HostsText["DnsReconciled", host.Name], Severity.Success);
         }
-
-        UpdateKnownHostRequest request = new()
-        {
-            Name = result.Name,
-            Address = result.Address,
-            Comment = result.Comment,
-            IsVisible = result.IsVisible,
-        };
-        await SaveAsync(cancellationToken => HostInventory.UpdateAsync(host.Id, request, cancellationToken));
     }
 
     private async Task DeleteAsync(KnownHostInventoryItem host)
@@ -153,28 +142,33 @@ public sealed partial class KnownHostsPage
         UpdateKnownHostRequest request = new()
         {
             Name = host.Name,
-            Address = host.Address,
+            Address = host.AddressSource == KnownHostAddressSource.Literal ? host.Address : null,
+            AddressSource = host.AddressSource,
+            DnsAddressFamily = host.AddressSource == KnownHostAddressSource.Dns ? host.AddressFamily : null,
             Comment = host.Comment,
             IsVisible = isVisible,
         };
         await SaveAsync(cancellationToken => HostInventory.UpdateAsync(host.Id, request, cancellationToken));
     }
 
-    private async Task SaveAsync(Func<CancellationToken, Task<KnownHostInventoryResponse>> operation)
+    private async Task<bool> SaveAsync(Func<CancellationToken, Task<KnownHostInventoryResponse>> operation)
     {
         _saving = true;
         _error = null;
         try
         {
             _inventory = await operation(_lifetime.Token);
+            return true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
+            return false;
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
+            return false;
         }
         finally
         {
@@ -193,4 +187,9 @@ public sealed partial class KnownHostsPage
     private string DescribeVisibleCount(int count) => count == 1
         ? HostsText["VisibleHostCountOne"]
         : HostsText["VisibleHostCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
+
+    private string DescribeDnsResolvedAt(DateTimeOffset resolvedAt) => HostsText["DnsResolvedAt", FormatLocalDateTime(resolvedAt)];
+
+    private static string FormatLocalDateTime(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 }

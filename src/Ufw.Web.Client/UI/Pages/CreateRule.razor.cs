@@ -27,6 +27,7 @@ public sealed partial class CreateRule
     private bool _mutationMayHaveCompleted;
     private bool _orderedInsertionInvalidated;
     private bool _submitting;
+    private bool _initialAddressFamilyApplied;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -55,6 +56,9 @@ public sealed partial class CreateRule
     private string RuleDefinitionDescription => IsOrderedInsertionRequested
         ? RulesText["OrderedRuleDefinitionDescription"]
         : RulesText["DefinitionDescription"];
+
+    [Parameter, SupplyParameterFromQuery(Name = "family")]
+    public string? InitialAddressFamilyValue { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "baseline")]
     public string? InsertionBaselineFingerprint { get; set; }
@@ -122,6 +126,7 @@ public sealed partial class CreateRule
         {
             RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
+            ApplyInitialAddressFamily(response.Firewall.Configuration);
             ResolveOrderedInsertionContext(response.Firewall);
 
             if (_mutationMayHaveCompleted)
@@ -144,6 +149,27 @@ public sealed partial class CreateRule
         {
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
         }
+    }
+
+    private void ApplyInitialAddressFamily(FirewallConfigurationSnapshot configuration)
+    {
+        if (_initialAddressFamilyApplied)
+        {
+            return;
+        }
+
+        _initialAddressFamilyApplied = true;
+        if (IsOrderedInsertionRequested)
+        {
+            return;
+        }
+
+        _draft.AddressFamily = InitialAddressFamilyValue?.Trim().ToUpperInvariant() switch
+        {
+            "IPV4" => FirewallAddressFamily.IPv4,
+            "IPV6" when configuration.IPv6Enabled => FirewallAddressFamily.IPv6,
+            _ => _draft.AddressFamily,
+        };
     }
 
     private void ResolveOrderedInsertionContext(RuleListResponse snapshot)
@@ -246,7 +272,7 @@ public sealed partial class CreateRule
         {
             RuleInsertionResponse response = await RuleMutations.InsertRuleAsync(baseline, context.AnchorOccurrenceId, context.Placement, normalized, _privateKey, _lifetime.Token);
             _insertionResult = response;
-            _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response));
+            _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response, TimeProvider.GetUtcNow()));
 
             if (response.Outcome == RuleInsertionOutcome.Completed)
             {

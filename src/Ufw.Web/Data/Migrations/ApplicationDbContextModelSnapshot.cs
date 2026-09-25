@@ -234,10 +234,20 @@ namespace Ufw.Web.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("Address");
 
+                    b.Property<Ufw.Web.Model.V1.KnownHosts.KnownHostAddressSource>("AddressSource")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(Ufw.Web.Model.V1.KnownHosts.KnownHostAddressSource.Literal)
+                        .HasColumnName("AddressSource");
+
                     b.Property<string>("Comment")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("Comment");
+
+                    b.Property<DateTimeOffset?>("DnsResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DnsResolvedAt");
 
                     b.Property<bool>("IsVisible")
                         .ValueGeneratedOnAdd()

@@ -1,0 +1,58 @@
+@inject IKnownHostInventoryService KnownHosts
+@inject IKnownHostEditorDialogService KnownHostEditor
+@inject IRuleEndpointKnownHostProjectionService ProjectionService
+@inject IClientErrorMapper ClientErrors
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<KnownHostsStrings> HostsText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<div class="rule-known-host-endpoint">
+    <span>@DisplayLabel</span>
+    @if (!Projection.IsMeaningful)
+    {
+        <span>@RulesText["AnyAddress"]</span>
+    }
+    else if (KnownHosts.Current is null)
+    {
+        <div class="unavailable">
+            <code>@Projection.Address</code>
+            <span>@HostsText["LoadFailed"]</span>
+        </div>
+    }
+    else if (Projection.Hosts.Count > 0)
+    {
+        <div class="aliases">
+            @foreach (KnownHostInventoryItem host in Projection.Hosts)
+            {
+                <div @key="host.Id">
+                    <span>@host.Name</span>
+                    <code>@host.Address</code>
+                    <MudTooltip Text="@(HostsText["EditHostAria", host.Name])">
+                        <button type="button"
+                                class="endpoint-action"
+                                disabled="@_busy"
+                                @onclick="@(() => EditAsync(host))"
+                                aria-label="@(HostsText["EditHostAria", host.Name])">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" />
+                        </button>
+                    </MudTooltip>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="unmapped">
+            <code>@Projection.Address</code>
+            <MudTooltip Text="@(RulesText["CreateKnownHost"])">
+                <button type="button"
+                        class="endpoint-action"
+                        disabled="@_busy"
+                        @onclick="CreateAsync"
+                        aria-label="@(RulesText["CreateKnownHost"])">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" />
+                </button>
+            </MudTooltip>
+        </div>
+    }
+</div>
