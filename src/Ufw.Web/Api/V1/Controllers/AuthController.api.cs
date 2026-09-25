@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Security;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -33,7 +34,7 @@ public sealed partial class AuthController
     /// </summary>
     [AllowAnonymous]
     [HttpPost("refresh")]
-    [ValidateAntiForgeryToken]
+    [RequireAntiforgeryValidation]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -54,7 +55,7 @@ public sealed partial class AuthController
     /// </summary>
     [AllowAnonymous]
     [HttpPost("logout")]
-    [ValidateAntiForgeryToken]
+    [RequireAntiforgeryValidation]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken);

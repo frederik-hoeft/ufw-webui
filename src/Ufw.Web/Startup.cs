@@ -12,6 +12,7 @@ using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Configuration.Swagger;
 using Ufw.Web.Data;
+using Ufw.Web.Security;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.ErrorHandling;
 using Ufw.Web.Services.KnownHosts;
@@ -224,6 +225,7 @@ internal sealed class Startup : IAsyncStartupScript
         app.UseCors(BLAZOR_CORS_POLICY);
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseMiddleware<AntiforgeryValidationMiddleware>();
 
         app.MapControllers();
         app.MapHealthChecks("/health");

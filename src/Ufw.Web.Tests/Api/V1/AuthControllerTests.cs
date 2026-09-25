@@ -10,6 +10,7 @@ using System.Security.Claims;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Configuration;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Security;
 using Ufw.Web.Services.Auth;
 
 namespace Ufw.Web.Tests.Api.V1;
@@ -45,8 +46,8 @@ public sealed class AuthControllerTests
         MethodInfo refresh = typeof(AuthController).GetMethod(nameof(AuthController.RefreshAsync))!;
         MethodInfo logout = typeof(AuthController).GetMethod(nameof(AuthController.LogoutAsync))!;
 
-        Assert.IsNotNull(refresh.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>());
-        Assert.IsNotNull(logout.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>());
+        Assert.IsNotNull(refresh.GetCustomAttribute<RequireAntiforgeryValidationAttribute>());
+        Assert.IsNotNull(logout.GetCustomAttribute<RequireAntiforgeryValidationAttribute>());
     }
 
     [TestMethod]
