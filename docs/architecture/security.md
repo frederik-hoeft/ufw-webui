@@ -98,7 +98,9 @@ The IPC wire protocols are versioned and bounded so malformed framing and malfor
 
 A successful refresh rotates the token. Reuse of a revoked token invalidates the remaining active members of its token family, and each family captures the user's Identity security stamp so account-security changes can prevent indefinite refresh from stale credentials. Lockout and account-confirmation policy is checked before new access tokens are issued.
 
-Because same-origin tabs share the refresh cookie, the browser serializes login, refresh, and logout through an exclusive cross-tab lock. This prevents two tabs from independently rotating the same cookie and invalidating one another's view of the session. The production topology consequently exposes one consistent HTTPS browser origin for the tabs participating in that coordination.
+An authenticated user can change their password from the account settings UI. The server verifies the current password through ASP.NET Core Identity, updates the password/security stamp, explicitly revokes the user's existing refresh tokens, and issues a replacement access/refresh pair for the browser that performed the change. Other browser sessions therefore lose refresh capability immediately, while any access JWT they already hold remains subject to the normal short access-token expiry window.
+
+Because same-origin tabs share the refresh cookie, the browser serializes login, refresh, password changes, and logout through an exclusive cross-tab lock. This prevents two tabs from independently rotating the same cookie and invalidating one another's view of the session. The production topology consequently exposes one consistent HTTPS browser origin for the tabs participating in that coordination.
 
 Refresh-family revocation does not retroactively invalidate an already-issued access JWT. An access token remains valid until its short expiration, so deployment policy must choose that lifetime according to the acceptable revocation window.
 

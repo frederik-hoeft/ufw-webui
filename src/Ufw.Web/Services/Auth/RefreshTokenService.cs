@@ -114,6 +114,19 @@ internal sealed class RefreshTokenService(ApplicationDbContext context, IOptions
         await RevokeActiveFamilyTokensBulkAsync(current.FamilyId, timeProvider.GetUtcNow(), cancellationToken);
     }
 
+    public async Task RevokeUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
+        DateTimeOffset revokedAt = timeProvider.GetUtcNow();
+        string concurrencyToken = Guid.NewGuid().ToString("N");
+        await context.Set<RefreshToken>()
+            .Where(token => token.UserId == userId && token.RevokedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(token => token.RevokedAt, (DateTimeOffset?)revokedAt)
+                .SetProperty(token => token.ConcurrencyToken, concurrencyToken), cancellationToken);
+    }
+
     private async Task RevokeActiveFamilyTokensBulkAsync(Guid familyId, DateTimeOffset revokedAt, CancellationToken cancellationToken)
     {
         string concurrencyToken = Guid.NewGuid().ToString("N");

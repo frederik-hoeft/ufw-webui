@@ -5,8 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Data;
 using Ufw.Web.Data;
-using Ufw.Web.Tests.Data;
 using Ufw.Web.Services.Auth;
+using Ufw.Web.Tests.Data;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
 using Wkg.EntityFrameworkCore.Configuration;
@@ -65,6 +65,44 @@ public sealed class AuthenticationFlowServiceTests
         IdentityUser? updated = await host.UserManager.FindByIdAsync(user.Id);
         Assert.IsNotNull(updated);
         Assert.AreEqual(1, updated.AccessFailedCount);
+        host.JwtTokens.VerifyNoOtherCalls();
+        host.RefreshTokens.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public async Task ChangePasswordAsync_ValidPassword_RotatesCredentialsAndSessionAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        IdentityUser user = await host.CreateUserAsync(EMAIL, PASSWORD);
+        AccessToken accessToken = new("replacement-access-token", DateTimeOffset.UtcNow.AddMinutes(5));
+        RefreshTokenIssueResult refreshToken = new("replacement-refresh-token", DateTimeOffset.UtcNow.AddDays(1));
+        host.RefreshTokens.Setup(tokens => tokens.RevokeUserAsync(user.Id, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        host.JwtTokens.Setup(tokens => tokens.IssueAsync(user, It.IsAny<CancellationToken>())).ReturnsAsync(accessToken);
+        host.RefreshTokens.Setup(tokens => tokens.IssueAsync(user, It.IsAny<CancellationToken>())).ReturnsAsync(refreshToken);
+
+        PasswordChangeResult? result = await host.Service.ChangePasswordAsync(user.Id, PASSWORD, "replacement-password", TestContext.CancellationToken);
+
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result.IdentityResult.Succeeded);
+        Assert.IsNotNull(result.Authentication);
+        Assert.AreEqual(accessToken, result.Authentication.AccessToken);
+        Assert.IsTrue(await host.UserManager.CheckPasswordAsync(user, "replacement-password"));
+        Assert.IsFalse(await host.UserManager.CheckPasswordAsync(user, PASSWORD));
+        host.RefreshTokens.Verify(tokens => tokens.RevokeUserAsync(user.Id, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ChangePasswordAsync_WrongCurrentPassword_DoesNotRotateSessionAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        IdentityUser user = await host.CreateUserAsync(EMAIL, PASSWORD);
+
+        PasswordChangeResult? result = await host.Service.ChangePasswordAsync(user.Id, "wrong-password", "replacement-password", TestContext.CancellationToken);
+
+        Assert.IsNotNull(result);
+        Assert.IsFalse(result.IdentityResult.Succeeded);
+        Assert.IsNull(result.Authentication);
+        Assert.IsTrue(await host.UserManager.CheckPasswordAsync(user, PASSWORD));
         host.JwtTokens.VerifyNoOtherCalls();
         host.RefreshTokens.VerifyNoOtherCalls();
     }

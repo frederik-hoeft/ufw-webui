@@ -1,5 +1,6 @@
 @inject IClientThemeService Theme
 @inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<NavigationStrings> NavigationText
 
 <MudMenu AnchorOrigin="Origin.BottomRight"
          TransformOrigin="Origin.TopRight"
@@ -20,6 +21,11 @@
         </MudButton>
     </ActivatorContent>
     <ChildContent>
+        <MudMenuItem Href="/settings"
+                     Icon="@Icons.Material.Filled.Settings"
+                     Disabled="@(_themeBusy || SignOutBusy)">
+            @NavigationText["Settings"]
+        </MudMenuItem>
         <MudMenuItem Icon="@ThemeActionIcon"
                      Disabled="@(_themeBusy || SignOutBusy)"
                      OnClick="ToggleThemeAsync">

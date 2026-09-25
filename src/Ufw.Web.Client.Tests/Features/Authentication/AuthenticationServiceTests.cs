@@ -1,8 +1,8 @@
 ﻿using Moq;
 using Ufw.Web.Client.Api.Auth;
-using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Client.Features.Authentication;
 using Ufw.Web.Client.Tests.Support;
+using Ufw.Web.Model.V1.Auth;
 
 namespace Ufw.Web.Client.Tests.Features.Authentication;
 
@@ -69,6 +69,19 @@ public sealed class AuthenticationServiceTests
 
         Assert.AreEqual(1, host.Coordinator.InvocationCount);
         host.Session.Verify(session => session.SetToken("login-token", response.ExpiresAt), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ChangePasswordAsync_UsesExclusiveCoordinatorAndStoresReplacementTokenAsync()
+    {
+        TestHost host = new(("current-token", s_now.AddMinutes(5)));
+        AuthTokenResponse response = new("replacement-token", s_now.AddMinutes(6));
+        host.Api.Setup(api => api.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), "current-token", It.IsAny<CancellationToken>())).ReturnsAsync(response);
+
+        await host.Service.ChangePasswordAsync("current", "replacement");
+
+        Assert.AreEqual(1, host.Coordinator.InvocationCount);
+        host.Session.Verify(session => session.SetToken("replacement-token", response.ExpiresAt), Times.Once);
     }
 
     [TestMethod]

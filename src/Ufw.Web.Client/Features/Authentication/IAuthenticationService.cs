@@ -6,6 +6,8 @@ public interface IAuthenticationService
 
     Task LoginAsync(string email, string password, CancellationToken cancellationToken = default);
 
+    Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken = default);
+
     Task LogoutAsync(CancellationToken cancellationToken = default);
 
     Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default);

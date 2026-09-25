@@ -66,19 +66,19 @@
         </div>
     </SettingsSection>
 
-    <SettingsSection Title="@(SettingsText["HostDataTitle"])"
-                     Description="@(SettingsText["HostDataDescription"])">
+    <SettingsSection Title="@(SettingsText["AccountTitle"])"
+                     Description="@(SettingsText["AccountDescription"])">
         <div class="settings-row">
             <div class="settings-row-copy">
-                <MudText Typo="Typo.subtitle2">@SettingsText["InterfaceInventoryTitle"]</MudText>
+                <MudText Typo="Typo.subtitle2">@SettingsText["PasswordLabel"]</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @SettingsText["InterfaceInventoryDescription"]
+                    @SettingsText["PasswordDescription"]
                 </MudText>
             </div>
             <MudButton Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.Lan"
-                       Href="/interfaces">
-                @SettingsText["ManageInterfaces"]
+                       StartIcon="@Icons.Material.Filled.Password"
+                       Href="/settings/password">
+                @SettingsText["ChangePassword"]
             </MudButton>
         </div>
     </SettingsSection>

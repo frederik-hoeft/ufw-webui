@@ -1,6 +1,6 @@
 ﻿using System.Net;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -8,17 +8,17 @@ using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
-using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Client.Api.RuleMetadata;
-using Ufw.Web.Model.V1.RuleMetadata;
-using Ufw.Web.Client.Api.RuleTags;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Client.Api.RuleTags;
 using Ufw.Web.Client.Tests.Support;
+using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Client.Tests.Api;
 
@@ -50,6 +50,25 @@ public sealed class HttpApiClientsTests
         Assert.IsTrue(handler.Requests.All(static request => request.Method == HttpMethod.Post));
         using JsonDocument body = JsonDocument.Parse(handler.Requests[0].Content!);
         Assert.AreEqual("admin@example.invalid", body.RootElement.GetProperty("email").GetString());
+    }
+
+    [TestMethod]
+    public async Task AuthApiClient_ChangePasswordUsesAuthenticatedPasswordEndpointAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, _) => Json(HttpStatusCode.OK, "{\"accessToken\":\"replacement\",\"expiresAt\":\"2026-09-11T18:00:00+00:00\"}"));
+        using HttpClient http = CreateClient(handler);
+        AuthApiClient client = new(http);
+
+        AuthTokenResponse response = await client.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), "access-token");
+
+        Assert.AreEqual("replacement", response.AccessToken);
+        Assert.AreEqual(HttpMethod.Post, handler.Requests[0].Method);
+        Assert.AreEqual("/api/v1/auth/password", handler.Requests[0].RequestUri!.AbsolutePath);
+        Assert.AreEqual("Bearer", handler.Requests[0].AuthorizationScheme);
+        Assert.AreEqual("access-token", handler.Requests[0].AuthorizationParameter);
+        using JsonDocument body = JsonDocument.Parse(handler.Requests[0].Content!);
+        Assert.AreEqual("current", body.RootElement.GetProperty("currentPassword").GetString());
+        Assert.AreEqual("replacement", body.RootElement.GetProperty("newPassword").GetString());
     }
 
     [TestMethod]

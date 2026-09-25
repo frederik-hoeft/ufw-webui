@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
-using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Services.Auth;
+using Ufw.Web.Tests.Data;
 
 namespace Ufw.Web.Tests.Services.Auth;
 
@@ -101,4 +101,42 @@ public sealed class RefreshTokenServiceTests
                 token => token.RevokedAt == null,
                 TestContext.CancellationToken));
     }
+
+    [TestMethod]
+    public async Task RevokeUserAsync_RevokesOnlyTargetUsersActiveTokensAsync()
+    {
+        await using SqliteConnection connection = new("Data Source=:memory:");
+        await connection.OpenAsync(TestContext.CancellationToken);
+
+        DbContextOptions<ApplicationDbContext> databaseOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using ApplicationDbContext context = new(databaseOptions, new SqliteApplicationModelLoader());
+        await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
+
+        IdentityUser target = CreateUser("target");
+        IdentityUser other = CreateUser("other");
+        context.Users.AddRange(target, other);
+        await context.SaveChangesAsync(TestContext.CancellationToken);
+
+        RefreshTokenService service = new(context, Options.Create(new RefreshTokenOptions { Lifetime = TimeSpan.FromDays(1) }), TimeProvider.System);
+        _ = await service.IssueAsync(target, TestContext.CancellationToken);
+        _ = await service.IssueAsync(other, TestContext.CancellationToken);
+
+        await service.RevokeUserAsync(target.Id, TestContext.CancellationToken);
+
+        context.ChangeTracker.Clear();
+        Assert.AreEqual(0, await context.Set<RefreshToken>().CountAsync(token => token.UserId == target.Id && token.RevokedAt == null, TestContext.CancellationToken));
+        Assert.AreEqual(1, await context.Set<RefreshToken>().CountAsync(token => token.UserId == other.Id && token.RevokedAt == null, TestContext.CancellationToken));
+    }
+
+    private static IdentityUser CreateUser(string name) => new()
+    {
+        Id = Guid.NewGuid().ToString(),
+        UserName = name,
+        NormalizedUserName = name.ToUpperInvariant(),
+        Email = $"{name}@example.invalid",
+        NormalizedEmail = $"{name.ToUpperInvariant()}@EXAMPLE.INVALID",
+        SecurityStamp = Guid.NewGuid().ToString(),
+    };
 }

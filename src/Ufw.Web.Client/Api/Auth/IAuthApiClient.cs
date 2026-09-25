@@ -8,5 +8,7 @@ public interface IAuthApiClient
 
     Task<AuthTokenResponse?> TryRefreshAsync(CancellationToken cancellationToken = default);
 
+    Task<AuthTokenResponse> ChangePasswordAsync(ChangePasswordRequest request, string accessToken, CancellationToken cancellationToken = default);
+
     Task LogoutAsync(CancellationToken cancellationToken = default);
 }

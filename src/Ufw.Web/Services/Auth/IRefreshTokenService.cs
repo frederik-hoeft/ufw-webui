@@ -9,4 +9,6 @@ public interface IRefreshTokenService
     Task<RefreshTokenRotationResult?> RotateAsync(string token, CancellationToken cancellationToken = default);
 
     Task RevokeFamilyAsync(string token, CancellationToken cancellationToken = default);
+
+    Task RevokeUserAsync(string userId, CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,6 @@
-﻿using System.Net.Http.Json;
-using System.Net;
+﻿using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Model.V1.Auth;
 
@@ -9,6 +10,7 @@ internal sealed class AuthApiClient(HttpClient httpClient) : IAuthApiClient
 {
     private static readonly Uri s_loginUri = new("api/v1/auth/login", UriKind.Relative);
     private static readonly Uri s_refreshUri = new("api/v1/auth/refresh", UriKind.Relative);
+    private static readonly Uri s_passwordUri = new("api/v1/auth/password", UriKind.Relative);
     private static readonly Uri s_logoutUri = new("api/v1/auth/logout", UriKind.Relative);
 
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -25,6 +27,19 @@ internal sealed class AuthApiClient(HttpClient httpClient) : IAuthApiClient
             return null;
         }
 
+        return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.AuthTokenResponse, cancellationToken);
+    }
+
+    public async Task<AuthTokenResponse> ChangePasswordAsync(ChangePasswordRequest request, string accessToken, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
+
+        using HttpRequestMessage message = new(HttpMethod.Post, s_passwordUri)
+        {
+            Content = JsonContent.Create(request, ClientJsonSerializerContext.Default.ChangePasswordRequest),
+        };
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using HttpResponseMessage response = await httpClient.SendAsync(message, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.AuthTokenResponse, cancellationToken);
     }
 
