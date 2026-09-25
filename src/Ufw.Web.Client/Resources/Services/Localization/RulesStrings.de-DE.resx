@@ -809,6 +809,7 @@
   <data name="MetadataSaveAfterCreateFailed" xml:space="preserve"><value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden.</value></data>
   <data name="MetadataSaveAfterCreateFailedWithReason" xml:space="preserve"><value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden: {0}</value></data>
   <data name="KnownHost" xml:space="preserve"><value>Bekannter Host</value></data>
+  <data name="KnownHostEndpointLabel" xml:space="preserve"><value>{0} (bekannter Host)</value></data>
   <data name="AnyAddress" xml:space="preserve"><value>Beliebig</value></data>
   <data name="CreateKnownHost" xml:space="preserve"><value>Bekannten Host anlegen</value></data>
   <data name="SnapshotCapturedAt" xml:space="preserve"><value>Snapshot {0}</value></data>

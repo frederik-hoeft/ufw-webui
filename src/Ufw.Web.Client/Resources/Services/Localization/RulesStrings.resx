@@ -807,6 +807,7 @@
   <data name="MetadataSaveAfterCreateFailed" xml:space="preserve"><value>The firewall rule was created, but its metadata could not be saved.</value></data>
   <data name="MetadataSaveAfterCreateFailedWithReason" xml:space="preserve"><value>The firewall rule was created, but its metadata could not be saved: {0}</value></data>
   <data name="KnownHost" xml:space="preserve"><value>Known host</value></data>
+  <data name="KnownHostEndpointLabel" xml:space="preserve"><value>{0} (known host)</value></data>
   <data name="AnyAddress" xml:space="preserve"><value>Any</value></data>
   <data name="CreateKnownHost" xml:space="preserve"><value>Create known host</value></data>
   <data name="SnapshotCapturedAt" xml:space="preserve"><value>Snapshot {0}</value></data>

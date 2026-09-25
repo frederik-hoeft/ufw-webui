@@ -20,6 +20,8 @@ public sealed partial class RuleKnownHostEndpoint
 
     private RuleEndpointKnownHostProjection Projection => ProjectionService.Project(Endpoint, KnownHosts.Current?.Hosts ?? []);
 
+    private string DisplayLabel => Projection.Hosts.Count > 0 ? RulesText["KnownHostEndpointLabel", Label] : Label;
+
     private Task CreateAsync() => RunEditorAsync(cancellationToken => KnownHostEditor.CreateAsync(Projection.Address, cancellationToken));
 
     private Task EditAsync(KnownHostInventoryItem host) => RunEditorAsync(cancellationToken => KnownHostEditor.EditAsync(host, cancellationToken));
