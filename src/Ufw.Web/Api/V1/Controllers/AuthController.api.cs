@@ -12,6 +12,14 @@ namespace Ufw.Web.Api.V1.Controllers;
 public sealed partial class AuthController
 {
     /// <summary>
+    /// Issues the ASP.NET Core antiforgery request token used by cookie-authenticated auth operations.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("antiforgery")]
+    [ProducesResponseType<AntiforgeryTokenResponse>(StatusCodes.Status200OK)]
+    public partial IActionResult GetAntiforgeryToken();
+
+    /// <summary>
     /// Authenticates a user and issues a short-lived access token plus the refresh-token cookie.
     /// </summary>
     [AllowAnonymous]
@@ -25,9 +33,10 @@ public sealed partial class AuthController
     /// </summary>
     [AllowAnonymous]
     [HttpPost("refresh")]
+    [ValidateAntiForgeryToken]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public partial Task<IActionResult> RefreshAsync(CancellationToken cancellationToken);
 
     /// <summary>
@@ -45,7 +54,8 @@ public sealed partial class AuthController
     /// </summary>
     [AllowAnonymous]
     [HttpPost("logout")]
+    [ValidateAntiForgeryToken]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken);
 }

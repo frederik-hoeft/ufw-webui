@@ -97,9 +97,9 @@ The `Auth` section in `Ufw.Web` controls Identity, JWT, refresh-token, and boots
 
 `appsettings.default.json` is a local-development template and intentionally contains permissive bootstrap credentials. Production Compose supplies bootstrap values through its environment instead; do not reuse the template credentials in production.
 
-Refresh cookies are `Secure`, `HttpOnly`, `SameSite=Strict`, and path `/`. Production therefore requires HTTPS. The browser also sends `X-UFWeb-CSRF` on credentialed API requests, and the refresh/logout endpoints require it so that `SameSite` is not the only CSRF boundary for same-site sibling origins.
+Refresh cookies are `Secure`, `HttpOnly`, `SameSite=Strict`, and path `/`. Production therefore requires HTTPS. Refresh and logout also use ASP.NET Core antiforgery validation: the browser first obtains a framework-generated request token, paired with a `Secure`, `HttpOnly`, `SameSite=Strict`, host-prefixed antiforgery cookie, then returns the request token in `X-UFWeb-CSRF`.
 
-`Cors:AllowedOrigins` is a development/standalone-client setting for cases where `Ufw.Web.Client` and `Ufw.Web` run on different origins. These origins are security-sensitive because an allowed origin may send credentialed requests carrying the CSRF-protection header; configure only trusted client origins. The production nginx topology is same-origin and does not require a browser CORS exception.
+`Cors:AllowedOrigins` is a development/standalone-client setting for cases where `Ufw.Web.Client` and `Ufw.Web` run on different origins. Configure only trusted client origins: an allowed credentialed origin can obtain and return antiforgery tokens by design. The production nginx topology is same-origin and does not require a browser CORS exception.
 
 ## Daemon settings
 

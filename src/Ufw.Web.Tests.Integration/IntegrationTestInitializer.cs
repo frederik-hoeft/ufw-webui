@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Ufw.Shared.Web;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +29,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         cancellationToken.ThrowIfCancellationRequested();
 
         services.AddLogging();
+        services.AddAntiforgery(options => options.HeaderName = BrowserRequestHeaders.CSRF_TOKEN);
         services.AddControllers();
         services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
         services.AddSingleton(static _ => new SqliteConnection("Data Source=:memory:"));

@@ -121,6 +121,15 @@ internal sealed class Startup : IAsyncStartupScript
             });
 
         services.AddAuthorization();
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = BrowserRequestHeaders.CSRF_TOKEN;
+            options.Cookie.Name = "__Host-ufw-antiforgery";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.Path = "/";
+        });
         services.AddProblemDetails();
         services.AddControllers();
         services.AddApiVersioning(options =>

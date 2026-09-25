@@ -21,20 +21,6 @@ public sealed class BrowserCredentialsHandlerTests
         Assert.HasCount(1, inner.Requests);
         IReadOnlyDictionary<string, object> options = (IReadOnlyDictionary<string, object>)inner.Requests[0].Options["WebAssemblyFetchOptions"]!;
         Assert.AreEqual("include", options["credentials"]);
-        Assert.IsFalse(inner.Requests[0].Headers.ContainsKey(BrowserRequestHeaders.CSRF_PROTECTION));
-    }
-
-    [TestMethod]
-    public async Task SendAsync_UnsafeMethod_AddsCsrfProtectionHeaderAsync()
-    {
-        using RecordingHttpMessageHandler inner = new((_, _) => new HttpResponseMessage(HttpStatusCode.OK));
-        using BrowserCredentialsHandler handler = new() { InnerHandler = inner };
-        using HttpClient client = new(handler);
-
-        using HttpResponseMessage response = await client.PostAsync("https://localhost/api/v1/auth/refresh", content: null);
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.HasCount(1, inner.Requests);
-        Assert.AreEqual(BrowserRequestHeaders.CSRF_PROTECTION_VALUE, inner.Requests[0].Headers[BrowserRequestHeaders.CSRF_PROTECTION].Single());
+        Assert.IsFalse(inner.Requests[0].Headers.ContainsKey(BrowserRequestHeaders.CSRF_TOKEN));
     }
 }

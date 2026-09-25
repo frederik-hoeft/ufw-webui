@@ -12,6 +12,7 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(ChangePasswordRequest))]
 [JsonSerializable(typeof(AuthTokenResponse))]
+[JsonSerializable(typeof(AntiforgeryTokenResponse))]
 [JsonSerializable(typeof(ApiProblemDetails))]
 [JsonSerializable(typeof(KnownHostInventoryResponse))]
 [JsonSerializable(typeof(CreateKnownHostRequest))]

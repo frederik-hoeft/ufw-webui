@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Ufw.Shared.Web;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Data;
@@ -58,7 +57,6 @@ public sealed class AuthControllerIntegrationTests : ControllerIntegrationTest<A
             AuthenticationTokenResult? login = await authentication.LoginAsync(EMAIL, PASSWORD, cancellationToken);
             Assert.IsNotNull(login);
             controller.Request.Headers.Cookie = $"{COOKIE_NAME}={login.RefreshToken}";
-            SetCsrfProtectionHeader(controller);
 
             timeProvider.SetUtcNow(timeProvider.GetUtcNow().AddMinutes(1));
             IActionResult result = await controller.RefreshAsync(cancellationToken);
@@ -90,7 +88,6 @@ public sealed class AuthControllerIntegrationTests : ControllerIntegrationTest<A
             AuthenticationTokenResult? login = await authentication.LoginAsync(EMAIL, PASSWORD, cancellationToken);
             Assert.IsNotNull(login);
             controller.Request.Headers.Cookie = $"{COOKIE_NAME}={login.RefreshToken}";
-            SetCsrfProtectionHeader(controller);
 
             IActionResult result = await controller.LogoutAsync(cancellationToken);
 
@@ -117,9 +114,6 @@ public sealed class AuthControllerIntegrationTests : ControllerIntegrationTest<A
         IdentityResult creationResult = await userManager.CreateAsync(user, PASSWORD);
         Assert.IsTrue(creationResult.Succeeded, string.Join("; ", creationResult.Errors.Select(static error => error.Description)));
     }
-
-    private static void SetCsrfProtectionHeader(AuthController controller) =>
-        controller.Request.Headers[BrowserRequestHeaders.CSRF_PROTECTION] = BrowserRequestHeaders.CSRF_PROTECTION_VALUE;
 
     private static string AssertSingleRefreshCookie(AuthController controller)
     {
