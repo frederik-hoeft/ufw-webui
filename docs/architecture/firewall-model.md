@@ -1,8 +1,8 @@
 # Firewall State and Rule Model
 
-UFWeb treats UFW itself as the authoritative firewall database. The application does not attempt to mirror every rule into PostgreSQL or assume that it is the only actor modifying the firewall. This allows normal UFW tooling and other administrators to coexist with the web interface without creating two competing sources of truth.
+This document defines the firewall-state contract behind the broader [UFWeb architecture](architecture-overview.md): how UFW output becomes authoritative structural state, how mutable rules are identified, and how add/insert/delete/reorder operations are reconciled against fresh host state.
 
-The consequence is that every mutable rule must be addressable from current observed firewall semantics rather than from application-generated row numbers or database identifiers.
+UFW itself remains the authoritative firewall database. UFWeb does not mirror every rule into PostgreSQL or assume that it is the only actor modifying the firewall, so normal UFW tooling and other administrators can coexist with the web interface without creating two competing sources of truth. The consequence is that every mutable rule must be addressable from current observed firewall semantics rather than from application-generated row numbers or database identifiers.
 
 ## Authoritative snapshots
 

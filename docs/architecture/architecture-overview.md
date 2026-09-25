@@ -1,208 +1,280 @@
 # UFWeb Architecture
 
-UFWeb is split around one central boundary: network-facing application code does not execute privileged firewall commands. The browser and web application provide management workflows, while a small host daemon owns UFW integration and independently authorizes every privileged mutation.
+UFWeb manages UFW on a host through a web application without making the web tier the firewall authority. The architecture follows from three constraints:
 
-This document explains that system model, how state is owned, and how the major components interact. Protocol encoding details live under [Protocols](../protocols/README.md), and host-specific operational steps live under [Deployment](../deployment/deployment.md).
+1. **UFW remains authoritative.** Administrators may continue to use the normal UFW CLI or other host tooling. UFWeb must observe those changes rather than reconstructing firewall truth from its database.
+2. **Network-facing code does not execute firewall commands.** The browser and ASP application provide management workflows; a small host daemon owns privileged UFW access.
+3. **A web session is not firewall-mutation authority.** Privileged mutations are approved in the browser and independently verified by the daemon before UFW is invoked.
 
-## System model
+Those constraints shape the deployment topology, state model, request flows, and project boundaries described below. Detailed rule semantics live in [Firewall state and rule model](firewall-model.md), the trust model in [Security architecture](security.md), and wire-level contracts under [IPC protocols](../protocols/README.md).
 
-A production deployment has five application/runtime components around UFW itself: the administrator's browser, nginx, `Ufw.Web`, PostgreSQL, and the privileged `Ufw.Systemd` host daemon. Only the daemon crosses the host firewall boundary.
+## System topology
+
+A production deployment has five UFWeb runtime components around UFW itself:
 
 ```mermaid
 flowchart LR
     Browser[Browser\nUfw.Web.Client]
 
     subgraph Containers[Application containers]
-        Nginx[nginx\nstatic frontend + TLS]
+        Nginx[nginx\nstatic client + HTTPS]
         Web[Ufw.Web\nREST + auth + application state]
         Db[(PostgreSQL)]
+
         Nginx -->|Unix socket\n/api/* only| Web
         Web -->|private DB network| Db
     end
 
     Daemon[Ufw.Systemd\nprivileged host daemon]
-    Ufw[UFW\nhost firewall state]
+    Ufw[UFW\nhost firewall]
 
     Browser -->|HTTPS| Nginx
     Web -->|local IPC| Daemon
     Daemon -->|validated argv| Ufw
 ```
 
-The public HTTP endpoint is nginx. It serves the independently built WebAssembly application and proxies only `/api/*` to `Ufw.Web`. `Ufw.Web` has no public TCP listener in the production Compose topology. `Ufw.Systemd` is not containerized: it runs under systemd so the application stack never needs access to UFW files, netfilter privileges, or the host Docker socket.
+nginx is the only public application endpoint. It terminates browser TLS, serves the independently built WebAssembly application, and proxies `/api/*` to `Ufw.Web` over a private Unix socket. `Ufw.Web` has no public TCP listener in the production Compose topology, and PostgreSQL is reachable only from the web application on an internal container network.
 
-The split between nginx and `Ufw.Web` is security-significant. The browser creates privileged mutation signatures, so the code delivered to the browser is part of the signing trusted computing base. Keeping frontend assets in a separate, read-only nginx image prevents a compromised ASP process from replacing the signing application directly.
+`Ufw.Systemd` runs directly on the firewall host under systemd. It is not containerized and is the only UFWeb component that executes UFW. The container stack therefore needs neither netfilter privileges, UFW files, the host Docker socket, nor write access to daemon authorization state.
 
-## Responsibility boundaries
+Separating nginx from ASP is also part of the mutation trust model. Browser code constructs and signs privileged requests, so the delivered frontend artifact belongs to the signing trusted computing base. Serving it from a separate read-only image means compromise of `Ufw.Web` alone does not let ASP silently replace the signing client.
+
+## Component responsibilities
+
+The runtime components form a deliberate chain from presentation to privileged execution. Each layer owns one kind of state or policy and delegates the rest.
 
 ### Browser application
 
-`Ufw.Web.Client` presents firewall state and application metadata, manages the browser side of authentication, validates rule input for usability, and creates signed mutation intents. It talks only to the versioned REST API; it has no knowledge of daemon transports or UFW process execution. Pure versioned REST request/response DTOs are defined once in `Ufw.Web.Model` and referenced by both the browser and ASP projects.
+`Ufw.Web.Client` owns presentation and browser-local workflow state. It authenticates to the REST API, loads authoritative firewall snapshots, combines those snapshots with application metadata for presentation, validates rule input for usability, and creates signed mutation intents.
 
-Access JWTs stay in memory. The refresh token is an `HttpOnly` cookie managed by the browser, and mutation private keys are supplied to the signing workflow without being persisted by the application. Appearance and culture preferences are the only browser-local persisted state.
+The client talks only to HTTP resources exposed by `Ufw.Web`; it does not know how the daemon transport or UFW subprocess works. Versioned REST DTOs live in the shared `Ufw.Web.Model` assembly so browser and ASP compile against the same wire shape.
 
-Browser-side rule validation is not an authorization boundary. The daemon repeats semantic validation and reconstructs the canonical signed representation before it accepts a mutation.
+Access JWTs remain in memory. The refresh token is an `HttpOnly` browser cookie. Administrator mutation private keys are supplied to the signing workflow for individual operations and are not persisted by UFWeb. Appearance and culture preferences are the only browser-local persisted application state.
 
-### Web application
+Browser validation is convenience and early feedback, not authorization. The daemon validates signed semantics independently before privileged execution.
 
-`Ufw.Web` owns HTTP concerns: API authentication, user/session state, application metadata, PostgreSQL persistence, and adaptation between REST and the local daemon protocol. It can ask the daemon to list state or submit a signed mutation, but it cannot manufacture mutation authority.
+For the client's internal layering, inventory/query model, and UI interaction boundaries, see [Browser application architecture](browser-application.md).
 
-The web application intentionally does not maintain a second firewall model in PostgreSQL. Its database contains ASP.NET Core Identity data, refresh-token families, application-owned authoring metadata such as network-interface comments and known-host aliases, and presentation metadata attached to opaque semantic rule identities. Rule metadata currently consists of optional notes plus reusable tags; it never substitutes for a live daemon rule. Tags are first-class application entities with a display name, a simple `#RRGGBB` color, and a UUIDv7 public identity, and rules relate to them through an explicit many-to-many connection table.
+### Web application and PostgreSQL
 
-Database-backed workflows preserve one transactional boundary across related Identity and application state. Authentication therefore does not commit a refreshed token while rolling back the corresponding Identity state, or vice versa. Expected failures may still commit security-relevant state such as failed-login counters or refresh-family revocation.
+`Ufw.Web` owns HTTP authentication, session state, application persistence, REST resources, and adaptation between browser HTTP calls and the daemon IPC protocol. It can list firewall state and forward a signed mutation, but it cannot manufacture daemon-approved mutation authority.
 
-Application-owned relational entities use numeric surrogate primary keys internally. Entities exposed outside the persistence boundary use separate UUIDv7 public identities rather than leaking database keys; relationship tables also retain an internal numeric key and enforce relationship uniqueness separately. Project-owned EF mappings specify their PostgreSQL column types explicitly instead of relying on provider conventions.
+PostgreSQL stores only application-owned state:
+
+- ASP.NET Core Identity users and account state;
+- refresh-token families;
+- known-host aliases used during authoring/search;
+- reconciled network-interface comments and visibility preferences;
+- rule notes and reusable tags attached to semantic rule identities.
+
+It does **not** store a second copy of the live firewall rule set. A database record referring to a rule is presentation metadata, not evidence that the rule still exists in UFW.
+
+Database entities use ordinary numeric surrogate keys internally. API-visible application entities use UUIDv7 public IDs so persistence keys do not leak through REST contracts. Related Identity/application updates share transactional boundaries where partial commit would violate the workflow, while expected security failures may still persist security-relevant state such as failed-login counters or refresh-family revocation.
 
 ### Privileged daemon
 
-`Ufw.Systemd` is the host security boundary. It owns daemon IPC routing, authorized mutation keys, replay protection, deployment identity, authoritative UFW observation, host-interface validation, and the subprocess boundary.
+`Ufw.Systemd` is the host firewall security boundary. It owns:
 
-The daemon exposes read operations for process liveness, rules, network interfaces, and intent context. Add, ordered insertion, delete, and reorder operations additionally cross signed-intent verification before they can reach the UFW execution gate. IPC peer identity and web authentication are defense in depth, not substitutes for this authorization check.
+- daemon IPC routing and request validation;
+- authoritative UFW observation and parsing;
+- current host-interface observation;
+- authorized mutation public keys;
+- signed-intent verification, freshness, and replay protection;
+- deployment identity and reorder recovery state;
+- serialization of UFW reads/writes;
+- rendering validated UFW argv and owning the child-process lifecycle.
 
-All UFW activity is serialized inside the daemon. A mutation retains the execution gate through current-state checks, process completion, and post-operation reconciliation. Once a child process starts, cancellation does not abandon it: the daemon retains ownership until the child exits or is terminated and reaped, reconciles authoritative state, and only then completes the request.
+Read requests can establish daemon liveness, current rules/configuration, network interfaces, and signing context. Add, ordered insertion, delete, and reorder additionally cross signed-intent authorization before entering the UFW execution gate.
 
-### Shared contracts
+The daemon keeps ownership of a started UFW child through exit or cancellation cleanup and reconciles the resulting firewall state before completing the request. A successful process exit is therefore not, by itself, proof that a mutation completed as intended.
 
-`Ufw.Shared` contains concepts that must mean the same thing on both sides of a process boundary: firewall rule semantics, normalization and rendering, signed-intent primitives, IPC message contracts, and protocol serialization metadata. It does not own runtime policy for either the browser, web application, or daemon.
+### Shared contract assemblies
 
-`Ufw.Web.Model` is the narrower browser-HTTP contract assembly. Its `V{N}` namespaces contain pure request/response DTOs for versioned REST resources so `Ufw.Web` and `Ufw.Web.Client` cannot drift into separate JSON shapes. It may depend on lower-level shared contract types, but it does not depend on ASP implementation, persistence, browser services, or UI code.
+Two shared assemblies keep cross-process meanings stable without merging application responsibilities:
 
-`Ufw.Ipc.Client` implements the typed daemon client used by `Ufw.Web`. `Ufw.Roslyn` provides the runtime-facing routing and serialization abstractions, while `Ufw.Roslyn.SourceGen` resolves their compile-time contracts and emits static bindings suitable for NativeAOT. Controller routing and JSON serialization use independent contract families so their compile-time dependencies can evolve separately. See [Compile-time routing and serialization](source-generation.md) for the source-generation boundary.
+- `Ufw.Shared` contains firewall semantics, normalization/rendering, signed-intent primitives, IPC contracts, and lower-level protocol serialization metadata used across the browser/web/daemon boundaries.
+- `Ufw.Web.Model` contains pure `V{N}` REST request/response DTOs shared by `Ufw.Web` and `Ufw.Web.Client`. It may use lower-level `Ufw.Shared` contract types but does not depend on ASP persistence/services or client feature/UI code.
 
-## Operational status boundaries
-
-Operational status is reported from explicit probes rather than inferred from unrelated successful endpoints. The browser treats the major runtime boundaries independently:
-
-- `GET /api/health` probes the `Ufw.Web` management process. ASP also retains `/health` for direct/internal health checks; production nginx intentionally exposes only the `/api/*` form to the browser.
-- `GET /api/v1/status` crosses ASP and local IPC to a dependency-free `Ufw.Systemd` endpoint. It proves that the daemon request path can answer, but it does not execute UFW or read deployment identity/replay state.
-- `GET /api/v1/rules` remains the authoritative firewall/UFW probe. A daemon can therefore be live even when UFW observation fails.
-- `GET /api/v1/intent/context` supplies deployment identity and signed-intent protocol metadata only. Its success or failure does not define daemon liveness.
-
-Probe results do not rescue or overwrite each other. A successful rules read cannot make a failed daemon liveness probe healthy. Conversely, if an upstream probe fails while a downstream request also fails, the downstream component is reported as unknown rather than inferred unavailable; independently successful downstream probes remain visible.
+`Ufw.Ipc.Client` implements the typed daemon client used by `Ufw.Web`. `Ufw.Roslyn` and `Ufw.Roslyn.SourceGen` provide runtime contracts plus compile-time routing/serialization bindings so daemon dispatch and JSON metadata stay explicit and NativeAOT-compatible. See [Compile-time routing and serialization](source-generation.md).
 
 ## State ownership
 
-The architecture distinguishes authoritative state from caches and presentation metadata. That distinction is what allows UFW to remain editable outside this application.
+UFWeb's most important architectural distinction is between **authoritative host state**, **application-owned state**, and **derived browser presentation**. Keeping those categories separate is what allows out-of-band UFW administration to coexist with the web interface.
 
-| State | Owner | Notes |
+| State | Owner | Contract |
 | --- | --- | --- |
-| Firewall rules, enabled state, IPv6 capability, and default policies | UFW, observed through `Ufw.Systemd` | Never reconstructed from PostgreSQL |
-| Current host network interfaces | Host OS, observed through `Ufw.Systemd` | Re-read for append and ordered-insertion validation |
-| Authorized mutation public keys | `Ufw.Systemd` operator state | Not writable through the web API |
-| Signed-intent replay records and deployment identity | `Ufw.Systemd` | Persisted across daemon restarts |
-| Active reorder recovery journal | `Ufw.Systemd` | Durable safety record while a delete/reinsert move may be incomplete |
-| Users, refresh-token families, interface metadata, known-host aliases | `Ufw.Web` / PostgreSQL | Application state only |
-| Rule notes and reusable tags | `Ufw.Web` / PostgreSQL | Metadata is joined to live rules by opaque semantic `RuleId`; tags have independent UUIDv7 identities and are related many-to-many; neither is evidence that a firewall rule exists |
-| Access token | Browser memory | Short-lived bearer credential |
-| Mutation private key | Administrator/browser signing workflow | Never sent to the server or persisted by the application |
-| Production frontend assets | nginx image | Built/deployed independently from ASP |
+| Firewall rules, active state, IPv6 capability, default policies | UFW, observed through `Ufw.Systemd` | Authoritative; never reconstructed from PostgreSQL |
+| Current host network interfaces | Host OS, observed through `Ufw.Systemd` | Authoritative host inventory; checked again before rule creation/insertion |
+| Authorized mutation public keys | daemon/operator state | Not writable through REST |
+| Replay records and deployment identity | `Ufw.Systemd` | Durable across daemon restarts |
+| Reorder recovery journal | `Ufw.Systemd` | Temporary durable safety state while a delete/reinsert move may be incomplete |
+| Users and refresh-token families | `Ufw.Web` / PostgreSQL | Web-session state only |
+| Known-host aliases | `Ufw.Web` / PostgreSQL | Authoring/search convenience; resolves to literal addresses before signing |
+| Interface comments/visibility | `Ufw.Web` / PostgreSQL | Metadata over reconciled host interface names |
+| Rule notes and tags | `Ufw.Web` / PostgreSQL | Presentation metadata keyed by semantic rule identity; not firewall existence |
+| Access JWT | browser memory | Short-lived HTTP credential |
+| Mutation private key | administrator/browser workflow | Never sent to ASP/daemon or persisted by UFWeb |
+| Rule filtering, match evidence, ordering preview | browser | Derived from the currently loaded authoritative snapshot and application metadata |
+| Production frontend assets | nginx image | Built and deployed independently from ASP |
 
-Daemon-derived interface metadata is reconciled against host state, and host state wins when they disagree. Known-host aliases are independently ASP-owned authoring metadata and have no daemon inventory to reconcile. Rule presentation metadata is also ASP-owned, but follows a different lifecycle: normal rule reads join only metadata whose semantic identity is currently live without creating or deleting database rows. A successful in-band delete removes metadata for the deleted identity; metadata whose rule disappears out-of-band remains stored and unmatched until an explicit reconciliation workflow removes it. None of these metadata types can create firewall authority: authoring metadata must resolve to literal firewall semantics before signing, while presentation metadata is excluded from signed rule semantics entirely.
+This ownership model gives each kind of metadata a different lifecycle. Interface metadata can be reconciled with current host inventory. Known-host aliases are entirely ASP-owned and require no daemon reconciliation. Rule metadata is shown only when its semantic identity is live; if a rule disappears out-of-band, the metadata remains stored but unmatched until an explicit operator-reviewed cleanup.
 
-## Primary request flows
+## Reading firewall state
 
-### Reading firewall state
+The rule-list path is the foundation for most management workflows:
 
-The browser calls the authenticated REST API, `Ufw.Web` sends a typed local IPC request, and the daemon reads `ufw status numbered` while holding the UFW execution gate. Supported rows are parsed into the shared semantic rule model and receive stable semantic identities. Rows the parser cannot understand completely remain visible as raw state but do not receive a mutable identity. The same read also loads UFW's host configuration from the configured defaults file, so one daemon snapshot carries the effective IPv6 capability and incoming, outgoing, and routed default policies alongside the rule list.
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant W as Ufw.Web
+    participant D as Ufw.Systemd
+    participant U as UFW
+    participant P as PostgreSQL
 
-Before returning `GET /api/v1/rules`, `Ufw.Web` loads presentation metadata only for the semantic identities present in that daemon snapshot and returns an enriched inventory containing the authoritative firewall snapshot plus the matching ASP-owned metadata. Duplicate live occurrences with one semantic identity intentionally share that metadata. The read path is side-effect free: it neither creates metadata for newly observed rules nor deletes unmatched metadata.
+    B->>W: GET /api/v1/rules
+    W->>D: typed list-rules IPC request
+    D->>U: ufw status numbered + read defaults
+    U-->>D: numbered rules + host configuration
+    D-->>W: authoritative firewall snapshot
+    W->>P: load metadata for live semantic RuleIds
+    P-->>W: notes/tags for matching identities
+    W-->>B: enriched rule inventory
+```
 
-The browser treats each successful response as an authoritative snapshot. UFW keeps IPv4 and IPv6 in independent ordered rule sets and concatenates them for numbered status output, so the browser presents separate family sections while retaining the exact combined snapshot coordinates for signing and mutation addressing. It displays the default policies with the rules and uses the daemon-reported IPv6 capability to constrain IPv6 authoring rather than inferring support locally. If a later refresh fails, the previous snapshot may remain visible as stale information, but mutation controls are disabled until a fresh authoritative read succeeds.
+The daemon runs UFW under a deterministic locale and reads the required UFW defaults while holding its execution gate. Fully understood rows become normalized structural rules with semantic identity. Rows that cannot be understood completely remain visible as opaque state but are not promoted into mutation targets.
 
-### Managing rule presentation metadata
+The same snapshot carries UFW active state, IPv6 capability, and incoming/outgoing/routed default policies. If required configuration cannot be established safely, the snapshot read fails rather than publishing a partially authoritative view.
 
-Rule metadata is edited independently from firewall mutation. The browser submits notes and selected tag UUIDs for a live semantic `RuleId`; `Ufw.Web` revalidates that the identity exists in a fresh daemon snapshot before persisting the application-owned metadata. A successful metadata response can therefore update the browser's enriched presentation snapshot in place without pretending that UFW state changed or requiring a firewall refresh.
+`Ufw.Web` enriches that snapshot with notes/tags only for semantic identities that are live in the daemon response. Listing is side-effect free: observing a new UFW rule does not create database metadata, and observing that a rule disappeared does not delete retained metadata.
 
-Reusable tags are managed through a separate ASP-owned catalog. Their UUIDv7 identity is stable across display-name and color changes, so the browser reconciles loaded metadata and active
-tag filters by UUID rather than by label text. Creating, renaming, recoloring, or deleting an unused tag does not cross the signed-intent boundary and cannot modify firewall semantics. New
-tags may also be created lazily from the shared rule-metadata editor; the client assigns an initial high-saturation color for visual scanning, while later rename/recolor operations remain
-ordinary catalog mutations. Tag management and orphan reconciliation live on a dedicated metadata-management surface rather than adding application-state administration to the main
-firewall-rules page.
+The browser treats a successful response as one authoritative point-in-time inventory. If a later refresh fails, it may keep the previous snapshot visible as stale information, but mutation controls remain disabled until a fresh authoritative inventory is available. IPv4 and IPv6 are presented separately because UFW evaluates them as independent ordered rule sets even though numbered output concatenates the two families.
 
-The same metadata editor is used when editing an existing semantic rule and while authoring a new firewall rule. For a new rule, the firewall mutation still completes first and remains
-authoritative; after a successful add/insertion the browser attaches the prepared metadata to the returned semantic `RuleId`. Failure to attach optional presentation metadata is reported
-separately and never rewrites a successful firewall mutation as a firewall failure. Rule rows expose compact tag labels and independently expandable metadata details, but those presentation
-controls remain separate from query-derived match evidence and from firewall mutation capability. The expanded details also expose a read-only canonical UFW command computed client-side from
-the canonical rule projection with the shared rule renderer; it is searchable and copyable, but it is not persisted as ASP metadata.
+## Presenting and enriching rules
 
-Out-of-band rule removal is reconciled explicitly rather than during normal reads. The metadata-reconciliation endpoint compares all stored rule metadata with a fresh daemon-authoritative snapshot and reports only records whose opaque semantic `RuleId` is unmatched. Cleanup is operator-selected: the browser submits reviewed metadata UUIDs, ASP fetches authoritative rule state again, and only selected records that remain unmatched in that cleanup snapshot are deleted. Recreated semantic rules are therefore preserved and naturally regain their retained metadata. Reconciliation never creates firewall state and does not introduce an age-based garbage-collection policy.
+The browser derives presentation from the loaded inventory instead of mutating authoritative data in-place. Family partitioning, user-visible family positions, sorting/query evaluation, known-host context, canonical command text, and match evidence are projections over the current snapshot plus ASP-owned metadata.
 
-### Mutating firewall state
+Filtering is deliberately client-side for the current rule inventory. Structured filters cover rule action, direction, protocol, source/destination networks and ports, interfaces, tags, and text-oriented fields. Free-text search also considers comments, notes, tags, canonical UFW syntax, and compatible known-host aliases. Match evidence records why a row matched so the UI can show context without changing rule semantics.
 
-A firewall mutation uses two independent authorization layers. The HTTP request requires a valid web session, and the mutation body carries a browser-created signature that the daemon verifies independently.
+Filtering and ordering-preview are mutually exclusive interaction modes. A filtered view is not a complete ordered firewall list, so drag/drop and other reorder controls are disabled while query constraints are active. The daemon still receives combined-snapshot coordinates/fingerprints for state-conditioned mutations; family-local browser positions are presentation coordinates only.
 
-The browser first obtains the daemon's intent context and signs an operation-specific canonical payload with an authorized P-256 key. Append add binds normalized rule semantics; delete also binds the semantic rule identity. Ordered insertion binds the normalized new rule, a SHA-256 fingerprint of the exact ordered firewall-list projection displayed by the browser, one snapshot-local anchor occurrence, and before/after placement. Reorder binds the same ordered-list fingerprint plus the complete desired occurrence permutation. Operational UFW configuration carried with the rule response is checked independently rather than being folded into fingerprint version 1. `Ufw.Web` forwards the signed envelope without becoming mutation authority. The daemon verifies deployment scope, operation, payload semantics, signature, and freshness before entering the serialized mutation boundary, then durably consumes the nonce and reconciles every privileged UFW effect against fresh authoritative state.
+Rule metadata follows the semantic rule rather than a particular UFW display number. Notes and tag UUIDs can be updated without a firewall mutation, but `Ufw.Web` first confirms that the target semantic identity is live in a fresh daemon snapshot. For newly created rules, the firewall mutation completes first; optional metadata is attached afterward, and metadata failure cannot rewrite a confirmed firewall mutation as failed.
 
-See [Firewall model](firewall-model.md) for state reconciliation and [Signed mutation intent v2](../protocols/signed-intent.md) for the exact signed contract.
+See [Browser application architecture](browser-application.md) for the client-side state/projection model and [Firewall state and rule model](firewall-model.md) for semantic identity and family ordering.
 
-### Managing network-interface metadata
+## Mutating firewall state
 
-The daemon exposes the host's current interface names as an unsigned read operation at the mutation-protocol layer. `Ufw.Web` can explicitly reconcile that host inventory into PostgreSQL, preserving application-owned comments and visibility flags for names that still exist.
+A firewall mutation crosses two independent authorization planes: the browser must have an authenticated web session, and the daemon must verify a browser-created signed intent for the exact privileged operation.
 
-The cached inventory is an authoring aid, not firewall authority. Selecting an interface in the UI writes the real interface name into the rule. Immediately before an add or ordered-insertion operation executes, the daemon independently verifies that every referenced interface still exists on the host. Deletion remains possible after an interface disappears so stale firewall rules do not become undeletable.
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant W as Ufw.Web
+    participant D as Ufw.Systemd
+    participant U as UFW
 
-### Managing known hosts for rule authoring
+    B->>W: request daemon intent context
+    W->>D: context IPC request
+    D-->>W: deployment/protocol context
+    W-->>B: intent context
+    Note over B: Build canonical operation payload\nand sign with authorized P-256 key
+    B->>W: authenticated REST mutation + signed intent
+    W->>D: forward signed mutation
+    Note over D: Verify signature, deployment,\nfreshness, nonce, semantics
+    D->>U: read fresh authoritative state
+    Note over D: Validate target / snapshot conditions\nand durably consume nonce
+    D->>U: execute validated argv (no shell)
+    U-->>D: process result
+    D->>U: reconcile authoritative post-state
+    D-->>W: confirmed / rejected / uncertain outcome
+    W-->>B: mutation result
+```
 
-`Ufw.Web` owns a separate PostgreSQL catalog of known-host aliases. Each entry has an application identity, a human-facing name and optional comment, a visibility preference, and one canonical literal IPv4/IPv6 host address or CIDR. Unlike network-interface metadata, these entries are not derived from daemon or operating-system inventory and require no daemon reconciliation.
+The signed payload depends on the operation. Append add binds normalized rule semantics. Delete also binds semantic rule identity. Ordered insertion and reorder additionally bind the exact reviewed snapshot through a fingerprint and use occurrence coordinates whose meaning exists only inside that snapshot. The daemon never accepts browser/ASP-provided raw UFW argv.
 
-The browser uses visible aliases as autocomplete suggestions while preserving unrestricted literal address entry. The same known-host-aware field is reused by source/destination network
-filters. Selecting an alias immediately writes its canonical address into `FirewallRuleSpecification` or the configured network-filter model; the alias ID, name, comment, and visibility flag
-never enter signed intents, REST firewall-mutation payloads, IPC, or daemon processing. Changing or deleting an alias therefore cannot change a rule that was already authored.
+Fresh-state checks happen inside the serialized daemon execution boundary. Replay state is persisted before a mutating subprocess starts. After execution, the daemon re-lists UFW and reports success only when the expected authoritative result can be established. Reorder has an additional durable recovery journal because moving an existing row requires a delete/reinsert sequence that can be interrupted between commands.
 
-Free-text rule search may project visible known-host aliases back over the already-loaded canonical rule model for discovery. For the selected address family, an alias contributes searchable
-name/address/comment text only when its literal host/network overlaps the rule's source or destination network; unrestricted `any` endpoints therefore include compatible known hosts. This
-projection is query-time presentation context only: it does not attach alias identity to the authoritative rule, does not alter semantic rule identity, and does not make known-host metadata
-part of firewall authority.
+Detailed identity, duplicate, insertion, reorder, cancellation, and uncertain-outcome behavior is documented in [Firewall state and rule model](firewall-model.md). Cryptographic and trust guarantees are documented in [Security architecture](security.md) and the exact signed wire contract in [Signed mutation intent v2](../protocols/signed-intent.md).
 
-An alias keeps its address family for its lifetime. Same-family address changes are allowed, but changing an existing IPv4 alias into IPv6 or vice versa is rejected so one persistent alias identity cannot silently change network-family meaning. Hiding an alias affects suggestions only and has no effect on firewall validity.
+## Application-owned authoring context
 
-### Authenticating the web session
+UFWeb keeps authoring conveniences outside the firewall contract until they resolve to concrete firewall semantics.
 
-Users authenticate against ASP.NET Core Identity. Successful login returns a short-lived ES256 access token and sets a rotating opaque refresh token in a `Secure`, `HttpOnly`, `SameSite=Strict` cookie. Only refresh-token hashes are persisted.
+### Network interfaces
 
-Refresh tokens belong to families and rotate on use. Replay of a revoked token invalidates remaining active members of the family. The browser serializes login, refresh, and logout operations across same-origin tabs so two tabs do not race to consume the same rotating cookie.
+The daemon exposes current host interface names. `Ufw.Web` can reconcile that inventory into PostgreSQL while retaining comments and visibility preferences for names that still exist. The browser then uses those entries while authoring rules.
 
-Web authentication controls REST access. It is deliberately separate from daemon mutation authorization.
+The cached metadata is only an authoring aid. A selected interface becomes its literal host interface name in the rule, and the daemon checks interface existence again immediately before add or ordered insertion. Delete intentionally does not require the interface to remain present so stale rules can still be removed.
+
+### Known hosts
+
+Known hosts are ASP-owned aliases for one canonical IPv4/IPv6 address or CIDR plus a name, optional comment, and visibility preference. They are suggestions, not firewall objects. Choosing an alias writes the literal address/network into the rule; alias IDs/names/comments never enter the signed mutation, daemon protocol, or UFW command.
+
+The same catalog contributes context to source/destination filtering and free-text search. That projection is presentation-only: changing or deleting an alias cannot change a live firewall rule. Alias address family is stable for the lifetime of the alias so one persistent application identity cannot silently switch between IPv4 and IPv6 meaning.
+
+### Rule metadata
+
+Rule notes and tags are presentation metadata keyed by opaque semantic `RuleId`. Reusable tags have stable UUIDv7 identity independent of display name/color, allowing loaded metadata and active tag filters to reconcile after a tag is renamed or recolored.
+
+If a rule disappears outside UFWeb, normal reads simply stop joining its metadata. The metadata-management workflow can later compare stored records with a fresh authoritative snapshot and present unmatched records for explicit cleanup. Cleanup rechecks authoritative state before deleting the selected metadata so a semantically recreated rule regains its retained notes/tags instead of having them removed accidentally.
+
+## Authentication and operational status
+
+Web authentication is separate from mutation authorization. `Ufw.Web` uses ASP.NET Core Identity, short-lived ES256 access tokens, and rotating opaque refresh tokens stored as `Secure`, `HttpOnly`, `SameSite=Strict` cookies. Only refresh-token hashes are persisted. Reuse of a revoked refresh token invalidates the remaining active members of its family, and the browser serializes login/refresh/logout across same-origin tabs so they do not race to rotate the shared cookie.
+
+Operational status also keeps boundaries explicit instead of inferring health from unrelated requests:
+
+- `GET /api/health` probes the `Ufw.Web` management process;
+- `GET /api/v1/status` crosses ASP and local IPC to a dependency-free daemon status endpoint;
+- `GET /api/v1/rules` exercises authoritative UFW observation;
+- `GET /api/v1/intent/context` exercises mutation-context state but does not define daemon liveness.
+
+A successful downstream probe does not overwrite a failed upstream result, and an upstream failure does not imply that an untested downstream component is unavailable. The status UI therefore reflects which boundary was actually observed.
 
 ## IPC boundary
 
-`Ufw.Web` and `Ufw.Systemd` communicate over a connection-oriented local stream. Linux production uses a group-restricted Unix-domain socket; development can use the corresponding local named-pipe abstraction. Optional TLS or mTLS can wrap that stream.
+`Ufw.Web` and `Ufw.Systemd` communicate over a connection-oriented local stream. Production uses a group-restricted Unix-domain socket; development can use the corresponding platform local-pipe abstraction. Optional TLS/mTLS can wrap the stream without replacing signed mutation authorization.
 
-The protocol is layered so each level owns one kind of compatibility decision:
+The protocol stack separates transport framing from application semantics:
 
-1. the stream establishes ordered byte transport and optional TLS;
+1. the local stream provides ordered bytes and optional TLS;
 2. ITP frames and bounds one application message;
-3. the application protocol validates request/response envelope semantics;
+3. the application protocol validates request/response envelopes and payload metadata;
 4. daemon routing binds a valid request to a typed endpoint.
 
-Each connection carries one request/response exchange. There is no long-lived IPC session, multiplexing, or request correlation state. Expected peer and protocol failures are contained to the current connection; unexpected daemon failures remain visible rather than being silently converted into peer errors.
+Each connection carries one request/response exchange. There is no long-lived IPC session or multiplexed correlation state. Expected peer/protocol failures are contained to the current connection; unexpected daemon failures remain visible.
 
-See [IPC protocols](../protocols/README.md) for the wire contracts.
+See [IPC protocols](../protocols/README.md) for the exact contracts.
 
-## Project structure
+## Source and dependency structure
 
-The source tree follows deployment and responsibility boundaries rather than mirroring individual screens or endpoints.
+The solution follows process and contract boundaries rather than the page tree:
 
 | Project | Architectural role |
 | --- | --- |
-| `Ufw.Web.Client` | browser application and REST client |
-| `Ufw.Web.Model` | shared versioned browser REST DTOs |
-| `Ufw.Web` | web/API application and PostgreSQL-backed application state |
+| `Ufw.Web.Client` | browser application and REST clients |
+| `Ufw.Web.Model` | shared pure/versioned REST DTOs |
+| `Ufw.Web` | authenticated REST API and PostgreSQL-backed application state |
 | `Ufw.Systemd` | privileged firewall daemon |
-| `Ufw.Shared` | cross-process domain/protocol contracts |
-| `Ufw.Ipc.Client` | local typed IPC client |
-| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | runtime abstractions plus compile-time routing and serialization generation |
-| `Ufw.Mock` | development substitute for the external UFW executable |
+| `Ufw.Shared` | cross-process firewall/security/IPC contracts |
+| `Ufw.Ipc.Client` | typed local IPC client used by ASP |
+| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | compile-time daemon routing/serialization contracts and generators |
+| `Ufw.Mock` | development/test substitute for the external UFW executable |
 
-Tests are split along the same boundaries. Shared tests cover firewall/protocol semantics, IPC tests exercise the real client/daemon protocol stack over in-process transport, daemon tests cover authorization and UFW integration behavior, web tests cover persistence and application workflows, and mock black-box tests verify observable CLI compatibility.
+Inside `Ufw.Web.Client`, the dependency direction is similarly explicit: `Api` owns HTTP access, `Features` owns client-side domain/application behavior, `Services` contains genuinely domain-agnostic browser services, `UI` owns Razor presentation, and `Configuration` owns immutable runtime configuration. Shared REST DTOs remain outside that assembly in `Ufw.Web.Model`.
+
+Tests follow the production boundaries. Shared tests cover firewall/security/protocol semantics; IPC tests exercise the typed client and daemon protocol stack over in-process transport; daemon tests cover authorization and UFW integration; web tests cover persistence/auth/application workflows; client tests cover browser policy/projections/services; and mock black-box tests verify observable CLI compatibility.
 
 ## Architectural invariants
 
-The system model depends on five invariants:
+The implementation can evolve while preserving these system-level contracts:
 
-- firewall existence and semantics are authoritative in UFW rather than PostgreSQL;
-- any mutation that can affect UFW crosses daemon-side authorization, independently of HTTP authentication;
-- application metadata can enrich authoring or presentation only after resolving to real firewall semantics before signing;
-- unsupported UFW syntax remains visible and read-only until parsing, normalization, identity, signing, and argv rendering agree on its meaning;
-- production frontend delivery remains independent from ASP while browser code handles privileged signing material.
+- UFW and host configuration remain authoritative for live firewall semantics; PostgreSQL never becomes a shadow firewall database.
+- Every operation that can change UFW crosses daemon-side signed authorization independently of REST authentication.
+- Authoring metadata resolves to literal firewall semantics before signing; presentation metadata never becomes mutation authority.
+- UFW display numbers and browser family positions are presentation coordinates, not durable rule identity.
+- Unsupported rule syntax remains visible but read-only until parsing, normalization, identity, signing, and argv rendering agree on its semantics.
+- Started daemon subprocesses remain owned through completion/cancellation cleanup and authoritative reconciliation.
+- Production frontend delivery remains independent from ASP while browser code handles privileged signing material.
+- Derived client projections such as filtering, match evidence, and ordering preview never overwrite the authoritative firewall snapshot they were derived from.
 
-Internal classes and service boundaries can evolve without changing these ownership and security properties.
+These invariants are the compatibility boundary for architectural changes. Internal classes and service decomposition may change without changing the system model above.

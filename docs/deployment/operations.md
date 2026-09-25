@@ -1,6 +1,6 @@
 # Deployment Operations
 
-These procedures apply after either the [rootful](rootful-docker.md) or [rootless](rootless-docker.md) deployment has been established.
+These procedures apply after the production topology in [Production deployment](deployment.md) has been established through either the [rootful](rootful-docker.md) or [rootless](rootless-docker.md) runbook. They assume the separation between host daemon, frontend, private ASP container, and PostgreSQL remains intact.
 
 ## Routine verification
 

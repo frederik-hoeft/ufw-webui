@@ -1,8 +1,8 @@
 # Security Architecture
 
-UFWeb is designed around the assumption that the network-facing web tier is a larger and less trusted attack surface than the privileged firewall daemon. The architecture therefore separates ordinary web authentication from authorization to execute a firewall mutation.
+This document narrows the [system architecture](architecture-overview.md) to its trust and authorization boundaries. UFWeb assumes that the network-facing web tier is a larger and less trusted attack surface than the privileged firewall daemon, so ordinary web authentication is deliberately separate from authorization to execute a firewall mutation.
 
-The security objective is not to make `Ufw.Web` harmless if compromised. It is to prevent compromise of the ASP process alone from becoming sufficient authority to forge a new valid firewall mutation or silently replace the browser signing client.
+The objective is not to make `Ufw.Web` harmless if compromised. It is to prevent compromise of the ASP process alone from becoming sufficient authority to forge a new valid firewall mutation or silently replace the browser signing client.
 
 ## Trust boundaries
 
