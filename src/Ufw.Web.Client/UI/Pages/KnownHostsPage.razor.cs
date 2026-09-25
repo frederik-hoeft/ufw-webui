@@ -8,15 +8,6 @@ namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class KnownHostsPage
 {
-    private static readonly DialogOptions s_editorDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
-
     private static readonly DialogOptions s_deleteDialogOptions = new()
     {
         BackdropClick = false,
@@ -74,58 +65,39 @@ public sealed partial class KnownHostsPage
         }
     }
 
-    private async Task CreateAsync()
+    private Task CreateAsync() => RunEditorAsync(cancellationToken => HostEditor.CreateAsync(cancellationToken: cancellationToken));
+
+    private Task EditAsync(KnownHostInventoryItem host) => RunEditorAsync(cancellationToken => HostEditor.EditAsync(host, cancellationToken));
+
+    private async Task RunEditorAsync(Func<CancellationToken, Task<KnownHostInventoryResponse?>> operation)
     {
         if (IsBusy)
         {
             return;
         }
 
-        IDialogReference dialog = await DialogService.ShowAsync<EditKnownHostDialog>(HostsText["CreateDialogTitle"], s_editorDialogOptions);
-        KnownHostEditorResult? result = await dialog.GetReturnValueAsync<KnownHostEditorResult>();
-        if (result is null)
+        _saving = true;
+        _error = null;
+        try
         {
-            return;
+            KnownHostInventoryResponse? response = await operation(_lifetime.Token);
+            if (response is not null)
+            {
+                _inventory = response;
+            }
         }
-
-        CreateKnownHostRequest request = new()
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
-            Name = result.Name,
-            Address = result.Address,
-            AddressSource = result.AddressSource,
-            DnsAddressFamily = result.DnsAddressFamily,
-            Comment = result.Comment,
-            IsVisible = result.IsVisible,
-        };
-        await SaveAsync(cancellationToken => HostInventory.CreateAsync(request, cancellationToken));
-    }
-
-    private async Task EditAsync(KnownHostInventoryItem host)
-    {
-        if (IsBusy)
-        {
-            return;
         }
-
-        DialogParameters<EditKnownHostDialog> parameters = new();
-        parameters.Add(component => component.Host, host);
-        IDialogReference dialog = await DialogService.ShowAsync<EditKnownHostDialog>(HostsText["EditDialogTitle"], parameters, s_editorDialogOptions);
-        KnownHostEditorResult? result = await dialog.GetReturnValueAsync<KnownHostEditorResult>();
-        if (result is null)
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
-            return;
+            _error = ClientErrors.Describe(exception);
+            Snackbar.Add(_error.Message, Severity.Error);
         }
-
-        UpdateKnownHostRequest request = new()
+        finally
         {
-            Name = result.Name,
-            Address = result.Address,
-            AddressSource = result.AddressSource,
-            DnsAddressFamily = result.DnsAddressFamily,
-            Comment = result.Comment,
-            IsVisible = result.IsVisible,
-        };
-        await SaveAsync(cancellationToken => HostInventory.UpdateAsync(host.Id, request, cancellationToken));
+            _saving = false;
+        }
     }
 
     private async Task ReconcileDnsAsync(KnownHostInventoryItem host)

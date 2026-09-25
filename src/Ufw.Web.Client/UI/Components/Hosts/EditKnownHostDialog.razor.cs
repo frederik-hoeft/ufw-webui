@@ -13,6 +13,8 @@ public sealed partial class EditKnownHostDialog
 
     private MudForm? _form;
     private Guid? _initializedHostId;
+    private string? _initializedInitialAddress;
+    private bool _initialized;
     private string _name = string.Empty;
     private string _address = string.Empty;
     private string? _comment;
@@ -27,24 +29,32 @@ public sealed partial class EditKnownHostDialog
     [Parameter]
     public KnownHostInventoryItem? Host { get; set; }
 
+    [Parameter]
+    public string? InitialAddress { get; set; }
+
     private string DnsPreviewAddress => Host?.AddressSource == KnownHostAddressSource.Dns ? _address : string.Empty;
 
     protected override void OnParametersSet()
     {
-        if (_initializedHostId == Host?.Id && (Host is not null || _initializedHostId is null))
+        if (_initialized && _initializedHostId == Host?.Id && string.Equals(_initializedInitialAddress, InitialAddress, StringComparison.Ordinal))
         {
             return;
         }
 
+        _initialized = true;
         _initializedHostId = Host?.Id;
+        _initializedInitialAddress = InitialAddress;
         _name = Host?.Name ?? string.Empty;
-        _address = Host?.Address ?? string.Empty;
+        _address = Host?.Address ?? InitialAddress ?? string.Empty;
         _comment = Host?.Comment;
         _isVisible = Host?.IsVisible ?? true;
         _resolveDns = Host?.AddressSource == KnownHostAddressSource.Dns;
-        _dnsAddressFamily = Host?.AddressFamily ?? FirewallAddressFamily.IPv4;
+        _dnsAddressFamily = Host?.AddressFamily ?? ResolveInitialAddressFamily(InitialAddress);
         _addressError = null;
     }
+
+    private static FirewallAddressFamily ResolveInitialAddressFamily(string? address) =>
+        FirewallAddressValue.TryNormalizeLiteral(address, out _, out FirewallAddressFamily addressFamily) ? addressFamily : FirewallAddressFamily.IPv4;
 
     private void Cancel() => MudDialog.Cancel();
 

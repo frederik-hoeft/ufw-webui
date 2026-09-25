@@ -175,6 +175,9 @@ else
         <td colspan="10">
             <RuleMetadataDetails Metadata="@Row.Metadata"
                                  CanonicalCommand="@Row.CanonicalCommand"
+                                 Source="@rule.Rule?.Source"
+                                 Destination="@rule.Rule?.Destination"
+                                 KnownHostsChanged="@KnownHostsChanged"
                                  EditDisabled="@MetadataEditDisabled"
                                  EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))">
                 <Actions>

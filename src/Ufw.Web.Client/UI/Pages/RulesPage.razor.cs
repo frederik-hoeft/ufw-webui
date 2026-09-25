@@ -160,6 +160,12 @@ public sealed partial class RulesPage
         }
     }
 
+    private void KnownHostsChanged(KnownHostInventoryResponse response)
+    {
+        _knownHosts = response.Hosts.Where(static host => host.IsVisible).ToArray();
+        RefreshRuleListProjection();
+    }
+
     private async Task EditMetadataAsync(RuleRowProjection row)
     {
         string? ruleId = row.Rule.RuleId;

@@ -192,6 +192,7 @@ else if (_state.Snapshot is { })
                                  InsertionDisabled="@(!CanMutateFirewall)"
                                  MetadataEditDisabled="@(!CanEditMetadata)"
                                  MetadataEditRequested="EditMetadataAsync"
+                                 KnownHostsChanged="KnownHostsChanged"
                                  DeleteRequested="BeginDeleteAsync"
                                  InsertionRequested="BeginOrderedInsertionAsync"
                                  MoveRequested="MoveRuleAsync" />
@@ -211,6 +212,7 @@ else if (_state.Snapshot is { })
                                      InsertionDisabled="@(!CanMutateFirewall)"
                                      MetadataEditDisabled="@(!CanEditMetadata)"
                                      MetadataEditRequested="EditMetadataAsync"
+                                     KnownHostsChanged="KnownHostsChanged"
                                      DeleteRequested="BeginDeleteAsync"
                                      InsertionRequested="BeginOrderedInsertionAsync"
                                      MoveRequested="MoveRuleAsync" />

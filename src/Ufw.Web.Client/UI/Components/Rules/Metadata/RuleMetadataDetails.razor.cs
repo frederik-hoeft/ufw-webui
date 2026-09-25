@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Clipboard;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
@@ -18,6 +19,15 @@ public sealed partial class RuleMetadataDetails
 
     [Parameter]
     public string? CanonicalCommand { get; set; }
+
+    [Parameter]
+    public string? Source { get; set; }
+
+    [Parameter]
+    public string? Destination { get; set; }
+
+    [Parameter]
+    public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
 
     [Parameter]
     public bool EditDisabled { get; set; }

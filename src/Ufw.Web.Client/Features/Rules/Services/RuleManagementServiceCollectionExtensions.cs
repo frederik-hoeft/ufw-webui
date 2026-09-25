@@ -24,6 +24,7 @@ internal static class RuleManagementServiceCollectionExtensions
     {
         services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
         services.AddScoped<IFirewallRuleText, FirewallRuleText>();
+        services.AddSingleton<IRuleEndpointKnownHostProjectionService, RuleEndpointKnownHostProjectionService>();
         services.AddScoped<IRuleValidationMessageLocalizer, RuleValidationMessageLocalizer>();
         services.AddScoped<IRuleEditorValidationService, RuleEditorValidationService>();
         services.AddScoped<IRuleEditorReferenceDataService, RuleEditorReferenceDataService>();
