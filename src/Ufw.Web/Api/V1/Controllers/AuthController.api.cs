@@ -27,6 +27,7 @@ public sealed partial class AuthController
     [HttpPost("refresh")]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public partial Task<IActionResult> RefreshAsync(CancellationToken cancellationToken);
 
     /// <summary>
@@ -45,5 +46,6 @@ public sealed partial class AuthController
     [AllowAnonymous]
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken);
 }

@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using System.IdentityModel.Tokens.Jwt;
+using Ufw.Shared.Web;
 using Ufw.Web.Configuration;
 using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Services.Auth;
@@ -27,6 +29,11 @@ public sealed partial class AuthController(IAuthenticationFlowService authentica
 
     public async partial Task<IActionResult> RefreshAsync(CancellationToken cancellationToken)
     {
+        if (!HasCsrfProtectionHeader())
+        {
+            return StatusCode(StatusCodes.Status403Forbidden);
+        }
+
         if (!TryGetRefreshToken(out string? refreshToken))
         {
             return Unauthorized();
@@ -84,6 +91,11 @@ public sealed partial class AuthController(IAuthenticationFlowService authentica
 
     public async partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
     {
+        if (!HasCsrfProtectionHeader())
+        {
+            return StatusCode(StatusCodes.Status403Forbidden);
+        }
+
         if (TryGetRefreshToken(out string? refreshToken))
         {
             await authenticationFlowService.RevokeAsync(refreshToken!, cancellationToken);
@@ -91,6 +103,16 @@ public sealed partial class AuthController(IAuthenticationFlowService authentica
 
         DeleteRefreshTokenCookie();
         return NoContent();
+    }
+
+    private bool HasCsrfProtectionHeader()
+    {
+        if (!Request.Headers.TryGetValue(BrowserRequestHeaders.CSRF_PROTECTION, out StringValues values) || values.Count != 1)
+        {
+            return false;
+        }
+
+        return string.Equals(values[0], BrowserRequestHeaders.CSRF_PROTECTION_VALUE, StringComparison.Ordinal);
     }
 
     private bool TryGetRefreshToken(out string? refreshToken) =>

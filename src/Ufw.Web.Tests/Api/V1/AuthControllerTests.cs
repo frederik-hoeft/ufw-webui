@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Ufw.Shared.Web;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Configuration;
 using Ufw.Web.Model.V1.Auth;
@@ -39,6 +40,7 @@ public sealed class AuthControllerTests
     {
         Mock<IAuthenticationFlowService> authentication = new();
         AuthController controller = CreateController(authentication.Object);
+        SetCsrfProtectionHeader(controller);
 
         IActionResult result = await controller.RefreshAsync(TestContext.CancellationToken);
 
@@ -56,6 +58,7 @@ public sealed class AuthControllerTests
             .Setup(service => service.RefreshAsync("stale-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync((AuthenticationTokenResult?)null);
         AuthController controller = CreateController(authentication.Object);
+        SetCsrfProtectionHeader(controller);
         controller.Request.Headers.Cookie = $"{COOKIE_NAME}=stale-token";
 
         IActionResult result = await controller.RefreshAsync(TestContext.CancellationToken);
@@ -63,6 +66,34 @@ public sealed class AuthControllerTests
         Assert.IsInstanceOfType<UnauthorizedResult>(result);
         string setCookie = AssertSingleRefreshCookie(controller);
         StringAssert.Contains(setCookie, "expires=", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [TestMethod]
+    public async Task RefreshAsync_WithoutCsrfProtectionHeader_ReturnsForbiddenWithoutCallingServiceAsync()
+    {
+        Mock<IAuthenticationFlowService> authentication = new();
+        AuthController controller = CreateController(authentication.Object);
+        controller.Request.Headers.Cookie = $"{COOKIE_NAME}=refresh-token";
+
+        IActionResult result = await controller.RefreshAsync(TestContext.CancellationToken);
+
+        StatusCodeResult forbidden = Assert.IsInstanceOfType<StatusCodeResult>(result);
+        Assert.AreEqual(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+        authentication.Verify(service => service.RefreshAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task LogoutAsync_WithoutCsrfProtectionHeader_ReturnsForbiddenWithoutRevocationAsync()
+    {
+        Mock<IAuthenticationFlowService> authentication = new();
+        AuthController controller = CreateController(authentication.Object);
+        controller.Request.Headers.Cookie = $"{COOKIE_NAME}=refresh-token";
+
+        IActionResult result = await controller.LogoutAsync(TestContext.CancellationToken);
+
+        StatusCodeResult forbidden = Assert.IsInstanceOfType<StatusCodeResult>(result);
+        Assert.AreEqual(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+        authentication.Verify(service => service.RevokeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
@@ -89,6 +120,7 @@ public sealed class AuthControllerTests
     {
         Mock<IAuthenticationFlowService> authentication = new();
         AuthController controller = CreateController(authentication.Object);
+        SetCsrfProtectionHeader(controller);
 
         IActionResult result = await controller.LogoutAsync(TestContext.CancellationToken);
 
@@ -108,6 +140,9 @@ public sealed class AuthControllerTests
                 HttpContext = new DefaultHttpContext(),
             }
         };
+
+    private static void SetCsrfProtectionHeader(AuthController controller) =>
+        controller.Request.Headers[BrowserRequestHeaders.CSRF_PROTECTION] = BrowserRequestHeaders.CSRF_PROTECTION_VALUE;
 
     private static string AssertSingleRefreshCookie(AuthController controller)
     {
