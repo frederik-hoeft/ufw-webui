@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Ufw.Shared.Web;
 using Ufw.Web.Client.Features.Authentication;
 using Ufw.Web.Client.Tests.Support;
 
@@ -20,5 +21,6 @@ public sealed class BrowserCredentialsHandlerTests
         Assert.HasCount(1, inner.Requests);
         IReadOnlyDictionary<string, object> options = (IReadOnlyDictionary<string, object>)inner.Requests[0].Options["WebAssemblyFetchOptions"]!;
         Assert.AreEqual("include", options["credentials"]);
+        Assert.IsFalse(inner.Requests[0].Headers.ContainsKey(BrowserRequestHeaders.CSRF_TOKEN));
     }
 }

@@ -1,4 +1,6 @@
-﻿using Ufw.Web.Client.Api.Auth;
+﻿using System.Net;
+using Ufw.Web.Client.Api;
+using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Model.V1.Auth;
 
 namespace Ufw.Web.Client.Features.Authentication;
@@ -19,6 +21,17 @@ internal sealed class AuthenticationService
         async operationCancellationToken =>
         {
             AuthTokenResponse token = await authApiClient.LoginAsync(new LoginRequest(email, password), operationCancellationToken);
+            session.SetToken(token.AccessToken, token.ExpiresAt);
+        },
+        cancellationToken);
+
+    public Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken = default) => operationCoordinator.RunExclusiveAsync(
+        async operationCancellationToken =>
+        {
+            string accessToken = await RefreshWithinOperationAsync(rejectedAccessToken: null, operationCancellationToken)
+                ?? throw new ApiRequestException(HttpStatusCode.Unauthorized, "The authentication session is no longer available.");
+
+            AuthTokenResponse token = await authApiClient.ChangePasswordAsync(new ChangePasswordRequest(currentPassword, newPassword), accessToken, operationCancellationToken);
             session.SetToken(token.AccessToken, token.ExpiresAt);
         },
         cancellationToken);
@@ -54,35 +67,36 @@ internal sealed class AuthenticationService
         session.ClearIfCurrent(rejectedAccessToken);
     }
 
-    private Task<string?> RefreshAsync(string? rejectedAccessToken, CancellationToken cancellationToken) => operationCoordinator.RunExclusiveAsync(
-        async operationCancellationToken =>
+    private Task<string?> RefreshAsync(string? rejectedAccessToken, CancellationToken cancellationToken) =>
+        operationCoordinator.RunExclusiveAsync(operationCancellationToken => RefreshWithinOperationAsync(rejectedAccessToken, operationCancellationToken), cancellationToken);
+
+    private async Task<string?> RefreshWithinOperationAsync(string? rejectedAccessToken, CancellationToken cancellationToken)
+    {
+        (string AccessToken, DateTimeOffset ExpiresAt)? current = session.Token;
+        if (rejectedAccessToken is null)
         {
-            (string AccessToken, DateTimeOffset ExpiresAt)? current = session.Token;
-            if (rejectedAccessToken is null)
-            {
-                if (current is { } currentToken && IsFresh(currentToken, s_refreshLeadTime))
-                {
-                    return currentToken.AccessToken;
-                }
-            }
-            else if (current is { } currentToken
-                && !string.Equals(currentToken.AccessToken, rejectedAccessToken, StringComparison.Ordinal)
-                && IsFresh(currentToken, TimeSpan.Zero))
+            if (current is { } currentToken && IsFresh(currentToken, s_refreshLeadTime))
             {
                 return currentToken.AccessToken;
             }
+        }
+        else if (current is { } currentToken
+            && !string.Equals(currentToken.AccessToken, rejectedAccessToken, StringComparison.Ordinal)
+            && IsFresh(currentToken, TimeSpan.Zero))
+        {
+            return currentToken.AccessToken;
+        }
 
-            AuthTokenResponse? token = await authApiClient.TryRefreshAsync(operationCancellationToken);
-            if (token is null)
-            {
-                session.Clear();
-                return null;
-            }
+        AuthTokenResponse? token = await authApiClient.TryRefreshAsync(cancellationToken);
+        if (token is null)
+        {
+            session.Clear();
+            return null;
+        }
 
-            session.SetToken(token.AccessToken, token.ExpiresAt);
-            return token.AccessToken;
-        },
-        cancellationToken);
+        session.SetToken(token.AccessToken, token.ExpiresAt);
+        return token.AccessToken;
+    }
 
     private bool IsFresh((string AccessToken, DateTimeOffset ExpiresAt) token, TimeSpan requiredRemainingLifetime) =>
         token.ExpiresAt > timeProvider.GetUtcNow().Add(requiredRemainingLifetime);

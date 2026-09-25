@@ -12,6 +12,7 @@ using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Configuration.Swagger;
 using Ufw.Web.Data;
+using Ufw.Web.Security;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.ErrorHandling;
 using Ufw.Web.Services.KnownHosts;
@@ -121,6 +122,15 @@ internal sealed class Startup : IAsyncStartupScript
             });
 
         services.AddAuthorization();
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = BrowserRequestHeaders.CSRF_TOKEN;
+            options.Cookie.Name = "__Host-ufw-antiforgery";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.Path = "/";
+        });
         services.AddProblemDetails();
         services.AddControllers();
         services.AddApiVersioning(options =>
@@ -215,6 +225,7 @@ internal sealed class Startup : IAsyncStartupScript
         app.UseCors(BLAZOR_CORS_POLICY);
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseMiddleware<AntiforgeryValidationMiddleware>();
 
         app.MapControllers();
         app.MapHealthChecks("/health");

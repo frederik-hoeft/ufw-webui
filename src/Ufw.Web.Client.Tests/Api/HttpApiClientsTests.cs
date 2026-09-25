@@ -1,24 +1,25 @@
 ﻿using System.Net;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
+using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
-using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Client.Api.RuleMetadata;
-using Ufw.Web.Model.V1.RuleMetadata;
-using Ufw.Web.Client.Api.RuleTags;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Client.Api.RuleTags;
 using Ufw.Web.Client.Tests.Support;
+using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Client.Tests.Api;
 
@@ -31,8 +32,10 @@ public sealed class HttpApiClientsTests
         using RecordingHttpMessageHandler handler = new((request, call) => call switch
         {
             1 => Json(HttpStatusCode.OK, "{\"accessToken\":\"login\",\"expiresAt\":\"2026-09-11T18:00:00+00:00\"}"),
-            2 => new HttpResponseMessage(HttpStatusCode.Unauthorized),
-            3 => new HttpResponseMessage(HttpStatusCode.NoContent),
+            2 => Json(HttpStatusCode.OK, "{\"requestToken\":\"refresh-antiforgery\"}"),
+            3 => new HttpResponseMessage(HttpStatusCode.Unauthorized),
+            4 => Json(HttpStatusCode.OK, "{\"requestToken\":\"logout-antiforgery\"}"),
+            5 => new HttpResponseMessage(HttpStatusCode.NoContent),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient http = CreateClient(handler);
@@ -45,17 +48,52 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual("login", login.AccessToken);
         Assert.IsNull(refresh);
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout" },
+            new[]
+            {
+                "/api/v1/auth/login",
+                "/api/v1/auth/antiforgery",
+                "/api/v1/auth/refresh",
+                "/api/v1/auth/antiforgery",
+                "/api/v1/auth/logout",
+            },
             handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
-        Assert.IsTrue(handler.Requests.All(static request => request.Method == HttpMethod.Post));
+        CollectionAssert.AreEqual(
+            new[] { HttpMethod.Post, HttpMethod.Get, HttpMethod.Post, HttpMethod.Get, HttpMethod.Post },
+            handler.Requests.Select(static request => request.Method).ToArray());
+        Assert.AreEqual("refresh-antiforgery", handler.Requests[2].Headers[BrowserRequestHeaders.CSRF_TOKEN].Single());
+        Assert.AreEqual("logout-antiforgery", handler.Requests[4].Headers[BrowserRequestHeaders.CSRF_TOKEN].Single());
         using JsonDocument body = JsonDocument.Parse(handler.Requests[0].Content!);
         Assert.AreEqual("admin@example.invalid", body.RootElement.GetProperty("email").GetString());
     }
 
     [TestMethod]
+    public async Task AuthApiClient_ChangePasswordUsesAuthenticatedPasswordEndpointAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, _) => Json(HttpStatusCode.OK, "{\"accessToken\":\"replacement\",\"expiresAt\":\"2026-09-11T18:00:00+00:00\"}"));
+        using HttpClient http = CreateClient(handler);
+        AuthApiClient client = new(http);
+
+        AuthTokenResponse response = await client.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), "access-token");
+
+        Assert.AreEqual("replacement", response.AccessToken);
+        Assert.AreEqual(HttpMethod.Post, handler.Requests[0].Method);
+        Assert.AreEqual("/api/v1/auth/password", handler.Requests[0].RequestUri!.AbsolutePath);
+        Assert.AreEqual("Bearer", handler.Requests[0].AuthorizationScheme);
+        Assert.AreEqual("access-token", handler.Requests[0].AuthorizationParameter);
+        using JsonDocument body = JsonDocument.Parse(handler.Requests[0].Content!);
+        Assert.AreEqual("current", body.RootElement.GetProperty("currentPassword").GetString());
+        Assert.AreEqual("replacement", body.RootElement.GetProperty("newPassword").GetString());
+    }
+
+    [TestMethod]
     public async Task AuthApiClient_LogoutFailureSurfacesApiRequestExceptionAsync()
     {
-        using RecordingHttpMessageHandler handler = new((_, _) => Json(HttpStatusCode.Forbidden, "{\"detail\":\"logout denied\"}"));
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"requestToken\":\"antiforgery\"}"),
+            2 => Json(HttpStatusCode.Forbidden, "{\"detail\":\"logout denied\"}"),
+            _ => throw new InvalidOperationException(),
+        });
         using HttpClient http = CreateClient(handler);
         AuthApiClient client = new(http);
 

@@ -10,7 +10,9 @@ namespace Ufw.Web.Client.Api;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(LoginRequest))]
+[JsonSerializable(typeof(ChangePasswordRequest))]
 [JsonSerializable(typeof(AuthTokenResponse))]
+[JsonSerializable(typeof(AntiforgeryTokenResponse))]
 [JsonSerializable(typeof(ApiProblemDetails))]
 [JsonSerializable(typeof(KnownHostInventoryResponse))]
 [JsonSerializable(typeof(CreateKnownHostRequest))]

@@ -67,6 +67,28 @@ internal sealed class AuthenticationFlowService
             return transaction.Commit<AuthenticationTokenResult?>(new AuthenticationTokenResult(accessToken, rotation.Token, rotation.ExpiresAt));
         }, cancellationToken);
 
+    public Task<PasswordChangeResult?> ChangePasswordAsync(string userId, string currentPassword, string newPassword, CancellationToken cancellationToken = default) =>
+        Transaction.Scoped.RunAsync<PasswordChangeResult?>(async (_, transaction, ct) =>
+        {
+            IdentityUser? user = await userManager.FindByIdAsync(userId);
+            if (user is null)
+            {
+                return transaction.Rollback<PasswordChangeResult?>(null);
+            }
+
+            IdentityResult changeResult = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+            if (!changeResult.Succeeded)
+            {
+                return transaction.Rollback<PasswordChangeResult?>(new PasswordChangeResult(changeResult, Authentication: null));
+            }
+
+            await refreshTokenService.RevokeUserAsync(user.Id, ct);
+            AccessToken accessToken = await jwtTokenService.IssueAsync(user, ct);
+            RefreshTokenIssueResult refreshToken = await refreshTokenService.IssueAsync(user, ct);
+            AuthenticationTokenResult authentication = new(accessToken, refreshToken.Token, refreshToken.ExpiresAt);
+            return transaction.Commit<PasswordChangeResult?>(new PasswordChangeResult(changeResult, authentication));
+        }, cancellationToken);
+
     public async Task RevokeAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         _ = await Transaction.Scoped.RunAsync(async (_, transaction, ct) =>

@@ -1,14 +1,24 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Ufw.Web.Model.V1.Auth;
+using System.IdentityModel.Tokens.Jwt;
 using Ufw.Web.Configuration;
+using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Services.Auth;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class AuthController(IAuthenticationFlowService authenticationFlowService, IOptions<RefreshTokenOptions> refreshTokenOptions) : ControllerBase
+public sealed partial class AuthController(IAntiforgery antiforgery, IAuthenticationFlowService authenticationFlowService, IOptions<RefreshTokenOptions> refreshTokenOptions) : ControllerBase
 {
     private readonly RefreshTokenOptions _refreshTokenOptions = refreshTokenOptions.Value;
+
+    public partial IActionResult GetAntiforgeryToken()
+    {
+        AntiforgeryTokenSet tokens = antiforgery.GetAndStoreTokens(HttpContext);
+        string requestToken = tokens.RequestToken
+            ?? throw new InvalidOperationException("ASP.NET Core antiforgery did not issue a request token.");
+        return Ok(new AntiforgeryTokenResponse(requestToken));
+    }
 
     public async partial Task<IActionResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -40,6 +50,45 @@ public sealed partial class AuthController(IAuthenticationFlowService authentica
 
         SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiresAt);
         return Ok(new AuthTokenResponse(result.AccessToken.Value, result.AccessToken.ExpiresAt));
+    }
+
+    public async partial Task<IActionResult> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        string? userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        PasswordChangeResult? result = await authenticationFlowService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword, cancellationToken);
+        if (result is null)
+        {
+            DeleteRefreshTokenCookie();
+            return Unauthorized();
+        }
+
+        if (!result.IdentityResult.Succeeded)
+        {
+            Dictionary<string, string[]> errors = result.IdentityResult.Errors
+                .GroupBy(static error => string.Equals(error.Code, "PasswordMismatch", StringComparison.Ordinal)
+                    ? nameof(ChangePasswordRequest.CurrentPassword)
+                    : nameof(ChangePasswordRequest.NewPassword))
+                .ToDictionary(
+                    static group => group.Key,
+                    static group => group.Select(static error => error.Description).ToArray(),
+                    StringComparer.Ordinal);
+            return ValidationProblem(new ValidationProblemDetails(errors)
+            {
+                Title = "Password change rejected.",
+            });
+        }
+
+        AuthenticationTokenResult authentication = result.Authentication
+            ?? throw new InvalidOperationException("A successful password change did not issue replacement authentication tokens.");
+        SetRefreshTokenCookie(authentication.RefreshToken, authentication.RefreshTokenExpiresAt);
+        return Ok(new AuthTokenResponse(authentication.AccessToken.Value, authentication.AccessToken.ExpiresAt));
     }
 
     public async partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)

@@ -9,7 +9,7 @@ public sealed partial class SettingsPage
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
-        new BreadcrumbItem(SettingsText["SystemBreadcrumb"], null, disabled: true),
+        new BreadcrumbItem(SettingsText["AccountBreadcrumb"], null, disabled: true),
         new BreadcrumbItem(SettingsText["Title"], null, disabled: true),
     ];
 
