@@ -1,0 +1,15 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+
+@if (Tags.Count > 0)
+{
+    <div class="rule-tag-list">
+        @foreach (RuleTag tag in VisibleTags)
+        {
+            <RuleTagChip Tag="@tag" />
+        }
+        @if (HiddenCount > 0)
+        {
+            <strong>+@HiddenCount</strong>
+        }
+    </div>
+}

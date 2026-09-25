@@ -1,7 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -29,7 +29,5 @@ public sealed partial class RuleMetadataController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
-    public partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync(
-        [FromBody] CleanupRuleMetadataRequest request,
-        CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync([FromBody] CleanupRuleMetadataRequest request, CancellationToken cancellationToken);
 }

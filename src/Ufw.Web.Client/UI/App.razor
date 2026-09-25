@@ -1,0 +1,58 @@
+@using Ufw.Web.Client.Services.Errors
+@implements IDisposable
+@inject IAuthenticationService AuthenticationService
+@inject IClientErrorMapper ClientErrors
+@inject IClientThemeService Theme
+@inject IStringLocalizer<AuthenticationStrings> AuthenticationText
+
+<MudThemeProvider Theme="@UfwMudTheme.Theme" IsDarkMode="@Theme.IsDarkMode" ObserveSystemDarkModeChange="false" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+@if (_startupState != StartupState.Ready)
+{
+    <ThemeToggle Class="standalone-theme-toggle" />
+}
+
+@if (_startupState == StartupState.Ready)
+{
+    <CascadingAuthenticationState>
+        <RouteErrorBoundary>
+            <ChildContent>
+                <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="@typeof(Ufw.Web.Client.UI.Pages.NotFound)">
+                    <Found Context="routeData">
+                        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                            <NotAuthorized>
+                                <RedirectToLogin />
+                            </NotAuthorized>
+                        </AuthorizeRouteView>
+                        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+                    </Found>
+                </Router>
+            </ChildContent>
+            <ErrorContent Context="exception">
+                <UnexpectedError Error="@ClientErrors.Describe(exception)" />
+            </ErrorContent>
+        </RouteErrorBoundary>
+    </CascadingAuthenticationState>
+}
+else if (_startupState == StartupState.Failed && _startupError is not null)
+{
+    <StartupFailure Error="@_startupError" Busy="@_initializing" OnRetry="InitializeAsync" />
+}
+else
+{
+    <main class="standalone-shell">
+        <StandalonePanel Title="@(AuthenticationText["RestoringSession"])"
+                         Description="@(AuthenticationText["RestoringSessionDescription"])"
+                         Class="standalone-state-card"
+                         TransparentBrandMark="true"
+                         Role="status"
+                         AriaLive="polite">
+            <div class="standalone-progress" aria-hidden="true">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+            </div>
+        </StandalonePanel>
+    </main>
+}

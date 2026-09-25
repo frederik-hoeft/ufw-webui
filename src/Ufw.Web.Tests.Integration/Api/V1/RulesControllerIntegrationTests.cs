@@ -23,11 +23,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         {
             IntegrationUfwClient daemon = serviceProvider.GetRequiredService<IntegrationUfwClient>();
             RuleListResponse finalSnapshot = new(Active: true, [Listed("existing", 1)], TestFirewallConfiguration.Enabled);
-            daemon.InsertResponse = new RuleInsertionResponse(
-                RuleInsertionOutcome.StateUncertain,
-                finalSnapshot,
-                InsertedRule: null,
-                Diagnostic: "state diverged");
+            daemon.InsertResponse = new RuleInsertionResponse(RuleInsertionOutcome.StateUncertain, finalSnapshot, InsertedRule: null, Diagnostic: "state diverged");
 
             ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(request, cancellationToken);
 
@@ -49,10 +45,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             daemon.ReorderResponse = new RuleReorderResponse(
                 RuleReorderOutcome.PartiallyCompleted,
                 finalSnapshot,
-                [new RuleReorderOperationResponse(
-                    new RuleReorderMoveResponse(1, 0, 0),
-                    RuleReorderOperationOutcome.FailedAndRestored,
-                    "restored")],
+                [new RuleReorderOperationResponse(new RuleReorderMoveResponse(1, 0, 0), RuleReorderOperationOutcome.FailedAndRestored, "restored")],
                 [new RuleReorderMoveResponse(0, 1, null)],
                 [],
                 "state diverged");

@@ -1,0 +1,46 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<section class="rule-metadata-details" aria-label="@(RulesText["RuleMetadataAria"])" @onclick:stopPropagation="true">
+    <header>
+        <strong>@RulesText["RuleMetadata"]</strong>
+        <span>@RulesText["RuleMetadataDescription"]</span>
+    </header>
+    <section>
+        <span>@RulesText["CanonicalCommand"]</span>
+        @if (!string.IsNullOrWhiteSpace(CanonicalCommand))
+        {
+            <div>
+                <code>@CanonicalCommand</code>
+                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="CopyCanonicalCommandAsync" aria-label="@RulesText["CopyCanonicalCommand"]" />
+            </div>
+        }
+        else
+        {
+            <span>@RulesText["None"]</span>
+        }
+    </section>
+    <aside>
+        @Actions
+    </aside>
+    <section>
+        <span>@RulesText["Tags"]</span>
+        @if (Metadata is not { Tags.Count: > 0 } metadata)
+        {
+            <span>@RulesText["None"]</span>
+        }
+        else
+        {
+            <RuleTagList Tags="@metadata.Tags" />
+        }
+    </section>
+    <section>
+        <span>@RulesText["Notes"]</span>
+        <span>@(string.IsNullOrWhiteSpace(Metadata?.Notes) ? RulesText["None"] : Metadata.Notes)</span>
+    </section>
+    <footer>
+        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit" Disabled="@EditDisabled" OnClick="@EditRequested">
+            @RulesText["EditMetadata"]
+        </MudButton>
+    </footer>
+</section>

@@ -61,19 +61,7 @@ public sealed class UfwCliBlackboxTests
     [TestMethod]
     public async Task SystemdStyleRuleArgumentsMaterializeIpv4AndIpv6RowsAsync()
     {
-        CommandResult add = await InvokeAsync(
-            "allow",
-            "in",
-            "from",
-            "any",
-            "to",
-            "any",
-            "port",
-            "22",
-            "proto",
-            "tcp",
-            "comment",
-            "ssh");
+        CommandResult add = await InvokeAsync("allow", "in", "from", "any", "to", "any", "port", "22", "proto", "tcp", "comment", "ssh");
         Assert.AreEqual(0, add.ExitCode);
         Assert.AreEqual("Rules updated\nRules updated (v6)", add.StdOut);
 
@@ -131,18 +119,7 @@ public sealed class UfwCliBlackboxTests
     [TestMethod]
     public async Task ForceIsRejectedForAddRuleSyntaxWithoutChangingStateAsync()
     {
-        CommandResult add = await InvokeAsync(
-            "--force",
-            "allow",
-            "in",
-            "from",
-            "any",
-            "to",
-            "any",
-            "port",
-            "22",
-            "proto",
-            "tcp");
+        CommandResult add = await InvokeAsync("--force", "allow", "in", "from", "any", "to", "any", "port", "22", "proto", "tcp");
 
         Assert.AreEqual(1, add.ExitCode);
         Assert.AreEqual(string.Empty, add.StdOut);
@@ -155,16 +132,7 @@ public sealed class UfwCliBlackboxTests
     [TestMethod]
     public async Task ExplicitZeroNetworksRemainFamilySpecificAsync()
     {
-        _ = await InvokeAsync(
-            "allow",
-            "from",
-            "0.0.0.0/0",
-            "to",
-            "0.0.0.0/0",
-            "port",
-            "80",
-            "proto",
-            "tcp");
+        _ = await InvokeAsync("allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp");
         _ = await InvokeAsync(
             "allow",
             "from",
@@ -188,19 +156,7 @@ public sealed class UfwCliBlackboxTests
     public async Task FullAndRoutedSyntaxProducesUfwStatusShapeAsync()
     {
         _ = await InvokeAsync("--force", "enable");
-        CommandResult add = await InvokeAsync(
-            "route",
-            "allow",
-            "in",
-            "on",
-            "eth0",
-            "out",
-            "on",
-            "eth1",
-            "to",
-            "10.0.0.0/8",
-            "from",
-            "192.168.0.0/16");
+        CommandResult add = await InvokeAsync("route", "allow", "in", "on", "eth0", "out", "on", "eth1", "to", "10.0.0.0/8", "from", "192.168.0.0/16");
         Assert.AreEqual(0, add.ExitCode);
         Assert.AreEqual("Rule added", add.StdOut);
 
@@ -295,15 +251,7 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult tcp = await InvokeAsync("allow", "proto", "tcp", "from", "any", "to", "any");
         Assert.AreEqual(0, tcp.ExitCode);
-        CommandResult udp = await InvokeAsync(
-            "route",
-            "reject",
-            "from",
-            "0.0.0.0/0",
-            "to",
-            "10.100.200.2",
-            "proto",
-            "udp");
+        CommandResult udp = await InvokeAsync("route", "reject", "from", "0.0.0.0/0", "to", "10.100.200.2", "proto", "udp");
         Assert.AreEqual(0, udp.ExitCode);
         _ = await InvokeAsync("--force", "enable");
 
@@ -412,18 +360,7 @@ public sealed class UfwCliBlackboxTests
     {
         _ = await InvokeAsync("allow", "80/tcp");
 
-        CommandResult inserted = await InvokeAsync(
-            "insert",
-            "2",
-            "deny",
-            "from",
-            "0.0.0.0/0",
-            "to",
-            "0.0.0.0/0",
-            "port",
-            "22",
-            "proto",
-            "tcp");
+        CommandResult inserted = await InvokeAsync("insert", "2", "deny", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp");
 
         Assert.AreEqual(1, inserted.ExitCode);
         StringAssert.Contains(inserted.StdErr, "Invalid position '2'");

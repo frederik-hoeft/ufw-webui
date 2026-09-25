@@ -113,12 +113,7 @@ public sealed class InsertIntentCanonicalizerTests
         payload.BaselineFingerprint = "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         TimeProvider timeProvider = new FixedTimeProvider(DateTimeOffset.FromUnixTimeSeconds(456));
 
-        InsertRuleRequest request = IntentRequestFactory.CreateInsertRequest(
-            key,
-            "deployment",
-            payload,
-            MessageJsonSerializerContext.Default.InsertRulePayload,
-            timeProvider);
+        InsertRuleRequest request = IntentRequestFactory.CreateInsertRequest(key, "deployment", payload, MessageJsonSerializerContext.Default.InsertRulePayload, timeProvider);
 
         Assert.AreEqual(IntentOperations.INSERT_RULE, request.Operation);
         Assert.AreEqual(456L, request.IssuedAtUnix);

@@ -1,4 +1,4 @@
-﻿using Ufw.Web.Api.V1.Models.NetworkInterfaces;
+﻿using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Services.NetworkInterfaces;
 

@@ -141,13 +141,7 @@ internal sealed class FileNonceStore : INonceStore, IDisposable
 
         string line = nonce + " " + expiresAtUnix.ToString(CultureInfo.InvariantCulture) + Environment.NewLine;
         byte[] bytes = Encoding.UTF8.GetBytes(line);
-        await using FileStream stream = new(
-            path,
-            FileMode.Append,
-            FileAccess.Write,
-            FileShare.Read,
-            bufferSize: 4096,
-            FileOptions.Asynchronous | FileOptions.WriteThrough);
+        await using FileStream stream = new(path, FileMode.Append, FileAccess.Write, FileShare.Read, bufferSize: 4096, FileOptions.Asynchronous | FileOptions.WriteThrough);
         await stream.WriteAsync(bytes, cancellationToken);
 #pragma warning disable CA1849 // Flush(bool) is intentionally synchronous to guarantee durable replay-state persistence.
         stream.Flush(flushToDisk: true);

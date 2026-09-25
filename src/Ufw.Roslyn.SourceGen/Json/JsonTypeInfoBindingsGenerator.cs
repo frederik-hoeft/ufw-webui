@@ -75,9 +75,7 @@ public sealed class JsonTypeInfoBindingsGenerator : IIncrementalGenerator
 
         ImmutableArray<AttributeData> jsonSerializableAttributes =
         [
-            .. attributes.Where(attribute => SymbolEqualityComparer.Default.Equals(
-                attribute.AttributeClass?.OriginalDefinition,
-                contracts.JsonSerializableAttribute.OriginalDefinition))
+            .. attributes.Where(attribute => SymbolEqualityComparer.Default.Equals(attribute.AttributeClass?.OriginalDefinition, contracts.JsonSerializableAttribute.OriginalDefinition))
         ];
 
         return new Model(

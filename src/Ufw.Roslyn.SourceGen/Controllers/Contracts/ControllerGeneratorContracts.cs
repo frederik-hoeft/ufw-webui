@@ -18,11 +18,7 @@ internal sealed record ControllerGeneratorContracts(
 {
     public static bool TryResolve(Compilation compilation, SourceProductionContext context, out ControllerGeneratorContracts? contracts)
     {
-        if (!GeneratorContractResolver.TryResolve(
-            compilation,
-            context,
-            out ImmutableDictionary<ControllerGeneratorContract, INamedTypeSymbol>? registrations) ||
-            registrations is null)
+        if (!GeneratorContractResolver.TryResolve(compilation, context, out ImmutableDictionary<ControllerGeneratorContract, INamedTypeSymbol>? registrations) || registrations is null)
         {
             contracts = null;
             return false;

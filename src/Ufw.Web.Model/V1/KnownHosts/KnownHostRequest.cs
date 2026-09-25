@@ -1,0 +1,23 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Ufw.Web.Model.V1.KnownHosts;
+
+public abstract class KnownHostRequest
+{
+    private const int MAX_NAME_LENGTH = 128;
+    private const int MAX_ADDRESS_LENGTH = 64;
+    private const int MAX_COMMENT_LENGTH = 200;
+
+    [Required]
+    [StringLength(MAX_NAME_LENGTH)]
+    public string Name { get; init; } = string.Empty;
+
+    [Required]
+    [StringLength(MAX_ADDRESS_LENGTH)]
+    public string Address { get; init; } = string.Empty;
+
+    [StringLength(MAX_COMMENT_LENGTH)]
+    public string? Comment { get; init; }
+
+    public bool IsVisible { get; init; } = true;
+}

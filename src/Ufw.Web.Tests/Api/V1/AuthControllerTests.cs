@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Models.Auth;
+using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Configuration;
 using Ufw.Web.Services.Auth;
 
@@ -25,9 +25,7 @@ public sealed class AuthControllerTests
             .ReturnsAsync((AuthenticationTokenResult?)null);
         AuthController controller = CreateController(authentication.Object);
 
-        IActionResult result = await controller.LoginAsync(
-            new LoginRequest("operator@example.invalid", "wrong-password"),
-            TestContext.CancellationToken);
+        IActionResult result = await controller.LoginAsync(new LoginRequest("operator@example.invalid", "wrong-password"), TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<UnauthorizedResult>(result);
         Assert.IsFalse(controller.Response.Headers.ContainsKey("Set-Cookie"));

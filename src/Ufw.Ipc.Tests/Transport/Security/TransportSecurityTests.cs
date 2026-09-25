@@ -223,13 +223,7 @@ public sealed class TransportSecurityTests
             Task<Stream> serverTask = serverSecurity.OpenSecureStreamAsync(serverInner, timeout.Token);
             Task<Stream> clientTask = clientSecurity.OpenSecureStreamAsync(clientInner, timeout.Token);
             await Task.WhenAll(serverTask, clientTask);
-            TlsConnection connection = new(
-                (SslStream)await clientTask,
-                (SslStream)await serverTask,
-                clientSecurity,
-                serverSecurity,
-                clientInner,
-                serverInner);
+            TlsConnection connection = new((SslStream)await clientTask, (SslStream)await serverTask, clientSecurity, serverSecurity, clientInner, serverInner);
             clientSecurity = null;
             serverSecurity = null;
             clientInner = Stream.Null;

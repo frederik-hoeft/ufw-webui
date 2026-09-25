@@ -12,10 +12,7 @@ public sealed class ParserCombinatorTests
     [TestMethod]
     public void CanAccept_NestedGrammar_RecursivelyValidatesVisitorType()
     {
-        IParser grammar = Grammar.Sequence(
-            new CharacterParser('a'),
-            Grammar.Optional(new CharacterParser('b')),
-            Grammar.Repeat(new CharacterParser('c')));
+        IParser grammar = Grammar.Sequence(new CharacterParser('a'), Grammar.Optional(new CharacterParser('b')), Grammar.Repeat(new CharacterParser('c')));
 
         Assert.IsTrue(grammar.CanAccept<CountingVisitor>());
         Assert.IsFalse(grammar.CanAccept<OtherVisitor>());

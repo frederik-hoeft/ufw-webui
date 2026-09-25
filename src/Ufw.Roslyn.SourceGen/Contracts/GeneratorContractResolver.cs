@@ -51,10 +51,7 @@ internal static class GeneratorContractResolver
                 foundRegistration = true;
                 if (!TryReadRegistration(attribute, out TContract contract, out INamedTypeSymbol? registeredType))
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        InvalidRegistration,
-                        attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
-                        contractFamilyName));
+                    context.ReportDiagnostic(Diagnostic.Create(InvalidRegistration, attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation(), contractFamilyName));
                     hasErrors = true;
                     continue;
                 }

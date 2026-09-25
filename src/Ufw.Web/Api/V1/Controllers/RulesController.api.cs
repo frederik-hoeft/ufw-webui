@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
@@ -114,10 +115,7 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
         });
     }
 
-    public Task<int> DeleteUnmatchedAsync(
-        IReadOnlyCollection<Guid> metadataIds,
-        IReadOnlyCollection<string> liveRuleIds,
-        CancellationToken cancellationToken = default)
+    public Task<int> DeleteUnmatchedAsync(IReadOnlyCollection<Guid> metadataIds, IReadOnlyCollection<string> liveRuleIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(metadataIds);
         ArgumentNullException.ThrowIfNull(liveRuleIds);
@@ -158,8 +156,8 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
             .Select(static relation => relation.Tag)
             .OrderBy(static tag => tag.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(static tag => tag.PublicId)
-            .Select(static tag => new RuleTagItem(tag.PublicId, tag.Name, tag.Color))
+            .Select(static tag => new RuleTagItem { Id = tag.PublicId, Name = tag.Name, Color = tag.Color })
             .ToArray();
-        return new RuleMetadataItem(metadata.PublicId, metadata.RuleId, metadata.Notes, tags);
+        return new RuleMetadataItem { Id = metadata.PublicId, RuleId = metadata.RuleId, Notes = metadata.Notes, Tags = tags };
     }
 }

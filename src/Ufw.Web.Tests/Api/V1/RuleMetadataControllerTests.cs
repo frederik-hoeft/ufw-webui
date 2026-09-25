@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Api.V1;
@@ -30,9 +31,7 @@ public sealed class RuleMetadataControllerTests
         Mock<IRuleMetadataReconciliationService> service = new(MockBehavior.Strict);
         RuleMetadataController controller = CreateController(service.Object);
 
-        ActionResult<RuleMetadataReconciliationResponse> action = await controller.CleanupAsync(
-            new CleanupRuleMetadataRequest(),
-            CancellationToken.None);
+        ActionResult<RuleMetadataReconciliationResponse> action = await controller.CleanupAsync(new CleanupRuleMetadataRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<BadRequestObjectResult>(action.Result);
         service.VerifyNoOtherCalls();

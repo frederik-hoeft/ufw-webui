@@ -1,4 +1,4 @@
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Services.Rules;
 
@@ -12,8 +12,5 @@ internal interface IRuleMetadataRepository
 
     Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default);
 
-    Task<int> DeleteUnmatchedAsync(
-        IReadOnlyCollection<Guid> metadataIds,
-        IReadOnlyCollection<string> liveRuleIds,
-        CancellationToken cancellationToken = default);
+    Task<int> DeleteUnmatchedAsync(IReadOnlyCollection<Guid> metadataIds, IReadOnlyCollection<string> liveRuleIds, CancellationToken cancellationToken = default);
 }

@@ -71,11 +71,7 @@ internal sealed class UfwRuleMutationService
         }
 
         IReadOnlyDictionary<FirewallAddressFamily, int?>? insertionPositions = placement == RulePlacement.Insert
-            ? ResolveInsertPositions(
-                UfwRuleVisibility.GetObservableRules(state, ipv6Enabled),
-                concreteRules,
-                request.Rule.Specification.AddressFamily,
-                insertNumber!.Value)
+            ? ResolveInsertPositions(UfwRuleVisibility.GetObservableRules(state, ipv6Enabled), concreteRules, request.Rule.Specification.AddressFamily, insertNumber!.Value)
             : null;
 
         List<UfwRuleMutationResult> mutationResults = [];

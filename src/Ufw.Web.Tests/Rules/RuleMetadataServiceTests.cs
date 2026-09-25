@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging;
 using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;
 using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
@@ -165,10 +167,7 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual(RuleTagMutationOutcome.InUse, inUse.Outcome);
         Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
 
-        _ = await host.Metadata.UpdateAsync(
-            "sha256:live",
-            new UpdateRuleMetadataRequest(),
-            TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync("sha256:live", new UpdateRuleMetadataRequest(), TestContext.CancellationToken);
         RuleTagMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleTagMutationOutcome.Success, deleted.Outcome);
@@ -310,10 +309,7 @@ public sealed class RuleMetadataServiceTests
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             RuleMetadataRepository metadataRepository = new(transactionHandle);
             RuleTagRepository tagRepository = new(transactionHandle);
-            RuleMetadataService metadata = new(
-                daemon,
-                metadataRepository,
-                scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
+            RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
             RuleTagService tags = new(tagRepository);

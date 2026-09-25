@@ -75,15 +75,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
                 ? anchors[anchorIndex].DesiredIndex
                 : currentOrder.Count;
 
-            AddLongestIncreasingSubsequence(
-                currentOrder,
-                desiredPositions,
-                previousCurrentIndex + 1,
-                nextCurrentIndex,
-                previousDesiredIndex,
-                nextDesiredIndex,
-                keepPriorities,
-                untouched);
+            AddLongestIncreasingSubsequence(currentOrder, desiredPositions, previousCurrentIndex + 1, nextCurrentIndex, previousDesiredIndex, nextDesiredIndex, keepPriorities, untouched);
 
             previousCurrentIndex = nextCurrentIndex;
             previousDesiredIndex = nextDesiredIndex;
@@ -130,10 +122,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
             WeightedSequence predecessor = fenwick.Query(localDesiredPosition - 1);
             predecessors[candidateIndex] = predecessor.CandidateIndex;
             int keepPriority = keepPriorities.TryGetValue(occurrenceId, out int priority) ? priority : 0;
-            WeightedSequence candidate = new(
-                predecessor.Length + 1,
-                predecessor.Priority + keepPriority,
-                candidateIndex);
+            WeightedSequence candidate = new(predecessor.Length + 1, predecessor.Priority + keepPriority, candidateIndex);
             fenwick.Update(localDesiredPosition, candidate);
         }
 

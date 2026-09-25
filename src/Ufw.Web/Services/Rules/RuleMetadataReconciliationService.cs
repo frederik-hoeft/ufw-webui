@@ -1,11 +1,10 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleMetadataReconciliationService(
-    IDaemonRuleSource daemonRules,
-    IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
+internal sealed class RuleMetadataReconciliationService(IDaemonRuleSource daemonRules, IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
 {
     public async Task<RuleMetadataReconciliationResponse> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -14,9 +13,7 @@ internal sealed class RuleMetadataReconciliationService(
         return BuildResponse(snapshot, metadata, removedCount: 0);
     }
 
-    public async Task<RuleMetadataReconciliationResponse> CleanupAsync(
-        CleanupRuleMetadataRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMetadataReconciliationResponse> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.MetadataIds is null || request.MetadataIds.Count == 0 || request.MetadataIds.Any(static id => id == Guid.Empty))
@@ -32,17 +29,14 @@ internal sealed class RuleMetadataReconciliationService(
         return BuildResponse(snapshot, metadata, removedCount);
     }
 
-    private static RuleMetadataReconciliationResponse BuildResponse(
-        RuleListResponse snapshot,
-        IReadOnlyList<RuleMetadataItem> metadata,
-        int removedCount)
+    private static RuleMetadataReconciliationResponse BuildResponse(RuleListResponse snapshot, IReadOnlyList<RuleMetadataItem> metadata, int removedCount)
     {
         HashSet<string> liveRuleIds = GetLiveRuleIds(snapshot).ToHashSet(StringComparer.Ordinal);
         RuleMetadataItem[] orphans = [.. metadata
             .Where(item => !liveRuleIds.Contains(item.RuleId))
             .OrderBy(static item => item.RuleId, StringComparer.Ordinal)
             .ThenBy(static item => item.Id)];
-        return new RuleMetadataReconciliationResponse(orphans, removedCount);
+        return new RuleMetadataReconciliationResponse { Orphans = orphans, RemovedCount = removedCount };
     }
 
     private static string[] GetLiveRuleIds(RuleListResponse snapshot) => [.. snapshot.Rules

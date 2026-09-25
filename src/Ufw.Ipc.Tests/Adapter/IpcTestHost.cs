@@ -202,15 +202,7 @@ internal sealed class IpcTestHost : IAsyncDisposable
     }
 
     public IIpcTestContext CreateContext() =>
-        new IpcTestContext(
-            _client,
-            _serverProvider,
-            _clientProvider,
-            _messageSerializer,
-            _broker,
-            _pipeline,
-            _clientTransportSecurity,
-            _clientItpOptions);
+        new IpcTestContext(_client, _serverProvider, _clientProvider, _messageSerializer, _broker, _pipeline, _clientTransportSecurity, _clientItpOptions);
 
     public async ValueTask DisposeAsync()
     {

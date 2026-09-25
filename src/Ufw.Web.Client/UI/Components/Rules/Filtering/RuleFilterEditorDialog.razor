@@ -1,0 +1,79 @@
+@inject IRuleFilterCatalog FilterCatalog
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudDialog>
+    <DialogContent>
+        @if (_selectedDefinition is null)
+        {
+            <div class="rule-filter-selector">
+                <MudTextField T="string"
+                              Label="@(RulesText["FilterSelectorSearch"])"
+                              Placeholder="@(RulesText["FilterSelectorSearchPlaceholder"])"
+                              Value="@_selectorSearch"
+                              ValueChanged="SelectorSearchChanged"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+
+                <ul>
+                    @foreach (RuleFilterDefinitionGroup group in VisibleGroups)
+                    {
+                        <li>
+                            <MudText Typo="Typo.overline" Color="Color.Secondary">@group.Category</MudText>
+                            <div>
+                                @foreach (RuleFilterDefinition definition in group.Definitions)
+                                {
+                                    <MudButton Variant="Variant.Text"
+                                               FullWidth="true"
+                                               OnClick="@(() => SelectDefinition(definition))">
+                                        @RulesText[definition.DisplayNameResourceKey]
+                                    </MudButton>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+
+                @if (VisibleGroups.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-3">
+                        @RulesText["NoFiltersFound"]
+                    </MudText>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="rule-filter-editor">
+                @if (Filter is null)
+                {
+                    <MudButton Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="BackToSelector">
+                        @RulesText["BackToFilterSelector"]
+                    </MudButton>
+                }
+
+                <MudText Typo="Typo.subtitle1" HtmlTag="h3" Class="mb-3">
+                    @RulesText[_selectedDefinition.DisplayNameResourceKey]
+                </MudText>
+
+                <DynamicComponent Type="@_selectedDefinition.EditorComponentType"
+                                  Parameters="@EditorParameters"
+                                  @ref="_dynamicEditor" />
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        @if (_selectedDefinition is not null)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Apply">
+                @(Filter is null ? RulesText["AddFilter"] : RulesText["SaveFilter"])
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>

@@ -56,8 +56,7 @@ public sealed class ItpFrameCodecTests
 
         byte[] frame = stream.ToArray();
         uint payloadLength = BinaryPrimitives.ReadUInt32BigEndian(frame.AsSpan(6, 4));
-        ushort messageLength = BinaryPrimitives.ReadUInt16BigEndian(
-            frame.AsSpan(ItpConstants.VERSION_1_HEADER_SIZE + 2, 2));
+        ushort messageLength = BinaryPrimitives.ReadUInt16BigEndian(frame.AsSpan(ItpConstants.VERSION_1_HEADER_SIZE + 2, 2));
 
         Assert.AreEqual((uint)(4 + messageLength), payloadLength);
         Assert.IsLessThanOrEqualTo(ItpConstants.MAX_TRANSPORT_ERROR_MESSAGE_UTF_8_LENGTH, messageLength);

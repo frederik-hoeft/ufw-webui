@@ -1,4 +1,4 @@
-﻿using Ufw.Web.Api.V1.Models.KnownHosts;
+﻿using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Services.KnownHosts;
 

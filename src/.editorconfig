@@ -944,9 +944,9 @@ resharper_enum_underlying_type_is_int_highlighting = hint
 resharper_redundant_lambda_parameter_type_highlighting = hint
 
 # Routed Razor page names intentionally match feature-area namespaces.
-[Ufw.Client/Pages/*.razor.cs]
+[Ufw.Web.Client/Pages/*.razor.cs]
 dotnet_diagnostic.CA1724.severity = none
 
 # returnUrl is a validated local navigation path/query value, not an absolute URI.
-[Ufw.Client/Pages/Login.razor.cs]
+[Ufw.Web.Client/Pages/Login.razor.cs]
 dotnet_diagnostic.CA1056.severity = none

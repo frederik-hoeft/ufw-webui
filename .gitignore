@@ -100,4 +100,5 @@ deploy/docker/backups/
 *.dump
 
 # Generated frontend assets
-src/Ufw.Client/wwwroot/css/app.css
+src/Ufw.Web.Client/wwwroot/css/app.css
+src/Ufw.Web.Client/**/*.razor.css

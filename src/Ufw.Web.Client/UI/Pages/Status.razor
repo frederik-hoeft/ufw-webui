@@ -1,0 +1,147 @@
+@page "/status"
+@attribute [Authorize]
+@implements IDisposable
+@inject IOperationalStatusService OperationalStatus
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<StatusStrings> StatusText
+
+<PageTitle>@StatusText["PageTitle"] - UFWeb</PageTitle>
+
+<PageHeader Title="@(StatusText["Title"])"
+            Description="@(StatusText["Description"])"
+            Breadcrumbs="@Breadcrumbs"
+            ShowStatus="@(OperationalStatus.Current.CheckedAt is not null)">
+    <Actions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@OperationalStatus.IsRefreshing"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            @(OperationalStatus.IsRefreshing ? CommonText["CheckingEllipsis"] : StatusText["RefreshStatus"])
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (OperationalStatus.Current.CheckedAt is { } checkedAt)
+        {
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Class="@DaemonChipClass">
+                @DaemonStatusLabel
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @StatusText["CheckedAt", FormatLocalDateTime(checkedAt)]
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
+
+@if (OperationalStatus.Current.ManagementApi == OperationalAvailability.Unavailable)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        @StatusText["ManagementApiUnavailableAlert"]
+    </MudAlert>
+}
+else if (OperationalStatus.Current.Daemon == OperationalAvailability.Unavailable)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        @StatusText["DaemonUnavailableAlert"]
+    </MudAlert>
+}
+else if (OperationalStatus.Current.IntentProtocolCompatible == false)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
+        @StatusText["ProtocolMismatchAlert", OperationalStatus.Current.IntentProtocolVersion.GetValueOrDefault(), IntentProtocol.VERSION]
+    </MudAlert>
+}
+
+<div class="operational-status-grid" aria-busy="@OperationalStatus.IsRefreshing">
+    <MudPaper Class="operational-status-card" Elevation="1">
+        <header>
+            <MudIcon Icon="@Icons.Material.Filled.Cloud" Color="@ManagementApiIconColor" />
+            <div>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["ManagementApi"]</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2">@ManagementApiStatusLabel</MudText>
+            </div>
+        </header>
+        <dl>
+            <div>
+                <dt>@StatusText["Probe"]</dt>
+                <dd><code>/api/health</code></dd>
+            </div>
+            <div>
+                <dt>@StatusText["Scope"]</dt>
+                <dd>@StatusText["BrowserToManagementApi"]</dd>
+            </div>
+        </dl>
+        @if (OperationalStatus.Current.ManagementApiError is { } managementError)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" role="alert">@managementError.Message</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="operational-status-card" Elevation="1">
+        <header>
+            <MudIcon Icon="@Icons.Material.Filled.Dns" Color="@DaemonIconColor" />
+            <div>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["UfwSystemd"]</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2">@DaemonStatusLabel</MudText>
+            </div>
+        </header>
+        <dl>
+            <div>
+                <dt>@StatusText["Deployment"]</dt>
+                <dd><code>@ValueOrUnavailable(OperationalStatus.Current.DeploymentId)</code></dd>
+            </div>
+            <div>
+                <dt>@StatusText["IntentProtocol"]</dt>
+                <dd>@DescribeIntentProtocol()</dd>
+            </div>
+        </dl>
+        @if (OperationalStatus.Current.DaemonError is { } daemonError)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" role="alert">@daemonError.Message</MudText>
+        }
+        else if (OperationalStatus.Current.IntentContextError is { } intentError)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" role="alert">@intentError.Message</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="operational-status-card" Elevation="1">
+        <header>
+            <MudIcon Icon="@Icons.Material.Filled.Security" Color="@FirewallIconColor" />
+            <div>
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@StatusText["Firewall"]</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2">@FirewallStatusLabel</MudText>
+            </div>
+        </header>
+        <dl>
+            <div>
+                <dt>@StatusText["Rules"]</dt>
+                <dd>@DescribeRuleCount()</dd>
+            </div>
+            <div>
+                <dt>@StatusText["Source"]</dt>
+                <dd>@StatusText["AuthoritativeUfwSnapshot"]</dd>
+            </div>
+        </dl>
+        @if (OperationalStatus.Current.FirewallError is { } firewallError)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" role="alert">@firewallError.Message</MudText>
+        }
+    </MudPaper>
+</div>
+
+<MudPaper Class="operational-status-meta" Elevation="1">
+    <MudText Typo="Typo.h6" HtmlTag="h2">@StatusText["StatusSemantics"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @StatusText["StatusSemanticsDescription"]
+    </MudText>
+    @if (OperationalStatus.Current.RoundTrip is { } roundTrip)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3">
+            @StatusText["LastCombinedCheck", DescribeDuration(roundTrip)]
+        </MudText>
+    }
+</MudPaper>

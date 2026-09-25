@@ -46,9 +46,7 @@ public sealed class FirewallRuleSnapshotFingerprintTests
         RuleListResponse snapshot = CreateSnapshot();
         RuleListResponse reordered = new(snapshot.Active, snapshot.Rules.Reverse().ToArray(), snapshot.Configuration);
 
-        Assert.AreNotEqual(
-            FirewallRuleSnapshotFingerprint.Compute(snapshot),
-            FirewallRuleSnapshotFingerprint.Compute(reordered));
+        Assert.AreNotEqual(FirewallRuleSnapshotFingerprint.Compute(snapshot), FirewallRuleSnapshotFingerprint.Compute(reordered));
     }
 
     [TestMethod]
@@ -57,9 +55,7 @@ public sealed class FirewallRuleSnapshotFingerprintTests
         RuleListResponse snapshot = CreateSnapshot();
         RuleListResponse inactive = new(false, snapshot.Rules, snapshot.Configuration);
 
-        Assert.AreNotEqual(
-            FirewallRuleSnapshotFingerprint.Compute(snapshot),
-            FirewallRuleSnapshotFingerprint.Compute(inactive));
+        Assert.AreNotEqual(FirewallRuleSnapshotFingerprint.Compute(snapshot), FirewallRuleSnapshotFingerprint.Compute(inactive));
     }
 
     [TestMethod]
@@ -73,9 +69,7 @@ public sealed class FirewallRuleSnapshotFingerprintTests
             RoutedPolicy: FirewallDefaultPolicy.Reject);
         RuleListResponse changed = new(snapshot.Active, snapshot.Rules, changedConfiguration);
 
-        Assert.AreEqual(
-            FirewallRuleSnapshotFingerprint.Compute(snapshot),
-            FirewallRuleSnapshotFingerprint.Compute(changed));
+        Assert.AreEqual(FirewallRuleSnapshotFingerprint.Compute(snapshot), FirewallRuleSnapshotFingerprint.Compute(changed));
     }
 
     [TestMethod]

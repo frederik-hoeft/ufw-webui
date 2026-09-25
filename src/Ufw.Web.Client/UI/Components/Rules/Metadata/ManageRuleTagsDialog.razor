@@ -1,0 +1,96 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IRuleTagCatalogService TagCatalog
+@inject IRuleTagColorGenerator TagColors
+@inject IClientErrorMapper ClientErrors
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudDialog>
+    <DialogContent>
+        <div class="rule-tag-manager">
+            <header>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["ManageTagsDescription"]</MudText>
+                @if (!IsCreating)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Disabled="@IsBusy" OnClick="BeginCreate">
+                        @RulesText["CreateTag"]
+                    </MudButton>
+                }
+            </header>
+
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mt-4" role="alert">@_error.Message</MudAlert>
+            }
+
+            @if (_editing)
+            {
+                <section class="mt-4" aria-label="@(RulesText["TagEditorAria"])">
+                    <MudText Typo="Typo.subtitle2">@(_editingTag is null ? RulesText["CreateTag"] : RulesText["EditTag"])</MudText>
+                    <MudTextField T="string"
+                                  Label="@(RulesText["TagName"])"
+                                  @bind-Value="_name"
+                                  Immediate="true"
+                                  Required="true"
+                                  Counter="@MAX_TAG_NAME_LENGTH"
+                                  MaxLength="@MAX_TAG_NAME_LENGTH"
+                                  Disabled="@_saving"
+                                  autofocus="true" />
+                    <div class="color-editor">
+                        <span>@RulesText["TagColor"]</span>
+                        <RuleTagChip Tag="@PreviewTag" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Disabled="@_saving" OnClick="ReshuffleColor" aria-label="@RulesText["ReshuffleTagColor"]" />
+                    </div>
+                    <footer>
+                        <MudButton Variant="Variant.Text" Disabled="@_saving" OnClick="CancelEdit">@CommonText["Cancel"]</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_saving" OnClick="SaveTagAsync">@(_saving ? RulesText["SavingTag"] : RulesText["SaveTag"])</MudButton>
+                    </footer>
+                </section>
+            }
+
+            @if (_loading && _tags.Count == 0)
+            {
+                <div class="mt-4" role="status" aria-live="polite">
+                    <MudProgressLinear Indeterminate="true" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["LoadingTags"]</MudText>
+                </div>
+            }
+            else if (!_loading && _tags.Count == 0)
+            {
+                <div class="mt-4" role="status">
+                    <MudIcon Icon="@Icons.Material.Outlined.Label" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["NoTagsDefined"]</MudText>
+                </div>
+            }
+            else
+            {
+                <ul class="mt-4">
+                    @foreach (RuleTag tag in _tags)
+                    {
+                        <li>
+                            <RuleTagChip Tag="@tag" />
+                            <div>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Disabled="@IsBusy"
+                                               OnClick="@(() => BeginEdit(tag))"
+                                               aria-label="@RulesText["EditTagAria", tag.Name]" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Disabled="@IsBusy"
+                                               OnClick="@(() => DeleteTagAsync(tag))"
+                                               aria-label="@RulesText["DeleteTagAria", tag.Name]" />
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="@IsBusy" OnClick="Close">@RulesText["Close"]</MudButton>
+    </DialogActions>
+</MudDialog>

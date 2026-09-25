@@ -4,7 +4,7 @@ using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
-using Ufw.Web.Api.V1.Models.NetworkInterfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
 namespace Ufw.Web.Tests.Api.V1;
@@ -19,7 +19,7 @@ public sealed class NetworkInterfacesControllerTests
     {
         Mock<INetworkInterfaceInventoryService> inventory = new();
         NetworkInterfaceInventoryResponse expected = new(
-            [new NetworkInterfaceInventoryItem(Guid.CreateVersion7(), "eno1", "service VLAN", IsVisible: true)],
+            [new NetworkInterfaceInventoryItem(Guid.CreateVersion7(), "eno1", "service VLAN", isVisible: true)],
             new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
         inventory.Setup(service => service.GetCachedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
         NetworkInterfacesController controller = CreateController(inventory.Object);
@@ -51,7 +51,7 @@ public sealed class NetworkInterfacesControllerTests
     {
         Mock<INetworkInterfaceInventoryService> inventory = new();
         Guid id = Guid.CreateVersion7();
-        NetworkInterfaceInventoryResponse expected = new([new NetworkInterfaceInventoryItem(id, "docker0", null, IsVisible: false)], new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
+        NetworkInterfaceInventoryResponse expected = new([new NetworkInterfaceInventoryItem(id, "docker0", null, isVisible: false)], new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
         inventory
             .Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);

@@ -1,0 +1,16 @@
+.settings-section {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: var(--mud-default-borderradius);
+    background: var(--mud-palette-surface);
+
+    > header {
+        display: grid;
+        gap: 0.25rem;
+        padding: 1.125rem 1.5rem;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    > div {
+        padding: 0 1.5rem;
+    }
+}

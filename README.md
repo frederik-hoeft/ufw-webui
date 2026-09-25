@@ -31,7 +31,7 @@ See [Security architecture](docs/architecture/security.md) for the complete trus
 A supported production deployment consists of:
 
 - a privileged `Ufw.Systemd` service running directly on the firewall host;
-- a public non-root nginx container serving `Ufw.Client` and terminating browser TLS;
+- a public non-root nginx container serving `Ufw.Web.Client` and terminating browser TLS;
 - a private non-root `Ufw.Web` container reached by nginx through a Unix-domain socket;
 - PostgreSQL on an internal container network reachable only by `Ufw.Web`.
 
@@ -78,7 +78,8 @@ The source tree follows trust and deployment boundaries:
 
 | Project | Role |
 | --- | --- |
-| `Ufw.Client` | Blazor WebAssembly browser application |
+| `Ufw.Web.Client` | Blazor WebAssembly browser application |
+| `Ufw.Web.Model` | pure, versioned browser REST request/response DTOs shared by ASP and Blazor |
 | `Ufw.Web` | ASP.NET Core REST API, authentication, PostgreSQL-backed application state, and daemon IPC client |
 | `Ufw.Systemd` | privileged host daemon and UFW execution boundary |
 | `Ufw.Shared` | cross-process firewall semantics, security primitives, and IPC contracts |

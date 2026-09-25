@@ -22,11 +22,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
         RuleListResponse? snapshot = observedSnapshot ?? await TryReadSnapshotAsync(cancellationToken);
         if (snapshot is null)
         {
-            return new RuleRecoveryResult(
-                false,
-                false,
-                null,
-                "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
+            return new RuleRecoveryResult(false, false, null, "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
         }
         if (CountMatches(snapshot.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {

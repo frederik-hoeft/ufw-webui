@@ -28,19 +28,13 @@ internal sealed class FirewallReorderExecutor(
         RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
         if (baseline is null)
         {
-            return Result(
-                RuleReorderExecutionOutcome.StateUncertain,
-                null,
-                diagnostic: "The current authoritative firewall state could not be read before reordering.");
+            return Result(RuleReorderExecutionOutcome.StateUncertain, null, diagnostic: "The current authoritative firewall state could not be read before reordering.");
         }
 
         string actualFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
         if (!string.Equals(actualFingerprint, request.BaselineFingerprint, StringComparison.Ordinal))
         {
-            return Result(
-                RuleReorderExecutionOutcome.StaleBaseline,
-                baseline,
-                diagnostic: "The authoritative firewall state no longer matches the signed reorder baseline.");
+            return Result(RuleReorderExecutionOutcome.StaleBaseline, baseline, diagnostic: "The authoritative firewall state no longer matches the signed reorder baseline.");
         }
 
         PreflightResult preflight;
@@ -50,10 +44,7 @@ internal sealed class FirewallReorderExecutor(
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
-            return Result(
-                RuleReorderExecutionOutcome.PreconditionFailed,
-                baseline,
-                diagnostic: exception.Message);
+            return Result(RuleReorderExecutionOutcome.PreconditionFailed, baseline, diagnostic: exception.Message);
         }
 
         if (preflight.Plan.Moves.Count == 0)
@@ -69,12 +60,7 @@ internal sealed class FirewallReorderExecutor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             RuleReorderMove move = preflight.Plan.Moves[moveIndex];
-            MoveExecutionResult moveResult = await ExecuteMoveAsync(
-                move,
-                baseline,
-                currentOrder,
-                preflight.Classifications[move.OccurrenceId],
-                cancellationToken);
+            MoveExecutionResult moveResult = await ExecuteMoveAsync(move, baseline, currentOrder, preflight.Classifications[move.OccurrenceId], cancellationToken);
 
             if (moveResult.OperationReport is not null)
             {
@@ -89,12 +75,7 @@ internal sealed class FirewallReorderExecutor(
             }
 
             IReadOnlyList<RuleReorderMove> blocked = preflight.Plan.Moves.Skip(moveIndex).ToArray();
-            IReadOnlyList<RuleReorderMove> pending = CreateSafePendingPlan(
-                baseline,
-                moveResult.Snapshot,
-                request.DesiredOrder,
-                preflight.ImmutableOccurrences,
-                preflight.KeepPriorities);
+            IReadOnlyList<RuleReorderMove> pending = CreateSafePendingPlan(baseline, moveResult.Snapshot, request.DesiredOrder, preflight.ImmutableOccurrences, preflight.KeepPriorities);
             RuleReorderExecutionOutcome outcome = moveResult.RecoveryFailed
                 ? RuleReorderExecutionOutcome.RecoveryFailed
                 : moveResult.Snapshot is null
@@ -103,22 +84,10 @@ internal sealed class FirewallReorderExecutor(
                         ? RuleReorderExecutionOutcome.StaleBaseline
                         : RuleReorderExecutionOutcome.PartiallyCompleted;
 
-            return new RuleReorderExecutionResult(
-                outcome,
-                moveResult.Snapshot,
-                operationReports,
-                blocked,
-                pending,
-                moveResult.Diagnostic);
+            return new RuleReorderExecutionResult(outcome, moveResult.Snapshot, operationReports, blocked, pending, moveResult.Diagnostic);
         }
 
-        return new RuleReorderExecutionResult(
-            RuleReorderExecutionOutcome.Completed,
-            currentSnapshot,
-            operationReports,
-            [],
-            [],
-            null);
+        return new RuleReorderExecutionResult(RuleReorderExecutionOutcome.Completed, currentSnapshot, operationReports, [], [], null);
     }
 
     private PreflightResult Preflight(RuleListResponse baseline, IReadOnlyList<int> desiredOrder)
@@ -167,36 +136,22 @@ internal sealed class FirewallReorderExecutor(
         RuleListResponse? preMoveSnapshot = await TryReadSnapshotAsync(cancellationToken);
         if (preMoveSnapshot is null)
         {
-            return MoveExecutionResult.Interrupted(
-                null,
-                null,
-                "The authoritative firewall state could not be read before the next move started.");
+            return MoveExecutionResult.Interrupted(null, null, "The authoritative firewall state could not be read before the next move started.");
         }
         if (!SnapshotMatchesOrder(preMoveSnapshot, baseline, preMoveOrder))
         {
-            return MoveExecutionResult.Interrupted(
-                preMoveSnapshot,
-                null,
-                "Authoritative state diverged before the next move started.");
+            return MoveExecutionResult.Interrupted(preMoveSnapshot, null, "Authoritative state diverged before the next move started.");
         }
 
         int currentIndex = IndexOf(preMoveOrder, move.OccurrenceId);
         ListedFirewallRule listedRule = preMoveSnapshot.Rules[currentIndex];
         if (listedRule.DisplayNumber is not int displayNumber || classification.Specification is null)
         {
-            return MoveExecutionResult.Interrupted(
-                preMoveSnapshot,
-                null,
-                "The move target no longer has a usable UFW rule number.");
+            return MoveExecutionResult.Interrupted(preMoveSnapshot, null, "The move target no longer has a usable UFW rule number.");
         }
 
         int originalFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(preMoveSnapshot.Rules, currentIndex);
-        ReorderRecoveryJournalEntry journalEntry = CreateJournalEntry(
-            classification.Specification,
-            originalFamilyPosition,
-            baseline,
-            preMoveOrder,
-            currentIndex);
+        ReorderRecoveryJournalEntry journalEntry = CreateJournalEntry(classification.Specification, originalFamilyPosition, baseline, preMoveOrder, currentIndex);
         await recoveryJournal.WriteAsync(journalEntry, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
         {
@@ -215,8 +170,7 @@ internal sealed class FirewallReorderExecutor(
             RuleRecoveryResult recovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, canceledSnapshot, CancellationToken.None);
             if (!recovery.PresenceConfirmed)
             {
-                throw new InvalidOperationException(
-                    "The UFW delete process was canceled without a result and the active rule could not be recovered safely.");
+                throw new InvalidOperationException("The UFW delete process was canceled without a result and the active rule could not be recovered safely.");
             }
             throw;
         }
@@ -261,11 +215,7 @@ internal sealed class FirewallReorderExecutor(
         }
 
         RuleRecoveryResult postInsertRecovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, afterInsert, CancellationToken.None);
-        return RecoveryInterruption(
-            move,
-            postInsertRecovery,
-            CombineDiagnostics(delete.Diagnostic, insert.Diagnostic),
-            "Firewall state diverged after reinserting the moved rule.");
+        return RecoveryInterruption(move, postInsertRecovery, CombineDiagnostics(delete.Diagnostic, insert.Diagnostic), "Firewall state diverged after reinserting the moved rule.");
     }
 
     private MoveExecutionResult RecoveryInterruption(RuleReorderMove move, RuleRecoveryResult recovery, string? processDiagnostic, string divergenceDiagnostic)
@@ -286,10 +236,7 @@ internal sealed class FirewallReorderExecutor(
             ? RuleReorderOperationStatus.FailedAndRestored
             : RuleReorderOperationStatus.PresenceConfirmedAfterInterruption;
         _logger.LogWarning($"Rule reorder stopped after occurrence {move.OccurrenceId} was made safe: {diagnostic}");
-        return MoveExecutionResult.Interrupted(
-            recovery.Snapshot,
-            new RuleReorderOperationReport(move, status, diagnostic),
-            diagnostic);
+        return MoveExecutionResult.Interrupted(recovery.Snapshot, new RuleReorderOperationReport(move, status, diagnostic), diagnostic);
     }
 
     private IUfwCommand CreatePlannedInsertionCommand(RuleReorderMove move, RuleListResponse afterDelete, IReadOnlyList<int> afterDeleteOrder, FirewallRuleSpecification specification)
@@ -322,13 +269,7 @@ internal sealed class FirewallReorderExecutor(
         RuleRecoveryAnchor? next = currentIndex + 1 < preMoveOrder.Count
             ? CreateAnchor(baseline.Rules[preMoveOrder[currentIndex + 1]])
             : null;
-        return new ReorderRecoveryJournalEntry(
-            ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION,
-            specification,
-            originalFamilyPosition,
-            expectedMultiplicity,
-            previous,
-            next);
+        return new ReorderRecoveryJournalEntry(ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION, specification, originalFamilyPosition, expectedMultiplicity, previous, next);
     }
 
     private IReadOnlyList<RuleReorderMove> CreateSafePendingPlan(

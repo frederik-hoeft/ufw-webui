@@ -119,22 +119,14 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
 
         await RunAsync(async (context, cancellationToken) =>
         {
-            RuleListResponse baseline = await context.Client.SendAsync<RuleListResponse>(
-                RequestMethod.Get,
-                "/api/v1/rules",
-                cancellationToken);
-            IntentContextResponse intentContext = await context.Client.SendAsync<IntentContextResponse>(
-                RequestMethod.Get,
-                "/api/v1/intent/context",
-                cancellationToken);
+            RuleListResponse baseline = await context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
+            IntentContextResponse intentContext = await context.Client.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", cancellationToken);
 
             Assert.HasCount(6, baseline.Rules);
             int[] desiredOrder = [2, 0, 1, 5, 3, 4];
             ReorderRulesRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, desiredOrder);
 
-            RuleReorderResponse response = await context.Client.SendAsync<ReorderRulesRequest, RuleReorderResponse>(
-                request,
-                cancellationToken);
+            RuleReorderResponse response = await context.Client.SendAsync<ReorderRulesRequest, RuleReorderResponse>(request, cancellationToken);
 
             Assert.AreEqual(RuleReorderOutcome.Completed, response.Outcome);
             Assert.IsNotNull(response.FinalSnapshot);
@@ -147,10 +139,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
                 await context.Client.SendAsync<ReorderRulesRequest, RuleReorderResponse>(request, cancellationToken));
             Assert.AreEqual(409, replay.StatusCode);
 
-            RuleListResponse afterReplay = await context.Client.SendAsync<RuleListResponse>(
-                RequestMethod.Get,
-                "/api/v1/rules",
-                cancellationToken);
+            RuleListResponse afterReplay = await context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
             CollectionAssert.AreEqual(desiredOrder, MapToBaselineOccurrences(baseline, afterReplay));
         }, cancellationToken: TestContext.CancellationToken);
     }
@@ -234,12 +223,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
             BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),
             DesiredOrder = desiredOrder,
         };
-        return IntentRequestFactory.CreateReorderRequest(
-            _signingKey,
-            deploymentId,
-            payload,
-            MessageJsonSerializerContext.Default.ReorderRulesPayload,
-            TimeProvider.System);
+        return IntentRequestFactory.CreateReorderRequest(_signingKey, deploymentId, payload, MessageJsonSerializerContext.Default.ReorderRulesPayload, TimeProvider.System);
     }
 
     private async Task SeedIpv4RulesAsync()

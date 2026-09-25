@@ -6,7 +6,7 @@ using System.Data;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.NetworkInterfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Data;
 using Ufw.Web.Tests.Data;
 using Ufw.Web.Services.NetworkInterfaces;

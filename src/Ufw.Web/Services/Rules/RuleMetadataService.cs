@@ -1,21 +1,15 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Api.V1.Models.Rules;
+using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed partial class RuleMetadataService(
-    IDaemonRuleSource daemonRules,
-    IRuleMetadataRepository repository,
-    ILogger<RuleMetadataService> logger) : IRuleMetadataService
+internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules, IRuleMetadataRepository repository, ILogger<RuleMetadataService> logger) : IRuleMetadataService
 {
     private const int MAX_TAG_COUNT = 32;
 
-    public async Task<RuleMetadataUpdateResult> UpdateAsync(
-        string ruleId,
-        UpdateRuleMetadataRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<RuleMetadataUpdateResult> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(request);
@@ -34,9 +28,7 @@ internal sealed partial class RuleMetadataService(
         RuleMetadataSaveResult save = await repository.SaveAsync(ruleId, values, cancellationToken);
         return save.Outcome switch
         {
-            RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(
-                RuleMetadataUpdateOutcome.Success,
-                new RuleMetadataMutationResponse(save.Metadata)),
+            RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Metadata }),
             RuleMetadataSaveOutcome.TagNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
             _ => throw new InvalidOperationException($"Unknown metadata save outcome '{save.Outcome}'."),
         };

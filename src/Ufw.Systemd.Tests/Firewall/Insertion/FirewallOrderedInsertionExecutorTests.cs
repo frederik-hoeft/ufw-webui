@@ -26,9 +26,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     [TestMethod]
     public async Task ExecuteAsync_BeforeIpv4Anchor_UsesCombinedUfwPositionAndExactPostconditionAsync()
     {
-        using InsertionHarness harness = new(
-            Snapshot("80", "443", "80v6"),
-            Snapshot("22", "80", "443", "80v6"));
+        using InsertionHarness harness = new(Snapshot("80", "443", "80v6"), Snapshot("22", "80", "443", "80v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
             harness.Payload(anchorOccurrenceId: 0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
@@ -44,9 +42,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     [TestMethod]
     public async Task ExecuteAsync_AfterMiddleIpv4Anchor_InsertsBeforeNextFamilyOccurrenceAsync()
     {
-        using InsertionHarness harness = new(
-            Snapshot("80", "443", "8080", "80v6"),
-            Snapshot("80", "443", "22", "8080", "80v6"));
+        using InsertionHarness harness = new(Snapshot("80", "443", "8080", "80v6"), Snapshot("80", "443", "22", "8080", "80v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
             harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")),
@@ -59,9 +55,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     [TestMethod]
     public async Task ExecuteAsync_AfterLastIpv4Anchor_AppendsWithinIpv4FamilyAsync()
     {
-        using InsertionHarness harness = new(
-            Snapshot("80", "443", "80v6", "443v6"),
-            Snapshot("80", "443", "22", "80v6", "443v6"));
+        using InsertionHarness harness = new(Snapshot("80", "443", "80v6", "443v6"), Snapshot("80", "443", "22", "80v6", "443v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
             harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")),
@@ -74,9 +68,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     [TestMethod]
     public async Task ExecuteAsync_AfterLastIpv4Anchor_AppendsBeforeOpaqueIpv6PartitionAsync()
     {
-        using InsertionHarness harness = new(
-            SnapshotWithOpaqueIpv6(inserted: false),
-            SnapshotWithOpaqueIpv6(inserted: true));
+        using InsertionHarness harness = new(SnapshotWithOpaqueIpv6(inserted: false), SnapshotWithOpaqueIpv6(inserted: true));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
             harness.Payload(anchorOccurrenceId: 0, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")),
@@ -89,9 +81,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
     [TestMethod]
     public async Task ExecuteAsync_BeforeIpv6Anchor_UsesCombinedUfwPositionAsync()
     {
-        using InsertionHarness harness = new(
-            Snapshot("80", "443", "80v6", "443v6"),
-            Snapshot("80", "443", "80v6", "22v6", "443v6"));
+        using InsertionHarness harness = new(Snapshot("80", "443", "80v6", "443v6"), Snapshot("80", "443", "80v6", "22v6", "443v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
             harness.Payload(anchorOccurrenceId: 3, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")),
@@ -152,14 +142,11 @@ public sealed class FirewallOrderedInsertionExecutorTests
     public async Task ExecuteAsync_InterfaceValidationFailure_PerformsNoMutationAsync()
     {
         using InsertionHarness harness = new(Snapshot("80"));
-        harness.InterfaceValidationResponse = new ModelValidationErrorResponse(
-            [new ModelValidationError(nameof(FirewallRuleSpecification.SourceInterface), "missing")]);
+        harness.InterfaceValidationResponse = new ModelValidationErrorResponse([new ModelValidationError(nameof(FirewallRuleSpecification.SourceInterface), "missing")]);
         FirewallRuleSpecification rule = Rule(FirewallAddressFamily.IPv4, "22");
         rule.SourceInterface = "missing0";
 
-        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, rule),
-            TestContext.CancellationToken);
+        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, RuleInsertionPlacement.Before, rule), TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -288,9 +275,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             "[ 1] 80/tcp                     ALLOW IN    Anywhere",
             "[ 2] 22/tcp                     ALLOW IN    Anywhere",
             "[ 3] unsupported opaque rule (v6)"))!
-        : UfwStatusParser.Parse(UfwStatusFixtures.WithRules(
-            "[ 1] 80/tcp                     ALLOW IN    Anywhere",
-            "[ 2] unsupported opaque rule (v6)"))!;
+        : UfwStatusParser.Parse(UfwStatusFixtures.WithRules("[1] 80/tcp                     ALLOW IN    Anywhere", "[2] unsupported opaque rule (v6)"))!;
 
     private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
 
@@ -373,12 +358,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             {
                 throw behavior.Exception;
             }
-            return new UfwProcessResult(
-                behavior.ExitCode,
-                string.Empty,
-                behavior.StandardError,
-                arguments,
-                behavior.CancellationRequested);
+            return new UfwProcessResult(behavior.ExitCode, string.Empty, behavior.StandardError, arguments, behavior.CancellationRequested);
         }
     }
 

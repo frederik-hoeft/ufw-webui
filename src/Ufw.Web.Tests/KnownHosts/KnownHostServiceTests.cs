@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Api.V1.Models.KnownHosts;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Data;
 using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
@@ -37,7 +37,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, result.Outcome);
         Assert.IsNotNull(result.Inventory);
-        KnownHostItem item = result.Inventory.Hosts.Single();
+        KnownHostInventoryItem item = result.Inventory.Hosts.Single();
         Assert.AreEqual('7', item.Id.ToString("D")[14]);
         Assert.AreEqual("Database primary", item.Name);
         Assert.AreEqual("192.0.2.0/24", item.Address);
@@ -79,7 +79,7 @@ public sealed class KnownHostServiceTests
             new CreateKnownHostRequest { Name = "proxy", Address = "192.0.2.10" },
             TestContext.CancellationToken);
         Assert.IsNotNull(created.Inventory);
-        KnownHostItem existing = created.Inventory.Hosts.Single();
+        KnownHostInventoryItem existing = created.Inventory.Hosts.Single();
 
         KnownHostMutationResult updated = await host.Service.UpdateAsync(
             existing.Id,
@@ -94,7 +94,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, updated.Outcome);
         Assert.IsNotNull(updated.Inventory);
-        KnownHostItem item = updated.Inventory.Hosts.Single();
+        KnownHostInventoryItem item = updated.Inventory.Hosts.Single();
         Assert.AreEqual(existing.Id, item.Id);
         Assert.AreEqual("edge proxy", item.Name);
         Assert.AreEqual("198.51.100.44", item.Address);
@@ -110,7 +110,7 @@ public sealed class KnownHostServiceTests
             new CreateKnownHostRequest { Name = "router", Address = "192.0.2.1" },
             TestContext.CancellationToken);
         Assert.IsNotNull(created.Inventory);
-        KnownHostItem existing = created.Inventory.Hosts.Single();
+        KnownHostInventoryItem existing = created.Inventory.Hosts.Single();
 
         KnownHostMutationResult updated = await host.Service.UpdateAsync(
             existing.Id,
@@ -118,7 +118,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.AddressFamilyConflict, updated.Outcome);
-        KnownHostItem persisted = (await host.Service.GetAsync(TestContext.CancellationToken)).Hosts.Single();
+        KnownHostInventoryItem persisted = (await host.Service.GetAsync(TestContext.CancellationToken)).Hosts.Single();
         Assert.AreEqual("192.0.2.1", persisted.Address);
         Assert.AreEqual(FirewallAddressFamily.IPv4, persisted.AddressFamily);
     }
@@ -162,7 +162,7 @@ public sealed class KnownHostServiceTests
             new CreateKnownHostRequest { Name = "one", Address = "192.0.2.1" },
             TestContext.CancellationToken);
         Assert.IsNotNull(created.Inventory);
-        KnownHostItem first = created.Inventory.Hosts.Single();
+        KnownHostInventoryItem first = created.Inventory.Hosts.Single();
         _ = await host.Service.CreateAsync(
             new CreateKnownHostRequest { Name = "two", Address = "192.0.2.2" },
             TestContext.CancellationToken);
@@ -171,7 +171,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, deleted.Outcome);
         Assert.IsNotNull(deleted.Inventory);
-        KnownHostItem remaining = deleted.Inventory.Hosts.Single();
+        KnownHostInventoryItem remaining = deleted.Inventory.Hosts.Single();
         Assert.AreEqual("two", remaining.Name);
         Assert.AreEqual(KnownHostMutationOutcome.NotFound, (await host.Service.DeleteAsync(first.Id, TestContext.CancellationToken)).Outcome);
     }

@@ -1,5 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Api.V1.Models.KnownHosts;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Services.KnownHosts;
@@ -17,13 +17,7 @@ internal sealed class KnownHostService(IKnownHostRepository repository) : IKnown
             return Task.FromResult(new KnownHostMutationResult(KnownHostMutationOutcome.InvalidAddress));
         }
 
-        return repository.CreateAsync(
-            values.Name,
-            values.NormalizedName,
-            values.Address,
-            values.Comment,
-            request.IsVisible,
-            cancellationToken);
+        return repository.CreateAsync(values.Name, values.NormalizedName, values.Address, values.Comment, request.IsVisible, cancellationToken);
     }
 
     public Task<KnownHostMutationResult> UpdateAsync(Guid publicId, UpdateKnownHostRequest request, CancellationToken cancellationToken = default)
@@ -34,15 +28,7 @@ internal sealed class KnownHostService(IKnownHostRepository repository) : IKnown
             return Task.FromResult(new KnownHostMutationResult(KnownHostMutationOutcome.InvalidAddress));
         }
 
-        return repository.UpdateAsync(
-            publicId,
-            values.Name,
-            values.NormalizedName,
-            values.Address,
-            values.AddressFamily,
-            values.Comment,
-            request.IsVisible,
-            cancellationToken);
+        return repository.UpdateAsync(publicId, values.Name, values.NormalizedName, values.Address, values.AddressFamily, values.Comment, request.IsVisible, cancellationToken);
     }
 
     public Task<KnownHostMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
@@ -67,19 +53,9 @@ internal sealed class KnownHostService(IKnownHostRepository repository) : IKnown
             return false;
         }
 
-        values = new KnownHostValues(
-            normalizedName,
-            lookupName,
-            normalizedAddress,
-            addressFamily,
-            normalizedComment);
+        values = new KnownHostValues(normalizedName, lookupName, normalizedAddress, addressFamily, normalizedComment);
         return true;
     }
 
-    private readonly record struct KnownHostValues(
-        string Name,
-        string NormalizedName,
-        string Address,
-        FirewallAddressFamily AddressFamily,
-        string? Comment);
+    private readonly record struct KnownHostValues(string Name, string NormalizedName, string Address, FirewallAddressFamily AddressFamily, string? Comment);
 }

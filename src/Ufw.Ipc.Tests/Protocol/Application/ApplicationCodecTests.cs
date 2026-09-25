@@ -72,8 +72,7 @@ public sealed class ApplicationCodecTests
         JsonMessageSerializer serializer = CreateSerializer();
         ApplicationProtocolException exception = Assert.ThrowsExactly<ApplicationProtocolException>(
             () => serializer.Decode("{}"u8.ToArray()));
-        Assert.IsTrue(
-            exception.Error is ApplicationProtocolError.InvalidJson or ApplicationProtocolError.MissingRequiredField);
+        Assert.IsTrue(exception.Error is ApplicationProtocolError.InvalidJson or ApplicationProtocolError.MissingRequiredField);
     }
 
     [TestMethod]

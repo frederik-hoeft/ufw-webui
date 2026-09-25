@@ -12,17 +12,11 @@ internal sealed class ControllerProcessor(BindingClassProcessor parent)
         List<EndpointProcessorResult> mappings = [];
 
         AttributeData? routeAttribute = controllerType.GetAttributes()
-            .FirstOrDefault(attribute => SymbolEqualityComparer.Default.Equals(
-                attribute.AttributeClass?.OriginalDefinition,
-                parent.Contracts.ControllerRouteAttribute.OriginalDefinition));
+            .FirstOrDefault(attribute => SymbolEqualityComparer.Default.Equals(attribute.AttributeClass?.OriginalDefinition, parent.Contracts.ControllerRouteAttribute.OriginalDefinition));
         string? controllerRoute = routeAttribute?.ConstructorArguments.FirstOrDefault().Value?.ToString();
         int? controllerPriority = GetPriority(routeAttribute);
 
-        ControllerProcessingContext context = new(
-            this,
-            controllerType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            controllerRoute,
-            controllerPriority);
+        ControllerProcessingContext context = new(this, controllerType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), controllerRoute, controllerPriority);
 
         EndpointVerbProcessor endpointVerbProcessor = new(parent.Context, parent.Contracts);
         EndpointProcessor endpointProcessor = new(parent.Context, parent.Contracts, context);
