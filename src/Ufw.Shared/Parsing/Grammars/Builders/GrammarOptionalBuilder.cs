@@ -10,6 +10,8 @@ public sealed class GrammarOptionalBuilder : GrammarBuilder
 
     public void Alternative(Action<GrammarAlternativeBuilder> buildAlternative) => SelfIfClean()._childParser = CreateAlternative(buildAlternative);
 
+    public void Set(Action<GrammarSetBuilder> buildSet) => SelfIfClean()._childParser = CreateSet(buildSet);
+
     public void Repeat(IParser parser, int minimumCount = 0) => SelfIfClean()._childParser = new Repeat(parser, minimumCount);
 
     public void Repeat<TParser>() where TParser : class, IParser<TParser>
