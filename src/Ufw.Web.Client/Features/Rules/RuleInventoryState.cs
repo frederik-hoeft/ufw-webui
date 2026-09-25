@@ -36,8 +36,8 @@ internal sealed record RuleInventoryState
             RuleInventoryTransition.RefreshFailed failed => FailRefresh(failed.Error),
             RuleInventoryTransition.MetadataMutationCompleted completed => CompleteMetadataMutation(completed.RuleId, completed.Response),
             RuleInventoryTransition.TagCatalogReconciled reconciled => ReconcileTagCatalog(reconciled.Tags),
-            RuleInventoryTransition.InsertionCompleted completed => CompleteInsertion(completed.Response),
-            RuleInventoryTransition.ReorderCompleted completed => CompleteReorder(completed.Response),
+            RuleInventoryTransition.InsertionCompleted completed => CompleteInsertion(completed.Response, completed.CapturedAt),
+            RuleInventoryTransition.ReorderCompleted completed => CompleteReorder(completed.Response, completed.CapturedAt),
             RuleInventoryTransition.MutationFailed failed => FailMutation(failed.Error),
             _ => throw new ArgumentOutOfRangeException(nameof(transition), transition, null),
         };
@@ -98,23 +98,23 @@ internal sealed record RuleInventoryState
         return Snapshot is null ? this : new RuleInventoryState(Status, Snapshot.ReconcileTagCatalog(tags), Error, RefreshReason, StaleReason);
     }
 
-    private RuleInventoryState CompleteInsertion(RuleInsertionResponse response)
+    private RuleInventoryState CompleteInsertion(RuleInsertionResponse response, DateTimeOffset capturedAt)
     {
         ArgumentNullException.ThrowIfNull(response);
-        return CompleteMutation(response.FinalSnapshot, "An insertion response cannot replace an unloaded rule snapshot.");
+        return CompleteMutation(response.FinalSnapshot, capturedAt, "An insertion response cannot replace an unloaded rule snapshot.");
     }
 
-    private RuleInventoryState CompleteReorder(RuleReorderResponse response)
+    private RuleInventoryState CompleteReorder(RuleReorderResponse response, DateTimeOffset capturedAt)
     {
         ArgumentNullException.ThrowIfNull(response);
-        return CompleteMutation(response.FinalSnapshot, "A reorder response cannot replace an unloaded rule snapshot.");
+        return CompleteMutation(response.FinalSnapshot, capturedAt, "A reorder response cannot replace an unloaded rule snapshot.");
     }
 
-    private RuleInventoryState CompleteMutation(RuleListResponse? finalSnapshot, string unloadedMessage)
+    private RuleInventoryState CompleteMutation(RuleListResponse? finalSnapshot, DateTimeOffset capturedAt, string unloadedMessage)
     {
         if (finalSnapshot is not null)
         {
-            RuleSnapshot snapshot = RuleSnapshot.FromFirewallResponse(finalSnapshot, Snapshot?.Metadata);
+            RuleSnapshot snapshot = RuleSnapshot.FromFirewallResponse(finalSnapshot, Snapshot?.Metadata, capturedAt == default ? Snapshot?.CapturedAt ?? default : capturedAt);
             return new RuleInventoryState(RuleInventoryStatus.Current, snapshot, error: null, refreshReason: null, staleReason: null);
         }
         if (Snapshot is null)

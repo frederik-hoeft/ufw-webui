@@ -36,6 +36,7 @@ public sealed class RuleInventoryStateTests
         Assert.AreEqual(tagId, state.Snapshot.Metadata["shared"].Tags[0].Id);
         Assert.AreEqual("prod", state.Snapshot.Metadata["shared"].Tags[0].Name);
         Assert.AreEqual("#336699", state.Snapshot.Metadata["shared"].Tags[0].Color);
+        Assert.AreEqual(new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero), state.Snapshot.CapturedAt);
     }
 
     [TestMethod]
@@ -134,7 +135,8 @@ public sealed class RuleInventoryStateTests
         RuleListResponse finalSnapshot = new(false, [Rule("old"), Rule("inserted")], TestFirewallConfiguration.Disabled);
         RuleInsertionResponse report = new(RuleInsertionOutcome.PreconditionFailed, finalSnapshot, InsertedRule: null, Diagnostic: "rejected");
 
-        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.InsertionCompleted(report));
+        DateTimeOffset capturedAt = new(2026, 9, 25, 14, 15, 0, TimeSpan.Zero);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.InsertionCompleted(report, capturedAt));
 
         Assert.IsTrue(updated.IsCurrent);
         Assert.IsNotNull(updated.Snapshot);
@@ -142,6 +144,7 @@ public sealed class RuleInventoryStateTests
         Assert.HasCount(2, updated.Snapshot.Rules);
         Assert.AreEqual("inserted", updated.Snapshot.Rules[1].RuleId);
         Assert.IsFalse(updated.Snapshot.Configuration.IPv6Enabled);
+        Assert.AreEqual(capturedAt, updated.Snapshot.CapturedAt);
     }
 
     [TestMethod]
@@ -168,12 +171,14 @@ public sealed class RuleInventoryStateTests
         RuleListResponse finalSnapshot = new(false, [Rule("new")], TestFirewallConfiguration.Enabled);
         RuleReorderResponse report = new(RuleReorderOutcome.PartiallyCompleted, finalSnapshot, [], [], [], Diagnostic: "partial");
 
-        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.ReorderCompleted(report));
+        DateTimeOffset capturedAt = new(2026, 9, 25, 14, 30, 0, TimeSpan.Zero);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.ReorderCompleted(report, capturedAt));
 
         Assert.IsTrue(updated.IsCurrent);
         Assert.IsNotNull(updated.Snapshot);
         Assert.IsFalse(updated.Snapshot.FirewallActive);
         Assert.AreEqual("new", updated.Snapshot.Rules[0].RuleId);
+        Assert.AreEqual(capturedAt, updated.Snapshot.CapturedAt);
         Assert.IsNull(updated.StaleReason);
     }
 
@@ -189,7 +194,6 @@ public sealed class RuleInventoryStateTests
         Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
         Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
     }
-
 
     [TestMethod]
     public void MoveNext_RejectsOverlappingRefreshesAndCompletionWithoutRefresh()
@@ -219,13 +223,13 @@ public sealed class RuleInventoryStateTests
         .MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual))
         .MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
 
-
     private static RuleInventoryResponse Inventory(
         RuleListResponse firewall,
         IReadOnlyList<RuleMetadataItem>? metadata = null) => new()
     {
         Firewall = firewall,
         Metadata = metadata ?? [],
+        CapturedAt = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero),
     };
 
     private static ListedFirewallRule Rule(string id) => new()

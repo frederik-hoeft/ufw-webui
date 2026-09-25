@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Web.Model.V1.KnownHosts;
 
@@ -12,9 +13,12 @@ public abstract class KnownHostRequest
     [StringLength(MAX_NAME_LENGTH)]
     public string Name { get; init; } = string.Empty;
 
-    [Required]
     [StringLength(MAX_ADDRESS_LENGTH)]
-    public string Address { get; init; } = string.Empty;
+    public string? Address { get; init; }
+
+    public KnownHostAddressSource AddressSource { get; init; } = KnownHostAddressSource.Literal;
+
+    public FirewallAddressFamily? DnsAddressFamily { get; init; }
 
     [StringLength(MAX_COMMENT_LENGTH)]
     public string? Comment { get; init; }

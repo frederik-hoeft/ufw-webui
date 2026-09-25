@@ -11,10 +11,16 @@ internal sealed record RuleSnapshot(
     bool FirewallActive,
     IReadOnlyList<ListedFirewallRule> Rules,
     FirewallConfigurationSnapshot Configuration,
-    IReadOnlyDictionary<string, RuleMetadata> Metadata)
+    IReadOnlyDictionary<string, RuleMetadata> Metadata,
+    DateTimeOffset CapturedAt)
 {
     public RuleSnapshot(bool firewallActive, IReadOnlyList<ListedFirewallRule> rules, FirewallConfigurationSnapshot configuration)
-        : this(firewallActive, rules, configuration, new Dictionary<string, RuleMetadata>(StringComparer.Ordinal))
+        : this(firewallActive, rules, configuration, new Dictionary<string, RuleMetadata>(StringComparer.Ordinal), default)
+    {
+    }
+
+    public RuleSnapshot(bool firewallActive, IReadOnlyList<ListedFirewallRule> rules, FirewallConfigurationSnapshot configuration, IReadOnlyDictionary<string, RuleMetadata> metadata)
+        : this(firewallActive, rules, configuration, metadata, default)
     {
     }
 
@@ -32,7 +38,7 @@ internal sealed record RuleSnapshot(
             }
         }
 
-        return FromFirewallResponse(response.Firewall, metadata);
+        return FromFirewallResponse(response.Firewall, metadata, response.CapturedAt);
     }
 
     public RuleSnapshot ApplyMetadataMutation(string ruleId, RuleMetadataMutationResponse response)
@@ -103,7 +109,7 @@ internal sealed record RuleSnapshot(
         return new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags);
     }
 
-    public static RuleSnapshot FromFirewallResponse(RuleListResponse response, IReadOnlyDictionary<string, RuleMetadata>? metadata = null)
+    public static RuleSnapshot FromFirewallResponse(RuleListResponse response, IReadOnlyDictionary<string, RuleMetadata>? metadata = null, DateTimeOffset capturedAt = default)
     {
         ArgumentNullException.ThrowIfNull(response);
         Dictionary<string, RuleMetadata> liveMetadata = new(StringComparer.Ordinal);
@@ -122,6 +128,6 @@ internal sealed record RuleSnapshot(
             }
         }
 
-        return new(response.Active, response.Rules.ToArray(), response.Configuration, liveMetadata);
+        return new(response.Active, response.Rules.ToArray(), response.Configuration, liveMetadata, capturedAt);
     }
 }

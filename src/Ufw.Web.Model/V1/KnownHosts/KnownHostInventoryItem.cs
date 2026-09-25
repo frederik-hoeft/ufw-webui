@@ -17,6 +17,10 @@ public sealed class KnownHostInventoryItem
 
     public FirewallAddressFamily AddressFamily { get; init; }
 
+    public KnownHostAddressSource AddressSource { get; init; }
+
+    public DateTimeOffset? DnsResolvedAt { get; init; }
+
     public string? Comment { get; init; }
 
     public bool IsVisible { get; init; }

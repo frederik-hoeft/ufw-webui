@@ -246,7 +246,7 @@ public sealed partial class CreateRule
         {
             RuleInsertionResponse response = await RuleMutations.InsertRuleAsync(baseline, context.AnchorOccurrenceId, context.Placement, normalized, _privateKey, _lifetime.Token);
             _insertionResult = response;
-            _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response));
+            _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response, TimeProvider.GetUtcNow()));
 
             if (response.Outcome == RuleInsertionOutcome.Completed)
             {

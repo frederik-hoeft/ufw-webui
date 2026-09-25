@@ -92,6 +92,8 @@ public sealed partial class KnownHostsPage
         {
             Name = result.Name,
             Address = result.Address,
+            AddressSource = result.AddressSource,
+            DnsAddressFamily = result.DnsAddressFamily,
             Comment = result.Comment,
             IsVisible = result.IsVisible,
         };
@@ -118,10 +120,25 @@ public sealed partial class KnownHostsPage
         {
             Name = result.Name,
             Address = result.Address,
+            AddressSource = result.AddressSource,
+            DnsAddressFamily = result.DnsAddressFamily,
             Comment = result.Comment,
             IsVisible = result.IsVisible,
         };
         await SaveAsync(cancellationToken => HostInventory.UpdateAsync(host.Id, request, cancellationToken));
+    }
+
+    private async Task ReconcileDnsAsync(KnownHostInventoryItem host)
+    {
+        if (IsBusy || host.AddressSource != KnownHostAddressSource.Dns)
+        {
+            return;
+        }
+
+        if (await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken)))
+        {
+            Snackbar.Add(HostsText["DnsReconciled", host.Name], Severity.Success);
+        }
     }
 
     private async Task DeleteAsync(KnownHostInventoryItem host)
@@ -153,28 +170,33 @@ public sealed partial class KnownHostsPage
         UpdateKnownHostRequest request = new()
         {
             Name = host.Name,
-            Address = host.Address,
+            Address = host.AddressSource == KnownHostAddressSource.Literal ? host.Address : null,
+            AddressSource = host.AddressSource,
+            DnsAddressFamily = host.AddressSource == KnownHostAddressSource.Dns ? host.AddressFamily : null,
             Comment = host.Comment,
             IsVisible = isVisible,
         };
         await SaveAsync(cancellationToken => HostInventory.UpdateAsync(host.Id, request, cancellationToken));
     }
 
-    private async Task SaveAsync(Func<CancellationToken, Task<KnownHostInventoryResponse>> operation)
+    private async Task<bool> SaveAsync(Func<CancellationToken, Task<KnownHostInventoryResponse>> operation)
     {
         _saving = true;
         _error = null;
         try
         {
             _inventory = await operation(_lifetime.Token);
+            return true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
+            return false;
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
+            return false;
         }
         finally
         {
@@ -193,4 +215,9 @@ public sealed partial class KnownHostsPage
     private string DescribeVisibleCount(int count) => count == 1
         ? HostsText["VisibleHostCountOne"]
         : HostsText["VisibleHostCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
+
+    private string DescribeDnsResolvedAt(DateTimeOffset resolvedAt) => HostsText["DnsResolvedAt", FormatLocalDateTime(resolvedAt)];
+
+    private static string FormatLocalDateTime(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 }

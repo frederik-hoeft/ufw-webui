@@ -16,7 +16,7 @@
   <data name="VisibleHostCountMany" xml:space="preserve"><value>{0} im Regeleditor sichtbar</value></data>
   <data name="LoadFailed" xml:space="preserve"><value>Bekannte Hosts konnten nicht geladen werden</value></data>
   <data name="InventoryTitle" xml:space="preserve"><value>Katalog bekannter Hosts</value></data>
-  <data name="InventoryDescription" xml:space="preserve"><value>Diese Aliase gehören zur Webanwendung und werden nur bei der Regelerstellung verwendet. Bei der Auswahl wird die konkrete Adresse in die Regel übernommen; Aliase werden weder an den Daemon gesendet noch in signierte Intents aufgenommen.</value></data>
+  <data name="InventoryDescription" xml:space="preserve"><value>Diese Aliase gehören zur Webanwendung und werden nur beim Erstellen von Regeln verwendet. DNS-basierte Aliase werden in diesem Katalog zu einer literalen Adresse aufgelöst; beim Auswählen wird nur diese Adresse in die Regel übernommen. Alias- und DNS-Namen werden weder an den Daemon gesendet noch in signierte Intents aufgenommen.</value></data>
   <data name="LoadingAria" xml:space="preserve"><value>Bekannte Hosts werden geladen</value></data>
   <data name="LoadingInventory" xml:space="preserve"><value>Katalog bekannter Hosts wird geladen...</value></data>
   <data name="NoKnownHosts" xml:space="preserve"><value>Keine bekannten Hosts</value></data>
@@ -32,7 +32,7 @@
   <data name="ShowInRuleEditor" xml:space="preserve"><value>{0} in Vorschlägen des Regeleditors anzeigen</value></data>
   <data name="CreateDialogTitle" xml:space="preserve"><value>Bekannten Host hinzufügen</value></data>
   <data name="EditDialogTitle" xml:space="preserve"><value>Bekannten Host bearbeiten</value></data>
-  <data name="CreateDialogDescription" xml:space="preserve"><value>Eine konkrete IP-Adresse oder ein CIDR-Netz mit einem einprägsamen Namen für die Regelerstellung versehen. Name und Kommentar bleiben reine ASP-Metadaten.</value></data>
+  <data name="CreateDialogDescription" xml:space="preserve"><value>Gib einer literalen IP-Adresse oder einem CIDR einen merkbaren Namen oder löse den Namen beim Speichern des Alias über DNS auf. Bestehende Firewall-Regeln behalten immer die beim Erstellen ausgewählte literale Adresse.</value></data>
   <data name="EditDialogDescription" xml:space="preserve"><value>{0} bearbeiten. Bestehende Firewall-Regeln behalten die konkrete Adresse, mit der sie erstellt wurden.</value></data>
   <data name="NameRequired" xml:space="preserve"><value>Ein Hostname ist erforderlich.</value></data>
   <data name="AddressRequired" xml:space="preserve"><value>Eine IP-Adresse oder ein CIDR-Netz ist erforderlich.</value></data>
@@ -47,4 +47,14 @@
   <data name="DeleteDialogTitle" xml:space="preserve"><value>Bekannten Host löschen</value></data>
   <data name="DeleteDialogDescription" xml:space="preserve"><value>Den bekannten Host {0} löschen?</value></data>
   <data name="DeleteDialogConsequence" xml:space="preserve"><value>Nur der Alias für die Regelerstellung wird entfernt. Bestehende Firewall-Regeln bleiben unverändert, da sie konkrete Adressen und keine Alias-Referenzen enthalten.</value></data>
+  <data name="ResolveUsingDns" xml:space="preserve"><value>Namen über DNS auflösen</value></data>
+  <data name="DnsAddressFamily" xml:space="preserve"><value>DNS-Adressfamilie</value></data>
+  <data name="ResolvedAddress" xml:space="preserve"><value>Aufgelöste Adresse</value></data>
+  <data name="ResolvedWhenSaved" xml:space="preserve"><value>Wird beim Speichern aufgelöst</value></data>
+  <data name="DnsResolutionDescription" xml:space="preserve"><value>DNS dient nur zur Konfiguration dieses Alias. Beim Erstellen von Regeln wird die aufgelöste IP-Adresse verwendet; bestehende Firewall-Regeln werden bei DNS-Änderungen nie aktualisiert.</value></data>
+  <data name="DnsBackedAlias" xml:space="preserve"><value>DNS-basierter Alias</value></data>
+  <data name="ReconcileDns" xml:space="preserve"><value>Aktuelle DNS-Adresse auflösen</value></data>
+  <data name="ReconcileDnsAria" xml:space="preserve"><value>Aktuelle DNS-Adresse für {0} auflösen</value></data>
+  <data name="DnsResolvedAt" xml:space="preserve"><value>Aufgelöst: {0}</value></data>
+  <data name="DnsReconciled" xml:space="preserve"><value>{0} wurde aus DNS aktualisiert.</value></data>
 </root>

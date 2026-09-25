@@ -15,6 +15,7 @@
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
+@inject TimeProvider TimeProvider
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -116,19 +117,13 @@ else if (_state.Snapshot is { })
             </header>
             <div>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeRuleCount(_state.Snapshot.Rules.Count)</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeSnapshotStatus()</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@DescribeSnapshotCapturedAt()</MudText>
             </div>
         </MudPaper>
 
         <MudPaper Elevation="1" Class="rules-summary-card rules-defaults-card" role="region" aria-labelledby="firewall-defaults-heading">
             <header>
                 <MudText Typo="Typo.subtitle2" HtmlTag="h2" id="firewall-defaults-heading">@RulesText["FirewallDefaults"]</MudText>
-                <MudChip T="string"
-                         Size="Size.Small"
-                         Variant="Variant.Filled"
-                         Class="@(_state.Snapshot.Configuration.IPv6Enabled ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                    @(_state.Snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
-                </MudChip>
             </header>
             <div>
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">

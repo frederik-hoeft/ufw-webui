@@ -78,6 +78,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
         services.AddScoped<IKnownHostRepository, KnownHostRepository>();
+        services.AddSingleton<IKnownHostDnsResolver, KnownHostDnsResolver>();
         services.AddScoped<IKnownHostService, KnownHostService>();
         services.AddScoped<IDaemonNetworkInterfaceSource, DaemonNetworkInterfaceSource>();
         services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();

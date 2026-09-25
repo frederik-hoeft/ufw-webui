@@ -16,18 +16,45 @@
                           Counter="@MAX_NAME_LENGTH"
                           MaxLength="@MAX_NAME_LENGTH"
                           autofocus="true" />
-            <MudTextField T="string"
-                          Label="@(HostsText["AddressColumn"])"
-                          @bind-Value="_address"
-                          Required="true"
-                          RequiredError="@(HostsText["AddressRequired"])"
-                          Error="@(_addressError is not null)"
-                          ErrorText="@_addressError"
-                          Immediate="true"
-                          Counter="@MAX_ADDRESS_LENGTH"
-                          MaxLength="@MAX_ADDRESS_LENGTH"
-                          Placeholder="192.0.2.10, 10.0.0.0/24, 2001:db8::/64"
-                          Class="mt-3" />
+            <MudCheckBox T="bool"
+                         @bind-Value="_resolveDns"
+                         Label="@(HostsText["ResolveUsingDns"])"
+                         Class="mt-3" />
+            @if (_resolveDns)
+            {
+                <MudSelect T="FirewallAddressFamily"
+                           Label="@(HostsText["DnsAddressFamily"])"
+                           @bind-Value="_dnsAddressFamily"
+                           Disabled="@(Host is not null)"
+                           Class="mt-3">
+                    <MudSelectItem Value="@FirewallAddressFamily.IPv4">IPv4</MudSelectItem>
+                    <MudSelectItem Value="@FirewallAddressFamily.IPv6">IPv6</MudSelectItem>
+                </MudSelect>
+                <MudTextField T="string"
+                              Label="@(HostsText["ResolvedAddress"])"
+                              Value="@DnsPreviewAddress"
+                              Disabled="true"
+                              Placeholder="@(HostsText["ResolvedWhenSaved"])"
+                              Class="mt-3" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                    @HostsText["DnsResolutionDescription"]
+                </MudText>
+            }
+            else
+            {
+                <MudTextField T="string"
+                              Label="@(HostsText["AddressColumn"])"
+                              @bind-Value="_address"
+                              Required="true"
+                              RequiredError="@(HostsText["AddressRequired"])"
+                              Error="@(_addressError is not null)"
+                              ErrorText="@_addressError"
+                              Immediate="true"
+                              Counter="@MAX_ADDRESS_LENGTH"
+                              MaxLength="@MAX_ADDRESS_LENGTH"
+                              Placeholder="192.0.2.10, 10.0.0.0/24, 2001:db8::/64"
+                              Class="mt-3" />
+            }
             <MudTextField T="string"
                           Label="@(HostsText["CommentColumn"])"
                           @bind-Value="_comment"

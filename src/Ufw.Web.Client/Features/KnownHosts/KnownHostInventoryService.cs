@@ -27,6 +27,12 @@ internal sealed class KnownHostInventoryService(IKnownHostApiClient apiClient) :
         return Current;
     }
 
+    public async Task<KnownHostInventoryResponse> ReconcileDnsAsync(Guid hostId, CancellationToken cancellationToken = default)
+    {
+        Current = Normalize(await apiClient.ReconcileDnsAsync(hostId, cancellationToken));
+        return Current;
+    }
+
     public async Task<KnownHostInventoryResponse> DeleteAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
         Current = Normalize(await apiClient.DeleteAsync(hostId, cancellationToken));
@@ -48,7 +54,10 @@ internal sealed class KnownHostInventoryService(IKnownHostApiClient apiClient) :
                 || entry.Id == Guid.Empty
                 || string.IsNullOrWhiteSpace(entry.Name)
                 || !FirewallAddressValue.TryNormalizeLiteral(entry.Address, out string? normalizedAddress, out FirewallAddressFamily addressFamily)
-                || addressFamily != entry.AddressFamily)
+                || addressFamily != entry.AddressFamily
+                || !Enum.IsDefined(entry.AddressSource)
+                || entry.AddressSource == KnownHostAddressSource.Literal && entry.DnsResolvedAt is not null
+                || entry.AddressSource == KnownHostAddressSource.Dns && entry.DnsResolvedAt is null)
             {
                 throw new ApiProtocolException("Known-host inventory response contains an invalid host entry.");
             }
@@ -59,6 +68,8 @@ internal sealed class KnownHostInventoryService(IKnownHostApiClient apiClient) :
                 Name = entry.Name.Trim(),
                 Address = normalizedAddress,
                 AddressFamily = addressFamily,
+                AddressSource = entry.AddressSource,
+                DnsResolvedAt = entry.DnsResolvedAt,
                 Comment = string.IsNullOrWhiteSpace(entry.Comment) ? null : entry.Comment.Trim(),
                 IsVisible = entry.IsVisible,
             });

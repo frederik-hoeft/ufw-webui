@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Components.Hosts;
@@ -19,12 +18,16 @@ public sealed partial class EditKnownHostDialog
     private string? _comment;
     private string? _addressError;
     private bool _isVisible = true;
+    private bool _resolveDns;
+    private FirewallAddressFamily _dnsAddressFamily = FirewallAddressFamily.IPv4;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public KnownHostInventoryItem? Host { get; set; }
+
+    private string DnsPreviewAddress => Host?.AddressSource == KnownHostAddressSource.Dns ? _address : string.Empty;
 
     protected override void OnParametersSet()
     {
@@ -38,6 +41,8 @@ public sealed partial class EditKnownHostDialog
         _address = Host?.Address ?? string.Empty;
         _comment = Host?.Comment;
         _isVisible = Host?.IsVisible ?? true;
+        _resolveDns = Host?.AddressSource == KnownHostAddressSource.Dns;
+        _dnsAddressFamily = Host?.AddressFamily ?? FirewallAddressFamily.IPv4;
         _addressError = null;
     }
 
@@ -57,16 +62,25 @@ public sealed partial class EditKnownHostDialog
             return;
         }
 
-        if (!FirewallAddressValue.TryNormalizeLiteral(_address, out string? normalizedAddress, out FirewallAddressFamily addressFamily))
+        string? normalizedAddress = null;
+        FirewallAddressFamily? dnsAddressFamily = null;
+        KnownHostAddressSource addressSource = _resolveDns ? KnownHostAddressSource.Dns : KnownHostAddressSource.Literal;
+        if (_resolveDns)
         {
-            _addressError = HostsText["InvalidAddress"];
-            return;
+            dnsAddressFamily = _dnsAddressFamily;
         }
-
-        if (Host is not null && Host.AddressFamily != addressFamily)
+        else
         {
-            _addressError = HostsText["AddressFamilyChangeNotAllowed"];
-            return;
+            if (!FirewallAddressValue.TryNormalizeLiteral(_address, out normalizedAddress, out FirewallAddressFamily addressFamily))
+            {
+                _addressError = HostsText["InvalidAddress"];
+                return;
+            }
+            if (Host is not null && Host.AddressFamily != addressFamily)
+            {
+                _addressError = HostsText["AddressFamilyChangeNotAllowed"];
+                return;
+            }
         }
 
         string name = _name.Trim();
@@ -76,6 +90,6 @@ public sealed partial class EditKnownHostDialog
         }
 
         string? comment = string.IsNullOrWhiteSpace(_comment) ? null : _comment.Trim();
-        MudDialog.Close(DialogResult.Ok(new KnownHostEditorResult(name, normalizedAddress, comment, _isVisible)));
+        MudDialog.Close(DialogResult.Ok(new KnownHostEditorResult(name, normalizedAddress, addressSource, dnsAddressFamily, comment, _isVisible)));
     }
 }

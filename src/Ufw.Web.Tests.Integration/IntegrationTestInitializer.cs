@@ -71,6 +71,8 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IAuthenticationFlowService>(static serviceProvider => serviceProvider.GetRequiredService<AuthenticationFlowService>());
 
         services.AddScoped<KnownHostRepository>();
+        services.AddScoped<IntegrationKnownHostDnsResolver>();
+        services.AddScoped<IKnownHostDnsResolver>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationKnownHostDnsResolver>());
         services.AddScoped<IKnownHostRepository>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostRepository>());
         services.AddScoped<KnownHostService>();
         services.AddScoped<IKnownHostService>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostService>());

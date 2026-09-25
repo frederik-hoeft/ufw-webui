@@ -16,7 +16,7 @@
   <data name="VisibleHostCountMany" xml:space="preserve"><value>{0} shown in rule editor</value></data>
   <data name="LoadFailed" xml:space="preserve"><value>Known hosts could not be loaded</value></data>
   <data name="InventoryTitle" xml:space="preserve"><value>Known host catalog</value></data>
-  <data name="InventoryDescription" xml:space="preserve"><value>These aliases belong to the web application and are used only while authoring rules. Selecting one inserts its literal address into the rule; aliases are never sent to the daemon or included in signed intents.</value></data>
+  <data name="InventoryDescription" xml:space="preserve"><value>These aliases belong to the web application and are used only while authoring rules. DNS-backed aliases resolve to a literal address in this catalog; selecting any alias inserts that literal address into the rule, so aliases and DNS names are never sent to the daemon or included in signed intents.</value></data>
   <data name="LoadingAria" xml:space="preserve"><value>Loading known hosts</value></data>
   <data name="LoadingInventory" xml:space="preserve"><value>Loading known host catalog...</value></data>
   <data name="NoKnownHosts" xml:space="preserve"><value>No known hosts</value></data>
@@ -32,7 +32,7 @@
   <data name="ShowInRuleEditor" xml:space="preserve"><value>Show {0} in rule-editor suggestions</value></data>
   <data name="CreateDialogTitle" xml:space="preserve"><value>Add known host</value></data>
   <data name="EditDialogTitle" xml:space="preserve"><value>Edit known host</value></data>
-  <data name="CreateDialogDescription" xml:space="preserve"><value>Give a literal IP address or CIDR a memorable name for rule authoring. The name and comment remain ASP-only metadata.</value></data>
+  <data name="CreateDialogDescription" xml:space="preserve"><value>Give a literal IP address or CIDR a memorable name, or resolve the name through DNS when the alias is saved. Existing firewall rules always keep the literal address selected during authoring.</value></data>
   <data name="EditDialogDescription" xml:space="preserve"><value>Edit {0}. Existing firewall rules keep the literal address they were authored with.</value></data>
   <data name="NameRequired" xml:space="preserve"><value>A host name is required.</value></data>
   <data name="AddressRequired" xml:space="preserve"><value>An IP address or CIDR is required.</value></data>
@@ -47,4 +47,14 @@
   <data name="DeleteDialogTitle" xml:space="preserve"><value>Delete known host</value></data>
   <data name="DeleteDialogDescription" xml:space="preserve"><value>Delete the known host {0}?</value></data>
   <data name="DeleteDialogConsequence" xml:space="preserve"><value>This removes only the authoring alias. Existing firewall rules are unchanged because they contain literal addresses, not alias references.</value></data>
+  <data name="ResolveUsingDns" xml:space="preserve"><value>Resolve name using DNS</value></data>
+  <data name="DnsAddressFamily" xml:space="preserve"><value>DNS address family</value></data>
+  <data name="ResolvedAddress" xml:space="preserve"><value>Resolved address</value></data>
+  <data name="ResolvedWhenSaved" xml:space="preserve"><value>Resolved when saved</value></data>
+  <data name="DnsResolutionDescription" xml:space="preserve"><value>DNS is used only to configure this alias. The resolved IP address is what rule authoring uses, and existing firewall rules are never updated when DNS changes.</value></data>
+  <data name="DnsBackedAlias" xml:space="preserve"><value>DNS-backed alias</value></data>
+  <data name="ReconcileDns" xml:space="preserve"><value>Resolve latest DNS address</value></data>
+  <data name="ReconcileDnsAria" xml:space="preserve"><value>Resolve the latest DNS address for {0}</value></data>
+  <data name="DnsResolvedAt" xml:space="preserve"><value>Resolved {0}</value></data>
+  <data name="DnsReconciled" xml:space="preserve"><value>Updated {0} from DNS.</value></data>
 </root>

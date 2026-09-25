@@ -1,4 +1,37 @@
 .known-host-inventory {
+    .known-host-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    .known-host-dns-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        color: var(--mud-palette-primary);
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: nowrap;
+
+        > svg {
+            font-size: 1rem;
+        }
+    }
+
+    .known-host-address-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+
+        > span {
+            color: var(--mud-palette-text-secondary);
+            font-size: 0.72rem;
+        }
+    }
+
     .known-host-address {
         color: var(--mud-palette-text-primary);
         font-family: var(--ufw-font-mono);
@@ -26,7 +59,7 @@
     }
 
     .known-host-actions-column {
-        width: 9.5rem;
+        width: 11.5rem;
 
         > div {
             display: flex;

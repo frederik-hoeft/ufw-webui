@@ -89,17 +89,12 @@ public sealed partial class RulesPage
         ? RulesText["RuleCountOne"]
         : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
-    private string DescribeSnapshotStatus()
-    {
-        if (_state.IsStale)
-        {
-            return RulesText["AuthoritativeSnapshotStale"];
-        }
+    private string DescribeSnapshotCapturedAt() => _state.Snapshot is RuleSnapshot snapshot
+        ? RulesText["SnapshotCapturedAt", FormatLocalDateTime(snapshot.CapturedAt)]
+        : string.Empty;
 
-        return _state.Status == RuleInventoryStatus.Refreshing
-            ? RulesText["AuthoritativeSnapshotRefreshing"]
-            : RulesText["AuthoritativeSnapshotCurrent"];
-    }
+    private static string FormatLocalDateTime(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 
     protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
 
@@ -380,7 +375,7 @@ public sealed partial class RulesPage
 
             _orderingPreview = null;
             _orderingResult = new RuleOrderingResultContext(response, baseline.Rules.ToArray(), desiredOrder);
-            _state = _state.MoveNext(new RuleInventoryTransition.ReorderCompleted(response));
+            _state = _state.MoveNext(new RuleInventoryTransition.ReorderCompleted(response, TimeProvider.GetUtcNow()));
             RefreshRuleListProjection();
             if (response.Outcome == RuleReorderOutcome.Completed)
             {

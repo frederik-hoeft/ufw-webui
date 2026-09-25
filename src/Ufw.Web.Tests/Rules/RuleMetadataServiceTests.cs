@@ -310,7 +310,7 @@ public sealed class RuleMetadataServiceTests
             RuleMetadataRepository metadataRepository = new(transactionHandle);
             RuleTagRepository tagRepository = new(transactionHandle);
             RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
-            RuleInventoryService inventory = new(daemon, metadataRepository);
+            RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
             RuleTagService tags = new(tagRepository);
             return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, tags);

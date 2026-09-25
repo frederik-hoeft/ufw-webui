@@ -33,7 +33,7 @@ public sealed class RulesPageProjectionServiceTests
         ListedFirewallRule ipv4 = Rule("v4", FirewallAddressFamily.IPv4);
         ListedFirewallRule ipv6 = Rule("v6", FirewallAddressFamily.IPv6);
         RuleMetadata metadata = new(metadataId, "managed", []);
-        RuleSnapshot snapshot = new(FirewallActive: true, [ipv4, ipv6], TestFirewallConfiguration.Disabled, new Dictionary<string, RuleMetadata>(StringComparer.Ordinal) { ["v4"] = metadata });
+        RuleSnapshot snapshot = new(true, [ipv4, ipv6], TestFirewallConfiguration.Disabled, new Dictionary<string, RuleMetadata>(StringComparer.Ordinal) { ["v4"] = metadata });
 
         RulesPageProjection projection = _projection.Create(snapshot, orderingPreview: null, RuleQuery.Empty, []);
 

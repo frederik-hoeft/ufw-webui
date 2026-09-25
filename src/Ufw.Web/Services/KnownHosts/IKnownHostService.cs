@@ -10,5 +10,7 @@ public interface IKnownHostService
 
     Task<KnownHostMutationResult> UpdateAsync(Guid publicId, UpdateKnownHostRequest request, CancellationToken cancellationToken = default);
 
+    Task<KnownHostMutationResult> ReconcileDnsAsync(Guid publicId, CancellationToken cancellationToken = default);
+
     Task<KnownHostMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default);
 }

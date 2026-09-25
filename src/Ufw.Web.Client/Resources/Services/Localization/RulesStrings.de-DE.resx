@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -1029,6 +1029,8 @@
   <data name="CreateRuleMetadataDescription" xml:space="preserve">
     <value>Optional Tags und Notizen an die neue semantische Regel anhängen. Die Metadaten werden nach dem Erstellen der Firewall-Regel gespeichert.</value>
   </data>
+  <data name="SnapshotCapturedAt" xml:space="preserve"><value>Snapshot {0}</value></data>
+  <data name="SnapshotCapturedAt" xml:space="preserve"><value>Snapshot {0}</value></data>
   <data name="MetadataSaveAfterCreateFailed" xml:space="preserve">
     <value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden.</value>
   </data>

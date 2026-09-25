@@ -121,8 +121,26 @@
                         </MudTooltip>
                     </div>
                 </MudTd>
-                <MudTd DataLabel="@(HostsText["NameColumn"])"><strong>@context.Name</strong></MudTd>
-                <MudTd DataLabel="@(HostsText["AddressColumn"])"><code class="known-host-address">@context.Address</code></MudTd>
+                <MudTd DataLabel="@(HostsText["NameColumn"])">
+                    <div class="known-host-name">
+                        <strong>@context.Name</strong>
+                        @if (context.AddressSource == KnownHostAddressSource.Dns)
+                        {
+                            <MudTooltip Text="@(HostsText["DnsBackedAlias"])">
+                                <span class="known-host-dns-indicator"><MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" /> DNS</span>
+                            </MudTooltip>
+                        }
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="@(HostsText["AddressColumn"])">
+                    <div class="known-host-address-stack">
+                        <code class="known-host-address">@context.Address</code>
+                        @if (context.DnsResolvedAt is { } resolvedAt)
+                        {
+                            <span>@DescribeDnsResolvedAt(resolvedAt)</span>
+                        }
+                    </div>
+                </MudTd>
                 <MudTd DataLabel="@(HostsText["CommentColumn"])">
                     <span class="@(string.IsNullOrWhiteSpace(context.Comment) ? "known-host-comment-empty" : "known-host-comment")">
                         @(string.IsNullOrWhiteSpace(context.Comment) ? HostsText["NoComment"] : context.Comment)
@@ -130,6 +148,16 @@
                 </MudTd>
                 <MudTd DataLabel="@(HostsText["ActionsColumn"])" Class="known-host-actions-column">
                     <div>
+                        @if (context.AddressSource == KnownHostAddressSource.Dns)
+                        {
+                            <MudTooltip Text="@(HostsText["ReconcileDns"])">
+                                <MudIconButton Icon="@Icons.Material.Filled.Sync"
+                                               Size="Size.Small"
+                                               Disabled="@IsBusy"
+                                               OnClick="@(() => ReconcileDnsAsync(context))"
+                                               aria-label="@(HostsText["ReconcileDnsAria", context.Name])" />
+                            </MudTooltip>
+                        }
                         <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@IsBusy" OnClick="@(() => EditAsync(context))">
                             @HostsText["EditHost"]
                         </MudButton>
@@ -156,13 +184,33 @@
                         </MudTooltip>
                     </div>
                     <div class="inventory-mobile-copy">
-                        <strong>@host.Name</strong>
-                        <code class="known-host-address">@host.Address</code>
+                        <div class="known-host-name">
+                            <strong>@host.Name</strong>
+                            @if (host.AddressSource == KnownHostAddressSource.Dns)
+                            {
+                                <span class="known-host-dns-indicator"><MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" /> DNS</span>
+                            }
+                        </div>
+                        <div class="known-host-address-stack">
+                            <code class="known-host-address">@host.Address</code>
+                            @if (host.DnsResolvedAt is { } resolvedAt)
+                            {
+                                <span>@DescribeDnsResolvedAt(resolvedAt)</span>
+                            }
+                        </div>
                         <span class="@(string.IsNullOrWhiteSpace(host.Comment) ? "known-host-comment-empty" : "known-host-comment")">
                             @(string.IsNullOrWhiteSpace(host.Comment) ? HostsText["NoComment"] : host.Comment)
                         </span>
                     </div>
                     <div class="inventory-mobile-actions">
+                        @if (host.AddressSource == KnownHostAddressSource.Dns)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Sync"
+                                           Size="Size.Small"
+                                           Disabled="@IsBusy"
+                                           OnClick="@(() => ReconcileDnsAsync(host))"
+                                           aria-label="@(HostsText["ReconcileDnsAria", host.Name])" />
+                        }
                         <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                        Size="Size.Small"
                                        Disabled="@IsBusy"

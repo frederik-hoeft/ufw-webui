@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wkg.EntityFrameworkCore.Configuration;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Data.Model;
 
@@ -37,6 +38,14 @@ internal sealed partial class KnownHostEntry : IDiscoverableModelConfiguration<K
             .HasColumnType("character varying(64)")
             .HasMaxLength(MAX_ADDRESS_LENGTH)
             .IsRequired();
+        self.Property(static host => host.AddressSource)
+            .HasColumnName("AddressSource")
+            .HasColumnType("integer")
+            .HasDefaultValue(KnownHostAddressSource.Literal)
+            .IsRequired();
+        self.Property(static host => host.DnsResolvedAt)
+            .HasColumnName("DnsResolvedAt")
+            .HasColumnType("timestamp with time zone");
         self.Property(static host => host.Comment)
             .HasColumnName("Comment")
             .HasColumnType("character varying(200)")
