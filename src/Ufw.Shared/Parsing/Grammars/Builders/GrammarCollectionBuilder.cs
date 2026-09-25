@@ -24,6 +24,12 @@ public abstract class GrammarCollectionBuilder : GrammarBuilder
         return instance;
     }
 
+    protected T AddSet<T>(T instance, Action<GrammarSetBuilder> buildSet)
+    {
+        Children.Add(CreateSet(buildSet));
+        return instance;
+    }
+
     protected T AddParser<T>(T instance, IParser parser)
     {
         Children.Add(parser);
