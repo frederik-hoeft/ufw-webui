@@ -67,6 +67,10 @@ public sealed partial class RulesPage
 
     private bool IPv6FamilyAvailable => _projection.IPv6Available;
 
+    private string CreateRuleHref => _familySelection.SelectedFamily == FirewallAddressFamily.IPv6
+        ? "/rules/create?family=ipv6"
+        : "/rules/create?family=ipv4";
+
     private int SelectedFamilyTabIndex =>
         _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;
 
