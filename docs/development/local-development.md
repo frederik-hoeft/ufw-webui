@@ -96,4 +96,4 @@ The development PostgreSQL container stores its data in the `postgres-data` Dock
 
 ## Where to look next
 
-The [architecture overview](../architecture/architecture-overview.md) explains how the client, web application, daemon, and UFW boundary relate. The [protocol documentation](../protocols/README.md) covers IPC and signed mutation contracts. Production configuration and secret ownership are documented separately in [deployment configuration](../deployment/configuration.md).
+The [architecture overview](../architecture/architecture-overview.md) explains how the browser, web application, daemon, and UFW boundary relate. [Browser application architecture](../architecture/browser-application.md) covers the client state/projection model, while [Client UI development](client-ui.md) documents source/SCSS conventions. The [protocol documentation](../protocols/README.md) covers IPC and signed mutation contracts. Production configuration and secret ownership are documented separately in [deployment configuration](../deployment/configuration.md).

@@ -1,45 +1,66 @@
 # UFWeb
 
-UFWeb is a UFW management platform built around a strict privilege boundary: the network-facing application never executes firewall commands. A Blazor client and ASP.NET Core API provide the management experience, while a small host daemon is the only component allowed to invoke UFW.
+UFWeb is a web interface for managing UFW on a host without making the web application the firewall authority. UFW remains the source of truth for live rules and policy; UFWeb reads that state through a small privileged host daemon and stores only application-owned data such as users, rule notes and tags, known-host aliases, and network-interface annotations in PostgreSQL.
 
-UFW remains the firewall authority. Rules created with the normal UFW CLI or by other administrators remain visible, mutations use structural semantics or exact snapshot occurrences rather than treating unstable UFW row numbers as durable identity, and PostgreSQL stores application state rather than a shadow copy of the firewall.
+The design deliberately coexists with normal UFW administration. Rules created or changed outside UFWeb appear on the next refresh, unsupported UFW syntax remains visible rather than being hidden, and mutations are resolved against fresh firewall state instead of treating UFW's changing display numbers as durable identifiers.
 
-## Overview
+## What UFWeb provides
 
-The management path stays split across those boundaries rather than turning the web tier into a privileged firewall process:
+The browser covers the normal rule-management workflow for both IPv4 and IPv6. It shows UFW activity, default policies, and the ordered rule sets; supports append, ordered insertion, deletion, and reordering for rules whose semantics UFWeb understands completely; and provides client-side filtering and search over structural rule fields, comments, canonical UFW syntax, tags, and known-host context. Search results retain match evidence so the interface can explain why a rule matched rather than presenting an opaque filtered list.
 
-- **Authoritative firewall presentation** — Read firewall activity, IPv4/IPv6 rules, IPv6 capability, and default policies directly from UFW through the host daemon. Unsupported rule syntax remains visible but read-only.
-- **Signed firewall mutations** — Append, ordered insertion, delete, and reorder operations are signed in the browser and independently authorized by the daemon before UFW execution.
-- **State-conditioned ordering** — Ordered insertion and reordering bind placement to the exact authoritative snapshot reviewed by the administrator, so duplicate rules and ordinary UFW renumbering do not create ambiguous mutation targets.
-- **Rule-authoring metadata** — Host network interfaces can carry application-owned comments and visibility preferences, while known-host aliases provide reusable literal addresses and networks without entering the firewall contract.
-- **Web authentication** — ASP.NET Core Identity, short-lived ES256 access tokens, and rotating opaque refresh tokens protect the HTTP API independently from firewall mutation authorization.
-- **Production-oriented separation** — nginx serves immutable frontend assets and browser TLS, `Ufw.Web` runs privately behind a Unix socket, and PostgreSQL is isolated on an internal container network.
-- **Cross-platform development** — `Ufw.Mock` emulates the UFW command surface used by the daemon, allowing the production firewall path to be exercised without Linux firewall privileges, including on Windows.
+UFWeb also adds presentation and authoring context without making that metadata part of the firewall contract. Notes and reusable colored tags attach to semantic rule identity, known-host aliases resolve to literal addresses before a rule is signed, and reconciled network-interface metadata can carry comments and visibility preferences while the daemon still validates the real host interface immediately before a mutation. When UFW changes out of band, the interface continues to show the authoritative firewall state and provides an explicit reconciliation workflow for metadata that no longer matches a live rule.
 
-## Security model
+Operational status is split along the same boundaries as the architecture. The status page can distinguish the browser-facing management API, the local daemon path, and authoritative UFW observation instead of treating a successfully loaded page as proof that the complete firewall-management path is healthy.
 
-A valid web session is not sufficient authority to change the firewall. Every privileged mutation carries an ECDSA P-256 signature created by the administrator's browser and verified by `Ufw.Systemd` against daemon-managed authorized public keys. The signed intent binds the exact operation, its rule or ordering payload, the daemon deployment identity, issuance time, and a single-use nonce.
+`Ufw.Mock` implements the UFW command surface used by the daemon for development and tests, which allows most of the real application path to run on machines without UFW or firewall privileges.
 
-The daemon validates the signed semantics again, persists replay state before starting a mutation, renders validated argv, and executes UFW directly without a shell. `Ufw.Web` can forward a signed request but cannot manufacture mutation authority.
+## Deployment at a glance
 
-Frontend delivery is separated from ASP for the same reason. Browser code handles mutation-signing material, so production nginx serves an independently built, read-only frontend image rather than allowing a compromised ASP process to replace the signing client.
+A production deployment separates browser delivery, the web/API process, application persistence, and privileged firewall execution:
 
-See [Security architecture](docs/architecture/security.md) for the complete trust model and [Signed mutation intent v2](docs/protocols/signed-intent.md) for the authorization contract.
+```mermaid
+flowchart LR
+    Browser[Browser\nUfw.Web.Client]
 
-## Production topology
+    subgraph Containers[Application containers]
+        Nginx[nginx\nstatic client + HTTPS]
+        Web[Ufw.Web\nREST API + auth]
+        Db[(PostgreSQL)]
 
-A supported production deployment consists of:
+        Nginx -->|Unix socket\n/api/*| Web
+        Web -->|private network| Db
+    end
 
-- a privileged `Ufw.Systemd` service running directly on the firewall host;
-- a public non-root nginx container serving `Ufw.Web.Client` and terminating browser TLS;
-- a private non-root `Ufw.Web` container reached by nginx through a Unix-domain socket;
-- PostgreSQL on an internal container network reachable only by `Ufw.Web`.
+    Daemon[Ufw.Systemd\nhost daemon]
+    Ufw[UFW\nhost firewall]
 
-Rootful and rootless Docker use the same application topology but different host ownership and group mappings. Start with the [deployment guide](docs/deployment/deployment.md) and use the runbook for the Docker mode actually used on the host.
+    Browser -->|HTTPS| Nginx
+    Web -->|local IPC| Daemon
+    Daemon -->|validated argv| Ufw
+```
 
-## Local development
+nginx is the public endpoint. It serves the independently built WebAssembly client and proxies API requests to a private `Ufw.Web` container. PostgreSQL is reachable only from the web application and contains application-owned state rather than a shadow copy of the firewall. `Ufw.Systemd` runs directly on the host under systemd and is the only UFWeb process allowed to execute UFW.
 
-The solution targets .NET 10. A normal source build is:
+Rootful and rootless Docker use the same application topology but differ in how host ownership and supplemental groups are mapped into the containers. The [production deployment guide](docs/deployment/deployment.md) explains the supported modes and links to their concrete runbooks.
+
+## Firewall mutations and trust
+
+A logged-in web session is necessary to use the management API, but it is deliberately not sufficient authority to change the firewall. A privileged mutation follows a second authorization path:
+
+1. the browser loads the authoritative rule snapshot and the daemon's signing context;
+2. the administrator supplies an authorized P-256 private key to the browser for the operation;
+3. the browser signs the exact mutation semantics, including snapshot and ordering context where the operation depends on reviewed state;
+4. `Ufw.Web` forwards the signed request but cannot create a valid mutation signature itself;
+5. `Ufw.Systemd` independently validates the signature, deployment scope, freshness, replay nonce, operation semantics, and fresh UFW state before rendering argv and executing UFW without a shell;
+6. after execution, the daemon re-reads authoritative state and reports the mutation as confirmed only when the expected result can be established safely.
+
+The frontend is therefore part of the signing trusted computing base. Production nginx serves the client from a separate read-only image so compromise of the ASP process alone is not enough to replace the browser signing application. The browser environment, frontend artifact, daemon, and administrator-held mutation key remain security-significant components; UFWeb does not try to turn a compromised administrator browser or privileged daemon into a safe execution environment.
+
+The [security architecture](docs/architecture/security.md) develops this trust model in detail. The [firewall state and rule model](docs/architecture/firewall-model.md) explains semantic rule identity, state-conditioned insertion/reorder operations, and reconciliation after uncertain or out-of-band changes.
+
+## Getting started
+
+The solution targets .NET 10. A normal source build can be validated with:
 
 ```bash
 dotnet restore src/Ufw.slnx
@@ -47,53 +68,15 @@ dotnet build src/Ufw.slnx --no-restore
 dotnet test src/Ufw.slnx --no-restore --no-build
 ```
 
-The development stack uses PostgreSQL plus generated credentials/configuration for the browser, ASP application, and daemon:
-
-```bash
-docker compose up -d postgres
-./scripts/setup-dev.sh
-```
-
-On Windows, build `Ufw.Mock` first and let the generated daemon configuration use the mock instead of native UFW. See [Local development](docs/development/local-development.md) for the complete setup and run sequence.
+Local development runs the browser client, `Ufw.Web`, PostgreSQL, and the daemon as separate processes. The setup script generates development certificates, signing keys, and configuration, while `Ufw.Mock` can stand in for UFW on Windows or an unprivileged development host. The complete workflow is documented in [Local development](docs/development/local-development.md). Production deployments should start with [Production deployment](docs/deployment/deployment.md) rather than the repository-root development Compose file.
 
 ## Documentation
 
-| Document | Audience and purpose |
-| --- | --- |
-| [Architecture overview](docs/architecture/architecture-overview.md) | Contributors: system boundaries, state ownership, and primary request flows |
-| [Firewall model](docs/architecture/firewall-model.md) | Contributors: authoritative UFW state, semantic rule identity, ordering, and mutation reconciliation |
-| [Security architecture](docs/architecture/security.md) | Contributors/operators: trust boundaries, browser signing, replay protection, and privileged execution |
-| [Compile-time routing and serialization](docs/architecture/source-generation.md) | Contributors: NativeAOT-oriented source-generation architecture |
-| [IPC protocols](docs/protocols/README.md) | Protocol implementers/reviewers: transport, application envelopes, and signed intents |
-| [Deployment](docs/deployment/deployment.md) | Operators: production topology and rootful/rootless runbook selection |
-| [Local development](docs/development/local-development.md) | Contributors: development prerequisites, generated credentials, and run sequence |
-| [UFW mock](docs/development/ufw-mock.md) | Contributors/test authors: platform-neutral UFW command emulation |
-| [IPC test adapter](docs/testing/ipc-test-adapter.md) | Test authors: production-equivalent in-process IPC testing |
+For a top-to-bottom understanding of the system, start with the [architecture overview](docs/architecture/architecture-overview.md). From there, the [browser application architecture](docs/architecture/browser-application.md) describes client state and layering, the [firewall state and rule model](docs/architecture/firewall-model.md) covers rule identity and mutation lifecycles, and the [security architecture](docs/architecture/security.md) explains the trust boundaries and signed authorization model. The [IPC protocol index](docs/protocols/README.md) is the entry point for wire-level contracts.
 
-`docs/internal` contains temporary, non-normative maintainer notes for unresolved work. Implemented behavior belongs in the architecture, protocol, deployment, development, or testing documentation above.
+Operators should use the [production deployment guide](docs/deployment/deployment.md), its linked rootful/rootless runbooks, the [configuration reference](docs/deployment/configuration.md), and the [operations guide](docs/deployment/operations.md). Contributors can start with [Local development](docs/development/local-development.md), [Client UI development](docs/development/client-ui.md), and [`code-style.md`](code-style.md). The `docs/internal` directory is intentionally non-normative maintainer space for unresolved design work; implemented behavior belongs in the permanent architecture, protocol, deployment, development, or testing documentation.
 
-## Project structure
-
-The source tree follows trust and deployment boundaries:
-
-| Project | Role |
-| --- | --- |
-| `Ufw.Web.Client` | Blazor WebAssembly browser application |
-| `Ufw.Web.Model` | pure, versioned browser REST request/response DTOs shared by ASP and Blazor |
-| `Ufw.Web` | ASP.NET Core REST API, authentication, PostgreSQL-backed application state, and daemon IPC client |
-| `Ufw.Systemd` | privileged host daemon and UFW execution boundary |
-| `Ufw.Shared` | cross-process firewall semantics, security primitives, and IPC contracts |
-| `Ufw.Ipc.Client` | typed client for the daemon IPC protocol |
-| `Ufw.Roslyn` / `Ufw.Roslyn.SourceGen` | runtime contracts and source-generated daemon routing/serialization bindings |
-| `Ufw.Mock` | development-only UFW-compatible command substitute |
-
-Test projects live beside the production projects under `src/` and cover shared semantics, IPC, daemon behavior, ASP services, browser-side policy, and the mock CLI.
-
-## Contributing
-
-Follow [`code-style.md`](code-style.md) for source conventions. Before changing subsystem boundaries, read the [architecture overview](docs/architecture/architecture-overview.md); before changing authentication, authorization, IPC security, or firewall mutations, read the [security architecture](docs/architecture/security.md).
-
-Before submitting changes, run the full solution build and test suite. Changes to IPC or mutation authorization should update the corresponding protocol document whenever the wire or signing contract changes.
+The solution is divided along process and contract boundaries rather than UI pages. `Ufw.Web.Client` is the browser application, `Ufw.Web` is the authenticated REST/API and persistence process, and `Ufw.Systemd` is the privileged host daemon. `Ufw.Web.Model` carries versioned REST DTOs shared between browser and ASP, while `Ufw.Shared` carries lower-level firewall, security, and IPC contracts. `Ufw.Ipc.Client` provides ASP's typed daemon client, the Roslyn projects generate compile-time routing and serialization glue, and `Ufw.Mock` supplies the development/test UFW-compatible executable. The architecture documentation describes these dependencies in context instead of treating the project list as an API surface.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Deployment Configuration
 
-This document is a reference for runtime configuration and secrets. Use either the [rootful](rootful-docker.md) or [rootless](rootless-docker.md) runbook for installation order and file ownership; the same setting can require different host permissions in the two modes.
+This document is the shared reference for runtime configuration, persistent state, and secret ownership after choosing the production topology described in [Production deployment](deployment.md). Use either the [rootful](rootful-docker.md) or [rootless](rootless-docker.md) runbook for installation order and host permissions; the same setting can require different ownership/group mapping in the two modes.
 
 ## Configuration sources
 

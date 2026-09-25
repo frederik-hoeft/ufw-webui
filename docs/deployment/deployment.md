@@ -1,36 +1,86 @@
 # Production Deployment
 
-UFWeb supports one production application topology with two Docker ownership models. Choose the runbook that matches how Docker runs on the firewall host; do not combine the group/ownership instructions from both modes.
+This section is for operators deploying UFWeb on the firewall host. The production topology is the same for rootful and rootless Docker; the runbooks differ only where host/container ownership and group mapping differ.
 
-| Docker mode | Use this guide | Host-file group mapping |
+UFWeb is not deployed as one privileged container. The host daemon owns UFW access, while the public web surface stays in non-root application containers:
+
+```mermaid
+flowchart LR
+    Browser[Administrator browser]
+
+    subgraph Docker[Docker Compose]
+        Frontend[frontend\nnginx + Ufw.Web.Client]
+        Asp[asp\nUfw.Web]
+        Db[(postgres)]
+
+        Frontend -->|Unix socket\n/api/*| Asp
+        Asp -->|internal network| Db
+    end
+
+    Daemon[Ufw.Systemd\nsystemd host service]
+    Ufw[UFW]
+
+    Browser -->|HTTPS| Frontend
+    Asp -->|bind-mounted\nUnix socket| Daemon
+    Daemon --> Ufw
+```
+
+The `frontend` container is the only service with a published host port. It serves the immutable WebAssembly client and browser-facing TLS, then proxies `/api/*` to `Ufw.Web` through an application Unix socket. `Ufw.Web` is a private non-root container; PostgreSQL is reachable only on the internal database network. `Ufw.Systemd` runs directly under systemd and exposes a group-restricted host Unix socket to ASP.
+
+This separation is part of the security model, not merely container layout. Do not give the application containers firewall capabilities, UFW files, daemon authorization state, or the host Docker socket, and do not merge the frontend filesystem into an ASP-writable runtime image. See [Security architecture](../architecture/security.md) for the trust model.
+
+## Choose the Docker ownership model
+
+Use exactly one of the supported runbooks:
+
+| Docker mode | Runbook | Host-file/group model |
 | --- | --- | --- |
-| Rootful Docker daemon | [Rootful Docker](rootful-docker.md) | explicit host group GIDs are added to the affected frontend/ASP containers |
-| Rootless Docker daemon | [Rootless Docker](rootless-docker.md) | supplemental container GID `0` maps to the rootless Docker user's primary host group |
+| Rootful Docker daemon | [Rootful Docker deployment](rootful-docker.md) | explicit host group GIDs are added to the affected frontend/ASP containers |
+| Rootless Docker daemon | [Rootless Docker deployment](rootless-docker.md) | supplemental container GID `0` maps to the rootless Docker user's primary host group |
 
-Both modes keep the same runtime separation:
+Do not combine ownership/group steps from the two guides. The application topology and configuration keys are the same, but the host permission mapping is not.
 
-- `Ufw.Systemd` runs directly on the Linux host as a privileged systemd service;
-- nginx is the only public container and serves the immutable browser application over HTTPS;
-- `Ufw.Web` is a private non-root container with no TCP listener;
-- PostgreSQL is reachable only by `Ufw.Web` on an internal Compose network;
-- ASP reaches the host daemon through `/var/lib/ufw-webui/ipc/ufw-systemd.sock`, bind-mounted read-only at `/run/ufw-manager` inside the container.
+## Host paths and persistent state
 
-The host daemon directory is intentionally outside `/run`. This works for both Docker modes and avoids RootlessKit's private/copied-up `/run` behavior.
+The deployment deliberately separates the daemon's public-to-ASP IPC surface from root-only daemon security state:
 
-## Before deploying
+| Host path/state | Purpose |
+| --- | --- |
+| `/var/lib/ufw-webui/ipc/ufw-systemd.sock` | group-restricted daemon socket bind-mounted read-only into ASP at `/run/ufw-manager` |
+| `/etc/ufw-manager/settings.json` | daemon configuration |
+| `/etc/ufw-manager/authorized_keys` | operator-managed administrator mutation public keys |
+| `/var/lib/ufw-manager/` | daemon deployment identity, replay records, and reorder recovery state |
+| PostgreSQL storage | ASP-owned users, refresh-token state, authoring metadata, and rule presentation metadata |
+| frontend TLS directory | browser-facing certificate/key mounted into nginx |
+| ASP JWT key | private ES256 signing key mounted into `Ufw.Web` |
 
-A production host needs Linux with systemd and UFW, Docker Engine with Compose and Buildx, `openssl`, and browser-facing TLS material. Root access is required for daemon installation and host-owned security state. The frontend and ASP workloads run as non-root container users; PostgreSQL follows the official image lifecycle and drops to its unprivileged database user after any required storage initialization.
+The IPC directory is intentionally outside `/run`; this works in both Docker modes and avoids RootlessKit's private/copied-up `/run` behavior. The root-only `/var/lib/ufw-manager` directory must never be mounted into the application stack.
 
-The host does not need a .NET SDK or NativeAOT toolchain. `deploy/systemd/publish.sh` performs the daemon NativeAOT build in Docker and exports a native Linux executable.
+Administrator mutation **private** keys are not deployment secrets for ASP or the daemon. Only their public keys belong in the daemon `authorized_keys` file; the private key stays with the administrator/browser signing workflow.
 
-Before choosing a runbook, read the [security architecture](../architecture/security.md). In particular, do not collapse nginx and ASP into one writable runtime image and do not mount daemon security state, UFW state, or the Docker socket into application containers.
+## Deployment sequence
 
-## Reference material
+The mode-specific runbooks follow the same conceptual order:
 
-The mode-specific runbooks intentionally contain the steps that differ by ownership model. Shared reference material is kept separately:
+1. build and install `Ufw.Systemd` on the host;
+2. provision an administrator mutation keypair and install only the public key in daemon authorization state;
+3. provision the ASP JWT signing key and browser-facing TLS material;
+4. configure `deploy/docker/.env`, PostgreSQL storage, and the host group mappings for the chosen Docker mode;
+5. build/start the `frontend`, `asp`, and `postgres` services;
+6. verify the browser/API/daemon/firewall boundaries independently.
 
-- [Deployment configuration](configuration.md) documents daemon settings, ASP configuration, Compose environment values, credentials, and optional IPC TLS/mTLS.
-- [Operations](operations.md) covers backup, update, rollback, daemon uninstall, and routine verification.
-- [Architecture overview](../architecture/architecture-overview.md) explains why the deployment is split this way.
+The host does not need a .NET SDK or NativeAOT toolchain. `deploy/systemd/publish.sh` performs the daemon NativeAOT build in Docker and exports the native Linux executable used by the installer.
 
-The committed production stack is `deploy/docker/compose.yml`. The top-level `docker-compose.yml` is development-only and starts PostgreSQL for local development; it is not a production deployment file.
+## Configuration and secrets
+
+[Deployment configuration](configuration.md) is the shared reference for Compose environment variables and image/bind settings, ASP authentication/JWT/bootstrap configuration, daemon UFW/IPC/timeout/signed-intent settings, and ownership of private keys and security-state files. The mode-specific runbooks keep the concrete creation and permission commands because those differ between rootful and rootless hosts. In practice, use the runbook to establish the deployment and the configuration reference when you need to understand or customize a setting.
+
+## Verification and operations
+
+A healthy installation should establish each boundary separately rather than treating a loaded web page as proof that the firewall path works. The deployment runbooks first verify the public HTTPS frontend and static application assets, then management health through nginx, daemon liveness across the local IPC boundary, and authoritative UFW rule/configuration reads. Authentication and a signed mutation exercise the remaining authorization path. This sequence makes it clear which boundary failed instead of collapsing frontend delivery, ASP health, daemon connectivity, and firewall access into one generic “application is down” result.
+
+After installation, use [Deployment operations](operations.md) for routine verification, PostgreSQL backups, daemon/container updates, rollback, reorder-recovery handling, and daemon uninstall.
+
+## Development is a different topology
+
+The repository-root `docker-compose.yml` is development-only and starts PostgreSQL for local development. It is **not** a production stack. Production uses `deploy/docker/compose.yml` together with one of the two runbooks above.

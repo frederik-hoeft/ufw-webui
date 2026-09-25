@@ -13,8 +13,7 @@ UFWeb is a .NET 10 UFW management platform with a Blazor WebAssembly client, a n
 - `Ufw.Ipc.Client` implements the typed local IPC client on top of `Ufw.Shared.Ipc`.
 - `Ufw.Roslyn` and `Ufw.Roslyn.SourceGen` provide the runtime/source-generator boundary for daemon routing and serialization.
 
-Read [the architecture overview](../docs/architecture/architecture-overview.md) before changing subsystem boundaries and [the security architecture](../docs/architecture/security.md) before
-working on authentication, authorization, IPC security, or firewall mutations.
+Read [the architecture overview](../docs/architecture/architecture-overview.md) before changing subsystem boundaries, [the browser application architecture](../docs/architecture/browser-application.md) before changing client state/layering, and [the security architecture](../docs/architecture/security.md) before working on authentication, authorization, IPC security, or firewall mutations.
 
 ## Engineering conventions
 
@@ -113,4 +112,4 @@ verification, and mutation reconciliation inside the daemon rather than moving h
 All daemon-managed UFW reads and mutations share the execution gate. Keep state-conditioned operations conservative: exact-snapshot insertion/reorder must fail rather than reinterpret stale
 occurrence coordinates, and any reorder delete/reinsert obligation must be recovered or left as a durable fail-closed condition before later mutations proceed.
 
-Permanent documentation should describe steady-state architecture and behavior; temporary implementation sequencing belongs only under `docs/internal` while it remains active.
+Permanent documentation should describe steady-state architecture and behavior. `docs/internal` is reserved for unresolved, non-normative design work; completed plans/checklists should be folded into the appropriate permanent document and removed. See [`docs/internal/README.md`](../docs/internal/README.md).

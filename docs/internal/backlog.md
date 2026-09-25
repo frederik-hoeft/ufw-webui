@@ -1,8 +1,6 @@
-# Long-term feature backlog
+# Design Backlog
 
-This document is a strategic backlog for larger user-facing capabilities that should be developed after the current [rule-presentation and enrichment sprint](rule-presentation-sprint-plan.md). It records durable product direction and the main architectural constraints that future planning should preserve, but it is not a detailed implementation plan, API specification, or schedule.
-
-Each feature should receive its own focused design/implementation plan when it becomes active work. Completed behavior should move into the permanent architecture, protocol, deployment, or user documentation rather than accumulating here indefinitely.
+This document records unresolved larger design directions that are useful to retain between implementation phases. It is deliberately non-normative: none of these sections describes current product behavior unless a permanent architecture/protocol document says so.
 
 ## Rule templates and reversible disable workflow
 
@@ -49,7 +47,7 @@ Detailed design is deferred until this feature becomes active work, including th
 
 ## Semantic firewall-policy exploration
 
-Provide an exploratory view that answers questions about what the **UFW-managed policy represented by UFW WebUI** permits, using the same parsed/normalized rule semantics already exposed by the application.
+Provide an exploratory view that answers questions about what the **UFW-managed policy represented by UFWeb** permits, using the same parsed/normalized rule semantics already exposed by the application.
 
 The feature is intentionally a policy explorer rather than a full network simulator. It should help answer questions such as:
 
@@ -62,7 +60,7 @@ The UI should describe these results as **permitted/denied by the modeled UFW po
 
 ### Semantic model
 
-At a high level, exploration operates over normalized packet-space regions rather than individual packets. A useful conceptual domain is the Cartesian product of the dimensions that UFW WebUI can model reliably, for example:
+At a high level, exploration operates over normalized packet-space regions rather than individual packets. A useful conceptual domain is the Cartesian product of the dimensions that UFWeb can model reliably, for example:
 
 ```text
 source address space
@@ -89,7 +87,7 @@ The exact internal representation should be chosen for correctness and tractable
 
 ### Scope and semantic boundary
 
-The initial explorer should evaluate only state that UFW WebUI can authoritatively obtain and normalize from the managed UFW configuration. In particular, the first version should explicitly disregard or treat as outside the model:
+The initial explorer should evaluate only state that UFWeb can authoritatively obtain and normalize from the managed UFW configuration. In particular, the first version should explicitly disregard or treat as outside the model:
 
 - conntrack/runtime connection state;
 - arbitrary `before.rules`, `after.rules`, or externally managed netfilter/nftables rules that are not represented by the parsed UFW rule model;
@@ -134,6 +132,21 @@ A future implementation can be staged so that the semantic engine is independent
 
 Correctness testing should emphasize overlapping CIDRs, partially overlapping port ranges, rule-order shadowing, default-policy fallthrough, mixed allow/deny partitions, interface constraints, forwarding versus host-local rules, and independent IPv4/IPv6 behavior. Property-based tests are likely valuable for the set-algebra core because apparently simple subtraction/coalescing bugs can silently produce incorrect security conclusions.
 
+## Rule-query navigation and power-user syntax
+
+The current browser query model is already a composable collection of structured filters with typed match evidence. Two optional presentation features can build on that model without introducing a second search implementation:
+
+- **Navigable query state.** Encode the configured filter collection in the `/rules` route so a reload or shared URL can reconstruct the same client-side query after fetching a fresh authoritative snapshot. The encoding should be designed for a variable collection of typed filters rather than assuming one scalar query parameter per filter field.
+- **Shorthand query grammar.** If real usage justifies it, accept compact expressions such as `from:10.0.0.0/8 proto:tcp tag:observability "prometheus"` and compile them into the same existing filter models. Unqualified text should remain ordinary text search rather than being inferred aggressively as addresses/ports/tags.
+
+Sorting remains conceptually separate from filtering. Any future non-firewall sort mode must keep reordering unavailable because only complete firewall order has mutation meaning. These features should remain browser projections; a server-side `/rules/search` endpoint should be introduced only for a concrete server-authoritative use case.
+
+## Signed presentation consistency hardening
+
+Evaluate whether a future signed-intent protocol revision should include the canonical UFW rule text shown to the administrator and require the daemon to compare that signed presentation with text rendered independently from the authoritative structural rule. This would be a defense-in-depth consistency assertion, not the command-injection boundary: validated structural fields and direct argv execution remain authoritative.
+
+Because this changes the signed payload, it requires an explicit protocol-version/security design rather than being added as an incidental UI check.
+
 ## Backlog discipline
 
-Features in this document are deliberately outside the current rule-presentation/enrichment sprint unless explicitly promoted into an active plan. Future work should preserve the existing authority split: UFW remains authoritative for live firewall rules, ASP may enrich or provide application-owned authoring/context state, and the browser owns presentation interaction that does not need server authority.
+These items are not implementation commitments or a schedule. Each should receive a focused design/implementation plan when it becomes active work. Future work must preserve the existing authority split: UFW remains authoritative for live firewall rules, ASP may own authoring/presentation context, and browser-only presentation state must not become firewall authority. Completed behavior belongs in permanent documentation rather than accumulating here.
