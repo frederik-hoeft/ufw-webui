@@ -1,12 +1,12 @@
 # Browser Application Architecture
 
-`Ufw.Web.Client` is a Blazor WebAssembly application, but its architectural boundary is not the Razor component tree. The client is split so that transport, application behavior, reusable browser services, and presentation can evolve independently while all firewall authority still comes from server/daemon snapshots.
+`Ufw.Web.Client` is a Blazor WebAssembly application, but its architectural boundary is not the Razor component tree. The client is organized so transport, application behavior, reusable browser services, runtime configuration, and presentation can evolve independently while all firewall authority still comes from server/daemon snapshots.
 
-The most important rule is that the browser may derive, stage, and present state, but it does not invent authoritative firewall state. A fresh rule inventory is the input to filtering, family presentation, ordering preview, metadata enrichment, and mutation signing; those browser-side projections never replace the snapshot they came from.
+The central rule is that the browser may derive, stage, and present state, but it does not invent authoritative firewall state. A fresh rule inventory is the input to family presentation, filtering, ordering preview, metadata enrichment, and mutation signing. Those browser-side projections can make the data easier to work with, but they never replace the snapshot from which they were derived.
 
-## Client layers
+## Client structure and dependency direction
 
-The project uses five top-level application areas:
+The project has five top-level areas:
 
 ```text
 Ufw.Web.Client/
@@ -17,116 +17,68 @@ Ufw.Web.Client/
   UI/              Razor presentation and styles
 ```
 
-The shared `Ufw.Web.Model` project sits outside the client and contains pure, versioned REST DTOs used by both ASP and Blazor.
+The shared `Ufw.Web.Model` project sits outside the client and contains pure, versioned REST DTOs consumed by both ASP and Blazor. Keeping those models outside `Api` is deliberate: the client owns how it calls the REST API, but it does not own the wire contract by itself.
 
-### API
+`Api` is therefore a transport boundary rather than an application layer. Its resource namespaces mirror the browser-visible ASP resources such as authentication, intent context, rules, rule metadata, tags, known hosts, network interfaces, and status. Typed API clients know how to serialize a request, send it, and interpret protocol-level failures. They do not decide how an uncertain mutation changes page state, how a reorder preview should be reconciled, or how several API calls combine into one user workflow.
 
-`Api` is the HTTP boundary. Resource subnamespaces mirror the browser-visible ASP resources (`Auth`, `Intent`, `KnownHosts`, `NetworkInterfaces`, `Rules`, `RuleMetadata`, `RuleTags`, and `Status`). Each resource owns its typed HTTP client interface and implementation; general response/error handling and the source-generated JSON context live at the API root.
+Those decisions belong to `Features`. Features are grouped by domain and turn transport data into browser-side behavior. Authentication, known hosts, network interfaces, status, and rules each own the services and state transitions specific to that domain. The rules feature is intentionally subdivided further because authoring, filtering, insertion, intent signing, metadata, ordering, presentation, and page projections are independently testable concerns. When behavior can be expressed without Razor lifecycle or DOM access, it belongs here rather than in component code-behind.
 
-API clients do not own feature policy. For example, a rules API client can issue an HTTP request, but deciding how to reconcile an uncertain mutation or how a reorder preview becomes a signed request belongs to the rules feature.
+`Services` is smaller and deliberately domain-agnostic. Clipboard access, browser storage, localization, theming, and generic client error mapping fit here because several features or UI surfaces can use them without giving them firewall-specific meaning. A service should not move into this namespace merely because it is registered with dependency injection.
 
-### Features
+`UI` contains `App`, layouts, pages, reusable Razor components, and their styles. It depends on API, feature, and generic service abstractions and translates their state into interaction and presentation. The filtering UI illustrates the intended direction: filter semantics and evaluation live in `Features.Rules.Filtering`, while the catalog that maps a filter kind to a Razor editor and human-facing label lives under `UI.Components.Rules.Filtering`. Feature code therefore never needs to reference component types.
 
-`Features` contains browser-side application behavior grouped by domain. Authentication, known hosts, network interfaces, status, and rules each own the state/services that give HTTP data application meaning.
+`Configuration` is the remaining root because browser runtime settings are neither domain behavior nor a service. It contains immutable public settings such as the resolved API base address. Browser configuration is observable by the user and must not contain secrets.
 
-The rules feature is the largest domain and is further split by responsibility: authoring, filtering, insertion, intent signing/mutation orchestration, metadata, ordering, presentation text, and page projections. These services are ordinary testable .NET services rather than Razor code whenever they do not require component lifecycle or DOM access.
+## Authoritative inventory and interaction state
 
-### Services
+The rules and create-rule pages share an explicit inventory model for the currently loaded firewall snapshot. The model distinguishes initial loading, refresh in progress, a fresh usable snapshot, a stale snapshot retained after a failed refresh or uncertain mutation, and a terminal load failure. That distinction exists because “we still have data to show” and “this data is safe to use as mutation authority” are different statements.
 
-`Services` is intentionally small and cross-domain. Clipboard access, local storage, localization, theming, and client error mapping live here because they are reusable browser/application capabilities rather than part of a firewall feature.
+When a REST rule-list response succeeds, the browser constructs a `RuleSnapshot` from daemon-authoritative firewall state plus the application metadata joined by `Ufw.Web`. Later UI operations derive views from this snapshot rather than rewriting it. If a refresh fails, the previous snapshot can remain on screen as useful stale information, but mutation controls stay disabled until a fresh inventory has been established again.
 
-Feature-specific services should not be moved into this namespace merely because they use dependency injection.
-
-### UI
-
-`UI` contains `App`, pages, layouts, reusable Razor components, and styles. It depends on feature/API/service abstractions and translates their state into interaction and presentation.
-
-The filtering UI is a useful boundary example: filter semantics and evaluation live in `Features.Rules.Filtering`, while the catalogue that maps filter types to editor components and human-facing labels lives in `UI.Components.Rules.Filtering`. This keeps the feature layer independent from Razor component types.
-
-### Configuration
-
-`Configuration` contains immutable browser runtime settings such as the resolved API base address. Browser configuration is public by definition and must not contain secrets.
-
-## Rule inventory state
-
-The rules and create-rule pages share an explicit inventory model for the currently loaded firewall snapshot. Its state distinguishes initial loading, refreshing, usable fresh state, stale state after a failed refresh or uncertain mutation, and terminal load failure.
-
-That state machine exists because "we still have a snapshot" and "that snapshot is safe to mutate" are different questions. A failed refresh may leave useful information on screen, but mutation controls must remain disabled until freshness is restored.
-
-A successful REST response is projected into a browser `RuleSnapshot` containing the daemon-authoritative firewall data plus matching ASP-owned metadata. Subsequent UI operations derive views from that snapshot instead of rewriting it.
-
-The rules page separately tracks transient interaction modes such as metadata editing, deletion, and applying a reorder. Keeping workflow state separate from inventory freshness prevents combinations such as a busy dialog flag accidentally becoming evidence that firewall data is current.
+The rules page separately tracks transient interaction state such as metadata editing, deletion confirmation, and application of a staged reorder. Keeping this state machine separate from inventory freshness prevents UI workflow flags from accidentally becoming evidence that firewall state is current. It also makes impossible combinations explicit: a page should not be “deleting” and “editing metadata” at the same time, and finishing a dialog does not by itself make a stale firewall snapshot fresh.
 
 ## Family projection and ordering
 
-UFW evaluates IPv4 and IPv6 in separate ordered rule sets. The browser therefore projects one authoritative combined snapshot into independent family workspaces. User-visible positions are one-based within the selected family; the combined UFW numbering remains protocol/snapshot data used for daemon-side addressing.
+UFW evaluates IPv4 and IPv6 as separate ordered rule sets even though its numbered status output presents them in one combined sequence. The browser therefore projects one authoritative snapshot into family-specific workspaces. User-visible positions are one-based within the selected family; combined UFW numbering remains snapshot/protocol data used where the daemon must address the underlying CLI.
 
-A drag/drop or move action creates a local ordering preview. It does not mutate the authoritative snapshot. Applying the preview uses the complete desired occurrence order plus the fingerprint of the reviewed authoritative baseline to create a signed reorder request. Discarding the preview simply drops the derived ordering state.
+Reordering starts as a browser-local preview over that family projection. Dragging a rule changes only the derived order the user is reviewing; it does not mutate the authoritative `RuleSnapshot`. Applying the preview signs the complete desired occurrence order together with the fingerprint of the exact authoritative baseline. Discarding it simply removes the derived preview and reveals the unchanged source snapshot again.
 
-Ordered insertion follows a similar distinction. Navigation from a specific row carries snapshot-local insertion context into the create-rule workflow. The browser can present the chosen before/after position, but the eventual signed request remains conditioned on the exact authoritative snapshot that gave the anchor occurrence its meaning.
+Ordered insertion uses the same principle. Navigating from a particular row can carry snapshot-local insertion context into the create-rule workflow, allowing the UI to show “before” or “after” relative to the reviewed row. The eventual signed request still binds that anchor to the exact snapshot in which the occurrence number had meaning, so a later out-of-band change cannot silently retarget the insertion.
 
 ## Query and filtering pipeline
 
-Rule filtering is a composable client-side pipeline over the current family projection. `RuleQuery` is a collection of independent `RuleFilter` instances rather than one monolithic search predicate, which allows filters to be combined, added, removed, and edited without coupling unrelated semantics.
+Filtering is a composable client-side projection over the current family workspace. `RuleQuery` contains independent `RuleFilter` instances rather than one monolithic predicate, which lets filters be added, edited, removed, and combined without coupling unrelated semantics. The current filters cover action, direction, protocol, source and destination networks, source and destination or general port expressions, interfaces, reusable tag identity, and free-text search.
 
-The current filter set covers:
+Address matching is CIDR-aware, and filter editors use the selected rule family so IPv4 and IPv6 validation remains explicit. Known-host aliases can contribute human-facing context to an address field, but the filter still evaluates the underlying canonical address/network rather than turning the alias into part of firewall identity.
 
-- action;
-- direction;
-- protocol;
-- source/destination address or network;
-- source/destination/any port expressions;
-- interface;
-- reusable tag identity;
-- free-text search.
+Free-text search operates on a dedicated presentation/search projection instead of rendered HTML. Searchable content includes structural rule fields, comments, rule notes, tag names, canonical UFW command text, and compatible known-host aliases. Each filter produces structured match evidence, so the UI can explain that a row matched a note, tag, interface, address alias, or command fragment without reimplementing search rules inside Razor.
 
-Network matching is CIDR-aware, and filter editors use the selected address family so IPv4/IPv6 validation stays explicit. Known-host aliases can contribute human-facing context to network fields without becoming part of the canonical rule.
+Filtering and ordering preview are intentionally mutually exclusive. A filtered result is only a subset of the ordered family and therefore cannot provide an unambiguous drag/drop coordinate system. Conversely, changing the query while a reorder is staged would change the projection the user is reviewing. The interaction state enforces this at the workflow level rather than relying on each control to rediscover the invariant independently.
 
-Free-text search runs over a presentation/search projection rather than raw rendered HTML. Searchable text includes structural rule fields, comments, rule notes, tag names, canonical UFW command text, and compatible known-host aliases. Each match produces structured evidence describing which field/filter matched. The UI can therefore show a compact reason or bounded text context without recomputing search semantics in Razor.
+## Metadata, known hosts, and interfaces
 
-Filtering and ordering are mutually exclusive. A filtered result is not the complete ordered firewall family, so reorder controls are disabled whenever the query is active. Query changes are likewise disabled while an ordering preview is staged. The interaction state makes this invariant explicit rather than leaving each button/drag handler to decide independently.
+Rule metadata consists of optional notes and reusable tags attached to semantic rule identity. The same metadata editor can be used while editing an existing live rule or while preparing a new rule, but persistence follows firewall authority in different orders. For an existing rule, `Ufw.Web` confirms that the semantic identity is still live before saving metadata and the browser then reconciles the returned metadata into its loaded snapshot. For a new rule, the signed firewall mutation is confirmed first; only after the resulting semantic identity is known does the browser attach the prepared metadata. If that second request fails, the UI can report a metadata problem without misrepresenting the successful firewall mutation.
 
-## Rule metadata
+Tags have stable UUID identity independent of their display name or color. Renaming or recoloring a tag can therefore update loaded metadata and active tag filters without changing what those filters refer to. The tag chip itself is a shared visual component across list, detail, editor, and preview surfaces, so the preview is not a second approximation of the persisted rendering.
 
-Rule metadata consists of optional notes and reusable tags attached to semantic rule identity. The browser uses the same metadata editor when editing a live rule and while preparing a new rule.
+Known hosts and network interfaces both assist rule authoring, but their authority differs. Known hosts are ASP-owned aliases that resolve immediately to one literal canonical address or network. They can be cached for completion and search context because changing an alias cannot alter a firewall rule that already contains only the resolved literal value.
 
-For an existing rule, metadata persistence is independent from firewall mutation. The server confirms the semantic rule is still live before writing metadata, then the browser reconciles the returned metadata into its loaded enriched snapshot.
-
-For a new rule, metadata remains subordinate to firewall authority: the signed firewall mutation is completed and reconciled first. Only after the resulting semantic rule identity is known does the browser attach the prepared metadata. If that second operation fails, the user is told that metadata attachment failed while the successful firewall mutation remains successful.
-
-Tags have stable UUID identity, so renaming or recoloring a tag can update loaded metadata and configured tag filters without changing filter meaning. The visual tag chip is shared across list/detail/editor surfaces so preview and persisted presentation follow the same rendering path.
-
-## Known hosts and network interfaces
-
-Known-host and network-interface inventories both help rule authoring, but they have different authority models.
-
-Known hosts are ASP-owned aliases. The client can cache visible entries and use them for address completion/search context; selecting one immediately resolves to the literal canonical address/network used by rule semantics.
-
-Network interfaces originate from daemon/host inventory and are reconciled into ASP metadata. The client uses the resulting inventory for authoring, but the daemon still verifies interface existence at mutation time. The browser cache is therefore never the final authority for whether an interface can be used.
+Network interfaces originate from the host instead. `Ufw.Web` reconciles daemon-observed interface names with application metadata such as comments and visibility, and the browser uses that enriched inventory for suggestions. The daemon still checks the literal interface name against fresh host state immediately before add or ordered insertion, so a stale browser cache can never authorize use of an interface that no longer exists.
 
 ## Authentication and HTTP coordination
 
-The authentication feature keeps the short-lived access token in memory and coordinates login, refresh, and logout across same-origin tabs. HTTP handlers attach browser credentials and bearer tokens to the appropriate API clients and can perform the controlled one-time refresh/replay behavior required by the rotating refresh-cookie model.
+The authentication feature keeps the short-lived access token in memory and coordinates login, refresh, and logout across same-origin tabs. HTTP handlers attach bearer credentials where required and perform the controlled one-time refresh/replay behavior needed by the rotating refresh-cookie model. This coordination lives below Razor pages because token rotation is application behavior, not presentation behavior.
 
-This coordination is deliberately below Razor pages. Components react to authentication state and call feature services; they do not implement refresh-token races or manually construct authorization headers.
+Pages and components therefore react to authentication state and invoke feature/API abstractions; they do not construct authorization headers or resolve refresh races themselves. The same separation applies to errors: transport failures are interpreted at the API boundary, feature services decide what they mean for application state, and the UI decides how that state should be presented to the user.
 
-## Presentation ownership
+## Presentation and styling ownership
 
-Razor pages coordinate user interaction but should not absorb reusable domain logic. Page code-behind owns lifecycle and composition; feature services own projections, validation, signing, mutation reconciliation, and other behavior that can be expressed without UI lifecycle state.
+Razor pages coordinate lifecycle and user interaction, but reusable domain behavior should not accumulate there merely because a workflow starts from a page. Page code-behind is appropriate for component lifecycle, navigation, dialog composition, and other UI-specific coordination. Projection, validation, signing, mutation reconciliation, and similar behavior that can be tested without a renderer belongs in feature services.
 
-Component/page-specific Sass is colocated with its Razor owner. CSS isolation is opt-in for components whose rendered DOM is genuinely self-contained; styles that intentionally target MudBlazor-generated descendants or shared/portal markup remain globally compiled but colocated. The practical source conventions are documented in [Client UI development](../development/client-ui.md).
+Styles follow the same ownership principle. Component- and page-specific Sass is colocated with the Razor owner. CSS isolation is an opt-in for components that genuinely own the DOM they style; components that intentionally target MudBlazor-generated descendants, portal content, or shared framework markup use colocated global Sass instead of escaping isolation through pervasive `::deep`. The concrete source and Sass conventions are documented in [Client UI development](../development/client-ui.md).
 
-## Client invariants
+## What must remain true
 
-The browser architecture should preserve these constraints as features evolve:
+The browser can be refactored internally as long as a few boundaries remain intact. An authoritative firewall snapshot stays immutable input to derived presentation state, and a stale snapshot can remain visible without becoming mutation authority. Family-local positions remain presentation coordinates rather than durable identity, while filtering and search remain projections that cannot silently change rule semantics. Authoring conveniences resolve to literal firewall semantics before signing, and application metadata can enrich a live rule but cannot make that rule exist.
 
-- authoritative firewall snapshots are immutable inputs to derived presentation state;
-- stale snapshots may remain visible but are not mutation authority;
-- family-local positions are presentation coordinates, not durable rule identity;
-- filtering/search is derived and cannot silently change rule semantics;
-- query/filter and ordering-preview modes do not overlap;
-- authoring conveniences resolve to literal firewall semantics before signing;
-- rule metadata is applied only to a live semantic identity and cannot make a firewall rule exist;
-- API clients remain transport adapters rather than feature orchestration services;
-- feature/application layers do not depend on Razor UI types;
-- shared REST DTOs remain in `Ufw.Web.Model` rather than being duplicated in ASP/client projects.
+At the code-organization level, API clients remain transport adapters rather than workflow services, feature/application code remains independent from Razor component types, and shared REST DTOs remain in `Ufw.Web.Model` instead of drifting into separate browser and ASP copies. These constraints are more important than the exact class or directory names used to implement them.

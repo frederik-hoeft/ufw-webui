@@ -2,12 +2,7 @@
 
 UFWeb uses source generation to keep daemon routing and protocol serialization compatible with NativeAOT without making the analyzer depend on concrete runtime implementation types. The runtime-facing abstractions live in `Ufw.Roslyn`; the analyzer-only implementation lives in `Ufw.Roslyn.SourceGen`.
 
-The boundary follows two related patterns:
-
-- **Canonical Embedded Source Introspection (CESI)** supplies the small registration protocol that must exist on both sides of the analyzer boundary from one canonical source definition.
-- **Compile-Time Contract Discovery (CTCD)** lets runtime/framework code bind stable semantic generator roles to the concrete Roslyn symbols that fulfill those roles in the active compilation.
-
-The result is compile-time dependency inversion: generator logic reasons about semantic roles and resolved symbols instead of hard-coded runtime metadata names.
+The boundary uses two related mechanisms. **Canonical Embedded Source Introspection (CESI)** supplies the small registration protocol that must exist on both sides of the analyzer boundary from one canonical source definition. **Compile-Time Contract Discovery (CTCD)** then lets runtime/framework code bind stable semantic generator roles to the concrete Roslyn symbols that fulfill those roles in the active compilation. Together they provide compile-time dependency inversion: generator logic reasons about semantic roles and resolved symbols instead of hard-coded runtime metadata names.
 
 ## Component boundary
 
@@ -35,12 +30,9 @@ flowchart LR
 
 The registration protocol is authored as ordinary C# source inside the analyzer project and is both compiled into the analyzer assembly and embedded as source text. During Roslyn post-initialization, the analyzer injects the exact embedded source into analyzer-consuming compilations.
 
-The protocol consists of a generic contract-registration attribute plus cohesive contract vocabularies. The controller-routing generator and JSON generator deliberately use separate vocabularies:
+The protocol consists of a generic contract-registration attribute plus cohesive contract vocabularies. Controller routing and JSON serialization deliberately use different families. The controller family describes mapping triggers, controller registrations, routing attributes, endpoint mapping infrastructure, activation, and identifiable-response semantics. The JSON family describes JSON binding triggers, the AOT serializer-context abstraction, `JsonSerializable` metadata, and `JsonTypeInfo` metadata.
 
-- the **controller contract family** describes controller mapping triggers, controller registrations, routing attributes, endpoint mapping infrastructure, activation, and identifiable-response semantics;
-- the **JSON contract family** describes JSON binding triggers, the AOT serializer-context abstraction, `JsonSerializable` metadata, and `JsonTypeInfo` metadata.
-
-Separating the families is an architectural boundary rather than only an organizational choice. A generator resolves and validates only its own family, so JSON contract evolution cannot introduce controller requirements and controller contract evolution cannot introduce JSON requirements. An independent generator concern should normally define its own cohesive contract family instead of extending an unrelated vocabulary.
+That separation is an architectural boundary rather than only an organizational choice. A generator resolves and validates only its own family, so JSON contract evolution cannot introduce controller requirements and controller contract evolution cannot introduce JSON requirements. An independent generator concern should normally define its own cohesive contract family instead of extending an unrelated vocabulary.
 
 The enum values in each family are explicit protocol identifiers. They must remain stable for the lifetime of that contract family because independently compiled assemblies can carry registrations created from separately injected copies of the same protocol source.
 
@@ -50,15 +42,7 @@ The enum values in each family are explicit protocol identifiers. They must rema
 
 For each generator family, discovery scans the current compilation assembly and referenced assemblies through Roslyn's symbol graph. Registrations are recognized by the metadata identity of the canonical CESI protocol, then converted into a typed immutable binding used by the generator pipeline.
 
-Contract resolution is fail-closed once a family is present:
-
-- every required role in that family must be registered exactly once;
-- malformed or unknown registrations are build errors;
-- duplicate providers are build errors rather than reference-order-dependent selection;
-- missing required providers are build errors;
-- dependent generation stops when the family cannot be resolved safely.
-
-If no registrations for a contract family exist at all, that generator family is inactive for the compilation. This allows the analyzer package to be present without forcing unrelated projects to provide routing or JSON contracts they do not use.
+Once any registration for a contract family is present, resolution is fail-closed. Every required role must resolve exactly once; malformed or unknown registrations, duplicate providers, and missing providers are build errors rather than conditions that can be resolved by reference order or fallback behavior. Dependent source generation stops when the family cannot be resolved safely. If no registrations for a family exist at all, that generator remains inactive for the compilation, allowing the analyzer package to be present without forcing unrelated projects to provide routing or JSON contracts they do not use.
 
 ## Symbol-based generation
 

@@ -73,24 +73,11 @@ The host does not need a .NET SDK or NativeAOT toolchain. `deploy/systemd/publis
 
 ## Configuration and secrets
 
-[Deployment configuration](configuration.md) is the shared reference for:
-
-- Compose environment variables and image/bind settings;
-- ASP authentication/JWT/bootstrap configuration;
-- daemon UFW, IPC, timeout, and signed-intent security settings;
-- which process owns each private key or security-state file.
-
-The runbooks contain the concrete creation/permission commands because those differ between rootful and rootless hosts. Keep configuration reference and installation order separate: use the runbook to deploy and the configuration document to understand or customize a setting.
+[Deployment configuration](configuration.md) is the shared reference for Compose environment variables and image/bind settings, ASP authentication/JWT/bootstrap configuration, daemon UFW/IPC/timeout/signed-intent settings, and ownership of private keys and security-state files. The mode-specific runbooks keep the concrete creation and permission commands because those differ between rootful and rootless hosts. In practice, use the runbook to establish the deployment and the configuration reference when you need to understand or customize a setting.
 
 ## Verification and operations
 
-A healthy installation should establish each boundary separately rather than treating a loaded web page as proof that the firewall path works. The runbooks finish by verifying:
-
-- the public HTTPS frontend and static application assets;
-- `Ufw.Web` management health through nginx;
-- daemon liveness across the local IPC boundary;
-- authoritative UFW rule/configuration reads;
-- authenticated access and signed mutation authorization.
+A healthy installation should establish each boundary separately rather than treating a loaded web page as proof that the firewall path works. The deployment runbooks first verify the public HTTPS frontend and static application assets, then management health through nginx, daemon liveness across the local IPC boundary, and authoritative UFW rule/configuration reads. Authentication and a signed mutation exercise the remaining authorization path. This sequence makes it clear which boundary failed instead of collapsing frontend delivery, ASP health, daemon connectivity, and firewall access into one generic “application is down” result.
 
 After installation, use [Deployment operations](operations.md) for routine verification, PostgreSQL backups, daemon/container updates, rollback, reorder-recovery handling, and daemon uninstall.
 

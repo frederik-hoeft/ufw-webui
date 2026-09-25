@@ -37,13 +37,9 @@ Reusable domain behavior that does not depend on Razor lifecycle/DOM state shoul
 
 UFWeb uses a hybrid Sass model because Blazor CSS isolation works well for self-contained markup but poorly when a component intentionally styles MudBlazor-generated descendants, portal content, or shared child structures.
 
-Use these conventions:
+Use `MyComponent.razor.scss` when the component owns enough of its rendered DOM for normal scoped selectors to work. Use `MyComponent.scss` when the style is still owned by that component but must intentionally cross component or framework-generated DOM boundaries. Reserve `UI/Styles/` for genuinely global primitives and explicit framework/application integration rules.
 
-- `MyComponent.razor.scss` for **isolated** component CSS when the component owns the rendered DOM sufficiently for normal scoped selectors to work;
-- `MyComponent.scss` for **colocated global** Sass when selectors intentionally cross component/generated DOM boundaries;
-- `UI/Styles/` only for genuinely global primitives and intentional framework/application integration rules.
-
-Do not choose CSS isolation if the result is a large collection of `::deep` escape hatches. Isolation is a tool for real component ownership, not a goal by itself.
+Do not choose CSS isolation if the result is a large collection of `::deep` escape hatches. Isolation is a tool for real component ownership, not a goal by itself. The filename therefore communicates both source ownership and whether Blazor's scoped-CSS transform participates in the build.
 
 ### Isolated SCSS
 
