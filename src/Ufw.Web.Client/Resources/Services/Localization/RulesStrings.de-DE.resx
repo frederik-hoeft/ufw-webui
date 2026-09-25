@@ -1,5 +1,110 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -7,10 +112,10 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="RulesPageTitle" xml:space="preserve">
     <value>Firewallregeln</value>
@@ -402,9 +507,15 @@
   <data name="NoInterfaceMatches" xml:space="preserve">
     <value>Keine zwischengespeicherte Schnittstelle passt zu diesem Namen oder Kommentar. Sie können weiterhin einen Host-Schnittstellennamen eingeben.</value>
   </data>
-  <data name="CurrentAddressFamilyRules" xml:space="preserve"><value>Aktuelle {0}-Firewallregeln</value></data>
-  <data name="NoAddressFamilyRules" xml:space="preserve"><value>Keine {0}-Regeln</value></data>
-  <data name="NoAddressFamilyRulesDescription" xml:space="preserve"><value>Der autoritative UFW-Snapshot enthält keine {0}-Regeln.</value></data>
+  <data name="CurrentAddressFamilyRules" xml:space="preserve">
+    <value>Aktuelle {0}-Firewallregeln</value>
+  </data>
+  <data name="NoAddressFamilyRules" xml:space="preserve">
+    <value>Keine {0}-Regeln</value>
+  </data>
+  <data name="NoAddressFamilyRulesDescription" xml:space="preserve">
+    <value>Der autoritative UFW-Snapshot enthält keine {0}-Regeln.</value>
+  </data>
   <data name="CurrentFirewallRules" xml:space="preserve">
     <value>Aktuelle Firewallregeln</value>
   </data>
@@ -579,124 +690,358 @@
   <data name="OrderedInsertionResultUncertain" xml:space="preserve">
     <value>Ergebnis des Einfügens ist ungewiss</value>
   </data>
-  <data name="NoKnownHostMatches" xml:space="preserve"><value>Kein bekannter Host passt zu Name, Adresse oder Kommentar. Eine konkrete Adresse oder ein CIDR kann weiterhin direkt eingegeben werden.</value></data>
-  <data name="FirewallDefaults" xml:space="preserve"><value>Standardrichtlinien</value></data>
-  <data name="DefaultIncoming" xml:space="preserve"><value>Eingehend</value></data>
-  <data name="DefaultOutgoing" xml:space="preserve"><value>Ausgehend</value></data>
-  <data name="DefaultRouted" xml:space="preserve"><value>Weitergeleitet</value></data>
-  <data name="IPv6CapabilityEnabled" xml:space="preserve"><value>IPv6 aktiviert</value></data>
-  <data name="IPv6CapabilityDisabled" xml:space="preserve"><value>IPv6 deaktiviert</value></data>
-  <data name="RuleFiltersAria" xml:space="preserve"><value>Regelsuche und Filter</value></data>
-  <data name="SearchRules" xml:space="preserve"><value>Regeln durchsuchen</value></data>
-  <data name="SearchRulesPlaceholder" xml:space="preserve"><value>Kommentare, Metadaten, Adressen, Interfaces, Protokoll, Aktion oder Rohregeln durchsuchen</value></data>
-  <data name="ClearFilters" xml:space="preserve"><value>Zurücksetzen</value></data>
-  <data name="SourceNetworkFilter" xml:space="preserve"><value>Quellnetz</value></data>
-  <data name="DestinationNetworkFilter" xml:space="preserve"><value>Zielnetz</value></data>
-  <data name="PortFilter" xml:space="preserve"><value>Port</value></data>
-  <data name="ProtocolFilter" xml:space="preserve"><value>Protokoll</value></data>
-  <data name="ActionFilter" xml:space="preserve"><value>Aktion</value></data>
-  <data name="DirectionFilter" xml:space="preserve"><value>Richtung</value></data>
-  <data name="AppliedFilters" xml:space="preserve"><value>Aktive Filter</value></data>
-  <data name="InvalidPortFilter" xml:space="preserve"><value>Geben Sie einen Port, kommagetrennte Ports oder Portbereiche wie 443,8000:8100 ein.</value></data>
-  <data name="InvalidNetworkFilter" xml:space="preserve"><value>Geben Sie eine konkrete IP-Adresse oder ein CIDR-Netz ein.</value></data>
-  <data name="WrongFamilyNetworkFilter" xml:space="preserve"><value>Geben Sie für diese Regelliste eine {0}-Adresse oder ein {0}-CIDR ein.</value></data>
-  <data name="RuleMatchContextAria" xml:space="preserve"><value>Trefferkontext der Regel</value></data>
-  <data name="RuleMatchContextLabel" xml:space="preserve"><value>Treffer durch</value></data>
-  <data name="RuleEndpointAny" xml:space="preserve"><value>Endpunkt</value></data>
-  <data name="RawRule" xml:space="preserve"><value>Rohregel</value></data>
-  <data name="NoMatchingRules" xml:space="preserve"><value>Keine Regel entspricht dieser Abfrage</value></data>
-  <data name="NoMatchingRulesDescription" xml:space="preserve"><value>Passen Sie Suchbegriffe oder strukturierte Filter an, um Regeln dieser Adressfamilie anzuzeigen.</value></data>
-  <data name="FilteredRuleCount" xml:space="preserve"><value>{0} von {1} Regeln werden angezeigt</value></data>
-  <data name="FilteringDisablesOrdering" xml:space="preserve"><value>Entfernen Sie die aktive Abfrage, bevor bestehende Regeln neu angeordnet werden.</value></data>
-  <data name="AddFilter" xml:space="preserve"><value>Filter hinzufügen</value></data>
-  <data name="EditFilter" xml:space="preserve"><value>Filter bearbeiten</value></data>
-  <data name="SaveFilter" xml:space="preserve"><value>Filter speichern</value></data>
-  <data name="FilterSelectorSearch" xml:space="preserve"><value>Filter suchen</value></data>
-  <data name="FilterSelectorSearchPlaceholder" xml:space="preserve"><value>Nach Filtername oder Kategorie suchen</value></data>
-  <data name="BackToFilterSelector" xml:space="preserve"><value>Zurück zur Filterauswahl</value></data>
-  <data name="NoFiltersFound" xml:space="preserve"><value>Keine passenden Filter.</value></data>
-  <data name="FilterCategoryGeneral" xml:space="preserve"><value>Allgemein</value></data>
-  <data name="FilterCategoryAddressing" xml:space="preserve"><value>Adressierung</value></data>
-  <data name="FilterCategoryTraffic" xml:space="preserve"><value>Verkehr</value></data>
-  <data name="FilterCategoryRule" xml:space="preserve"><value>Regel</value></data>
-  <data name="FilterValueRequired" xml:space="preserve"><value>Geben Sie einen Wert für diesen Filter ein.</value></data>
-  <data name="FilterCategoryMetadata" xml:space="preserve"><value>Metadaten</value></data>
-  <data name="TagFilter" xml:space="preserve"><value>Tag</value></data>
-  <data name="Notes" xml:space="preserve"><value>Notizen</value></data>
-  <data name="RuleMetadata" xml:space="preserve"><value>Regel-Metadaten</value></data>
-  <data name="RuleMetadataAria" xml:space="preserve"><value>Regel-Metadaten-Details</value></data>
-  <data name="RuleMetadataDescription" xml:space="preserve"><value>Anwendungsseitiger Kontext für diese semantische Regel.</value></data>
-  <data name="EditMetadata" xml:space="preserve"><value>Metadaten bearbeiten</value></data>
-  <data name="NoRuleMetadata" xml:space="preserve"><value>Für diese Regel sind keine Notizen oder Tags hinterlegt.</value></data>
-  <data name="Tags" xml:space="preserve"><value>Tags</value></data>
-  <data name="EditMetadataDescription" xml:space="preserve"><value>Notizen und wiederverwendbare Tags hinzufügen, ohne die Firewall-Regel selbst zu ändern.</value></data>
-  <data name="NotesPlaceholder" xml:space="preserve"><value>Betriebskontext, Zuständigkeit oder andere hilfreiche Details hinzufügen</value></data>
-  <data name="RemoveTag" xml:space="preserve"><value>Tag {0} entfernen</value></data>
-  <data name="NoTagsAvailable" xml:space="preserve"><value>Es sind noch keine Tags definiert. Über „Tags verwalten“ kann ein Tag angelegt werden.</value></data>
-  <data name="AddTagToRule" xml:space="preserve"><value>Tag hinzufügen</value></data>
-  <data name="MetadataIdentityHint" xml:space="preserve"><value>Metadaten sind an die semantische Regelidentität gebunden und werden von identischen Regelvorkommen gemeinsam verwendet.</value></data>
-  <data name="SaveMetadata" xml:space="preserve"><value>Metadaten speichern</value></data>
-  <data name="ManageTags" xml:space="preserve"><value>Tags verwalten</value></data>
-  <data name="ManageTagsDescription" xml:space="preserve"><value>Wiederverwendbare Regel-Tags verwalten. Tag-Namen sind eindeutig; Farben dienen nur der visuellen Darstellung.</value></data>
-  <data name="CreateTag" xml:space="preserve"><value>Tag erstellen</value></data>
-  <data name="EditTag" xml:space="preserve"><value>Tag bearbeiten</value></data>
-  <data name="TagEditorAria" xml:space="preserve"><value>Regel-Tag-Editor</value></data>
-  <data name="TagName" xml:space="preserve"><value>Name</value></data>
-  <data name="TagColor" xml:space="preserve"><value>Farbe</value></data>
-  <data name="TagColorHex" xml:space="preserve"><value>Hex-Farbe</value></data>
-  <data name="SavingTag" xml:space="preserve"><value>Wird gespeichert...</value></data>
-  <data name="SaveTag" xml:space="preserve"><value>Tag speichern</value></data>
-  <data name="LoadingTags" xml:space="preserve"><value>Tags werden geladen...</value></data>
-  <data name="NoTagsDefined" xml:space="preserve"><value>Es wurden noch keine wiederverwendbaren Tags definiert.</value></data>
-  <data name="EditTagAria" xml:space="preserve"><value>Tag {0} bearbeiten</value></data>
-  <data name="DeleteTagAria" xml:space="preserve"><value>Tag {0} löschen</value></data>
-  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
-  <data name="DeleteTagConfirmation" xml:space="preserve"><value>Tag „{0}“ löschen?</value></data>
-  <data name="DeleteTagDescription" xml:space="preserve"><value>Tags, die noch Regel-Metadaten zugeordnet sind, können nicht gelöscht werden.</value></data>
-  <data name="DeleteTag" xml:space="preserve"><value>Tag löschen</value></data>
-  <data name="InvalidTagColor" xml:space="preserve"><value>Eine hexadezimale Farbe im Format #RRGGBB eingeben.</value></data>
-  <data name="TagSaved" xml:space="preserve"><value>Tag gespeichert.</value></data>
-  <data name="TagDeleted" xml:space="preserve"><value>Tag gelöscht.</value></data>
-  <data name="MetadataSaved" xml:space="preserve"><value>Regel-Metadaten gespeichert.</value></data>
-  <data name="ShowRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} anzeigen</value></data>
-  <data name="HideRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} ausblenden</value></data>
-  <data name="TagsColumn" xml:space="preserve"><value>Tags</value></data>
-  <data name="ReconcileMetadata" xml:space="preserve"><value>Metadaten abgleichen</value></data>
-  <data name="ReconcileMetadataDescription" xml:space="preserve"><value>Anwendungsmetadaten prüfen, deren semantische Regelidentität nicht mehr im autoritativen UFW-Snapshot vorhanden ist.</value></data>
-  <data name="LoadingMetadataReconciliation" xml:space="preserve"><value>Autoritative Regeln werden mit gespeicherten Metadaten abgeglichen…</value></data>
-  <data name="NoOrphanedMetadata" xml:space="preserve"><value>Keine nicht zugeordneten Metadaten</value></data>
-  <data name="NoOrphanedMetadataDescription" xml:space="preserve"><value>Jeder gespeicherte Metadatensatz entspricht derzeit einer autoritativen Firewall-Regel.</value></data>
-  <data name="OrphanedMetadata" xml:space="preserve"><value>Nicht zugeordnete Metadaten</value></data>
-  <data name="OrphanedMetadataNoContext" xml:space="preserve"><value>Für diesen Metadatensatz sind keine Notizen oder Tags hinterlegt.</value></data>
-  <data name="OrphanedMetadataCountOne" xml:space="preserve"><value>1 Metadatensatz entspricht keiner aktiven Firewall-Regel mehr.</value></data>
-  <data name="OrphanedMetadataCountMany" xml:space="preserve"><value>{0} Metadatensätze entsprechen keinen aktiven Firewall-Regeln mehr.</value></data>
-  <data name="SelectAll" xml:space="preserve"><value>Alle auswählen</value></data>
-  <data name="ClearSelection" xml:space="preserve"><value>Auswahl aufheben</value></data>
-  <data name="SelectedMetadataCount" xml:space="preserve"><value>{0} ausgewählt</value></data>
-  <data name="SelectOrphanedMetadata" xml:space="preserve"><value>Nicht zugeordnete Metadaten für Regelidentität {0} auswählen</value></data>
-  <data name="CleanupOrphanedMetadata" xml:space="preserve"><value>Nicht zugeordnete Metadaten entfernen</value></data>
-  <data name="CleanupOrphanedMetadataConfirmation" xml:space="preserve"><value>{0} ausgewählte Metadatensätze entfernen?</value></data>
-  <data name="CleanupOrphanedMetadataDescription" xml:space="preserve"><value>Der Server gleicht die ausgewählten Datensätze mit einem neuen autoritativen UFW-Snapshot ab und entfernt nur weiterhin nicht zugeordnete Datensätze.</value></data>
-  <data name="CleanupSelectedMetadata" xml:space="preserve"><value>Ausgewählte entfernen</value></data>
-  <data name="CleaningMetadata" xml:space="preserve"><value>Wird entfernt…</value></data>
-  <data name="MetadataCleanupCompleted" xml:space="preserve"><value>{0} nicht zugeordnete Metadatensätze entfernt.</value></data>
-  <data name="CanonicalCommand" xml:space="preserve"><value>Kanonischer Befehl</value></data>
-  <data name="CopyCanonicalCommand" xml:space="preserve"><value>Kanonischen Befehl kopieren</value></data>
-  <data name="CanonicalCommandCopied" xml:space="preserve"><value>Kanonischer Befehl kopiert.</value></data>
-  <data name="CanonicalCommandCopyFailed" xml:space="preserve"><value>Der kanonische Befehl konnte nicht kopiert werden.</value></data>
-  <data name="AddOrCreateTagPlaceholder" xml:space="preserve"><value>Tags suchen oder neuen Tag eingeben</value></data>
-  <data name="CreateInlineTag" xml:space="preserve"><value>Tag „{0}“ erstellen</value></data>
-  <data name="InlineTagCreationHint" xml:space="preserve"><value>Einen neuen Namen eingeben, um einen wiederverwendbaren Tag mit automatisch erzeugter Farbe zu erstellen.</value></data>
-  <data name="ReshuffleTagColor" xml:space="preserve"><value>Andere Tag-Farbe erzeugen</value></data>
-  <data name="MetadataManagementPageTitle" xml:space="preserve"><value>Regel-Metadaten</value></data>
-  <data name="MetadataManagementTitle" xml:space="preserve"><value>Regel-Metadaten</value></data>
+  <data name="NoKnownHostMatches" xml:space="preserve">
+    <value>Kein bekannter Host passt zu Name, Adresse oder Kommentar. Eine konkrete Adresse oder ein CIDR kann weiterhin direkt eingegeben werden.</value>
+  </data>
+  <data name="FirewallDefaults" xml:space="preserve">
+    <value>Standardrichtlinien</value>
+  </data>
+  <data name="DefaultIncoming" xml:space="preserve">
+    <value>Eingehend</value>
+  </data>
+  <data name="DefaultOutgoing" xml:space="preserve">
+    <value>Ausgehend</value>
+  </data>
+  <data name="DefaultRouted" xml:space="preserve">
+    <value>Weitergeleitet</value>
+  </data>
+  <data name="IPv6CapabilityEnabled" xml:space="preserve">
+    <value>IPv6 aktiviert</value>
+  </data>
+  <data name="IPv6CapabilityDisabled" xml:space="preserve">
+    <value>IPv6 deaktiviert</value>
+  </data>
+  <data name="RuleFiltersAria" xml:space="preserve">
+    <value>Regelsuche und Filter</value>
+  </data>
+  <data name="SearchRules" xml:space="preserve">
+    <value>Regeln durchsuchen</value>
+  </data>
+  <data name="SearchRulesPlaceholder" xml:space="preserve">
+    <value>Kommentare, Metadaten, Adressen, Interfaces, Protokoll, Aktion oder Rohregeln durchsuchen</value>
+  </data>
+  <data name="ClearFilters" xml:space="preserve">
+    <value>Zurücksetzen</value>
+  </data>
+  <data name="SourceNetworkFilter" xml:space="preserve">
+    <value>Quellnetz</value>
+  </data>
+  <data name="DestinationNetworkFilter" xml:space="preserve">
+    <value>Zielnetz</value>
+  </data>
+  <data name="PortFilter" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="ProtocolFilter" xml:space="preserve">
+    <value>Protokoll</value>
+  </data>
+  <data name="ActionFilter" xml:space="preserve">
+    <value>Aktion</value>
+  </data>
+  <data name="DirectionFilter" xml:space="preserve">
+    <value>Richtung</value>
+  </data>
+  <data name="AppliedFilters" xml:space="preserve">
+    <value>Aktive Filter</value>
+  </data>
+  <data name="InvalidPortFilter" xml:space="preserve">
+    <value>Geben Sie einen Port, kommagetrennte Ports oder Portbereiche wie 443,8000:8100 ein.</value>
+  </data>
+  <data name="InvalidNetworkFilter" xml:space="preserve">
+    <value>Geben Sie eine konkrete IP-Adresse oder ein CIDR-Netz ein.</value>
+  </data>
+  <data name="WrongFamilyNetworkFilter" xml:space="preserve">
+    <value>Geben Sie für diese Regelliste eine {0}-Adresse oder ein {0}-CIDR ein.</value>
+  </data>
+  <data name="RuleMatchContextAria" xml:space="preserve">
+    <value>Trefferkontext der Regel</value>
+  </data>
+  <data name="RuleMatchContextLabel" xml:space="preserve">
+    <value>Treffer durch</value>
+  </data>
+  <data name="RuleEndpointAny" xml:space="preserve">
+    <value>Endpunkt</value>
+  </data>
+  <data name="RawRule" xml:space="preserve">
+    <value>Rohregel</value>
+  </data>
+  <data name="NoMatchingRules" xml:space="preserve">
+    <value>Keine Regel entspricht dieser Abfrage</value>
+  </data>
+  <data name="NoMatchingRulesDescription" xml:space="preserve">
+    <value>Passen Sie Suchbegriffe oder strukturierte Filter an, um Regeln dieser Adressfamilie anzuzeigen.</value>
+  </data>
+  <data name="FilteredRuleCount" xml:space="preserve">
+    <value>{0} von {1} Regeln werden angezeigt</value>
+  </data>
+  <data name="FilteringDisablesOrdering" xml:space="preserve">
+    <value>Entfernen Sie die aktive Abfrage, bevor bestehende Regeln neu angeordnet werden.</value>
+  </data>
+  <data name="AddFilter" xml:space="preserve">
+    <value>Filter hinzufügen</value>
+  </data>
+  <data name="EditFilter" xml:space="preserve">
+    <value>Filter bearbeiten</value>
+  </data>
+  <data name="SaveFilter" xml:space="preserve">
+    <value>Filter speichern</value>
+  </data>
+  <data name="FilterSelectorSearch" xml:space="preserve">
+    <value>Filter suchen</value>
+  </data>
+  <data name="FilterSelectorSearchPlaceholder" xml:space="preserve">
+    <value>Nach Filtername oder Kategorie suchen</value>
+  </data>
+  <data name="BackToFilterSelector" xml:space="preserve">
+    <value>Zurück zur Filterauswahl</value>
+  </data>
+  <data name="NoFiltersFound" xml:space="preserve">
+    <value>Keine passenden Filter.</value>
+  </data>
+  <data name="FilterCategoryGeneral" xml:space="preserve">
+    <value>Allgemein</value>
+  </data>
+  <data name="FilterCategoryAddressing" xml:space="preserve">
+    <value>Adressierung</value>
+  </data>
+  <data name="FilterCategoryTraffic" xml:space="preserve">
+    <value>Verkehr</value>
+  </data>
+  <data name="FilterCategoryRule" xml:space="preserve">
+    <value>Regel</value>
+  </data>
+  <data name="FilterValueRequired" xml:space="preserve">
+    <value>Geben Sie einen Wert für diesen Filter ein.</value>
+  </data>
+  <data name="FilterCategoryMetadata" xml:space="preserve">
+    <value>Metadaten</value>
+  </data>
+  <data name="TagFilter" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Notes" xml:space="preserve">
+    <value>Notizen</value>
+  </data>
+  <data name="RuleMetadata" xml:space="preserve">
+    <value>Regel-Metadaten</value>
+  </data>
+  <data name="RuleMetadataAria" xml:space="preserve">
+    <value>Regel-Metadaten-Details</value>
+  </data>
+  <data name="RuleMetadataDescription" xml:space="preserve">
+    <value>Anwendungsseitiger Kontext für diese semantische Regel.</value>
+  </data>
+  <data name="EditMetadata" xml:space="preserve">
+    <value>Metadaten bearbeiten</value>
+  </data>
+  <data name="NoRuleMetadata" xml:space="preserve">
+    <value>Für diese Regel sind keine Notizen oder Tags hinterlegt.</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="EditMetadataDescription" xml:space="preserve">
+    <value>Notizen und wiederverwendbare Tags hinzufügen, ohne die Firewall-Regel selbst zu ändern.</value>
+  </data>
+  <data name="NotesPlaceholder" xml:space="preserve">
+    <value>Betriebskontext, Zuständigkeit oder andere hilfreiche Details hinzufügen</value>
+  </data>
+  <data name="RemoveTag" xml:space="preserve">
+    <value>Tag {0} entfernen</value>
+  </data>
+  <data name="NoTagsAvailable" xml:space="preserve">
+    <value>Es sind noch keine Tags definiert. Über „Tags verwalten“ kann ein Tag angelegt werden.</value>
+  </data>
+  <data name="AddTagToRule" xml:space="preserve">
+    <value>Tag hinzufügen</value>
+  </data>
+  <data name="MetadataIdentityHint" xml:space="preserve">
+    <value>Metadaten sind an die semantische Regelidentität gebunden und werden von identischen Regelvorkommen gemeinsam verwendet.</value>
+  </data>
+  <data name="SaveMetadata" xml:space="preserve">
+    <value>Metadaten speichern</value>
+  </data>
+  <data name="ManageTags" xml:space="preserve">
+    <value>Tags verwalten</value>
+  </data>
+  <data name="ManageTagsDescription" xml:space="preserve">
+    <value>Wiederverwendbare Regel-Tags verwalten. Tag-Namen sind eindeutig; Farben dienen nur der visuellen Darstellung.</value>
+  </data>
+  <data name="CreateTag" xml:space="preserve">
+    <value>Tag erstellen</value>
+  </data>
+  <data name="EditTag" xml:space="preserve">
+    <value>Tag bearbeiten</value>
+  </data>
+  <data name="TagEditorAria" xml:space="preserve">
+    <value>Regel-Tag-Editor</value>
+  </data>
+  <data name="TagName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="TagColor" xml:space="preserve">
+    <value>Farbe</value>
+  </data>
+  <data name="TagColorHex" xml:space="preserve">
+    <value>Hex-Farbe</value>
+  </data>
+  <data name="SavingTag" xml:space="preserve">
+    <value>Wird gespeichert...</value>
+  </data>
+  <data name="SaveTag" xml:space="preserve">
+    <value>Tag speichern</value>
+  </data>
+  <data name="LoadingTags" xml:space="preserve">
+    <value>Tags werden geladen...</value>
+  </data>
+  <data name="NoTagsDefined" xml:space="preserve">
+    <value>Es wurden noch keine wiederverwendbaren Tags definiert.</value>
+  </data>
+  <data name="EditTagAria" xml:space="preserve">
+    <value>Tag {0} bearbeiten</value>
+  </data>
+  <data name="DeleteTagAria" xml:space="preserve">
+    <value>Tag {0} löschen</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Schließen</value>
+  </data>
+  <data name="DeleteTagConfirmation" xml:space="preserve">
+    <value>Tag „{0}“ löschen?</value>
+  </data>
+  <data name="DeleteTagDescription" xml:space="preserve">
+    <value>Tags, die noch Regel-Metadaten zugeordnet sind, können nicht gelöscht werden.</value>
+  </data>
+  <data name="DeleteTag" xml:space="preserve">
+    <value>Tag löschen</value>
+  </data>
+  <data name="InvalidTagColor" xml:space="preserve">
+    <value>Eine hexadezimale Farbe im Format #RRGGBB eingeben.</value>
+  </data>
+  <data name="TagSaved" xml:space="preserve">
+    <value>Tag gespeichert.</value>
+  </data>
+  <data name="TagDeleted" xml:space="preserve">
+    <value>Tag gelöscht.</value>
+  </data>
+  <data name="MetadataSaved" xml:space="preserve">
+    <value>Regel-Metadaten gespeichert.</value>
+  </data>
+  <data name="ShowRuleMetadata" xml:space="preserve">
+    <value>Metadaten für Regel {0} anzeigen</value>
+  </data>
+  <data name="HideRuleMetadata" xml:space="preserve">
+    <value>Metadaten für Regel {0} ausblenden</value>
+  </data>
+  <data name="TagsColumn" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="ReconcileMetadata" xml:space="preserve">
+    <value>Metadaten abgleichen</value>
+  </data>
+  <data name="ReconcileMetadataDescription" xml:space="preserve">
+    <value>Anwendungsmetadaten prüfen, deren semantische Regelidentität nicht mehr im autoritativen UFW-Snapshot vorhanden ist.</value>
+  </data>
+  <data name="LoadingMetadataReconciliation" xml:space="preserve">
+    <value>Autoritative Regeln werden mit gespeicherten Metadaten abgeglichen…</value>
+  </data>
+  <data name="NoOrphanedMetadata" xml:space="preserve">
+    <value>Keine nicht zugeordneten Metadaten</value>
+  </data>
+  <data name="NoOrphanedMetadataDescription" xml:space="preserve">
+    <value>Jeder gespeicherte Metadatensatz entspricht derzeit einer autoritativen Firewall-Regel.</value>
+  </data>
+  <data name="OrphanedMetadata" xml:space="preserve">
+    <value>Nicht zugeordnete Metadaten</value>
+  </data>
+  <data name="OrphanedMetadataNoContext" xml:space="preserve">
+    <value>Für diesen Metadatensatz sind keine Notizen oder Tags hinterlegt.</value>
+  </data>
+  <data name="OrphanedMetadataCountOne" xml:space="preserve">
+    <value>1 Metadatensatz entspricht keiner aktiven Firewall-Regel mehr.</value>
+  </data>
+  <data name="OrphanedMetadataCountMany" xml:space="preserve">
+    <value>{0} Metadatensätze entsprechen keinen aktiven Firewall-Regeln mehr.</value>
+  </data>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Alle auswählen</value>
+  </data>
+  <data name="ClearSelection" xml:space="preserve">
+    <value>Auswahl aufheben</value>
+  </data>
+  <data name="SelectedMetadataCount" xml:space="preserve">
+    <value>{0} ausgewählt</value>
+  </data>
+  <data name="SelectOrphanedMetadata" xml:space="preserve">
+    <value>Nicht zugeordnete Metadaten für Regelidentität {0} auswählen</value>
+  </data>
+  <data name="CleanupOrphanedMetadata" xml:space="preserve">
+    <value>Nicht zugeordnete Metadaten entfernen</value>
+  </data>
+  <data name="CleanupOrphanedMetadataConfirmation" xml:space="preserve">
+    <value>{0} ausgewählte Metadatensätze entfernen?</value>
+  </data>
+  <data name="CleanupOrphanedMetadataDescription" xml:space="preserve">
+    <value>Der Server gleicht die ausgewählten Datensätze mit einem neuen autoritativen UFW-Snapshot ab und entfernt nur weiterhin nicht zugeordnete Datensätze.</value>
+  </data>
+  <data name="CleanupSelectedMetadata" xml:space="preserve">
+    <value>Ausgewählte entfernen</value>
+  </data>
+  <data name="CleaningMetadata" xml:space="preserve">
+    <value>Wird entfernt…</value>
+  </data>
+  <data name="MetadataCleanupCompleted" xml:space="preserve">
+    <value>{0} nicht zugeordnete Metadatensätze entfernt.</value>
+  </data>
+  <data name="CanonicalCommand" xml:space="preserve">
+    <value>Kanonischer Befehl</value>
+  </data>
+  <data name="CopyCanonicalCommand" xml:space="preserve">
+    <value>Kanonischen Befehl kopieren</value>
+  </data>
+  <data name="CanonicalCommandCopied" xml:space="preserve">
+    <value>Kanonischer Befehl kopiert.</value>
+  </data>
+  <data name="CanonicalCommandCopyFailed" xml:space="preserve">
+    <value>Der kanonische Befehl konnte nicht kopiert werden.</value>
+  </data>
+  <data name="AddOrCreateTagPlaceholder" xml:space="preserve">
+    <value>Tags suchen oder neuen Tag eingeben</value>
+  </data>
+  <data name="CreateInlineTag" xml:space="preserve">
+    <value>Tag „{0}“ erstellen</value>
+  </data>
+  <data name="InlineTagCreationHint" xml:space="preserve">
+    <value>Einen neuen Namen eingeben, um einen wiederverwendbaren Tag mit automatisch erzeugter Farbe zu erstellen.</value>
+  </data>
+  <data name="ReshuffleTagColor" xml:space="preserve">
+    <value>Andere Tag-Farbe erzeugen</value>
+  </data>
+  <data name="MetadataManagementPageTitle" xml:space="preserve">
+    <value>Regel-Metadaten</value>
+  </data>
+  <data name="MetadataManagementTitle" xml:space="preserve">
+    <value>Regel-Metadaten</value>
+  </data>
   <data name="MetadataManagementDescription" xml:space="preserve">
     <value>Wiederverwendbare Tags verwalten und Anwendungs-Metadaten abgleichen, die keiner aktiven Firewall-Regel mehr entsprechen.</value>
   </data>
   <data name="CreateRuleMetadataDescription" xml:space="preserve">
     <value>Optional Tags und Notizen an die neue semantische Regel anhängen. Die Metadaten werden nach dem Erstellen der Firewall-Regel gespeichert.</value>
   </data>
-  <data name="MetadataSaveAfterCreateFailed" xml:space="preserve"><value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden.</value></data>
-  <data name="MetadataSaveAfterCreateFailedWithReason" xml:space="preserve"><value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden: {0}</value></data>
-  <data name="KnownHost" xml:space="preserve"><value>Bekannter Host</value></data>
+  <data name="MetadataSaveAfterCreateFailed" xml:space="preserve">
+    <value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden.</value>
+  </data>
+  <data name="MetadataSaveAfterCreateFailedWithReason" xml:space="preserve">
+    <value>Die Firewall-Regel wurde erstellt, ihre Metadaten konnten jedoch nicht gespeichert werden: {0}</value>
+  </data>
+  <data name="KnownHost" xml:space="preserve">
+    <value>Bekannter Host</value>
+  </data>
+  <data name="Manage" xml:space="preserve">
+    <value>Verwalten</value>
+  </data>
+  <data name="Reconcile" xml:space="preserve">
+    <value>Abgleichen</value>
+  </data>
 </root>
