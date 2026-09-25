@@ -26,6 +26,7 @@
   <data name="CommentColumn" xml:space="preserve"><value>Kommentar</value></data>
   <data name="NoComment" xml:space="preserve"><value>Kein Kommentar</value></data>
   <data name="EditComment" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="EditCommentAria" xml:space="preserve"><value>Kommentar für {0} bearbeiten</value></data>
   <data name="EditCommentTitle" xml:space="preserve"><value>Schnittstellenkommentar bearbeiten</value></data>
   <data name="EditCommentDescription" xml:space="preserve"><value>Speichern Sie einen browserseitigen Kommentar für {0}. Diese Metadaten gehören zu ASP und beeinflussen die Firewall-Semantik nicht.</value></data>
   <data name="SaveComment" xml:space="preserve"><value>Kommentar speichern</value></data>

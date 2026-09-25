@@ -106,7 +106,7 @@
                 <MudTh>@HostsText["NameColumn"]</MudTh>
                 <MudTh>@HostsText["AddressColumn"]</MudTh>
                 <MudTh>@HostsText["CommentColumn"]</MudTh>
-                <MudTh Class="known-host-actions-column">@HostsText["ActionsColumn"]</MudTh>
+                <MudTh Class="known-host-actions-column"><span class="visually-hidden">@HostsText["ActionsColumn"]</span></MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="@(HostsText["VisibilityColumn"])" Class="known-host-visibility-column">
@@ -147,24 +147,11 @@
                     </span>
                 </MudTd>
                 <MudTd DataLabel="@(HostsText["ActionsColumn"])" Class="known-host-actions-column">
-                    <div>
-                        @if (context.AddressSource == KnownHostAddressSource.Dns)
-                        {
-                            <MudTooltip Text="@(HostsText["ReconcileDns"])">
-                                <MudIconButton Icon="@Icons.Material.Filled.Sync"
-                                               Size="Size.Small"
-                                               Disabled="@IsBusy"
-                                               OnClick="@(() => ReconcileDnsAsync(context))"
-                                               aria-label="@(HostsText["ReconcileDnsAria", context.Name])" />
-                            </MudTooltip>
-                        }
-                        <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@IsBusy" OnClick="@(() => EditAsync(context))">
-                            @HostsText["EditHost"]
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Disabled="@IsBusy" OnClick="@(() => DeleteAsync(context))">
-                            @HostsText["DeleteHost"]
-                        </MudButton>
-                    </div>
+                    <KnownHostActionsMenu Host="@context"
+                                          Disabled="@IsBusy"
+                                          EditRequested="EditAsync"
+                                          ReconcileDnsRequested="ReconcileDnsAsync"
+                                          DeleteRequested="DeleteAsync" />
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -203,25 +190,11 @@
                         </span>
                     </div>
                     <div class="inventory-mobile-actions">
-                        @if (host.AddressSource == KnownHostAddressSource.Dns)
-                        {
-                            <MudIconButton Icon="@Icons.Material.Filled.Sync"
-                                           Size="Size.Small"
-                                           Disabled="@IsBusy"
-                                           OnClick="@(() => ReconcileDnsAsync(host))"
-                                           aria-label="@(HostsText["ReconcileDnsAria", host.Name])" />
-                        }
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Size="Size.Small"
-                                       Disabled="@IsBusy"
-                                       OnClick="@(() => EditAsync(host))"
-                                       aria-label="@(HostsText["EditHostAria", host.Name])" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Color="Color.Error"
-                                       Size="Size.Small"
-                                       Disabled="@IsBusy"
-                                       OnClick="@(() => DeleteAsync(host))"
-                                       aria-label="@(HostsText["DeleteHostAria", host.Name])" />
+                        <KnownHostActionsMenu Host="@host"
+                                              Disabled="@IsBusy"
+                                              EditRequested="EditAsync"
+                                              ReconcileDnsRequested="ReconcileDnsAsync"
+                                              DeleteRequested="DeleteAsync" />
                     </div>
                 </article>
             }

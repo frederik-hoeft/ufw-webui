@@ -26,6 +26,7 @@
   <data name="AddressColumn" xml:space="preserve"><value>Address / CIDR</value></data>
   <data name="CommentColumn" xml:space="preserve"><value>Comment</value></data>
   <data name="ActionsColumn" xml:space="preserve"><value>Actions</value></data>
+  <data name="ActionsForHost" xml:space="preserve"><value>Actions for {0}</value></data>
   <data name="NoComment" xml:space="preserve"><value>No comment</value></data>
   <data name="ShowInSuggestions" xml:space="preserve"><value>Show in rule-editor suggestions</value></data>
   <data name="HideFromRuleEditor" xml:space="preserve"><value>Hide {0} from rule-editor suggestions</value></data>

@@ -26,6 +26,7 @@
   <data name="CommentColumn" xml:space="preserve"><value>Comment</value></data>
   <data name="NoComment" xml:space="preserve"><value>No comment</value></data>
   <data name="EditComment" xml:space="preserve"><value>Edit</value></data>
+  <data name="EditCommentAria" xml:space="preserve"><value>Edit comment for {0}</value></data>
   <data name="EditCommentTitle" xml:space="preserve"><value>Edit interface comment</value></data>
   <data name="EditCommentDescription" xml:space="preserve"><value>Store a browser-facing comment for {0}. This metadata belongs to ASP and does not affect firewall semantics.</value></data>
   <data name="SaveComment" xml:space="preserve"><value>Save comment</value></data>
