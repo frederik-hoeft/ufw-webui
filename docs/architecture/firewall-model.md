@@ -56,6 +56,30 @@ Add requests may be family-neutral when their semantic fields do not force IPv4 
 
 UFW does not retain one cross-family evaluation order. IPv4 and IPv6 rules are stored and evaluated in separate rule sets, and `ufw status numbered` presents them as one deterministic sequence by concatenating the IPv4 partition before the IPv6 partition. Relative placement between an IPv4 row and an IPv6 row therefore has no packet-processing meaning; only ordering within one concrete family affects first-match behavior. The browser reflects that model with separate IPv4 and IPv6 family workspaces and permits reordering only inside the active family. User-facing positions, ordering previews, move targets, and operation reports are one-based within that family. The combined numbered sequence remains authoritative snapshot/protocol data used by signed intents and daemon-side UFW command planning, but it is not exposed as the browser's ordering coordinate.
 
+The same rows therefore participate in two coordinate systems for different reasons. The combined projection is the stable snapshot representation used for fingerprinting and daemon/UFW addressing, while the browser exposes only the family-local order that has actual first-match semantics.
+
+```mermaid
+flowchart TB
+    UfwStatus[ufw status numbered\nauthoritative combined projection]
+    V4[IPv4 partition\ncombined rows 1..N]
+    V6[IPv6 partition\ncombined rows N+1..M]
+    Fingerprint[Snapshot fingerprint +\noccurrence IDs]
+    V4Ui[Browser IPv4 workspace\npositions 1..N]
+    V6Ui[Browser IPv6 workspace\npositions 1..K]
+    Planner[Daemon family-local\nordering plan]
+    Cli[Combined UFW CLI\ninsert/delete coordinate]
+
+    UfwStatus --> V4
+    UfwStatus --> V6
+    UfwStatus --> Fingerprint
+    V4 --> V4Ui
+    V6 --> V6Ui
+    V4Ui -->|reorder only within family| Planner
+    V6Ui -->|reorder only within family| Planner
+    Fingerprint -->|bind reviewed baseline| Planner
+    Planner -->|translate target slot| Cli
+```
+
 A family-neutral add does not create a durable UFW object linking its two materializations. Once listed, the resulting IPv4 and IPv6 rows are ordinary concrete rules and may also be indistinguishable from rules added independently. The application therefore does not infer or display a synthetic pairing between them; semantic similarity across the two UFW partitions is not evidence of shared identity.
 
 The IPv6 capability is host configuration, not a property inferred from the current rule set. The browser uses the capability from the authoritative rule snapshot to disable IPv6 authoring and IPv6 known-host suggestions, while the daemon independently enforces it for append and ordered-insertion mutations. Per-rule address-family validation remains separate: a structurally IPv6 rule is still IPv6 regardless of whether the current host permits creating it.

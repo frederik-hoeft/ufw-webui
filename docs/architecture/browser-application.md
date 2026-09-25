@@ -17,6 +17,26 @@ Ufw.Web.Client/
   UI/              Razor presentation and styles
 ```
 
+The directory split is also a dependency boundary. Transport contracts and browser-wide capabilities flow inward toward application behavior and presentation; feature code does not reach back into Razor types simply because a workflow happens to be initiated by a page.
+
+```mermaid
+flowchart LR
+    Model[Ufw.Web.Model\nversioned REST DTOs]
+    Configuration[Configuration\npublic runtime settings]
+    Api[Api\nHTTP transport]
+    Services[Services\ndomain-agnostic browser capabilities]
+    Features[Features\napplication and domain behavior]
+    UI[UI\nRazor interaction and presentation]
+
+    Model -->|wire contracts| Api
+    Configuration -->|API endpoint/runtime settings| Api
+    Api -->|typed remote operations| Features
+    Services -->|shared browser capabilities| Features
+    Api -->|simple resource access where appropriate| UI
+    Features -->|state, projections, workflows| UI
+    Services -->|localization, storage, theming, clipboard| UI
+```
+
 The shared `Ufw.Web.Model` project sits outside the client and contains pure, versioned REST DTOs consumed by both ASP and Blazor. Keeping those models outside `Api` is deliberate: the client owns how it calls the REST API, but it does not own the wire contract by itself.
 
 `Api` is therefore a transport boundary rather than an application layer. Its resource namespaces mirror the browser-visible ASP resources such as authentication, intent context, rules, rule metadata, tags, known hosts, network interfaces, and status. Typed API clients know how to serialize a request, send it, and interpret protocol-level failures. They do not decide how an uncertain mutation changes page state, how a reorder preview should be reconciled, or how several API calls combine into one user workflow.

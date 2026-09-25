@@ -20,6 +20,34 @@ A signed intent answers a narrower and more privileged question: did an administ
 
 A normal browser mutation therefore has to cross both planes. Losing either one is sufficient to reject the operation: a valid web session cannot manufacture firewall authority, and possession of a mutation key does not by itself grant unauthenticated access to the REST workflow.
 
+The two checks deliberately happen in different processes and use different state. The JWT gates access to the web workflow, while the daemon accepts a privileged mutation only after independently validating the browser-produced intent against operator-managed key material.
+
+```mermaid
+flowchart LR
+    Browser[Browser]
+    PrivateKey[Administrator private key\nsupplied to browser]
+    Ufw[UFW]
+
+    subgraph WebPlane[Web authorization plane]
+        Web[Ufw.Web]
+        Identity[(ASP.NET Identity +\nrefresh-token state)]
+        Web -->|authenticate + persist session state| Identity
+    end
+
+    subgraph MutationPlane[Firewall mutation authorization plane]
+        Daemon[Ufw.Systemd]
+        PublicKeys[(Authorized public keys)]
+        Daemon -->|verify signature against| PublicKeys
+    end
+
+    Browser -->|credentials / refresh cookie| Web
+    Web -->|short-lived access JWT| Browser
+    Browser -->|Bearer JWT + signed intent| Web
+    PrivateKey -->|sign exact mutation| Browser
+    Web -->|authenticated relay of signed intent| Daemon
+    Daemon -->|validated semantic mutation| Ufw
+```
+
 ## Signed mutation authorization
 
 Append add, ordered insertion, delete, and reorder use the versioned contract defined in [Signed mutation intent v2](../protocols/signed-intent.md). Every intent binds the protocol domain, daemon deployment identity, authorized-key identifier, issuance time, random nonce, and operation name. The operation payload then binds exactly the state that makes that operation meaningful. Append add covers the complete normalized rule. Ordered insertion covers the new rule together with the exact reviewed-snapshot fingerprint, one snapshot-local anchor occurrence, and before/after placement. Delete covers the normalized rule plus semantic rule identity. Reorder covers the exact reviewed-snapshot fingerprint and the complete desired occurrence permutation.
