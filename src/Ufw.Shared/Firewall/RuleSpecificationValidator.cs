@@ -238,6 +238,6 @@ public static partial class RuleSpecificationValidator
     [GeneratedRegex(@"^[1-9][0-9]{0,4}(:[1-9][0-9]{0,4})?(,[1-9][0-9]{0,4}(:[1-9][0-9]{0,4})?)*$", RegexOptions.CultureInvariant)]
     private static partial Regex PortsRegex { get; }
 
-    [GeneratedRegex(@"^[A-Za-z0-9 ._@:+/=-]+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^[A-Za-z0-9 ._@:+/=<>()-]+$", RegexOptions.CultureInvariant)]
     private static partial Regex CommentRegex { get; }
 }

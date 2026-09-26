@@ -8,9 +8,11 @@
     gap: 0.25rem;
 
     > strong {
+        flex: 0 0 auto;
         color: var(--mud-palette-text-secondary);
         font-size: 0.6875rem;
         font-weight: 600;
+        white-space: nowrap;
     }
 }
 
@@ -135,6 +137,14 @@
         justify-content: flex-end;
         gap: 0.25rem;
         margin-left: auto;
+    }
+
+    .rule-metadata-collapse-button {
+        width: 1.75rem;
+        height: 1.75rem;
+        min-width: 1.75rem;
+        min-height: 1.75rem;
+        padding: 0.25rem;
     }
 
     > .rule-metadata-columns {

@@ -30,6 +30,19 @@ public sealed class RuleSpecificationValidatorTests
     }
 
     [TestMethod]
+    public void TestValidate_AcceptsNaturalCommentPunctuation()
+    {
+        FirewallRuleSpecification specification = new()
+        {
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            Comment = "client (foo) -> server <bar>",
+        };
+
+        Assert.HasCount(0, RuleSpecificationValidator.Validate(specification));
+    }
+
+    [TestMethod]
     public void TestValidate_ReportsFieldSpecificSemanticErrors()
     {
         FirewallRuleSpecification specification = new()

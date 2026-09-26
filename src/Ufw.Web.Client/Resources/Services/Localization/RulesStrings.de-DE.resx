@@ -384,7 +384,7 @@
     <value>Reihenfolge</value>
   </data>
   <data name="RulePositionColumn" xml:space="preserve">
-    <value>Position</value>
+    <value>#</value>
   </data>
   <data name="ActionColumn" xml:space="preserve">
     <value>Aktion</value>
@@ -853,7 +853,6 @@
   <data name="TagSaved" xml:space="preserve"><value>Tag gespeichert.</value></data>
   <data name="TagDeleted" xml:space="preserve"><value>Tag gelöscht.</value></data>
   <data name="MetadataSaved" xml:space="preserve"><value>Regel-Metadaten gespeichert.</value></data>
-  <data name="ShowRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} anzeigen</value></data>
   <data name="HideRuleMetadata" xml:space="preserve"><value>Metadaten für Regel {0} ausblenden</value></data>
   <data name="TagsColumn" xml:space="preserve"><value>Tags</value></data>
   <data name="ReconcileMetadata" xml:space="preserve"><value>Metadaten abgleichen</value></data>
