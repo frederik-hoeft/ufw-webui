@@ -25,11 +25,11 @@ The stack has independent versions because each version answers a different comp
 | ITP wire version | `1` | bytes after the stable ITP preamble |
 | Application protocol | `1` | JSON request/response envelope and payload representations |
 | Daemon route version | `/api/v1/...` | typed endpoint contract |
-| Signed-intent protocol | `2` | canonical mutation authorization and rule semantics |
+| Signed-intent protocol | `2` | shared canonical mutation-authorization envelope and semantics across signed operations |
 
 A peer MUST reject an unsupported version at the layer that owns it. There is no negotiation or fallback between versions.
 
-A route version does not imply a wire version, and an application-protocol version does not imply a signed-intent version. In particular, unsigned read routes and signed mutation routes can coexist inside the same application-protocol version.
+A route version does not imply a wire version, and an application-protocol version does not imply a signed-intent version. In particular, unsigned read routes and signed mutation routes can coexist inside the same application-protocol version. Adding a signed mutation operation with its own canonical payload does not change signed-intent v2; the global signed-intent version is reserved for incompatible changes to the shared envelope, canonicalization domain, or verification semantics that apply across the signed operation set.
 
 ## Connection lifecycle
 
@@ -66,6 +66,6 @@ Caller cancellation and daemon shutdown remain cancellation signals. They are no
 
 - [ITP v1](itp.md) defines the stable bootstrap, v1 frame layout, packet registry, transport errors, and receiver requirements.
 - [Application IPC protocol v1](application-protocol.md) defines the JSON envelope, payload representations, typed binding rules, and application-level errors.
-- [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for append add, ordered insertion, delete, and reorder operations, including canonicalization, replay protection, semantic delete identity, and exact-snapshot occurrence authority.
+- [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for append add, ordered insertion, single/batch delete, and reorder operations, including canonicalization, replay protection, semantic delete identity, and exact-snapshot occurrence authority.
 
 For the architectural role of IPC, see [UFWeb Architecture](../architecture/architecture-overview.md). For production socket ownership and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).

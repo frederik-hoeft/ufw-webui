@@ -21,7 +21,7 @@ public sealed class InsertIntentCanonicalizerTests
         string canonical = Encoding.UTF8.GetString(IntentCanonicalizer.CanonicalizeInsert(intent, payload));
 
         Assert.AreEqual(
-            "ufw-intent/3\n"
+            "ufw-intent/2\n"
             + "deploymentId=deployment\n"
             + "keyId=key\n"
             + "issuedAtUnix=123\n"
