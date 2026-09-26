@@ -1,0 +1,44 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IRuleGroupCatalogService GroupCatalog
+@inject IClientErrorMapper ClientErrors
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudDialog>
+    <DialogContent>
+        <div class="rule-group-editor">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(Group is null ? RulesText["CreateGroupDescription"] : RulesText["EditGroupDescription"])
+            </MudText>
+
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" role="alert">@_error.Message</MudAlert>
+            }
+
+            <MudTextField T="string"
+                          Label="@(RulesText["GroupName"])"
+                          @bind-Value="_name"
+                          Immediate="true"
+                          Required="true"
+                          Counter="@MAX_GROUP_NAME_LENGTH"
+                          MaxLength="@MAX_GROUP_NAME_LENGTH"
+                          Disabled="@_saving"
+                          autofocus="true" />
+            <MudTextField T="string"
+                          Label="@(RulesText["GroupComment"])"
+                          @bind-Value="_comment"
+                          Immediate="true"
+                          Lines="4"
+                          Counter="@MAX_GROUP_COMMENT_LENGTH"
+                          MaxLength="@MAX_GROUP_COMMENT_LENGTH"
+                          Disabled="@_saving" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="@_saving" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanSave)" OnClick="SaveAsync">
+            @(_saving ? RulesText["SavingGroup"] : RulesText["SaveGroup"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>

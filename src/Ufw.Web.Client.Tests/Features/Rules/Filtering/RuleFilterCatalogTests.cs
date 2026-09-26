@@ -1,6 +1,7 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Actions;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Directions;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Groups;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Networks;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Ports;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Protocols;
@@ -9,6 +10,7 @@ using Ufw.Web.Client.UI.Components.Rules.Filtering.Text;
 using Ufw.Web.Client.UI.Components.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
+using Ufw.Web.Client.Features.Rules.Filtering.Groups;
 using Ufw.Web.Client.Features.Rules.Filtering.Networks;
 using Ufw.Web.Client.Features.Rules.Filtering.Ports;
 using Ufw.Web.Client.Features.Rules.Filtering.Protocols;
@@ -31,7 +33,7 @@ public sealed class RuleFilterCatalogTests
 
         Assert.AreEqual(definitions.Count, definitions.Select(static definition => definition.Key).Distinct(StringComparer.Ordinal).Count());
         Assert.IsTrue(definitions.All(static definition => typeof(IRuleFilterEditor).IsAssignableFrom(definition.EditorComponentType)));
-        Assert.HasCount(7, definitions.Where(static definition => definition.Selectable));
+        Assert.HasCount(8, definitions.Where(static definition => definition.Selectable));
         Assert.IsFalse(definitions.Single(static definition => definition.Key == "text").Selectable);
     }
 
@@ -62,11 +64,12 @@ public sealed class RuleFilterCatalogTests
             new ActionRuleFilter(FirewallAction.Allow),
             new DirectionRuleFilter(FirewallDirection.In),
             new TagRuleFilter(new RuleTag(Guid.CreateVersion7(), "prod", "#336699")),
+            new GroupRuleFilter(new RuleGroup(Guid.CreateVersion7(), "ops", null, [])),
         ];
 
         string[] keys = filters.Select(filter => _catalog.Resolve(filter).Key).ToArray();
 
-        CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag" }, keys);
+        CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag", "group" }, keys);
     }
 
     [TestMethod]
@@ -105,6 +108,7 @@ public sealed class RuleFilterCatalogTests
         new ActionRuleFilterDefinitionProvider(),
         new DirectionRuleFilterDefinitionProvider(),
         new TagRuleFilterDefinitionProvider(),
+        new GroupRuleFilterDefinitionProvider(),
         new TextRuleFilterDefinitionProvider(),
     ]);
 

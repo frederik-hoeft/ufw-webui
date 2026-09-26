@@ -21,10 +21,16 @@ public sealed partial class RuleActionsMenu
     public bool MutationDisabled { get; set; }
 
     [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
     public bool CanOrder { get; set; }
 
     [Parameter]
     public bool CanMutate { get; set; }
+
+    [Parameter]
+    public EventCallback MetadataEditRequested { get; set; }
 
     [Parameter]
     public EventCallback MoveToPositionRequested { get; set; }

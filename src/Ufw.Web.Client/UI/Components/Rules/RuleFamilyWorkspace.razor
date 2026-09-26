@@ -4,10 +4,12 @@
 
 <section aria-labelledby="firewall-rule-list-heading" class="rule-family-workspace">
     <h2 id="firewall-rule-list-heading" class="visually-hidden">@RulesText["CurrentAddressFamilyRules", RuleText.FormatAddressFamily(Family.AddressFamily)]</h2>
-    <RuleListToolbar Query="@Query"
-                     AddressFamily="@Family.AddressFamily"
-                     Disabled="@QueryChangesDisabled"
-                     QueryChanged="@QueryChanged" />
+    @if (!QueryChangesDisabled)
+    {
+        <RuleListToolbar Query="@Query"
+                         AddressFamily="@Family.AddressFamily"
+                         QueryChanged="@QueryChanged" />
+    }
     <MudPaper Elevation="0" Class="surface">
         @if (Loading)
         {

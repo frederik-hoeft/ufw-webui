@@ -234,10 +234,10 @@ namespace Ufw.Web.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("Address");
 
-                    b.Property<Ufw.Web.Model.V1.KnownHosts.KnownHostAddressSource>("AddressSource")
+                    b.Property<int>("AddressSource")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(Ufw.Web.Model.V1.KnownHosts.KnownHostAddressSource.Literal)
+                        .HasDefaultValue(0)
                         .HasColumnName("AddressSource");
 
                     b.Property<string>("Comment")
@@ -404,6 +404,41 @@ namespace Ufw.Web.Data.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleGroupEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("Comment");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("citext")
+                        .HasColumnName("Name");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("PublicId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.ToTable("RuleGroups", (string)null);
+                });
+
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
                 {
                     b.Property<long>("Id")
@@ -412,6 +447,10 @@ namespace Ufw.Web.Data.Migrations
                         .HasColumnName("Id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("GroupId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("GroupId");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(4000)
@@ -429,6 +468,8 @@ namespace Ufw.Web.Data.Migrations
                         .HasColumnName("RuleId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
@@ -565,6 +606,16 @@ namespace Ufw.Web.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
+                {
+                    b.HasOne("Ufw.Web.Data.Model.RuleGroupEntry", "Group")
+                        .WithMany("RuleMetadata")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataTagEntry", b =>
                 {
                     b.HasOne("Ufw.Web.Data.Model.RuleMetadataEntry", "RuleMetadata")
@@ -582,6 +633,11 @@ namespace Ufw.Web.Data.Migrations
                     b.Navigation("RuleMetadata");
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleGroupEntry", b =>
+                {
+                    b.Navigation("RuleMetadata");
                 });
 
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>

@@ -13,6 +13,7 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
     private const string RULES_PATH = "api/v1/rules";
     private static readonly Uri s_rulesUri = new(RULES_PATH, UriKind.Relative);
     private static readonly Uri s_ruleInsertUri = new("api/v1/rules/insert", UriKind.Relative);
+    private static readonly Uri s_ruleBatchDeleteUri = new("api/v1/rules/batch", UriKind.Relative);
     private static readonly Uri s_ruleOrderUri = new("api/v1/rules/order", UriKind.Relative);
 
     public async Task<RuleInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken = default)
@@ -50,6 +51,22 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
         };
         using HttpResponseMessage response = await httpClient.SendAsync(httpRequest, cancellationToken);
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleMutationResponse, cancellationToken);
+    }
+
+    public async Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        using HttpRequestMessage httpRequest = new(HttpMethod.Delete, s_ruleBatchDeleteUri)
+        {
+            Content = JsonContent.Create(request, MessageJsonSerializerContext.Default.BatchDeleteRulesRequest),
+        };
+        using HttpResponseMessage response = await httpClient.SendAsync(httpRequest, cancellationToken);
+        return await response.ReadTransactionResponseAsync(
+            MessageJsonSerializerContext.Default.RuleBatchDeleteResponse,
+            static candidate => candidate.Operations is not null
+                && candidate.PendingOccurrenceIds is not null
+                && (candidate.Outcome == RuleBatchDeleteOutcome.StateUncertain || candidate.FinalSnapshot is not null),
+            cancellationToken);
     }
 
     public async Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default)

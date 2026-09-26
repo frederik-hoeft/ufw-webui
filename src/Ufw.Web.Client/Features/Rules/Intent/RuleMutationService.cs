@@ -30,6 +30,25 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
         return await ruleApiClient.DeleteRuleAsync(request, cancellationToken);
     }
 
+    public async Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(
+        RuleListResponse baseline,
+        IReadOnlyList<int> occurrenceIds,
+        string privateKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(baseline);
+        ArgumentNullException.ThrowIfNull(occurrenceIds);
+        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
+        string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
+        BatchDeleteRulesRequest request = await intentSigningService.CreateBatchDeleteRulesRequestAsync(
+            context.DeploymentId,
+            baselineFingerprint,
+            occurrenceIds,
+            privateKey,
+            cancellationToken);
+        return await ruleApiClient.BatchDeleteRulesAsync(request, cancellationToken);
+    }
+
     public async Task<RuleInsertionResponse> InsertRuleAsync(
         RuleListResponse baseline,
         int anchorOccurrenceId,

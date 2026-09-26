@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
+using Ufw.Web.Client.Features.Rules.Filtering.Groups;
 using Ufw.Web.Client.Features.Rules.Filtering.Networks;
 using Ufw.Web.Client.Features.Rules.Filtering.Ports;
 using Ufw.Web.Client.Features.Rules.Filtering.Protocols;
@@ -23,6 +24,7 @@ public sealed partial class RuleMatchContext
         NetworkRuleMatchEvidence network => $"{DescribeEndpoint(network.Endpoint)}: {network.RuleNetwork}",
         PortRuleMatchEvidence ports => $"{DescribeEndpoint(ports.Endpoint)} {RulesText["PortFilter"]}: {ports.RulePorts}",
         TagRuleMatchEvidence tag => $"{RulesText["TagFilter"]}: {tag.Tag.Name}",
+        GroupRuleMatchEvidence group => $"{RulesText["GroupFilter"]}: {group.Group.Name}",
         _ => evidence.GetType().Name,
     };
 
@@ -53,6 +55,8 @@ public sealed partial class RuleMatchContext
         TextRuleMatchEvidence.FieldKind.Protocol => RulesText["Protocol"],
         TextRuleMatchEvidence.FieldKind.Notes => RulesText["Notes"],
         TextRuleMatchEvidence.FieldKind.Tag => RulesText["TagFilter"],
+        TextRuleMatchEvidence.FieldKind.GroupName => RulesText["Group"],
+        TextRuleMatchEvidence.FieldKind.GroupComment => RulesText["GroupComment"],
         TextRuleMatchEvidence.FieldKind.CanonicalCommand => RulesText["CanonicalCommand"],
         TextRuleMatchEvidence.FieldKind.SourceKnownHost => $"{RulesText["FromColumn"]} {RulesText["KnownHost"]}",
         TextRuleMatchEvidence.FieldKind.DestinationKnownHost => $"{RulesText["ToColumn"]} {RulesText["KnownHost"]}",

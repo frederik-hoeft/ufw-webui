@@ -4,4 +4,5 @@ internal enum RuleMetadataSaveOutcome
 {
     Success,
     TagNotFound,
+    GroupNotFound,
 }

@@ -80,11 +80,11 @@ public sealed class UfwRuleCommandRendererTests
         {
             Action = FirewallAction.Allow,
             Direction = FirewallDirection.In,
-            Comment = "SSH access",
+            Comment = "client (foo) -> server <bar>",
         });
 
-        Assert.AreEqual("SSH access", rendered.Arguments[^1]);
-        Assert.AreEqual("allow in from any to any comment \"SSH access\"", rendered.DisplayText);
+        Assert.AreEqual("client (foo) -> server <bar>", rendered.Arguments[^1]);
+        Assert.AreEqual("allow in from any to any comment \"client (foo) -> server <bar>\"", rendered.DisplayText);
     }
 
     [TestMethod]

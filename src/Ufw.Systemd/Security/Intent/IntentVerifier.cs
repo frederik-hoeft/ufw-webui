@@ -21,6 +21,8 @@ internal sealed class IntentVerifier
 
     public IntentVerificationResult VerifyDelete(ISignedIntent intent) => Verify(intent, IntentOperations.DELETE_RULE, ParseDeletePayload);
 
+    public IntentVerificationResult VerifyBatchDelete(ISignedIntent intent) => Verify(intent, IntentOperations.DELETE_RULES_BATCH, ParseBatchDeletePayload);
+
     public IntentVerificationResult VerifyInsert(ISignedIntent intent) => Verify(intent, IntentOperations.INSERT_RULE, ParseInsertPayload);
 
     public IntentVerificationResult VerifyReorder(ISignedIntent intent) => Verify(intent, IntentOperations.REORDER_RULES, ParseReorderPayload);
@@ -184,6 +186,34 @@ internal sealed class IntentVerifier
                 expiresAtUnix,
                 normalized,
                 payload.RuleId));
+    }
+
+    private PayloadVerification ParseBatchDeletePayload(ISignedIntent intent)
+    {
+        BatchDeleteRulesPayload? payload = intent.Payload.Deserialize(jsonContext.BatchDeleteRulesPayload);
+        if (payload is null || payload.OccurrenceIds is null)
+        {
+            return PayloadVerification.Reject(new BadRequestResponse("Batch-delete payload must include a baseline fingerprint and occurrence IDs."));
+        }
+
+        BatchDeleteRulesPayload verifiedPayload = new()
+        {
+            BaselineFingerprint = payload.BaselineFingerprint,
+            OccurrenceIds = [.. payload.OccurrenceIds],
+        };
+        try
+        {
+            RuleBatchDeleteContract.ValidatePayload(verifiedPayload);
+        }
+        catch (ArgumentException exception)
+        {
+            return PayloadVerification.Reject(new BadRequestResponse(exception.Message));
+        }
+
+        byte[] canonical = IntentCanonicalizer.CanonicalizeBatchDelete(intent, verifiedPayload);
+        return PayloadVerification.Accept(
+            canonical,
+            (keyId, nonce, expiresAtUnix) => new IntentVerificationResult.AcceptedBatchDelete(keyId, nonce, expiresAtUnix, verifiedPayload));
     }
 
     private PayloadVerification ParseInsertPayload(ISignedIntent intent)

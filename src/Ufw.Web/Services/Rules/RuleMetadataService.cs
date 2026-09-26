@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Data.Model;
@@ -30,6 +30,7 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
         {
             RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Metadata }),
             RuleMetadataSaveOutcome.TagNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
+            RuleMetadataSaveOutcome.GroupNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
             _ => throw new InvalidOperationException($"Unknown metadata save outcome '{save.Outcome}'."),
         };
     }
@@ -50,20 +51,60 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
         }
     }
 
+    public async Task ReconcileBatchDeleteAsync(RuleBatchDeleteResponse response, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (response.FinalSnapshot is null)
+        {
+            return;
+        }
+
+        HashSet<string> liveRuleIds = response.FinalSnapshot.Rules
+            .Select(static rule => rule.RuleId)
+            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
+            .Select(static ruleId => ruleId!)
+            .ToHashSet(StringComparer.Ordinal);
+        string[] confirmedDeletedRuleIds = response.Operations
+            .Where(static operation => operation.Outcome is RuleBatchDeleteOperationOutcome.Deleted or RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure)
+            .Select(static operation => operation.RuleId)
+            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
+            .Select(static ruleId => ruleId!)
+            .Distinct(StringComparer.Ordinal)
+            .Where(ruleId => !liveRuleIds.Contains(ruleId))
+            .ToArray();
+        if (confirmedDeletedRuleIds.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _ = await repository.DeleteForRuleIdsAsync(confirmedDeletedRuleIds, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            LogBatchCleanupFailure(logger, confirmedDeletedRuleIds.Length, exception);
+        }
+    }
+
     private static bool TryNormalize(UpdateRuleMetadataRequest request, [NotNullWhen(true)] out RuleMetadataValues? values)
     {
         string? notes = NormalizeOptional(request.Notes);
         if (notes?.Length > RuleMetadataEntry.MAX_NOTES_LENGTH
             || request.TagIds is null
             || request.TagIds.Count > MAX_TAG_COUNT
-            || request.TagIds.Any(static id => id == Guid.Empty))
+            || request.TagIds.Any(static id => id == Guid.Empty)
+            || request.GroupId == Guid.Empty)
         {
             values = null;
             return false;
         }
 
         Guid[] tagIds = [.. request.TagIds.Distinct().Order()];
-        values = new RuleMetadataValues(notes, tagIds);
+        values = new RuleMetadataValues(notes, tagIds, request.GroupId);
         return true;
     }
 
@@ -72,4 +113,7 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
 
     [LoggerMessage(1, LogLevel.Warning, "Rule metadata cleanup failed after deleting firewall rule {RuleId}.")]
     private static partial void LogCleanupFailure(ILogger logger, string ruleId, Exception exception);
+
+    [LoggerMessage(2, LogLevel.Warning, "Rule metadata cleanup failed after batch deletion for {RuleCount} semantic rule identities.")]
+    private static partial void LogBatchCleanupFailure(ILogger logger, int ruleCount, Exception exception);
 }

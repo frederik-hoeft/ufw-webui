@@ -9,6 +9,13 @@ public interface IIntentSigningService
 
     Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(string deploymentId, string ruleId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
 
+    Task<BatchDeleteRulesRequest> CreateBatchDeleteRulesRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        IReadOnlyList<int> occurrenceIds,
+        string privateKey,
+        CancellationToken cancellationToken = default);
+
     Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
         string deploymentId,
         string baselineFingerprint,

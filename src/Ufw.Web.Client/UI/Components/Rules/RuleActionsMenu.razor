@@ -22,6 +22,14 @@
         @RulesText["InsertAfter"]
     </MudMenuItem>
     <MudDivider />
+    @if (MetadataEditRequested.HasDelegate)
+    {
+        <MudMenuItem Disabled="@MetadataEditDisabled"
+                     Icon="@Icons.Material.Filled.Edit"
+                     OnClick="@(() => MetadataEditRequested.InvokeAsync())">
+            @RulesText["EditMetadata"]
+        </MudMenuItem>
+    }
     <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
                  Icon="@Icons.Material.Filled.Delete"
                  IconColor="Color.Error"

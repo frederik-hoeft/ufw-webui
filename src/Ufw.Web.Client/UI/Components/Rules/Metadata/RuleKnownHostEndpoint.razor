@@ -6,11 +6,11 @@
 @inject IStringLocalizer<KnownHostsStrings> HostsText
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<div class="rule-known-host-endpoint">
-    <span>@DisplayLabel</span>
+<div class="rule-metadata-field rule-known-host-endpoint">
+    <span class="rule-metadata-field-label">@DisplayLabel</span>
     @if (!Projection.IsMeaningful)
     {
-        <span>@RulesText["AnyAddress"]</span>
+        <span class="rule-metadata-field-value">@RulesText["AnyAddress"]</span>
     }
     else if (KnownHosts.Current is null)
     {

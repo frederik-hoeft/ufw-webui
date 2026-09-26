@@ -16,6 +16,8 @@ internal sealed record TextRuleMatchEvidence(TextRuleMatchEvidence.FieldKind Fie
         Protocol,
         Notes,
         Tag,
+        GroupName,
+        GroupComment,
         CanonicalCommand,
         SourceKnownHost,
         DestinationKnownHost,

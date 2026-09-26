@@ -2,7 +2,7 @@
 
 Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` forwards it; `Ufw.Systemd` reconstructs the canonical bytes and verifies them against daemon-owned trust state before any privileged UFW mutation can begin.
 
-This document defines the project contract for `rules.add`, `rules.insert`, `rules.delete`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFWeb implementations.
+This document defines the project contract for `rules.add`, `rules.insert`, `rules.delete`, `rules.delete-batch`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFWeb implementations.
 
 Read-only rule listing, network-interface discovery, and intent-context retrieval are unsigned at this protocol layer. They may still require authentication at surrounding layers.
 
@@ -49,13 +49,13 @@ All defined mutation operations use the same outer envelope:
 | `keyId` | MUST identify an authorized P-256 public key |
 | `issuedAtUnix` | Unix timestamp used for freshness validation |
 | `nonce` | base64url random value decoding to at least 16 bytes; the project signer emits 16 bytes |
-| `operation` | MUST be `rules.add`, `rules.insert`, `rules.delete`, or `rules.reorder` for the mutation endpoints defined here |
+| `operation` | MUST be `rules.add`, `rules.insert`, `rules.delete`, `rules.delete-batch`, or `rules.reorder` for the mutation endpoints defined here |
 | `payload` | operation-specific payload defined below |
 | `signature` | base64url ECDSA P-256/SHA-256 signature in IEEE P1363 `r || s` form |
 
 `keyId` is the string `sha256:` followed by the base64url-encoded SHA-256 digest of the signer's SubjectPublicKeyInfo. The corresponding public key MUST be present in the daemon's authorized-key store.
 
-An additional mutation operation MAY reuse the envelope only after defining its own canonical payload semantics. Unknown operations MUST be rejected.
+An additional mutation operation MAY reuse the v2 envelope after defining its own canonical payload semantics. Adding such an operation is an operation-set extension and does not by itself change the signed-intent protocol version. The global signed-intent version is reserved for incompatible changes to the shared envelope, canonicalization domain, or verification semantics that apply across the signed operation set. Unknown operations MUST be rejected.
 
 ## Rule specification
 
@@ -122,6 +122,21 @@ The inserted rule MUST have a concrete address family equal to the parsed anchor
 The rule MUST have a concrete address family. `ruleId` MUST equal the daemon-computed identity of the normalized `rule`. The daemon MUST reject a mismatch rather than trusting either field independently.
 
 At execution time the daemon resolves that semantic identity against a fresh UFW snapshot and requires exactly one current match.
+
+### `rules.delete-batch`
+
+```json
+{
+  "baselineFingerprint": "sha256:<base64url snapshot digest>",
+  "occurrenceIds": [7, 3, 1]
+}
+```
+
+`baselineFingerprint` identifies the exact authoritative ordered-list snapshot reviewed by the signer. `occurrenceIds` is a non-empty set of unique, non-negative zero-based occurrence IDs from that snapshot. Their order is part of the signed payload, although the daemon is free to choose an execution order that preserves the authorized target set; the project daemon deletes in descending baseline-occurrence order so ordinary UFW renumbering cannot retarget later selected occurrences.
+
+Batch deletion addresses exact snapshot occurrences rather than semantic `RuleId`s so duplicate semantic rows remain independently selectable. The payload is intentionally generic and MUST NOT contain ASP-owned grouping identifiers or other application metadata. A higher-level workflow such as deleting all rules in a rule group resolves that application state to the exact occurrence set before signing.
+
+Under the serialized execution boundary, the daemon MUST require a fresh authoritative snapshot matching `baselineFingerprint` before interpreting the occurrence IDs. Every selected occurrence MUST be inside the baseline and MUST have a usable UFW display number.
 
 ### `rules.reorder`
 
@@ -216,6 +231,16 @@ desiredOrder[1]=<occurrence id>
 ...
 ```
 
+Batch delete continues with:
+
+```text
+baselineFingerprint=<snapshot fingerprint>
+occurrenceIdCount=<number of selected occurrences>
+occurrenceIds[0]=<occurrence id>
+occurrenceIds[1]=<occurrence id>
+...
+```
+
 Each line ends with LF (`0x0A`) in the canonical byte sequence. Implementations MUST NOT substitute platform-specific line endings.
 
 The signature algorithm is ECDSA over P-256 with SHA-256. The signature value uses the fixed-width IEEE P1363 concatenation of `r` and `s`, then base64url encoding in the JSON envelope.
@@ -246,7 +271,7 @@ Delete MUST NOT accept a UFW display number as the durable mutation target. Unde
 
 ## Authoritative snapshot fingerprint
 
-Ordered insertion and reorder use a shared versioned fingerprint domain:
+Ordered insertion, batch deletion, and reorder use a shared versioned fingerprint domain:
 
 ```text
 ufw-webui/firewall-rule-snapshot/1
@@ -268,7 +293,7 @@ The fingerprint commits to the exact authoritative ordered-list representation d
 
 Strings are encoded as a four-byte big-endian byte length followed by UTF-8 bytes. Integers are four-byte big-endian values. Booleans are one byte (`0` or `1`). Nullable fields are preceded by a boolean presence marker. The SHA-256 digest of this binary representation is base64url encoded and exposed as `sha256:<digest>`.
 
-Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable for insertion anchors and reorder without creating a false durable identity. A signer MUST compute the fingerprint from the exact authoritative ordered-list snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible rule order.
+Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable for insertion anchors, batch deletion, and reorder without creating a false durable identity. A signer MUST compute the fingerprint from the exact authoritative ordered-list snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible rule order.
 
 ## Verification requirements
 
@@ -282,9 +307,10 @@ Before an intent is accepted for privileged execution, the daemon verifies:
 6. add/insert/delete rule normalization and semantic validation, when applicable;
 7. insertion fingerprint, occurrence, placement, and concrete-family payload shape, when applicable;
 8. delete identity consistency, when applicable;
-9. reorder fingerprint syntax and desired-order presence, when applicable;
-10. signature against the daemon-local authorized-key set;
-11. issuance time against configured clock skew and maximum age.
+9. batch-delete fingerprint syntax and non-empty unique occurrence selection, when applicable;
+10. reorder fingerprint syntax and desired-order presence, when applicable;
+11. signature against the daemon-local authorized-key set;
+12. issuance time against configured clock skew and maximum age.
 
 A timestamp too far in the future MUST be rejected. An expired intent MUST be rejected.
 
@@ -294,7 +320,7 @@ Intent validity ends at the half-open boundary:
 issuedAtUnix + max_intent_age + clock_skew
 ```
 
-Insertion anchor validity/exact baseline equality and reorder permutation validity/exact baseline equality/reinsertability/move planning depend on current authoritative state and are therefore checked inside the serialized execution boundary rather than during signature parsing.
+Insertion anchor validity/exact baseline equality, batch-delete occurrence validity/exact baseline equality, and reorder permutation validity/exact baseline equality/reinsertability/move planning depend on current authoritative state and are therefore checked inside the serialized execution boundary rather than during signature parsing.
 
 ## Replay protection and execution boundary
 
@@ -306,13 +332,17 @@ Append add and delete then resolve their operation-specific preconditions, execu
 
 Ordered insertion requires its fresh authoritative snapshot to match `baselineFingerprint`, resolves the signed anchor occurrence, verifies concrete-family compatibility plus add-style interface/duplicate preconditions, and translates before/after placement into UFW's combined numbered `insert N` coordinate for that concrete family. It executes one UFW mutation and confirms success only if the complete authoritative post-state equals the expected baseline-plus-one-row state. Because it does not delete an existing row, it creates no insertion recovery journal. A verified insertion returns a typed result for completed, stale-baseline, precondition-failed, or state-uncertain outcomes; continuing after a stale or uncertain result requires a fresh baseline and new signature.
 
+Batch deletion additionally requires its fresh authoritative snapshot to match `baselineFingerprint` before the first delete. It validates the selected baseline occurrences and then processes them iteratively. Before every individual delete it re-reads UFW and requires the current rule sequence to equal the expected surviving subsequence of the signed baseline; after the subprocess it re-reads again and confirms that exactly the selected occurrence disappeared. A failed process can still be reported as a confirmed deletion when the authoritative post-state proves the deletion occurred, while a successful exit cannot override a mismatched or unreadable post-state. Drift, failed reconciliation, or uncertainty stops the batch. Already confirmed deletions are not speculatively reinserted.
+
+A verified batch-delete response reports the overall outcome, every attempted occurrence, the still-pending signed occurrences, a diagnostic where relevant, and the final authoritative snapshot when one is safely known. `Completed`, `StaleBaseline`, `PreconditionFailed`, `PartiallyCompleted`, and `StateUncertain` are transaction outcomes rather than signature errors. Continuing after any non-completed result requires a fresh authoritative baseline and new signature.
+
 Reorder additionally requires its fresh authoritative snapshot to match `baselineFingerprint`. It derives a minimal move plan from the signed occurrence permutation. Each logical move is reconciled against authoritative state, and a durable recovery record is persisted before a delete that may require reinsertion. Once such a delete may have taken effect, the daemon MUST confirm or restore row presence before it can safely abandon that move. An outstanding recovery record blocks later firewall mutations until recovery succeeds or the operator resolves the underlying state.
 
 A verified reorder execution returns a structured transaction report even when the desired ordering was not fully reached. Signature, authorization, malformed-intent, and replay failures remain protocol/application errors rather than transaction outcomes. Pending reorder operations are diagnostic only and MUST NOT be treated as reusable authorization; continuing requires a new authoritative baseline, nonce, and signature.
 
 A still-valid intent therefore cannot be accepted twice through sequential replay, concurrent submission, or daemon restart.
 
-The delete/reinsert sequence used for reorder is not packet-level atomic. The signed-intent protocol authorizes the desired transition and the daemon provides serialization and recovery, but traffic can observe the intermediate UFW policy between sequential CLI mutations.
+Neither batch deletion nor the delete/reinsert sequence used for reorder is packet-level atomic. The signed-intent protocol authorizes the reviewed transition and the daemon provides serialization plus operation-specific reconciliation/recovery, but traffic can observe intermediate UFW policy between sequential CLI mutations.
 
 ## Authorized keys and operator state
 

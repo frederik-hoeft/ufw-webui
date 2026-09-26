@@ -46,6 +46,11 @@ internal sealed class TextRuleFilterEvaluator(IRuleKnownHostProjectionService kn
             {
                 Add(fields, TextRuleMatchEvidence.FieldKind.Tag, tag.Name);
             }
+            if (metadata.Group is { } group)
+            {
+                Add(fields, TextRuleMatchEvidence.FieldKind.GroupName, group.Name);
+                Add(fields, TextRuleMatchEvidence.FieldKind.GroupComment, group.Comment);
+            }
         }
         Add(fields, TextRuleMatchEvidence.FieldKind.CanonicalCommand, row.CanonicalCommand);
         foreach (RuleKnownHostProjection projection in knownHostProjection.Project(row, context))

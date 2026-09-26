@@ -113,9 +113,7 @@ public sealed partial class RuleMobileCard
 
     private bool DetailsAvailable => !string.IsNullOrWhiteSpace(Row.Rule.RuleId) || !string.IsNullOrWhiteSpace(Row.CanonicalCommand);
 
-    private string MetadataToggleLabel => _metadataExpanded
-        ? RulesText["HideRuleMetadata", Row.FamilyPosition]
-        : RulesText["ShowRuleMetadata", Row.FamilyPosition];
+    private string CollapseMetadataLabel => RulesText["HideRuleMetadata", Row.FamilyPosition];
 
     private void ToggleMetadata()
     {

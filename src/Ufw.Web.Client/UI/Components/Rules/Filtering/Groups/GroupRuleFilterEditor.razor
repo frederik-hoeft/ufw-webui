@@ -1,0 +1,23 @@
+@inherits RuleFilterEditorBase
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudAutocomplete T="RuleGroup"
+                 Label="@(RulesText["GroupFilter"])"
+                 @bind-Value="_group"
+                 SearchFunc="SearchAsync"
+                 ToStringFunc="FormatGroup"
+                 CoerceValue="false"
+                 ResetValueOnEmptyText="true"
+                 Clearable="true"
+                 MaxItems="@((int?)null)">
+    <ItemTemplate Context="group">
+        <div class="rule-group-select-option">
+            <span>@group.Name</span>
+            @if (!string.IsNullOrWhiteSpace(group.Comment))
+            {
+                <small>@group.Comment</small>
+            }
+        </div>
+    </ItemTemplate>
+</MudAutocomplete>

@@ -11,12 +11,14 @@ using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Client.Api.RuleMetadata;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Api.RuleTags;
 using Ufw.Web.Client.Tests.Support;
 using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleTags;
@@ -115,6 +117,7 @@ public sealed class HttpApiClientsTests
 
         Guid metadataId = Guid.CreateVersion7();
         Guid tagId = Guid.CreateVersion7();
+        Guid groupId = Guid.CreateVersion7();
         using RecordingHttpMessageHandler rulesHandler = new((request, call) => call switch
         {
             1 => Json(HttpStatusCode.OK, InventoryResponseJson()),
@@ -126,30 +129,35 @@ public sealed class HttpApiClientsTests
             4 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
             5 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
             6 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
+            7 => Json(HttpStatusCode.OK, BatchDeleteResponseJson(RuleBatchDeleteOutcome.Completed)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
         RuleApiClient rules = new(rulesHttp);
         await rules.GetInventoryAsync();
-        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId] });
+        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId], GroupId = groupId });
         await rules.AddRuleAsync(AddRequest());
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
         await rules.ReorderRulesAsync(ReorderRequest());
+        await rules.BatchDeleteRulesAsync(BatchDeleteRequest());
 
         CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
+            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
             rulesHandler.Requests.Select(static request => request.Method).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
+            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order", "/api/v1/rules/batch" },
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
         using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
         Assert.AreEqual(tagId, metadataBody.RootElement.GetProperty("tagIds")[0].GetGuid());
+        Assert.AreEqual(groupId, metadataBody.RootElement.GetProperty("groupId").GetGuid());
         using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
         using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
+        using JsonDocument batchDeleteBody = JsonDocument.Parse(rulesHandler.Requests[6].Content!);
+        Assert.AreEqual(IntentOperations.DELETE_RULES_BATCH, batchDeleteBody.RootElement.GetProperty("operation").GetString());
     }
 
     [TestMethod]
@@ -224,6 +232,50 @@ public sealed class HttpApiClientsTests
     }
 
     [TestMethod]
+    public async Task RuleGroupApiClient_UsesCatalogEndpointsAndUuidReferencesAsync()
+    {
+        Guid groupId = Guid.Parse("01993b41-fdad-7000-8000-000000000003");
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"groups\":[]}"),
+            2 => Json(HttpStatusCode.OK, $"{{\"groups\":[{{\"id\":\"{groupId:D}\",\"name\":\"ops\",\"comment\":null,\"ruleIds\":[]}}]}}"),
+            3 => Json(HttpStatusCode.OK, $"{{\"groups\":[{{\"id\":\"{groupId:D}\",\"name\":\"operations\",\"comment\":\"managed\",\"ruleIds\":[]}}]}}"),
+            4 => Json(HttpStatusCode.OK, "{\"groups\":[]}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleGroupApiClient client = new(http);
+
+        await client.GetAsync();
+        await client.CreateAsync(new CreateRuleGroupRequest { Name = "ops" });
+        await client.UpdateAsync(groupId, new UpdateRuleGroupRequest { Name = "operations", Comment = "managed" });
+        await client.DeleteAsync(groupId);
+
+        CollectionAssert.AreEqual(
+            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
+            handler.Requests.Select(static request => request.Method).ToArray());
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "/api/v1/rule-groups",
+                "/api/v1/rule-groups",
+                $"/api/v1/rule-groups/{groupId:D}",
+                $"/api/v1/rule-groups/{groupId:D}",
+            },
+            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+
+        using JsonDocument createBody = JsonDocument.Parse(handler.Requests[1].Content!);
+        Assert.AreEqual("ops", createBody.RootElement.GetProperty("name").GetString());
+        using JsonDocument updateBody = JsonDocument.Parse(handler.Requests[2].Content!);
+        Assert.AreEqual("operations", updateBody.RootElement.GetProperty("name").GetString());
+        Assert.AreEqual("managed", updateBody.RootElement.GetProperty("comment").GetString());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleGroupRequest()));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+        Assert.HasCount(4, handler.Requests);
+    }
+
+    [TestMethod]
     public async Task RuleApiClient_InsertPreservesStructuredFailureButMapsSecurityConflictAsync()
     {
         using RecordingHttpMessageHandler handler = new((_, call) => call switch
@@ -281,6 +333,46 @@ public sealed class HttpApiClientsTests
         RuleApiClient client = new(http);
 
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReorderRulesAsync(ReorderRequest()));
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_BatchDeletePreservesStructuredConflictButMapsSecurityConflictAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.Conflict, BatchDeleteResponseJson(RuleBatchDeleteOutcome.PartiallyCompleted)),
+            2 => Json(HttpStatusCode.Conflict, "{\"detail\":\"Intent nonce has already been used.\"}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        RuleBatchDeleteResponse report = await client.BatchDeleteRulesAsync(BatchDeleteRequest());
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+
+        Assert.AreEqual(RuleBatchDeleteOutcome.PartiallyCompleted, report.Outcome);
+        Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
+        Assert.AreEqual("Intent nonce has already been used.", replay.Message);
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_BatchDeleteRejectsMalformedSuccessAsProtocolErrorAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"detail\":\"not a batch-delete report\"}"),
+            2 => Json(
+                HttpStatusCode.OK,
+                JsonSerializer.Serialize(
+                    new RuleBatchDeleteResponse(RuleBatchDeleteOutcome.Completed, null, [], [], Diagnostic: null),
+                    MessageJsonSerializerContext.Default.RuleBatchDeleteResponse)),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
     }
 
     [TestMethod]
@@ -362,6 +454,20 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
+    private static BatchDeleteRulesRequest BatchDeleteRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.DELETE_RULES_BATCH,
+        Payload = JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            occurrenceIds = new[] { 0 },
+        }),
+        Signature = "signature",
+    };
+
     private static DeleteRuleRequest DeleteRequest() => new()
     {
         DeploymentId = "deployment",
@@ -399,6 +505,10 @@ public sealed class HttpApiClientsTests
     private static string ReorderResponseJson(RuleReorderOutcome outcome) => JsonSerializer.Serialize(
         new RuleReorderResponse(outcome, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], [], Diagnostic: null),
         MessageJsonSerializerContext.Default.RuleReorderResponse);
+
+    private static string BatchDeleteResponseJson(RuleBatchDeleteOutcome outcome) => JsonSerializer.Serialize(
+        new RuleBatchDeleteResponse(outcome, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], Diagnostic: null),
+        MessageJsonSerializerContext.Default.RuleBatchDeleteResponse);
 
     private static string MutationResponseJson(string operation) =>
         $"{{\"operation\":\"{operation}\",\"rule\":{{\"ruleId\":\"id\",\"displayNumber\":1,\"parsed\":true,\"rawLine\":\"line\",\"rule\":null}}}}";

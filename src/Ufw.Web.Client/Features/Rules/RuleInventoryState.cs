@@ -36,6 +36,7 @@ internal sealed record RuleInventoryState
             RuleInventoryTransition.RefreshFailed failed => FailRefresh(failed.Error),
             RuleInventoryTransition.MetadataMutationCompleted completed => CompleteMetadataMutation(completed.RuleId, completed.Response),
             RuleInventoryTransition.TagCatalogReconciled reconciled => ReconcileTagCatalog(reconciled.Tags),
+            RuleInventoryTransition.GroupCatalogReconciled reconciled => ReconcileGroupCatalog(reconciled.Groups),
             RuleInventoryTransition.InsertionCompleted completed => CompleteInsertion(completed.Response, completed.CapturedAt),
             RuleInventoryTransition.ReorderCompleted completed => CompleteReorder(completed.Response, completed.CapturedAt),
             RuleInventoryTransition.MutationFailed failed => FailMutation(failed.Error),
@@ -96,6 +97,12 @@ internal sealed record RuleInventoryState
     {
         ArgumentNullException.ThrowIfNull(tags);
         return Snapshot is null ? this : new RuleInventoryState(Status, Snapshot.ReconcileTagCatalog(tags), Error, RefreshReason, StaleReason);
+    }
+
+    private RuleInventoryState ReconcileGroupCatalog(IReadOnlyList<RuleGroup> groups)
+    {
+        ArgumentNullException.ThrowIfNull(groups);
+        return Snapshot is null ? this : new RuleInventoryState(Status, Snapshot.ReconcileGroupCatalog(groups), Error, RefreshReason, StaleReason);
     }
 
     private RuleInventoryState CompleteInsertion(RuleInsertionResponse response, DateTimeOffset capturedAt)

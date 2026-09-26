@@ -9,6 +9,12 @@ internal interface IRuleMutationService
 
     Task<RuleMutationResponse> DeleteRuleAsync(ListedFirewallRule rule, string privateKey, CancellationToken cancellationToken = default);
 
+    Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(
+        RuleListResponse baseline,
+        IReadOnlyList<int> occurrenceIds,
+        string privateKey,
+        CancellationToken cancellationToken = default);
+
     Task<RuleInsertionResponse> InsertRuleAsync(
         RuleListResponse baseline,
         int anchorOccurrenceId,

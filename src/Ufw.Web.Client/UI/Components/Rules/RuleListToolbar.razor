@@ -12,19 +12,16 @@
                       Value="@_searchText"
                       ValueChanged="SearchTextChangedAsync"
                       Immediate="true"
-                      Disabled="@Disabled"
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" />
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.FilterAlt"
-                   Disabled="@Disabled"
                    OnClick="AddFilterAsync">
             @RulesText["AddFilter"]
         </MudButton>
         @if (Query.IsActive)
         {
             <MudButton Variant="Variant.Text"
-                       Disabled="@Disabled"
                        OnClick="ClearAsync">
                 @RulesText["ClearFilters"]
             </MudButton>
@@ -41,7 +38,6 @@
                 <MudChip T="string"
                          Size="Size.Small"
                          Variant="Variant.Outlined"
-                         Disabled="@Disabled"
                          OnClick="@(() => EditFilterAsync(filterIndex))"
                          OnClose="@(() => RemoveFilterAsync(filterIndex))">
                     @DescribeFilter(filter)

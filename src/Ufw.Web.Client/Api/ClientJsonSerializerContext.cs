@@ -2,6 +2,7 @@
 using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.Rules;
@@ -20,6 +21,9 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
 [JsonSerializable(typeof(RuleInventoryResponse))]
 [JsonSerializable(typeof(RuleMetadataMutationResponse))]
+[JsonSerializable(typeof(RuleGroupInventoryResponse))]
+[JsonSerializable(typeof(CreateRuleGroupRequest))]
+[JsonSerializable(typeof(UpdateRuleGroupRequest))]
 [JsonSerializable(typeof(RuleMetadataReconciliationResponse))]
 [JsonSerializable(typeof(CleanupRuleMetadataRequest))]
 [JsonSerializable(typeof(UpdateRuleMetadataRequest))]

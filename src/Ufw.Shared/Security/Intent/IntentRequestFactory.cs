@@ -57,6 +57,35 @@ public static class IntentRequestFactory
         return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
     }
 
+    public static BatchDeleteRulesRequest CreateBatchDeleteRequest(
+        ECDsa privateKey,
+        string deploymentId,
+        BatchDeleteRulesPayload payload,
+        JsonTypeInfo<BatchDeleteRulesPayload> payloadTypeInfo,
+        TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(payloadTypeInfo);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+
+        RuleBatchDeleteContract.ValidatePayload(payload);
+        BatchDeleteRulesRequest unsigned = new()
+        {
+            Version = IntentProtocol.VERSION,
+            DeploymentId = deploymentId,
+            KeyId = IntentSigner.ComputeKeyId(privateKey),
+            IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            Nonce = IntentSigner.CreateNonce(),
+            Operation = IntentOperations.DELETE_RULES_BATCH,
+            Payload = JsonSerializer.SerializeToElement(payload, payloadTypeInfo),
+            Signature = string.Empty,
+        };
+        byte[] canonical = IntentCanonicalizer.CanonicalizeBatchDelete(unsigned, payload);
+        return unsigned with { Signature = IntentSigner.Sign(privateKey, canonical) };
+    }
+
     public static InsertRuleRequest CreateInsertRequest(ECDsa privateKey, string deploymentId, InsertRulePayload payload, JsonTypeInfo<InsertRulePayload> payloadTypeInfo, TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(privateKey);

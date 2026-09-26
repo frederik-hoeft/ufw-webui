@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Ufw.Shared.Web;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -91,14 +91,17 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
         services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleGroupRepository, RuleGroupRepository>();
         services.AddScoped<IRuleTagRepository, RuleTagRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
+        services.AddScoped<IRuleGroupService, RuleGroupService>();
         services.AddScoped<IRuleTagService, RuleTagService>();
         services.AddScoped<NetworkInterfacesController>();
         services.AddScoped<RulesController>();
         services.AddScoped<RuleMetadataController>();
+        services.AddScoped<RuleGroupsController>();
         services.AddScoped<RuleTagsController>();
 
         return ValueTask.CompletedTask;

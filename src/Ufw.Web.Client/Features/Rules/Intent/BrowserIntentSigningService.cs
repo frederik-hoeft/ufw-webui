@@ -68,6 +68,42 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
+    public async Task<BatchDeleteRulesRequest> CreateBatchDeleteRulesRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        IReadOnlyList<int> occurrenceIds,
+        string privateKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        ArgumentNullException.ThrowIfNull(occurrenceIds);
+        ValidatePrivateKey(privateKey);
+
+        BatchDeleteRulesPayload payload = new()
+        {
+            BaselineFingerprint = baselineFingerprint,
+            OccurrenceIds = [.. occurrenceIds],
+        };
+        RuleBatchDeleteContract.ValidatePayload(payload);
+
+        string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
+        string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
+        BatchDeleteRulesRequest unsignedRequest = new()
+        {
+            DeploymentId = deploymentId,
+            KeyId = keyId,
+            IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            Nonce = nonce,
+            Operation = IntentOperations.DELETE_RULES_BATCH,
+            Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload),
+            Signature = string.Empty,
+        };
+
+        byte[] canonical = IntentCanonicalizer.CanonicalizeBatchDelete(unsignedRequest, payload);
+        string signature = await crypto.SignAsync(privateKey, canonical, cancellationToken);
+        return unsignedRequest with { Signature = signature };
+    }
+
     public async Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
         string deploymentId,
         string baselineFingerprint,

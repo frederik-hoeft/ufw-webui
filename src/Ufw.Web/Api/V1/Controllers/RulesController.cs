@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -35,6 +35,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
                 RuleMetadataUpdateOutcome.Success => Ok(result.Response),
                 RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
                 RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
+                RuleMetadataUpdateOutcome.GroupNotFound => BadRequest(new { message = "The referenced rule group does not exist." }),
                 RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
                 _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
             };
@@ -102,6 +103,26 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
         }
     }
 
+    public async partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!string.Equals(request.Operation, IntentOperations.DELETE_RULES_BATCH, StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "Request operation must be 'rules.delete-batch'." });
+        }
+
+        try
+        {
+            RuleBatchDeleteResponse response = await ufwClient.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken);
+            await metadata.ReconcileBatchDeleteAsync(response, CancellationToken.None);
+            return BatchDeleteResult(response);
+        }
+        catch (UfwIpcException exception)
+        {
+            return MapDaemonError(exception);
+        }
+    }
+
     public async partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -134,6 +155,20 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
             RuleInsertionOutcome.PreconditionFailed => StatusCodes.Status422UnprocessableEntity,
             RuleInsertionOutcome.StateUncertain => StatusCodes.Status503ServiceUnavailable,
             _ => throw new ArgumentOutOfRangeException(nameof(response), response.Outcome, "Unknown insertion outcome."),
+        };
+        return StatusCode(statusCode, response);
+    }
+
+    private ActionResult<RuleBatchDeleteResponse> BatchDeleteResult(RuleBatchDeleteResponse response)
+    {
+        int statusCode = response.Outcome switch
+        {
+            RuleBatchDeleteOutcome.Completed => StatusCodes.Status200OK,
+            RuleBatchDeleteOutcome.StaleBaseline => StatusCodes.Status409Conflict,
+            RuleBatchDeleteOutcome.PreconditionFailed => StatusCodes.Status422UnprocessableEntity,
+            RuleBatchDeleteOutcome.PartiallyCompleted => StatusCodes.Status409Conflict,
+            RuleBatchDeleteOutcome.StateUncertain => StatusCodes.Status503ServiceUnavailable,
+            _ => throw new ArgumentOutOfRangeException(nameof(response), response.Outcome, "Unknown batch-delete outcome."),
         };
         return StatusCode(statusCode, response);
     }
