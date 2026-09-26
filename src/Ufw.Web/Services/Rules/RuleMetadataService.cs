@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Data.Model;
@@ -30,6 +30,7 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
         {
             RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Metadata }),
             RuleMetadataSaveOutcome.TagNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
+            RuleMetadataSaveOutcome.GroupNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
             _ => throw new InvalidOperationException($"Unknown metadata save outcome '{save.Outcome}'."),
         };
     }
@@ -56,14 +57,15 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
         if (notes?.Length > RuleMetadataEntry.MAX_NOTES_LENGTH
             || request.TagIds is null
             || request.TagIds.Count > MAX_TAG_COUNT
-            || request.TagIds.Any(static id => id == Guid.Empty))
+            || request.TagIds.Any(static id => id == Guid.Empty)
+            || request.GroupId == Guid.Empty)
         {
             values = null;
             return false;
         }
 
         Guid[] tagIds = [.. request.TagIds.Distinct().Order()];
-        values = new RuleMetadataValues(notes, tagIds);
+        values = new RuleMetadataValues(notes, tagIds, request.GroupId);
         return true;
     }
 

@@ -1,10 +1,11 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.RuleTags;
@@ -175,6 +176,116 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual(0, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
     }
 
+
+    [TestMethod]
+    public async Task RuleGroups_NormalizeAndSupportEmptyGroupLifecycleAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+
+        RuleGroupMutationResult created = await host.Groups.CreateAsync(
+            new CreateRuleGroupRequest { Name = "  Platform  ", Comment = "  managed rules  " },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleGroupMutationOutcome.Success, created.Outcome);
+        RuleGroupItem group = created.Inventory!.Groups.Single();
+        Assert.AreEqual('7', group.Id.ToString("D")[14]);
+        Assert.AreEqual("Platform", group.Name);
+        Assert.AreEqual("managed rules", group.Comment);
+        Assert.IsEmpty(group.RuleIds);
+
+        RuleGroupMutationResult duplicate = await host.Groups.CreateAsync(
+            new CreateRuleGroupRequest { Name = "PLATFORM" },
+            TestContext.CancellationToken);
+        Assert.AreEqual(RuleGroupMutationOutcome.NameConflict, duplicate.Outcome);
+
+        RuleGroupMutationResult updated = await host.Groups.UpdateAsync(
+            group.Id,
+            new UpdateRuleGroupRequest { Name = "Core", Comment = "  " },
+            TestContext.CancellationToken);
+        Assert.AreEqual(RuleGroupMutationOutcome.Success, updated.Outcome);
+        RuleGroupItem renamed = updated.Inventory!.Groups.Single();
+        Assert.AreEqual(group.Id, renamed.Id);
+        Assert.AreEqual("Core", renamed.Name);
+        Assert.IsNull(renamed.Comment);
+
+        RuleGroupMutationResult deleted = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
+        Assert.AreEqual(RuleGroupMutationOutcome.Success, deleted.Outcome);
+        Assert.IsEmpty(deleted.Inventory!.Groups);
+        Assert.AreEqual(0, await host.RuleGroupRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task Update_GroupOnlyMetadataSupportsSingleMembershipAndRejectsUnknownGroupWithoutChangingMembershipAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live");
+        RuleGroupItem first = await host.CreateGroupAsync("First", null, TestContext.CancellationToken);
+        RuleGroupItem second = await host.CreateGroupAsync("Second", "secondary", TestContext.CancellationToken);
+
+        RuleMetadataUpdateResult assigned = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { GroupId = first.Id },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, assigned.Outcome);
+        Assert.IsNotNull(assigned.Response?.Metadata?.Group);
+        Assert.AreEqual(first.Id, assigned.Response.Metadata.Group.Id);
+        Assert.IsNull(assigned.Response.Metadata.Notes);
+        Assert.IsEmpty(assigned.Response.Metadata.Tags);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+
+        RuleMetadataUpdateResult unknown = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { GroupId = Guid.CreateVersion7() },
+            TestContext.CancellationToken);
+        Assert.AreEqual(RuleMetadataUpdateOutcome.GroupNotFound, unknown.Outcome);
+
+        RuleInventoryResponse afterRejectedUpdate = await host.Inventory.GetAsync(TestContext.CancellationToken);
+        RuleGroupSummary? effectiveGroup = afterRejectedUpdate.Metadata.Single().Group;
+        Assert.IsNotNull(effectiveGroup);
+        Assert.AreEqual(first.Id, effectiveGroup.Id);
+        Assert.AreEqual("First", effectiveGroup.Name);
+        Assert.IsNull(effectiveGroup.Comment);
+
+        RuleMetadataUpdateResult reassigned = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { GroupId = second.Id },
+            TestContext.CancellationToken);
+        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, reassigned.Outcome);
+        Assert.AreEqual(second.Id, reassigned.Response!.Metadata!.Group?.Id);
+
+        RuleGroupInventoryResponse groups = await host.Groups.GetAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(groups.Groups.Single(candidate => candidate.Id == first.Id).RuleIds);
+        CollectionAssert.AreEqual(new[] { "sha256:live" }, groups.Groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
+    }
+
+    [TestMethod]
+    public async Task RuleGroups_CannotDeleteInUseGroupAndReconciliationPreservesGroupAfterRemovingOrphanMembershipAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:orphan");
+        RuleGroupItem group = await host.CreateGroupAsync("Batch", "kept even when empty", TestContext.CancellationToken);
+        RuleMetadataItem metadata = (await host.Metadata.UpdateAsync(
+            "sha256:orphan",
+            new UpdateRuleMetadataRequest { GroupId = group.Id },
+            TestContext.CancellationToken)).Response!.Metadata!;
+
+        RuleGroupMutationResult inUse = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
+        Assert.AreEqual(RuleGroupMutationOutcome.InUse, inUse.Outcome);
+
+        host.SetRules();
+        RuleMetadataReconciliationResponse cleaned = await host.Reconciliation.CleanupAsync(
+            new CleanupRuleMetadataRequest { MetadataIds = [metadata.Id] },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(1, cleaned.RemovedCount);
+        Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        RuleGroupInventoryResponse groups = await host.Groups.GetAsync(TestContext.CancellationToken);
+        RuleGroupItem preserved = groups.Groups.Single();
+        Assert.AreEqual(group.Id, preserved.Id);
+        Assert.IsEmpty(preserved.RuleIds);
+    }
+
     [TestMethod]
     public async Task Reconciliation_DiscoveryIsSideEffectFreeAndReturnsOnlyUnmatchedMetadataAsync()
     {
@@ -268,6 +379,7 @@ public sealed class RuleMetadataServiceTests
             RuleMetadataService metadata,
             RuleInventoryService inventory,
             RuleMetadataReconciliationService reconciliation,
+            RuleGroupService groups,
             RuleTagService tags)
         {
             _connection = connection;
@@ -278,6 +390,7 @@ public sealed class RuleMetadataServiceTests
             Metadata = metadata;
             Inventory = inventory;
             Reconciliation = reconciliation;
+            Groups = groups;
             Tags = tags;
         }
 
@@ -286,6 +399,8 @@ public sealed class RuleMetadataServiceTests
         public RuleInventoryService Inventory { get; }
 
         public RuleMetadataReconciliationService Reconciliation { get; }
+
+        public RuleGroupService Groups { get; }
 
         public RuleTagService Tags { get; }
 
@@ -308,12 +423,14 @@ public sealed class RuleMetadataServiceTests
             TestDaemonRuleSource daemon = new();
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             RuleMetadataRepository metadataRepository = new(transactionHandle);
+            RuleGroupRepository groupRepository = new(transactionHandle);
             RuleTagRepository tagRepository = new(transactionHandle);
             RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
+            RuleGroupService groups = new(groupRepository);
             RuleTagService tags = new(tagRepository);
-            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, tags);
+            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, groups, tags);
         }
 
         public void SetRules(params string[] ruleIds)
@@ -327,6 +444,15 @@ public sealed class RuleMetadataServiceTests
                 Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
             })];
             _daemon.Response = new RuleListResponse(true, rules, TestFirewallConfiguration.Enabled);
+        }
+
+
+        public async Task<RuleGroupItem> CreateGroupAsync(string name, string? comment, CancellationToken cancellationToken)
+        {
+            RuleGroupMutationResult result = await Groups.CreateAsync(new CreateRuleGroupRequest { Name = name, Comment = comment }, cancellationToken);
+            Assert.AreEqual(RuleGroupMutationOutcome.Success, result.Outcome);
+            Assert.IsNotNull(result.Inventory);
+            return result.Inventory.Groups.Single(group => string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public async Task<RuleTagItem> CreateTagAsync(string name, string color, CancellationToken cancellationToken)
@@ -347,6 +473,13 @@ public sealed class RuleMetadataServiceTests
         {
             _context.ChangeTracker.Clear();
             return await _context.Set<RuleMetadataTagEntry>().CountAsync(cancellationToken);
+        }
+
+
+        public async Task<int> RuleGroupRowCountAsync(CancellationToken cancellationToken)
+        {
+            _context.ChangeTracker.Clear();
+            return await _context.Set<RuleGroupEntry>().CountAsync(cancellationToken);
         }
 
         public async Task<int> RuleTagRowCountAsync(CancellationToken cancellationToken)

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -35,6 +35,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
                 RuleMetadataUpdateOutcome.Success => Ok(result.Response),
                 RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
                 RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
+                RuleMetadataUpdateOutcome.GroupNotFound => BadRequest(new { message = "The referenced rule group does not exist." }),
                 RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
                 _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
             };

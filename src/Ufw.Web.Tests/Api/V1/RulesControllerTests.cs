@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
@@ -82,21 +82,26 @@ public sealed class RulesControllerTests
         UpdateRuleMetadataRequest missingRequest = new();
         UpdateRuleMetadataRequest invalidRequest = new();
         UpdateRuleMetadataRequest missingTagRequest = new();
+        UpdateRuleMetadataRequest missingGroupRequest = new();
         metadata.Setup(service => service.UpdateAsync("missing", missingRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound));
         metadata.Setup(service => service.UpdateAsync("invalid", invalidRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata));
         metadata.Setup(service => service.UpdateAsync("missing-tag", missingTagRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound));
+        metadata.Setup(service => service.UpdateAsync("missing-group", missingGroupRequest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound));
         RulesController controller = CreateController(client.Object, metadata: metadata.Object);
 
         ActionResult<RuleMetadataMutationResponse> missing = await controller.UpdateMetadataAsync("missing", missingRequest, TestContext.CancellationToken);
         ActionResult<RuleMetadataMutationResponse> invalid = await controller.UpdateMetadataAsync("invalid", invalidRequest, TestContext.CancellationToken);
         ActionResult<RuleMetadataMutationResponse> missingTag = await controller.UpdateMetadataAsync("missing-tag", missingTagRequest, TestContext.CancellationToken);
+        ActionResult<RuleMetadataMutationResponse> missingGroup = await controller.UpdateMetadataAsync("missing-group", missingGroupRequest, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<NotFoundResult>(missing.Result);
         Assert.IsInstanceOfType<BadRequestObjectResult>(invalid.Result);
         Assert.IsInstanceOfType<BadRequestObjectResult>(missingTag.Result);
+        Assert.IsInstanceOfType<BadRequestObjectResult>(missingGroup.Result);
     }
 
     [TestMethod]

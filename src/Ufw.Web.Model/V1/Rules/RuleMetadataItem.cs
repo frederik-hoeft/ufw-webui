@@ -1,3 +1,4 @@
+using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Model.V1.Rules;
@@ -6,8 +7,8 @@ public sealed class RuleMetadataItem
 {
     public RuleMetadataItem() { }
 
-    public RuleMetadataItem(Guid id, string ruleId, string? notes, IReadOnlyList<RuleTagItem> tags) =>
-        (Id, RuleId, Notes, Tags) = (id, ruleId, notes, tags);
+    public RuleMetadataItem(Guid id, string ruleId, string? notes, IReadOnlyList<RuleTagItem> tags, RuleGroupSummary? group = null) =>
+        (Id, RuleId, Notes, Tags, Group) = (id, ruleId, notes, tags, group);
 
     public Guid Id { get; init; }
 
@@ -16,4 +17,6 @@ public sealed class RuleMetadataItem
     public string? Notes { get; init; }
 
     public IReadOnlyList<RuleTagItem> Tags { get; init; } = [];
+
+    public RuleGroupSummary? Group { get; init; }
 }

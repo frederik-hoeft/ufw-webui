@@ -5,5 +5,6 @@ public enum RuleMetadataUpdateOutcome
     Success,
     RuleNotFound,
     TagNotFound,
+    GroupNotFound,
     InvalidMetadata,
 }

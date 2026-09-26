@@ -31,8 +31,17 @@ internal sealed partial class RuleMetadataEntry : IDiscoverableModelConfiguratio
             .HasColumnName("Notes")
             .HasColumnType("character varying(4000)")
             .HasMaxLength(MAX_NOTES_LENGTH);
+        self.Property(static metadata => metadata.GroupId)
+            .HasColumnName("GroupId")
+            .HasColumnType("bigint");
+
+        self.HasOne(static metadata => metadata.Group)
+            .WithMany(static group => group.RuleMetadata)
+            .HasForeignKey(static metadata => metadata.GroupId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         self.HasIndex(static metadata => metadata.PublicId).IsUnique();
         self.HasIndex(static metadata => metadata.RuleId).IsUnique();
+        self.HasIndex(static metadata => metadata.GroupId);
     }
 }

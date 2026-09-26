@@ -13,5 +13,9 @@ internal sealed partial class RuleMetadataEntry
 
     public string? Notes { get; set; }
 
+    public long? GroupId { get; set; }
+
+    public RuleGroupEntry? Group { get; set; }
+
     public ICollection<RuleMetadataTagEntry> Tags { get; set; } = [];
 }

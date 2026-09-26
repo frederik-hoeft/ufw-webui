@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
@@ -31,6 +31,9 @@ internal sealed class SqliteApplicationModelLoader : IModelLoader
 
         builder.Entity<RuleTagEntry>()
             .Property(static tag => tag.Name)
+            .UseCollation("NOCASE");
+        builder.Entity<RuleGroupEntry>()
+            .Property(static group => group.Name)
             .UseCollation("NOCASE");
     }
 }
