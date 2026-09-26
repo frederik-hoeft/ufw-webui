@@ -139,7 +139,7 @@
 
     > .rule-metadata-columns {
         display: grid;
-        grid-template-columns: minmax(12rem, 0.8fr) minmax(20rem, 1.6fr);
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 2fr);
         align-items: start;
         gap: 1.25rem;
     }

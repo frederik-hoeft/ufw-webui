@@ -13,10 +13,7 @@
     </header>
 
     <div class="rule-metadata-columns">
-        <div class="rule-metadata-column rule-metadata-column-primary">
-            <RuleKnownHostEndpoint Label="@(RulesText["Source"])" Endpoint="@Source" KnownHostsChanged="@KnownHostsChanged" />
-            <RuleKnownHostEndpoint Label="@(RulesText["Destination"])" Endpoint="@Destination" KnownHostsChanged="@KnownHostsChanged" />
-
+        <div class="rule-metadata-column rule-metadata-column-organization">
             <div class="rule-metadata-field">
                 <span class="rule-metadata-field-label">@RulesText["Group"]</span>
                 @if (Metadata?.Group is { } group)
@@ -42,7 +39,12 @@
             </div>
         </div>
 
-        <div class="rule-metadata-column rule-metadata-column-secondary">
+        <div class="rule-metadata-column rule-metadata-column-endpoints">
+            <RuleKnownHostEndpoint Label="@(RulesText["Source"])" Endpoint="@Source" KnownHostsChanged="@KnownHostsChanged" />
+            <RuleKnownHostEndpoint Label="@(RulesText["Destination"])" Endpoint="@Destination" KnownHostsChanged="@KnownHostsChanged" />
+        </div>
+
+        <div class="rule-metadata-column rule-metadata-column-content">
             <div class="rule-metadata-field">
                 <span class="rule-metadata-field-label">@RulesText["CanonicalCommand"]</span>
                 @if (!string.IsNullOrWhiteSpace(CanonicalCommand))

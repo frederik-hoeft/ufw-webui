@@ -348,6 +348,12 @@
         gap: 0.25rem;
     }
 
+    .rule-mobile-card.metadata-expanded > .rule-metadata-details {
+        margin: -0.875rem -1rem -1rem;
+        padding: 0.875rem 1rem 1rem;
+        border-top: 1px solid var(--mud-palette-table-lines);
+        background: var(--mud-palette-surface);
+    }
 }
 
 @media (max-width: $compact-appbar-breakpoint) {
