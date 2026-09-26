@@ -94,27 +94,18 @@
             }
         </td>
         <td class="actions" @onclick:stopPropagation="true">
-            @if (_metadataExpanded)
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
-                               Size="Size.Small"
-                               OnClick="ToggleMetadata"
-                               aria-label="@MetadataToggleLabel"
-                               aria-expanded="true" />
-            }
-            else
-            {
-                <RuleActionsMenu Rule="@rule"
-                                 FamilyPosition="@Row.FamilyPosition"
-                                 OrderingDisabled="@OrderingDisabled"
-                                 InsertionDisabled="@InsertionDisabled"
-                                 MutationDisabled="@MutationDisabled"
-                                 CanOrder="@Row.CanOrder"
-                                 CanMutate="@Row.CanMutate"
-                                 MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                                 InsertionRequested="@InsertionRequested"
-                                 DeleteRequested="@DeleteRequested" />
-            }
+            <RuleActionsMenu Rule="@rule"
+                             FamilyPosition="@Row.FamilyPosition"
+                             MetadataEditDisabled="@MetadataEditDisabled"
+                             MetadataEditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))"
+                             OrderingDisabled="@OrderingDisabled"
+                             InsertionDisabled="@InsertionDisabled"
+                             MutationDisabled="@MutationDisabled"
+                             CanOrder="@Row.CanOrder"
+                             CanMutate="@Row.CanMutate"
+                             MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
+                             InsertionRequested="@InsertionRequested"
+                             DeleteRequested="@DeleteRequested" />
         </td>
     </tr>
 }
@@ -179,19 +170,11 @@ else
                                  Destination="@rule.Rule?.Destination"
                                  KnownHostsChanged="@KnownHostsChanged">
                 <Actions>
-                    <RuleActionsMenu Rule="@rule"
-                                     FamilyPosition="@Row.FamilyPosition"
-                                     Compact="true"
-                                     MetadataEditDisabled="@MetadataEditDisabled"
-                                     MetadataEditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))"
-                                     OrderingDisabled="@OrderingDisabled"
-                                     InsertionDisabled="@InsertionDisabled"
-                                     MutationDisabled="@MutationDisabled"
-                                     CanOrder="@Row.CanOrder"
-                                     CanMutate="@Row.CanMutate"
-                                     MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                                     InsertionRequested="@InsertionRequested"
-                                     DeleteRequested="@DeleteRequested" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                   Size="Size.Small"
+                                   OnClick="ToggleMetadata"
+                                   aria-label="@MetadataToggleLabel"
+                                   aria-expanded="true" />
                 </Actions>
             </RuleMetadataDetails>
         </td>
