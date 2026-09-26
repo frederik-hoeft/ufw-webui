@@ -140,6 +140,17 @@
     display: grid;
     gap: 0.75rem;
 
+    > header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+
+        > :first-child {
+            min-width: 0;
+        }
+    }
+
     > .empty {
         display: flex;
         align-items: center;
@@ -217,16 +228,19 @@
         }
     }
 
-    > footer {
-        display: flex;
-        justify-content: flex-end;
-    }
 }
 
 @media (max-width: $mobile-breakpoint) {
-    .rule-group-members .member > header {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.25rem;
+    .rule-group-members {
+        > header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .member > header {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
     }
 }

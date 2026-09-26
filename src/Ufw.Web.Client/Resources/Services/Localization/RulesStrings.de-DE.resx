@@ -802,6 +802,7 @@
   <data name="GroupMemberCountWithStale" xml:space="preserve"><value>{0} · {1} veraltet</value></data>
   <data name="HideGroupDetails" xml:space="preserve"><value>Details für Gruppe {0} ausblenden</value></data>
   <data name="GroupMembersAria" xml:space="preserve"><value>Regeln in Gruppe {0}</value></data>
+  <data name="RulesInThisGroup" xml:space="preserve"><value>Regeln in dieser Gruppe</value></data>
   <data name="GroupHasNoRules" xml:space="preserve"><value>Dieser Gruppe sind keine Regeln zugeordnet.</value></data>
   <data name="GroupMemberResolutionUnavailable" xml:space="preserve">
     <value>Das aktuelle Firewall-Inventar ist nicht verfügbar; gespeicherte Gruppenzuordnungen können daher nicht aktiven Regeln zugeordnet werden.</value>

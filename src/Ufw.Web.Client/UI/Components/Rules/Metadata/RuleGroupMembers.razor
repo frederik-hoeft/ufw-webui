@@ -3,6 +3,17 @@
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <section class="rule-group-members" aria-label="@RulesText["GroupMembersAria", Projection.Group.Name]">
+    <header>
+        <MudText Typo="Typo.subtitle2" HtmlTag="h3">@RulesText["RulesInThisGroup"]</MudText>
+        @if (ShowActions)
+        {
+            <RuleGroupActionsMenu Group="@Projection.Group"
+                                  Disabled="@Disabled"
+                                  EditRequested="@EditRequested"
+                                  DeleteRequested="@DeleteRequested" />
+        }
+    </header>
+
     @if (Projection.StoredMemberCount == 0)
     {
         <div class="empty">
@@ -58,15 +69,5 @@
                 }
             }
         </div>
-    }
-
-    @if (ShowActions)
-    {
-        <footer>
-            <RuleGroupActionsMenu Group="@Projection.Group"
-                                  Disabled="@Disabled"
-                                  EditRequested="@EditRequested"
-                                  DeleteRequested="@DeleteRequested" />
-        </footer>
     }
 </section>

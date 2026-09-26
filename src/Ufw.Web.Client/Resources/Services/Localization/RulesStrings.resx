@@ -802,6 +802,7 @@
   <data name="GroupMemberCountWithStale" xml:space="preserve"><value>{0} · {1} stale</value></data>
   <data name="HideGroupDetails" xml:space="preserve"><value>Hide details for group {0}</value></data>
   <data name="GroupMembersAria" xml:space="preserve"><value>Rules in group {0}</value></data>
+  <data name="RulesInThisGroup" xml:space="preserve"><value>Rules in this group</value></data>
   <data name="GroupHasNoRules" xml:space="preserve"><value>No rules belong to this group.</value></data>
   <data name="GroupMemberResolutionUnavailable" xml:space="preserve">
     <value>The current firewall inventory is unavailable, so stored group memberships cannot be resolved to live rules.</value>
