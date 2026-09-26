@@ -30,12 +30,6 @@ public sealed partial class RuleMetadataDetails
     public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
 
     [Parameter]
-    public bool EditDisabled { get; set; }
-
-    [Parameter]
-    public EventCallback EditRequested { get; set; }
-
-    [Parameter]
     public RenderFragment? Actions { get; set; }
 
     private async Task CopyCanonicalCommandAsync()

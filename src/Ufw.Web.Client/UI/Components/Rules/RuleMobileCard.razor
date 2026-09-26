@@ -128,12 +128,13 @@
                                  CanonicalCommand="@Row.CanonicalCommand"
                                  Source="@rule.Rule?.Source"
                                  Destination="@rule.Rule?.Destination"
-                                 KnownHostsChanged="@KnownHostsChanged"
-                                 EditDisabled="@MetadataEditDisabled"
-                                 EditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))">
+                                 KnownHostsChanged="@KnownHostsChanged">
                 <Actions>
                     <RuleActionsMenu Rule="@rule"
                                      FamilyPosition="@Row.FamilyPosition"
+                                     Compact="true"
+                                     MetadataEditDisabled="@MetadataEditDisabled"
+                                     MetadataEditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))"
                                      OrderingDisabled="@OrderingDisabled"
                                      InsertionDisabled="@InsertionDisabled"
                                      MutationDisabled="@MutationDisabled"

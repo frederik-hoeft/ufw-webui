@@ -21,10 +21,19 @@ public sealed partial class RuleActionsMenu
     public bool MutationDisabled { get; set; }
 
     [Parameter]
+    public bool Compact { get; set; }
+
+    [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
     public bool CanOrder { get; set; }
 
     [Parameter]
     public bool CanMutate { get; set; }
+
+    [Parameter]
+    public EventCallback MetadataEditRequested { get; set; }
 
     [Parameter]
     public EventCallback MoveToPositionRequested { get; set; }
@@ -34,6 +43,8 @@ public sealed partial class RuleActionsMenu
 
     [Parameter]
     public EventCallback<RuleInsertionActionRequest> InsertionRequested { get; set; }
+
+    private string MenuClass => Compact ? "rule-actions-menu rule-actions-menu-compact" : "rule-actions-menu";
 
     private string ActionsLabel =>
         RulesText["ActionsForRulePosition", FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)];
