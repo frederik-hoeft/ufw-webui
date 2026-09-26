@@ -26,9 +26,6 @@ public sealed partial class RuleListToolbar
     public FirewallAddressFamily AddressFamily { get; set; }
 
     [Parameter]
-    public bool Disabled { get; set; }
-
-    [Parameter]
     public EventCallback<RuleQuery> QueryChanged { get; set; }
 
     protected override void OnParametersSet()
@@ -45,10 +42,6 @@ public sealed partial class RuleListToolbar
     private Task SearchTextChangedAsync(string value)
     {
         _searchText = value;
-        if (Disabled)
-        {
-            return Task.CompletedTask;
-        }
 
         List<RuleFilter> filters = Query.Filters.ToList();
         int existingIndex = filters.FindIndex(static filter => filter is TextRuleFilter);
@@ -73,11 +66,6 @@ public sealed partial class RuleListToolbar
 
     private async Task AddFilterAsync()
     {
-        if (Disabled)
-        {
-            return;
-        }
-
         RuleFilter? filter = await ShowFilterDialogAsync(RulesText["AddFilter"]);
         if (filter is null)
         {
@@ -90,7 +78,7 @@ public sealed partial class RuleListToolbar
 
     private async Task EditFilterAsync(int index)
     {
-        if (Disabled || index < 0 || index >= Query.Filters.Count)
+        if (index < 0 || index >= Query.Filters.Count)
         {
             return;
         }
@@ -109,7 +97,7 @@ public sealed partial class RuleListToolbar
 
     private Task RemoveFilterAsync(int index)
     {
-        if (Disabled || index < 0 || index >= Query.Filters.Count)
+        if (index < 0 || index >= Query.Filters.Count)
         {
             return Task.CompletedTask;
         }
@@ -121,11 +109,6 @@ public sealed partial class RuleListToolbar
 
     private Task ClearAsync()
     {
-        if (Disabled)
-        {
-            return Task.CompletedTask;
-        }
-
         _loadedQuery = null;
         _searchText = string.Empty;
         return QueryChanged.InvokeAsync(RuleQuery.Empty);

@@ -207,10 +207,11 @@
         code {
             min-width: 0;
             flex: 1 1 auto;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
             font-family: var(--ufw-font-mono);
             font-size: 0.75rem;
-            text-overflow: ellipsis;
+            scrollbar-width: thin;
             white-space: nowrap;
         }
 
