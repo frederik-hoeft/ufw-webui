@@ -7,6 +7,7 @@ using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Client.Api.RuleMetadata;
 using Ufw.Web.Client.Api.RuleTags;
 using Ufw.Web.Client.Api.Rules;
@@ -90,6 +91,10 @@ public static class Program
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleTagApiClient, RuleTagApiClient>(
+            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleGroupApiClient, RuleGroupApiClient>(
             static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();

@@ -215,6 +215,7 @@ public sealed partial class RulesPage
             {
                 Notes = result.Notes,
                 TagIds = result.TagIds,
+                GroupId = result.GroupId,
             }, _lifetime.Token);
             _state = _state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted(ruleId, response));
             RefreshRuleListProjection();

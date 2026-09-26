@@ -1,9 +1,10 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Model.V1.Rules;
-using Ufw.Web.Model.V1.RuleTags;
-using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Api;
+using Ufw.Web.Client.Features.Rules.Metadata;
+using Ufw.Web.Model.V1.RuleGroups;
+using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Features.Rules;
 
@@ -80,6 +81,23 @@ internal sealed record RuleSnapshot(
         return this with { Metadata = metadata };
     }
 
+    public RuleSnapshot ReconcileGroupCatalog(IReadOnlyList<RuleGroup> groups)
+    {
+        ArgumentNullException.ThrowIfNull(groups);
+        Dictionary<Guid, RuleGroup> byId = groups.ToDictionary(static group => group.Id);
+        Dictionary<string, RuleMetadata> metadata = new(Metadata.Count, StringComparer.Ordinal);
+        foreach ((string ruleId, RuleMetadata value) in Metadata)
+        {
+            RuleGroupMembership? group = value.Group;
+            if (group is not null && byId.TryGetValue(group.Id, out RuleGroup? currentGroup))
+            {
+                group = new RuleGroupMembership(currentGroup.Id, currentGroup.Name, currentGroup.Comment);
+            }
+            metadata.Add(ruleId, value with { Group = group });
+        }
+        return this with { Metadata = metadata };
+    }
+
     private static RuleMetadata FromMetadataItem(RuleMetadataItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -101,12 +119,27 @@ internal sealed record RuleSnapshot(
             tags.Add(new RuleTag(tag.Id, tag.Name.Trim(), color));
         }
 
+        RuleGroupMembership? group = FromGroupSummary(item.Group);
         if (item.Id == Guid.Empty || tags.Select(static tag => tag.Id).Distinct().Count() != tags.Count)
         {
             throw new ApiProtocolException("The enriched rule response contains invalid metadata.");
         }
 
-        return new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags);
+        return new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags, group);
+    }
+
+    private static RuleGroupMembership? FromGroupSummary(RuleGroupSummary? group)
+    {
+        if (group is null)
+        {
+            return null;
+        }
+        if (group.Id == Guid.Empty || string.IsNullOrWhiteSpace(group.Name))
+        {
+            throw new ApiProtocolException("The enriched rule response contains invalid group metadata.");
+        }
+
+        return new RuleGroupMembership(group.Id, group.Name.Trim(), string.IsNullOrWhiteSpace(group.Comment) ? null : group.Comment.Trim());
     }
 
     public static RuleSnapshot FromFirewallResponse(RuleListResponse response, IReadOnlyDictionary<string, RuleMetadata>? metadata = null, DateTimeOffset capturedAt = default)

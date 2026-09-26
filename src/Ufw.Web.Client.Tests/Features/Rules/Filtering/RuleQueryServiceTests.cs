@@ -3,6 +3,7 @@ using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
+using Ufw.Web.Client.Features.Rules.Filtering.Groups;
 using Ufw.Web.Client.Features.Rules.Filtering.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Filtering.Networks;
 using Ufw.Web.Client.Features.Rules.Filtering.Ports;
@@ -26,6 +27,7 @@ public sealed class RuleQueryServiceTests
         new ActionRuleFilterEvaluator(),
         new DirectionRuleFilterEvaluator(),
         new TagRuleFilterEvaluator(),
+        new GroupRuleFilterEvaluator(),
         new TextRuleFilterEvaluator(new RuleKnownHostProjectionService()),
     ]);
 
@@ -188,6 +190,36 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void Evaluate_GroupFilterMatchesStableIdentityAndProducesCurrentMetadataEvidence()
+    {
+        Guid groupId = Guid.CreateVersion7();
+        RuleGroupMembership membership = new(groupId, "operations", "Current group comment");
+        RuleMetadata metadata = new(Guid.CreateVersion7(), null, [], membership);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+        RuleGroup staleFilterPresentation = new(groupId, "old name", "old comment", []);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new GroupRuleFilter(staleFilterPresentation)]));
+
+        Assert.HasCount(1, result.Rows);
+        GroupRuleMatchEvidence evidence = Assert.IsInstanceOfType<GroupRuleMatchEvidence>(result.Rows[0].Evidence.Single());
+        Assert.AreSame(membership, evidence.Group);
+        Assert.AreEqual("operations", evidence.Group.Name);
+    }
+
+    [TestMethod]
+    public void Evaluate_GroupFilterDoesNotUseDisplayNameAsIdentity()
+    {
+        RuleGroupMembership membership = new(Guid.CreateVersion7(), "ops", null);
+        RuleMetadata metadata = new(Guid.CreateVersion7(), null, [], membership);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+        RuleGroup differentGroup = new(Guid.CreateVersion7(), "ops", null, []);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new GroupRuleFilter(differentGroup)]));
+
+        Assert.IsEmpty(result.Rows);
+    }
+
+    [TestMethod]
     public void Evaluate_TagFilterDoesNotUseDisplayNameAsIdentity()
     {
         RuleTag attachedTag = new(Guid.CreateVersion7(), "prod", "#336699");
@@ -216,6 +248,23 @@ public sealed class RuleQueryServiceTests
         Assert.AreEqual("platform", notes.Term);
         Assert.AreEqual(TextRuleMatchEvidence.FieldKind.Tag, tag.Field);
         Assert.AreEqual("observability", tag.Value);
+    }
+
+    [TestMethod]
+    public void Evaluate_TextFilterSearchesGroupNameAndCommentWithFieldSpecificEvidence()
+    {
+        RuleMetadata metadata = new(Guid.CreateVersion7(), null, [], new RuleGroupMembership(Guid.CreateVersion7(), "remote-admin", "Trusted SSH access"));
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, metadata: metadata)]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("remote-admin trusted")]));
+
+        Assert.HasCount(1, result.Rows);
+        Assert.HasCount(2, result.Rows[0].Evidence);
+        TextRuleMatchEvidence groupName = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence[0]);
+        TextRuleMatchEvidence groupComment = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence[1]);
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.GroupName, groupName.Field);
+        Assert.AreEqual(TextRuleMatchEvidence.FieldKind.GroupComment, groupComment.Field);
+        Assert.AreEqual("Trusted SSH access", groupComment.Value);
     }
 
     [TestMethod]

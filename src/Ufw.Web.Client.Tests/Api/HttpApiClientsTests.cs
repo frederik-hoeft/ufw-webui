@@ -11,12 +11,14 @@ using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Client.Api.RuleMetadata;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Api.RuleTags;
 using Ufw.Web.Client.Tests.Support;
 using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleTags;
@@ -115,6 +117,7 @@ public sealed class HttpApiClientsTests
 
         Guid metadataId = Guid.CreateVersion7();
         Guid tagId = Guid.CreateVersion7();
+        Guid groupId = Guid.CreateVersion7();
         using RecordingHttpMessageHandler rulesHandler = new((request, call) => call switch
         {
             1 => Json(HttpStatusCode.OK, InventoryResponseJson()),
@@ -131,7 +134,7 @@ public sealed class HttpApiClientsTests
         using HttpClient rulesHttp = CreateClient(rulesHandler);
         RuleApiClient rules = new(rulesHttp);
         await rules.GetInventoryAsync();
-        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId] });
+        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId], GroupId = groupId });
         await rules.AddRuleAsync(AddRequest());
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
@@ -146,6 +149,7 @@ public sealed class HttpApiClientsTests
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
         using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
         Assert.AreEqual(tagId, metadataBody.RootElement.GetProperty("tagIds")[0].GetGuid());
+        Assert.AreEqual(groupId, metadataBody.RootElement.GetProperty("groupId").GetGuid());
         using JsonDocument insertBody = JsonDocument.Parse(rulesHandler.Requests[4].Content!);
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
         using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
@@ -219,6 +223,50 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual("#aabbcc", updateBody.RootElement.GetProperty("color").GetString());
 
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTagRequest()));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+        Assert.HasCount(4, handler.Requests);
+    }
+
+    [TestMethod]
+    public async Task RuleGroupApiClient_UsesCatalogEndpointsAndUuidReferencesAsync()
+    {
+        Guid groupId = Guid.Parse("01993b41-fdad-7000-8000-000000000003");
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"groups\":[]}"),
+            2 => Json(HttpStatusCode.OK, $"{{\"groups\":[{{\"id\":\"{groupId:D}\",\"name\":\"ops\",\"comment\":null,\"ruleIds\":[]}}]}}"),
+            3 => Json(HttpStatusCode.OK, $"{{\"groups\":[{{\"id\":\"{groupId:D}\",\"name\":\"operations\",\"comment\":\"managed\",\"ruleIds\":[]}}]}}"),
+            4 => Json(HttpStatusCode.OK, "{\"groups\":[]}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleGroupApiClient client = new(http);
+
+        await client.GetAsync();
+        await client.CreateAsync(new CreateRuleGroupRequest { Name = "ops" });
+        await client.UpdateAsync(groupId, new UpdateRuleGroupRequest { Name = "operations", Comment = "managed" });
+        await client.DeleteAsync(groupId);
+
+        CollectionAssert.AreEqual(
+            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
+            handler.Requests.Select(static request => request.Method).ToArray());
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "/api/v1/rule-groups",
+                "/api/v1/rule-groups",
+                $"/api/v1/rule-groups/{groupId:D}",
+                $"/api/v1/rule-groups/{groupId:D}",
+            },
+            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+
+        using JsonDocument createBody = JsonDocument.Parse(handler.Requests[1].Content!);
+        Assert.AreEqual("ops", createBody.RootElement.GetProperty("name").GetString());
+        using JsonDocument updateBody = JsonDocument.Parse(handler.Requests[2].Content!);
+        Assert.AreEqual("operations", updateBody.RootElement.GetProperty("name").GetString());
+        Assert.AreEqual("managed", updateBody.RootElement.GetProperty("comment").GetString());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleGroupRequest()));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
         Assert.HasCount(4, handler.Requests);
     }

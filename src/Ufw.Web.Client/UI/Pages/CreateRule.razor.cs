@@ -331,6 +331,7 @@ public sealed partial class CreateRule
             {
                 Notes = _metadataDraft.Notes,
                 TagIds = _metadataDraft.TagIds,
+                GroupId = _metadataDraft.GroupId,
             }, _lifetime.Token);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)

@@ -9,11 +9,18 @@
             <RuleKnownHostEndpoint Label="@(RulesText["Destination"])" Endpoint="@Destination" KnownHostsChanged="@KnownHostsChanged" />
         </div>
     </header>
-    <section>
+    <section class="rule-metadata-command">
+        @if (Metadata?.Group is { } group)
+        {
+            <div class="rule-group-membership">
+                <span>@RulesText["Group"]</span>
+                <strong>@group.Name</strong>
+            </div>
+        }
         <span>@RulesText["CanonicalCommand"]</span>
         @if (!string.IsNullOrWhiteSpace(CanonicalCommand))
         {
-            <div>
+            <div class="canonical-command">
                 <code>@CanonicalCommand</code>
                 <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="CopyCanonicalCommandAsync" aria-label="@RulesText["CopyCanonicalCommand"]" />
             </div>

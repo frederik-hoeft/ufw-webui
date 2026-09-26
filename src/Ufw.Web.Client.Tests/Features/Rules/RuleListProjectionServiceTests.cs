@@ -78,7 +78,11 @@ public sealed class RuleListProjectionServiceTests
     {
         ListedFirewallRule first = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 1);
         ListedFirewallRule second = Rule("shared", FirewallAddressFamily.IPv4, displayNumber: 2);
-        RuleMetadata metadata = new(Guid.CreateVersion7(), "managed rule", [new RuleTag(Guid.CreateVersion7(), "prod", "#336699"), new RuleTag(Guid.CreateVersion7(), "ssh", "#663399"),]);
+        RuleMetadata metadata = new(
+            Guid.CreateVersion7(),
+            "managed rule",
+            [new RuleTag(Guid.CreateVersion7(), "prod", "#336699"), new RuleTag(Guid.CreateVersion7(), "ssh", "#663399")],
+            new RuleGroupMembership(Guid.CreateVersion7(), "operations", null));
         Dictionary<string, RuleMetadata> metadataByRuleId = new(StringComparer.Ordinal)
         {
             ["shared"] = metadata,
@@ -88,6 +92,7 @@ public sealed class RuleListProjectionServiceTests
 
         RuleFamilyProjection ipv4 = projection.GetFamily(FirewallAddressFamily.IPv4);
         Assert.IsTrue(ipv4.Rows.All(row => ReferenceEquals(metadata, row.Metadata)));
+        Assert.IsTrue(ipv4.Rows.All(static row => row.Metadata?.Group?.Name == "operations"));
     }
 
     [TestMethod]

@@ -1,8 +1,10 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Services.Errors;
 
@@ -16,6 +18,7 @@ public sealed class RuleInventoryStateTests
     {
         Guid metadataId = Guid.CreateVersion7();
         Guid tagId = Guid.CreateVersion7();
+        Guid groupId = Guid.CreateVersion7();
         RuleInventoryResponse response = Inventory(
             new RuleListResponse(true, [Rule("shared"), Rule("shared")], TestFirewallConfiguration.Enabled),
             [new RuleMetadataItem
@@ -24,6 +27,7 @@ public sealed class RuleInventoryStateTests
                 RuleId = "shared",
                 Notes = "managed",
                 Tags = [new RuleTagItem { Id = tagId, Name = "prod", Color = "#336699" }],
+                Group = new RuleGroupSummary(groupId, "operations", "trusted access"),
             }]);
 
         RuleInventoryState state = Loaded(response);
@@ -36,6 +40,9 @@ public sealed class RuleInventoryStateTests
         Assert.AreEqual(tagId, state.Snapshot.Metadata["shared"].Tags[0].Id);
         Assert.AreEqual("prod", state.Snapshot.Metadata["shared"].Tags[0].Name);
         Assert.AreEqual("#336699", state.Snapshot.Metadata["shared"].Tags[0].Color);
+        Assert.AreEqual(groupId, state.Snapshot.Metadata["shared"].Group?.Id);
+        Assert.AreEqual("operations", state.Snapshot.Metadata["shared"].Group?.Name);
+        Assert.AreEqual("trusted access", state.Snapshot.Metadata["shared"].Group?.Comment);
         Assert.AreEqual(new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero), state.Snapshot.CapturedAt);
     }
 
@@ -126,6 +133,26 @@ public sealed class RuleInventoryStateTests
 
         Assert.AreEqual("new", updated.Snapshot!.Metadata["rule"].Tags.Single().Name);
         Assert.AreEqual("#AABBCC", updated.Snapshot.Metadata["rule"].Tags.Single().Color);
+    }
+
+    [TestMethod]
+    public void ReconcileGroupCatalog_RefreshesGroupPresentationByStableIdentity()
+    {
+        Guid groupId = Guid.CreateVersion7();
+        RuleInventoryState state = Loaded(Inventory(
+            new RuleListResponse(true, [Rule("rule")], TestFirewallConfiguration.Enabled),
+            [new RuleMetadataItem
+            {
+                Id = Guid.CreateVersion7(),
+                RuleId = "rule",
+                Tags = [],
+                Group = new RuleGroupSummary(groupId, "old", "old comment"),
+            }]));
+
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.GroupCatalogReconciled([new RuleGroup(groupId, "new", "new comment", ["rule"])]));
+
+        Assert.AreEqual("new", updated.Snapshot!.Metadata["rule"].Group!.Name);
+        Assert.AreEqual("new comment", updated.Snapshot.Metadata["rule"].Group!.Comment);
     }
 
     [TestMethod]

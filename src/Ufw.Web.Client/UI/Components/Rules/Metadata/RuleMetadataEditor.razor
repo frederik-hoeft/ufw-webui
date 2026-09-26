@@ -1,6 +1,7 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
 @inject IRuleTagCatalogService TagCatalog
 @inject IRuleTagColorGenerator TagColors
+@inject IRuleGroupCatalogService GroupCatalog
 @inject IClientErrorMapper ClientErrors
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -24,6 +25,45 @@
                   Placeholder="@(RulesText["NotesPlaceholder"])" />
 
     <div class="rule-metadata-editor mt-4">
+        <MudText Typo="Typo.subtitle2">@RulesText["Group"]</MudText>
+        <MudAutocomplete T="GroupOption"
+                         Label="@(RulesText["RuleGroup"])"
+                         Value="@_groupSelection"
+                         ValueChanged="GroupChangedAsync"
+                         SearchFunc="SearchGroupsAsync"
+                         ToStringFunc="FormatGroupOption"
+                         CoerceValue="false"
+                         ResetValueOnEmptyText="true"
+                         Clearable="true"
+                         Disabled="@(Disabled || _creatingGroup)"
+                         MaxItems="@((int?)null)"
+                         Placeholder="@(RulesText["AddOrCreateGroupPlaceholder"])">
+            <ItemTemplate Context="option">
+                @if (option.Group is { } group)
+                {
+                    <div class="rule-group-select-option">
+                        <span>@group.Name</span>
+                        @if (!string.IsNullOrWhiteSpace(group.Comment))
+                        {
+                            <small>@group.Comment</small>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="rule-tag-create-option">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" />
+                        <span>@RulesText["CreateInlineGroup", option.CreateName ?? string.Empty]</span>
+                    </span>
+                }
+            </ItemTemplate>
+        </MudAutocomplete>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @RulesText["InlineGroupCreationHint"]
+        </MudText>
+    </div>
+
+    <div class="rule-metadata-editor mt-4">
         <MudText Typo="Typo.subtitle2">@RulesText["Tags"]</MudText>
         @if (SelectedTags.Count > 0)
         {
@@ -41,7 +81,7 @@
                          Value="@_tagToAdd"
                          ValueChanged="AddTagAsync"
                          SearchFunc="SearchTagsAsync"
-                         ToStringFunc="FormatOption"
+                         ToStringFunc="FormatTagOption"
                          CoerceValue="false"
                          ResetValueOnEmptyText="true"
                          Clearable="true"
