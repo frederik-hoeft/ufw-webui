@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Tests.Adapter;
@@ -30,7 +32,8 @@ namespace Ufw.Ipc.Tests.Protocol.Integration;
 
 [TestClass]
 [DoNotParallelize]
-public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestBase
+[SuppressMessage("Performance", "CA1861:Prefer 'static readonly' fields over constant array arguments", Justification = "Expected arrays are local one-shot test assertions.")]
+public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
 {
     private string _temporaryDirectory = null!;
     private string _mockStatePath = null!;
@@ -41,7 +44,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
     [TestInitialize]
     public void Initialize()
     {
-        _temporaryDirectory = Path.Combine(Path.GetTempPath(), nameof(OrderedInsertionExecutionIntegrationTests), Guid.NewGuid().ToString("N"));
+        _temporaryDirectory = Path.Combine(Path.GetTempPath(), nameof(BatchDeleteExecutionIntegrationTests), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_temporaryDirectory);
         _mockStatePath = Path.Combine(_temporaryDirectory, "ufw-state.json");
         _authorizedKeysPath = Path.Combine(_temporaryDirectory, "authorized_keys");
@@ -116,68 +119,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
     }
 
     [TestMethod]
-    public async Task SignedInsertion_BeforeAnchorTraversesProductionIpcAndRejectsReplayAsync()
-    {
-        await SeedDualFamilyRulesAsync();
-
-        await RunAsync(async (context, cancellationToken) =>
-        {
-            RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
-            IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
-            FirewallRuleSpecification inserted = Rule("53", FirewallAddressFamily.IPv4, FirewallAction.Allow, FirewallProtocol.Udp);
-            InsertRuleRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, anchorOccurrenceId: 1, RuleInsertionPlacement.Before, inserted);
-
-            RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
-
-            Assert.AreEqual(RuleInsertionOutcome.Completed, response.Outcome);
-            Assert.IsNotNull(response.FinalSnapshot);
-            Assert.IsNotNull(response.InsertedRule);
-            Assert.AreEqual(FirewallAddressFamily.IPv4, response.InsertedRule.Rule!.AddressFamily);
-            Assert.AreEqual("53", response.InsertedRule.Rule.DestinationPorts);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[0], response.FinalSnapshot.Rules[0]));
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(response.InsertedRule, response.FinalSnapshot.Rules[1]));
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[2]));
-
-            UfwIpcException replay = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
-                await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken));
-            Assert.AreEqual(409, replay.StatusCode);
-        }, cancellationToken: TestContext.CancellationToken);
-    }
-
-    [TestMethod]
-    public async Task SignedInsertion_AfterLastIpv4AnchorStaysBeforeIpv6PartitionAsync()
-    {
-        await SeedDualFamilyRulesAsync();
-
-        await RunAsync(async (context, cancellationToken) =>
-        {
-            RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
-            IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
-            int lastIpv4Occurrence = baseline.Rules
-                .Select((rule, index) => (rule, index))
-                .Where(static item => item.rule.Rule?.AddressFamily == FirewallAddressFamily.IPv4)
-                .Select(static item => item.index)
-                .Last();
-            int firstIpv6Occurrence = baseline.Rules
-                .Select((rule, index) => (rule, index))
-                .First(static item => item.rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6)
-                .index;
-            FirewallRuleSpecification inserted = Rule("8443", FirewallAddressFamily.IPv4, FirewallAction.Allow, FirewallProtocol.Tcp);
-            InsertRuleRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, lastIpv4Occurrence, RuleInsertionPlacement.After, inserted);
-
-            RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
-
-            Assert.AreEqual(RuleInsertionOutcome.Completed, response.Outcome);
-            Assert.IsNotNull(response.FinalSnapshot);
-            Assert.IsNotNull(response.InsertedRule);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(response.InsertedRule, response.FinalSnapshot.Rules[firstIpv6Occurrence]));
-            Assert.AreEqual(FirewallAddressFamily.IPv4, response.FinalSnapshot.Rules[firstIpv6Occurrence].Rule!.AddressFamily);
-            Assert.AreEqual(FirewallAddressFamily.IPv6, response.FinalSnapshot.Rules[firstIpv6Occurrence + 1].Rule!.AddressFamily);
-        }, cancellationToken: TestContext.CancellationToken);
-    }
-
-    [TestMethod]
-    public async Task StaleBaseline_ReturnsCurrentSnapshotWithoutInsertionAsync()
+    public async Task SignedBatchDelete_TraversesProductionIpcAndDaemonAndRejectsReplayAsync()
     {
         await SeedIpv4RulesAsync();
 
@@ -185,37 +127,96 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         {
             RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
             IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
-            InsertRuleRequest request = CreateSignedRequest(
-                intentContext.DeploymentId,
-                baseline,
-                anchorOccurrenceId: 0,
-                RuleInsertionPlacement.Before,
-                Rule("53", FirewallAddressFamily.IPv4, FirewallAction.Allow, FirewallProtocol.Udp));
+            BatchDeleteRulesRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, [0, 2]);
+
+            RuleBatchDeleteResponse response = await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken);
+
+            Assert.AreEqual(RuleBatchDeleteOutcome.Completed, response.Outcome);
+            Assert.IsNotNull(response.FinalSnapshot);
+            Assert.HasCount(2, response.Operations);
+            Assert.IsTrue(response.Operations.All(static operation => operation.Outcome == RuleBatchDeleteOperationOutcome.Deleted));
+            CollectionAssert.AreEqual(new[] { 2, 0 }, response.Operations.Select(static operation => operation.OccurrenceId).ToArray());
+            Assert.IsEmpty(response.PendingOccurrenceIds);
+            Assert.HasCount(1, response.FinalSnapshot.Rules);
+            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[0]));
+
+            UfwIpcException replay = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
+                await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken));
+            Assert.AreEqual(409, replay.StatusCode);
+
+            RuleListResponse afterReplay = await GetRulesAsync(context, cancellationToken);
+            Assert.HasCount(1, afterReplay.Rules);
+            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], afterReplay.Rules[0]));
+        }, cancellationToken: TestContext.CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task SignedBatchDelete_DeletesOccurrencesAcrossAddressFamiliesAsync()
+    {
+        await SeedDualFamilyRulesAsync();
+
+        await RunAsync(async (context, cancellationToken) =>
+        {
+            RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
+            IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
+            int ipv4Occurrence = baseline.Rules.Select((rule, index) => (rule, index)).First(static item => item.rule.Rule?.AddressFamily == FirewallAddressFamily.IPv4).index;
+            int ipv6Occurrence = baseline.Rules.Select((rule, index) => (rule, index)).First(static item => item.rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6).index;
+            BatchDeleteRulesRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, [ipv4Occurrence, ipv6Occurrence]);
+
+            RuleBatchDeleteResponse response = await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken);
+
+            Assert.AreEqual(RuleBatchDeleteOutcome.Completed, response.Outcome);
+            Assert.IsNotNull(response.FinalSnapshot);
+            Assert.HasCount(4, response.FinalSnapshot.Rules);
+            Assert.HasCount(2, response.Operations);
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[ipv4Occurrence])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[ipv6Occurrence])));
+            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.AddressFamily == FirewallAddressFamily.IPv4));
+            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.AddressFamily == FirewallAddressFamily.IPv6));
+        }, cancellationToken: TestContext.CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task StaleBaseline_ReturnsAuthoritativeSnapshotWithoutMutationAsync()
+    {
+        await SeedIpv4RulesAsync();
+
+        await RunAsync(async (context, cancellationToken) =>
+        {
+            RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
+            IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
+            BatchDeleteRulesRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, [0, 2]);
 
             MockCommandResult external = await MockBackedUfwRunner.InvokeAsync(
                 _mockStatePath,
-                ["allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "123", "proto", "udp"],
+                ["allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "53", "proto", "udp"],
                 cancellationToken);
             Assert.AreEqual(0, external.ExitCode);
 
-            RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
+            RuleBatchDeleteResponse response = await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken);
 
-            Assert.AreEqual(RuleInsertionOutcome.StaleBaseline, response.Outcome);
+            Assert.AreEqual(RuleBatchDeleteOutcome.StaleBaseline, response.Outcome);
             Assert.IsNotNull(response.FinalSnapshot);
-            Assert.IsNull(response.InsertedRule);
-            Assert.HasCount(baseline.Rules.Count + 1, response.FinalSnapshot.Rules);
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(static rule => rule.Rule?.DestinationPorts == "53"));
+            Assert.HasCount(4, response.FinalSnapshot.Rules);
+            Assert.IsEmpty(response.Operations);
+            CollectionAssert.AreEqual(new[] { 0, 2 }, response.PendingOccurrenceIds.ToArray());
         }, cancellationToken: TestContext.CancellationToken);
     }
 
     [TestMethod]
-    public async Task OutOfBandChangeAfterInsert_ReturnsStateUncertainWithAuthoritativeSnapshotAsync()
+    public async Task MidBatchOutOfBandChange_StopsAfterConfirmedDeletionAndReportsKnownPartialStateAsync()
     {
         await SeedIpv4RulesAsync();
+        bool firstDeleteSeen = false;
         bool injected = false;
         _runner.AfterCommandAsync = async (arguments, cancellationToken) =>
         {
-            if (injected || !arguments.Contains("insert", StringComparer.Ordinal))
+            if (arguments.Contains("delete", StringComparer.Ordinal))
+            {
+                firstDeleteSeen = true;
+                return;
+            }
+            if (!firstDeleteSeen || injected || !IsStatusCommand(arguments))
             {
                 return;
             }
@@ -223,7 +224,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             injected = true;
             MockCommandResult external = await MockBackedUfwRunner.InvokeAsync(
                 _mockStatePath,
-                ["allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "123", "proto", "udp"],
+                ["allow", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "53", "proto", "udp"],
                 cancellationToken);
             Assert.AreEqual(0, external.ExitCode);
         };
@@ -232,62 +233,56 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         {
             RuleListResponse baseline = await GetRulesAsync(context, cancellationToken);
             IntentContextResponse intentContext = await GetIntentContextAsync(context, cancellationToken);
-            InsertRuleRequest request = CreateSignedRequest(
-                intentContext.DeploymentId,
-                baseline,
-                anchorOccurrenceId: 1,
-                RuleInsertionPlacement.Before,
-                Rule("53", FirewallAddressFamily.IPv4, FirewallAction.Allow, FirewallProtocol.Udp));
+            BatchDeleteRulesRequest request = CreateSignedRequest(intentContext.DeploymentId, baseline, [0, 2]);
 
-            RuleInsertionResponse response = await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
+            RuleBatchDeleteResponse response = await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken);
 
             Assert.IsTrue(injected);
-            Assert.AreEqual(RuleInsertionOutcome.StateUncertain, response.Outcome);
+            Assert.AreEqual(RuleBatchDeleteOutcome.PartiallyCompleted, response.Outcome);
             Assert.IsNotNull(response.FinalSnapshot);
-            Assert.IsNull(response.InsertedRule);
-            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static rule => rule.Rule?.DestinationPorts == "53"));
-            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static rule => rule.Rule?.DestinationPorts == "123"));
+            Assert.HasCount(1, response.Operations);
+            Assert.AreEqual(2, response.Operations[0].OccurrenceId);
+            Assert.AreEqual(RuleBatchDeleteOperationOutcome.Deleted, response.Operations[0].Outcome);
+            CollectionAssert.AreEqual(new[] { 0 }, response.PendingOccurrenceIds.ToArray());
+            Assert.HasCount(3, response.FinalSnapshot.Rules);
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[2])));
+            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.DestinationPorts == "53"));
         }, cancellationToken: TestContext.CancellationToken);
     }
 
-    private InsertRuleRequest CreateSignedRequest(string deploymentId, RuleListResponse baseline, int anchorOccurrenceId, RuleInsertionPlacement placement, FirewallRuleSpecification rule)
+    private BatchDeleteRulesRequest CreateSignedRequest(string deploymentId, RuleListResponse baseline, int[] occurrenceIds)
     {
-        InsertRulePayload payload = new()
+        BatchDeleteRulesPayload payload = new()
         {
             BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),
-            AnchorOccurrenceId = anchorOccurrenceId,
-            Placement = placement,
-            Rule = rule,
+            OccurrenceIds = occurrenceIds,
         };
-        return IntentRequestFactory.CreateInsertRequest(_signingKey, deploymentId, payload, MessageJsonSerializerContext.Default.InsertRulePayload, TimeProvider.System);
+        return IntentRequestFactory.CreateBatchDeleteRequest(_signingKey, deploymentId, payload, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload, TimeProvider.System);
     }
-
-    private static Task<RuleListResponse> GetRulesAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
-        context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
-
-    private static Task<IntentContextResponse> GetIntentContextAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
-        context.Client.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", cancellationToken);
 
     private async Task SeedIpv4RulesAsync()
     {
-        await AddRuleAsync("80", FirewallAddressFamily.IPv4, "allow", "tcp");
-        await AddRuleAsync("22", FirewallAddressFamily.IPv4, "deny", "tcp");
-        await AddRuleAsync("443", FirewallAddressFamily.IPv4, "allow", "tcp");
-        await EnableAsync();
+        await AddRuleAsync("80", "allow", "tcp", "0.0.0.0/0");
+        await AddRuleAsync("22", "deny", "tcp", "0.0.0.0/0");
+        await AddRuleAsync("443", "allow", "tcp", "0.0.0.0/0");
+        MockCommandResult enabled = await MockBackedUfwRunner.InvokeAsync(_mockStatePath, ["--force", "enable"], TestContext.CancellationToken);
+        Assert.AreEqual(0, enabled.ExitCode);
     }
 
     private async Task SeedDualFamilyRulesAsync()
     {
-        await AddRuleAsync("80", FirewallAddressFamily.IPv4, "allow", "tcp");
-        await AddRuleAsync("22", FirewallAddressFamily.IPv4, "deny", "tcp");
-        await AddRuleAsync("80", FirewallAddressFamily.IPv6, "allow", "tcp");
-        await AddRuleAsync("22", FirewallAddressFamily.IPv6, "deny", "tcp");
-        await EnableAsync();
+        await AddRuleAsync("80", "allow", "tcp", "0.0.0.0/0");
+        await AddRuleAsync("22", "deny", "tcp", "0.0.0.0/0");
+        await AddRuleAsync("443", "allow", "tcp", "0.0.0.0/0");
+        await AddRuleAsync("80", "allow", "tcp", "::/0");
+        await AddRuleAsync("22", "deny", "tcp", "::/0");
+        await AddRuleAsync("443", "allow", "tcp", "::/0");
+        MockCommandResult enabled = await MockBackedUfwRunner.InvokeAsync(_mockStatePath, ["--force", "enable"], TestContext.CancellationToken);
+        Assert.AreEqual(0, enabled.ExitCode);
     }
 
-    private async Task AddRuleAsync(string port, FirewallAddressFamily family, string action, string protocol)
+    private async Task AddRuleAsync(string port, string action, string protocol, string address)
     {
-        string address = family == FirewallAddressFamily.IPv6 ? "::/0" : "0.0.0.0/0";
         MockCommandResult result = await MockBackedUfwRunner.InvokeAsync(
             _mockStatePath,
             [action, "from", address, "to", address, "port", port, "proto", protocol],
@@ -295,20 +290,14 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         Assert.AreEqual(0, result.ExitCode);
     }
 
-    private async Task EnableAsync()
-    {
-        MockCommandResult enabled = await MockBackedUfwRunner.InvokeAsync(_mockStatePath, ["--force", "enable"], TestContext.CancellationToken);
-        Assert.AreEqual(0, enabled.ExitCode);
-    }
+    private static bool IsStatusCommand(ImmutableArray<string> arguments) =>
+        arguments.Contains("status", StringComparer.Ordinal) && arguments.Contains("numbered", StringComparer.Ordinal);
 
-    private static FirewallRuleSpecification Rule(string port, FirewallAddressFamily family, FirewallAction action, FirewallProtocol protocol) => new()
-    {
-        Action = action,
-        AddressFamily = family,
-        Direction = FirewallDirection.In,
-        Protocol = protocol,
-        DestinationPorts = port,
-    };
+    private static Task<RuleListResponse> GetRulesAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
+        context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
+
+    private static Task<IntentContextResponse> GetIntentContextAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
+        context.Client.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", cancellationToken);
 
     private sealed class AlwaysValidInterfaceValidator : IFirewallRuleInterfaceValidator
     {

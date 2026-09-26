@@ -2,6 +2,7 @@
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Systemd.Firewall;
+using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
 
@@ -10,6 +11,7 @@ namespace Ufw.Systemd.Api.Controllers;
 internal sealed partial class RulesController(
     IFirewallRuleQueryService firewallRules,
     IFirewallMutationService firewallMutations,
+    IFirewallBatchDeleteService firewallBatchDeletion,
     IFirewallOrderedInsertionService firewallInsertion,
     IFirewallReorderService firewallReordering) : ControllerBase
 {
@@ -27,4 +29,7 @@ internal sealed partial class RulesController(
 
     public partial ValueTask<IResponsePayload> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken) =>
         firewallMutations.DeleteAsync(request, cancellationToken);
+
+    public partial ValueTask<IResponsePayload> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken) =>
+        firewallBatchDeletion.DeleteAsync(request, cancellationToken);
 }

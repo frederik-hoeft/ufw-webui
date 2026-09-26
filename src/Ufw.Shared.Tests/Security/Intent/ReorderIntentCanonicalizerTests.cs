@@ -21,7 +21,7 @@ public sealed class ReorderIntentCanonicalizerTests
         string canonical = Encoding.UTF8.GetString(IntentCanonicalizer.CanonicalizeReorder(intent, payload));
 
         Assert.AreEqual(
-            "ufw-intent/2\n"
+            "ufw-intent/3\n"
             + "deploymentId=deployment\n"
             + "keyId=key\n"
             + "issuedAtUnix=123\n"

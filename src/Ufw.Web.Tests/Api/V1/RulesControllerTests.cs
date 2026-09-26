@@ -316,6 +316,86 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public void BatchDeleteRulesAsync_UsesDedicatedBatchSubresource()
+    {
+        System.Reflection.MethodInfo? method = typeof(RulesController).GetMethod(nameof(RulesController.BatchDeleteRulesAsync));
+        Assert.IsNotNull(method);
+        object[] attributes = method.GetCustomAttributes(typeof(HttpDeleteAttribute), inherit: false);
+        Assert.HasCount(1, attributes);
+        HttpDeleteAttribute attribute = Assert.IsInstanceOfType<HttpDeleteAttribute>(attributes[0]);
+        Assert.AreEqual("batch", attribute.Template);
+    }
+
+    [TestMethod]
+    public async Task TestBatchDeleteRulesAsync_ForwardsSignedEnvelopeAndReconcilesMetadataAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        BatchDeleteRulesRequest request = CreateSignedBatchDelete();
+        RuleBatchDeleteResponse expected = CreateBatchDeleteResponse(RuleBatchDeleteOutcome.Completed);
+        client
+            .Setup(static c => c.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(It.IsAny<BatchDeleteRulesRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleBatchDeleteResponse> result = await controller.BatchDeleteRulesAsync(request, TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.AreSame(expected, response.Value);
+        client.Verify(
+            c => c.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(
+                It.Is<BatchDeleteRulesRequest>(sent => sent.DeploymentId == request.DeploymentId
+                    && sent.Nonce == request.Nonce
+                    && sent.Operation == request.Operation
+                    && sent.Payload.GetRawText() == request.Payload.GetRawText()
+                    && sent.Signature == request.Signature),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        metadata.Verify(service => service.ReconcileBatchDeleteAsync(expected, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow(RuleBatchDeleteOutcome.StaleBaseline, StatusCodes.Status409Conflict)]
+    [DataRow(RuleBatchDeleteOutcome.PreconditionFailed, StatusCodes.Status422UnprocessableEntity)]
+    [DataRow(RuleBatchDeleteOutcome.PartiallyCompleted, StatusCodes.Status409Conflict)]
+    [DataRow(RuleBatchDeleteOutcome.StateUncertain, StatusCodes.Status503ServiceUnavailable)]
+    public async Task TestBatchDeleteRulesAsync_PreservesStructuredNonSuccessReportAsync(RuleBatchDeleteOutcome outcome, int expectedStatusCode)
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        RuleBatchDeleteResponse expected = CreateBatchDeleteResponse(outcome);
+        client
+            .Setup(static c => c.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(It.IsAny<BatchDeleteRulesRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleBatchDeleteResponse> result = await controller.BatchDeleteRulesAsync(CreateSignedBatchDelete(), TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(expectedStatusCode, response.StatusCode);
+        Assert.AreSame(expected, response.Value);
+        metadata.Verify(service => service.ReconcileBatchDeleteAsync(expected, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task TestBatchDeleteRulesAsync_RejectsWrongOperationBeforeIpcAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        BatchDeleteRulesRequest request = CreateSignedBatchDelete() with { Operation = IntentOperations.DELETE_RULE };
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleBatchDeleteResponse> result = await controller.BatchDeleteRulesAsync(request, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
+        client.Verify(
+            static c => c.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(It.IsAny<BatchDeleteRulesRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        metadata.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
     public async Task TestDeleteRuleAsync_RemovesMetadataForAuthoritativeDeletedIdentityAsync()
     {
         Mock<IUfwClient> client = new();
@@ -428,6 +508,29 @@ public sealed class RulesControllerTests
         [new RuleReorderOperationResponse(new RuleReorderMoveResponse(1, 0, 0), RuleReorderOperationOutcome.FailedAndRestored, "diagnostic")],
         [new RuleReorderMoveResponse(0, 1, null)],
         [new RuleReorderMoveResponse(0, 1, null)],
+        "diagnostic");
+
+    private static BatchDeleteRulesRequest CreateSignedBatchDelete() => new()
+    {
+        Version = IntentProtocol.VERSION,
+        DeploymentId = "deployment-test",
+        KeyId = "sha256:test",
+        IssuedAtUnix = 1,
+        Nonce = "nonce",
+        Operation = IntentOperations.DELETE_RULES_BATCH,
+        Payload = System.Text.Json.JsonSerializer.SerializeToElement(new BatchDeleteRulesPayload
+        {
+            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            OccurrenceIds = [1, 3],
+        }),
+        Signature = "sig",
+    };
+
+    private static RuleBatchDeleteResponse CreateBatchDeleteResponse(RuleBatchDeleteOutcome outcome) => new(
+        outcome,
+        outcome is RuleBatchDeleteOutcome.StateUncertain ? null : new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
+        [new RuleBatchDeleteOperationResponse(3, "sha256:deleted", RuleBatchDeleteOperationOutcome.Deleted, null)],
+        outcome is RuleBatchDeleteOutcome.Completed ? [] : [1],
         "diagnostic");
 
     private static DeleteRuleRequest CreateSignedDelete() => new()

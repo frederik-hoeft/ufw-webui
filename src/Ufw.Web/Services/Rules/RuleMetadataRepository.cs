@@ -129,6 +129,29 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
         });
     }
 
+    public Task<int> DeleteForRuleIdsAsync(IReadOnlyCollection<string> ruleIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ruleIds);
+        string[] identities = [.. ruleIds.Distinct(StringComparer.Ordinal)];
+        if (identities.Length == 0)
+        {
+            return Task.FromResult(0);
+        }
+
+        return Transaction.Scoped.RunAsync<int>(async (context, transaction) =>
+        {
+            RuleMetadataEntry[] metadata = await context.Set<RuleMetadataEntry>()
+                .Where(entry => identities.Contains(entry.RuleId))
+                .ToArrayAsync(cancellationToken);
+            if (metadata.Length > 0)
+            {
+                context.RemoveRange(metadata);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            return transaction.Commit(metadata.Length);
+        });
+    }
+
     public Task<int> DeleteUnmatchedAsync(IReadOnlyCollection<Guid> metadataIds, IReadOnlyCollection<string> liveRuleIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(metadataIds);

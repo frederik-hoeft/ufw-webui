@@ -362,6 +362,73 @@ public sealed class IntentSignatureTests
     }
 
     [TestMethod]
+    public void VerifyBatchDelete_AcceptsFreshSignatureFromAuthorizedKey()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        BatchDeleteRulesRequest request = SignBatchDelete(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        IntentVerificationResult.AcceptedBatchDelete accepted = Assert.IsInstanceOfType<IntentVerificationResult.AcceptedBatchDelete>(verifier.VerifyBatchDelete(request));
+        CollectionAssert.AreEqual(CreateBatchDeletePayload().OccurrenceIds, accepted.Payload.OccurrenceIds);
+    }
+
+    [TestMethod]
+    public void VerifyBatchDelete_RejectsTamperedBaselineOrOccurrenceSet()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        BatchDeleteRulesRequest signed = SignBatchDelete(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+        BatchDeleteRulesPayload[] tampered =
+        [
+            CreateBatchDeletePayload(baselineFingerprint: FirewallRuleSnapshotFingerprint.Compute(active: false, [])),
+            CreateBatchDeletePayload(occurrenceIds: [0, 1]),
+            CreateBatchDeletePayload(occurrenceIds: [2, 0]),
+        ];
+
+        foreach (BatchDeleteRulesPayload payload in tampered)
+        {
+            BatchDeleteRulesRequest request = signed with
+            {
+                Payload = System.Text.Json.JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload),
+            };
+            AssertRejected<ForbiddenResponse>(verifier.VerifyBatchDelete(request));
+        }
+    }
+
+    [TestMethod]
+    public void VerifyBatchDelete_RejectsMalformedOrDuplicateSelectionBeforeSignatureVerification()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        BatchDeleteRulesRequest signed = SignBatchDelete(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        BatchDeleteRulesPayload malformed = new() { BaselineFingerprint = "sha256:not-valid", OccurrenceIds = [0] };
+        AssertRejected<BadRequestResponse>(verifier.VerifyBatchDelete(signed with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(malformed, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload),
+        }));
+
+        BatchDeleteRulesPayload duplicate = CreateBatchDeletePayload(occurrenceIds: [1, 1]);
+        AssertRejected<BadRequestResponse>(verifier.VerifyBatchDelete(signed with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(duplicate, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload),
+        }));
+    }
+
+    [TestMethod]
+    public void VerifyBatchDelete_RejectsOperationSubstitution()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        BatchDeleteRulesRequest request = SignBatchDelete(key, clock) with { Operation = IntentOperations.DELETE_RULE };
+
+        AssertRejected<BadRequestResponse>(CreateVerifier(key, clock).VerifyBatchDelete(request));
+    }
+
+    [TestMethod]
     public void Canonicalize_IsStableAcrossEquivalentRules()
     {
         using ECDsa key = IntentSigner.CreateP256();
@@ -456,6 +523,15 @@ public sealed class IntentSignatureTests
 
     private static ReorderRulesRequest SignReorder(ECDsa key, TimeProvider clock) =>
         IntentRequestFactory.CreateReorderRequest(key, DEPLOYMENT_ID, CreateReorderPayload(), MessageJsonSerializerContext.Default.ReorderRulesPayload, clock);
+
+    private static BatchDeleteRulesPayload CreateBatchDeletePayload(string? baselineFingerprint = null, int[]? occurrenceIds = null) => new()
+    {
+        BaselineFingerprint = baselineFingerprint ?? FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+        OccurrenceIds = occurrenceIds ?? [0, 2],
+    };
+
+    private static BatchDeleteRulesRequest SignBatchDelete(ECDsa key, TimeProvider clock) =>
+        IntentRequestFactory.CreateBatchDeleteRequest(key, DEPLOYMENT_ID, CreateBatchDeletePayload(), MessageJsonSerializerContext.Default.BatchDeleteRulesPayload, clock);
 
     private static FirewallRuleSpecification CreateSshRule(FirewallAddressFamily addressFamily = FirewallAddressFamily.Any) => new()
     {

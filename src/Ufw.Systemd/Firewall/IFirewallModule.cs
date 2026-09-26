@@ -1,5 +1,6 @@
 ﻿using Jab;
 using Ufw.Shared.Firewall.Rendering;
+using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.Configuration;
@@ -24,6 +25,8 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>]
 [Singleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>]
 [Singleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>]
+[Singleton<IFirewallBatchDeleteExecutor, FirewallBatchDeleteExecutor>]
+[Singleton<IFirewallBatchDeleteService, FirewallBatchDeleteService>]
 [Singleton<IFirewallReorderExecutor, FirewallReorderExecutor>]
 [Singleton<IFirewallReorderService, FirewallReorderService>]
 [Singleton<IFirewallReorderRecoveryService, FirewallReorderRecoveryService>]

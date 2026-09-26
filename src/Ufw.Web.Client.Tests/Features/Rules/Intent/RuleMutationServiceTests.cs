@@ -85,6 +85,31 @@ public sealed class RuleMutationServiceTests
     }
 
     [TestMethod]
+    public async Task BatchDeleteRulesAsync_BindsCurrentDeploymentAndExactBaselineAsync()
+    {
+        TestHost host = new();
+        RuleListResponse baseline = new(
+            Active: true,
+            [new ListedFirewallRule { Parsed = true, RuleId = "one", Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 } }],
+            TestFirewallConfiguration.Enabled);
+        BatchDeleteRulesRequest signed = CreateBatchDeleteRequest();
+        RuleBatchDeleteResponse expected = new(RuleBatchDeleteOutcome.Completed, baseline, [], [], null);
+        host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
+        host.Signer.Setup(service => service.CreateBatchDeleteRulesRequestAsync(
+                "deployment",
+                FirewallRuleSnapshotFingerprint.Compute(baseline),
+                It.Is<IReadOnlyList<int>>(ids => ids.SequenceEqual(new[] { 0 })),
+                "key",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(signed);
+        host.Rules.Setup(client => client.BatchDeleteRulesAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+
+        RuleBatchDeleteResponse actual = await host.Service.BatchDeleteRulesAsync(baseline, [0], "key");
+
+        Assert.AreSame(expected, actual);
+    }
+
+    [TestMethod]
     public async Task InsertRuleAsync_BindsDisplayedBaselineOccurrencePlacementAndRuleAsync()
     {
         TestHost host = new();
@@ -144,6 +169,16 @@ public sealed class RuleMutationServiceTests
         KeyId = "key-id",
         Nonce = "nonce",
         Operation = IntentOperations.ADD_RULE,
+        Payload = default,
+        Signature = "signature",
+    };
+
+    private static BatchDeleteRulesRequest CreateBatchDeleteRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.DELETE_RULES_BATCH,
         Payload = default,
         Signature = "signature",
     };

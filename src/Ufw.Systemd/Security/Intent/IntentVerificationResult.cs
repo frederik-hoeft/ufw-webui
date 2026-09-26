@@ -14,6 +14,8 @@ internal abstract record IntentVerificationResult
 
     internal sealed record AcceptedRuleMutation(string KeyId, string Nonce, long ExpiresAtUnix, FirewallRuleSpecification Rule, string? RuleId) : Accepted(KeyId, Nonce, ExpiresAtUnix);
 
+    internal sealed record AcceptedBatchDelete(string KeyId, string Nonce, long ExpiresAtUnix, BatchDeleteRulesPayload Payload) : Accepted(KeyId, Nonce, ExpiresAtUnix);
+
     internal sealed record AcceptedInsertion(string KeyId, string Nonce, long ExpiresAtUnix, InsertRulePayload Payload) : Accepted(KeyId, Nonce, ExpiresAtUnix);
 
     internal sealed record AcceptedReorder(string KeyId, string Nonce, long ExpiresAtUnix, ReorderRulesPayload Payload) : Accepted(KeyId, Nonce, ExpiresAtUnix);

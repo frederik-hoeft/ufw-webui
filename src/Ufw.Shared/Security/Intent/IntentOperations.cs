@@ -7,6 +7,7 @@ public static class IntentOperations
 {
     public const string ADD_RULE = "rules.add";
     public const string DELETE_RULE = "rules.delete";
+    public const string DELETE_RULES_BATCH = "rules.delete-batch";
     public const string INSERT_RULE = "rules.insert";
     public const string REORDER_RULES = "rules.reorder";
 }

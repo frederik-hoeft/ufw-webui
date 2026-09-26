@@ -129,6 +129,7 @@ public sealed class HttpApiClientsTests
             4 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
             5 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
             6 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
+            7 => Json(HttpStatusCode.OK, BatchDeleteResponseJson(RuleBatchDeleteOutcome.Completed)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
@@ -139,12 +140,13 @@ public sealed class HttpApiClientsTests
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
         await rules.ReorderRulesAsync(ReorderRequest());
+        await rules.BatchDeleteRulesAsync(BatchDeleteRequest());
 
         CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put },
+            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
             rulesHandler.Requests.Select(static request => request.Method).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order" },
+            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order", "/api/v1/rules/batch" },
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
         using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
@@ -154,6 +156,8 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
         using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
+        using JsonDocument batchDeleteBody = JsonDocument.Parse(rulesHandler.Requests[6].Content!);
+        Assert.AreEqual(IntentOperations.DELETE_RULES_BATCH, batchDeleteBody.RootElement.GetProperty("operation").GetString());
     }
 
     [TestMethod]
@@ -332,6 +336,46 @@ public sealed class HttpApiClientsTests
     }
 
     [TestMethod]
+    public async Task RuleApiClient_BatchDeletePreservesStructuredConflictButMapsSecurityConflictAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.Conflict, BatchDeleteResponseJson(RuleBatchDeleteOutcome.PartiallyCompleted)),
+            2 => Json(HttpStatusCode.Conflict, "{\"detail\":\"Intent nonce has already been used.\"}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        RuleBatchDeleteResponse report = await client.BatchDeleteRulesAsync(BatchDeleteRequest());
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+
+        Assert.AreEqual(RuleBatchDeleteOutcome.PartiallyCompleted, report.Outcome);
+        Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
+        Assert.AreEqual("Intent nonce has already been used.", replay.Message);
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_BatchDeleteRejectsMalformedSuccessAsProtocolErrorAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"detail\":\"not a batch-delete report\"}"),
+            2 => Json(
+                HttpStatusCode.OK,
+                JsonSerializer.Serialize(
+                    new RuleBatchDeleteResponse(RuleBatchDeleteOutcome.Completed, null, [], [], Diagnostic: null),
+                    MessageJsonSerializerContext.Default.RuleBatchDeleteResponse)),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+    }
+
+    [TestMethod]
     public async Task NetworkInterfaceApiClient_UsesResourceSpecificEndpointsAndValidatesIdsAsync()
     {
         Guid id = Guid.Parse("01993b41-fdad-7000-8000-000000000001");
@@ -410,6 +454,20 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
+    private static BatchDeleteRulesRequest BatchDeleteRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.DELETE_RULES_BATCH,
+        Payload = JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            occurrenceIds = new[] { 0 },
+        }),
+        Signature = "signature",
+    };
+
     private static DeleteRuleRequest DeleteRequest() => new()
     {
         DeploymentId = "deployment",
@@ -447,6 +505,10 @@ public sealed class HttpApiClientsTests
     private static string ReorderResponseJson(RuleReorderOutcome outcome) => JsonSerializer.Serialize(
         new RuleReorderResponse(outcome, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], [], Diagnostic: null),
         MessageJsonSerializerContext.Default.RuleReorderResponse);
+
+    private static string BatchDeleteResponseJson(RuleBatchDeleteOutcome outcome) => JsonSerializer.Serialize(
+        new RuleBatchDeleteResponse(outcome, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], Diagnostic: null),
+        MessageJsonSerializerContext.Default.RuleBatchDeleteResponse);
 
     private static string MutationResponseJson(string operation) =>
         $"{{\"operation\":\"{operation}\",\"rule\":{{\"ruleId\":\"id\",\"displayNumber\":1,\"parsed\":true,\"rawLine\":\"line\",\"rule\":null}}}}";

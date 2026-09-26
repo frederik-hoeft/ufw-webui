@@ -348,6 +348,58 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
+    public async Task ReconcileBatchDelete_RemovesOnlyConfirmedSemanticIdsAbsentFromFinalSnapshotAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:delete", "sha256:duplicate", "sha256:keep");
+        _ = await host.Metadata.UpdateAsync("sha256:delete", new UpdateRuleMetadataRequest { Notes = "delete" }, TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync("sha256:duplicate", new UpdateRuleMetadataRequest { Notes = "duplicate" }, TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync("sha256:keep", new UpdateRuleMetadataRequest { Notes = "keep" }, TestContext.CancellationToken);
+        RuleListResponse finalSnapshot = new(
+            true,
+            [
+                Listed("sha256:duplicate", 1),
+                Listed("sha256:keep", 2),
+            ],
+            TestFirewallConfiguration.Enabled);
+        RuleBatchDeleteResponse response = new(
+            RuleBatchDeleteOutcome.PartiallyCompleted,
+            finalSnapshot,
+            [
+                new RuleBatchDeleteOperationResponse(0, "sha256:delete", RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure, "delete reported failure after mutation"),
+                new RuleBatchDeleteOperationResponse(1, "sha256:duplicate", RuleBatchDeleteOperationOutcome.Deleted, null),
+                new RuleBatchDeleteOperationResponse(2, "sha256:keep", RuleBatchDeleteOperationOutcome.Failed, "not deleted"),
+            ],
+            [2],
+            "partial");
+
+        await host.Metadata.ReconcileBatchDeleteAsync(response, TestContext.CancellationToken);
+
+        Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        host.SetRules("sha256:duplicate", "sha256:keep");
+        RuleInventoryResponse inventory = await host.Inventory.GetAsync(TestContext.CancellationToken);
+        CollectionAssert.AreEquivalent(new[] { "sha256:duplicate", "sha256:keep" }, inventory.Metadata.Select(static item => item.RuleId).ToArray());
+    }
+
+    [TestMethod]
+    public async Task ReconcileBatchDelete_UncertainFinalState_DoesNotDeleteMetadataAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:target");
+        _ = await host.Metadata.UpdateAsync("sha256:target", new UpdateRuleMetadataRequest { Notes = "keep until known" }, TestContext.CancellationToken);
+        RuleBatchDeleteResponse response = new(
+            RuleBatchDeleteOutcome.StateUncertain,
+            null,
+            [new RuleBatchDeleteOperationResponse(0, "sha256:target", RuleBatchDeleteOperationOutcome.StateUncertain, "unknown")],
+            [0],
+            "unknown");
+
+        await host.Metadata.ReconcileBatchDeleteAsync(response, TestContext.CancellationToken);
+
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
     public async Task RemoveForDeletedRule_RemovesMetadataForInBandDeletionAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
@@ -361,6 +413,15 @@ public sealed class RuleMetadataServiceTests
 
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
     }
+
+    private static ListedFirewallRule Listed(string ruleId, int displayNumber) => new()
+    {
+        RuleId = ruleId,
+        DisplayNumber = displayNumber,
+        Parsed = true,
+        RawLine = ruleId,
+        Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+    };
 
     private sealed class TestHost : IAsyncDisposable
     {

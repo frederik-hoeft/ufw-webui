@@ -39,6 +39,24 @@ public static class IntentCanonicalizer
         return Canonicalize(intent, payload.Rule, payload.RuleId);
     }
 
+    public static byte[] CanonicalizeBatchDelete(ISignedIntent intent, BatchDeleteRulesPayload payload)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(payload.OccurrenceIds);
+
+        StringBuilder builder = CreateIntentHeader(intent);
+        builder.Append("payload:\n");
+        AppendField(builder, "baselineFingerprint", payload.BaselineFingerprint);
+        AppendField(builder, "occurrenceIdCount", payload.OccurrenceIds.Length.ToString(CultureInfo.InvariantCulture));
+        for (int index = 0; index < payload.OccurrenceIds.Length; index++)
+        {
+            AppendIndexedField(builder, "occurrenceIds", index, payload.OccurrenceIds[index]);
+        }
+
+        return Encoding.UTF8.GetBytes(builder.ToString());
+    }
+
     public static byte[] CanonicalizeInsert(ISignedIntent intent, InsertRulePayload payload)
     {
         ArgumentNullException.ThrowIfNull(intent);

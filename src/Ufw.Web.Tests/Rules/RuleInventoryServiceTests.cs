@@ -49,6 +49,8 @@ public sealed class RuleInventoryServiceTests
 
         public Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<int> DeleteForRuleIdsAsync(IReadOnlyCollection<string> ruleIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<int> DeleteUnmatchedAsync(IReadOnlyCollection<Guid> metadataIds, IReadOnlyCollection<string> liveRuleIds, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }

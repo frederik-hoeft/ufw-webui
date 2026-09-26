@@ -36,4 +36,10 @@ internal sealed partial class RulesController
     /// </summary>
     [Delete]
     public partial ValueTask<IResponsePayload> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Validates and applies an administrator-signed batch-delete intent.
+    /// </summary>
+    [Delete("batch")]
+    public partial ValueTask<IResponsePayload> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken);
 }

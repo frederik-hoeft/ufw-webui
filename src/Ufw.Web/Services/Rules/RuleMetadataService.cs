@@ -51,6 +51,45 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
         }
     }
 
+    public async Task ReconcileBatchDeleteAsync(RuleBatchDeleteResponse response, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (response.FinalSnapshot is null)
+        {
+            return;
+        }
+
+        HashSet<string> liveRuleIds = response.FinalSnapshot.Rules
+            .Select(static rule => rule.RuleId)
+            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
+            .Select(static ruleId => ruleId!)
+            .ToHashSet(StringComparer.Ordinal);
+        string[] confirmedDeletedRuleIds = response.Operations
+            .Where(static operation => operation.Outcome is RuleBatchDeleteOperationOutcome.Deleted or RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure)
+            .Select(static operation => operation.RuleId)
+            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
+            .Select(static ruleId => ruleId!)
+            .Distinct(StringComparer.Ordinal)
+            .Where(ruleId => !liveRuleIds.Contains(ruleId))
+            .ToArray();
+        if (confirmedDeletedRuleIds.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _ = await repository.DeleteForRuleIdsAsync(confirmedDeletedRuleIds, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            LogBatchCleanupFailure(logger, confirmedDeletedRuleIds.Length, exception);
+        }
+    }
+
     private static bool TryNormalize(UpdateRuleMetadataRequest request, [NotNullWhen(true)] out RuleMetadataValues? values)
     {
         string? notes = NormalizeOptional(request.Notes);
@@ -74,4 +113,7 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
 
     [LoggerMessage(1, LogLevel.Warning, "Rule metadata cleanup failed after deleting firewall rule {RuleId}.")]
     private static partial void LogCleanupFailure(ILogger logger, string ruleId, Exception exception);
+
+    [LoggerMessage(2, LogLevel.Warning, "Rule metadata cleanup failed after batch deletion for {RuleCount} semantic rule identities.")]
+    private static partial void LogBatchCleanupFailure(ILogger logger, int ruleCount, Exception exception);
 }

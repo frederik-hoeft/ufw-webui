@@ -18,6 +18,7 @@ using Ufw.Systemd.Api;
 using Ufw.Systemd.Api.Controllers;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Firewall;
+using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.Configuration;
@@ -98,6 +99,8 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
         services.AddSingleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>();
         services.AddSingleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>();
         services.AddSingleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>();
+        services.AddSingleton<IFirewallBatchDeleteExecutor, FirewallBatchDeleteExecutor>();
+        services.AddSingleton<IFirewallBatchDeleteService, FirewallBatchDeleteService>();
         services.AddSingleton<IFirewallReorderExecutor, FirewallReorderExecutor>();
         services.AddSingleton<IFirewallReorderService, FirewallReorderService>();
         services.AddSingleton<IFirewallRuleInterfaceValidator, AlwaysValidInterfaceValidator>();
