@@ -348,6 +348,11 @@
   <data name="RuleId" xml:space="preserve">
     <value>Regel-ID: {0}</value>
   </data>
+  <data name="DeleteOrphanedGroupAsWell" xml:space="preserve"><value>Gruppe „{0}“ ebenfalls löschen, falls sie durch diese Regellöschung leer wird</value></data>
+  <data name="DeleteGroupCleanupOptionUnavailable" xml:space="preserve"><value>Die Regel kann weiterhin gelöscht werden, aber der Zustand für die optionale Gruppenbereinigung konnte nicht geladen werden.</value></data>
+  <data name="RuleAndGroupDeleted" xml:space="preserve"><value>Regel gelöscht und leere Gruppe „{0}“ entfernt.</value></data>
+  <data name="RuleDeletedGroupRetained" xml:space="preserve"><value>Regel gelöscht, aber die Gruppe „{0}“ wurde beibehalten, da sie nicht mehr leer ist.</value></data>
+  <data name="RuleDeletedGroupCleanupFailed" xml:space="preserve"><value>Regel gelöscht, aber die Gruppe „{0}“ konnte nicht bereinigt werden: {1}</value></data>
   <data name="DeleteWarning" xml:space="preserve">
     <value>Dadurch wird die Regel aus der Firewall entfernt. Der Vorgang benötigt eine signierte Autorisierung und kann über diese Oberfläche nicht rückgängig gemacht werden.</value>
   </data>
@@ -760,7 +765,28 @@
   <data name="DeleteGroup" xml:space="preserve"><value>Gruppe löschen</value></data>
   <data name="DeleteGroupConfirmation" xml:space="preserve"><value>Gruppe „{0}“ löschen?</value></data>
   <data name="DeleteEmptyGroupDescription" xml:space="preserve"><value>Diese Gruppe enthält keine Regelzuordnungen und kann ohne Änderung der Firewall entfernt werden.</value></data>
-  <data name="DeleteGroupWithRulesUnavailable" xml:space="preserve"><value>Gruppe und Regeln löschen (noch nicht verfügbar)</value></data>
+  <data name="DeleteGroupWithRules" xml:space="preserve"><value>Gruppe und Regeln löschen</value></data>
+  <data name="DeleteGroupWithRulesWarning" xml:space="preserve"><value>Dadurch werden alle unten aufgeführten {0} aktiven Firewall-Regelvorkommen dauerhaft gelöscht. Anschließend wird die Gruppe entfernt, sofern sie leer ist.</value></data>
+  <data name="DeleteGroupRulesResolutionRequired" xml:space="preserve"><value>Aktualisieren Sie zuerst das Firewall-Inventar. Vor dem Löschen muss jede gespeicherte Gruppenzuordnung mit dem autoritativen Regelsatz abgeglichen werden.</value></data>
+  <data name="DeleteGroupStaleMembershipsRequired" xml:space="preserve"><value>Diese Gruppe enthält {0} veraltete Zuordnung(en). Gleichen Sie verwaiste Regelmetadaten ab, bevor Sie die Gruppe und ihre aktiven Regeln löschen.</value></data>
+  <data name="GroupNoLongerAvailable" xml:space="preserve"><value>Diese Regelgruppe ist nicht mehr verfügbar. Aktualisieren Sie das Gruppeninventar und versuchen Sie es erneut.</value></data>
+  <data name="GroupDeleteMembershipChangedTitle" xml:space="preserve"><value>Gruppenzuordnung wurde geändert</value></data>
+  <data name="GroupDeleteMembershipChangedDescription" xml:space="preserve"><value>Die Gruppe „{0}“ wurde nach Anzeige der Bestätigung geändert. Es wurden keine Firewall-Regeln gelöscht; prüfen Sie vor einem erneuten Versuch die aktualisierten Mitglieder.</value></data>
+  <data name="GroupDeleteConcurrentMembershipTitle" xml:space="preserve"><value>Gruppe wurde nicht gelöscht</value></data>
+  <data name="GroupDeleteConcurrentMembershipDescription" xml:space="preserve"><value>Die Gruppe „{0}“ hat vor Abschluss der Löschung eine Regelzuordnung erhalten oder behalten und wurde daher nicht entfernt.</value></data>
+  <data name="GroupDeleteCleanupFailedTitle" xml:space="preserve"><value>Regeln geändert; Gruppenbereinigung fehlgeschlagen</value></data>
+  <data name="GroupDeleteCleanupFailedDescription" xml:space="preserve"><value>Die Firewall-Operation für die Gruppe „{0}“ wurde abgeschlossen, der Gruppenzustand konnte jedoch nicht finalisiert werden. Der Client hat versucht, beide Inventare zu aktualisieren; prüfen Sie vor einem erneuten Versuch den aktuellen Zustand.</value></data>
+  <data name="GroupDeleteRulesCompletedGroupRetainedTitle" xml:space="preserve"><value>Regeln gelöscht; Gruppe beibehalten</value></data>
+  <data name="GroupDeleteRulesCompletedGroupRetainedDescription" xml:space="preserve"><value>Die ausgewählten Regeln wurden gelöscht, aber die Gruppe „{0}“ enthält weiterhin eine Zuordnung. Möglicherweise wurde eine Regel parallel neu zugeordnet oder die Metadatenbereinigung erfordert noch einen Abgleich.</value></data>
+  <data name="GroupDeleteStateUncertainTitle" xml:space="preserve"><value>Firewall-Zustand konnte nicht bestätigt werden</value></data>
+  <data name="GroupDeleteStateUncertainDescription" xml:space="preserve"><value>Die Stapeloperation für die Gruppe „{0}“ endete mit einem unklaren Firewall-Zustand. Die Gruppe wurde beibehalten und der Client hat versucht, das autoritative Inventar zu aktualisieren.</value></data>
+  <data name="GroupDeletePartialTitle" xml:space="preserve"><value>Gruppe nur teilweise gelöscht</value></data>
+  <data name="GroupDeletePartialDescription" xml:space="preserve"><value>Einige Regeln der Gruppe „{0}“ wurden gelöscht, bevor der Abgleich den Stapel stoppte. Die Gruppe wurde beibehalten; prüfen Sie vor einem erneuten Versuch den aktualisierten Zustand.</value></data>
+  <data name="GroupDeleteStaleTitle" xml:space="preserve"><value>Firewall-Zustand vor dem Löschen geändert</value></data>
+  <data name="GroupDeleteStaleDescription" xml:space="preserve"><value>Der signierte Snapshot für die Gruppe „{0}“ war veraltet. Die Gruppe wurde beibehalten; prüfen Sie vor einem erneuten Versuch die aktualisierten Regeln.</value></data>
+  <data name="GroupDeletePreconditionTitle" xml:space="preserve"><value>Gruppenlöschung konnte nicht gestartet werden</value></data>
+  <data name="GroupDeletePreconditionDescription" xml:space="preserve"><value>Der Daemon konnte den Stapel für die Gruppe „{0}“ nicht sicher anwenden. Die Gruppe wurde beibehalten; prüfen Sie vor einem erneuten Versuch den aktualisierten Firewall-Zustand.</value></data>
+  <data name="GroupDeleteBatchProgress" xml:space="preserve"><value>Stapelergebnis: {0} gelöscht, {1} fehlgeschlagen, {2} unklar, {3} ausstehend.</value></data>
   <data name="ActionsForGroup" xml:space="preserve"><value>Aktionen für Gruppe {0}</value></data>
   <data name="LoadingGroups" xml:space="preserve"><value>Regelgruppen werden geladen...</value></data>
   <data name="LoadingGroupsAria" xml:space="preserve"><value>Regelgruppen werden geladen</value></data>

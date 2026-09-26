@@ -32,6 +32,15 @@
             @RulesText["DeleteWarning"]
         </MudAlert>
 
+        @if (OrphanGroupCandidate is not null)
+        {
+            <MudCheckBox T="bool"
+                         @bind-Value="_deleteGroup"
+                         Disabled="_busy"
+                         Class="mb-4"
+                         Label="@(RulesText["DeleteOrphanedGroupAsWell", OrphanGroupCandidate.Name])" />
+        }
+
         <MudForm @ref="_form"
                  @bind-IsValid="_isValid"
                  Disabled="_busy"

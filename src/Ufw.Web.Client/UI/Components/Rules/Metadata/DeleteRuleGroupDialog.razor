@@ -1,14 +1,56 @@
-@using Ufw.Web.Client.Features.Rules.Metadata
+@implements IDisposable
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body1">@RulesText["DeleteGroupConfirmation", Group.Name]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@RulesText["DeleteEmptyGroupDescription"]</MudText>
+        <MudText Typo="Typo.body1">@RulesText["DeleteGroupConfirmation", Projection.Group.Name]</MudText>
+
+        @if (!RequiresSignedMutation)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@RulesText["DeleteEmptyGroupDescription"]</MudText>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-3 mb-4">
+                @RulesText["DeleteGroupWithRulesWarning", Projection.LiveOccurrenceCount]
+            </MudAlert>
+
+            <RuleGroupMembers Projection="@Projection" Disabled="true" ShowActions="false" />
+
+            @if (!Projection.MemberResolutionAvailable)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    @RulesText["DeleteGroupRulesResolutionRequired"]
+                </MudAlert>
+            }
+            else if (Projection.StaleMembershipCount > 0)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    @RulesText["DeleteGroupStaleMembershipsRequired", Projection.StaleMembershipCount]
+                </MudAlert>
+            }
+            else
+            {
+                <MudForm @ref="_form"
+                         @bind-IsValid="_isValid"
+                         Disabled="_busy"
+                         OnEnterPressed="ConfirmAsync"
+                         aria-busy="@_busy"
+                         Class="mt-4">
+                    <MutationAuthorizationField @bind-Value="_privateKey" Disabled="_busy" />
+                </MudForm>
+            }
+        }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">@RulesText["DeleteGroup"]</MudButton>
+        <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   StartIcon="@(RequiresSignedMutation ? Icons.Material.Filled.DeleteForever : Icons.Material.Filled.Delete)"
+                   Disabled="@(_busy || RequiresSignedMutation && (!CanDeleteRules || !_isValid || string.IsNullOrWhiteSpace(_privateKey)))"
+                   OnClick="ConfirmAsync">
+            @(RequiresSignedMutation ? RulesText["DeleteGroupWithRules"] : RulesText["DeleteGroup"])
+        </MudButton>
     </DialogActions>
 </MudDialog>

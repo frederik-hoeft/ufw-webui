@@ -13,23 +13,11 @@
         @RulesText["EditGroup"]
     </MudMenuItem>
     <MudDivider />
-    @if (Group.RuleIds.Count == 0)
-    {
-        <MudMenuItem Disabled="@Disabled"
-                     Icon="@Icons.Material.Filled.Delete"
-                     IconColor="Color.Error"
-                     OnClick="@(() => DeleteRequested.InvokeAsync(Group))"
-                     Class="delete">
-            @RulesText["DeleteGroup"]
-        </MudMenuItem>
-    }
-    else
-    {
-        <MudMenuItem Disabled="true"
-                     Icon="@Icons.Material.Filled.DeleteForever"
-                     IconColor="Color.Error"
-                     Class="delete">
-            @RulesText["DeleteGroupWithRulesUnavailable"]
-        </MudMenuItem>
-    }
+    <MudMenuItem Disabled="@Disabled"
+                 Icon="@(Group.RuleIds.Count == 0 ? Icons.Material.Filled.Delete : Icons.Material.Filled.DeleteForever)"
+                 IconColor="Color.Error"
+                 OnClick="@(() => DeleteRequested.InvokeAsync(Group))"
+                 Class="delete">
+        @(Group.RuleIds.Count == 0 ? RulesText["DeleteGroup"] : RulesText["DeleteGroupWithRules"])
+    </MudMenuItem>
 </MudMenu>

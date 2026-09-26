@@ -5,6 +5,7 @@
 @using Ufw.Web.Client.UI.Components.Rules.Metadata
 @inject IRuleGroupCatalogService GroupCatalog
 @inject IRuleGroupManagementProjectionService GroupProjection
+@inject IRuleGroupDeletionWorkflowService GroupDeletion
 @inject IRuleApiClient RuleApiClient
 @inject IClientErrorMapper ClientErrors
 @inject IDialogService DialogService
@@ -69,6 +70,26 @@
         <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["GroupRuleResolutionFailed"]</MudText>
         <MudText Typo="Typo.body2">@RulesText["GroupRuleResolutionFailedDescription"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@_ruleInventoryError.Message</MudText>
+    </MudAlert>
+}
+
+@if (_deletionResult is not null)
+{
+    <MudAlert Severity="@DeletionResultSeverity" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@DeletionResultTitle</MudText>
+        <MudText Typo="Typo.body2">@DeletionResultDescription</MudText>
+        @if (_deletionResult.Result.BatchResponse is { } batch)
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">@DescribeBatchDeleteProgress(batch)</MudText>
+            @if (!string.IsNullOrWhiteSpace(batch.Diagnostic))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">@batch.Diagnostic</MudText>
+            }
+            @if (!string.IsNullOrWhiteSpace(_deletionResult.Result.CleanupDiagnostic))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">@_deletionResult.Result.CleanupDiagnostic</MudText>
+            }
+        }
     </MudAlert>
 }
 

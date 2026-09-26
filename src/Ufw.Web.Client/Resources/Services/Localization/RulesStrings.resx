@@ -348,6 +348,11 @@
   <data name="RuleId" xml:space="preserve">
     <value>Rule ID: {0}</value>
   </data>
+  <data name="DeleteOrphanedGroupAsWell" xml:space="preserve"><value>Delete group “{0}” as well if this rule deletion leaves it empty</value></data>
+  <data name="DeleteGroupCleanupOptionUnavailable" xml:space="preserve"><value>The rule can still be deleted, but the optional group-cleanup state could not be loaded.</value></data>
+  <data name="RuleAndGroupDeleted" xml:space="preserve"><value>Rule deleted and empty group “{0}” removed.</value></data>
+  <data name="RuleDeletedGroupRetained" xml:space="preserve"><value>Rule deleted, but group “{0}” was kept because it is no longer empty.</value></data>
+  <data name="RuleDeletedGroupCleanupFailed" xml:space="preserve"><value>Rule deleted, but group “{0}” could not be cleaned up: {1}</value></data>
   <data name="DeleteWarning" xml:space="preserve">
     <value>This removes the rule from the firewall. The operation requires signed authorization and cannot be undone through this interface.</value>
   </data>
@@ -760,7 +765,28 @@
   <data name="DeleteGroup" xml:space="preserve"><value>Delete group</value></data>
   <data name="DeleteGroupConfirmation" xml:space="preserve"><value>Delete group “{0}”?</value></data>
   <data name="DeleteEmptyGroupDescription" xml:space="preserve"><value>This group has no rule memberships and can be removed without changing the firewall.</value></data>
-  <data name="DeleteGroupWithRulesUnavailable" xml:space="preserve"><value>Delete group and rules (not yet available)</value></data>
+  <data name="DeleteGroupWithRules" xml:space="preserve"><value>Delete group and rules</value></data>
+  <data name="DeleteGroupWithRulesWarning" xml:space="preserve"><value>This permanently deletes all {0} live firewall rule occurrences shown below, then removes the group if it is empty.</value></data>
+  <data name="DeleteGroupRulesResolutionRequired" xml:space="preserve"><value>Refresh the firewall inventory before deleting this group. Every stored membership must be checked against the authoritative rule set first.</value></data>
+  <data name="DeleteGroupStaleMembershipsRequired" xml:space="preserve"><value>This group has {0} stale membership(s). Reconcile orphaned rule metadata before deleting the group and its live rules.</value></data>
+  <data name="GroupNoLongerAvailable" xml:space="preserve"><value>This rule group is no longer available. Refresh the group inventory and try again.</value></data>
+  <data name="GroupDeleteMembershipChangedTitle" xml:space="preserve"><value>Group membership changed</value></data>
+  <data name="GroupDeleteMembershipChangedDescription" xml:space="preserve"><value>Group “{0}” changed after the confirmation was shown. No firewall rules were deleted; review the refreshed members before trying again.</value></data>
+  <data name="GroupDeleteConcurrentMembershipTitle" xml:space="preserve"><value>Group was not deleted</value></data>
+  <data name="GroupDeleteConcurrentMembershipDescription" xml:space="preserve"><value>Group “{0}” gained or retained a rule membership before deletion completed, so it was kept.</value></data>
+  <data name="GroupDeleteCleanupFailedTitle" xml:space="preserve"><value>Rules changed; group cleanup failed</value></data>
+  <data name="GroupDeleteCleanupFailedDescription" xml:space="preserve"><value>The firewall operation for group “{0}” completed, but the group state could not be finalized. The client attempted to refresh both inventories; review the current state before retrying.</value></data>
+  <data name="GroupDeleteRulesCompletedGroupRetainedTitle" xml:space="preserve"><value>Rules deleted; group retained</value></data>
+  <data name="GroupDeleteRulesCompletedGroupRetainedDescription" xml:space="preserve"><value>The selected rules were deleted, but group “{0}” still has a membership. It may have been reassigned concurrently or metadata cleanup may still require reconciliation.</value></data>
+  <data name="GroupDeleteStateUncertainTitle" xml:space="preserve"><value>Firewall state could not be confirmed</value></data>
+  <data name="GroupDeleteStateUncertainDescription" xml:space="preserve"><value>The batch operation for group “{0}” ended with uncertain firewall state. The group was kept and the client attempted to refresh the authoritative inventory.</value></data>
+  <data name="GroupDeletePartialTitle" xml:space="preserve"><value>Only part of the group was deleted</value></data>
+  <data name="GroupDeletePartialDescription" xml:space="preserve"><value>Some rules in group “{0}” were deleted before reconciliation stopped the batch. The group was kept; review the refreshed state before retrying.</value></data>
+  <data name="GroupDeleteStaleTitle" xml:space="preserve"><value>Firewall state changed before deletion</value></data>
+  <data name="GroupDeleteStaleDescription" xml:space="preserve"><value>The signed snapshot for group “{0}” was stale, so the group was kept. Review the refreshed rules before trying again.</value></data>
+  <data name="GroupDeletePreconditionTitle" xml:space="preserve"><value>Group deletion could not start</value></data>
+  <data name="GroupDeletePreconditionDescription" xml:space="preserve"><value>The daemon could not safely apply the batch for group “{0}”. The group was kept; review the refreshed firewall state before retrying.</value></data>
+  <data name="GroupDeleteBatchProgress" xml:space="preserve"><value>Batch result: {0} deleted, {1} failed, {2} uncertain, {3} pending.</value></data>
   <data name="ActionsForGroup" xml:space="preserve"><value>Actions for group {0}</value></data>
   <data name="LoadingGroups" xml:space="preserve"><value>Loading rule groups...</value></data>
   <data name="LoadingGroupsAria" xml:space="preserve"><value>Loading rule groups</value></data>

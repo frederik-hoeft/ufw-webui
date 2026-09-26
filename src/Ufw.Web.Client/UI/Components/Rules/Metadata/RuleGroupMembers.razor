@@ -60,10 +60,13 @@
         </div>
     }
 
-    <footer>
-        <RuleGroupActionsMenu Group="@Projection.Group"
-                              Disabled="@Disabled"
-                              EditRequested="@EditRequested"
-                              DeleteRequested="@DeleteRequested" />
-    </footer>
+    @if (ShowActions)
+    {
+        <footer>
+            <RuleGroupActionsMenu Group="@Projection.Group"
+                                  Disabled="@Disabled"
+                                  EditRequested="@EditRequested"
+                                  DeleteRequested="@DeleteRequested" />
+        </footer>
+    }
 </section>

@@ -8,6 +8,7 @@ using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Client.Features.Rules.Filtering;
+using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Ordering;
 using Ufw.Web.Client.Features.Rules.Services;
 using Ufw.Web.Client.Features.Rules;
@@ -236,36 +237,52 @@ public sealed partial class RulesPage
 
     private async Task BeginDeleteAsync(ListedFirewallRule rule)
     {
-        if (!CanMutateFirewall || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId))
+        if (!CanMutateFirewall || !rule.Parsed || rule.Rule is null || string.IsNullOrWhiteSpace(rule.RuleId) || _state.Snapshot is not { } snapshot)
         {
             return;
         }
 
-        string? privateKey = null;
+        RuleGroup? orphanGroupCandidate = null;
+        try
+        {
+            orphanGroupCandidate = await GroupDeletion.GetSingleRuleCleanupCandidateAsync(rule, snapshot, _lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(RulesText["DeleteGroupCleanupOptionUnavailable"], Severity.Warning);
+        }
+
+        DeleteRuleDialogResult? confirmation = null;
         _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteDialogOpened());
         try
         {
             DialogParameters<DeleteRuleDialog> parameters = new()
             {
-                { component => component.Rule, rule }
+                { component => component.Rule, rule },
+                { component => component.OrphanGroupCandidate, orphanGroupCandidate },
             };
 
             IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(RulesText["DeleteDialogTitle"], parameters, s_deleteDialogOptions);
-            privateKey = await dialog.GetReturnValueAsync<string>();
+            confirmation = await dialog.GetReturnValueAsync<DeleteRuleDialogResult>();
         }
         finally
         {
-            if (string.IsNullOrWhiteSpace(privateKey))
+            if (confirmation is null)
             {
                 _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteDialogClosed());
             }
         }
 
-        if (string.IsNullOrWhiteSpace(privateKey))
+        if (confirmation is null)
         {
             return;
         }
 
+        string privateKey = confirmation.PrivateKey;
         try
         {
             if (_lifetime.IsCancellationRequested)
@@ -275,7 +292,7 @@ public sealed partial class RulesPage
             }
 
             _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteConfirmed());
-            await DeleteRuleAsync(rule, privateKey);
+            await DeleteRuleAsync(rule, privateKey, confirmation.DeleteGroup ? orphanGroupCandidate : null);
         }
         finally
         {
@@ -283,11 +300,16 @@ public sealed partial class RulesPage
         }
     }
 
-    private async Task DeleteRuleAsync(ListedFirewallRule rule, string privateKey)
+    private async Task DeleteRuleAsync(ListedFirewallRule rule, string privateKey, RuleGroup? groupToDelete)
     {
         try
         {
             await RuleMutations.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
+            if (groupToDelete is not null)
+            {
+                await TryDeleteOrphanedGroupAsync(groupToDelete);
+            }
+
             _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteCompleted());
             await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
         }
@@ -304,6 +326,23 @@ public sealed partial class RulesPage
             {
                 _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteCompleted());
             }
+        }
+    }
+
+    private async Task TryDeleteOrphanedGroupAsync(RuleGroup group)
+    {
+        try
+        {
+            RuleGroupCleanupResult cleanup = await GroupDeletion.DeleteIfEmptyAsync(group.Id, _lifetime.Token);
+            Snackbar.Add(cleanup.Deleted ? RulesText["RuleAndGroupDeleted", group.Name] : RulesText["RuleDeletedGroupRetained", group.Name], cleanup.Deleted ? Severity.Success : Severity.Warning);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(RulesText["RuleDeletedGroupCleanupFailed", group.Name, ClientErrors.Describe(exception).Message], Severity.Warning);
         }
     }
 

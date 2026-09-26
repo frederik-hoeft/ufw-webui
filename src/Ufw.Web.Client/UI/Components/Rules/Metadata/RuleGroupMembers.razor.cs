@@ -12,6 +12,9 @@ public sealed partial class RuleGroupMembers
     public bool Disabled { get; set; }
 
     [Parameter]
+    public bool ShowActions { get; set; } = true;
+
+    [Parameter]
     public EventCallback<RuleGroup> EditRequested { get; set; }
 
     [Parameter]
