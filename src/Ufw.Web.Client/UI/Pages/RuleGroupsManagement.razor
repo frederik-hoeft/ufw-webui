@@ -1,0 +1,213 @@
+@page "/metadata/groups"
+@attribute [Authorize]
+@implements IDisposable
+@using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IRuleGroupCatalogService GroupCatalog
+@inject IRuleGroupManagementProjectionService GroupProjection
+@inject IRuleApiClient RuleApiClient
+@inject IClientErrorMapper ClientErrors
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<PageTitle>@RulesText["ManageGroupsPageTitle"] - UFWeb</PageTitle>
+
+<PageHeader Title="@(RulesText["ManageGroupsTitle"])"
+            Description="@(RulesText["ManageGroupsPageDescription"])"
+            Breadcrumbs="@Breadcrumbs"
+            ShowStatus="@(_groups.Count > 0)">
+    <Actions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            @CommonText["Refresh"]
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@IsBusy"
+                   OnClick="CreateAsync"
+                   Class="page-header-button">
+            @RulesText["CreateGroup"]
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_groups.Count > 0)
+        {
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeGroupCount(_groups.Count)
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeGroupedRuleCount(_groups.Sum(static group => group.StoredMemberCount))
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
+
+@if (_groupError is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["LoadingGroupsFailed"]</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_groupError.Message</MudText>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync">
+            @CommonText["Retry"]
+        </MudButton>
+    </MudAlert>
+}
+
+@if (_ruleInventoryError is not null && _groups.Count > 0)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["GroupRuleResolutionFailed"]</MudText>
+        <MudText Typo="Typo.body2">@RulesText["GroupRuleResolutionFailedDescription"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@_ruleInventoryError.Message</MudText>
+    </MudAlert>
+}
+
+<MudPaper Class="inventory-card rule-group-inventory" Elevation="1">
+    <header>
+        <div>
+            <MudText Typo="Typo.h6" HtmlTag="h2">@RulesText["GroupInventoryTitle"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["GroupInventoryDescription"]</MudText>
+        </div>
+    </header>
+
+    @if (_loading && _groups.Count == 0)
+    {
+        <div class="inventory-loading" role="status" aria-live="polite">
+            <MudProgressLinear Indeterminate="true" aria-label="@(RulesText["LoadingGroupsAria"])" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["LoadingGroups"]</MudText>
+        </div>
+    }
+    else if (!_loading && _groups.Count == 0 && _groupError is null)
+    {
+        <div class="inventory-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Folder" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1">@RulesText["NoGroupsDefined"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@RulesText["NoGroupsDefinedDescription"]</MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@IsBusy"
+                       OnClick="CreateAsync">
+                @RulesText["CreateGroup"]
+            </MudButton>
+        </div>
+    }
+    else if (_groups.Count > 0)
+    {
+        <div class="inventory-desktop rule-group-desktop-list" role="region" aria-label="@(RulesText["GroupInventoryAria"])" aria-busy="@_loading">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col" class="name">@RulesText["GroupName"]</th>
+                        <th scope="col" class="comment">@RulesText["GroupComment"]</th>
+                        <th scope="col" class="members">@RulesText["GroupRulesColumn"]</th>
+                        <th scope="col" class="actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
+                    </tr>
+                </thead>
+                @foreach (RuleGroupManagementProjection group in _groups)
+                {
+                    bool expanded = IsExpanded(group.Group.Id);
+                    <tbody class="@(expanded ? "rule-group-row-group expanded" : "rule-group-row-group")" @key="group.Group.Id">
+                        <tr class="rule-group-row"
+                            tabindex="0"
+                            aria-expanded="@expanded"
+                            @onclick="@(() => ToggleExpanded(group.Group.Id))"
+                            @onkeydown="@(args => HandleKeyDown(args, group.Group.Id))">
+                            <td class="name"><strong>@group.Group.Name</strong></td>
+                            <td class="comment">
+                                <span class="@(string.IsNullOrWhiteSpace(group.Group.Comment) ? "rule-group-comment-empty" : "rule-group-comment")">
+                                    @(string.IsNullOrWhiteSpace(group.Group.Comment) ? RulesText["NoGroupComment"] : group.Group.Comment)
+                                </span>
+                            </td>
+                            <td class="members">@DescribeMemberCount(group)</td>
+                            <td class="actions" @onclick:stopPropagation="true">
+                                @if (expanded)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ToggleExpanded(group.Group.Id))"
+                                                   aria-label="@RulesText["HideGroupDetails", group.Group.Name]"
+                                                   aria-expanded="true" />
+                                }
+                                else
+                                {
+                                    <RuleGroupActionsMenu Group="@group.Group"
+                                                          Disabled="@IsBusy"
+                                                          EditRequested="@EditAsync"
+                                                          DeleteRequested="@DeleteAsync" />
+                                }
+                            </td>
+                        </tr>
+                        @if (expanded)
+                        {
+                            <tr class="rule-group-details-row">
+                                <td colspan="4">
+                                    <RuleGroupMembers Projection="@group"
+                                                      Disabled="@IsBusy"
+                                                      EditRequested="@EditAsync"
+                                                      DeleteRequested="@DeleteAsync" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                }
+            </table>
+        </div>
+
+        <div class="inventory-mobile rule-group-mobile-list" aria-busy="@_loading">
+            @foreach (RuleGroupManagementProjection group in _groups)
+            {
+                bool expanded = IsExpanded(group.Group.Id);
+                <article class="@(expanded ? "rule-group-mobile-card expanded" : "rule-group-mobile-card")" @key="group.Group.Id">
+                    <header tabindex="0"
+                            aria-expanded="@expanded"
+                            @onclick="@(() => ToggleExpanded(group.Group.Id))"
+                            @onkeydown="@(args => HandleKeyDown(args, group.Group.Id))">
+                        <div>
+                            <strong>@group.Group.Name</strong>
+                            <span>@DescribeMemberCount(group)</span>
+                        </div>
+                        <div @onclick:stopPropagation="true">
+                            @if (expanded)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ToggleExpanded(group.Group.Id))"
+                                               aria-label="@RulesText["HideGroupDetails", group.Group.Name]"
+                                               aria-expanded="true" />
+                            }
+                            else
+                            {
+                                <RuleGroupActionsMenu Group="@group.Group"
+                                                      Disabled="@IsBusy"
+                                                      EditRequested="@EditAsync"
+                                                      DeleteRequested="@DeleteAsync" />
+                            }
+                        </div>
+                    </header>
+                    @if (!string.IsNullOrWhiteSpace(group.Group.Comment))
+                    {
+                        <p>@group.Group.Comment</p>
+                    }
+                    @if (expanded)
+                    {
+                        <RuleGroupMembers Projection="@group"
+                                          Disabled="@IsBusy"
+                                          EditRequested="@EditAsync"
+                                          DeleteRequested="@DeleteAsync" />
+                    }
+                </article>
+            }
+        </div>
+    }
+</MudPaper>

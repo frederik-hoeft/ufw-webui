@@ -1,0 +1,14 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1">@RulesText["DeleteGroupConfirmation", Group.Name]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@RulesText["DeleteEmptyGroupDescription"]</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">@RulesText["DeleteGroup"]</MudButton>
+    </DialogActions>
+</MudDialog>

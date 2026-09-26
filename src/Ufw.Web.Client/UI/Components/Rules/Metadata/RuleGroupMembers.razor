@@ -1,0 +1,69 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<section class="rule-group-members" aria-label="@RulesText["GroupMembersAria", Projection.Group.Name]">
+    @if (Projection.StoredMemberCount == 0)
+    {
+        <div class="empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Rule" Size="Size.Medium" Color="Color.Secondary" />
+            <span>@RulesText["GroupHasNoRules"]</span>
+        </div>
+    }
+    else if (!Projection.MemberResolutionAvailable)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+            @RulesText["GroupMemberResolutionUnavailable"]
+        </MudAlert>
+        <div class="unresolved-identities">
+            @foreach (RuleGroupMemberProjection member in Projection.Members)
+            {
+                <code>@member.RuleId</code>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="member-list">
+            @foreach (RuleGroupMemberProjection member in Projection.Members)
+            {
+                if (member.IsStale)
+                {
+                    <article class="member stale">
+                        <header>
+                            <span class="identity warning">
+                                <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" />
+                                @RulesText["StaleGroupMembership"]
+                            </span>
+                        </header>
+                        <code>@member.RuleId</code>
+                        <small>@RulesText["StaleGroupMembershipDescription"]</small>
+                    </article>
+                }
+                else
+                {
+                    @foreach (RuleRowProjection occurrence in member.Occurrences)
+                    {
+                        <article class="member">
+                            <header>
+                                <span class="identity">@RulesText["GroupMemberPosition", RuleText.FormatAddressFamily(occurrence.AddressFamily), occurrence.FamilyPosition]</span>
+                                @if (member.Occurrences.Count > 1)
+                                {
+                                    <span class="duplicate">@RulesText["DuplicateRuleOccurrence"]</span>
+                                }
+                            </header>
+                            <code>@(occurrence.CanonicalCommand ?? occurrence.Rule.RawLine)</code>
+                        </article>
+                    }
+                }
+            }
+        </div>
+    }
+
+    <footer>
+        <RuleGroupActionsMenu Group="@Projection.Group"
+                              Disabled="@Disabled"
+                              EditRequested="@EditRequested"
+                              DeleteRequested="@DeleteRequested" />
+    </footer>
+</section>

@@ -1,0 +1,35 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+         Size="Size.Small"
+         Dense="true"
+         Class="rule-group-actions-menu"
+         PopoverClass="rule-group-actions-menu-popover"
+         aria-label="@RulesText["ActionsForGroup", Group.Name]">
+    <MudMenuItem Disabled="@Disabled"
+                 Icon="@Icons.Material.Filled.Edit"
+                 OnClick="@(() => EditRequested.InvokeAsync(Group))">
+        @RulesText["EditGroup"]
+    </MudMenuItem>
+    <MudDivider />
+    @if (Group.RuleIds.Count == 0)
+    {
+        <MudMenuItem Disabled="@Disabled"
+                     Icon="@Icons.Material.Filled.Delete"
+                     IconColor="Color.Error"
+                     OnClick="@(() => DeleteRequested.InvokeAsync(Group))"
+                     Class="delete">
+            @RulesText["DeleteGroup"]
+        </MudMenuItem>
+    }
+    else
+    {
+        <MudMenuItem Disabled="true"
+                     Icon="@Icons.Material.Filled.DeleteForever"
+                     IconColor="Color.Error"
+                     Class="delete">
+            @RulesText["DeleteGroupWithRulesUnavailable"]
+        </MudMenuItem>
+    }
+</MudMenu>

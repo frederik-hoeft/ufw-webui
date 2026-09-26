@@ -737,6 +737,57 @@
   <data name="Group" xml:space="preserve"><value>Gruppe</value></data>
   <data name="RuleGroup" xml:space="preserve"><value>Regelgruppe</value></data>
   <data name="GroupComment" xml:space="preserve"><value>Gruppenkommentar</value></data>
+
+  <data name="ManageGroupsTitle" xml:space="preserve"><value>Gruppen verwalten</value></data>
+  <data name="ManageGroupsDescription" xml:space="preserve"><value>Logische Regelgruppen erstellen und verwalten. Gruppen können ohne Regeln existieren; jede Regel kann höchstens einer Gruppe angehören.</value></data>
+  <data name="ManageGroupsPageTitle" xml:space="preserve"><value>Regelgruppen</value></data>
+  <data name="ManageGroupsPageDescription" xml:space="preserve"><value>Logische Regelgruppen verwalten und die aktuell zugeordneten Firewall-Regeln prüfen.</value></data>
+  <data name="GroupInventoryTitle" xml:space="preserve"><value>Regelgruppen</value></data>
+  <data name="GroupInventoryDescription" xml:space="preserve"><value>Eine Gruppe aufklappen, um ihre aktuellen Regeln zu prüfen. Leere Gruppen können direkt gelöscht werden.</value></data>
+  <data name="GroupInventoryAria" xml:space="preserve"><value>Regelgruppen-Inventar</value></data>
+  <data name="GroupName" xml:space="preserve"><value>Name</value></data>
+  <data name="GroupRulesColumn" xml:space="preserve"><value>Regeln</value></data>
+  <data name="NoGroupComment" xml:space="preserve"><value>Kein Kommentar</value></data>
+  <data name="CreateGroup" xml:space="preserve"><value>Gruppe erstellen</value></data>
+  <data name="EditGroup" xml:space="preserve"><value>Gruppe bearbeiten</value></data>
+  <data name="CreateGroupDescription" xml:space="preserve"><value>Eine leere logische Gruppe erstellen. Regeln können später im Regel- oder Metadaten-Editor zugewiesen werden.</value></data>
+  <data name="EditGroupDescription" xml:space="preserve"><value>Name oder Kommentar der Gruppe ändern, ohne die Regelzuordnungen zu verändern.</value></data>
+  <data name="SaveGroup" xml:space="preserve"><value>Gruppe speichern</value></data>
+  <data name="SavingGroup" xml:space="preserve"><value>Wird gespeichert...</value></data>
+  <data name="GroupCreated" xml:space="preserve"><value>Regelgruppe erstellt.</value></data>
+  <data name="GroupSaved" xml:space="preserve"><value>Regelgruppe gespeichert.</value></data>
+  <data name="GroupDeleted" xml:space="preserve"><value>Regelgruppe gelöscht.</value></data>
+  <data name="DeleteGroup" xml:space="preserve"><value>Gruppe löschen</value></data>
+  <data name="DeleteGroupConfirmation" xml:space="preserve"><value>Gruppe „{0}“ löschen?</value></data>
+  <data name="DeleteEmptyGroupDescription" xml:space="preserve"><value>Diese Gruppe enthält keine Regelzuordnungen und kann ohne Änderung der Firewall entfernt werden.</value></data>
+  <data name="DeleteGroupWithRulesUnavailable" xml:space="preserve"><value>Gruppe und Regeln löschen (noch nicht verfügbar)</value></data>
+  <data name="ActionsForGroup" xml:space="preserve"><value>Aktionen für Gruppe {0}</value></data>
+  <data name="LoadingGroups" xml:space="preserve"><value>Regelgruppen werden geladen...</value></data>
+  <data name="LoadingGroupsAria" xml:space="preserve"><value>Regelgruppen werden geladen</value></data>
+  <data name="LoadingGroupsFailed" xml:space="preserve"><value>Regelgruppen konnten nicht geladen werden</value></data>
+  <data name="NoGroupsDefined" xml:space="preserve"><value>Keine Regelgruppen</value></data>
+  <data name="NoGroupsDefinedDescription" xml:space="preserve"><value>Hier oder direkt in einem Regel-Metadaten-Editor eine Gruppe erstellen.</value></data>
+  <data name="GroupCountOne" xml:space="preserve"><value>1 Gruppe</value></data>
+  <data name="GroupCountMany" xml:space="preserve"><value>{0} Gruppen</value></data>
+  <data name="GroupedRuleCountOne" xml:space="preserve"><value>1 gruppierte Regel</value></data>
+  <data name="GroupedRuleCountMany" xml:space="preserve"><value>{0} gruppierte Regeln</value></data>
+  <data name="GroupMemberCountOne" xml:space="preserve"><value>1 Regel</value></data>
+  <data name="GroupMemberCountMany" xml:space="preserve"><value>{0} Regeln</value></data>
+  <data name="GroupMemberCountWithStale" xml:space="preserve"><value>{0} · {1} veraltet</value></data>
+  <data name="HideGroupDetails" xml:space="preserve"><value>Details für Gruppe {0} ausblenden</value></data>
+  <data name="GroupMembersAria" xml:space="preserve"><value>Regeln in Gruppe {0}</value></data>
+  <data name="GroupHasNoRules" xml:space="preserve"><value>Dieser Gruppe sind keine Regeln zugeordnet.</value></data>
+  <data name="GroupMemberResolutionUnavailable" xml:space="preserve">
+    <value>Das aktuelle Firewall-Inventar ist nicht verfügbar; gespeicherte Gruppenzuordnungen können daher nicht aktiven Regeln zugeordnet werden.</value>
+  </data>
+  <data name="GroupRuleResolutionFailed" xml:space="preserve"><value>Details aktiver Regeln sind nicht verfügbar</value></data>
+  <data name="GroupRuleResolutionFailedDescription" xml:space="preserve">
+    <value>Gruppen können weiterhin verwaltet werden, ihre Regeln können aber erst nach einem erfolgreichen Inventar-Refresh mit dem aktuellen Firewall-Snapshot abgeglichen werden.</value>
+  </data>
+  <data name="StaleGroupMembership" xml:space="preserve"><value>Veraltete Zuordnung</value></data>
+  <data name="StaleGroupMembershipDescription" xml:space="preserve"><value>Diese gespeicherte semantische Regelidentität ist im aktuellen autoritativen Firewall-Snapshot nicht vorhanden.</value></data>
+  <data name="GroupMemberPosition" xml:space="preserve"><value>{0}-Regel {1}</value></data>
+  <data name="DuplicateRuleOccurrence" xml:space="preserve"><value>doppeltes Vorkommen</value></data>
   <data name="Notes" xml:space="preserve"><value>Notizen</value></data>
   <data name="RuleMetadata" xml:space="preserve"><value>Regel-Metadaten</value></data>
   <data name="RuleMetadataAria" xml:space="preserve"><value>Regel-Metadaten-Details</value></data>
@@ -808,7 +859,7 @@
   <data name="MetadataManagementPageTitle" xml:space="preserve"><value>Regel-Metadaten</value></data>
   <data name="MetadataManagementTitle" xml:space="preserve"><value>Regel-Metadaten</value></data>
   <data name="MetadataManagementDescription" xml:space="preserve">
-    <value>Wiederverwendbare Tags verwalten und Anwendungs-Metadaten abgleichen, die keiner aktiven Firewall-Regel mehr entsprechen.</value>
+    <value>Logische Gruppen und wiederverwendbare Tags verwalten sowie Anwendungs-Metadaten abgleichen, die keiner aktiven Firewall-Regel mehr entsprechen.</value>
   </data>
   <data name="CreateRuleMetadataDescription" xml:space="preserve">
     <value>Optional eine Gruppe zuweisen und Tags oder Notizen an die neue semantische Regel anhängen. Die Metadaten werden nach dem Erstellen der Firewall-Regel gespeichert.</value>

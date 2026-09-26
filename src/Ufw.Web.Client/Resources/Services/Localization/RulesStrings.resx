@@ -737,6 +737,57 @@
   <data name="Group" xml:space="preserve"><value>Group</value></data>
   <data name="RuleGroup" xml:space="preserve"><value>Rule group</value></data>
   <data name="GroupComment" xml:space="preserve"><value>Group comment</value></data>
+
+  <data name="ManageGroupsTitle" xml:space="preserve"><value>Manage groups</value></data>
+  <data name="ManageGroupsDescription" xml:space="preserve"><value>Create and organize logical rule groups. Groups can exist without rules and each rule can belong to at most one group.</value></data>
+  <data name="ManageGroupsPageTitle" xml:space="preserve"><value>Rule groups</value></data>
+  <data name="ManageGroupsPageDescription" xml:space="preserve"><value>Manage logical rule groups and inspect the current firewall rules associated with each group.</value></data>
+  <data name="GroupInventoryTitle" xml:space="preserve"><value>Rule groups</value></data>
+  <data name="GroupInventoryDescription" xml:space="preserve"><value>Expand a group to inspect its current member rules. Empty groups can be deleted directly.</value></data>
+  <data name="GroupInventoryAria" xml:space="preserve"><value>Rule group inventory</value></data>
+  <data name="GroupName" xml:space="preserve"><value>Name</value></data>
+  <data name="GroupRulesColumn" xml:space="preserve"><value>Rules</value></data>
+  <data name="NoGroupComment" xml:space="preserve"><value>No comment</value></data>
+  <data name="CreateGroup" xml:space="preserve"><value>Create group</value></data>
+  <data name="EditGroup" xml:space="preserve"><value>Edit group</value></data>
+  <data name="CreateGroupDescription" xml:space="preserve"><value>Create an empty logical group. Rules can be assigned later from the rule editor or metadata editor.</value></data>
+  <data name="EditGroupDescription" xml:space="preserve"><value>Update the group name or comment without changing its rule memberships.</value></data>
+  <data name="SaveGroup" xml:space="preserve"><value>Save group</value></data>
+  <data name="SavingGroup" xml:space="preserve"><value>Saving...</value></data>
+  <data name="GroupCreated" xml:space="preserve"><value>Rule group created.</value></data>
+  <data name="GroupSaved" xml:space="preserve"><value>Rule group saved.</value></data>
+  <data name="GroupDeleted" xml:space="preserve"><value>Rule group deleted.</value></data>
+  <data name="DeleteGroup" xml:space="preserve"><value>Delete group</value></data>
+  <data name="DeleteGroupConfirmation" xml:space="preserve"><value>Delete group “{0}”?</value></data>
+  <data name="DeleteEmptyGroupDescription" xml:space="preserve"><value>This group has no rule memberships and can be removed without changing the firewall.</value></data>
+  <data name="DeleteGroupWithRulesUnavailable" xml:space="preserve"><value>Delete group and rules (not yet available)</value></data>
+  <data name="ActionsForGroup" xml:space="preserve"><value>Actions for group {0}</value></data>
+  <data name="LoadingGroups" xml:space="preserve"><value>Loading rule groups...</value></data>
+  <data name="LoadingGroupsAria" xml:space="preserve"><value>Loading rule groups</value></data>
+  <data name="LoadingGroupsFailed" xml:space="preserve"><value>Rule groups could not be loaded</value></data>
+  <data name="NoGroupsDefined" xml:space="preserve"><value>No rule groups</value></data>
+  <data name="NoGroupsDefinedDescription" xml:space="preserve"><value>Create a group here or lazily from a rule metadata editor.</value></data>
+  <data name="GroupCountOne" xml:space="preserve"><value>1 group</value></data>
+  <data name="GroupCountMany" xml:space="preserve"><value>{0} groups</value></data>
+  <data name="GroupedRuleCountOne" xml:space="preserve"><value>1 grouped rule</value></data>
+  <data name="GroupedRuleCountMany" xml:space="preserve"><value>{0} grouped rules</value></data>
+  <data name="GroupMemberCountOne" xml:space="preserve"><value>1 rule</value></data>
+  <data name="GroupMemberCountMany" xml:space="preserve"><value>{0} rules</value></data>
+  <data name="GroupMemberCountWithStale" xml:space="preserve"><value>{0} · {1} stale</value></data>
+  <data name="HideGroupDetails" xml:space="preserve"><value>Hide details for group {0}</value></data>
+  <data name="GroupMembersAria" xml:space="preserve"><value>Rules in group {0}</value></data>
+  <data name="GroupHasNoRules" xml:space="preserve"><value>No rules belong to this group.</value></data>
+  <data name="GroupMemberResolutionUnavailable" xml:space="preserve">
+    <value>The current firewall inventory is unavailable, so stored group memberships cannot be resolved to live rules.</value>
+  </data>
+  <data name="GroupRuleResolutionFailed" xml:space="preserve"><value>Live rule details are unavailable</value></data>
+  <data name="GroupRuleResolutionFailedDescription" xml:space="preserve">
+    <value>Groups can still be managed, but member rules cannot be checked against the current firewall snapshot until the inventory is refreshed successfully.</value>
+  </data>
+  <data name="StaleGroupMembership" xml:space="preserve"><value>Stale membership</value></data>
+  <data name="StaleGroupMembershipDescription" xml:space="preserve"><value>This stored semantic rule identity is not present in the current authoritative firewall snapshot.</value></data>
+  <data name="GroupMemberPosition" xml:space="preserve"><value>{0} rule {1}</value></data>
+  <data name="DuplicateRuleOccurrence" xml:space="preserve"><value>duplicate occurrence</value></data>
   <data name="Notes" xml:space="preserve"><value>Notes</value></data>
   <data name="RuleMetadata" xml:space="preserve"><value>Rule metadata</value></data>
   <data name="RuleMetadataAria" xml:space="preserve"><value>Rule metadata details</value></data>
@@ -807,7 +858,7 @@
   <data name="ReshuffleTagColor" xml:space="preserve"><value>Generate another tag color</value></data>
   <data name="MetadataManagementPageTitle" xml:space="preserve"><value>Rule metadata</value></data>
   <data name="MetadataManagementTitle" xml:space="preserve"><value>Rule metadata</value></data>
-  <data name="MetadataManagementDescription" xml:space="preserve"><value>Manage reusable tags and reconcile application metadata that no longer matches a live firewall rule.</value></data>
+  <data name="MetadataManagementDescription" xml:space="preserve"><value>Manage logical groups and reusable tags, and reconcile application metadata that no longer matches a live firewall rule.</value></data>
   <data name="CreateRuleMetadataDescription" xml:space="preserve">
     <value>Optionally assign a group and attach tags or notes to the new semantic rule. Metadata is stored after the firewall rule is created.</value>
   </data>
