@@ -48,6 +48,9 @@ public sealed partial class RuleActionsMenu
     public EventCallback SaveAsTemplateRequested { get; set; }
 
     [Parameter]
+    public EventCallback DisableRequested { get; set; }
+
+    [Parameter]
     public EventCallback MoveToPositionRequested { get; set; }
 
     [Parameter]

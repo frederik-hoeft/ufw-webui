@@ -17,6 +17,7 @@
 @inject IRuleReplacementNavigationService ReplacementNavigation
 @inject IRuleTemplateCatalogService TemplateCatalog
 @inject IRuleTemplateAuthoringService TemplateAuthoring
+@inject IRuleDisableWorkflowService RuleDisable
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
 @inject TimeProvider TimeProvider
@@ -200,6 +201,7 @@ else if (_state.Snapshot is { })
                                  EditRequested="BeginRuleEditAsync"
                                  MetadataEditRequested="EditMetadataAsync"
                                  SaveAsTemplateRequested="SaveAsTemplateAsync"
+                                 DisableRequested="BeginDisableAsync"
                                  KnownHostsChanged="KnownHostsChanged"
                                  DeleteRequested="BeginDeleteAsync"
                                  InsertionRequested="BeginOrderedInsertionAsync"
@@ -223,6 +225,7 @@ else if (_state.Snapshot is { })
                                      EditRequested="BeginRuleEditAsync"
                                      MetadataEditRequested="EditMetadataAsync"
                                      SaveAsTemplateRequested="SaveAsTemplateAsync"
+                                 DisableRequested="BeginDisableAsync"
                                      KnownHostsChanged="KnownHostsChanged"
                                      DeleteRequested="BeginDeleteAsync"
                                      InsertionRequested="BeginOrderedInsertionAsync"

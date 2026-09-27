@@ -953,4 +953,5 @@
   <data name="RetryMetadataSave" xml:space="preserve"><value>Metadaten erneut speichern</value></data>
   <data name="SavingMetadata" xml:space="preserve"><value>Metadaten werden gespeichert...</value></data>
   <data name="SaveAsTemplate" xml:space="preserve"><value>Als Vorlage speichern</value></data>
+  <data name="DisableRule" xml:space="preserve"><value>Regel deaktivieren</value></data>
 </root>

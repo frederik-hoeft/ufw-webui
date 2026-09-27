@@ -68,4 +68,13 @@
   <data name="TemplateFamilyMismatch" xml:space="preserve"><value>Template “{0}” uses {1}, but this ordered insertion is fixed to {2}. The current rule draft was left unchanged.</value></data>
   <data name="ReloadTemplates" xml:space="preserve"><value>Reload templates</value></data>
   <data name="ReviewedRule" xml:space="preserve"><value>Reviewed rule</value></data>
+  <data name="DisableRuleTitle" xml:space="preserve"><value>Disable rule</value></data>
+  <data name="DisableLiveRuleDescription" xml:space="preserve"><value>Save the reviewed rule and its metadata as a template, then delete the live firewall rule. The rule is deleted only after template persistence is confirmed.</value></data>
+  <data name="DisableMetadataPreserved" xml:space="preserve"><value>Notes, tags, and group membership are copied into the template. Group membership is retained; disabling a rule never deletes its group.</value></data>
+  <data name="DisableWarning" xml:space="preserve"><value>Continuing deletes the active firewall rule. The saved template is retained even if deletion fails or its outcome cannot be confirmed.</value></data>
+  <data name="SaveTemplateAndDisable" xml:space="preserve"><value>Save template and disable</value></data>
+  <data name="DisableCompleted" xml:space="preserve"><value>Rule disabled and saved as template “{0}”.</value></data>
+  <data name="DisableTemplatePersistenceNotConfirmed" xml:space="preserve"><value>The live rule was not disabled because template persistence could not be confirmed. No firewall delete was issued. Refresh the template catalog to check whether the template was created. {0}</value></data>
+  <data name="DisableFirewallDeleteNotConfirmed" xml:space="preserve"><value>Template “{0}” was saved, but disabling the live rule could not be confirmed: {1}</value></data>
+  <data name="DisableUnexpectedFailure" xml:space="preserve"><value>The disable workflow could not be completed: {0}</value></data>
 </root>

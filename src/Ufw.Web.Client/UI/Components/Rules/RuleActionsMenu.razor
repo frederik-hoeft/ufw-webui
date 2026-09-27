@@ -47,6 +47,14 @@
         </MudMenuItem>
     }
     <MudDivider />
+    @if (DisableRequested.HasDelegate)
+    {
+        <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
+                     Icon="@Icons.Material.Filled.PauseCircle"
+                     OnClick="@(() => DisableRequested.InvokeAsync())">
+            @RulesText["DisableRule"]
+        </MudMenuItem>
+    }
     <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
                  Icon="@Icons.Material.Filled.Delete"
                  IconColor="Color.Error"

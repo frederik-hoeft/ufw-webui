@@ -68,4 +68,13 @@
   <data name="TemplateFamilyMismatch" xml:space="preserve"><value>Vorlage „{0}“ verwendet {1}, diese geordnete Einfügung ist jedoch auf {2} festgelegt. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
   <data name="ReloadTemplates" xml:space="preserve"><value>Vorlagen neu laden</value></data>
   <data name="ReviewedRule" xml:space="preserve"><value>Geprüfte Regel</value></data>
+  <data name="DisableRuleTitle" xml:space="preserve"><value>Regel deaktivieren</value></data>
+  <data name="DisableLiveRuleDescription" xml:space="preserve"><value>Speichert die geprüfte Regel samt Metadaten als Vorlage und löscht anschließend die aktive Firewall-Regel. Die Regel wird erst gelöscht, nachdem das Speichern der Vorlage bestätigt wurde.</value></data>
+  <data name="DisableMetadataPreserved" xml:space="preserve"><value>Notizen, Tags und Gruppenzuordnung werden in die Vorlage übernommen. Eine Gruppenzuordnung bleibt dadurch erhalten; beim Deaktivieren wird die Gruppe nie gelöscht.</value></data>
+  <data name="DisableWarning" xml:space="preserve"><value>Durch Fortfahren wird die aktive Firewall-Regel gelöscht. Die gespeicherte Vorlage bleibt erhalten, auch wenn das Löschen fehlschlägt oder sein Ergebnis nicht bestätigt werden kann.</value></data>
+  <data name="SaveTemplateAndDisable" xml:space="preserve"><value>Vorlage speichern und deaktivieren</value></data>
+  <data name="DisableCompleted" xml:space="preserve"><value>Regel deaktiviert und als Vorlage „{0}“ gespeichert.</value></data>
+  <data name="DisableTemplatePersistenceNotConfirmed" xml:space="preserve"><value>Die aktive Regel wurde nicht deaktiviert, da das Speichern der Vorlage nicht bestätigt werden konnte. Es wurde kein Firewall-Löschvorgang gestartet. Aktualisieren Sie den Vorlagenkatalog, um zu prüfen, ob die Vorlage erstellt wurde. {0}</value></data>
+  <data name="DisableFirewallDeleteNotConfirmed" xml:space="preserve"><value>Vorlage „{0}“ wurde gespeichert, aber das Deaktivieren der aktiven Regel konnte nicht bestätigt werden: {1}</value></data>
+  <data name="DisableUnexpectedFailure" xml:space="preserve"><value>Der Deaktivierungs-Workflow konnte nicht abgeschlossen werden: {0}</value></data>
 </root>

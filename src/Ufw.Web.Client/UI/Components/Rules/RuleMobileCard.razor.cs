@@ -67,6 +67,9 @@ public sealed partial class RuleMobileCard
     public EventCallback<RuleRowProjection> SaveAsTemplateRequested { get; set; }
 
     [Parameter]
+    public EventCallback<RuleRowProjection> DisableRequested { get; set; }
+
+    [Parameter]
     public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
 
     // Native dragenter may bubble repeatedly while crossing descendants of the same card. Keep the callback non-rendering;

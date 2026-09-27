@@ -20,6 +20,19 @@ public sealed class RulesPageInteractionStateTests
     }
 
     [TestMethod]
+    public void DisableFlow_IsExclusiveAndReturnsToIdle()
+    {
+        RulesPageInteractionState dialog = RulesPageInteractionState.Initial.MoveNext(new RulesPageInteractionTransition.DisableDialogOpened());
+
+        Assert.IsTrue(dialog.IsBusy);
+        Assert.IsFalse(dialog.CanMutateFirewall);
+        RulesPageInteractionState disabling = dialog.MoveNext(new RulesPageInteractionTransition.DisableConfirmed());
+        Assert.IsTrue(disabling.IsDisabling);
+        Assert.ThrowsExactly<InvalidOperationException>(() => disabling.MoveNext(new RulesPageInteractionTransition.TemplateDialogOpened()));
+        Assert.AreSame(RulesPageInteractionState.Initial, disabling.MoveNext(new RulesPageInteractionTransition.DisableCompleted()));
+    }
+
+    [TestMethod]
     public void MetadataFlow_ModelsSaveAsNestedDialogState()
     {
         RulesPageInteractionState dialog = RulesPageInteractionState.Initial.MoveNext(new RulesPageInteractionTransition.MetadataDialogOpened());

@@ -69,6 +69,9 @@ public sealed partial class RuleFamilyWorkspace
     public EventCallback<RuleRowProjection> SaveAsTemplateRequested { get; set; }
 
     [Parameter]
+    public EventCallback<RuleRowProjection> DisableRequested { get; set; }
+
+    [Parameter]
     public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
 
     [Parameter]

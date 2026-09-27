@@ -1,0 +1,73 @@
+@implements IDisposable
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<RulesStrings> RulesText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @TemplatesText["DisableLiveRuleDescription"]
+        </MudText>
+
+        @if (Row.Rule.Rule is not null)
+        {
+            <UfwRuleCommandPreview Rule="@Row.Rule.Rule" Label="@(TemplatesText["ReviewedRule"])">
+                <Details>
+                    @if (!string.IsNullOrWhiteSpace(Row.Rule.RuleId))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="rule-raw-line">
+                            @RulesText["RuleId", Row.Rule.RuleId]
+                        </MudText>
+                    }
+                </Details>
+            </UfwRuleCommandPreview>
+        }
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            @TemplatesText["DisableMetadataPreserved"]
+        </MudAlert>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            @TemplatesText["DisableWarning"]
+        </MudAlert>
+
+        <MudForm @ref="_form"
+                 @bind-IsValid="_isValid"
+                 Disabled="_busy"
+                 OnEnterPressed="ConfirmAsync"
+                 aria-busy="@_busy">
+            <MudTextField T="string"
+                          Label="@(TemplatesText["Name"])"
+                          @bind-Value="_name"
+                          Required="true"
+                          RequiredError="@(TemplatesText["NameRequired"])"
+                          Validation="@ValidateName"
+                          Counter="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                          MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                          Immediate="true"
+                          Disabled="_busy"
+                          Class="mb-3" />
+            <MudTextField T="string"
+                          Label="@(TemplatesText["DescriptionLabel"])"
+                          @bind-Value="_description"
+                          Counter="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
+                          MaxLength="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
+                          Lines="3"
+                          Immediate="true"
+                          Disabled="_busy"
+                          Class="mb-4" />
+            <MutationAuthorizationField @bind-Value="_privateKey" Disabled="_busy" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <div class="delete-dialog-actions">
+            <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.PauseCircle"
+                       Disabled="@(_busy || !_isValid || string.IsNullOrWhiteSpace(_privateKey))"
+                       OnClick="ConfirmAsync">
+                @TemplatesText["SaveTemplateAndDisable"]
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
