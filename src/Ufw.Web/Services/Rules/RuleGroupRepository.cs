@@ -78,7 +78,8 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.NotFound));
             }
 
-            bool inUse = await context.Set<RuleMetadataEntry>().AnyAsync(metadata => metadata.GroupId == group.Id, cancellationToken);
+            bool inUse = await context.Set<RuleMetadataEntry>().AnyAsync(metadata => metadata.GroupId == group.Id, cancellationToken)
+                || await context.Set<RuleTemplateEntry>().AnyAsync(template => template.GroupId == group.Id, cancellationToken);
             if (inUse)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.InUse));
@@ -103,6 +104,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
         RuleGroupEntry[] groups = await context.Set<RuleGroupEntry>()
             .AsNoTracking()
             .Include(static group => group.RuleMetadata)
+            .Include(static group => group.RuleTemplates)
             .OrderBy(static group => group.Name)
             .ThenBy(static group => group.PublicId)
             .ToArrayAsync(cancellationToken);
@@ -112,6 +114,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             Name = group.Name,
             Comment = group.Comment,
             RuleIds = [.. group.RuleMetadata.Select(static metadata => metadata.RuleId).Order(StringComparer.Ordinal)],
+            TemplateIds = [.. group.RuleTemplates.Select(static template => template.PublicId).Order()],
         })];
         return new RuleGroupInventoryResponse { Groups = items };
     }

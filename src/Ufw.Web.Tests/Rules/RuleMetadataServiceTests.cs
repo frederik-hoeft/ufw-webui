@@ -808,7 +808,7 @@ public sealed class RuleMetadataServiceTests
             RuleMetadataRepository metadataRepository = new(transactionHandle);
             RuleGroupRepository groupRepository = new(transactionHandle);
             RuleTagRepository tagRepository = new(transactionHandle);
-            RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
+            RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
             RuleGroupService groups = new(groupRepository);

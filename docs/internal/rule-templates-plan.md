@@ -30,7 +30,7 @@ FirewallRuleSpecification + authoring metadata
 ordinary UFW mutation
 ```
 
-A template is never authoritative for live firewall state. Creating a rule from a template does not create a durable binding between the template and the resulting rule, and editing or deleting a template never mutates UFW.
+A template is never authoritative for live firewall state. Creating a rule from a template does not create a durable binding between the template and the resulting rule, and editing or deleting a template never mutates UFW. Templates intentionally do not retain live-ruleset placement: a template can initialize either ordinary append creation or an existing snapshot-bound ordered-insertion workflow, but the target position always comes from the live creation context.
 
 ## Current-state inventory
 
@@ -165,7 +165,7 @@ This keeps the contract clean:
 
 ### Authoring metadata
 
-**Proposed default:** templates preserve the complete reusable authoring metadata draft: notes, tag identities, and optional group identity.
+Templates preserve the complete reusable authoring metadata draft: notes, tag identities, and optional group identity.
 
 This is the most coherent interpretation of reversible disable. Re-enabling a disabled rule can restore the same authoring context through the existing create workflow instead of silently discarding notes/tags/group membership when the live rule is deleted.
 
@@ -211,19 +211,23 @@ The action uses the exact reviewed row plus its joined ASP metadata as the initi
 
 ### Create/re-enable from template
 
-The template manager exposes **Create rule** / **Use template**, which navigates to normal rule creation with a template UUID query parameter. `CreateRule` loads the template, clones its structural definition and metadata into independent drafts, and then behaves like ordinary creation.
+Template loading is an initialization action inside the ordinary `CreateRule` workflow rather than a separate mutation mode. Both entry paths are first-class:
 
-Template values are only initialization. The user may change them before signing; the eventual add/insert request is the ordinary current `FirewallRuleSpecification` mutation and contains no template identity.
+- **Add rule** opens ordinary append creation; the user can then load a template into the creation draft.
+- **Insert before/after** opens the existing snapshot-bound ordered-insertion workflow; the user can then load a template into that position-constrained creation draft.
 
-Initialization precedence should remain explicit:
+The template manager may additionally expose **Create rule** / **Use template** as a convenience deep link that opens normal creation with the selected template already loaded. This shortcut must converge on exactly the same creation-page state and validation as choosing the template after arriving through **Add rule**.
 
-1. an ordered-insertion context, if present, constrains the target family and must not be silently contradicted by a template;
-2. the template initializes the structural/metadata draft;
-3. the existing `family=` convenience parameter applies only when it does not conflict with the template/insertion context.
+Template values are only initialization. Loading a template clones its structural definition and metadata into independent drafts; the user may then change them before signing. The eventual add/insert request remains the ordinary current `FirewallRuleSpecification` mutation and contains no template identity.
 
-The initial UI does not need to offer “insert this template before/after row X”; template manager usage can target normal append creation. If URLs combine template and ordered-insertion parameters anyway, the page should validate compatibility and fail closed rather than invent precedence that changes rule semantics.
+Live-ruleset placement is never part of the template. Initialization precedence is therefore explicit:
 
-A missing/deleted template produces an explicit template-context warning and lets the user return to the template manager or start a normal blank create workflow. It must not silently fall back to a blank draft while presenting the page as template-derived.
+1. an ordered-insertion context, if present, remains authoritative for target family and position;
+2. loading a template initializes only reusable structural/metadata values and must reject a template whose concrete family conflicts with the ordered-insertion family rather than changing the insertion target;
+3. for ordinary append creation, a loaded template may initialize its own family, including `Any`;
+4. the existing `family=` convenience parameter applies only until a template is explicitly loaded and may not contradict an ordered-insertion context.
+
+A missing/deleted template produces an explicit template-context warning and leaves the existing create context intact. It must not silently clear or replace the current draft while presenting the load as successful.
 
 ### Disable rule
 
@@ -301,9 +305,10 @@ Scope:
 
 - add explicit row capability/action plumbing for **Save as template** without inheriting single-delete duplicate restrictions;
 - add a focused save-as-template dialog that copies the exact reviewed structural occurrence plus joined metadata and collects template name/description;
-- add **Create rule** / **Use template** actions to the template manager;
-- add `template=<uuid>` initialization to `CreateRule` and a small feature service/value mapper if needed to keep template DTO interpretation out of page code;
-- define and test template/family/ordered-insertion initialization precedence without weakening existing snapshot-bound insertion semantics;
+- add template loading/picking to `CreateRule`, so the same workflow supports **Add rule -> load template** and **Insert before/after -> load template**;
+- add **Create rule** / **Use template** actions to the template manager as convenience deep links into that same creation-page initialization path;
+- add `template=<uuid>` preselection/loading support and a small feature service/value mapper if needed to keep template DTO interpretation out of page code;
+- define and test template/family/ordered-insertion initialization precedence without weakening existing snapshot-bound insertion semantics or copying positional state into templates;
 - clone all template values into independent drafts so later edits or template updates cannot mutate each other;
 - preserve ordinary create/ordered-insert signing, daemon validation, metadata-save, and authoritative refresh behavior unchanged after initialization;
 - add rule-list, template-manager, create-page, and localization tests for duplicate source occurrences, missing/deleted templates, IPv6-disabled current hosts, metadata prefill, and draft independence.
@@ -364,14 +369,14 @@ QA gate:
 - all relevant test projects/builds supported by the environment pass;
 - final branch remains documentation-only apart from strictly necessary documentation tooling fixes.
 
-## Decisions to confirm before Phase 1
+## Settled design decisions
 
-The implementation shape is otherwise straightforward, but these product/domain choices should be explicit before the persistence schema is frozen:
+The planning gate established the following contracts for Phase 1 and later phases:
 
-1. **Template metadata scope.** Recommended: preserve notes, tags, and group membership as part of the reusable authoring snapshot. This makes disable/re-enable meaningfully reversible at the UFWeb level, but it intentionally makes template references count as tag/group usage and requires group deletion to fail closed before firewall mutation while templates still reference that group. The simpler alternative is structural-rule-only templates, at the cost of losing application metadata across disable/re-enable.
-2. **Ownership/auditing.** Recommended: templates are application-global like rules, hosts, tags, and groups, with no per-user ownership or template-only audit subsystem in the first version. User attribution/audit should be introduced as a management-plane concern later rather than inconsistently for one resource.
-3. **Environment-sensitive validation.** Recommended: persist any structurally valid normalized template regardless of current IPv6 enablement or interface inventory. Current firewall capabilities are enforced only when a template is instantiated through ordinary rule creation.
-4. **Name/provenance contract.** Recommended: stable UUIDv7 identity, case-insensitive unique display name, optional description, and no persistent template->live-rule provenance link. Instantiation copies values into an independent draft and forgets the template identity.
-5. **Disable editing semantics.** Recommended: disable captures the exact reviewed rule/metadata plus template name/description, then persists and deletes. It does not let the user alter structural template fields inside the same disable transaction; customized derivatives remain the separate **Save as template** workflow.
+1. **Complete reusable metadata, no live placement.** Templates preserve structural UFW fields plus notes, tags, and optional group membership. They never store live ruleset occurrence/position information. Position always comes from the ordinary append or snapshot-bound ordered-insertion context in which a template is instantiated.
+2. **Global catalog.** Templates are application-global like rules, hosts, tags, groups, and metadata. There is no per-user ownership state.
+3. **Context-free persistence validation.** Template create/update validates normalized structural correctness and ASP metadata references only. It deliberately ignores current ruleset facts such as semantic duplicates, IPv6 enablement, and current interface availability. Those checks remain part of ordinary rule instantiation/mutation.
+4. **Stable identity without provenance.** Templates use UUIDv7 identity, a case-insensitive unique display name, an optional description, and no persistent template-to-live-rule provenance. Instantiation copies values into an independent draft and forgets the template identity.
+5. **Disable snapshots exactly, then deletes.** Disable persists a direct snapshot of the reviewed live rule plus its metadata and user-supplied template name/description, then performs the existing signed delete. It never offers structural template customization inside the composed disable workflow. Template customization remains the normal template-management flow.
 
-Unless one of these decisions changes at the planning gate, the phase plan above treats the recommended choices as the target contract.
+These decisions intentionally keep templates reusable and context-free while leaving all live firewall authority, placement, duplicate detection, capability checks, and mutation safety in the existing creation/deletion workflows.

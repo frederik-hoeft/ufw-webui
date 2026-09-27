@@ -82,14 +82,22 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
                 return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.NotFound));
             }
 
-            bool inUse = await context.Set<RuleMetadataTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken);
+            bool inUse = await context.Set<RuleMetadataTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken)
+                || await context.Set<RuleTemplateTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken);
             if (inUse)
             {
                 return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.InUse));
             }
 
             context.Remove(tag);
-            await context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (IsForeignKeyConstraintViolation(exception))
+            {
+                return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.InUse));
+            }
             RuleTagInventoryResponse response = await GetCoreAsync(context, cancellationToken);
             return transaction.Commit(new RuleTagMutationResult(RuleTagMutationOutcome.Success, response));
         });
@@ -118,4 +126,7 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
 
     private static bool IsUniqueConstraintViolation(DbUpdateException exception) =>
         exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
+    private static bool IsForeignKeyConstraintViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation };
 }

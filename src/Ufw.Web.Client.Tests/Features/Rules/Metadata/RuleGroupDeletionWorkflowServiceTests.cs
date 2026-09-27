@@ -45,6 +45,57 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         host.Mutations.VerifyNoOtherCalls();
     }
 
+
+    [TestMethod]
+    public async Task GetSingleRuleCleanupCandidateAsync_TemplateReferenceSuppressesCleanupOptionAsync()
+    {
+        TestHost host = new();
+        RuleGroup group = Group(["rule"]) with { TemplateIds = [Guid.CreateVersion7()] };
+        RuleSnapshot snapshot = Snapshot([Rule("rule")], new Dictionary<string, RuleMetadata>(StringComparer.Ordinal)
+        {
+            ["rule"] = Metadata(group),
+        });
+        host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([group]);
+
+        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot);
+
+        Assert.IsNull(candidate);
+        host.Mutations.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_TemplateReferenceRejectsBeforeAnyFirewallOrCatalogMutationAsync()
+    {
+        TestHost host = new();
+        RuleGroup group = Group(["one"]) with { TemplateIds = [Guid.CreateVersion7()] };
+        RuleSnapshot snapshot = Snapshot([Rule("one")]);
+        RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
+
+        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteAsync(projection, snapshot, "key"));
+
+        StringAssert.Contains(exception.Message, "templates");
+        host.Mutations.VerifyNoOtherCalls();
+        host.Groups.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_TemplateReferenceAddedAfterConfirmationRejectsBeforeFirewallMutationAsync()
+    {
+        TestHost host = new();
+        RuleGroup group = Group(["one"]);
+        RuleGroup changed = group with { TemplateIds = [Guid.CreateVersion7()] };
+        RuleSnapshot snapshot = Snapshot([Rule("one")]);
+        RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
+        host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([changed]);
+
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+
+        Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupChanged, result.Outcome);
+        CollectionAssert.AreEqual(new[] { changed }, result.Groups.ToArray());
+        host.Mutations.VerifyNoOtherCalls();
+        host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [TestMethod]
     public async Task DeleteAsync_CompletedBatchDeletesEveryOccurrenceThenEmptyGroupAsync()
     {

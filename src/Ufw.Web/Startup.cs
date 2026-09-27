@@ -87,13 +87,16 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupRepository, RuleGroupRepository>();
         services.AddScoped<IRuleTagRepository, RuleTagRepository>();
+        services.AddScoped<IRuleTemplateRepository, RuleTemplateRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
         services.AddScoped<IRuleGroupService, RuleGroupService>();
         services.AddScoped<IRuleTagService, RuleTagService>();
+        services.AddScoped<IRuleTemplateService, RuleTemplateService>();
 
         services.AddAuthentication(options =>
         {

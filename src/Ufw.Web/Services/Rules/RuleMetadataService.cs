@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
@@ -10,15 +9,17 @@ using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules, IRuleMetadataRepository repository, ILogger<RuleMetadataService> logger) : IRuleMetadataService
+internal sealed partial class RuleMetadataService(
+    IDaemonRuleSource daemonRules,
+    IRuleMetadataRepository repository,
+    IRuleMetadataValuesNormalizer metadataNormalizer,
+    ILogger<RuleMetadataService> logger) : IRuleMetadataService
 {
-    private const int MAX_TAG_COUNT = 32;
-
     public async Task<RuleMetadataUpdateResult> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(request);
-        if (!TryNormalize(request, out RuleMetadataValues? values))
+        if (!metadataNormalizer.TryNormalize(request.Notes, request.TagIds, request.GroupId, out RuleMetadataValues? values))
         {
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata);
         }
@@ -143,27 +144,6 @@ internal sealed partial class RuleMetadataService(IDaemonRuleSource daemonRules,
             LogBatchCleanupFailure(logger, confirmedDeletedRuleIds.Length, exception);
         }
     }
-
-    private static bool TryNormalize(UpdateRuleMetadataRequest request, [NotNullWhen(true)] out RuleMetadataValues? values)
-    {
-        string? notes = NormalizeOptional(request.Notes);
-        if (notes?.Length > RuleMetadataEntry.MAX_NOTES_LENGTH
-            || request.TagIds is null
-            || request.TagIds.Count > MAX_TAG_COUNT
-            || request.TagIds.Any(static id => id == Guid.Empty)
-            || request.GroupId == Guid.Empty)
-        {
-            values = null;
-            return false;
-        }
-
-        Guid[] tagIds = [.. request.TagIds.Distinct().Order()];
-        values = new RuleMetadataValues(notes, tagIds, request.GroupId);
-        return true;
-    }
-
-    private static string? NormalizeOptional(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     [LoggerMessage(1, LogLevel.Warning, "Rule metadata cleanup failed after deleting firewall rule {RuleId}.")]
     private static partial void LogCleanupFailure(ILogger logger, string ruleId, Exception exception);

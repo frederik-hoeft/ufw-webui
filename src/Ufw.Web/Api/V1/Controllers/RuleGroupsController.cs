@@ -46,7 +46,7 @@ public sealed partial class RuleGroupsController(IRuleGroupService groups) : Con
         {
             Status = StatusCodes.Status409Conflict,
             Title = "Rule group is still in use",
-            Detail = "Remove or reconcile all rule metadata memberships before deleting the group.",
+            Detail = "Remove all live rule metadata and rule-template references before deleting the group.",
         }),
         RuleGroupMutationOutcome.InvalidGroup => BadRequest(new ProblemDetails
         {
