@@ -301,6 +301,81 @@ public sealed class IntentSignatureTests
     }
 
     [TestMethod]
+    public void VerifyReplace_AcceptsFreshSignatureFromAuthorizedKey()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReplaceRuleRequest request = SignReplace(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        IntentVerificationResult.AcceptedReplacement accepted =
+            Assert.IsInstanceOfType<IntentVerificationResult.AcceptedReplacement>(verifier.VerifyReplace(request));
+        ReplaceRulePayload expected = CreateReplacePayload();
+        Assert.AreEqual(expected.BaselineFingerprint, accepted.Payload.BaselineFingerprint);
+        Assert.AreEqual(expected.TargetOccurrenceId, accepted.Payload.TargetOccurrenceId);
+        Assert.AreEqual(expected.OriginalRuleId, accepted.Payload.OriginalRuleId);
+        Assert.AreEqual(FirewallAddressFamily.IPv4, accepted.Payload.ReplacementRule.AddressFamily);
+        Assert.AreEqual("443", accepted.Payload.ReplacementRule.DestinationPorts);
+    }
+
+    [TestMethod]
+    public void VerifyReplace_RejectsTamperedStateConditionIdentityOrRule()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReplaceRuleRequest signed = SignReplace(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+        ReplaceRulePayload[] tampered =
+        [
+            CreateReplacePayload(baselineFingerprint: FirewallRuleSnapshotFingerprint.Compute(active: false, [])),
+            CreateReplacePayload(targetOccurrenceId: 2),
+            CreateReplacePayload(originalRuleId: RuleIdentity.Compute(CreateRule(FirewallAddressFamily.IPv4, "80"))),
+            CreateReplacePayload(replacementRule: CreateRule(FirewallAddressFamily.IPv4, "8443")),
+        ];
+
+        foreach (ReplaceRulePayload payload in tampered)
+        {
+            ReplaceRuleRequest request = signed with
+            {
+                Payload = System.Text.Json.JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.ReplaceRulePayload),
+            };
+            AssertRejected<ForbiddenResponse>(verifier.VerifyReplace(request));
+        }
+    }
+
+    [TestMethod]
+    public void VerifyReplace_RejectsOperationSubstitutionAndTamperedDeployment()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReplaceRuleRequest request = SignReplace(key, clock);
+
+        AssertRejected<BadRequestResponse>(CreateVerifier(key, clock).VerifyReplace(request with { Operation = IntentOperations.INSERT_RULE }));
+        AssertRejected<ForbiddenResponse>(CreateVerifier(key, clock, deploymentId: "deployment-b").VerifyReplace(request with { DeploymentId = "deployment-b" }));
+    }
+
+    [TestMethod]
+    public void VerifyReplace_RejectsMalformedOrFamilyNeutralPayloadBeforeSignatureVerification()
+    {
+        using ECDsa key = IntentSigner.CreateP256();
+        TestTimeProvider clock = new(DateTimeOffset.Parse("2026-04-01T12:00:00Z"));
+        ReplaceRuleRequest signed = SignReplace(key, clock);
+        IntentVerifier verifier = CreateVerifier(key, clock);
+
+        ReplaceRulePayload malformedIdentity = CreateReplacePayload(originalRuleId: "sha256:not-a-digest");
+        AssertRejected<BadRequestResponse>(verifier.VerifyReplace(signed with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(malformedIdentity, MessageJsonSerializerContext.Default.ReplaceRulePayload),
+        }));
+
+        ReplaceRulePayload familyNeutral = CreateReplacePayload(replacementRule: CreateRule(FirewallAddressFamily.Any, "443"));
+        AssertRejected<BadRequestResponse>(verifier.VerifyReplace(signed with
+        {
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(familyNeutral, MessageJsonSerializerContext.Default.ReplaceRulePayload),
+        }));
+    }
+
+    [TestMethod]
     public void VerifyReorder_RejectsTamperedDesiredOrder()
     {
         using ECDsa key = IntentSigner.CreateP256();
@@ -514,6 +589,21 @@ public sealed class IntentSignatureTests
         Protocol = FirewallProtocol.Tcp,
         DestinationPorts = port,
     };
+
+    private static ReplaceRulePayload CreateReplacePayload(
+        string? baselineFingerprint = null,
+        int targetOccurrenceId = 1,
+        string? originalRuleId = null,
+        FirewallRuleSpecification? replacementRule = null) => new()
+        {
+            BaselineFingerprint = baselineFingerprint ?? FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            TargetOccurrenceId = targetOccurrenceId,
+            OriginalRuleId = originalRuleId ?? RuleIdentity.Compute(CreateRule(FirewallAddressFamily.IPv4, "22")),
+            ReplacementRule = replacementRule ?? CreateRule(FirewallAddressFamily.IPv4, "443"),
+        };
+
+    private static ReplaceRuleRequest SignReplace(ECDsa key, TimeProvider clock) =>
+        IntentRequestFactory.CreateReplaceRequest(key, DEPLOYMENT_ID, CreateReplacePayload(), MessageJsonSerializerContext.Default.ReplaceRulePayload, clock);
 
     private static ReorderRulesPayload CreateReorderPayload(string? baselineFingerprint = null, int[]? desiredOrder = null) => new()
     {

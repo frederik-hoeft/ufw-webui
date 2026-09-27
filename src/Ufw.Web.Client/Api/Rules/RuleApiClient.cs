@@ -15,6 +15,7 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
     private static readonly Uri s_ruleInsertUri = new("api/v1/rules/insert", UriKind.Relative);
     private static readonly Uri s_ruleBatchDeleteUri = new("api/v1/rules/batch", UriKind.Relative);
     private static readonly Uri s_ruleOrderUri = new("api/v1/rules/order", UriKind.Relative);
+    private static readonly Uri s_ruleReplaceUri = new("api/v1/rules/replace", UriKind.Relative);
 
     public async Task<RuleInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken = default)
     {
@@ -77,6 +78,17 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
             MessageJsonSerializerContext.Default.RuleInsertionResponse,
             static candidate => candidate.Outcome != RuleInsertionOutcome.Completed
                 || candidate.FinalSnapshot is not null && candidate.InsertedRule is not null,
+            cancellationToken);
+    }
+
+    public async Task<RuleReplacementResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleReplaceUri, request, MessageJsonSerializerContext.Default.ReplaceRuleRequest, cancellationToken);
+        return await response.ReadTransactionResponseAsync(
+            MessageJsonSerializerContext.Default.RuleReplacementResponse,
+            static candidate => candidate.Outcome != RuleReplacementOutcome.Completed
+                || candidate.FinalSnapshot is not null && candidate.ReplacementRule is not null,
             cancellationToken);
     }
 

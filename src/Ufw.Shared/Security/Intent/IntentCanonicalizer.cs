@@ -73,6 +73,22 @@ public static class IntentCanonicalizer
         return Encoding.UTF8.GetBytes(builder.ToString());
     }
 
+    public static byte[] CanonicalizeReplace(ISignedIntent intent, ReplaceRulePayload payload)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(payload.ReplacementRule);
+
+        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(payload.ReplacementRule);
+        StringBuilder builder = CreateIntentHeader(intent);
+        builder.Append("payload:\n");
+        AppendField(builder, "baselineFingerprint", payload.BaselineFingerprint);
+        AppendField(builder, "targetOccurrenceId", payload.TargetOccurrenceId.ToString(CultureInfo.InvariantCulture));
+        AppendField(builder, "originalRuleId", payload.OriginalRuleId);
+        AppendRuleFields(builder, normalized);
+        return Encoding.UTF8.GetBytes(builder.ToString());
+    }
+
     public static byte[] CanonicalizeReorder(ISignedIntent intent, ReorderRulesPayload payload)
     {
         ArgumentNullException.ThrowIfNull(intent);

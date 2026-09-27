@@ -144,6 +144,46 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
+    public async Task<ReplaceRuleRequest> CreateReplaceRuleRequestAsync(
+        string deploymentId,
+        string baselineFingerprint,
+        int targetOccurrenceId,
+        string originalRuleId,
+        FirewallRuleSpecification replacementRule,
+        string privateKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        ArgumentNullException.ThrowIfNull(replacementRule);
+        ValidatePrivateKey(privateKey);
+
+        ReplaceRulePayload payload = new()
+        {
+            BaselineFingerprint = baselineFingerprint,
+            TargetOccurrenceId = targetOccurrenceId,
+            OriginalRuleId = originalRuleId,
+            ReplacementRule = RuleSpecificationNormalizer.Normalize(replacementRule),
+        };
+        RuleReplacementContract.ValidatePayload(payload);
+
+        string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
+        string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
+        ReplaceRuleRequest unsignedRequest = new()
+        {
+            DeploymentId = deploymentId,
+            KeyId = keyId,
+            IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            Nonce = nonce,
+            Operation = IntentOperations.REPLACE_RULE,
+            Payload = JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.ReplaceRulePayload),
+            Signature = string.Empty,
+        };
+
+        byte[] canonical = IntentCanonicalizer.CanonicalizeReplace(unsignedRequest, payload);
+        string signature = await crypto.SignAsync(privateKey, canonical, cancellationToken);
+        return unsignedRequest with { Signature = signature };
+    }
+
     public async Task<ReorderRulesRequest> CreateReorderRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,

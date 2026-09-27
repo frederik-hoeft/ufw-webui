@@ -73,6 +73,30 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
         return await ruleApiClient.InsertRuleAsync(request, cancellationToken);
     }
 
+    public async Task<RuleReplacementResponse> ReplaceRuleAsync(
+        RuleListResponse baseline,
+        int targetOccurrenceId,
+        string originalRuleId,
+        FirewallRuleSpecification replacementRule,
+        string privateKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(baseline);
+        ArgumentNullException.ThrowIfNull(replacementRule);
+
+        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
+        string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
+        ReplaceRuleRequest request = await intentSigningService.CreateReplaceRuleRequestAsync(
+            context.DeploymentId,
+            baselineFingerprint,
+            targetOccurrenceId,
+            originalRuleId,
+            replacementRule,
+            privateKey,
+            cancellationToken);
+        return await ruleApiClient.ReplaceRuleAsync(request, cancellationToken);
+    }
+
     private async Task<IntentContextResponse> GetCompatibleIntentContextAsync(CancellationToken cancellationToken)
     {
         IntentContextResponse context = await intentContextApiClient.GetAsync(cancellationToken);

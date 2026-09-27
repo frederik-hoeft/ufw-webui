@@ -22,4 +22,12 @@ internal interface IRuleMutationService
         FirewallRuleSpecification rule,
         string privateKey,
         CancellationToken cancellationToken = default);
+
+    Task<RuleReplacementResponse> ReplaceRuleAsync(
+        RuleListResponse baseline,
+        int targetOccurrenceId,
+        string originalRuleId,
+        FirewallRuleSpecification replacementRule,
+        string privateKey,
+        CancellationToken cancellationToken = default);
 }
