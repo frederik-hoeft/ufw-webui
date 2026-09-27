@@ -98,14 +98,9 @@ The rule action menu should expose **Edit rule** separately from **Edit metadata
 
 The confirmation/signing step should make the replacement nature of the operation clear and show both the current canonical rule and the proposed canonical replacement. Successful completion should reconcile the ordinary rule inventory and metadata state from the returned authoritative result rather than relying on optimistic local substitution.
 
-### Suggested implementation phases
+### Implementation plan
 
-1. **Reusable rule editor mode.** Extract or formalize the current Add Rule authoring state/components so the same validation, known-host suggestions, group/tag metadata inputs, and canonical preview can initialize from an existing live rule without duplicating form logic.
-2. **Replacement intent/protocol.** Add a signed rule-replacement operation carrying the baseline snapshot/occurrence, old semantic identity, and new structural rule model. Define canonicalization, replay protection, result states, and exact failure semantics.
-3. **Daemon reconciliation/execution.** Under the shared mutation gate, resolve the exact baseline occurrence, retain its position, delete it, insert the replacement at that position, then re-snapshot and return the reconciled result/new semantic identity.
-4. **ASP metadata reconciliation.** Preserve/copy/re-key notes, tags, and group membership according to the authoritative post-update snapshot, including duplicate-old-identity and unchanged-identity cases.
-5. **Client orchestration and UX.** Wire **Edit rule** into the rule actions menu, add replacement confirmation/signing, surface partial/uncertain outcomes, and reconcile the returned inventory without a separate speculative client model.
-6. **Steady-state documentation and tests.** Reconcile the permanent protocol/security/architecture docs and cover duplicate semantic rules, cross-family behavior, normalization to the same hash, position preservation, insertion failure after successful deletion, stale baselines, replay, metadata migration, and uncertain final snapshots.
+This backlog item is active work. The current-state inventory, protocol decisions, phased branch boundaries, and QA/approval gates are maintained in [Rule editing and replacement implementation plan](rule-editing-and-replacement-plan.md).
 
 ## Semantic firewall-policy exploration
 
