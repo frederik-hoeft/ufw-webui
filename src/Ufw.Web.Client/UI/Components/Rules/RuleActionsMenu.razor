@@ -38,6 +38,15 @@
             @RulesText["EditMetadata"]
         </MudMenuItem>
     }
+    @if (SaveAsTemplateRequested.HasDelegate)
+    {
+        <MudMenuItem Disabled="@(TemplateSaveDisabled || !CanSaveAsTemplate)"
+                     Icon="@Icons.Material.Filled.ContentCopy"
+                     OnClick="@(() => SaveAsTemplateRequested.InvokeAsync())">
+            @RulesText["SaveAsTemplate"]
+        </MudMenuItem>
+    }
+    <MudDivider />
     <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
                  Icon="@Icons.Material.Filled.Delete"
                  IconColor="Color.Error"

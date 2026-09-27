@@ -950,4 +950,5 @@
   <data name="MetadataSaveAfterReplacementFailedWithReason" xml:space="preserve"><value>The firewall rule was updated, but your metadata changes could not be saved: {0}</value></data>
   <data name="RetryMetadataSave" xml:space="preserve"><value>Retry metadata save</value></data>
   <data name="SavingMetadata" xml:space="preserve"><value>Saving metadata...</value></data>
+  <data name="SaveAsTemplate" xml:space="preserve"><value>Save as template</value></data>
 </root>

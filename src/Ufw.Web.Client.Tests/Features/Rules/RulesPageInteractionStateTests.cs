@@ -35,6 +35,22 @@ public sealed class RulesPageInteractionStateTests
     }
 
     [TestMethod]
+    public void TemplateSaveFlow_IsExclusiveAndReturnsToIdle()
+    {
+        RulesPageInteractionState dialog = RulesPageInteractionState.Initial.MoveNext(new RulesPageInteractionTransition.TemplateDialogOpened());
+        RulesPageInteractionState saving = dialog.MoveNext(new RulesPageInteractionTransition.TemplateSaveStarted());
+
+        Assert.IsTrue(dialog.IsBusy);
+        Assert.IsFalse(dialog.CanSaveTemplate);
+        Assert.AreEqual(RulesPageInteractionMode.TemplateSaving, saving.Mode);
+        Assert.ThrowsExactly<InvalidOperationException>(() => saving.MoveNext(new RulesPageInteractionTransition.ReorderStarted()));
+
+        RulesPageInteractionState restoredDialog = saving.MoveNext(new RulesPageInteractionTransition.TemplateSaveCompleted());
+        Assert.AreEqual(RulesPageInteractionMode.TemplateDialog, restoredDialog.Mode);
+        Assert.AreSame(RulesPageInteractionState.Initial, restoredDialog.MoveNext(new RulesPageInteractionTransition.TemplateDialogClosed()));
+    }
+
+    [TestMethod]
     public void ReorderFlow_IsExclusive()
     {
         RulesPageInteractionState reordering = RulesPageInteractionState.Initial.MoveNext(new RulesPageInteractionTransition.ReorderStarted());

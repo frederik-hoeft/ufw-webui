@@ -13,6 +13,7 @@ internal sealed record RulesPageInteractionState
     public bool IsReordering => Mode == RulesPageInteractionMode.Reordering;
     public bool CanMutateFirewall => Mode == RulesPageInteractionMode.Idle;
     public bool CanEditMetadata => Mode == RulesPageInteractionMode.Idle;
+    public bool CanSaveTemplate => Mode == RulesPageInteractionMode.Idle;
     public bool CanPreviewOrdering => Mode == RulesPageInteractionMode.Idle;
     public static RulesPageInteractionState Initial { get; } = new(RulesPageInteractionMode.Idle);
 
@@ -29,6 +30,10 @@ internal sealed record RulesPageInteractionState
             (RulesPageInteractionMode.MetadataDialog, RulesPageInteractionTransition.MetadataSaveStarted) => RulesPageInteractionMode.MetadataSaving,
             (RulesPageInteractionMode.MetadataSaving, RulesPageInteractionTransition.MetadataSaveCompleted) => RulesPageInteractionMode.MetadataDialog,
             (RulesPageInteractionMode.MetadataDialog, RulesPageInteractionTransition.MetadataDialogClosed) => RulesPageInteractionMode.Idle,
+            (RulesPageInteractionMode.Idle, RulesPageInteractionTransition.TemplateDialogOpened) => RulesPageInteractionMode.TemplateDialog,
+            (RulesPageInteractionMode.TemplateDialog, RulesPageInteractionTransition.TemplateSaveStarted) => RulesPageInteractionMode.TemplateSaving,
+            (RulesPageInteractionMode.TemplateSaving, RulesPageInteractionTransition.TemplateSaveCompleted) => RulesPageInteractionMode.TemplateDialog,
+            (RulesPageInteractionMode.TemplateDialog, RulesPageInteractionTransition.TemplateDialogClosed) => RulesPageInteractionMode.Idle,
             (RulesPageInteractionMode.Idle, RulesPageInteractionTransition.ReorderStarted) => RulesPageInteractionMode.Reordering,
             (RulesPageInteractionMode.Reordering, RulesPageInteractionTransition.ReorderCompleted) => RulesPageInteractionMode.Idle,
             _ => throw new InvalidOperationException($"Transition '{transition.GetType().Name}' is invalid while the rules page is in '{Mode}' mode."),

@@ -7,5 +7,7 @@ internal enum RulesPageInteractionMode
     Deleting,
     MetadataDialog,
     MetadataSaving,
+    TemplateDialog,
+    TemplateSaving,
     Reordering,
 }

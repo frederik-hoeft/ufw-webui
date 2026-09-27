@@ -4,6 +4,14 @@
          Size="Size.Small"
          Dense="true"
          aria-label="@TemplatesText["ActionsForTemplate", Template.Name]">
+    @if (UseRequested.HasDelegate)
+    {
+        <MudMenuItem Disabled="@Disabled"
+                     Icon="@Icons.Material.Filled.AddCircleOutline"
+                     OnClick="@(() => UseRequested.InvokeAsync(Template))">
+            @TemplatesText["UseTemplate"]
+        </MudMenuItem>
+    }
     <MudMenuItem Disabled="@Disabled"
                  Icon="@Icons.Material.Filled.Edit"
                  OnClick="@(() => EditRequested.InvokeAsync(Template))">

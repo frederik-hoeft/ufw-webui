@@ -59,6 +59,7 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
             RuleRowProjection row = new(rule, family, occurrenceId, familyPosition, familyCounts[family], canOrder, canMutate, positionChange, metadata, CreateCanonicalCommand(rule))
             {
                 CanEdit = canEdit,
+                CanSaveAsTemplate = canOrder,
             };
 
             if (family == FirewallAddressFamily.IPv6)

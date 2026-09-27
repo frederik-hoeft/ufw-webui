@@ -1,3 +1,9 @@
+.rule-template-command {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
 .rule-template-inventory {
     .rule-template-name-stack {
         display: flex;
@@ -18,10 +24,7 @@
     }
 
     .rule-template-command {
-        display: block;
         max-width: min(46vw, 52rem);
-        overflow-x: auto;
-        white-space: nowrap;
     }
 
     .rule-template-metadata {

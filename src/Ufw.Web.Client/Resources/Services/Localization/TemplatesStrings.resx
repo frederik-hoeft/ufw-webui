@@ -53,4 +53,19 @@
   <data name="SaveFailed" xml:space="preserve"><value>Rule template could not be saved</value></data>
   <data name="OperationFailed" xml:space="preserve"><value>Rule template operation failed</value></data>
   <data name="ActionsForTemplate" xml:space="preserve"><value>Actions for template {0}</value></data>
+  <data name="SaveAsTemplate" xml:space="preserve"><value>Save as template</value></data>
+  <data name="SaveLiveRuleDescription" xml:space="preserve"><value>Save the reviewed rule and its current notes, tags, and group as a reusable template. This does not change the firewall.</value></data>
+  <data name="TemplateSavedFromRule" xml:space="preserve"><value>Rule saved as template.</value></data>
+  <data name="UseTemplate" xml:space="preserve"><value>Use template</value></data>
+  <data name="LoadTemplateTitle" xml:space="preserve"><value>Initialize from template</value></data>
+  <data name="LoadTemplateDescription" xml:space="preserve"><value>Load reusable rule fields and metadata into this draft. You can review and change them before signing the firewall mutation.</value></data>
+  <data name="SelectTemplate" xml:space="preserve"><value>Rule template</value></data>
+  <data name="LoadTemplate" xml:space="preserve"><value>Load template</value></data>
+  <data name="TemplateLoaded" xml:space="preserve"><value>Template “{0}” loaded into the rule draft.</value></data>
+  <data name="TemplateLoadFailed" xml:space="preserve"><value>Rule templates could not be loaded. You can continue creating the rule without a template.</value></data>
+  <data name="TemplateContextInvalid" xml:space="preserve"><value>The requested template identifier is invalid. The current rule draft was left unchanged.</value></data>
+  <data name="TemplateContextMissing" xml:space="preserve"><value>The requested rule template no longer exists. The current rule draft was left unchanged.</value></data>
+  <data name="TemplateFamilyMismatch" xml:space="preserve"><value>Template “{0}” uses {1}, but this ordered insertion is fixed to {2}. The current rule draft was left unchanged.</value></data>
+  <data name="ReloadTemplates" xml:space="preserve"><value>Reload templates</value></data>
+  <data name="ReviewedRule" xml:space="preserve"><value>Reviewed rule</value></data>
 </root>

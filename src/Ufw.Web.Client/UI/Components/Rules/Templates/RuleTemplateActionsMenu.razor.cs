@@ -12,6 +12,9 @@ public sealed partial class RuleTemplateActionsMenu
     public bool Disabled { get; set; }
 
     [Parameter]
+    public EventCallback<RuleTemplate> UseRequested { get; set; }
+
+    [Parameter]
     public EventCallback<RuleTemplate> EditRequested { get; set; }
 
     [Parameter]

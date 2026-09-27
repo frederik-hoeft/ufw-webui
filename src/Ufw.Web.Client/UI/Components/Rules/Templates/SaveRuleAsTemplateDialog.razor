@@ -1,0 +1,40 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @TemplatesText["SaveLiveRuleDescription"]
+        </MudText>
+        @if (!string.IsNullOrWhiteSpace(CanonicalCommand))
+        {
+            <MudPaper Outlined="true" Class="pa-3 mb-4">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["ReviewedRule"]</MudText>
+                <code class="rule-template-command">@CanonicalCommand</code>
+            </MudPaper>
+        }
+        <MudForm @ref="_form">
+            <MudTextField T="string"
+                          Label="@(TemplatesText["Name"])"
+                          @bind-Value="_name"
+                          Required="true"
+                          RequiredError="@(TemplatesText["NameRequired"])"
+                          Validation="@ValidateName"
+                          Counter="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                          MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                          Immediate="true"
+                          Class="mb-3" />
+            <MudTextField T="string"
+                          Label="@(TemplatesText["DescriptionLabel"])"
+                          @bind-Value="_description"
+                          Counter="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
+                          MaxLength="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
+                          Lines="3"
+                          Immediate="true" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync">@TemplatesText["SaveAsTemplate"]</MudButton>
+    </DialogActions>
+</MudDialog>

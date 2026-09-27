@@ -53,4 +53,19 @@
   <data name="SaveFailed" xml:space="preserve"><value>Regelvorlage konnte nicht gespeichert werden</value></data>
   <data name="OperationFailed" xml:space="preserve"><value>Regelvorlagenvorgang fehlgeschlagen</value></data>
   <data name="ActionsForTemplate" xml:space="preserve"><value>Aktionen für Vorlage {0}</value></data>
+  <data name="SaveAsTemplate" xml:space="preserve"><value>Als Vorlage speichern</value></data>
+  <data name="SaveLiveRuleDescription" xml:space="preserve"><value>Die geprüfte Regel sowie ihre aktuellen Notizen, Tags und Gruppe als wiederverwendbare Vorlage speichern. Die Firewall wird dadurch nicht geändert.</value></data>
+  <data name="TemplateSavedFromRule" xml:space="preserve"><value>Regel als Vorlage gespeichert.</value></data>
+  <data name="UseTemplate" xml:space="preserve"><value>Vorlage verwenden</value></data>
+  <data name="LoadTemplateTitle" xml:space="preserve"><value>Aus Vorlage initialisieren</value></data>
+  <data name="LoadTemplateDescription" xml:space="preserve"><value>Wiederverwendbare Regelfelder und Metadaten in diesen Entwurf laden. Vor dem Signieren der Firewall-Änderung können sie geprüft und geändert werden.</value></data>
+  <data name="SelectTemplate" xml:space="preserve"><value>Regelvorlage</value></data>
+  <data name="LoadTemplate" xml:space="preserve"><value>Vorlage laden</value></data>
+  <data name="TemplateLoaded" xml:space="preserve"><value>Vorlage „{0}“ wurde in den Regelentwurf geladen.</value></data>
+  <data name="TemplateLoadFailed" xml:space="preserve"><value>Regelvorlagen konnten nicht geladen werden. Die Regel kann weiterhin ohne Vorlage erstellt werden.</value></data>
+  <data name="TemplateContextInvalid" xml:space="preserve"><value>Die angeforderte Vorlagenkennung ist ungültig. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
+  <data name="TemplateContextMissing" xml:space="preserve"><value>Die angeforderte Regelvorlage existiert nicht mehr. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
+  <data name="TemplateFamilyMismatch" xml:space="preserve"><value>Vorlage „{0}“ verwendet {1}, diese geordnete Einfügung ist jedoch auf {2} festgelegt. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
+  <data name="ReloadTemplates" xml:space="preserve"><value>Vorlagen neu laden</value></data>
+  <data name="ReviewedRule" xml:space="preserve"><value>Geprüfte Regel</value></data>
 </root>

@@ -121,7 +121,7 @@
                     </div>
                 </MudTd>
                 <MudTd DataLabel="@(TemplatesText["ActionsColumn"])" Class="rule-template-actions-column">
-                    <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" EditRequested="Edit" DeleteRequested="DeleteAsync" />
+                    <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" UseRequested="Use" EditRequested="Edit" DeleteRequested="DeleteAsync" />
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -156,7 +156,7 @@
                         </div>
                     </div>
                     <div class="inventory-mobile-actions">
-                        <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" EditRequested="Edit" DeleteRequested="DeleteAsync" />
+                        <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" UseRequested="Use" EditRequested="Edit" DeleteRequested="DeleteAsync" />
                     </div>
                 </article>
             }

@@ -71,6 +71,7 @@ public static class Program
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
         builder.Services.AddScoped<IRuleTemplateCatalogService, RuleTemplateCatalogService>();
         builder.Services.AddSingleton<IRuleTemplateDraftFactory, RuleTemplateDraftFactory>();
+        builder.Services.AddSingleton<IRuleTemplateAuthoringService, RuleTemplateAuthoringService>();
 
         builder.Services.AddHttpClient<IManagementApiHealthClient, ManagementApiHealthClient>(
             static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress);

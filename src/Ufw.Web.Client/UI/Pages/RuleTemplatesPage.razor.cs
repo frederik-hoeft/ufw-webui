@@ -67,6 +67,8 @@ public sealed partial class RuleTemplatesPage
 
     private void Create() => Navigation.NavigateTo("/templates/create");
 
+    private void Use(RuleTemplate template) => Navigation.NavigateTo($"/rules/create?template={template.Id:D}");
+
     private void Edit(RuleTemplate template) => Navigation.NavigateTo($"/templates/edit/{template.Id:D}");
 
     private async Task DeleteAsync(RuleTemplate template)

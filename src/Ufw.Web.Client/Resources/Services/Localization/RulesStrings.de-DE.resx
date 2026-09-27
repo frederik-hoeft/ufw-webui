@@ -952,4 +952,5 @@
   <data name="MetadataSaveAfterReplacementFailedWithReason" xml:space="preserve"><value>Die Firewall-Regel wurde aktualisiert, aber die Metadatenänderungen konnten nicht gespeichert werden: {0}</value></data>
   <data name="RetryMetadataSave" xml:space="preserve"><value>Metadaten erneut speichern</value></data>
   <data name="SavingMetadata" xml:space="preserve"><value>Metadaten werden gespeichert...</value></data>
+  <data name="SaveAsTemplate" xml:space="preserve"><value>Als Vorlage speichern</value></data>
 </root>

@@ -15,11 +15,14 @@
 @inject IKnownHostInventoryService KnownHosts
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IRuleReplacementNavigationService ReplacementNavigation
+@inject IRuleTemplateCatalogService TemplateCatalog
+@inject IRuleTemplateAuthoringService TemplateAuthoring
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
 @inject TimeProvider TimeProvider
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
 
 <PageTitle>@RulesText["RulesPageTitle"] - UFWeb</PageTitle>
 
@@ -193,8 +196,10 @@ else if (_state.Snapshot is { })
                                  OrderingDisabled="@(!CanPreviewOrdering)"
                                  InsertionDisabled="@(!CanMutateFirewall)"
                                  MetadataEditDisabled="@(!CanEditMetadata)"
+                                 TemplateSaveDisabled="@(!CanSaveTemplate)"
                                  EditRequested="BeginRuleEditAsync"
                                  MetadataEditRequested="EditMetadataAsync"
+                                 SaveAsTemplateRequested="SaveAsTemplateAsync"
                                  KnownHostsChanged="KnownHostsChanged"
                                  DeleteRequested="BeginDeleteAsync"
                                  InsertionRequested="BeginOrderedInsertionAsync"
@@ -214,8 +219,10 @@ else if (_state.Snapshot is { })
                                      OrderingDisabled="@(!CanPreviewOrdering)"
                                      InsertionDisabled="@(!CanMutateFirewall)"
                                      MetadataEditDisabled="@(!CanEditMetadata)"
+                                     TemplateSaveDisabled="@(!CanSaveTemplate)"
                                      EditRequested="BeginRuleEditAsync"
                                      MetadataEditRequested="EditMetadataAsync"
+                                     SaveAsTemplateRequested="SaveAsTemplateAsync"
                                      KnownHostsChanged="KnownHostsChanged"
                                      DeleteRequested="BeginDeleteAsync"
                                      InsertionRequested="BeginOrderedInsertionAsync"
