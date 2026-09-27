@@ -47,6 +47,9 @@ public sealed class RuleInventoryServiceTests
 
         public Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(string originalRuleId, string replacementRuleId, bool originalRuleStillLive, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<int> DeleteForRuleIdsAsync(IReadOnlyCollection<string> ruleIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();

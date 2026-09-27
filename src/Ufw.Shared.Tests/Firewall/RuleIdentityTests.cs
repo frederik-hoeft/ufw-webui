@@ -91,6 +91,18 @@ public sealed class RuleIdentityTests
     }
 
     [TestMethod]
+    public void IsValid_RequiresSha256Base64UrlDigest()
+    {
+        string identity = RuleIdentity.Compute(CreateAllow("22"));
+
+        Assert.IsTrue(RuleIdentity.IsValid(identity));
+        Assert.IsFalse(RuleIdentity.IsValid(null));
+        Assert.IsFalse(RuleIdentity.IsValid(string.Empty));
+        Assert.IsFalse(RuleIdentity.IsValid("sha256:not-a-digest"));
+        Assert.IsFalse(RuleIdentity.IsValid(identity + "A"));
+    }
+
+    [TestMethod]
     public void Compute_StartsWithSha256Prefix()
     {
         string identity = RuleIdentity.Compute(CreateAllow("22"));

@@ -13,4 +13,7 @@ public sealed record RuleRowProjection(
     bool CanMutate,
     RulePositionChange? PositionChange,
     RuleMetadata? Metadata = null,
-    string? CanonicalCommand = null);
+    string? CanonicalCommand = null)
+{
+    public bool CanEdit { get; init; }
+}

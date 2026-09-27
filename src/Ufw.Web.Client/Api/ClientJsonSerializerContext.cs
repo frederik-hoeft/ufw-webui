@@ -21,6 +21,7 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
 [JsonSerializable(typeof(RuleInventoryResponse))]
 [JsonSerializable(typeof(RuleMetadataMutationResponse))]
+[JsonSerializable(typeof(RuleReplacementMutationResponse))]
 [JsonSerializable(typeof(RuleGroupInventoryResponse))]
 [JsonSerializable(typeof(CreateRuleGroupRequest))]
 [JsonSerializable(typeof(UpdateRuleGroupRequest))]

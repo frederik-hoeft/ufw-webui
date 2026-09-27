@@ -3,6 +3,7 @@ using Ufw.Shared.Firewall.Rendering;
 using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
+using Ufw.Systemd.Firewall.Replacement;
 using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
@@ -32,6 +33,8 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IFirewallReorderRecoveryService, FirewallReorderRecoveryService>]
 [Singleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>]
 [Singleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>]
+[Singleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>]
+[Singleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>]
 [Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]
 [Singleton<IFirewallRuleQueryService, FirewallRuleQueryService>]
 [Singleton<IFirewallRuleInterfaceValidator, FirewallRuleInterfaceValidator>]

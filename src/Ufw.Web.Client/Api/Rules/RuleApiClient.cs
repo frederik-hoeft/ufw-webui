@@ -15,6 +15,7 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
     private static readonly Uri s_ruleInsertUri = new("api/v1/rules/insert", UriKind.Relative);
     private static readonly Uri s_ruleBatchDeleteUri = new("api/v1/rules/batch", UriKind.Relative);
     private static readonly Uri s_ruleOrderUri = new("api/v1/rules/order", UriKind.Relative);
+    private static readonly Uri s_ruleReplaceUri = new("api/v1/rules/replace", UriKind.Relative);
 
     public async Task<RuleInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken = default)
     {
@@ -78,6 +79,38 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
             static candidate => candidate.Outcome != RuleInsertionOutcome.Completed
                 || candidate.FinalSnapshot is not null && candidate.InsertedRule is not null,
             cancellationToken);
+    }
+
+    public async Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleReplaceUri, request, MessageJsonSerializerContext.Default.ReplaceRuleRequest, cancellationToken);
+        return await response.ReadTransactionResponseAsync(
+            ClientJsonSerializerContext.Default.RuleReplacementMutationResponse,
+            IsValidReplacementResponse,
+            cancellationToken);
+    }
+
+    private static bool IsValidReplacementResponse(RuleReplacementMutationResponse response)
+    {
+        if (response.Firewall is null
+            || response.Firewall.Outcome == RuleReplacementOutcome.Completed && (response.Firewall.FinalSnapshot is null || response.Firewall.ReplacementRule is null))
+        {
+            return false;
+        }
+
+        if (response.Firewall.Outcome != RuleReplacementOutcome.Completed)
+        {
+            return response.MetadataReconciliation == RuleReplacementMetadataReconciliationOutcome.NotAttempted
+                && response.MetadataDiagnostic is null;
+        }
+
+        return response.MetadataReconciliation switch
+        {
+            RuleReplacementMetadataReconciliationOutcome.Completed => response.MetadataDiagnostic is null,
+            RuleReplacementMetadataReconciliationOutcome.Failed => !string.IsNullOrWhiteSpace(response.MetadataDiagnostic),
+            _ => false,
+        };
     }
 
     public async Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default)

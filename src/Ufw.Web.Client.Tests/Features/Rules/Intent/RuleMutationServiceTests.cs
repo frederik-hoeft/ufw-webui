@@ -7,6 +7,7 @@ using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules.Intent;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Intent;
 
@@ -146,6 +147,68 @@ public sealed class RuleMutationServiceTests
     }
 
     [TestMethod]
+    public async Task ReplaceRuleAsync_BindsDisplayedBaselineOccurrenceIdentityAndReplacementAsync()
+    {
+        TestHost host = new();
+        FirewallRuleSpecification original = new()
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "22",
+        };
+        string originalRuleId = RuleIdentity.Compute(original);
+        ListedFirewallRule target = new() { Parsed = true, RuleId = originalRuleId, Rule = original };
+        RuleListResponse baseline = new(Active: true, [target], TestFirewallConfiguration.Enabled);
+        FirewallRuleSpecification replacement = new()
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "443",
+        };
+        ReplaceRuleRequest signed = CreateReplaceRequest();
+        RuleReplacementResponse firewall = new(RuleReplacementOutcome.Completed, baseline, target, RecoveryOutcome: null, Diagnostic: null);
+        RuleReplacementMutationResponse expected = new(firewall, RuleReplacementMetadataReconciliationOutcome.Completed);
+        host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
+        host.Signer.Setup(service => service.CreateReplaceRuleRequestAsync(
+                "deployment",
+                FirewallRuleSnapshotFingerprint.Compute(baseline),
+                0,
+                originalRuleId,
+                replacement,
+                "key",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(signed);
+        host.Rules.Setup(client => client.ReplaceRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+
+        RuleReplacementMutationResponse actual = await host.Service.ReplaceRuleAsync(baseline, targetOccurrenceId: 0, originalRuleId, replacement, "key");
+
+        Assert.AreSame(expected, actual);
+    }
+
+    [TestMethod]
+    public async Task ReplaceRuleAsync_ProtocolMismatchStopsBeforeSigningOrMutationAsync()
+    {
+        TestHost host = new();
+        host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION + 1, "deployment"));
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => host.Service.ReplaceRuleAsync(
+            new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
+            targetOccurrenceId: 0,
+            RuleIdentity.Compute(new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }),
+            new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+            "key"));
+
+        host.Signer.VerifyNoOtherCalls();
+        host.Rules.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
     public async Task InsertRuleAsync_ProtocolMismatchStopsBeforeSigningOrMutationAsync()
     {
         TestHost host = new();
@@ -189,6 +252,16 @@ public sealed class RuleMutationServiceTests
         KeyId = "key-id",
         Nonce = "nonce",
         Operation = IntentOperations.INSERT_RULE,
+        Payload = default,
+        Signature = "signature",
+    };
+
+    private static ReplaceRuleRequest CreateReplaceRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.REPLACE_RULE,
         Payload = default,
         Signature = "signature",
     };

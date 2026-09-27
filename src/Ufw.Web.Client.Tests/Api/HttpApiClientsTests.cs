@@ -129,7 +129,8 @@ public sealed class HttpApiClientsTests
             4 => Json(HttpStatusCode.OK, MutationResponseJson(IntentOperations.DELETE_RULE)),
             5 => Json(HttpStatusCode.OK, InsertionResponseJson(RuleInsertionOutcome.Completed)),
             6 => Json(HttpStatusCode.OK, ReorderResponseJson(RuleReorderOutcome.Completed)),
-            7 => Json(HttpStatusCode.OK, BatchDeleteResponseJson(RuleBatchDeleteOutcome.Completed)),
+            7 => Json(HttpStatusCode.OK, ReplacementResponseJson(RuleReplacementOutcome.Completed)),
+            8 => Json(HttpStatusCode.OK, BatchDeleteResponseJson(RuleBatchDeleteOutcome.Completed)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
@@ -140,13 +141,14 @@ public sealed class HttpApiClientsTests
         await rules.DeleteRuleAsync(DeleteRequest());
         await rules.InsertRuleAsync(InsertRequest());
         await rules.ReorderRulesAsync(ReorderRequest());
+        await rules.ReplaceRuleAsync(ReplaceRequest());
         await rules.BatchDeleteRulesAsync(BatchDeleteRequest());
 
         CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
+            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put, HttpMethod.Put, HttpMethod.Delete },
             rulesHandler.Requests.Select(static request => request.Method).ToArray());
         CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order", "/api/v1/rules/batch" },
+            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order", "/api/v1/rules/replace", "/api/v1/rules/batch" },
             rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
         using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
@@ -156,7 +158,9 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual(IntentOperations.INSERT_RULE, insertBody.RootElement.GetProperty("operation").GetString());
         using JsonDocument reorderBody = JsonDocument.Parse(rulesHandler.Requests[5].Content!);
         Assert.AreEqual(IntentOperations.REORDER_RULES, reorderBody.RootElement.GetProperty("operation").GetString());
-        using JsonDocument batchDeleteBody = JsonDocument.Parse(rulesHandler.Requests[6].Content!);
+        using JsonDocument replaceBody = JsonDocument.Parse(rulesHandler.Requests[6].Content!);
+        Assert.AreEqual(IntentOperations.REPLACE_RULE, replaceBody.RootElement.GetProperty("operation").GetString());
+        using JsonDocument batchDeleteBody = JsonDocument.Parse(rulesHandler.Requests[7].Content!);
         Assert.AreEqual(IntentOperations.DELETE_RULES_BATCH, batchDeleteBody.RootElement.GetProperty("operation").GetString());
     }
 
@@ -306,6 +310,72 @@ public sealed class HttpApiClientsTests
     }
 
     [TestMethod]
+    public async Task RuleApiClient_ReplacePreservesStructuredFailureButMapsSecurityConflictAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.Conflict, ReplacementResponseJson(RuleReplacementOutcome.PartiallyCompleted)),
+            2 => Json(HttpStatusCode.Conflict, "{\"detail\":\"Intent nonce has already been used.\"}"),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
+
+        Assert.AreEqual(RuleReplacementOutcome.PartiallyCompleted, report.Firewall.Outcome);
+        Assert.AreEqual(RuleReplacementRecoveryOutcome.Failed, report.Firewall.RecoveryOutcome);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.NotAttempted, report.MetadataReconciliation);
+        Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
+        Assert.AreEqual("Intent nonce has already been used.", replay.Message);
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_ReplacePreservesCompletedFirewallResultWhenMetadataReconciliationFailsAsync()
+    {
+        const string diagnostic = "Firewall rule replacement completed, but application metadata reconciliation failed.";
+        using RecordingHttpMessageHandler handler = new((_, _) => Json(
+            HttpStatusCode.InternalServerError,
+            ReplacementResponseJson(
+                RuleReplacementOutcome.Completed,
+                RuleReplacementMetadataReconciliationOutcome.Failed,
+                diagnostic)));
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
+
+        Assert.AreEqual(RuleReplacementOutcome.Completed, report.Firewall.Outcome);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
+        Assert.AreEqual(diagnostic, report.MetadataDiagnostic);
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_ReplaceRejectsMalformedCompletedResponseAsProtocolErrorAsync()
+    {
+        using RecordingHttpMessageHandler handler = new((_, call) => call switch
+        {
+            1 => Json(HttpStatusCode.OK, "{\"detail\":\"not a replacement report\"}"),
+            2 => Json(
+                HttpStatusCode.OK,
+                JsonSerializer.Serialize(
+                    new RuleReplacementMutationResponse(
+                        new RuleReplacementResponse(RuleReplacementOutcome.Completed, null, null, RecoveryOutcome: null, Diagnostic: null),
+                        RuleReplacementMetadataReconciliationOutcome.Completed),
+                    ClientJsonSerializerContext.Default.RuleReplacementMutationResponse)),
+            3 => Json(HttpStatusCode.OK, ReplacementResponseJson(RuleReplacementOutcome.Completed, RuleReplacementMetadataReconciliationOutcome.NotAttempted)),
+            _ => throw new InvalidOperationException(),
+        });
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
+    }
+
+    [TestMethod]
     public async Task RuleApiClient_ReorderPreservesStructuredConflictButMapsSecurityConflictAsync()
     {
         using RecordingHttpMessageHandler handler = new((_, call) => call switch
@@ -440,6 +510,22 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
+    private static ReplaceRuleRequest ReplaceRequest() => new()
+    {
+        DeploymentId = "deployment",
+        KeyId = "key-id",
+        Nonce = "nonce",
+        Operation = IntentOperations.REPLACE_RULE,
+        Payload = JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            targetOccurrenceId = 0,
+            originalRuleId = RuleIdentity.Compute(new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }),
+            replacementRule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+        }),
+        Signature = "signature",
+    };
+
     private static ReorderRulesRequest ReorderRequest() => new()
     {
         DeploymentId = "deployment",
@@ -500,6 +586,36 @@ public sealed class HttpApiClientsTests
         return JsonSerializer.Serialize(
             new RuleInsertionResponse(outcome, new RuleListResponse(true, inserted is null ? [] : [inserted], TestFirewallConfiguration.Enabled), inserted, Diagnostic: null),
             MessageJsonSerializerContext.Default.RuleInsertionResponse);
+    }
+
+    private static string ReplacementResponseJson(
+        RuleReplacementOutcome outcome,
+        RuleReplacementMetadataReconciliationOutcome? metadataOutcome = null,
+        string? metadataDiagnostic = null)
+    {
+        ListedFirewallRule? replacement = outcome == RuleReplacementOutcome.Completed
+            ? new ListedFirewallRule
+            {
+                RuleId = "replacement",
+                DisplayNumber = 1,
+                Parsed = true,
+                RawLine = "line",
+                Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+            }
+            : null;
+        RuleReplacementResponse firewall = new(
+            outcome,
+            new RuleListResponse(true, replacement is null ? [] : [replacement], TestFirewallConfiguration.Enabled),
+            replacement,
+            RecoveryOutcome: outcome == RuleReplacementOutcome.PartiallyCompleted ? RuleReplacementRecoveryOutcome.Failed : null,
+            Diagnostic: null);
+        RuleReplacementMutationResponse response = new(
+            firewall,
+            metadataOutcome ?? (outcome == RuleReplacementOutcome.Completed
+                ? RuleReplacementMetadataReconciliationOutcome.Completed
+                : RuleReplacementMetadataReconciliationOutcome.NotAttempted),
+            metadataDiagnostic);
+        return JsonSerializer.Serialize(response, ClientJsonSerializerContext.Default.RuleReplacementMutationResponse);
     }
 
     private static string ReorderResponseJson(RuleReorderOutcome outcome) => JsonSerializer.Serialize(

@@ -13,6 +13,24 @@ public static class RuleIdentity
 {
     public const string PREFIX = "sha256:";
 
+    public static bool IsValid(string? ruleId)
+    {
+        if (ruleId is null || !ruleId.StartsWith(PREFIX, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            byte[] digest = Base64Url.DecodeFromChars(ruleId.AsSpan(PREFIX.Length));
+            return digest.Length == SHA256.HashSizeInBytes;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
     public static string Compute(FirewallRuleSpecification specification)
     {
         ArgumentNullException.ThrowIfNull(specification);

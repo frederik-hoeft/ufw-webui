@@ -47,4 +47,18 @@ public sealed class RuleMetadataEditorResultTests
 
         Assert.IsFalse(result.IsEmpty);
     }
+
+    [TestMethod]
+    public void HasSameValueAs_ComparesNormalizedMetadataValuesRatherThanCollectionReferences()
+    {
+        Guid firstTagId = Guid.CreateVersion7();
+        Guid secondTagId = Guid.CreateVersion7();
+        Guid groupId = Guid.CreateVersion7();
+        RuleMetadataEditorResult first = new("  note  ", [secondTagId, firstTagId, firstTagId], groupId);
+        RuleMetadataEditorResult equivalent = new("note", [firstTagId, secondTagId], groupId);
+        RuleMetadataEditorResult changed = new("different", [firstTagId, secondTagId], groupId);
+
+        Assert.IsTrue(first.HasSameValueAs(equivalent));
+        Assert.IsFalse(first.HasSameValueAs(changed));
+    }
 }

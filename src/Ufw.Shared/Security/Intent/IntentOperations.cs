@@ -10,4 +10,5 @@ public static class IntentOperations
     public const string DELETE_RULES_BATCH = "rules.delete-batch";
     public const string INSERT_RULE = "rules.insert";
     public const string REORDER_RULES = "rules.reorder";
+    public const string REPLACE_RULE = "rules.replace";
 }

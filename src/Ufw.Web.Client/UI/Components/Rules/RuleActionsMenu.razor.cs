@@ -30,6 +30,12 @@ public sealed partial class RuleActionsMenu
     public bool CanMutate { get; set; }
 
     [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback EditRequested { get; set; }
+
+    [Parameter]
     public EventCallback MetadataEditRequested { get; set; }
 
     [Parameter]

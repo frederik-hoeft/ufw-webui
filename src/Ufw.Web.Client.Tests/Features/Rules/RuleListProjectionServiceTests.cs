@@ -33,7 +33,29 @@ public sealed class RuleListProjectionServiceTests
         RuleFamilyProjection ipv4 = projection.GetFamily(FirewallAddressFamily.IPv4);
         Assert.IsTrue(ipv4.Rows.All(static row => row.CanOrder));
         Assert.IsTrue(ipv4.Rows.All(static row => !row.CanMutate));
+        Assert.IsTrue(ipv4.Rows.All(static row => !row.CanEdit));
         Assert.IsEmpty(projection.GetFamily(FirewallAddressFamily.IPv6).Rows);
+    }
+
+    [TestMethod]
+    public void Create_UniqueParsedRuleIsEditable()
+    {
+        ListedFirewallRule rule = Rule("unique", FirewallAddressFamily.IPv4, displayNumber: 1);
+
+        RuleRowProjection row = _projection.Create([rule], orderingPreview: null).GetFamily(FirewallAddressFamily.IPv4).Rows.Single();
+
+        Assert.IsTrue(row.CanEdit);
+    }
+
+    [TestMethod]
+    public void Create_FamilyNeutralRuleIsNotEditable()
+    {
+        ListedFirewallRule rule = Rule("neutral", FirewallAddressFamily.Any, displayNumber: 1);
+
+        RuleRowProjection row = _projection.Create([rule], orderingPreview: null).GetFamily(FirewallAddressFamily.IPv4).Rows.Single();
+
+        Assert.IsTrue(row.CanMutate);
+        Assert.IsFalse(row.CanEdit);
     }
 
     [TestMethod]
@@ -50,6 +72,7 @@ public sealed class RuleListProjectionServiceTests
 
         Assert.IsFalse(row.CanOrder);
         Assert.IsFalse(row.CanMutate);
+        Assert.IsFalse(row.CanEdit);
         Assert.AreEqual(0, row.OccurrenceId);
         Assert.AreEqual(1, row.FamilyPosition);
     }

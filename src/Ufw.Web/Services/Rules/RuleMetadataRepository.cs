@@ -111,6 +111,71 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
         });
     }
 
+    public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(string originalRuleId, string replacementRuleId, bool originalRuleStillLive, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(originalRuleId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(replacementRuleId);
+        if (string.Equals(originalRuleId, replacementRuleId, StringComparison.Ordinal))
+        {
+            return Task.FromResult(RuleMetadataReplacementPersistenceOutcome.Unchanged);
+        }
+
+        return Transaction.Scoped.RunAsync<RuleMetadataReplacementPersistenceOutcome>(async (context, transaction) =>
+        {
+            string[] ruleIds = [originalRuleId, replacementRuleId];
+            RuleMetadataEntry[] metadata = await context.Set<RuleMetadataEntry>()
+                .Include(static entry => entry.Tags)
+                .ThenInclude(static relation => relation.Tag)
+                .Where(entry => ruleIds.Contains(entry.RuleId))
+                .ToArrayAsync(cancellationToken);
+            RuleMetadataEntry? source = metadata.SingleOrDefault(entry => string.Equals(entry.RuleId, originalRuleId, StringComparison.Ordinal));
+            RuleMetadataEntry? staleTarget = metadata.SingleOrDefault(entry => string.Equals(entry.RuleId, replacementRuleId, StringComparison.Ordinal));
+
+            if (staleTarget is not null)
+            {
+                context.Remove(staleTarget);
+            }
+
+            if (source is null)
+            {
+                if (staleTarget is not null)
+                {
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+                return transaction.Commit(staleTarget is null ? RuleMetadataReplacementPersistenceOutcome.Unchanged : RuleMetadataReplacementPersistenceOutcome.ClearedStaleTarget);
+            }
+
+            RuleMetadataReplacementPersistenceOutcome outcome;
+            if (originalRuleStillLive)
+            {
+                RuleMetadataEntry copy = new()
+                {
+                    RuleId = replacementRuleId,
+                    Notes = source.Notes,
+                    GroupId = source.GroupId,
+                };
+                foreach (RuleMetadataTagEntry relation in source.Tags)
+                {
+                    copy.Tags.Add(new RuleMetadataTagEntry
+                    {
+                        RuleMetadata = copy,
+                        Tag = relation.Tag,
+                    });
+                }
+                context.Add(copy);
+                outcome = RuleMetadataReplacementPersistenceOutcome.Copied;
+            }
+            else
+            {
+                source.RuleId = replacementRuleId;
+                outcome = RuleMetadataReplacementPersistenceOutcome.Rekeyed;
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+            return transaction.Commit(outcome);
+        });
+    }
+
     public Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);

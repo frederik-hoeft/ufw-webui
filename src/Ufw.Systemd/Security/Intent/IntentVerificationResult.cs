@@ -20,5 +20,7 @@ internal abstract record IntentVerificationResult
 
     internal sealed record AcceptedReorder(string KeyId, string Nonce, long ExpiresAtUnix, ReorderRulesPayload Payload) : Accepted(KeyId, Nonce, ExpiresAtUnix);
 
+    internal sealed record AcceptedReplacement(string KeyId, string Nonce, long ExpiresAtUnix, ReplaceRulePayload Payload) : Accepted(KeyId, Nonce, ExpiresAtUnix);
+
     internal sealed record Rejected(IResponsePayload Response) : IntentVerificationResult;
 }

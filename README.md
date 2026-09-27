@@ -6,7 +6,7 @@ The design deliberately coexists with normal UFW administration. Rules created o
 
 ## What UFWeb provides
 
-The browser covers the normal rule-management workflow for both IPv4 and IPv6. It shows UFW activity, default policies, and the ordered rule sets; supports append, ordered insertion, deletion, and reordering for rules whose semantics UFWeb understands completely; and provides client-side filtering and search over structural rule fields, comments, canonical UFW syntax, tags, and known-host context. Search results retain match evidence so the interface can explain why a rule matched rather than presenting an opaque filtered list.
+The browser covers the normal rule-management workflow for both IPv4 and IPv6. It shows UFW activity, default policies, and the ordered rule sets; supports append, ordered insertion, position-preserving rule editing, deletion, and reordering for rules whose semantics UFWeb understands completely; and provides client-side filtering and search over structural rule fields, comments, canonical UFW syntax, tags, and known-host context. Search results retain match evidence so the interface can explain why a rule matched rather than presenting an opaque filtered list.
 
 UFWeb also adds presentation and authoring context without making that metadata part of the firewall contract. Notes and reusable colored tags attach to semantic rule identity. Known-host aliases may contain a literal address directly or use DNS as a configuration convenience, but in both cases rule authoring sees only the resolved literal address. Reconciled network-interface metadata can carry comments and visibility preferences while the daemon still validates the real host interface immediately before a mutation. When UFW changes out of band, the interface continues to show the authoritative firewall state and provides an explicit reconciliation workflow for metadata that no longer matches a live rule.
 
@@ -56,7 +56,7 @@ A logged-in web session is necessary to use the management API, but it is delibe
 
 The frontend is therefore part of the signing trusted computing base. Production nginx serves the client from a separate read-only image so compromise of the ASP process alone is not enough to replace the browser signing application. The browser environment, frontend artifact, daemon, and administrator-held mutation key remain security-significant components; UFWeb does not try to turn a compromised administrator browser or privileged daemon into a safe execution environment.
 
-The [security architecture](docs/architecture/security.md) develops this trust model in detail. The [firewall state and rule model](docs/architecture/firewall-model.md) explains semantic rule identity, state-conditioned insertion/reorder operations, and reconciliation after uncertain or out-of-band changes.
+The [security architecture](docs/architecture/security.md) develops this trust model in detail. The [firewall state and rule model](docs/architecture/firewall-model.md) explains semantic rule identity, state-conditioned insertion/replacement/reorder operations, and reconciliation after uncertain or out-of-band changes.
 
 ## Getting started
 

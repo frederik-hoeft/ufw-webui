@@ -11,9 +11,13 @@ internal sealed class IntegrationUfwClient : IUfwClient
 
     public ReorderRulesRequest? LastReorderRequest { get; private set; }
 
+    public ReplaceRuleRequest? LastReplaceRequest { get; private set; }
+
     public RuleInsertionResponse? InsertResponse { get; set; }
 
     public RuleReorderResponse? ReorderResponse { get; set; }
+
+    public RuleReplacementResponse? ReplaceResponse { get; set; }
 
     public Task<TResponse> SendAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IMessagePayload
@@ -31,6 +35,12 @@ internal sealed class IntegrationUfwClient : IUfwClient
         {
             LastReorderRequest = reorder;
             return Task.FromResult(response);
+        }
+        if (request is ReplaceRuleRequest replace
+            && ReplaceResponse is TResponse replacementResponse)
+        {
+            LastReplaceRequest = replace;
+            return Task.FromResult(replacementResponse);
         }
 
         throw new NotSupportedException($"Unsupported integration request {typeof(TRequest).Name} -> {typeof(TResponse).Name}.");

@@ -13,4 +13,6 @@ internal interface IIntentVerifier
     IntentVerificationResult VerifyInsert(ISignedIntent intent);
 
     IntentVerificationResult VerifyReorder(ISignedIntent intent);
+
+    IntentVerificationResult VerifyReplace(ISignedIntent intent);
 }

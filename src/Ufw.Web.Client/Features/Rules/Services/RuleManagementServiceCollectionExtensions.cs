@@ -15,6 +15,7 @@ using Ufw.Web.Client.Features.Rules.Insertion;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Ordering;
 using Ufw.Web.Client.Features.Rules.Presentation;
+using Ufw.Web.Client.Features.Rules.Replacement;
 using Ufw.Web.Client.Features.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Services;
@@ -55,6 +56,7 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddSingleton<IRuleFilterEvaluator, TextRuleFilterEvaluator>();
         services.AddSingleton<IRuleQueryService, RuleQueryService>();
         services.AddSingleton<IRuleInsertionNavigationService, RuleInsertionNavigationService>();
+        services.AddSingleton<IRuleReplacementNavigationService, RuleReplacementNavigationService>();
         services.AddSingleton<IRuleMutationReconciliationService, RuleMutationReconciliationService>();
         return services;
     }

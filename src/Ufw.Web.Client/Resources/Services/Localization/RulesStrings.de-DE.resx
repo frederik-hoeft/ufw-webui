@@ -258,6 +258,9 @@
   <data name="DefinitionDescription" xml:space="preserve">
     <value>Definieren Sie UFW-Match und Aktion. Neue Regeln werden an die bestehende Auswertungsreihenfolge angehängt.</value>
   </data>
+  <data name="EditDefinitionDescription" xml:space="preserve">
+    <value>Aktualisieren Sie UFW-Match oder Aktion unter Beibehaltung der Regelposition.</value>
+  </data>
   <data name="Action" xml:space="preserve">
     <value>Aktion</value>
   </data>
@@ -303,11 +306,23 @@
   <data name="CanonicalUfwRule" xml:space="preserve">
     <value>Kanonische UFW-Regel</value>
   </data>
+  <data name="CurrentCanonicalUfwRule" xml:space="preserve">
+    <value>Aktuelle kanonische UFW-Regel</value>
+  </data>
+  <data name="ProposedCanonicalUfwRule" xml:space="preserve">
+    <value>Vorgeschlagene kanonische UFW-Regel</value>
+  </data>
   <data name="AddSignedRule" xml:space="preserve">
     <value>Signierte Regel hinzufügen</value>
   </data>
   <data name="AddingRule" xml:space="preserve">
     <value>Regel wird hinzugefügt...</value>
+  </data>
+  <data name="UpdateSignedRule" xml:space="preserve">
+    <value>Signierte Regel aktualisieren</value>
+  </data>
+  <data name="UpdatingRule" xml:space="preserve">
+    <value>Regel wird aktualisiert...</value>
   </data>
   <data name="SourceInterfaceHelp" xml:space="preserve">
     <value>Ausgangsschnittstelle für ausgehende oder Weiterleitungsregeln.</value>
@@ -903,4 +918,38 @@
   <data name="Reconcile" xml:space="preserve">
     <value>Abgleichen</value>
   </data>
+  <data name="EditRule" xml:space="preserve"><value>Regel bearbeiten</value></data>
+  <data name="EditRulePageTitle" xml:space="preserve"><value>Firewall-Regel bearbeiten</value></data>
+  <data name="EditRuleTitle" xml:space="preserve"><value>Firewall-Regel bearbeiten</value></data>
+  <data name="EditRuleDescription" xml:space="preserve"><value>Ein exaktes Regelvorkommen aus dem autoritativen Zustand ersetzen und dabei Adressfamilie und Auswertungsposition beibehalten.</value></data>
+  <data name="EditRuleBreadcrumb" xml:space="preserve"><value>Regel bearbeiten</value></data>
+  <data name="LoadingBeforeEdit" xml:space="preserve"><value>Der autoritative Firewall-Zustand wird geladen, bevor die Regelbearbeitung aktiviert wird.</value></data>
+  <data name="EditingRuleTarget" xml:space="preserve"><value>Bearbeitungsziel</value></data>
+  <data name="ReplacementTargetDescription" xml:space="preserve"><value>{0}-Regel {1} aus dem geprüften autoritativen Snapshot wird bearbeitet.</value></data>
+  <data name="ReplacementTargetLocked" xml:space="preserve"><value>Adressfamilie und Auswertungsposition der Regel sind für diesen Austausch gesperrt.</value></data>
+  <data name="ReplacementContextReselect" xml:space="preserve"><value>Dieser Bearbeitungskontext kann nicht mehr verwendet werden. Zur Regelliste zurückkehren und die Regel im aktuellen autoritativen Zustand erneut auswählen.</value></data>
+  <data name="ReplacementContextConsumed" xml:space="preserve"><value>Der signierte Firewall-Austausch wurde abgeschlossen. Dieser strukturelle Bearbeitungskontext ist damit verbraucht und kann nicht erneut gesendet werden.</value></data>
+  <data name="ReplacementBaselineStale" xml:space="preserve"><value>Die Firewall wurde nach dem Öffnen dieser Bearbeitung geändert; die geprüfte Basis ist daher veraltet.</value></data>
+  <data name="ReplacementTargetMissing" xml:space="preserve"><value>Das ausgewählte Regelvorkommen ist im autoritativen Firewall-Zustand nicht mehr vorhanden.</value></data>
+  <data name="ReplacementTargetMismatch" xml:space="preserve"><value>Das ausgewählte Regelvorkommen hat nicht mehr die geprüfte semantische Identität.</value></data>
+  <data name="ReplacementDuplicateIdentity" xml:space="preserve"><value>Die Regelbearbeitung ist nicht verfügbar, weil mehrere Regeln dieselbe semantische Identität haben. Zuerst den doppelten Firewall-Zustand beheben.</value></data>
+  <data name="ReplacementIPv6Unavailable" xml:space="preserve"><value>Die ausgewählte IPv6-Regel kann nicht bearbeitet werden, weil IPv6 in der aktuellen UFW-Konfiguration deaktiviert ist.</value></data>
+  <data name="ReplacementContextInvalid" xml:space="preserve"><value>Der Kontext für die Regelbearbeitung ist unvollständig oder ungültig.</value></data>
+  <data name="ReplacementTargetUnavailable" xml:space="preserve"><value>Die ausgewählte Regel kann im aktuellen autoritativen Firewall-Zustand nicht bearbeitet werden.</value></data>
+  <data name="RuleReplacementResult" xml:space="preserve"><value>Ergebnis der Regelaktualisierung</value></data>
+  <data name="RuleReplacementResultCompleted" xml:space="preserve"><value>Regelaktualisierung abgeschlossen</value></data>
+  <data name="RuleReplacementResultStale" xml:space="preserve"><value>Regelaktualisierung wegen veralteter Basis abgelehnt</value></data>
+  <data name="RuleReplacementResultPrecondition" xml:space="preserve"><value>Regelaktualisierung durch Sicherheitsvorbedingung abgelehnt</value></data>
+  <data name="RuleReplacementResultPartial" xml:space="preserve"><value>Regelaktualisierung nur teilweise abgeschlossen</value></data>
+  <data name="RuleReplacementResultUncertain" xml:space="preserve"><value>Endgültiger Firewall-Zustand konnte nicht sicher bestimmt werden</value></data>
+  <data name="RuleReplacementRecoveryRestored" xml:space="preserve"><value>Die Best-Effort-Wiederherstellung des Daemons hat die exakt geprüfte Basis wiederhergestellt.</value></data>
+  <data name="RuleReplacementRecoveryFailed" xml:space="preserve"><value>Der Daemon konnte die geprüfte Basis nach dem fehlgeschlagenen Austausch nicht wiederherstellen. Vor einer weiteren Änderung den aktuellen Firewall-Zustand prüfen.</value></data>
+  <data name="RuleReplacementApplied" xml:space="preserve"><value>Firewall-Regel aktualisiert.</value></data>
+  <data name="ReplacementMetadataReconciliationFailed" xml:space="preserve"><value>Firewall aktualisiert, aber Metadatenabgleich fehlgeschlagen</value></data>
+  <data name="ReplacementFirewallSucceeded" xml:space="preserve"><value>Der Austausch der Firewall-Regel wurde erfolgreich bestätigt. Dieser Fehler betrifft nur anwendungseigene Metadaten.</value></data>
+  <data name="EditRuleMetadataDescription" xml:space="preserve"><value>Gruppe, Tags oder Notizen zusammen mit dieser Regel aktualisieren. Bestehende Metadaten werden zuerst mit der bestätigten Ersatzidentität abgeglichen und anschließend werden diese Änderungen gespeichert.</value></data>
+  <data name="MetadataSaveAfterReplacementFailed" xml:space="preserve"><value>Firewall aktualisiert, aber Metadatenänderungen nicht gespeichert</value></data>
+  <data name="MetadataSaveAfterReplacementFailedWithReason" xml:space="preserve"><value>Die Firewall-Regel wurde aktualisiert, aber die Metadatenänderungen konnten nicht gespeichert werden: {0}</value></data>
+  <data name="RetryMetadataSave" xml:space="preserve"><value>Metadaten erneut speichern</value></data>
+  <data name="SavingMetadata" xml:space="preserve"><value>Metadaten werden gespeichert...</value></data>
 </root>

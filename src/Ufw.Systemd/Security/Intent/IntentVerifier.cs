@@ -27,6 +27,8 @@ internal sealed class IntentVerifier
 
     public IntentVerificationResult VerifyReorder(ISignedIntent intent) => Verify(intent, IntentOperations.REORDER_RULES, ParseReorderPayload);
 
+    public IntentVerificationResult VerifyReplace(ISignedIntent intent) => Verify(intent, IntentOperations.REPLACE_RULE, ParseReplacePayload);
+
     private IntentVerificationResult Verify(ISignedIntent intent, string expectedOperation, Func<ISignedIntent, PayloadVerification> payloadVerifier)
     {
         ArgumentNullException.ThrowIfNull(intent);
@@ -253,6 +255,43 @@ internal sealed class IntentVerifier
                 nonce,
                 expiresAtUnix,
                 verifiedPayload));
+    }
+
+    private PayloadVerification ParseReplacePayload(ISignedIntent intent)
+    {
+        ReplaceRulePayload? payload = intent.Payload.Deserialize(jsonContext.ReplaceRulePayload);
+        if (payload?.ReplacementRule is null
+            || string.IsNullOrWhiteSpace(payload.BaselineFingerprint)
+            || string.IsNullOrWhiteSpace(payload.OriginalRuleId))
+        {
+            return PayloadVerification.Reject(new BadRequestResponse("Replace-rule payload must include a baseline fingerprint, original rule ID, and replacement rule specification."));
+        }
+
+        if (!RuleSpecificationValidator.TryValidate(payload.ReplacementRule, out ModelValidationErrorResponse? validationError))
+        {
+            return PayloadVerification.Reject(validationError);
+        }
+
+        ReplaceRulePayload verifiedPayload = new()
+        {
+            BaselineFingerprint = payload.BaselineFingerprint,
+            TargetOccurrenceId = payload.TargetOccurrenceId,
+            OriginalRuleId = payload.OriginalRuleId,
+            ReplacementRule = RuleSpecificationNormalizer.Normalize(payload.ReplacementRule),
+        };
+        try
+        {
+            RuleReplacementContract.ValidatePayload(verifiedPayload);
+        }
+        catch (ArgumentException exception)
+        {
+            return PayloadVerification.Reject(new BadRequestResponse(exception.Message));
+        }
+
+        byte[] canonical = IntentCanonicalizer.CanonicalizeReplace(intent, verifiedPayload);
+        return PayloadVerification.Accept(
+            canonical,
+            (keyId, nonce, expiresAtUnix) => new IntentVerificationResult.AcceptedReplacement(keyId, nonce, expiresAtUnix, verifiedPayload));
     }
 
     private PayloadVerification ParseReorderPayload(ISignedIntent intent)

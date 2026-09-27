@@ -192,6 +192,42 @@ public sealed class RuleInventoryStateTests
     }
 
     [TestMethod]
+    public void AfterReplacement_WithAuthoritativeFinalSnapshotReplacesLocalFirewallAuthority()
+    {
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleListResponse finalSnapshot = new(false, [Rule("replacement")], TestFirewallConfiguration.Disabled);
+        RuleReplacementResponse report = new(RuleReplacementOutcome.Completed, finalSnapshot, Rule("replacement"), RecoveryOutcome: null, Diagnostic: null);
+
+        DateTimeOffset capturedAt = new(2026, 9, 25, 14, 20, 0, TimeSpan.Zero);
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.ReplacementCompleted(report, capturedAt));
+
+        Assert.IsTrue(updated.IsCurrent);
+        Assert.IsNotNull(updated.Snapshot);
+        Assert.IsFalse(updated.Snapshot.FirewallActive);
+        Assert.AreEqual("replacement", updated.Snapshot.Rules.Single().RuleId);
+        Assert.IsFalse(updated.Snapshot.Configuration.IPv6Enabled);
+        Assert.AreEqual(capturedAt, updated.Snapshot.CapturedAt);
+    }
+
+    [TestMethod]
+    public void AfterReplacement_WithoutReadableFinalSnapshotInvalidatesExistingAuthority()
+    {
+        RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));
+        RuleReplacementResponse report = new(
+            RuleReplacementOutcome.StateUncertain,
+            FinalSnapshot: null,
+            ReplacementRule: null,
+            RecoveryOutcome: null,
+            Diagnostic: "unreadable");
+
+        RuleInventoryState updated = state.MoveNext(new RuleInventoryTransition.ReplacementCompleted(report));
+
+        Assert.IsTrue(updated.IsStale);
+        Assert.AreEqual(RuleSnapshotStaleReason.MutationOutcomeUnknown, updated.StaleReason);
+        Assert.AreEqual("old", updated.Snapshot!.Rules[0].RuleId);
+    }
+
+    [TestMethod]
     public void AfterReorder_WithAuthoritativeFinalSnapshotReplacesLocalAuthority()
     {
         RuleInventoryState state = Loaded(Inventory(new RuleListResponse(true, [Rule("old")], TestFirewallConfiguration.Enabled)));

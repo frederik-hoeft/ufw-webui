@@ -153,6 +153,7 @@ The current application-v1 daemon routes are:
 | `GET` | `/api/v1/rules` | read authoritative UFW rules plus effective IPv6/default-policy configuration | no |
 | `POST` | `/api/v1/rules` | append a rule | yes, `rules.add` |
 | `POST` | `/api/v1/rules/insert` | insert a concrete-family rule before or after an occurrence in the exact reviewed snapshot | yes, `rules.insert` |
+| `PUT` | `/api/v1/rules/replace` | replace one concrete-family occurrence in the exact reviewed snapshot | yes, `rules.replace` |
 | `PUT` | `/api/v1/rules/order` | reorder the exact reviewed rule snapshot | yes, `rules.reorder` |
 | `DELETE` | `/api/v1/rules` | delete a concrete rule | yes, `rules.delete` |
 | `DELETE` | `/api/v1/rules/batch` | delete selected occurrences from the exact reviewed rule snapshot | yes, `rules.delete-batch` |
@@ -194,7 +195,7 @@ A model-validation failure uses the distinct `validation-error` representation:
 }
 ```
 
-The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status. Verified `rules.insert`, `rules.delete-batch`, and `rules.reorder` transactions are returned over IPC as typed `data` results even when their state-conditioned goal was not reached. Insertion preserves completed, stale-baseline, precondition-failed, and state-uncertain outcomes. Batch deletion preserves completed, stale-baseline, precondition-failed, partial-completion, state-uncertain, per-occurrence, and pending-occurrence information. Reorder additionally preserves its recovery outcomes. This keeps authoritative final snapshots and operation reports intact across the daemon boundary. Signature, replay, malformed-intent, and other authorization failures remain ordinary application errors.
+The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status. Verified `rules.insert`, `rules.replace`, `rules.delete-batch`, and `rules.reorder` transactions are returned over IPC as typed `data` results even when their state-conditioned goal was not reached. Insertion preserves completed, stale-baseline, precondition-failed, and state-uncertain outcomes. Replacement preserves completed, stale-baseline, precondition-failed, partial-completion, state-uncertain, optional recovery status, final authoritative snapshot, and the confirmed replacement row on completion. Batch deletion preserves completed, stale-baseline, precondition-failed, partial-completion, state-uncertain, per-occurrence, and pending-occurrence information. Reorder additionally preserves its durable recovery outcomes. This keeps authoritative final snapshots and operation reports intact across the daemon boundary. Signature, replay, malformed-intent, and other authorization failures remain ordinary application errors.
 
 ## Failures and cancellation
 

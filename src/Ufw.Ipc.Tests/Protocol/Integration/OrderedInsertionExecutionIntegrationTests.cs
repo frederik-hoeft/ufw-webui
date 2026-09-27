@@ -21,6 +21,7 @@ using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
+using Ufw.Systemd.Firewall.Replacement;
 using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
@@ -107,6 +108,8 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         services.AddSingleton<IFirewallRuleCapabilityValidator, FirewallRuleCapabilityValidator>();
         services.AddSingleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>();
         services.AddSingleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>();
+        services.AddSingleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>();
+        services.AddSingleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>();
         services.AddSingleton<IFirewallRuleQueryService, FirewallRuleQueryService>();
         services.AddSingleton<IFirewallMutationService, UnsupportedMutationService>();
         services.AddScoped<IntentController>();

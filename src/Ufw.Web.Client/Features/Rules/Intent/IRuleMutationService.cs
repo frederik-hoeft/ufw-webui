@@ -1,5 +1,6 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Intent;
 
@@ -20,6 +21,14 @@ internal interface IRuleMutationService
         int anchorOccurrenceId,
         RuleInsertionPlacement placement,
         FirewallRuleSpecification rule,
+        string privateKey,
+        CancellationToken cancellationToken = default);
+
+    Task<RuleReplacementMutationResponse> ReplaceRuleAsync(
+        RuleListResponse baseline,
+        int targetOccurrenceId,
+        string originalRuleId,
+        FirewallRuleSpecification replacementRule,
         string privateKey,
         CancellationToken cancellationToken = default);
 }

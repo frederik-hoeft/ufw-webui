@@ -12,5 +12,15 @@ public sealed record RuleMetadataEditorResult(string? Notes, IReadOnlyList<Guid>
 
     public RuleMetadataEditorResult Normalize() => new(string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(), TagIds.Distinct().Order().ToArray(), GroupId);
 
+    internal bool HasSameValueAs(RuleMetadataEditorResult other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        RuleMetadataEditorResult left = Normalize();
+        RuleMetadataEditorResult right = other.Normalize();
+        return string.Equals(left.Notes, right.Notes, StringComparison.Ordinal)
+            && left.GroupId == right.GroupId
+            && left.TagIds.SequenceEqual(right.TagIds);
+    }
+
     public bool IsEmpty => string.IsNullOrWhiteSpace(Notes) && TagIds.Count == 0 && GroupId is null;
 }

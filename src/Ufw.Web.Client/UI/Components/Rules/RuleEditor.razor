@@ -59,7 +59,7 @@
                 <MudSelect T="FirewallAddressFamily"
                            Label="@(RulesText["AddressFamily"])"
                            @bind-Value="Rule.AddressFamily"
-                           Disabled="@AddressFamilyLocked"
+                           Disabled="@EffectiveAddressFamilyLocked"
                            For="@(() => Rule.AddressFamily)">
                     @foreach (FirewallAddressFamily value in Enum.GetValues<FirewallAddressFamily>())
                     {
@@ -150,9 +150,24 @@
                         </MudText>
                     </header>
                 </MudItem>
+            }
+            @if (Mode == RuleEditorMode.Edit && OriginalRule is not null)
+            {
+                <MudItem xs="12">
+                    <UfwRuleCommandPreview Rule="@OriginalRule" Label="@(RulesText["CurrentCanonicalUfwRule"])" />
+                </MudItem>
+                <MudItem xs="12">
+                    <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["ProposedCanonicalUfwRule"])" />
+                </MudItem>
+            }
+            else
+            {
                 <MudItem xs="12">
                     <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["CanonicalUfwRule"])" />
                 </MudItem>
+            }
+            @if (ShowAuthorization)
+            {
                 @if (HasUnknownInterfaces)
                 {
                     <MudItem xs="12">
@@ -177,12 +192,6 @@
                                                 Disabled="@(Disabled || Submitting)" />
                 </MudItem>
             }
-            else
-            {
-                <MudItem xs="12">
-                    <UfwRuleCommandPreview Rule="@Rule" Label="@(RulesText["CanonicalUfwRule"])" />
-                </MudItem>
-            }
             <MudItem xs="12">
                 <footer>
                     <MudButton Variant="Variant.Text"
@@ -192,7 +201,7 @@
                     </MudButton>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Add"
+                               StartIcon="@EffectiveSubmitIcon"
                                Disabled="@(!_isValid || Disabled || SubmitDisabled || Submitting || RequiresPrivateKey)"
                                OnClick="SubmitAsync"
                                Class="rule-primary-action">
