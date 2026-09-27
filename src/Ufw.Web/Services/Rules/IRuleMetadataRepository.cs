@@ -10,6 +10,8 @@ internal interface IRuleMetadataRepository
 
     Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default);
 
+    Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(string originalRuleId, string replacementRuleId, bool originalRuleStillLive, CancellationToken cancellationToken = default);
+
     Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default);
 
     Task<int> DeleteForRuleIdsAsync(IReadOnlyCollection<string> ruleIds, CancellationToken cancellationToken = default);

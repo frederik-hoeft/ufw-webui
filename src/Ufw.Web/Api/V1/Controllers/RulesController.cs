@@ -11,6 +11,10 @@ namespace Ufw.Web.Api.V1.Controllers;
 
 public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventoryService inventory, IRuleMetadataService metadata, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
+    private const string METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC =
+        "Firewall rule replacement completed, but application metadata reconciliation failed. "
+        + "Reload the rule inventory before making further metadata changes.";
+
     public async partial Task<ActionResult<RuleInventoryResponse>> GetRulesAsync(CancellationToken cancellationToken)
     {
         try
@@ -84,6 +88,32 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
         }
     }
 
+    public async partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!string.Equals(request.Operation, IntentOperations.REPLACE_RULE, StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "Request operation must be 'rules.replace'." });
+        }
+
+        try
+        {
+            RuleReplacementResponse firewall = await ufwClient.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, cancellationToken);
+            RuleReplacementMetadataReconciliationOutcome metadataOutcome = firewall.Outcome == RuleReplacementOutcome.Completed
+                ? await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None)
+                : RuleReplacementMetadataReconciliationOutcome.NotAttempted;
+            RuleReplacementMutationResponse response = new(
+                firewall,
+                metadataOutcome,
+                metadataOutcome == RuleReplacementMetadataReconciliationOutcome.Failed ? METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC : null);
+            return ReplacementResult(response);
+        }
+        catch (UfwIpcException exception)
+        {
+            return MapDaemonError(exception);
+        }
+    }
+
     public async partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -144,6 +174,22 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
         {
             return MapDaemonError(exception);
         }
+    }
+
+    private ActionResult<RuleReplacementMutationResponse> ReplacementResult(RuleReplacementMutationResponse response)
+    {
+        int statusCode = response.MetadataReconciliation == RuleReplacementMetadataReconciliationOutcome.Failed
+            ? StatusCodes.Status500InternalServerError
+            : response.Firewall.Outcome switch
+            {
+                RuleReplacementOutcome.Completed => StatusCodes.Status200OK,
+                RuleReplacementOutcome.StaleBaseline => StatusCodes.Status409Conflict,
+                RuleReplacementOutcome.PreconditionFailed => StatusCodes.Status422UnprocessableEntity,
+                RuleReplacementOutcome.PartiallyCompleted => StatusCodes.Status409Conflict,
+                RuleReplacementOutcome.StateUncertain => StatusCodes.Status503ServiceUnavailable,
+                _ => throw new ArgumentOutOfRangeException(nameof(response), response.Firewall.Outcome, "Unknown replacement outcome."),
+            };
+        return StatusCode(statusCode, response);
     }
 
     private ActionResult<RuleInsertionResponse> InsertionResult(RuleInsertionResponse response)

@@ -5,6 +5,7 @@ using Ufw.Shared.Security.Intent;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Intent;
 
@@ -73,7 +74,7 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
         return await ruleApiClient.InsertRuleAsync(request, cancellationToken);
     }
 
-    public async Task<RuleReplacementResponse> ReplaceRuleAsync(
+    public async Task<RuleReplacementMutationResponse> ReplaceRuleAsync(
         RuleListResponse baseline,
         int targetOccurrenceId,
         string originalRuleId,

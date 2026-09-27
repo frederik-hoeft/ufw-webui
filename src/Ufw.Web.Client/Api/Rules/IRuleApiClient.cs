@@ -20,5 +20,5 @@ internal interface IRuleApiClient
 
     Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleReplacementResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default);
+    Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default);
 }

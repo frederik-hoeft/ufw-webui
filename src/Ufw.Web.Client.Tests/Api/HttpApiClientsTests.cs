@@ -321,13 +321,34 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        RuleReplacementResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
+        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
         ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
 
-        Assert.AreEqual(RuleReplacementOutcome.PartiallyCompleted, report.Outcome);
-        Assert.AreEqual(RuleReplacementRecoveryOutcome.Failed, report.RecoveryOutcome);
+        Assert.AreEqual(RuleReplacementOutcome.PartiallyCompleted, report.Firewall.Outcome);
+        Assert.AreEqual(RuleReplacementRecoveryOutcome.Failed, report.Firewall.RecoveryOutcome);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.NotAttempted, report.MetadataReconciliation);
         Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
         Assert.AreEqual("Intent nonce has already been used.", replay.Message);
+    }
+
+    [TestMethod]
+    public async Task RuleApiClient_ReplacePreservesCompletedFirewallResultWhenMetadataReconciliationFailsAsync()
+    {
+        const string diagnostic = "Firewall rule replacement completed, but application metadata reconciliation failed.";
+        using RecordingHttpMessageHandler handler = new((_, _) => Json(
+            HttpStatusCode.InternalServerError,
+            ReplacementResponseJson(
+                RuleReplacementOutcome.Completed,
+                RuleReplacementMetadataReconciliationOutcome.Failed,
+                diagnostic)));
+        using HttpClient http = CreateClient(handler);
+        RuleApiClient client = new(http);
+
+        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
+
+        Assert.AreEqual(RuleReplacementOutcome.Completed, report.Firewall.Outcome);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
+        Assert.AreEqual(diagnostic, report.MetadataDiagnostic);
     }
 
     [TestMethod]
@@ -339,13 +360,17 @@ public sealed class HttpApiClientsTests
             2 => Json(
                 HttpStatusCode.OK,
                 JsonSerializer.Serialize(
-                    new RuleReplacementResponse(RuleReplacementOutcome.Completed, null, null, RecoveryOutcome: null, Diagnostic: null),
-                    MessageJsonSerializerContext.Default.RuleReplacementResponse)),
+                    new RuleReplacementMutationResponse(
+                        new RuleReplacementResponse(RuleReplacementOutcome.Completed, null, null, RecoveryOutcome: null, Diagnostic: null),
+                        RuleReplacementMetadataReconciliationOutcome.Completed),
+                    ClientJsonSerializerContext.Default.RuleReplacementMutationResponse)),
+            3 => Json(HttpStatusCode.OK, ReplacementResponseJson(RuleReplacementOutcome.Completed, RuleReplacementMetadataReconciliationOutcome.NotAttempted)),
             _ => throw new InvalidOperationException(),
         });
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
     }
@@ -563,7 +588,10 @@ public sealed class HttpApiClientsTests
             MessageJsonSerializerContext.Default.RuleInsertionResponse);
     }
 
-    private static string ReplacementResponseJson(RuleReplacementOutcome outcome)
+    private static string ReplacementResponseJson(
+        RuleReplacementOutcome outcome,
+        RuleReplacementMetadataReconciliationOutcome? metadataOutcome = null,
+        string? metadataDiagnostic = null)
     {
         ListedFirewallRule? replacement = outcome == RuleReplacementOutcome.Completed
             ? new ListedFirewallRule
@@ -575,14 +603,19 @@ public sealed class HttpApiClientsTests
                 Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
             }
             : null;
-        return JsonSerializer.Serialize(
-            new RuleReplacementResponse(
-                outcome,
-                new RuleListResponse(true, replacement is null ? [] : [replacement], TestFirewallConfiguration.Enabled),
-                replacement,
-                RecoveryOutcome: outcome == RuleReplacementOutcome.PartiallyCompleted ? RuleReplacementRecoveryOutcome.Failed : null,
-                Diagnostic: null),
-            MessageJsonSerializerContext.Default.RuleReplacementResponse);
+        RuleReplacementResponse firewall = new(
+            outcome,
+            new RuleListResponse(true, replacement is null ? [] : [replacement], TestFirewallConfiguration.Enabled),
+            replacement,
+            RecoveryOutcome: outcome == RuleReplacementOutcome.PartiallyCompleted ? RuleReplacementRecoveryOutcome.Failed : null,
+            Diagnostic: null);
+        RuleReplacementMutationResponse response = new(
+            firewall,
+            metadataOutcome ?? (outcome == RuleReplacementOutcome.Completed
+                ? RuleReplacementMetadataReconciliationOutcome.Completed
+                : RuleReplacementMetadataReconciliationOutcome.NotAttempted),
+            metadataDiagnostic);
+        return JsonSerializer.Serialize(response, ClientJsonSerializerContext.Default.RuleReplacementMutationResponse);
     }
 
     private static string ReorderResponseJson(RuleReorderOutcome outcome) => JsonSerializer.Serialize(

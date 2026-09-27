@@ -62,6 +62,20 @@ public sealed partial class RulesController
     public partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync([FromBody] InsertRuleRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Forwards an administrator-signed rule-replacement intent to the privileged daemon and reconciles application-owned metadata after confirmed completion.
+    /// </summary>
+    [HttpPut("replace")]
+    [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status503ServiceUnavailable)]
+    public partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync([FromBody] ReplaceRuleRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Forwards an administrator-signed reorder intent to the privileged daemon.
     /// </summary>
     [HttpPut("order")]

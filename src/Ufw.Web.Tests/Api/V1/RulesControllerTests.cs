@@ -316,6 +316,115 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public void ReplaceRuleAsync_UsesDedicatedReplacementSubresource()
+    {
+        System.Reflection.MethodInfo? method = typeof(RulesController).GetMethod(nameof(RulesController.ReplaceRuleAsync));
+        Assert.IsNotNull(method);
+        object[] attributes = method.GetCustomAttributes(typeof(HttpPutAttribute), inherit: false);
+        Assert.HasCount(1, attributes);
+        HttpPutAttribute attribute = Assert.IsInstanceOfType<HttpPutAttribute>(attributes[0]);
+        Assert.AreEqual("replace", attribute.Template);
+    }
+
+    [TestMethod]
+    public async Task TestReplaceRuleAsync_ForwardsCompletedReplacementAndReconcilesMetadataAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        ReplaceRuleRequest request = CreateSignedReplace();
+        RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
+        client.Setup(static c => c.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(firewall);
+        metadata.Setup(service => service.ReconcileReplacementAsync(request, firewall, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RuleReplacementMetadataReconciliationOutcome.Completed);
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(request, TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        RuleReplacementMutationResponse report = Assert.IsInstanceOfType<RuleReplacementMutationResponse>(response.Value);
+        Assert.AreSame(firewall, report.Firewall);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, report.MetadataReconciliation);
+        Assert.IsNull(report.MetadataDiagnostic);
+        client.Verify(
+            c => c.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(
+                It.Is<ReplaceRuleRequest>(sent => sent.DeploymentId == request.DeploymentId
+                    && sent.Nonce == request.Nonce
+                    && sent.Operation == request.Operation
+                    && sent.Payload.GetRawText() == request.Payload.GetRawText()
+                    && sent.Signature == request.Signature),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        metadata.Verify(service => service.ReconcileReplacementAsync(request, firewall, CancellationToken.None), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task TestReplaceRuleAsync_MetadataFailurePreservesCompletedFirewallResultAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        ReplaceRuleRequest request = CreateSignedReplace();
+        RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
+        client.Setup(static c => c.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(firewall);
+        metadata.Setup(service => service.ReconcileReplacementAsync(request, firewall, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RuleReplacementMetadataReconciliationOutcome.Failed);
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(request, TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, response.StatusCode);
+        RuleReplacementMutationResponse report = Assert.IsInstanceOfType<RuleReplacementMutationResponse>(response.Value);
+        Assert.AreSame(firewall, report.Firewall);
+        Assert.AreEqual(RuleReplacementOutcome.Completed, report.Firewall.Outcome);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
+        StringAssert.Contains(report.MetadataDiagnostic, "metadata reconciliation failed");
+    }
+
+    [TestMethod]
+    [DataRow(RuleReplacementOutcome.StaleBaseline, StatusCodes.Status409Conflict)]
+    [DataRow(RuleReplacementOutcome.PreconditionFailed, StatusCodes.Status422UnprocessableEntity)]
+    [DataRow(RuleReplacementOutcome.PartiallyCompleted, StatusCodes.Status409Conflict)]
+    [DataRow(RuleReplacementOutcome.StateUncertain, StatusCodes.Status503ServiceUnavailable)]
+    public async Task TestReplaceRuleAsync_NonCompletedFirewallOutcomeLeavesMetadataUntouchedAsync(RuleReplacementOutcome outcome, int expectedStatusCode)
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        RuleReplacementResponse firewall = CreateReplacementResponse(outcome);
+        client.Setup(static c => c.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(firewall);
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(CreateSignedReplace(), TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(expectedStatusCode, response.StatusCode);
+        RuleReplacementMutationResponse report = Assert.IsInstanceOfType<RuleReplacementMutationResponse>(response.Value);
+        Assert.AreSame(firewall, report.Firewall);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.NotAttempted, report.MetadataReconciliation);
+        metadata.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public async Task TestReplaceRuleAsync_RejectsWrongOperationBeforeIpcAsync()
+    {
+        Mock<IUfwClient> client = new();
+        Mock<IRuleMetadataService> metadata = new();
+        ReplaceRuleRequest request = CreateSignedReplace() with { Operation = IntentOperations.ADD_RULE };
+        RulesController controller = CreateController(client.Object, metadata: metadata.Object);
+
+        ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(request, TestContext.CancellationToken);
+
+        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
+        client.Verify(
+            static c => c.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        metadata.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
     public void BatchDeleteRulesAsync_UsesDedicatedBatchSubresource()
     {
         System.Reflection.MethodInfo? method = typeof(RulesController).GetMethod(nameof(RulesController.BatchDeleteRulesAsync));
@@ -509,6 +618,44 @@ public sealed class RulesControllerTests
         [new RuleReorderMoveResponse(0, 1, null)],
         [new RuleReorderMoveResponse(0, 1, null)],
         "diagnostic");
+
+    private static ReplaceRuleRequest CreateSignedReplace() => new()
+    {
+        Version = IntentProtocol.VERSION,
+        DeploymentId = "deployment-test",
+        KeyId = "sha256:test",
+        IssuedAtUnix = 1,
+        Nonce = "nonce-replace",
+        Operation = IntentOperations.REPLACE_RULE,
+        Payload = System.Text.Json.JsonSerializer.SerializeToElement(new
+        {
+            baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            targetOccurrenceId = 0,
+            originalRuleId = "sha256:original",
+            replacementRule = new { action = "Allow", addressFamily = "IPv4", direction = "In", protocol = "Tcp", destinationPorts = "443" },
+        }),
+        Signature = "sig",
+    };
+
+    private static RuleReplacementResponse CreateReplacementResponse(RuleReplacementOutcome outcome)
+    {
+        ListedFirewallRule? replacement = outcome == RuleReplacementOutcome.Completed
+            ? new ListedFirewallRule
+            {
+                RuleId = "sha256:replacement",
+                DisplayNumber = 1,
+                Parsed = true,
+                RawLine = "replacement",
+                Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
+            }
+            : null;
+        return new RuleReplacementResponse(
+            outcome,
+            outcome == RuleReplacementOutcome.StateUncertain ? null : new RuleListResponse(Active: true, replacement is null ? [] : [replacement], TestFirewallConfiguration.Enabled),
+            replacement,
+            RecoveryOutcome: null,
+            Diagnostic: "diagnostic");
+    }
 
     private static BatchDeleteRulesRequest CreateSignedBatchDelete() => new()
     {

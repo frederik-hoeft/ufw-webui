@@ -4,7 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Security.Intent;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
@@ -400,6 +403,266 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
+    public async Task ReconcileReplacement_RekeysMetadataWhenOriginalIdentityIsNoLongerLiveAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        string replacementRuleId = RuleIdentity.Compute(replacementRule);
+        host.SetRules(originalRuleId);
+        RuleTagItem tag = await host.CreateTagAsync("prod", "#112233", TestContext.CancellationToken);
+        RuleGroupItem group = await host.CreateGroupAsync("platform", "managed", TestContext.CancellationToken);
+        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+            originalRuleId,
+            new UpdateRuleMetadataRequest { Notes = "source", TagIds = [tag.Id], GroupId = group.Id },
+            TestContext.CancellationToken);
+        Guid sourceMetadataId = saved.Response!.Metadata!.Id;
+        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
+        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
+        host.SetRules(replacementRuleId);
+        RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
+        Assert.AreEqual(sourceMetadataId, metadata.Id);
+        Assert.AreEqual(replacementRuleId, metadata.RuleId);
+        Assert.AreEqual("source", metadata.Notes);
+        Assert.AreEqual(tag.Id, metadata.Tags.Single().Id);
+        Assert.AreEqual(group.Id, metadata.Group?.Id);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(1, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_CopiesMetadataWhenOriginalIdentityRemainsLiveAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        string replacementRuleId = RuleIdentity.Compute(replacementRule);
+        host.SetRules(originalRuleId);
+        RuleTagItem tag = await host.CreateTagAsync("prod", "#112233", TestContext.CancellationToken);
+        RuleGroupItem group = await host.CreateGroupAsync("platform", "managed", TestContext.CancellationToken);
+        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+            originalRuleId,
+            new UpdateRuleMetadataRequest { Notes = "shared", TagIds = [tag.Id], GroupId = group.Id },
+            TestContext.CancellationToken);
+        Guid originalMetadataId = saved.Response!.Metadata!.Id;
+        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
+        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, originalRuleId, replacementRuleId);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
+        host.SetRules(originalRuleId, replacementRuleId);
+        RuleMetadataItem[] metadata = [.. (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.OrderBy(static item => item.RuleId, StringComparer.Ordinal)];
+        Assert.HasCount(2, metadata);
+        RuleMetadataItem original = metadata.Single(item => item.RuleId == originalRuleId);
+        RuleMetadataItem replacement = metadata.Single(item => item.RuleId == replacementRuleId);
+        Assert.AreEqual(originalMetadataId, original.Id);
+        Assert.AreNotEqual(originalMetadataId, replacement.Id);
+        Assert.AreEqual("shared", replacement.Notes);
+        Assert.AreEqual(tag.Id, replacement.Tags.Single().Id);
+        Assert.AreEqual(group.Id, replacement.Group?.Id);
+        Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(2, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_SameIdentityLeavesMetadataIdentityUntouchedAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification commentUpdate = Rule("22");
+        commentUpdate.Comment = "updated";
+        string ruleId = RuleIdentity.Compute(originalRule);
+        host.SetRules(ruleId);
+        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+            ruleId,
+            new UpdateRuleMetadataRequest { Notes = "keep" },
+            TestContext.CancellationToken);
+        Guid metadataId = saved.Response!.Metadata!.Id;
+        ReplaceRuleRequest request = ReplacementRequest(ruleId, commentUpdate);
+        RuleReplacementResponse response = CompletedReplacement(ruleId, commentUpdate, ruleId);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
+        RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
+        Assert.AreEqual(metadataId, metadata.Id);
+        Assert.AreEqual(ruleId, metadata.RuleId);
+        Assert.AreEqual("keep", metadata.Notes);
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_TargetCollisionFavorsSourceMetadataAndPreservesSourceIdentityAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        string replacementRuleId = RuleIdentity.Compute(replacementRule);
+        host.SetRules(originalRuleId, replacementRuleId);
+        RuleMetadataUpdateResult staleTarget = await host.Metadata.UpdateAsync(
+            replacementRuleId,
+            new UpdateRuleMetadataRequest { Notes = "stale target" },
+            TestContext.CancellationToken);
+        RuleMetadataUpdateResult source = await host.Metadata.UpdateAsync(
+            originalRuleId,
+            new UpdateRuleMetadataRequest { Notes = "source wins" },
+            TestContext.CancellationToken);
+        Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
+        Guid sourceId = source.Response!.Metadata!.Id;
+        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
+        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
+        host.SetRules(replacementRuleId);
+        RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
+        Assert.AreEqual(sourceId, metadata.Id);
+        Assert.AreNotEqual(staleTargetId, metadata.Id);
+        Assert.AreEqual("source wins", metadata.Notes);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_CopyOverTargetCollisionUsesSourceMetadataAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        string replacementRuleId = RuleIdentity.Compute(replacementRule);
+        host.SetRules(originalRuleId, replacementRuleId);
+        RuleMetadataUpdateResult staleTarget = await host.Metadata.UpdateAsync(
+            replacementRuleId,
+            new UpdateRuleMetadataRequest { Notes = "stale target" },
+            TestContext.CancellationToken);
+        RuleMetadataUpdateResult source = await host.Metadata.UpdateAsync(
+            originalRuleId,
+            new UpdateRuleMetadataRequest { Notes = "source copy" },
+            TestContext.CancellationToken);
+        Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
+        Guid sourceId = source.Response!.Metadata!.Id;
+        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
+        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, originalRuleId, replacementRuleId);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
+        RuleMetadataItem[] metadata = [.. (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.OrderBy(static item => item.RuleId, StringComparer.Ordinal)];
+        Assert.HasCount(2, metadata);
+        RuleMetadataItem original = metadata.Single(item => item.RuleId == originalRuleId);
+        RuleMetadataItem replacement = metadata.Single(item => item.RuleId == replacementRuleId);
+        Assert.AreEqual(sourceId, original.Id);
+        Assert.AreNotEqual(sourceId, replacement.Id);
+        Assert.AreNotEqual(staleTargetId, replacement.Id);
+        Assert.AreEqual("source copy", replacement.Notes);
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_NoSourceMetadataRemovesStaleTargetMetadataAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        string replacementRuleId = RuleIdentity.Compute(replacementRule);
+        host.SetRules(replacementRuleId);
+        _ = await host.Metadata.UpdateAsync(
+            replacementRuleId,
+            new UpdateRuleMetadataRequest { Notes = "must not resurrect" },
+            TestContext.CancellationToken);
+        host.SetRules(originalRuleId);
+        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
+        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
+        host.SetRules(replacementRuleId);
+        Assert.IsEmpty((await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata);
+        Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_NonCompletedFirewallOutcomeLeavesMetadataUntouchedAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        host.SetRules(originalRuleId);
+        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+            originalRuleId,
+            new UpdateRuleMetadataRequest { Notes = "keep" },
+            TestContext.CancellationToken);
+        Guid metadataId = saved.Response!.Metadata!.Id;
+        RuleReplacementResponse response = new(RuleReplacementOutcome.PartiallyCompleted, null, null, RecoveryOutcome: null, Diagnostic: "partial");
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(
+            ReplacementRequest(originalRuleId, replacementRule),
+            response,
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.NotAttempted, outcome);
+        RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
+        Assert.AreEqual(metadataId, metadata.Id);
+        Assert.AreEqual("keep", metadata.Notes);
+    }
+
+    [TestMethod]
+    public async Task ReconcileReplacement_DatabaseFailureRollsBackTargetCollisionAndReportsFailureAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        FirewallRuleSpecification originalRule = Rule("22");
+        FirewallRuleSpecification replacementRule = Rule("443");
+        string originalRuleId = RuleIdentity.Compute(originalRule);
+        string replacementRuleId = RuleIdentity.Compute(replacementRule);
+        host.SetRules(originalRuleId, replacementRuleId);
+        RuleMetadataUpdateResult staleTarget = await host.Metadata.UpdateAsync(
+            replacementRuleId,
+            new UpdateRuleMetadataRequest { Notes = "stale target" },
+            TestContext.CancellationToken);
+        RuleMetadataUpdateResult source = await host.Metadata.UpdateAsync(
+            originalRuleId,
+            new UpdateRuleMetadataRequest { Notes = "source" },
+            TestContext.CancellationToken);
+        Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
+        Guid sourceId = source.Response!.Metadata!.Id;
+        await host.ExecuteSqlAsync(
+            $"""
+            CREATE TRIGGER FailRuleMetadataReplacement
+            BEFORE UPDATE OF "RuleId" ON "RuleMetadata"
+            WHEN NEW."RuleId" = '{replacementRuleId}'
+            BEGIN
+                SELECT RAISE(ABORT, 'forced replacement failure');
+            END;
+            """,
+            TestContext.CancellationToken);
+
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(
+            ReplacementRequest(originalRuleId, replacementRule),
+            CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId),
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, outcome);
+        Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        host.SetRules(originalRuleId, replacementRuleId);
+        RuleMetadataItem[] metadata = [.. (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.OrderBy(static item => item.RuleId, StringComparer.Ordinal)];
+        Assert.HasCount(2, metadata);
+        Assert.AreEqual(sourceId, metadata.Single(item => item.RuleId == originalRuleId).Id);
+        Assert.AreEqual("source", metadata.Single(item => item.RuleId == originalRuleId).Notes);
+        Assert.AreEqual(staleTargetId, metadata.Single(item => item.RuleId == replacementRuleId).Id);
+        Assert.AreEqual("stale target", metadata.Single(item => item.RuleId == replacementRuleId).Notes);
+    }
+
+    [TestMethod]
     public async Task RemoveForDeletedRule_RemovesMetadataForInBandDeletionAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
@@ -412,6 +675,65 @@ public sealed class RuleMetadataServiceTests
         await host.Metadata.RemoveForDeletedRuleAsync("sha256:live", TestContext.CancellationToken);
 
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+    }
+
+    private static FirewallRuleSpecification Rule(string destinationPort) => new()
+    {
+        Action = FirewallAction.Allow,
+        AddressFamily = FirewallAddressFamily.IPv4,
+        Direction = FirewallDirection.In,
+        Protocol = FirewallProtocol.Tcp,
+        DestinationPorts = destinationPort,
+    };
+
+    private static ReplaceRuleRequest ReplacementRequest(string originalRuleId, FirewallRuleSpecification replacementRule)
+    {
+        ReplaceRulePayload payload = new()
+        {
+            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
+            TargetOccurrenceId = 0,
+            OriginalRuleId = originalRuleId,
+            ReplacementRule = replacementRule,
+        };
+        return new ReplaceRuleRequest
+        {
+            Version = IntentProtocol.VERSION,
+            DeploymentId = "deployment",
+            KeyId = "sha256:key",
+            IssuedAtUnix = 1,
+            Nonce = "nonce",
+            Operation = IntentOperations.REPLACE_RULE,
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.ReplaceRulePayload),
+            Signature = "signature",
+        };
+    }
+
+    private static RuleReplacementResponse CompletedReplacement(string replacementRuleId, FirewallRuleSpecification replacementRule, params string[] finalRuleIds)
+    {
+        ListedFirewallRule replacement = new()
+        {
+            RuleId = replacementRuleId,
+            DisplayNumber = Array.IndexOf(finalRuleIds, replacementRuleId) + 1,
+            Parsed = true,
+            RawLine = replacementRuleId,
+            Rule = replacementRule,
+        };
+        ListedFirewallRule[] finalRules = [.. finalRuleIds.Select((ruleId, index) => string.Equals(ruleId, replacementRuleId, StringComparison.Ordinal)
+            ? new ListedFirewallRule
+            {
+                RuleId = replacement.RuleId,
+                DisplayNumber = index + 1,
+                Parsed = replacement.Parsed,
+                RawLine = replacement.RawLine,
+                Rule = replacement.Rule,
+            }
+            : Listed(ruleId, index + 1))];
+        return new RuleReplacementResponse(
+            RuleReplacementOutcome.Completed,
+            new RuleListResponse(true, finalRules, TestFirewallConfiguration.Enabled),
+            replacement,
+            RecoveryOutcome: null,
+            Diagnostic: null);
     }
 
     private static ListedFirewallRule Listed(string ruleId, int displayNumber) => new()
@@ -523,6 +845,9 @@ public sealed class RuleMetadataServiceTests
             Assert.IsNotNull(result.Inventory);
             return result.Inventory.Tags.Single(tag => string.Equals(tag.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
+
+        public Task<int> ExecuteSqlAsync(string sql, CancellationToken cancellationToken) =>
+            _context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
 
         public async Task<int> MetadataRowCountAsync(CancellationToken cancellationToken)
         {

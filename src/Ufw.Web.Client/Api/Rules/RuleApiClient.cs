@@ -81,15 +81,36 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
             cancellationToken);
     }
 
-    public async Task<RuleReplacementResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleReplaceUri, request, MessageJsonSerializerContext.Default.ReplaceRuleRequest, cancellationToken);
         return await response.ReadTransactionResponseAsync(
-            MessageJsonSerializerContext.Default.RuleReplacementResponse,
-            static candidate => candidate.Outcome != RuleReplacementOutcome.Completed
-                || candidate.FinalSnapshot is not null && candidate.ReplacementRule is not null,
+            ClientJsonSerializerContext.Default.RuleReplacementMutationResponse,
+            IsValidReplacementResponse,
             cancellationToken);
+    }
+
+    private static bool IsValidReplacementResponse(RuleReplacementMutationResponse response)
+    {
+        if (response.Firewall is null
+            || response.Firewall.Outcome == RuleReplacementOutcome.Completed && (response.Firewall.FinalSnapshot is null || response.Firewall.ReplacementRule is null))
+        {
+            return false;
+        }
+
+        if (response.Firewall.Outcome != RuleReplacementOutcome.Completed)
+        {
+            return response.MetadataReconciliation == RuleReplacementMetadataReconciliationOutcome.NotAttempted
+                && response.MetadataDiagnostic is null;
+        }
+
+        return response.MetadataReconciliation switch
+        {
+            RuleReplacementMetadataReconciliationOutcome.Completed => response.MetadataDiagnostic is null,
+            RuleReplacementMetadataReconciliationOutcome.Failed => !string.IsNullOrWhiteSpace(response.MetadataDiagnostic),
+            _ => false,
+        };
     }
 
     public async Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default)
