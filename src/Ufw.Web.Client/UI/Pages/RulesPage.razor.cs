@@ -346,6 +346,28 @@ public sealed partial class RulesPage
         }
     }
 
+    private Task BeginRuleEditAsync(RuleRowProjection row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        if (!CanMutateFirewall || !row.CanEdit || _state.Snapshot is not { } snapshot)
+        {
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+            string uri = ReplacementNavigation.BuildUri(baseline, row.Rule);
+            Navigation.NavigateTo(uri);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            Snackbar.Add(exception.Message, Severity.Warning);
+        }
+
+        return Task.CompletedTask;
+    }
+
     private Task BeginOrderedInsertionAsync(RuleInsertionActionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);

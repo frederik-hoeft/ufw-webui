@@ -39,7 +39,7 @@ The rule-list projection currently exposes two different capabilities through `C
 - `CanOrder` requires a parsed structural rule and therefore works for duplicate semantic occurrences.
 - `CanMutate` additionally requires a unique `RuleId`, because legacy single-rule deletion identifies the target semantically.
 
-Replacement must use occurrence identity, so editability must not inherit the single-delete uniqueness restriction. The projection should expose an explicit edit/replace capability for parsed rows with a concrete rule and semantic identity while preserving `CanMutate` for the existing delete path.
+Replacement should remain occurrence-aware, but pre-existing duplicate semantic identities are operationally invalid firewall state rather than a first-class authoring scenario. The projection should expose an explicit edit/replace capability for parsed rows with a concrete rule and semantic identity while preserving `CanMutate` for the existing delete path. The replacement workflow may naturally support some duplicate-target cases where the exact occurrence remains unambiguous, but it must fail closed before mutation whenever duplicate state makes the operation unsafe or ambiguous.
 
 `RuleActionsMenu` already has distinct ordering/insertion, metadata-edit, and delete actions. **Edit rule** belongs beside **Edit metadata** as a separate operation.
 
@@ -125,37 +125,40 @@ Address-family changes are intentionally outside first-class editing. Position i
 
 ### Duplicate semantics
 
-The exact target occurrence may share `OriginalRuleId` with other live rows. That is supported and is the reason replacement is occurrence-addressed.
+The workflow is occurrence-addressed so it never mistakes a semantic hash for a unique row identity. However, duplicate semantic rules in UFW are treated as pre-existing invalid/unsafe firewall state, not as a compatibility requirement the editor must normalize or repair.
 
-The replacement may keep the same semantic identity as the target. This is required for changes such as comment-only edits because comments are intentionally excluded from `RuleId`.
+The daemon may support a duplicate-target case only when that support falls out naturally from the existing snapshot/position model and the complete mutation remains unambiguous. Otherwise it must reject the edit before starting any UFW process and require an administrator to repair the firewall state first. In particular, a same-semantic-identity update must be rejected when the target identity occurs more than once because UFW's existing-rule update semantics cannot reliably select one duplicate occurrence.
 
-When the replacement computes a different semantic identity, the daemon should preserve the existing authoring invariant and reject the operation if another live occurrence already has that new identity. This avoids creating a new semantic duplicate through the authoring UI and keeps metadata reconciliation unambiguous. Existing duplicate old identities remain fully supported.
+The replacement may keep the same semantic identity as a unique target. This is required for changes such as comment-only edits because comments are intentionally excluded from `RuleId`.
+
+When the replacement computes a different semantic identity, the daemon must reject the operation if that new identity already exists anywhere in the authoritative baseline. This check happens before mutation and prevents the editor from creating a new semantic duplicate or entering a partial state because UFW refuses the insertion.
 
 ### Execution and outcomes
 
 Replacement should use the same execution gate, mutation-safety guard, nonce consumption, capability checks, and interface checks as adjacent signed mutations.
 
-The initial implementation should use a uniform delete-then-insert sequence:
+Replacement should minimize the interval in which the known-good original rule is absent. The execution path depends on whether the semantic identity changes:
 
 1. read the authoritative snapshot under the mutation gate;
-2. require an exact fingerprint match;
-3. resolve and validate the exact target occurrence and remember its family-local position;
-4. validate the replacement and semantic-duplicate preconditions before destructive work begins;
-5. delete the exact target by its current numbered position;
-6. re-read and require the exact baseline-minus-target state;
-7. insert/add the replacement at the remembered family-local position;
-8. re-read and classify the exact final postcondition.
+2. require an exact fingerprint match and resolve the exact target occurrence;
+3. reject every unsafe/ambiguous duplicate condition and every replacement identity that already exists elsewhere before starting a UFW process;
+4. if the normalized structural model and comment are unchanged, complete as a firewall no-op;
+5. if the semantic identity is unchanged but the comment changes, require that identity to be unique and use UFW's existing-rule update semantics, including explicit empty-comment rendering when removing a comment, then require the exact expected snapshot;
+6. if the semantic identity changes, insert the replacement immediately before the exact target occurrence, then require the exact intermediate snapshot containing both the new and old rule;
+7. only after the replacement is confirmed present, delete the old exact occurrence and require the exact final replacement snapshot.
 
-The delete-first sequence is deliberate even though it creates a partial-failure window. UFW/mock duplicate behavior can skip insertion of a semantically identical rule, while a valid replacement can intentionally retain the same `RuleId` (for example, changing only its comment). Staging every replacement by inserting first therefore cannot implement the full contract consistently.
+For identity-changing edits, insert-first is the safer ordering because a failed insertion leaves the original rule intact. If the subsequent delete fails while the exact intermediate state is still confirmed, the daemon should make a best-effort attempt to remove the newly inserted replacement and restore the exact baseline. Recovery is explicitly best effort: UFW is externally mutable and the daemon cannot promise atomicity. If authoritative state diverges from a state the daemon can classify safely, it must stop issuing further mutation commands and report uncertainty rather than guessing.
 
-Do not add hidden best-effort compensation in the first implementation. The protocol should report the state it can prove. A later durable compensation design can be added explicitly if desired, but it must be replacement-aware rather than reusing reorder's "ensure old rule exists" journal.
+The same-identity path deliberately does not use insert/delete. UFW treats a semantically identical add as an update opportunity for the existing rule comment, while `insert`/`prepend` cannot reliably express occurrence-specific updates. This avoids deleting a valid rule merely to change application-visible UFW comment text.
 
-The response should carry an operation outcome, authoritative final snapshot when known, the confirmed replacement row on success, and a diagnostic. The minimum outcome model is:
+Do not add durable replacement journaling in the first implementation. A later recovery design can be added explicitly if operational evidence justifies it, but it must be replacement-aware rather than reusing reorder's "ensure old rule exists" journal.
 
-- `Completed`: the exact baseline-minus-target-plus-replacement postcondition is confirmed;
+The response should carry an operation outcome, authoritative final snapshot when known, the confirmed replacement row on success, recovery information when relevant, and a diagnostic. The minimum outcome model is:
+
+- `Completed`: the exact requested postcondition is confirmed, including a confirmed no-op/update path where applicable;
 - `StaleBaseline`: no mutation started because the signed snapshot no longer matches;
-- `PreconditionFailed`: no destructive mutation started because target/replacement/runtime preconditions failed, or a started command is confirmed to have left the baseline unchanged;
-- `PartiallyCompleted`: the target removal is confirmed but the replacement final state is not the requested state and the daemon has a reliable final snapshot;
+- `PreconditionFailed`: no mutation started because target/replacement/runtime or duplicate-safety preconditions failed, or a started command is confirmed to have left/restored the baseline unchanged;
+- `PartiallyCompleted`: the requested replacement did not complete, but the daemon has a reliable authoritative snapshot that differs from both the requested final state and the exact baseline;
 - `StateUncertain`: the daemon cannot establish a trustworthy final firewall snapshot after a process may have started or observes a state that cannot be classified safely.
 
 As with batch deletion/reorder, a non-success outcome may still carry a final snapshot. The browser must require a fresh authoring context before another replacement attempt after stale, partial, or uncertain execution.
@@ -214,9 +217,9 @@ Scope:
 - formalize create/edit presentation in `RuleEditor` without duplicating the structural form;
 - add draft initialization from an existing `FirewallRuleSpecification`;
 - add snapshot-bound replacement navigation/query/context resolution as a sibling of ordered insertion;
-- expose a distinct row capability for rule editing that supports duplicate semantic occurrences without changing legacy single-delete semantics;
+- expose a distinct row capability for rule editing without changing legacy single-delete semantics; duplicate-state editability must fail closed wherever occurrence-specific behavior is ambiguous;
 - add the row capability and event/navigation primitives needed by **Edit rule**, but keep the visible action undiscoverable until the end-to-end edit page exists in Phase 5;
-- add focused unit/component-model tests for cloning independence, context resolution, stale/mismatched target rejection, duplicate-row editability, and navigation primitives.
+- add focused unit/component-model tests for cloning independence, context resolution, stale/mismatched target rejection, duplicate-row rejection, and navigation primitives.
 
 QA gate:
 
@@ -253,18 +256,20 @@ Scope:
 - run verification, mutation safety guard, nonce consumption, and execution under the shared mutation gate;
 - require exact fingerprint/occurrence/original-identity reconciliation before mutation;
 - lock replacement to the target address family;
-- preserve existing new-duplicate rejection while permitting unchanged target identity and duplicate old occurrences;
-- execute exact delete, confirm baseline-minus-target, then insert at the remembered family-local position;
-- classify exact success, stale, precondition, partial, and uncertain states from authoritative snapshots;
+- preserve existing new-duplicate rejection and treat duplicate old identities as best-effort compatibility only: support them only when the exact occurrence operation is naturally unambiguous, otherwise reject before mutation;
+- use a no-op or unique existing-rule comment update when semantic identity is unchanged;
+- for identity-changing edits, insert the replacement immediately before the exact target, verify the exact intermediate state, then delete the old occurrence;
+- if deletion fails while the exact intermediate state is confirmed, attempt best-effort rollback by removing the newly inserted replacement, but stop and report uncertainty on any unclassifiable divergence;
+- classify exact success, stale, precondition, restored-baseline failure, partial, and uncertain states from authoritative snapshots;
 - wire the daemon controller endpoint and typed IPC response;
 - reuse lower-level position/snapshot/command primitives, extracting a narrowly reusable helper only if replacement and ordered insertion otherwise duplicate non-trivial command-position or exact-snapshot logic.
 
 QA gate:
 
-- comprehensive `Ufw.Systemd.Tests` for first/middle/last positions, IPv4/IPv6, same-identity comment replacement, duplicate old identity, conflicting new identity, stale baseline, target mismatch, interface/capability rejection, delete failure/no-op, confirmed removal followed by insertion failure, process-failure-with-confirmed-postcondition, unreadable/divergent final state, cancellation, nonce/replay, and outstanding reorder-recovery blocking;
+- comprehensive `Ufw.Systemd.Tests` for first/middle/last positions, IPv4/IPv6, same-identity no-op/comment update/comment removal, duplicate-old-identity rejection or naturally supported unambiguous cases, conflicting new identity, stale baseline, target mismatch, interface/capability rejection, insertion failure/no-op, confirmed insertion followed by delete failure, successful and failed best-effort rollback, process-failure-with-confirmed-postcondition, unreadable/divergent final state, cancellation, nonce/replay, and outstanding reorder-recovery blocking;
 - relevant IPC integration tests use the UFW mock for end-to-end route/execution coverage;
 - full Systemd and IPC test projects pass offline;
-- review explicitly accepts the non-atomic delete-then-insert failure semantics before merge.
+- review confirms fail-closed duplicate handling, insert-before-delete semantics for identity-changing edits, same-identity update behavior, and the explicitly best-effort/non-atomic recovery contract before merge.
 
 ### Phase 4: ASP metadata reconciliation
 
@@ -278,7 +283,7 @@ Scope:
 - keep metadata unchanged for partial/uncertain replacement outcomes;
 - surface ASP metadata-reconciliation failure separately from the already-completed firewall result;
 - preserve source metadata values, tags, group membership, and the appropriate public metadata identity when re-keying;
-- add controller/service/repository integration coverage for no metadata, same identity, final old occurrence, surviving duplicate old occurrence, target collision, DB failure, and non-completed firewall outcomes.
+- add controller/service/repository integration coverage for no metadata, same identity, final old occurrence, any naturally supported surviving-duplicate case, target collision, DB failure, and non-completed firewall outcomes.
 
 QA gate:
 
@@ -302,7 +307,7 @@ Scope:
 QA gate:
 
 - targeted client build and full `Ufw.Web.Client.Tests` pass offline;
-- browser-facing tests cover duplicate occurrence selection, stale-navigation context, same-identity edits, replacement identity changes, metadata update failure after firewall success, and partial/uncertain result presentation;
+- browser-facing tests cover duplicate-state rejection/disabled behavior where applicable, stale-navigation context, same-identity edits, replacement identity changes, metadata update failure after firewall success, and partial/uncertain result presentation;
 - manual code review verifies responsive desktop/mobile action plumbing and no optimistic local firewall substitution;
 - `git diff --check` passes.
 
@@ -333,13 +338,13 @@ QA gate:
 - all relevant test projects and targeted/full builds supported by the environment pass;
 - final branch diff is limited to documentation reconciliation and any strictly necessary doc-fix fallout.
 
-## Decisions to confirm before Phase 1/2
+## Confirmed implementation decisions
 
-The inventory resolves most of the feature shape, but four policy decisions should be explicit before the protocol is frozen:
+The planning gate confirmed the following policies:
 
-1. **Cross-family edits:** this plan locks address family and treats IPv4↔IPv6 conversion as a different future workflow because family-local position cannot be preserved unambiguously across partitions.
-2. **New duplicate identities:** this plan permits duplicate *targets* and unchanged identity, but rejects changing a rule into a different semantic identity that already exists elsewhere, matching current add/insert authoring behavior.
-3. **Replacement failure policy:** this plan follows the backlog's delete-then-insert sequence and reports partial/uncertain states without automatic compensation. Insert-first was considered but cannot uniformly support valid same-`RuleId` replacements because UFW can skip semantically duplicate insertion. Durable compensation would require replacement-aware recovery state and should be a deliberate extension rather than hidden best effort.
-4. **Metadata-reconciliation reporting:** the firewall outcome and ASP metadata-reconciliation outcome should remain distinct. The exact ASP-owned response shape can be chosen in Phase 4, but a successful firewall replacement must not be rewritten as a firewall failure merely because PostgreSQL reconciliation failed.
+1. **Cross-family edits:** address family is locked. IPv4↔IPv6 conversion is a different future workflow because family-local position cannot be preserved unambiguously across partitions.
+2. **Duplicate semantic state:** the editor never creates a new semantic duplicate. Pre-existing duplicate semantic rules are treated as operationally invalid/unsafe state. The implementation may support an exact duplicate-target case only when that support is natural and unambiguous; otherwise it fails closed before mutation and requires administrative repair. Same-identity updates against duplicate targets are rejected.
+3. **Replacement ordering and recovery:** same-identity edits use the narrow no-op/existing-rule update path. Identity-changing edits insert and verify the replacement before deleting the original. If deletion fails from the exact known intermediate state, the daemon attempts best-effort rollback, but it makes no atomicity promise and stops mutating on unclassifiable divergence. Durable replacement recovery is outside the initial scope.
+4. **Error reporting:** daemon outcomes preserve specific stale/precondition/partial/uncertain and recovery diagnostics. ASP preserves firewall outcome separately from metadata-reconciliation outcome and surfaces backend failures with actionable typed messages rather than collapsing them into a generic error.
 
-Unless one of these policies is changed at the planning gate, the implementation phases above treat them as the target contract.
+These decisions are the target contract for the implementation phases above.

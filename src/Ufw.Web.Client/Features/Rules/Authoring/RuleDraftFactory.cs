@@ -11,4 +11,10 @@ internal sealed class RuleDraftFactory : IRuleDraftFactory
         Direction = FirewallDirection.Forward,
         Protocol = FirewallProtocol.Any,
     };
+
+    public FirewallRuleSpecification CreateFromExisting(FirewallRuleSpecification rule)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+        return RuleSpecificationNormalizer.Normalize(rule);
+    }
 }

@@ -57,6 +57,9 @@ public sealed partial class RuleFamilyWorkspace
     public bool MetadataEditDisabled { get; set; }
 
     [Parameter]
+    public EventCallback<RuleRowProjection> EditRequested { get; set; }
+
+    [Parameter]
     public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
 
     [Parameter]

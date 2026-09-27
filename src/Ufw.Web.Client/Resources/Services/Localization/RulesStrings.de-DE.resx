@@ -258,6 +258,9 @@
   <data name="DefinitionDescription" xml:space="preserve">
     <value>Definieren Sie UFW-Match und Aktion. Neue Regeln werden an die bestehende Auswertungsreihenfolge angehängt.</value>
   </data>
+  <data name="EditDefinitionDescription" xml:space="preserve">
+    <value>Aktualisieren Sie UFW-Match oder Aktion unter Beibehaltung der Regelposition.</value>
+  </data>
   <data name="Action" xml:space="preserve">
     <value>Aktion</value>
   </data>
@@ -303,11 +306,23 @@
   <data name="CanonicalUfwRule" xml:space="preserve">
     <value>Kanonische UFW-Regel</value>
   </data>
+  <data name="CurrentCanonicalUfwRule" xml:space="preserve">
+    <value>Aktuelle kanonische UFW-Regel</value>
+  </data>
+  <data name="ProposedCanonicalUfwRule" xml:space="preserve">
+    <value>Vorgeschlagene kanonische UFW-Regel</value>
+  </data>
   <data name="AddSignedRule" xml:space="preserve">
     <value>Signierte Regel hinzufügen</value>
   </data>
   <data name="AddingRule" xml:space="preserve">
     <value>Regel wird hinzugefügt...</value>
+  </data>
+  <data name="UpdateSignedRule" xml:space="preserve">
+    <value>Signierte Regel aktualisieren</value>
+  </data>
+  <data name="UpdatingRule" xml:space="preserve">
+    <value>Regel wird aktualisiert...</value>
   </data>
   <data name="SourceInterfaceHelp" xml:space="preserve">
     <value>Ausgangsschnittstelle für ausgehende oder Weiterleitungsregeln.</value>

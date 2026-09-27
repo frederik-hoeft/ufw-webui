@@ -22,16 +22,20 @@ public sealed partial class RuleEditor
     private bool RequiresPrivateKey => ShowAuthorization && string.IsNullOrWhiteSpace(PrivateKey);
 
     private string EffectiveDefinitionDescription => string.IsNullOrWhiteSpace(DefinitionDescription)
-        ? RulesText["DefinitionDescription"]
+        ? Mode == RuleEditorMode.Edit ? RulesText["EditDefinitionDescription"] : RulesText["DefinitionDescription"]
         : DefinitionDescription;
 
     private string EffectiveSubmitLabel => string.IsNullOrWhiteSpace(SubmitLabel)
-        ? RulesText["AddSignedRule"]
+        ? Mode == RuleEditorMode.Edit ? RulesText["UpdateSignedRule"] : RulesText["AddSignedRule"]
         : SubmitLabel;
 
     private string EffectiveSubmittingLabel => string.IsNullOrWhiteSpace(SubmittingLabel)
-        ? RulesText["AddingRule"]
+        ? Mode == RuleEditorMode.Edit ? RulesText["UpdatingRule"] : RulesText["AddingRule"]
         : SubmittingLabel;
+
+    private string EffectiveSubmitIcon => Mode == RuleEditorMode.Edit ? Icons.Material.Filled.Save : Icons.Material.Filled.Add;
+
+    private bool EffectiveAddressFamilyLocked => AddressFamilyLocked || Mode == RuleEditorMode.Edit;
 
     private string SourceInterfaceHelp => DescribeInterfaceHelp(RulesText["SourceInterfaceHelp"]);
 
@@ -47,6 +51,12 @@ public sealed partial class RuleEditor
 
     [Parameter, EditorRequired]
     public FirewallRuleSpecification Rule { get; set; } = null!;
+
+    [Parameter]
+    public RuleEditorMode Mode { get; set; } = RuleEditorMode.Create;
+
+    [Parameter]
+    public FirewallRuleSpecification? OriginalRule { get; set; }
 
     [Parameter]
     public string? DefinitionDescription { get; set; }
@@ -99,7 +109,15 @@ public sealed partial class RuleEditor
         }
     }
 
-    protected override void OnParametersSet() => RefreshVisibleKnownHosts();
+    protected override void OnParametersSet()
+    {
+        if (Mode == RuleEditorMode.Edit && OriginalRule is null)
+        {
+            throw new InvalidOperationException("Edit-mode rule authoring requires the original rule for comparison.");
+        }
+
+        RefreshVisibleKnownHosts();
+    }
 
     public void Dispose()
     {

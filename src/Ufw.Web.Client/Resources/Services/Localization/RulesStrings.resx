@@ -258,6 +258,9 @@
   <data name="DefinitionDescription" xml:space="preserve">
     <value>Define the UFW match and action. New rules are appended to the existing evaluation order.</value>
   </data>
+  <data name="EditDefinitionDescription" xml:space="preserve">
+    <value>Update the UFW match or action while preserving this rule's position.</value>
+  </data>
   <data name="Action" xml:space="preserve">
     <value>Action</value>
   </data>
@@ -303,11 +306,23 @@
   <data name="CanonicalUfwRule" xml:space="preserve">
     <value>Canonical UFW rule</value>
   </data>
+  <data name="CurrentCanonicalUfwRule" xml:space="preserve">
+    <value>Current canonical UFW rule</value>
+  </data>
+  <data name="ProposedCanonicalUfwRule" xml:space="preserve">
+    <value>Proposed canonical UFW rule</value>
+  </data>
   <data name="AddSignedRule" xml:space="preserve">
     <value>Add signed rule</value>
   </data>
   <data name="AddingRule" xml:space="preserve">
     <value>Adding rule...</value>
+  </data>
+  <data name="UpdateSignedRule" xml:space="preserve">
+    <value>Update signed rule</value>
+  </data>
+  <data name="UpdatingRule" xml:space="preserve">
+    <value>Updating rule...</value>
   </data>
   <data name="SourceInterfaceHelp" xml:space="preserve">
     <value>Egress interface for outbound or forward rules.</value>

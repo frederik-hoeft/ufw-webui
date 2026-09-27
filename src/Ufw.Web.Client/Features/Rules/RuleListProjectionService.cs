@@ -45,16 +45,21 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
 
             RulePositionChange? positionChange = CreatePositionChange(occurrenceId, originalFamilyPositions[occurrenceId], familyPosition, orderingPreview);
             bool canOrder = rule.Parsed && rule.Rule is not null;
-            bool canMutate = canOrder
+            bool hasUniqueSemanticIdentity = canOrder
                 && rule.RuleId is { } ruleId
                 && ruleIdCounts.GetValueOrDefault(ruleId) == 1;
+            bool canMutate = hasUniqueSemanticIdentity;
+            bool canEdit = hasUniqueSemanticIdentity && rule.Rule!.AddressFamily is FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6;
 
             RuleMetadata? metadata = rule.RuleId is { } ruleIdentity
                 && metadataByRuleId is not null
                 && metadataByRuleId.TryGetValue(ruleIdentity, out RuleMetadata? matchedMetadata)
                     ? matchedMetadata
                     : null;
-            RuleRowProjection row = new(rule, family, occurrenceId, familyPosition, familyCounts[family], canOrder, canMutate, positionChange, metadata, CreateCanonicalCommand(rule));
+            RuleRowProjection row = new(rule, family, occurrenceId, familyPosition, familyCounts[family], canOrder, canMutate, positionChange, metadata, CreateCanonicalCommand(rule))
+            {
+                CanEdit = canEdit,
+            };
 
             if (family == FirewallAddressFamily.IPv6)
             {
