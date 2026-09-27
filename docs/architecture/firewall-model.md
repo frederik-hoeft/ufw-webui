@@ -1,6 +1,6 @@
 # Firewall State and Rule Model
 
-This document defines the firewall-state contract behind the broader [UFWeb architecture](architecture-overview.md): how UFW output becomes authoritative structural state, how mutable rules are identified, and how add/insert/delete/batch-delete/reorder operations are reconciled against fresh host state.
+This document defines the firewall-state contract behind the broader [UFWeb architecture](architecture-overview.md): how UFW output becomes authoritative structural state, how mutable rules are identified, and how add/insert/replace/delete/batch-delete/reorder operations are reconciled against fresh host state.
 
 UFW itself remains the authoritative firewall database. UFWeb does not mirror every rule into PostgreSQL or assume that it is the only actor modifying the firewall, so normal UFW tooling and other administrators can coexist with the web interface without creating two competing sources of truth. The consequence is that every mutable rule must be addressable from current observed firewall semantics rather than from application-generated row numbers or database identifiers.
 
@@ -49,6 +49,8 @@ The identity exists to answer one question: "which currently observed semantic r
 Delete requests carry both the semantic identity and the complete normalized rule specification. The daemon recomputes the identity from the supplied rule and rejects a mismatch. Under the execution gate it then takes a fresh UFW snapshot, finds current matches, and requires exactly one. Only after that resolution does it use the current UFW display number for the actual delete command.
 
 This protects deletion from ordinary UFW renumbering and from stale browser snapshots. If no current rule matches, or more than one indistinguishable rule matches, the daemon refuses to guess.
+
+Replacement uses semantic identity differently because the operation already binds one exact occurrence inside a fingerprinted snapshot. The signed `OriginalRuleId` is an additional semantic precondition on that occurrence rather than the occurrence selector by itself. The replacement rule's identity is recomputed from its normalized semantics and used for duplicate safety plus metadata reconciliation after the daemon confirms the final state.
 
 ## Address-family materialization
 
@@ -113,6 +115,28 @@ Snapshot occurrences use the combined UFW listing for authorization, and UFW's p
 
 A verified insertion returns a typed result with the final authoritative snapshot whenever it can be read safely. `Ufw.Web` maps completed execution to HTTP 200, a stale baseline to 409, a precondition failure to 422, and uncertain authoritative state to 503 while preserving the typed report body. Signature, replay, and malformed-intent failures use the normal API error representation.
 
+## Rule replacement lifecycle
+
+Rule editing is a state-conditioned replacement of one exact supported occurrence in one reviewed snapshot. The browser signs the baseline fingerprint, zero-based target occurrence, the target's expected semantic `RuleId`, and the complete normalized replacement rule. Both target and replacement must have the same concrete IPv4 or IPv6 family; moving a rule between family partitions is not part of the replacement contract.
+
+The daemon first requires a fresh snapshot matching the signed baseline and resolves the target occurrence against the signed original identity. Replacement remains conservative around duplicate semantic state. A same-identity update is rejected unless that identity occurs exactly once, because UFW's existing-rule update syntax cannot address one duplicate occurrence safely. An identity-changing replacement is rejected before mutation when its new semantic `RuleId` already exists anywhere in the baseline. The ordinary browser workflow is stricter still and does not offer rule editing for duplicate semantic identities, treating such state as an operator-reconciliation case rather than an authoring scenario.
+
+When the replacement has the same semantic identity as the original, only the comment can differ because comments are excluded from `RuleId`. An identical normalized rule is therefore a confirmed no-op. A changed comment uses UFW's existing-rule update behavior, including an explicit empty comment when the existing comment must be removed, and succeeds only when the complete authoritative post-state matches the expected one-row replacement.
+
+When the semantic identity changes, the daemon preserves the known-good rule until the replacement has been observed:
+
+1. validate current IPv6 capability and referenced host interfaces;
+2. insert the replacement immediately before the signed target occurrence;
+3. re-read UFW and require the exact baseline-plus-one-row intermediate state;
+4. delete the original occurrence, whose current position is derived from that confirmed intermediate state;
+5. re-read UFW and require the exact final snapshot containing the replacement at the original family-local position.
+
+This insert-before-delete ordering deliberately prefers a temporary overlapping-policy window over a missing-rule window. If insertion fails and the baseline remains unchanged, the operation is a precondition failure. If deletion fails while the exact intermediate state is still confirmed, the daemon performs a best-effort rollback by deleting the newly inserted replacement. Recovery is attempted only from that exact known intermediate state; any unclassifiable divergence stops further mutation.
+
+Replacement recovery is synchronous and best-effort rather than journaled. A confirmed rollback to the exact baseline is reported separately from the primary replacement outcome. A failed rollback can leave both old and new rules present and is reported as partial completion when that state is known; unreadable or otherwise unclassifiable state is reported as uncertain. A process failure can still yield `Completed` when the authoritative snapshot proves that the requested final state was reached, and a successful process exit never overrides a mismatched post-state.
+
+The daemon response separates the transaction outcome (`Completed`, `StaleBaseline`, `PreconditionFailed`, `PartiallyCompleted`, or `StateUncertain`) from optional recovery status and carries the final authoritative snapshot whenever it can establish one safely. On `Completed`, it also identifies the confirmed replacement row. `Ufw.Web` maps completed execution to HTTP 200, stale or partial execution to 409, precondition failure to 422, and uncertain state to 503 while preserving the typed firewall result.
+
 ## Delete lifecycle
 
 Delete follows the same authorization, nonce, process-ownership, and reconciliation rules, with target resolution replacing duplicate detection:
@@ -126,7 +150,7 @@ Interface existence is intentionally not revalidated for delete. A rule referenc
 
 ## Batch-delete lifecycle
 
-Batch deletion is a state-conditioned mutation over one exact authoritative snapshot. The signed payload contains the snapshot fingerprint and a non-empty set of unique zero-based occurrence IDs from that snapshot. Occurrence IDs, rather than semantic `RuleId`s, are used because duplicate semantic rows can legitimately coexist and must remain independently selectable. The operation is generic firewall authority: an ASP-owned rule-group ID is never part of the signed payload or daemon protocol.
+Batch deletion is a state-conditioned mutation over one exact authoritative snapshot. The signed payload contains the snapshot fingerprint and a non-empty set of unique zero-based occurrence IDs from that snapshot. Occurrence IDs, rather than semantic `RuleId`s, are used because duplicate semantic rows can exist in observed UFW state and must remain independently selectable. The operation is generic firewall authority: an ASP-owned rule-group ID is never part of the signed payload or daemon protocol.
 
 Under the execution gate, the daemon consumes the nonce, reads a fresh snapshot, and requires its fingerprint to match the signed baseline before interpreting any occurrence. Every selected occurrence must fall inside the baseline and have a usable UFW display number. Targets are processed from the highest baseline occurrence downward so deleting one row cannot invalidate the remaining baseline-to-current coordinate mapping by ordinary renumbering.
 
@@ -154,7 +178,7 @@ This is transaction-level recovery around sequential UFW commands, not packet-le
 
 ## Cancellation and uncertain outcomes
 
-Once a UFW mutation process starts, caller cancellation cannot safely mean "the mutation did not happen." The daemon therefore keeps process ownership, terminates and reaps the child if required, and performs an authoritative reconciliation read before propagating cancellation. During reordering, a delete/reinsert recovery obligation continues independently of caller cancellation until row presence is confirmed or the daemon must fail closed with the durable recovery record intact. During batch deletion, already confirmed deletions remain part of the reported state; cancellation or drift does not authorize reinserting them.
+Once a UFW mutation process starts, caller cancellation cannot safely mean "the mutation did not happen." The daemon therefore keeps process ownership, terminates and reaps the child if required, and performs an authoritative reconciliation read before propagating cancellation. During replacement, a confirmed insert-plus-original intermediate state is still eligible for synchronous best-effort rollback even after caller cancellation, so cancellation cannot abandon a replacement row that the daemon has just inserted. During reordering, a delete/reinsert recovery obligation continues independently of caller cancellation until row presence is confirmed or the daemon must fail closed with the durable recovery record intact. During batch deletion, already confirmed deletions remain part of the reported state; cancellation or drift does not authorize reinserting them.
 
 If reconciliation cannot establish the postcondition, callers must treat their previous snapshot as stale and refresh before attempting another mutation. The browser follows that rule and disables further mutation while its displayed snapshot is known to be stale.
 
@@ -162,7 +186,7 @@ If reconciliation cannot establish the postcondition, callers must treat their p
 
 Application-owned metadata can make rule authoring easier, but it never becomes part of firewall authority. The browser resolves a selected metadata entry to the concrete value understood by the firewall model before preview or signing, and the signed/executed rule contains no application-only identifier.
 
-Network-interface metadata is attached to daemon-observed host inventory. `Ufw.Web` reconciles current interface names into PostgreSQL so administrators can add comments and control which interfaces appear in suggestions. Reconciliation preserves metadata for names that still exist, creates entries for new names, and removes entries whose host interface disappeared. Hiding an entry changes only the authoring UI. A stale cached entry cannot authorize an add or ordered insertion because the daemon checks the signed interface name against a fresh host snapshot before execution.
+Network-interface metadata is attached to daemon-observed host inventory. `Ufw.Web` reconciles current interface names into PostgreSQL so administrators can add comments and control which interfaces appear in suggestions. Reconciliation preserves metadata for names that still exist, creates entries for new names, and removes entries whose host interface disappeared. Hiding an entry changes only the authoring UI. A stale cached entry cannot authorize an add, ordered insertion, or replacement because the daemon checks the signed interface name against a fresh host snapshot before execution.
 
 Known-host metadata is different because it is entirely ASP-owned. Each alias exposes one canonical literal IPv4/IPv6 address or CIDR to the authoring workflow, with a human-facing name, optional comment, and independent suggestion-visibility preference. Literal aliases store that address directly. DNS-backed aliases use the alias name as a DNS name and store the selected address family, the most recently resolved literal host address, and the time of that successful resolution. DNS is consulted when the alias is initially configured, when its DNS configuration changes, or when an operator explicitly reconciles it from the known-host management page.
 
@@ -172,6 +196,10 @@ Changing, reconciling, or deleting a known-host alias cannot mutate previously a
 
 Rule notes, tags, and groups are ASP-owned metadata over semantic `RuleId`, not authoring input that survives into the firewall rule. Tags are reusable many-to-many labels. A rule group is a first-class entity with stable public identity, mutable name/comment, and a nullable one-group-per-rule membership stored on rule metadata. Empty groups are valid. Group deletion in PostgreSQL is restricted while any metadata row still references the group, so deleting a non-empty group cannot silently cascade into either metadata loss or firewall mutation.
 
+Completed rule replacement reconciles this metadata only after the daemon has confirmed the replacement identity and final authoritative snapshot. If the semantic identity is unchanged, the metadata key is unchanged. If the old identity no longer exists, its metadata row is re-keyed to the replacement identity while preserving its public metadata UUID. If another old-identity occurrence remains live, equivalent metadata is copied to the new identity with a fresh metadata UUID while the old row remains. Target-side orphan metadata yields deterministically to the metadata of the rule being edited, and the entire copy/re-key/collision operation is one database save unit so a failed reconciliation cannot persist only part of the move.
+
+The ASP response keeps firewall outcome and metadata reconciliation as separate facts. Metadata is reconciled automatically only after `Completed`; other firewall outcomes leave it untouched. If automatic reconciliation fails after a successful firewall replacement, `Ufw.Web` returns an application error while preserving the completed firewall report, allowing the browser to say that the firewall changed even though PostgreSQL reconciliation failed. User edits to notes/tags/group membership are applied afterward against the daemon-confirmed replacement identity; such a metadata-save failure can be retried without ever resubmitting the consumed firewall replacement intent.
+
 The browser can compose group deletion with the generic batch-delete mutation, but the boundary remains explicit: the browser resolves group membership against a fresh authoritative snapshot, signs occurrence IDs from that snapshot, and the daemon sees only the generic firewall operation. After a completed batch, the group is removed only if a fresh ASP catalog read shows it is empty. Orphan-metadata reconciliation likewise removes stale membership with the metadata record but leaves the now-empty group intact unless an operator explicitly deletes it.
 
 ## Out-of-band changes
@@ -180,8 +208,8 @@ Administrators and other tools may change UFW outside UFWeb. The architecture ex
 
 A subsequent list observes those changes directly. Supported externally-created rules receive the same semantic identities as equivalent rules created through the web interface. Renumbering does not break identity. Unsupported syntax remains observable but read-only.
 
-The daemon serializes only its own UFW accesses. It does not provide a cross-process lock against an administrator or unrelated program invoking UFW concurrently, so a simultaneous external mutation can still create an unavoidable host-level race. For state-conditioned insertion, batch deletion, or reorder, a baseline mismatch before the first subprocess is reported without mutation. If ordered insertion observes anything other than its exact expected post-state after the subprocess may have run, it reports authoritative uncertainty rather than attempting a compensating mutation. Batch deletion stops before the next target as soon as the observed sequence diverges from the expected surviving baseline and reports any already-confirmed prefix. Reorder divergence stops further planned moves after the active row has been made safe, and its transaction report describes the authoritative state and any safely derivable remaining work.
+The daemon serializes only its own UFW accesses. It does not provide a cross-process lock against an administrator or unrelated program invoking UFW concurrently, so a simultaneous external mutation can still create an unavoidable host-level race. For state-conditioned insertion, replacement, batch deletion, or reorder, a baseline mismatch before the first subprocess is reported without mutation. If ordered insertion observes anything other than its exact expected post-state after the subprocess may have run, it reports authoritative uncertainty rather than attempting a compensating mutation. Replacement attempts rollback only from its exact confirmed insert-plus-original intermediate state and otherwise stops on divergence. Batch deletion stops before the next target as soon as the observed sequence diverges from the expected surviving baseline and reports any already-confirmed prefix. Reorder divergence stops further planned moves after the active row has been made safe, and its transaction report describes the authoritative state and any safely derivable remaining work.
 
 ## Mutation boundary
 
-The privileged mutation contract supports append-style add, exact-snapshot ordered insertion, semantic single delete, exact-snapshot batch delete, and exact-snapshot reorder. Ordered insertion changes membership and placement together, so it remains a distinct signed operation rather than an extension of append add or reorder. Batch deletion is likewise a generic occurrence-based firewall operation; higher-level application concepts such as rule groups compose it without extending daemon authority to ASP-owned identifiers.
+The privileged mutation contract supports append-style add, exact-snapshot ordered insertion, exact-snapshot occurrence replacement, semantic single delete, exact-snapshot batch delete, and exact-snapshot reorder. Ordered insertion and replacement both change membership and placement semantics and therefore remain distinct signed operations rather than extensions of append add or reorder. Batch deletion is likewise a generic occurrence-based firewall operation; higher-level application concepts such as rule groups compose it without extending daemon authority to ASP-owned identifiers.

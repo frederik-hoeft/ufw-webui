@@ -66,6 +66,6 @@ Caller cancellation and daemon shutdown remain cancellation signals. They are no
 
 - [ITP v1](itp.md) defines the stable bootstrap, v1 frame layout, packet registry, transport errors, and receiver requirements.
 - [Application IPC protocol v1](application-protocol.md) defines the JSON envelope, payload representations, typed binding rules, and application-level errors.
-- [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for append add, ordered insertion, single/batch delete, and reorder operations, including canonicalization, replay protection, semantic delete identity, and exact-snapshot occurrence authority.
+- [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for append add, ordered insertion, occurrence-bound replacement, single/batch delete, and reorder operations, including canonicalization, replay protection, semantic rule identity, and exact-snapshot occurrence authority.
 
 For the architectural role of IPC, see [UFWeb Architecture](../architecture/architecture-overview.md). For production socket ownership and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).

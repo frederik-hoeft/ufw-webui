@@ -45,63 +45,6 @@ Persisting first is intentional. A failed delete can leave an extra template, wh
 
 Detailed design is deferred until this feature becomes active work, including the template schema, uniqueness/naming rules, provenance, metadata-copy behavior, template ownership/auditing, and template-manager UX.
 
-## First-class rule editing and replacement
-
-Add a first-class **Edit rule** workflow that reuses the existing rule-authoring UI and signed mutation infrastructure while preserving the live rule's position and associated ASP metadata.
-
-The browser-side workflow should treat editing as authoring a replacement rule rather than mutating fields in place. Selecting **Edit rule** loads the existing structural rule into the same reusable editor/components used by **Add rule**, while retaining the identity of the live rule being replaced. The editor can then validate and preview the replacement using the same capabilities as ordinary rule creation.
-
-Conceptually:
-
-```text
-Authoritative live rule occurrence
-    |
-    | Edit
-    v
-FirewallRuleSpecification draft
-    |
-    | modify / validate / confirm / sign
-    v
-signed rule-replacement intent
-    |
-    | reconcile old occurrence, delete, insert replacement at same position
-    v
-new authoritative rule occurrence
-```
-
-### Identity and signed mutation contract
-
-The update request needs to bind both sides of the replacement:
-
-- the existing semantic rule identity/hash expected by the browser;
-- the exact live occurrence being edited when duplicate semantic rules exist;
-- the authoritative baseline snapshot/precondition used for reconciliation;
-- the complete validated replacement rule model.
-
-The old semantic SHA-256 identity is an important precondition, but it is not sufficient by itself to identify one live rule because multiple identical UFW occurrences can intentionally share the same semantic `RuleId`. The eventual signed intent should therefore reuse the existing occurrence/snapshot identity machinery rather than selecting an arbitrary matching hash when duplicates are present.
-
-ASP should remain a forwarding/reconciliation boundary rather than becoming firewall authority. The daemon validates the signed replacement intent, reconciles the target against a fresh authoritative snapshot under the shared mutation gate, remembers its current family-local position, deletes exactly that occurrence, and inserts the replacement structural rule at the same position using the existing/adjacent insertion mechanics. On success it returns the resulting authoritative state and the replacement rule's new semantic identity.
-
-The operation must not be documented or implemented as transactionally atomic unless the daemon can actually guarantee that property. A delete may succeed before replacement insertion fails, and a subsequent inventory refresh may itself become uncertain. The protocol therefore needs explicit success/partial-failure/state-uncertain outcomes and authoritative final-snapshot reconciliation, following the same conservative principles as reorder and batch-delete workflows. Compensation such as reinserting the old rule should be a deliberate protocol decision rather than an implicit best-effort side effect.
-
-### Metadata reconciliation
-
-Rule metadata remains keyed by semantic rule identity and must be reconciled only after the firewall result is known. In the ordinary case, notes, tags, and group membership associated with the edited rule should follow the replacement to its new semantic identity.
-
-Duplicate semantic occurrences make this more subtle. If another live occurrence still uses the old semantic `RuleId`, the old metadata association must remain valid for that surviving rule while equivalent metadata is associated with the replacement's new identity. If the edited occurrence was the final live use of the old identity, the existing metadata row can instead be re-keyed/migrated or replaced as one logical operation. Reconciliation should derive this decision from the daemon's authoritative final snapshot rather than from the browser's pre-update assumptions.
-
-This also implies that editing a rule whose replacement normalizes to the same semantic identity is a valid no-identity-change case: position is preserved and no unnecessary metadata churn should be required.
-
-### UI integration
-
-The rule action menu should expose **Edit rule** separately from **Edit metadata**. The edit workflow should reuse the existing Add Rule form and field components through an explicit create/edit mode instead of cloning the authoring UI. Editing state should carry the baseline occurrence identity and original semantic `RuleId` separately from the mutable draft.
-
-The confirmation/signing step should make the replacement nature of the operation clear and show both the current canonical rule and the proposed canonical replacement. Successful completion should reconcile the ordinary rule inventory and metadata state from the returned authoritative result rather than relying on optimistic local substitution.
-
-### Implementation plan
-
-This backlog item is active work. The current-state inventory, protocol decisions, phased branch boundaries, and QA/approval gates are maintained in [Rule editing and replacement implementation plan](rule-editing-and-replacement-plan.md).
-
 ## Semantic firewall-policy exploration
 
 Provide an exploratory view that answers questions about what the **UFW-managed policy represented by UFWeb** permits, using the same parsed/normalized rule semantics already exposed by the application.

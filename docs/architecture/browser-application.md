@@ -51,7 +51,7 @@ Those decisions belong to `Features`. Features are grouped by domain and turn tr
 
 ## Authoritative inventory and interaction state
 
-The rules and create-rule pages share an explicit inventory model for the currently loaded firewall snapshot. The model distinguishes initial loading, refresh in progress, a fresh usable snapshot, a stale snapshot retained after a failed refresh or uncertain mutation, and a terminal load failure. That distinction exists because “we still have data to show” and “this data is safe to use as mutation authority” are different statements.
+The rules, create-rule, and edit-rule pages share an explicit inventory model for the currently loaded firewall snapshot. The model distinguishes initial loading, refresh in progress, a fresh usable snapshot, a stale snapshot retained after a failed refresh or uncertain mutation, and a terminal load failure. That distinction exists because “we still have data to show” and “this data is safe to use as mutation authority” are different statements.
 
 When a REST rule-list response succeeds, the browser constructs a `RuleSnapshot` from daemon-authoritative firewall state plus the application metadata joined by `Ufw.Web`. Later UI operations derive views from this snapshot rather than rewriting it. If a refresh fails, the previous snapshot can remain on screen as useful stale information, but mutation controls stay disabled until a fresh inventory has been established again.
 
@@ -65,6 +65,12 @@ Reordering starts as a browser-local preview over that family projection. Draggi
 
 Ordered insertion uses the same principle. Navigating from a particular row can carry snapshot-local insertion context into the create-rule workflow, allowing the UI to show “before” or “after” relative to the reviewed row. The eventual signed request still binds that anchor to the exact snapshot in which the occurrence number had meaning, so a later out-of-band change cannot silently retarget the insertion.
 
+Rule editing is another snapshot-bound authoring workflow rather than an optimistic mutation of the loaded row. Navigation to `/rules/edit` carries the reviewed snapshot fingerprint, exact occurrence, and original semantic `RuleId`. The page refreshes inventory and resolves that context again before enabling authoring. A stale or mismatched context, unsupported target, or duplicate semantic identity fails closed; the normal UI does not attempt to repair or edit ambiguous duplicate UFW state.
+
+The edit form initializes an independent normalized draft from the live structural rule and reuses the same authoring field components, reference-data services, validation, and canonical rendering as rule creation. Address family is locked because replacement preserves one concrete family-local position. Before signing, the page presents both the current canonical UFW rule and the proposed replacement. The signed request binds the complete replacement to the exact reviewed target rather than treating the mutable draft as authority by itself.
+
+An edit context is single-use. Any daemon replacement result consumes it, including stale, partial, or uncertain outcomes, and a successful replacement consumes it before any subsequent metadata work begins. This prevents a metadata failure or retry gesture from replaying the firewall mutation. The page applies an authoritative returned snapshot when one is safely available and otherwise marks its previous inventory stale before another mutation can be attempted.
+
 ## Query and filtering pipeline
 
 Filtering is a composable client-side projection over the current family workspace. `RuleQuery` contains independent `RuleFilter` instances rather than one monolithic predicate, which lets filters be added, edited, removed, and combined without coupling unrelated semantics. The current filters cover action, direction, protocol, source and destination networks, source and destination or general port expressions, interfaces, reusable tag identity, reusable group identity, and free-text search.
@@ -77,7 +83,9 @@ Filtering and ordering preview are intentionally mutually exclusive. A filtered 
 
 ## Metadata, groups, known hosts, and interfaces
 
-Rule metadata consists of optional notes, reusable tags, and at most one rule-group membership attached to semantic rule identity. The same metadata editor can be used while editing an existing live rule or while preparing a new rule, but persistence follows firewall authority in different orders. For an existing rule, `Ufw.Web` confirms that the semantic identity is still live before saving metadata and the browser then reconciles the returned metadata into its loaded snapshot. For a new rule, the signed firewall mutation is confirmed first; only after the resulting semantic identity is known does the browser attach the prepared metadata. If that second request fails, the UI can report a metadata problem without misrepresenting the successful firewall mutation.
+Rule metadata consists of optional notes, reusable tags, and at most one rule-group membership attached to semantic rule identity. The same metadata editor is used for metadata-only edits, rule creation, and structural rule editing, but persistence follows firewall authority in different orders. For a metadata-only edit, `Ufw.Web` confirms that the semantic identity is still live before saving metadata and the browser then reconciles the returned metadata into its loaded snapshot. For a new rule, the signed firewall mutation is confirmed first; only after the resulting semantic identity is known does the browser attach the prepared metadata. For structural editing, `Ufw.Web` first reconciles the existing metadata from the original semantic identity to the daemon-confirmed replacement identity as part of the replacement response; only then does the browser apply any user-changed metadata values against that confirmed identity.
+
+Automatic replacement reconciliation and the user's metadata edit remain separate failure domains. A completed firewall replacement is preserved as completed even if ASP's metadata reconciliation fails. If automatic reconciliation succeeds but the subsequent metadata save fails, the browser can retry only that metadata save because the replacement context is already consumed. This keeps user-visible error handling aligned with the actual state of UFW and PostgreSQL instead of collapsing both systems into one generic success/failure flag.
 
 Tags have stable UUID identity independent of their display name or color. Renaming or recoloring a tag can therefore update loaded metadata and active tag filters without changing what those filters refer to. The tag chip itself is a shared visual component across list, detail, editor, and preview surfaces, so the preview is not a second approximation of the persisted rendering.
 
@@ -91,7 +99,7 @@ Known hosts and network interfaces both assist rule authoring, but their authori
 
 That DNS lifecycle stops at the known-host feature boundary. Rule completion, free-text alias context, and the rule editor continue to consume the same resolved `Address` field as literal aliases, without performing DNS queries or carrying DNS identity into `FirewallRuleSpecification`. A later DNS reconciliation can therefore change what the alias suggests for future authoring without changing any rule that already contains the previous literal address.
 
-Network interfaces originate from the host instead. `Ufw.Web` reconciles daemon-observed interface names with application metadata such as comments and visibility, and the browser uses that enriched inventory for suggestions. The daemon still checks the literal interface name against fresh host state immediately before add or ordered insertion, so a stale browser cache can never authorize use of an interface that no longer exists.
+Network interfaces originate from the host instead. `Ufw.Web` reconciles daemon-observed interface names with application metadata such as comments and visibility, and the browser uses that enriched inventory for suggestions. The daemon still checks the literal interface name against fresh host state immediately before add, ordered insertion, or replacement, so a stale browser cache can never authorize use of an interface that no longer exists.
 
 ## Authentication and HTTP coordination
 
