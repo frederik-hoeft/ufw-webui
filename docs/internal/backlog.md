@@ -2,10 +2,6 @@
 
 This document records unresolved larger design directions that are useful to retain between implementation phases. It is deliberately non-normative: none of these sections describes current product behavior unless a permanent architecture/protocol document says so.
 
-## Rule templates and reversible disable workflow
-
-Rule templates are now active design work. The current inventory, proposed contract, unresolved product choices, implementation phases, and QA gates are tracked in [rule-templates-plan.md](rule-templates-plan.md).
-
 ## Semantic firewall-policy exploration
 
 Provide an exploratory view that answers questions about what the **UFW-managed policy represented by UFWeb** permits, using the same parsed/normalized rule semantics already exposed by the application.
