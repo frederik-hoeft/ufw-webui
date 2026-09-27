@@ -18,6 +18,7 @@ internal abstract record RuleInventoryTransition
     public sealed record TagCatalogReconciled(IReadOnlyList<RuleTag> Tags) : RuleInventoryTransition;
     public sealed record GroupCatalogReconciled(IReadOnlyList<RuleGroup> Groups) : RuleInventoryTransition;
     public sealed record InsertionCompleted(RuleInsertionResponse Response, DateTimeOffset CapturedAt = default) : RuleInventoryTransition;
+    public sealed record ReplacementCompleted(RuleReplacementResponse Response, DateTimeOffset CapturedAt = default) : RuleInventoryTransition;
     public sealed record ReorderCompleted(RuleReorderResponse Response, DateTimeOffset CapturedAt = default) : RuleInventoryTransition;
     public sealed record MutationFailed(ClientError Error) : RuleInventoryTransition;
 }

@@ -354,6 +354,12 @@ public sealed partial class RulesPage
             return Task.CompletedTask;
         }
 
+        if (row.Rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6 && !snapshot.Configuration.IPv6Enabled)
+        {
+            Snackbar.Add(RulesText["ReplacementIPv6Unavailable"], Severity.Warning);
+            return Task.CompletedTask;
+        }
+
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
@@ -362,7 +368,7 @@ public sealed partial class RulesPage
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
-            Snackbar.Add(exception.Message, Severity.Warning);
+            Snackbar.Add(RulesText["ReplacementTargetUnavailable"], Severity.Warning);
         }
 
         return Task.CompletedTask;

@@ -38,6 +38,7 @@ internal sealed record RuleInventoryState
             RuleInventoryTransition.TagCatalogReconciled reconciled => ReconcileTagCatalog(reconciled.Tags),
             RuleInventoryTransition.GroupCatalogReconciled reconciled => ReconcileGroupCatalog(reconciled.Groups),
             RuleInventoryTransition.InsertionCompleted completed => CompleteInsertion(completed.Response, completed.CapturedAt),
+            RuleInventoryTransition.ReplacementCompleted completed => CompleteReplacement(completed.Response, completed.CapturedAt),
             RuleInventoryTransition.ReorderCompleted completed => CompleteReorder(completed.Response, completed.CapturedAt),
             RuleInventoryTransition.MutationFailed failed => FailMutation(failed.Error),
             _ => throw new ArgumentOutOfRangeException(nameof(transition), transition, null),
@@ -109,6 +110,12 @@ internal sealed record RuleInventoryState
     {
         ArgumentNullException.ThrowIfNull(response);
         return CompleteMutation(response.FinalSnapshot, capturedAt, "An insertion response cannot replace an unloaded rule snapshot.");
+    }
+
+    private RuleInventoryState CompleteReplacement(RuleReplacementResponse response, DateTimeOffset capturedAt)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        return CompleteMutation(response.FinalSnapshot, capturedAt, "A replacement response cannot replace an unloaded rule snapshot.");
     }
 
     private RuleInventoryState CompleteReorder(RuleReorderResponse response, DateTimeOffset capturedAt)

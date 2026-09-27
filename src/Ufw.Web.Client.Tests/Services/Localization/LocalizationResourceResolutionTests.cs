@@ -31,4 +31,26 @@ public sealed class LocalizationResourceResolutionTests
             CultureInfo.CurrentUICulture = previousCulture;
         }
     }
+
+    [TestMethod]
+    public void RulesStrings_GermanRuleEditResourceResolvesFromServicesNamespace()
+    {
+        CultureInfo previousCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de-DE");
+            ServiceCollection services = new();
+            services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            services.AddLocalization(options => options.ResourcesPath = "Resources");
+            using ServiceProvider provider = services.BuildServiceProvider();
+            IStringLocalizer<RulesStrings> localizer = provider.GetRequiredService<IStringLocalizer<RulesStrings>>();
+
+            Assert.AreEqual("Firewall-Regel bearbeiten", localizer["EditRuleTitle"].Value);
+            Assert.AreEqual("Firewall aktualisiert, aber Metadatenabgleich fehlgeschlagen", localizer["ReplacementMetadataReconciliationFailed"].Value);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previousCulture;
+        }
+    }
 }

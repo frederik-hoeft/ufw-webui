@@ -916,4 +916,38 @@
   <data name="Reconcile" xml:space="preserve">
     <value>Reconcile</value>
   </data>
+  <data name="EditRule" xml:space="preserve"><value>Edit rule</value></data>
+  <data name="EditRulePageTitle" xml:space="preserve"><value>Edit firewall rule</value></data>
+  <data name="EditRuleTitle" xml:space="preserve"><value>Edit firewall rule</value></data>
+  <data name="EditRuleDescription" xml:space="preserve"><value>Replace one exact authoritative rule occurrence while preserving its address family and evaluation position.</value></data>
+  <data name="EditRuleBreadcrumb" xml:space="preserve"><value>Edit rule</value></data>
+  <data name="LoadingBeforeEdit" xml:space="preserve"><value>Loading authoritative firewall state before rule editing is enabled.</value></data>
+  <data name="EditingRuleTarget" xml:space="preserve"><value>Editing target</value></data>
+  <data name="ReplacementTargetDescription" xml:space="preserve"><value>Editing {0} rule {1} from the reviewed authoritative snapshot.</value></data>
+  <data name="ReplacementTargetLocked" xml:space="preserve"><value>The rule's address family and evaluation position are locked for this replacement.</value></data>
+  <data name="ReplacementContextReselect" xml:space="preserve"><value>This edit context can no longer be used. Return to the rules list and select the rule again from current authoritative state.</value></data>
+  <data name="ReplacementContextConsumed" xml:space="preserve"><value>The signed firewall replacement completed, so this structural edit context has been consumed and cannot be submitted again.</value></data>
+  <data name="ReplacementBaselineStale" xml:space="preserve"><value>The firewall changed after this edit was opened, so the reviewed baseline is stale.</value></data>
+  <data name="ReplacementTargetMissing" xml:space="preserve"><value>The selected rule occurrence is no longer present in authoritative firewall state.</value></data>
+  <data name="ReplacementTargetMismatch" xml:space="preserve"><value>The selected rule occurrence no longer has the semantic identity that was reviewed.</value></data>
+  <data name="ReplacementDuplicateIdentity" xml:space="preserve"><value>Rule editing is unavailable because duplicate rules with the same semantic identity exist. Resolve the duplicate firewall state first.</value></data>
+  <data name="ReplacementIPv6Unavailable" xml:space="preserve"><value>The selected IPv6 rule cannot be edited because IPv6 support is disabled in the current UFW configuration.</value></data>
+  <data name="ReplacementContextInvalid" xml:space="preserve"><value>The rule editing context is incomplete or invalid.</value></data>
+  <data name="ReplacementTargetUnavailable" xml:space="preserve"><value>The selected rule cannot be edited from the current authoritative firewall state.</value></data>
+  <data name="RuleReplacementResult" xml:space="preserve"><value>Rule update result</value></data>
+  <data name="RuleReplacementResultCompleted" xml:space="preserve"><value>Rule update completed</value></data>
+  <data name="RuleReplacementResultStale" xml:space="preserve"><value>Rule update rejected because the baseline is stale</value></data>
+  <data name="RuleReplacementResultPrecondition" xml:space="preserve"><value>Rule update rejected by a safety precondition</value></data>
+  <data name="RuleReplacementResultPartial" xml:space="preserve"><value>Rule update only partially completed</value></data>
+  <data name="RuleReplacementResultUncertain" xml:space="preserve"><value>Final firewall state could not be established safely</value></data>
+  <data name="RuleReplacementRecoveryRestored" xml:space="preserve"><value>The daemon's best-effort recovery restored the exact reviewed baseline.</value></data>
+  <data name="RuleReplacementRecoveryFailed" xml:space="preserve"><value>The daemon could not restore the reviewed baseline after the replacement failed. Review current firewall state before making another change.</value></data>
+  <data name="RuleReplacementApplied" xml:space="preserve"><value>Firewall rule updated.</value></data>
+  <data name="ReplacementMetadataReconciliationFailed" xml:space="preserve"><value>Firewall updated, but metadata reconciliation failed</value></data>
+  <data name="ReplacementFirewallSucceeded" xml:space="preserve"><value>The firewall replacement was confirmed successfully. This error concerns application-owned metadata only.</value></data>
+  <data name="EditRuleMetadataDescription" xml:space="preserve"><value>Update the group, tags, or notes together with this rule. The existing metadata is reconciled to the confirmed replacement identity before these edits are saved.</value></data>
+  <data name="MetadataSaveAfterReplacementFailed" xml:space="preserve"><value>Firewall updated, but your metadata changes were not saved</value></data>
+  <data name="MetadataSaveAfterReplacementFailedWithReason" xml:space="preserve"><value>The firewall rule was updated, but your metadata changes could not be saved: {0}</value></data>
+  <data name="RetryMetadataSave" xml:space="preserve"><value>Retry metadata save</value></data>
+  <data name="SavingMetadata" xml:space="preserve"><value>Saving metadata...</value></data>
 </root>
