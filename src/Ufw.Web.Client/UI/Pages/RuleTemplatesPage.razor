@@ -1,0 +1,165 @@
+@page "/templates"
+@attribute [Authorize]
+@implements IDisposable
+@using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@using Ufw.Web.Client.UI.Components.Rules.Templates
+@inject IRuleTemplateCatalogService TemplateCatalog
+@inject IUfwRuleCommandRenderer RuleRenderer
+@inject NavigationManager Navigation
+@inject IClientErrorMapper ClientErrors
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<PageTitle>@TemplatesText["PageTitle"] - UFWeb</PageTitle>
+
+<PageHeader Title="@(TemplatesText["Title"])"
+            Description="@(TemplatesText["Description"])"
+            Breadcrumbs="@Breadcrumbs"
+            ShowStatus="@(_loaded)">
+    <Actions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsBusy"
+                   OnClick="RefreshAsync"
+                   Class="page-header-button">
+            @CommonText["Refresh"]
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@IsBusy"
+                   OnClick="Create"
+                   Class="page-header-button">
+            @TemplatesText["AddTemplate"]
+        </MudButton>
+    </Actions>
+    <Status>
+        @if (_loaded)
+        {
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
+                @DescribeTemplateCount(_templates.Count)
+            </MudChip>
+        }
+    </Status>
+</PageHeader>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">@(_mutationError ? TemplatesText["OperationFailed"] : TemplatesText["LoadFailed"])</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_error.Message</MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Refresh" Disabled="@IsBusy" OnClick="RefreshAsync">
+            @CommonText["Retry"]
+        </MudButton>
+    </MudAlert>
+}
+
+<MudPaper Class="inventory-card rule-template-inventory" Elevation="1">
+    <header>
+        <div>
+            <MudText Typo="Typo.h6" HtmlTag="h2">@TemplatesText["InventoryTitle"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@TemplatesText["InventoryDescription"]</MudText>
+        </div>
+    </header>
+
+    @if (!_loaded)
+    {
+        @if (_error is null)
+        {
+            <div class="inventory-empty" role="status">
+                <MudProgressCircular Indeterminate="true" Size="Size.Medium" />
+            </div>
+        }
+    }
+    else if (_templates.Count == 0)
+    {
+        <div class="inventory-empty">
+            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.body1">@TemplatesText["NoTemplates"]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudTable Items="@_templates" Dense="true" Hover="true" Class="inventory-desktop">
+            <HeaderContent>
+                <MudTh>@TemplatesText["NameColumn"]</MudTh>
+                <MudTh>@TemplatesText["RuleColumn"]</MudTh>
+                <MudTh>@TemplatesText["MetadataColumn"]</MudTh>
+                <MudTh Class="rule-template-actions-column">@TemplatesText["ActionsColumn"]</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="template">
+                <MudTd DataLabel="@(TemplatesText["NameColumn"])">
+                    <div class="rule-template-name-stack">
+                        <strong>@template.Name</strong>
+                        <span class="rule-template-description">@(template.Description ?? TemplatesText["NoDescription"])</span>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="@(TemplatesText["RuleColumn"])">
+                    <code class="rule-template-command">@DescribeRule(template)</code>
+                </MudTd>
+                <MudTd DataLabel="@(TemplatesText["MetadataColumn"])">
+                    <div class="rule-template-metadata">
+                        @if (!HasMetadata(template))
+                        {
+                            <span>@TemplatesText["NoMetadata"]</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(template.Notes))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@TemplatesText["NotesPresent"]</MudChip>
+                        }
+                        @foreach (RuleTag tag in template.Tags)
+                        {
+                            <RuleTagChip Tag="@tag" />
+                        }
+                        @if (template.Group is { } group)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@TemplatesText["GroupLabel", group.Name]</MudChip>
+                        }
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="@(TemplatesText["ActionsColumn"])" Class="rule-template-actions-column">
+                    <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" EditRequested="Edit" DeleteRequested="DeleteAsync" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <div class="inventory-mobile">
+            @foreach (RuleTemplate template in _templates)
+            {
+                <article>
+                    <div class="inventory-mobile-copy">
+                        <div class="rule-template-name-stack">
+                            <strong>@template.Name</strong>
+                            <span class="rule-template-description">@(template.Description ?? TemplatesText["NoDescription"])</span>
+                        </div>
+                        <code class="rule-template-command">@DescribeRule(template)</code>
+                        <div class="rule-template-metadata">
+                            @if (!HasMetadata(template))
+                            {
+                                <span>@TemplatesText["NoMetadata"]</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(template.Notes))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@TemplatesText["NotesPresent"]</MudChip>
+                            }
+                            @foreach (RuleTag tag in template.Tags)
+                            {
+                                <RuleTagChip Tag="@tag" />
+                            }
+                            @if (template.Group is { } group)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@TemplatesText["GroupLabel", group.Name]</MudChip>
+                            }
+                        </div>
+                    </div>
+                    <div class="inventory-mobile-actions">
+                        <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" EditRequested="Edit" DeleteRequested="DeleteAsync" />
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</MudPaper>

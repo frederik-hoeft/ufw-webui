@@ -1,0 +1,20 @@
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+         Size="Size.Small"
+         Dense="true"
+         aria-label="@TemplatesText["ActionsForTemplate", Template.Name]">
+    <MudMenuItem Disabled="@Disabled"
+                 Icon="@Icons.Material.Filled.Edit"
+                 OnClick="@(() => EditRequested.InvokeAsync(Template))">
+        @TemplatesText["EditTemplate"]
+    </MudMenuItem>
+    <MudDivider />
+    <MudMenuItem Disabled="@Disabled"
+                 Icon="@Icons.Material.Filled.Delete"
+                 IconColor="Color.Error"
+                 OnClick="@(() => DeleteRequested.InvokeAsync(Template))"
+                 Class="delete">
+        @TemplatesText["DeleteTemplate"]
+    </MudMenuItem>
+</MudMenu>

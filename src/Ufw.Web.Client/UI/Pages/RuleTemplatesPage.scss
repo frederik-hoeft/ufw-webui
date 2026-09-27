@@ -1,0 +1,48 @@
+.rule-template-inventory {
+    .rule-template-name-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        min-width: 10rem;
+        overflow-wrap: anywhere;
+    }
+
+    .rule-template-description {
+        display: -webkit-box;
+        overflow: hidden;
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.8125rem;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .rule-template-command {
+        display: block;
+        max-width: min(46vw, 52rem);
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .rule-template-metadata {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .rule-template-actions-column {
+        width: 1%;
+        white-space: nowrap;
+        text-align: right;
+    }
+
+    .inventory-mobile .rule-template-command {
+        max-width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .inventory-mobile .rule-template-metadata {
+        margin-top: 0.6rem;
+    }
+}

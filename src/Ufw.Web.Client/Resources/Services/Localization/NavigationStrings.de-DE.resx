@@ -18,4 +18,5 @@
   <data name="NoStatusCheck" xml:space="preserve"><value>Es wurde noch keine ufw-systemd-Liveness-Prüfung abgeschlossen.</value></data>
   <data name="LastChecked" xml:space="preserve"><value>Zuletzt geprüft: {0}.</value></data>
   <data name="Metadata" xml:space="preserve"><value>Metadaten</value></data>
+  <data name="Templates" xml:space="preserve"><value>Vorlagen</value></data>
 </root>

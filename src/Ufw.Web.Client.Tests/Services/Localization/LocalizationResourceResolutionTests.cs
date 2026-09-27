@@ -53,4 +53,26 @@ public sealed class LocalizationResourceResolutionTests
             CultureInfo.CurrentUICulture = previousCulture;
         }
     }
+
+    [TestMethod]
+    public void TemplatesStrings_GermanResourceResolvesFromServicesNamespace()
+    {
+        CultureInfo previousCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de-DE");
+            ServiceCollection services = new();
+            services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            services.AddLocalization(options => options.ResourcesPath = "Resources");
+            using ServiceProvider provider = services.BuildServiceProvider();
+            IStringLocalizer<TemplatesStrings> localizer = provider.GetRequiredService<IStringLocalizer<TemplatesStrings>>();
+
+            Assert.AreEqual("Regelvorlagen", localizer["Title"].Value);
+            Assert.AreEqual("Vorlage speichern", localizer["SaveTemplate"].Value);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previousCulture;
+        }
+    }
 }

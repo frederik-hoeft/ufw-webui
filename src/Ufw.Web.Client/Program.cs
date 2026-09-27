@@ -10,6 +10,7 @@ using Ufw.Web.Client.Api.NetworkInterfaces;
 using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Client.Api.RuleMetadata;
 using Ufw.Web.Client.Api.RuleTags;
+using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Api.Status;
 using Ufw.Web.Client.Configuration;
@@ -18,6 +19,7 @@ using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Client.Features.Rules.Services;
+using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Features.Status;
 using Ufw.Web.Client.Services.Clipboard;
 using Ufw.Web.Client.Services.Errors;
@@ -67,6 +69,8 @@ public static class Program
         builder.Services.AddSingleton<IKnownHostSuggestionService, KnownHostSuggestionService>();
         builder.Services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         builder.Services.AddScoped<IOperationalStatusService, OperationalStatusService>();
+        builder.Services.AddScoped<IRuleTemplateCatalogService, RuleTemplateCatalogService>();
+        builder.Services.AddSingleton<IRuleTemplateDraftFactory, RuleTemplateDraftFactory>();
 
         builder.Services.AddHttpClient<IManagementApiHealthClient, ManagementApiHealthClient>(
             static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress);
@@ -95,6 +99,10 @@ public static class Program
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
         builder.Services.AddHttpClient<IRuleGroupApiClient, RuleGroupApiClient>(
+            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddHttpClient<IRuleTemplateApiClient, RuleTemplateApiClient>(
             static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>()
             .AddHttpMessageHandler<BrowserCredentialsHandler>();
