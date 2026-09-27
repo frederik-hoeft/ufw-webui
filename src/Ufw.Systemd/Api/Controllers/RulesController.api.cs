@@ -32,6 +32,12 @@ internal sealed partial class RulesController
     public partial ValueTask<IResponsePayload> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Validates and applies an administrator-signed rule-replacement intent.
+    /// </summary>
+    [Put("replace")]
+    public partial ValueTask<IResponsePayload> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Validates and applies an administrator-signed delete-rule intent.
     /// </summary>
     [Delete]

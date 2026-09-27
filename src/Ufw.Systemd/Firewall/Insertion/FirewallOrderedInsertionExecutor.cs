@@ -77,13 +77,13 @@ internal sealed class FirewallOrderedInsertionExecutor(
         }
 
         int expectedIndex = GetExpectedInsertionIndex(baseline.Rules, payload, anchor.Rule!.AddressFamily);
-        if (TryMatchExactPostcondition(baseline, finalSnapshot, rule, expectedIndex, out ListedFirewallRule? insertedRule))
+        if (FirewallRuleSnapshotMatcher.TryMatchSingleInsertion(baseline, finalSnapshot, rule, expectedIndex, out ListedFirewallRule? insertedRule))
         {
             _logger.LogInformation($"Inserted firewall rule '{identity}' at signed snapshot occurrence {payload.AnchorOccurrenceId} ({payload.Placement}).");
             return new RuleInsertionExecutionResult(RuleInsertionExecutionOutcome.Completed, finalSnapshot, insertedRule, process.Succeeded ? null : process.Diagnostic);
         }
 
-        if (SnapshotsEqual(baseline, finalSnapshot))
+        if (FirewallRuleSnapshotMatcher.Equivalent(baseline, finalSnapshot))
         {
             if (process.CancellationRequested && cancellationToken.IsCancellationRequested)
             {
@@ -166,63 +166,6 @@ internal sealed class FirewallOrderedInsertionExecutor(
         }
 
         return baseline.Count;
-    }
-
-    private static bool TryMatchExactPostcondition(
-        RuleListResponse baseline,
-        RuleListResponse current,
-        FirewallRuleSpecification inserted,
-        int insertionIndex,
-        out ListedFirewallRule? insertedRule)
-    {
-        insertedRule = null;
-        if (current.Active != baseline.Active || current.Rules.Count != baseline.Rules.Count + 1)
-        {
-            return false;
-        }
-        if (insertionIndex < 0 || insertionIndex >= current.Rules.Count)
-        {
-            return false;
-        }
-
-        for (int currentIndex = 0, baselineIndex = 0; currentIndex < current.Rules.Count; currentIndex++)
-        {
-            if (currentIndex == insertionIndex)
-            {
-                ListedFirewallRule candidate = current.Rules[currentIndex];
-                if (candidate.Rule is null || !FirewallRuleSemanticComparer.Equals(candidate.Rule, inserted))
-                {
-                    return false;
-                }
-                insertedRule = candidate;
-                continue;
-            }
-
-            if (baselineIndex >= baseline.Rules.Count
-                || !FirewallRuleSemanticComparer.Equals(current.Rules[currentIndex], baseline.Rules[baselineIndex]))
-            {
-                return false;
-            }
-            baselineIndex++;
-        }
-
-        return insertedRule is not null;
-    }
-
-    private static bool SnapshotsEqual(RuleListResponse left, RuleListResponse right)
-    {
-        if (left.Active != right.Active || left.Rules.Count != right.Rules.Count)
-        {
-            return false;
-        }
-        for (int index = 0; index < left.Rules.Count; index++)
-        {
-            if (!FirewallRuleSemanticComparer.Equals(left.Rules[index], right.Rules[index]))
-            {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static string GetResponseDiagnostic(IResponsePayload response) => response switch

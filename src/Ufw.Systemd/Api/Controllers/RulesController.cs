@@ -5,6 +5,7 @@ using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
+using Ufw.Systemd.Firewall.Replacement;
 
 namespace Ufw.Systemd.Api.Controllers;
 
@@ -13,7 +14,8 @@ internal sealed partial class RulesController(
     IFirewallMutationService firewallMutations,
     IFirewallBatchDeleteService firewallBatchDeletion,
     IFirewallOrderedInsertionService firewallInsertion,
-    IFirewallReorderService firewallReordering) : ControllerBase
+    IFirewallReorderService firewallReordering,
+    IFirewallRuleReplacementService firewallReplacement) : ControllerBase
 {
     public partial ValueTask<IResponsePayload> GetRulesAsync(CancellationToken cancellationToken) =>
         firewallRules.ListAsync(cancellationToken);
@@ -26,6 +28,9 @@ internal sealed partial class RulesController(
 
     public partial ValueTask<IResponsePayload> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken) =>
         firewallReordering.ReorderAsync(request, cancellationToken);
+
+    public partial ValueTask<IResponsePayload> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken) =>
+        firewallReplacement.ReplaceAsync(request, cancellationToken);
 
     public partial ValueTask<IResponsePayload> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken) =>
         firewallMutations.DeleteAsync(request, cancellationToken);

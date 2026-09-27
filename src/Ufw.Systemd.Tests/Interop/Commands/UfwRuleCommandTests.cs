@@ -88,6 +88,42 @@ public sealed class UfwRuleCommandTests
     }
 
     [TestMethod]
+    public void UpdateExistingRule_BuildArguments_EmitsExplicitEmptyCommentForRemoval()
+    {
+        FirewallRuleSpecification rule = new()
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "22",
+            Comment = " ",
+        };
+        UfwUpdateExistingRuleCommand command = new(rule, s_renderer);
+
+        CollectionAssert.AreEqual(
+            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp", "comment", string.Empty },
+            command.BuildArguments().ToArray());
+    }
+
+    [TestMethod]
+    public void UpdateExistingRule_BuildArguments_PreservesNonEmptyComment()
+    {
+        FirewallRuleSpecification rule = new()
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "22",
+            Comment = "ssh",
+        };
+        UfwUpdateExistingRuleCommand command = new(rule, s_renderer);
+
+        CollectionAssert.AreEqual(s_renderer.Render(rule).Arguments.ToArray(), command.BuildArguments().ToArray());
+    }
+
+    [TestMethod]
     public void DeleteRule_BuildArguments_RejectsNonPositiveDisplayNumber()
     {
         UfwDeleteRuleCommand command = new(0);
