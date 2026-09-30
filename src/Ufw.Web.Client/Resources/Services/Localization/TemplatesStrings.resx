@@ -60,7 +60,7 @@
   <data name="LoadTemplateTitle" xml:space="preserve"><value>Initialize from template</value></data>
   <data name="LoadTemplateDescription" xml:space="preserve"><value>Load reusable rule fields and metadata into this draft. You can review and change them before signing the firewall mutation.</value></data>
   <data name="SelectTemplate" xml:space="preserve"><value>Rule template</value></data>
-  <data name="LoadTemplate" xml:space="preserve"><value>Load template</value></data>
+  <data name="LoadTemplate" xml:space="preserve"><value>Load</value></data>
   <data name="TemplateLoaded" xml:space="preserve"><value>Template “{0}” loaded into the rule draft.</value></data>
   <data name="TemplateLoadFailed" xml:space="preserve"><value>Rule templates could not be loaded. You can continue creating the rule without a template.</value></data>
   <data name="TemplateContextInvalid" xml:space="preserve"><value>The requested template identifier is invalid. The current rule draft was left unchanged.</value></data>

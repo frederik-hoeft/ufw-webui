@@ -11,7 +11,8 @@
 
             > td {
                 height: auto;
-                padding-bottom: 0.125rem;
+                padding-top: 0.875rem;
+                padding-bottom: 0;
                 border-bottom: 0;
             }
 
@@ -28,14 +29,19 @@
         }
 
         > .rule-desktop-row > td {
-            padding-top: 0.25rem;
+            padding-top: 0.125rem;
         }
 
         &.metadata-expanded > .rule-template-header-row,
-        &.metadata-expanded > .rule-desktop-row,
-        > .rule-template-header-row:hover,
-        > .rule-template-header-row:hover ~ tr {
+        &.metadata-expanded > .rule-desktop-row {
             background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
+        }
+
+        &:has(> .rule-template-header-row:hover, > .rule-desktop-row:hover) {
+            > .rule-template-header-row,
+            > .rule-desktop-row {
+                background: var(--mud-palette-table-hover);
+            }
         }
     }
 

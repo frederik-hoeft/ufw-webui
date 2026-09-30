@@ -60,7 +60,7 @@
   <data name="LoadTemplateTitle" xml:space="preserve"><value>Aus Vorlage initialisieren</value></data>
   <data name="LoadTemplateDescription" xml:space="preserve"><value>Wiederverwendbare Regelfelder und Metadaten in diesen Entwurf laden. Vor dem Signieren der Firewall-Änderung können sie geprüft und geändert werden.</value></data>
   <data name="SelectTemplate" xml:space="preserve"><value>Regelvorlage</value></data>
-  <data name="LoadTemplate" xml:space="preserve"><value>Vorlage laden</value></data>
+  <data name="LoadTemplate" xml:space="preserve"><value>Laden</value></data>
   <data name="TemplateLoaded" xml:space="preserve"><value>Vorlage „{0}“ wurde in den Regelentwurf geladen.</value></data>
   <data name="TemplateLoadFailed" xml:space="preserve"><value>Regelvorlagen konnten nicht geladen werden. Die Regel kann weiterhin ohne Vorlage erstellt werden.</value></data>
   <data name="TemplateContextInvalid" xml:space="preserve"><value>Die angeforderte Vorlagenkennung ist ungültig. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
