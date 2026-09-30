@@ -2,6 +2,7 @@
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 @inject IStringLocalizer<TemplatesStrings> TemplatesText
+@inject IRuleTemplateNameGenerator NameGenerator
 
 <MudDialog>
     <DialogContent>
@@ -35,17 +36,11 @@
                  Disabled="_busy"
                  OnEnterPressed="ConfirmAsync"
                  aria-busy="@_busy">
-            <MudTextField T="string"
-                          Label="@(TemplatesText["Name"])"
-                          @bind-Value="_name"
-                          Required="true"
-                          RequiredError="@(TemplatesText["NameRequired"])"
-                          Validation="@ValidateName"
-                          Counter="@RuleTemplateLimits.MAX_NAME_LENGTH"
-                          MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
-                          Immediate="true"
-                          Disabled="_busy"
-                          Class="mb-3" />
+            @if (Row.Rule.Rule is { } rule)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["GeneratedTemplateNameLabel"]</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@NameGenerator.Generate(rule)</MudText>
+            }
             <MudTextField T="string"
                           Label="@(TemplatesText["DescriptionLabel"])"
                           @bind-Value="_description"
@@ -63,7 +58,7 @@
             <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Error"
-                       StartIcon="@Icons.Material.Filled.PauseCircle"
+                       StartIcon="@Icons.Material.Filled.Archive"
                        Disabled="@(_busy || !_isValid || string.IsNullOrWhiteSpace(_privateKey))"
                        OnClick="ConfirmAsync">
                 @TemplatesText["SaveTemplateAndDisable"]

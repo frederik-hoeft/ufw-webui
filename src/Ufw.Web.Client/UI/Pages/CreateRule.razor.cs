@@ -272,6 +272,17 @@ public sealed partial class CreateRule
 
     private RuleTemplate? FindTemplate(Guid templateId) => _templates.SingleOrDefault(template => template.Id == templateId);
 
+    private string DescribeTemplateOption(RuleTemplate template)
+    {
+        if (_templates.Count(candidate => string.Equals(candidate.Name, template.Name, StringComparison.OrdinalIgnoreCase)) == 1)
+        {
+            return template.Name;
+        }
+
+        // Names are display-only: add a stable short ID when more than one template uses the same label.
+        return $"{template.Name} ({template.Id.ToString("N")[^8..]})";
+    }
+
     private void ApplyInitialAddressFamily(FirewallConfigurationSnapshot configuration)
     {
         if (_initialAddressFamilyApplied)

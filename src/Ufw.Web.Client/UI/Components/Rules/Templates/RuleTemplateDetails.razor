@@ -1,0 +1,50 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<div class="rule-template-details">
+    @if (!string.IsNullOrWhiteSpace(Template.Description))
+    {
+        <section>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["DescriptionLabel"]</MudText>
+            <p class="prose">@Template.Description</p>
+        </section>
+    }
+    <section>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["RuleColumn"]</MudText>
+        <code class="full-rule">@CanonicalCommand</code>
+    </section>
+    <section>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["MetadataColumn"]</MudText>
+        @if (string.IsNullOrWhiteSpace(Template.Notes) && Template.Tags.Count == 0 && Template.Group is null)
+        {
+            <p class="empty">@TemplatesText["NoMetadata"]</p>
+        }
+        else
+        {
+            @if (!string.IsNullOrWhiteSpace(Template.Notes))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["NotesPresent"]</MudText>
+                <p class="prose">@Template.Notes</p>
+            }
+            @if (Template.Tags.Count > 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["TagsLabel"]</MudText>
+                <div class="tags">
+                    @foreach (RuleTag tag in Template.Tags)
+                    {
+                        <RuleTagChip Tag="@tag" />
+                    }
+                </div>
+            }
+            @if (Template.Group is { } group)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["GroupLabel", group.Name]</MudText>
+                @if (!string.IsNullOrWhiteSpace(group.Comment))
+                {
+                    <p class="prose">@group.Comment</p>
+                }
+            }
+        }
+    </section>
+</div>

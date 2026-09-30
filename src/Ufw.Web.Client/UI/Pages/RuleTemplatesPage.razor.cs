@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
@@ -18,6 +19,7 @@ public sealed partial class RuleTemplatesPage
     };
 
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly HashSet<Guid> _expandedTemplateIds = [];
     private IReadOnlyList<RuleTemplate> _templates = [];
     private ClientError? _error;
     private bool _loaded;
@@ -50,6 +52,7 @@ public sealed partial class RuleTemplatesPage
         try
         {
             _templates = await TemplateCatalog.RefreshAsync(_lifetime.Token);
+            RetainExpandedTemplates();
             _loaded = true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -92,6 +95,7 @@ public sealed partial class RuleTemplatesPage
         try
         {
             _templates = await TemplateCatalog.DeleteAsync(template.Id, _lifetime.Token);
+            RetainExpandedTemplates();
             _loaded = true;
             Snackbar.Add(TemplatesText["TemplateDeleted"], Severity.Success);
         }
@@ -112,7 +116,47 @@ public sealed partial class RuleTemplatesPage
 
     private string DescribeRule(RuleTemplate template) => RuleRenderer.Render(template.Rule).DisplayText;
 
-    private static bool HasMetadata(RuleTemplate template) => !string.IsNullOrWhiteSpace(template.Notes) || template.Tags.Count > 0 || template.Group is not null;
+    private void RetainExpandedTemplates()
+    {
+        HashSet<Guid> current = [.. _templates.Select(static template => template.Id)];
+        _expandedTemplateIds.RemoveWhere(id => !current.Contains(id));
+    }
+
+    private bool IsExpanded(Guid id) => _expandedTemplateIds.Contains(id);
+
+    private void ToggleExpanded(Guid id)
+    {
+        if (!_expandedTemplateIds.Add(id))
+        {
+            _expandedTemplateIds.Remove(id);
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs args, Guid id)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            ToggleExpanded(id);
+        }
+    }
+
+    private string DescribeMetadata(RuleTemplate template)
+    {
+        List<string> parts = [];
+        if (!string.IsNullOrWhiteSpace(template.Notes))
+        {
+            parts.Add(TemplatesText["NotesPresent"]);
+        }
+        if (template.Tags.Count > 0)
+        {
+            parts.Add(template.Tags.Count == 1 ? TemplatesText["OneTag"] : TemplatesText["ManyTags", template.Tags.Count]);
+        }
+        if (template.Group is not null)
+        {
+            parts.Add(TemplatesText["GroupPresent"]);
+        }
+        return parts.Count == 0 ? TemplatesText["NoMetadata"] : string.Join(", ", parts);
+    }
 
     private string DescribeTemplateCount(int count) => count == 1
         ? TemplatesText["TemplateCountOne"]

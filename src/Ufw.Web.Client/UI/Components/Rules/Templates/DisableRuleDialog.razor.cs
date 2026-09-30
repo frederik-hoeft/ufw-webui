@@ -9,7 +9,6 @@ public sealed partial class DisableRuleDialog
     private MudForm? _form;
     private bool _isValid;
     private bool _busy;
-    private string _name = string.Empty;
     private string? _description;
     private string _privateKey = string.Empty;
 
@@ -18,8 +17,6 @@ public sealed partial class DisableRuleDialog
 
     [Parameter, EditorRequired]
     public RuleRowProjection Row { get; set; } = null!;
-
-    private Func<string?, string?> ValidateName => value => string.IsNullOrWhiteSpace(value) ? TemplatesText["NameRequired"].Value : null;
 
     public void Dispose() => _privateKey = string.Empty;
 
@@ -48,7 +45,6 @@ public sealed partial class DisableRuleDialog
             string privateKey = _privateKey;
             _privateKey = string.Empty;
             MudDialog.Close(DialogResult.Ok(new DisableRuleDialogResult(
-                _name.Trim(),
                 string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
                 privateKey)));
         }
@@ -59,4 +55,4 @@ public sealed partial class DisableRuleDialog
     }
 }
 
-public sealed record DisableRuleDialogResult(string Name, string? Description, string PrivateKey);
+public sealed record DisableRuleDialogResult(string? Description, string PrivateKey);

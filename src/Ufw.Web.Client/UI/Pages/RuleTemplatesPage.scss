@@ -1,15 +1,18 @@
+@use "core/tokens" as *;
+
 .rule-template-command {
     display: block;
+    max-width: 100%;
     overflow-x: auto;
     white-space: nowrap;
+    font-family: var(--ufw-font-mono);
 }
 
 .rule-template-inventory {
     .rule-template-name-stack {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        min-width: 0;
         gap: 0.15rem;
-        min-width: 10rem;
         overflow-wrap: anywhere;
     }
 
@@ -23,29 +26,116 @@
         -webkit-line-clamp: 2;
     }
 
-    .rule-template-command {
-        max-width: min(46vw, 52rem);
+    .rule-template-desktop-list {
+        table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem 0.875rem;
+            border-bottom: 1px solid var(--mud-palette-table-lines);
+            text-align: left;
+            vertical-align: middle;
+            min-width: 0;
+        }
+
+        th {
+            background: var(--mud-palette-background-gray);
+            color: var(--mud-palette-text-secondary);
+            font-size: 0.6875rem;
+            font-weight: 600;
+        }
+
+        .name { width: 29%; }
+        .rule { width: 44%; }
+        .metadata { width: 21%; color: var(--mud-palette-text-secondary); }
+        .actions { width: 6rem; text-align: right; white-space: nowrap; }
+
+        .rule-template-row {
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid var(--mud-palette-primary);
+                outline-offset: -2px;
+            }
+        }
+
+        .rule-template-row-group {
+            &.expanded > .rule-template-row,
+            > .rule-template-row:hover {
+                background: var(--mud-palette-table-hover);
+            }
+        }
+
+        .rule-template-details-row > td {
+            padding: 1rem;
+            background: color-mix(in srgb, var(--mud-palette-primary) 3%, var(--mud-palette-surface));
+        }
     }
 
-    .rule-template-metadata {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-        color: var(--mud-palette-text-secondary);
+    .rule-template-mobile-list > .rule-template-mobile-card {
+        display: grid;
+        min-width: 0;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--mud-palette-table-lines);
+
+        &:last-child { border-bottom: 0; }
+
+        &.expanded {
+            background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
+        }
+
+        > header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid var(--mud-palette-primary);
+                outline-offset: 2px;
+            }
+
+            > div:first-child { min-width: 0; }
+            > div:last-child { flex: 0 0 auto; }
+        }
+
+        .rule-template-command { margin: 0; }
+        .rule-template-metadata-summary { color: var(--mud-palette-text-secondary); font-size: 0.8125rem; }
     }
 
-    .rule-template-actions-column {
-        width: 1%;
-        white-space: nowrap;
-        text-align: right;
-    }
+    .rule-template-details {
+        display: grid;
+        min-width: 0;
+        gap: 1rem;
 
-    .inventory-mobile .rule-template-command {
-        max-width: 100%;
-        margin-top: 0.5rem;
-    }
+        > section { min-width: 0; }
 
-    .inventory-mobile .rule-template-metadata {
-        margin-top: 0.6rem;
+        .full-rule {
+            display: block;
+            margin-top: 0.25rem;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            font-family: var(--ufw-font-mono);
+        }
+
+        .prose {
+            margin: 0.25rem 0 0;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+
+        .empty { color: var(--mud-palette-text-secondary); }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin: 0.25rem 0 0.75rem;
+        }
     }
 }

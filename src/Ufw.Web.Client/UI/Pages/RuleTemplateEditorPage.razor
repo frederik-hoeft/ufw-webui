@@ -45,12 +45,12 @@
     }
     else if (!_notFound && _draft is not null)
     {
-        <MudPaper Class="pa-5 mb-5" Elevation="1">
+        <MudPaper Class="pa-5 mb-5 rule-template-editor-section" Elevation="1">
             <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@TemplatesText["TemplateDetails"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@TemplatesText["TemplateDetailsDescription"]</MudText>
             <MudForm @ref="_detailsForm" Disabled="@_saving">
                 <MudGrid Spacing="2">
-                    <MudItem xs="12" md="4">
+                    <MudItem xs="12">
                         <MudTextField T="string"
                                       Label="@(TemplatesText["Name"])"
                                       @bind-Value="_draft.Name"
@@ -61,7 +61,7 @@
                                       MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
                                       Immediate="true" />
                     </MudItem>
-                    <MudItem xs="12" md="8">
+                    <MudItem xs="12">
                         <MudTextField T="string"
                                       Label="@(TemplatesText["DescriptionLabel"])"
                                       @bind-Value="_draft.Description"
@@ -88,7 +88,7 @@
                     OnSubmit="SaveAsync"
                     OnCancel="Cancel" />
 
-        <MudPaper Class="pa-5 mt-5" Elevation="1">
+        <MudPaper Class="pa-5 mt-5 rule-template-editor-section" Elevation="1">
             <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@TemplatesText["TemplateMetadata"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@TemplatesText["TemplateMetadataDescription"]</MudText>
             <RuleMetadataEditor @ref="_metadataEditor"

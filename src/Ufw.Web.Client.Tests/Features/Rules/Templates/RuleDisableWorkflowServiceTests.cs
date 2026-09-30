@@ -1,5 +1,6 @@
 using Moq;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
@@ -56,6 +57,26 @@ public sealed class RuleDisableWorkflowServiceTests
     }
 
     [TestMethod]
+    public async Task DisableAsync_WithoutExplicitNameGeneratesReadableTemplateNameAsync()
+    {
+        TestHost host = new();
+        RuleRowProjection row = Row(canMutate: true);
+        RuleTemplateDefinition? saved = null;
+        host.Templates.Setup(catalog => catalog.CreateAsync(It.IsAny<RuleTemplateDefinition>(), It.IsAny<CancellationToken>()))
+            .Callback<RuleTemplateDefinition, CancellationToken>((definition, _) => saved = definition)
+            .ReturnsAsync([]);
+        host.Mutations.Setup(service => service.DeleteRuleAsync(row.Rule, "private-key", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleMutationResponse(IntentOperations.DELETE_RULE, row.Rule));
+
+        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, null, null, "private-key");
+
+        Assert.IsTrue(result.Completed);
+        Assert.IsNotNull(saved);
+        Assert.AreEqual("allow in from 10.0.0.0/8 to 192.0.2.10 port 443 proto tcp", saved.Name);
+        Assert.AreEqual(saved.Name, result.TemplateName);
+    }
+
+    [TestMethod]
     public async Task DisableAsync_UsesExistingSignedDeleteMutationPipelineAsync()
     {
         Mock<IRuleTemplateCatalogService> templates = new(MockBehavior.Strict);
@@ -85,7 +106,7 @@ public sealed class RuleDisableWorkflowServiceTests
             .ReturnsAsync(signedRequest);
         ruleApi.Setup(client => client.DeleteRuleAsync(signedRequest, It.IsAny<CancellationToken>())).ReturnsAsync(deleteResponse);
         RuleMutationService mutationService = new(ruleApi.Object, intentContext.Object, signer.Object);
-        RuleDisableWorkflowService service = new(templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), mutationService, errors.Object);
+        RuleDisableWorkflowService service = new(templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), mutationService, errors.Object, new RuleTemplateNameGenerator(new UfwRuleCommandRenderer()));
 
         RuleDisableWorkflowResult result = await service.DisableAsync(row, "web", null, "private-key");
 
@@ -199,7 +220,8 @@ public sealed class RuleDisableWorkflowServiceTests
 
         public TestHost()
         {
-            Service = new RuleDisableWorkflowService(Templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), Mutations.Object, Errors.Object);
+            Service = new RuleDisableWorkflowService(
+                Templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), Mutations.Object, Errors.Object, new RuleTemplateNameGenerator(new UfwRuleCommandRenderer()));
         }
     }
 }

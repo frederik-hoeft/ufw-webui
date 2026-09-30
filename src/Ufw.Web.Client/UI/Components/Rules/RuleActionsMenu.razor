@@ -41,7 +41,7 @@
     @if (SaveAsTemplateRequested.HasDelegate)
     {
         <MudMenuItem Disabled="@(TemplateSaveDisabled || !CanSaveAsTemplate)"
-                     Icon="@Icons.Material.Filled.ContentCopy"
+                     Icon="@Icons.Material.Filled.Bookmarks"
                      OnClick="@(() => SaveAsTemplateRequested.InvokeAsync())">
             @RulesText["SaveAsTemplate"]
         </MudMenuItem>
@@ -50,7 +50,7 @@
     @if (DisableRequested.HasDelegate)
     {
         <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
-                     Icon="@Icons.Material.Filled.PauseCircle"
+                     Icon="@Icons.Material.Filled.Archive"
                      OnClick="@(() => DisableRequested.InvokeAsync())">
             @RulesText["DisableRule"]
         </MudMenuItem>

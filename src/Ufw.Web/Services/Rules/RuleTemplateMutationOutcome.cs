@@ -4,7 +4,6 @@ public enum RuleTemplateMutationOutcome
 {
     Success,
     NotFound,
-    NameConflict,
     InvalidTemplate,
     TagNotFound,
     GroupNotFound,

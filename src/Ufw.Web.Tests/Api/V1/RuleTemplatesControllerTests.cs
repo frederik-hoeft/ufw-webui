@@ -27,7 +27,6 @@ public sealed class RuleTemplatesControllerTests
     }
 
     [TestMethod]
-    [DataRow(RuleTemplateMutationOutcome.NameConflict, StatusCodes.Status409Conflict)]
     [DataRow(RuleTemplateMutationOutcome.InvalidTemplate, StatusCodes.Status400BadRequest)]
     [DataRow(RuleTemplateMutationOutcome.TagNotFound, StatusCodes.Status400BadRequest)]
     [DataRow(RuleTemplateMutationOutcome.GroupNotFound, StatusCodes.Status400BadRequest)]

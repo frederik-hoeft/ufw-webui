@@ -58,6 +58,7 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddSingleton<IRuleQueryService, RuleQueryService>();
         services.AddSingleton<IRuleInsertionNavigationService, RuleInsertionNavigationService>();
         services.AddSingleton<IRuleReplacementNavigationService, RuleReplacementNavigationService>();
+        services.AddSingleton<IRuleTemplateNameGenerator, RuleTemplateNameGenerator>();
         services.AddScoped<IRuleDisableWorkflowService, RuleDisableWorkflowService>();
         services.AddSingleton<IRuleMutationReconciliationService, RuleMutationReconciliationService>();
         return services;

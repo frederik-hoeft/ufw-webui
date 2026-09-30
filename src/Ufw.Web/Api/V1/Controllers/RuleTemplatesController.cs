@@ -36,12 +36,6 @@ public sealed partial class RuleTemplatesController(IRuleTemplateService templat
     {
         RuleTemplateMutationOutcome.Success => Ok(result.Inventory),
         RuleTemplateMutationOutcome.NotFound => NotFound(),
-        RuleTemplateMutationOutcome.NameConflict => Conflict(new ProblemDetails
-        {
-            Status = StatusCodes.Status409Conflict,
-            Title = "Rule template name already exists",
-            Detail = "Rule template names must be unique without regard to case.",
-        }),
         RuleTemplateMutationOutcome.InvalidTemplate => BadRequest(new ProblemDetails
         {
             Status = StatusCodes.Status400BadRequest,

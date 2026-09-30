@@ -38,7 +38,7 @@ internal sealed partial class RuleTemplateEntry : IDiscoverableModelConfiguratio
             .OnDelete(DeleteBehavior.Restrict);
 
         self.HasIndex(static template => template.PublicId).IsUnique();
-        self.HasIndex(static template => template.Name).IsUnique();
+        self.HasIndex(static template => template.Name);
         self.HasIndex(static template => template.GroupId);
     }
 }

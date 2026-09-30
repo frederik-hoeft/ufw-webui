@@ -8,24 +8,25 @@ internal sealed class RuleDisableWorkflowService(
     IRuleTemplateCatalogService templateCatalog,
     IRuleTemplateAuthoringService templateAuthoring,
     IRuleMutationService ruleMutations,
-    IClientErrorMapper clientErrors) : IRuleDisableWorkflowService
+    IClientErrorMapper clientErrors,
+    IRuleTemplateNameGenerator nameGenerator) : IRuleDisableWorkflowService
 {
     public async Task<RuleDisableWorkflowResult> DisableAsync(
         RuleRowProjection row,
-        string templateName,
+        string? templateName,
         string? templateDescription,
         string privateKey,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(row);
-        ArgumentException.ThrowIfNullOrWhiteSpace(templateName);
         ArgumentException.ThrowIfNullOrWhiteSpace(privateKey);
         if (!row.CanMutate || !row.Rule.Parsed || row.Rule.Rule is null || string.IsNullOrWhiteSpace(row.Rule.RuleId))
         {
             throw new InvalidOperationException("Only uniquely mutable parsed rules can be disabled.");
         }
 
-        RuleTemplateDefinition definition = templateAuthoring.CreateDefinition(templateName, templateDescription, row.Rule.Rule, row.Metadata);
+        string name = string.IsNullOrWhiteSpace(templateName) ? nameGenerator.Generate(row.Rule.Rule) : templateName;
+        RuleTemplateDefinition definition = templateAuthoring.CreateDefinition(name, templateDescription, row.Rule.Rule, row.Metadata);
         try
         {
             _ = await templateCatalog.CreateAsync(definition, cancellationToken);

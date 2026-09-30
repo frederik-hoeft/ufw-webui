@@ -4,7 +4,7 @@ internal interface IRuleDisableWorkflowService
 {
     Task<RuleDisableWorkflowResult> DisableAsync(
         RuleRowProjection row,
-        string templateName,
+        string? templateName,
         string? templateDescription,
         string privateKey,
         CancellationToken cancellationToken = default);

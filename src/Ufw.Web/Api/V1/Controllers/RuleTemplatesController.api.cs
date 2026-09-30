@@ -27,7 +27,6 @@ public sealed partial class RuleTemplatesController
     [ProducesResponseType<RuleTemplateInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public partial Task<IActionResult> CreateAsync([FromBody] CreateRuleTemplateRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -38,7 +37,6 @@ public sealed partial class RuleTemplatesController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public partial Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateRuleTemplateRequest request, CancellationToken cancellationToken);
 
     /// <summary>

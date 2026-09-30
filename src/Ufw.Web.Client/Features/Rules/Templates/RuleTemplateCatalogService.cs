@@ -85,8 +85,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
             templates.Add(Normalize(item));
         }
 
-        if (templates.Select(static template => template.Id).Distinct().Count() != templates.Count
-            || templates.Select(static template => template.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != templates.Count)
+        if (templates.Select(static template => template.Id).Distinct().Count() != templates.Count)
         {
             throw new ApiProtocolException("Rule-template inventory response contains duplicate template identities.");
         }
@@ -94,6 +93,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         return templates
             .OrderBy(static template => template.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(static template => template.Name, StringComparer.Ordinal)
+            .ThenBy(static template => template.Id)
             .ToArray();
     }
 

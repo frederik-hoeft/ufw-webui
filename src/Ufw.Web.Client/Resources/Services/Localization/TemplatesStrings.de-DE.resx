@@ -77,4 +77,11 @@
   <data name="DisableTemplatePersistenceNotConfirmed" xml:space="preserve"><value>Die aktive Regel wurde nicht deaktiviert, da das Speichern der Vorlage nicht bestätigt werden konnte. Es wurde kein Firewall-Löschvorgang gestartet. Aktualisieren Sie den Vorlagenkatalog, um zu prüfen, ob die Vorlage erstellt wurde. {0}</value></data>
   <data name="DisableFirewallDeleteNotConfirmed" xml:space="preserve"><value>Vorlage „{0}“ wurde gespeichert, aber das Deaktivieren der aktiven Regel konnte nicht bestätigt werden: {1}</value></data>
   <data name="DisableUnexpectedFailure" xml:space="preserve"><value>Der Deaktivierungs-Workflow konnte nicht abgeschlossen werden: {0}</value></data>
+  <data name="GeneratedTemplateNameLabel" xml:space="preserve"><value>Vorlagenname (automatisch erzeugt; kann unter Vorlagen später geändert werden)</value></data>
+  <data name="ShowTemplateDetails" xml:space="preserve"><value>Details für Vorlage {0} anzeigen</value></data>
+  <data name="HideTemplateDetails" xml:space="preserve"><value>Details für Vorlage {0} ausblenden</value></data>
+  <data name="OneTag" xml:space="preserve"><value>1 Tag</value></data>
+  <data name="ManyTags" xml:space="preserve"><value>{0} Tags</value></data>
+  <data name="GroupPresent" xml:space="preserve"><value>Gruppe</value></data>
+  <data name="TagsLabel" xml:space="preserve"><value>Tags</value></data>
 </root>

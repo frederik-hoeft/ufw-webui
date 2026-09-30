@@ -59,7 +59,7 @@ public sealed class RuleTemplateCatalogServiceTests
     }
 
     [TestMethod]
-    public async Task RefreshAsync_InvalidOrDuplicateInventory_RejectsProtocolResponseAsync()
+    public async Task RefreshAsync_DuplicateNamesAreAllowedButDuplicateIdentitiesAreRejectedAsync()
     {
         Mock<IRuleTemplateApiClient> duplicateApi = new();
         duplicateApi.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new RuleTemplateInventoryResponse
@@ -69,6 +69,15 @@ public sealed class RuleTemplateCatalogServiceTests
                 Template(Guid.CreateVersion7(), "Prod", FirewallAddressFamily.Any),
                 Template(Guid.CreateVersion7(), "prod", FirewallAddressFamily.Any),
             ],
+        });
+        IReadOnlyList<RuleTemplate> sameName = await new RuleTemplateCatalogService(duplicateApi.Object).RefreshAsync();
+        Assert.HasCount(2, sameName);
+        Assert.AreNotEqual(sameName[0].Id, sameName[1].Id);
+
+        Guid duplicateId = Guid.CreateVersion7();
+        duplicateApi.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new RuleTemplateInventoryResponse
+        {
+            Templates = [Template(duplicateId, "Prod", FirewallAddressFamily.Any), Template(duplicateId, "Other", FirewallAddressFamily.Any)],
         });
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleTemplateCatalogService(duplicateApi.Object).RefreshAsync());
 

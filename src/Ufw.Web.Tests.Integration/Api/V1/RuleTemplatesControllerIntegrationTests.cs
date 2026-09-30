@@ -106,21 +106,24 @@ public sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegrat
         }, TestContext.CancellationToken);
 
     [TestMethod]
-    public Task NameConflict_IsCaseInsensitiveAndDoesNotOverwriteAsync() =>
+    public Task DuplicateDisplayNames_RemainIndependentAcrossCreateAndUpdateAsync() =>
         UsingComponentAsync(async (controller, serviceProvider, cancellationToken) =>
         {
             _ = serviceProvider;
-            IActionResult firstResult = await controller.CreateAsync(Request("Maintenance SSH"), cancellationToken);
-            RuleTemplateItem first = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(firstResult).Value).Templates.Single();
+            RuleTemplateItem first = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(
+                await controller.CreateAsync(Request("Maintenance SSH"), cancellationToken)).Value).Templates.Single();
+            RuleTemplateInventoryResponse secondInventory = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(
+                await controller.CreateAsync(Request("maintenance ssh"), cancellationToken)).Value);
 
-            IActionResult conflictResult = await controller.CreateAsync(Request("maintenance ssh"), cancellationToken);
+            Assert.HasCount(2, secondInventory.Templates);
+            RuleTemplateItem second = secondInventory.Templates.Single(template => template.Id != first.Id);
+            Assert.AreNotEqual(first.Id, second.Id);
 
-            ConflictObjectResult conflict = Assert.IsInstanceOfType<ConflictObjectResult>(conflictResult);
-            Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
-            RuleTemplateInventoryResponse inventory = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>((await controller.GetAsync(cancellationToken)).Result).Value);
-            RuleTemplateItem persisted = inventory.Templates.Single();
-            Assert.AreEqual(first.Id, persisted.Id);
-            Assert.AreEqual("Maintenance SSH", persisted.Name);
+            RuleTemplateInventoryResponse updated = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(
+                await controller.UpdateAsync(second.Id, new UpdateRuleTemplateRequest { Name = first.Name, Rule = ValidRule() }, cancellationToken)).Value);
+            Assert.HasCount(2, updated.Templates);
+            Assert.IsTrue(updated.Templates.All(template => template.Name == first.Name));
+            Assert.AreNotEqual(updated.Templates[0].Id, updated.Templates[1].Id);
         }, TestContext.CancellationToken);
 
     [TestMethod]

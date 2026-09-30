@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
@@ -20,11 +19,6 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
     public Task<RuleTemplateMutationResult> CreateAsync(RuleTemplateValues values, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync<RuleTemplateMutationResult>(async (context, transaction) =>
         {
-            if (await NameExistsAsync(context, values.Name, excludingId: null, cancellationToken))
-            {
-                return transaction.Rollback(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.NameConflict));
-            }
-
             TemplateDependencies dependencies = await ResolveDependenciesAsync(context, values.Metadata, cancellationToken);
             if (dependencies.Outcome is { } dependencyFailure)
             {
@@ -33,14 +27,7 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
 
             RuleTemplateEntry template = CreateEntry(values, dependencies);
             context.Add(template);
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
-            {
-                return transaction.Rollback(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.NameConflict));
-            }
+            await context.SaveChangesAsync(cancellationToken);
 
             RuleTemplateInventoryResponse inventory = await GetCoreAsync(context, cancellationToken);
             return transaction.Commit(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.Success, inventory));
@@ -56,11 +43,6 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
             {
                 return transaction.Rollback(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.NotFound));
             }
-            if (await NameExistsAsync(context, values.Name, template.Id, cancellationToken))
-            {
-                return transaction.Rollback(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.NameConflict));
-            }
-
             TemplateDependencies dependencies = await ResolveDependenciesAsync(context, values.Metadata, cancellationToken);
             if (dependencies.Outcome is { } dependencyFailure)
             {
@@ -69,14 +51,7 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
 
             ApplyValues(template, values, dependencies.Group);
             SynchronizeTags(context, template, dependencies.Tags);
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
-            {
-                return transaction.Rollback(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.NameConflict));
-            }
+            await context.SaveChangesAsync(cancellationToken);
 
             RuleTemplateInventoryResponse inventory = await GetCoreAsync(context, cancellationToken);
             return transaction.Commit(new RuleTemplateMutationResult(RuleTemplateMutationOutcome.Success, inventory));
@@ -207,19 +182,6 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
         })];
         return new RuleTemplateInventoryResponse(items);
     }
-
-    private static async Task<bool> NameExistsAsync(ApplicationDbContext context, string name, long? excludingId, CancellationToken cancellationToken)
-    {
-        IQueryable<RuleTemplateEntry> query = context.Set<RuleTemplateEntry>().AsNoTracking();
-        if (excludingId.HasValue)
-        {
-            query = query.Where(template => template.Id != excludingId.Value);
-        }
-        return await query.AnyAsync(template => template.Name == name, cancellationToken);
-    }
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     private sealed record TemplateDependencies(RuleTemplateMutationOutcome? Outcome, IReadOnlyList<RuleTagEntry> Tags, RuleGroupEntry? Group);
 }
