@@ -2,7 +2,6 @@
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 @inject IStringLocalizer<TemplatesStrings> TemplatesText
-@inject IRuleTemplateNameGenerator NameGenerator
 
 <MudDialog>
     <DialogContent>
@@ -36,17 +35,22 @@
                  Disabled="_busy"
                  OnEnterPressed="ConfirmAsync"
                  aria-busy="@_busy">
-            @if (Row.Rule.Rule is { } rule)
-            {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">@TemplatesText["GeneratedTemplateNameLabel"]</MudText>
-                <MudText Typo="Typo.body2" Class="mb-3">@NameGenerator.Generate(rule)</MudText>
-            }
+            <MudTextField T="string"
+                          Label="@(TemplatesText["Name"])"
+                          @bind-Value="_name"
+                          Required="true"
+                          RequiredError="@(TemplatesText["NameRequired"])"
+                          Validation="@ValidateName"
+                          Counter="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                          MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                          Immediate="true"
+                          Disabled="_busy"
+                          Class="mb-3" />
             <MudTextField T="string"
                           Label="@(TemplatesText["DescriptionLabel"])"
                           @bind-Value="_description"
                           Counter="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
                           MaxLength="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
-                          Lines="3"
                           Immediate="true"
                           Disabled="_busy"
                           Class="mb-4" />

@@ -17,7 +17,7 @@ internal sealed partial class RuleTemplateEntry : IDiscoverableModelConfiguratio
         self.Property(static template => template.Id).HasColumnName("Id").HasColumnType("bigint").ValueGeneratedOnAdd();
         self.Property(static template => template.PublicId).HasColumnName("PublicId").HasColumnType("uuid").ValueGeneratedNever().IsRequired();
         self.Property(static template => template.Name).HasColumnName("Name").HasColumnType("citext").HasMaxLength(MAX_NAME_LENGTH).IsRequired();
-        self.Property(static template => template.Description).HasColumnName("Description").HasColumnType("character varying(4000)").HasMaxLength(MAX_DESCRIPTION_LENGTH);
+        self.Property(static template => template.Description).HasColumnName("Description").HasColumnType("character varying(512)").HasMaxLength(MAX_DESCRIPTION_LENGTH);
         self.Property(static template => template.Action).HasColumnName("Action").HasColumnType("integer").IsRequired();
         self.Property(static template => template.AddressFamily).HasColumnName("AddressFamily").HasColumnType("integer").IsRequired();
         self.Property(static template => template.Direction).HasColumnName("Direction").HasColumnType("integer").IsRequired();

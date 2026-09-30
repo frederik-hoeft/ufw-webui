@@ -304,7 +304,7 @@ public sealed partial class RulesPage
             }
 
             _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableConfirmed());
-            RuleDisableWorkflowResult result = await RuleDisable.DisableAsync(row, null, confirmation.Description, privateKey, _lifetime.Token);
+            RuleDisableWorkflowResult result = await RuleDisable.DisableAsync(row, confirmation.Name, confirmation.Description, privateKey, _lifetime.Token);
             switch (result.Outcome)
             {
                 case RuleDisableWorkflowOutcome.Completed:

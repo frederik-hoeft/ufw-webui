@@ -111,6 +111,25 @@ public sealed class RuleTemplateServiceTests
     }
 
     [TestMethod]
+    [DataRow(RuleTemplateLimits.MAX_DESCRIPTION_LENGTH, true)]
+    [DataRow(RuleTemplateLimits.MAX_DESCRIPTION_LENGTH + 1, false)]
+    public async Task CreateAsync_EnforcesDescriptionLengthAsync(int descriptionLength, bool expectedValid)
+    {
+        FakeRuleTemplateRepository repository = new();
+        RuleTemplateService service = new(repository, new RuleMetadataValuesNormalizer());
+
+        RuleTemplateMutationResult result = await service.CreateAsync(new CreateRuleTemplateRequest
+        {
+            Name = "Description boundary",
+            Description = new string('x', descriptionLength),
+            Rule = ValidRule(),
+        }, TestContext.CancellationToken);
+
+        Assert.AreEqual(expectedValid ? RuleTemplateMutationOutcome.Success : RuleTemplateMutationOutcome.InvalidTemplate, result.Outcome);
+        Assert.AreEqual(expectedValid, repository.CreatedValues is not null);
+    }
+
+    [TestMethod]
     public async Task UpdateAsync_InvalidMetadataDoesNotReachRepositoryAsync()
     {
         FakeRuleTemplateRepository repository = new();

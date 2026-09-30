@@ -77,7 +77,6 @@
   <data name="DisableTemplatePersistenceNotConfirmed" xml:space="preserve"><value>The live rule was not disabled because template persistence could not be confirmed. No firewall delete was issued. Refresh the template catalog to check whether the template was created. {0}</value></data>
   <data name="DisableFirewallDeleteNotConfirmed" xml:space="preserve"><value>Template “{0}” was saved, but disabling the live rule could not be confirmed: {1}</value></data>
   <data name="DisableUnexpectedFailure" xml:space="preserve"><value>The disable workflow could not be completed: {0}</value></data>
-  <data name="GeneratedTemplateNameLabel" xml:space="preserve"><value>Template name (generated automatically; rename it later in Templates)</value></data>
   <data name="ShowTemplateDetails" xml:space="preserve"><value>Show details for template {0}</value></data>
   <data name="HideTemplateDetails" xml:space="preserve"><value>Hide details for template {0}</value></data>
   <data name="OneTag" xml:space="preserve"><value>1 tag</value></data>

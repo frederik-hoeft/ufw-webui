@@ -39,7 +39,8 @@
 
         &:has(> .rule-template-header-row:hover, > .rule-desktop-row:hover) {
             > .rule-template-header-row,
-            > .rule-desktop-row {
+            > .rule-desktop-row,
+            > .rule-metadata-details-row {
                 background: var(--mud-palette-table-hover);
             }
         }
