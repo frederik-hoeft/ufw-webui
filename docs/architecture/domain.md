@@ -33,7 +33,28 @@ For UFW rule projection, inbound `on` maps to ingress, outbound `on` maps to egr
 
 A policy query constrains any combination of source address, source port, destination address, destination port, protocol, and the interfaces meaningful to its chain. Source and destination constraints are conjunctive: specifying both narrows one packet space rather than invoking a separate pairwise evaluation mode.
 
-The domain represents packet space as sets rather than enumerated packets. Address and numeric-port dimensions use interval sets; protocol and interface dimensions use finite sets; the complete packet space is represented as a disjoint union of multidimensional regions. Intersection and set difference can therefore split only the affected parts of a CIDR, port range, protocol set, or interface set while leaving the rest symbolic.
+### Dimension sets
+
+Each packet dimension is represented as a set relative to the universe supplied by the policy world. Address dimensions use canonical disjoint intervals over the selected IPv4 or IPv6 family, numeric ports use disjoint integer intervals, and protocols and interfaces use finite sets. A missing query or rule constraint means the whole universe for that dimension rather than a special wildcard value.
+
+Port dimensions also preserve protocol applicability. Port-bearing protocols range over the numeric port universe, while protocols without port semantics use the distinct not-applicable value described above. This keeps combinations that do not represent real packets out of the packet space while allowing the same algebra to operate across the complete protocol universe.
+
+### Regions and set algebra
+
+A packet region is the Cartesian product of one set from every dimension meaningful to the selected chain. A packet space is a disjoint union of those regions. Intersection is therefore computed dimension by dimension, while subtraction may split one region into several disjoint regions without enumerating the packets inside it.
+
+For regions $A = A_1 \times \cdots \times A_n$ and $B = B_1 \times \cdots \times B_n$, the difference can be decomposed along the dimensions as:
+
+$$
+A \setminus B = \bigsqcup_{i=1}^{n}
+\left(
+    \prod_{j < i}(A_j \cap B_j)
+    \times (A_i \setminus B_i)
+    \times \prod_{j > i} A_j
+\right)
+$$
+
+Empty pieces are discarded. The remaining pieces are disjoint and cover exactly the part of $A$ outside $B$. Compatible regions can then be coalesced again; when they are policy cells, their decision and provenance must agree as well. This is what lets an earlier rule shadow only one source subnet, port interval, protocol subset, or combination of dimensions while the unaffected remainder continues through later rules.
 
 This representation is independent of firewall actions. Adding another interface or supported protocol changes the closed-world data supplied to evaluation, not the first-match algorithm. Adding a protocol with different port applicability changes its protocol definition rather than requiring a separate evaluator.
 
