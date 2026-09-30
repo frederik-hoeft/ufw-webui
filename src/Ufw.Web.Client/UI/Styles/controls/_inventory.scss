@@ -41,7 +41,7 @@
     > .inventory-mobile {
         display: none;
 
-        > article {
+        &:not(.rule-presentation-mobile-list) > article {
             display: flex;
             align-items: center;
             gap: 1rem;

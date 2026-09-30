@@ -25,7 +25,7 @@
 <PageHeader Title="@(RulesText["CreateTitle"])"
             Description="@HeaderDescription"
             Breadcrumbs="@Breadcrumbs"
-            ShowStatus="@(_state.Snapshot is not null)">
+            ShowStatus="false">
     <Actions>
         <MudButton Href="/rules"
                    Variant="Variant.Outlined"
@@ -35,32 +35,6 @@
             @RulesText["BackToRules"]
         </MudButton>
     </Actions>
-    <Status>
-        @if (_state.Snapshot is { } snapshot)
-        {
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(snapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(snapshot.FirewallActive ? RulesText["FirewallActive"] : RulesText["FirewallInactive"])
-            </MudChip>
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeRuleCount(snapshot.Rules.Count)
-            </MudChip>
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(snapshot.Configuration.IPv6Enabled ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
-            </MudChip>
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
-                @DescribeSnapshotStatus()
-            </MudChip>
-        }
-    </Status>
 </PageHeader>
 
 @if (_state.Status == RuleInventoryStatus.Failed)

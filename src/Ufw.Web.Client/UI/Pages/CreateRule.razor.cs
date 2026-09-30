@@ -111,22 +111,6 @@ public sealed partial class CreateRule
         _lifetime.Dispose();
     }
 
-    private string DescribeRuleCount(int count) => count == 1
-        ? RulesText["CurrentRuleCountOne"]
-        : RulesText["CurrentRuleCountMany", count.ToString("N0", CultureInfo.CurrentCulture)];
-
-    private string DescribeSnapshotStatus()
-    {
-        if (_state.IsStale)
-        {
-            return RulesText["AuthoritativeSnapshotStale"];
-        }
-
-        return _state.Status == RuleInventoryStatus.Refreshing
-            ? RulesText["AuthoritativeSnapshotRefreshing"]
-            : RulesText["AuthoritativeSnapshotCurrent"];
-    }
-
     private Task RefreshAsync()
     {
         if (_submitting || _state.IsLoading)
