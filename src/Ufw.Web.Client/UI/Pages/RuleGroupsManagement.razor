@@ -152,21 +152,10 @@
                             </td>
                             <td class="members">@DescribeMemberCount(group)</td>
                             <td class="actions" @onclick:stopPropagation="true">
-                                @if (expanded)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
-                                                   Size="Size.Small"
-                                                   OnClick="@(() => ToggleExpanded(group.Group.Id))"
-                                                   aria-label="@RulesText["HideGroupDetails", group.Group.Name]"
-                                                   aria-expanded="true" />
-                                }
-                                else
-                                {
-                                    <RuleGroupActionsMenu Group="@group.Group"
-                                                          Disabled="@IsBusy"
-                                                          EditRequested="@EditAsync"
-                                                          DeleteRequested="@DeleteAsync" />
-                                }
+                                <RuleGroupActionsMenu Group="@group.Group"
+                                                      Disabled="@IsBusy"
+                                                      EditRequested="@EditAsync"
+                                                      DeleteRequested="@DeleteAsync" />
                             </td>
                         </tr>
                         @if (expanded)
@@ -175,8 +164,15 @@
                                 <td colspan="4">
                                     <RuleGroupMembers Projection="@group"
                                                       Disabled="@IsBusy"
-                                                      EditRequested="@EditAsync"
-                                                      DeleteRequested="@DeleteAsync" />
+                                                      ShowActions="false">
+                                        <HeaderActions>
+                                            <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => ToggleExpanded(group.Group.Id))"
+                                                           aria-label="@RulesText["HideGroupDetails", group.Group.Name]"
+                                                           aria-expanded="true" />
+                                        </HeaderActions>
+                                    </RuleGroupMembers>
                                 </td>
                             </tr>
                         }
@@ -199,21 +195,10 @@
                             <span>@DescribeMemberCount(group)</span>
                         </div>
                         <div @onclick:stopPropagation="true">
-                            @if (expanded)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
-                                               Size="Size.Small"
-                                               OnClick="@(() => ToggleExpanded(group.Group.Id))"
-                                               aria-label="@RulesText["HideGroupDetails", group.Group.Name]"
-                                               aria-expanded="true" />
-                            }
-                            else
-                            {
-                                <RuleGroupActionsMenu Group="@group.Group"
-                                                      Disabled="@IsBusy"
-                                                      EditRequested="@EditAsync"
-                                                      DeleteRequested="@DeleteAsync" />
-                            }
+                            <RuleGroupActionsMenu Group="@group.Group"
+                                                  Disabled="@IsBusy"
+                                                  EditRequested="@EditAsync"
+                                                  DeleteRequested="@DeleteAsync" />
                         </div>
                     </header>
                     @if (!string.IsNullOrWhiteSpace(group.Group.Comment))
@@ -224,8 +209,15 @@
                     {
                         <RuleGroupMembers Projection="@group"
                                           Disabled="@IsBusy"
-                                          EditRequested="@EditAsync"
-                                          DeleteRequested="@DeleteAsync" />
+                                          ShowActions="false">
+                            <HeaderActions>
+                                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ToggleExpanded(group.Group.Id))"
+                                               aria-label="@RulesText["HideGroupDetails", group.Group.Name]"
+                                               aria-expanded="true" />
+                            </HeaderActions>
+                        </RuleGroupMembers>
                     }
                 </article>
             }

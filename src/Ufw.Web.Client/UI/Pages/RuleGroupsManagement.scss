@@ -49,10 +49,17 @@
             transition: background-color 120ms ease;
         }
 
-        &.expanded > .rule-group-row,
+        &.expanded > .rule-group-row {
+            background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
+        }
+
         > .rule-group-row:hover,
         > .rule-group-row:hover ~ tr {
             background: var(--mud-palette-table-hover);
+        }
+
+        &.expanded > .rule-group-row > td {
+            border-bottom: 0;
         }
     }
 
@@ -77,7 +84,6 @@
 
     .rule-group-details-row > td {
         padding: 0.75rem 0.875rem 1rem;
-        background: color-mix(in srgb, var(--mud-palette-primary) 3%, var(--mud-palette-surface));
     }
 
     > .rule-group-mobile-list > .rule-group-mobile-card {

@@ -50,7 +50,7 @@
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@TemplatesText["TemplateDetailsDescription"]</MudText>
             <MudForm @ref="_detailsForm" Disabled="@_saving">
                 <MudGrid Spacing="2">
-                    <MudItem xs="12">
+                    <MudItem xs="12" sm="6">
                         <MudTextField T="string"
                                       Label="@(TemplatesText["Name"])"
                                       @bind-Value="_draft.Name"
@@ -61,7 +61,7 @@
                                       MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
                                       Immediate="true" />
                     </MudItem>
-                    <MudItem xs="12">
+                    <MudItem xs="12" sm="6">
                         <MudTextField T="string"
                                       Label="@(TemplatesText["DescriptionLabel"])"
                                       @bind-Value="_draft.Description"
