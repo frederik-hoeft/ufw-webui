@@ -1,6 +1,10 @@
 @use "core/tokens" as *;
 
 .rule-template-inventory {
+    .rule-action {
+        font-weight: 400;
+    }
+
     .rule-template-desktop-list {
         --rule-table-min-width: 68rem;
     }

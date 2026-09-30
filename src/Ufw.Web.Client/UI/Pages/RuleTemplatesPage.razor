@@ -83,8 +83,7 @@
     }
     else
     {
-        <div class="inventory-desktop rule-template-desktop-list rule-presentation-desktop-list" role="region" aria-label="@(TemplatesText["InventoryTitle"])" aria-busy="@_loading">
-            <table>
+        <RuleDesktopTable Class="inventory-desktop rule-template-desktop-list" Busy="@_loading" role="region" aria-label="@(TemplatesText["InventoryTitle"])">
                 <RuleDesktopTableHeader ShowOrderingColumns="false" ActionsLabel="@(TemplatesText["ActionsColumn"])" />
                 @foreach (RuleTemplate template in _templates)
                 {
@@ -125,8 +124,7 @@
                         }
                     </tbody>
                 }
-            </table>
-        </div>
+        </RuleDesktopTable>
 
         <div class="inventory-mobile rule-template-mobile-list rule-presentation-mobile-list" aria-busy="@_loading">
             @foreach (RuleTemplate template in _templates)

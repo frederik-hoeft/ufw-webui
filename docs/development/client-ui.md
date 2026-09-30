@@ -39,6 +39,12 @@ UFWeb uses a hybrid Sass model because Blazor CSS isolation works well for self-
 
 Use `MyComponent.razor.scss` when the component owns enough of its rendered DOM for normal scoped selectors to work. Use `MyComponent.scss` when the style is still owned by that component but must intentionally cross component or framework-generated DOM boundaries. Reserve `UI/Styles/` for genuinely global primitives and explicit framework/application integration rules.
 
+Treat a Razor page or component as the default styling unit. One-off page/component rules belong beside that owner rather than in another page's stylesheet or in a feature-wide style bucket. Prefer one stylesheet per meaningful Razor unit; when several consumers need the same rendered structure or presentation, extract a reusable component or an explicit global primitive instead of making one component's stylesheet an implicit dependency of another.
+
+Use one meaningful owner root and nested Sass selectors where practical. This keeps globally emitted selectors clearly namespaced without introducing styling-only classes for every descendant. A colocated global stylesheet should use owner-specific root classes whenever it crosses child-component or framework-generated DOM boundaries.
+
+Customizations that intentionally change a generic MudBlazor/application control everywhere belong in the shared `UI/Styles/controls/` layer. Do not restyle generic input/button typography independently on individual pages. Component-specific layout around a MudBlazor child can remain colocated when it is scoped beneath the owning component/page root and expresses local composition rather than a new global control theme.
+
 Do not choose CSS isolation if the result is a large collection of `::deep` escape hatches. Isolation is a tool for real component ownership, not a goal by itself. The filename therefore communicates both source ownership and whether Blazor's scoped-CSS transform participates in the build.
 
 ### Isolated SCSS

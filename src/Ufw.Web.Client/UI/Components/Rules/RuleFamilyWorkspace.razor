@@ -47,8 +47,7 @@
         }
         else
         {
-            <div class="desktop-list rule-presentation-desktop-list" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
-                <table aria-busy="@Loading">
+            <RuleDesktopTable Class="desktop-list" Busy="@Loading" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
                     <RuleDesktopTableHeader ActionsLabel="@(RulesText["ActionsColumn"])" />
                     @foreach (RuleQueryRow result in DisplayedRows)
                     {
@@ -75,8 +74,7 @@
                                         DisableRequested="@DisableRequested"
                                         KnownHostsChanged="@KnownHostsChanged" />
                     }
-                </table>
-            </div>
+            </RuleDesktopTable>
 
             <div class="mobile-list rule-presentation-mobile-list" aria-busy="@Loading">
                 @foreach (RuleQueryRow result in DisplayedRows)

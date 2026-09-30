@@ -2,7 +2,7 @@
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<div class="details">
+<div class="rule-mobile-content details">
     <div>
         <span class="field-label">@RulesText["DirectionColumn"]</span>
         <span class="rule-direction">@RuleText.FormatDirection(Rule.Direction)</span>
@@ -13,7 +13,7 @@
     </div>
 </div>
 
-<div class="rule-mobile-endpoints">
+<div class="rule-mobile-content rule-mobile-endpoints">
     <div>
         <span class="visually-hidden">@RulesText["FromColumn"]</span>
         <span class="rule-endpoint">@RuleText.DescribeEndpoint(Rule.Source, Rule.SourcePorts, Rule.SourceInterface)</span>
@@ -27,14 +27,14 @@
 
 @if (!string.IsNullOrWhiteSpace(Rule.Comment))
 {
-    <div class="comment">
+    <div class="rule-mobile-content comment">
         <span class="field-label">@RulesText["CommentColumn"]</span>
         <span class="rule-comment">@Rule.Comment</span>
     </div>
 }
 @if (Tags.Count > 0)
 {
-    <div class="mobile-tags">
+    <div class="rule-mobile-content mobile-tags">
         <span class="field-label">@RulesText["Tags"]</span>
         <RuleTagList Tags="@Tags" MaxVisible="4" />
     </div>

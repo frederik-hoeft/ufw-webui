@@ -1,0 +1,84 @@
+@use "core/tokens" as *;
+
+.rule-metadata-reconciliation {
+    > header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    > section {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    > [role="status"] {
+        display: grid;
+        justify-items: center;
+        gap: 0.75rem;
+        padding: 2rem 1rem;
+        text-align: center;
+    }
+
+    > ul {
+        display: grid;
+        padding: 0;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: var(--mud-default-borderradius);
+        margin-bottom: 0;
+        list-style: none;
+        overflow: hidden;
+
+        > li {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--mud-palette-table-lines);
+
+            &:last-child {
+                border-bottom: 0;
+            }
+
+            > article {
+                display: grid;
+                min-width: 0;
+                gap: 0.5rem;
+
+                > header {
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: space-between;
+                    gap: 1rem;
+                }
+
+                code {
+                    overflow: hidden;
+                    color: var(--mud-palette-text-secondary);
+                    font-size: 0.75rem;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .rule-metadata-reconciliation {
+        > header {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        > ul > li > article > header {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+    }
+}
