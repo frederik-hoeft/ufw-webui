@@ -7,7 +7,7 @@ namespace Ufw.Shared.Domain;
 /// An empty set restricts the axis to nothing, so the resulting space is empty.
 /// </summary>
 public sealed class PolicyConstraint<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     /// <summary>Gets a constraint that leaves every axis open.</summary>
     public static PolicyConstraint<TAddress> Unconstrained { get; } = new();
@@ -15,13 +15,13 @@ public sealed class PolicyConstraint<TAddress>
     /// <summary>Gets the source addresses to keep, or <see langword="null"/> for the whole address universe.</summary>
     public IntervalSet<TAddress>? Source { get; init; }
 
-    /// <summary>Gets the source ports to keep, or <see langword="null"/> for every modeled port.</summary>
+    /// <summary>Gets the source ports to keep, or <see langword="null"/> for no port restriction. A numeric port constraint excludes protocols without port semantics.</summary>
     public IntervalSet<ushort>? SourcePorts { get; init; }
 
     /// <summary>Gets the destination addresses to keep, or <see langword="null"/> for the whole address universe.</summary>
     public IntervalSet<TAddress>? Destination { get; init; }
 
-    /// <summary>Gets the destination ports to keep, or <see langword="null"/> for every modeled port.</summary>
+    /// <summary>Gets the destination ports to keep, or <see langword="null"/> for no port restriction. A numeric port constraint excludes protocols without port semantics.</summary>
     public IntervalSet<ushort>? DestinationPorts { get; init; }
 
     /// <summary>Gets the protocols to keep, or <see langword="null"/> for every protocol in the world.</summary>

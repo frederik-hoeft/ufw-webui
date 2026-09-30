@@ -6,7 +6,7 @@ namespace Ufw.Shared.Domain.Algebra;
 /// Canonical union of non-empty, non-adjacent, non-overlapping <see cref="Interval{T}"/> values.
 /// </summary>
 public readonly struct IntervalSet<T> : IDimensionSet, IEquatable<IntervalSet<T>>
-    where T : struct, IBinaryInteger<T>, IMinMaxValue<T>
+    where T : struct, IBinaryInteger<T>, IUnsignedNumber<T>, IMinMaxValue<T>
 {
     private static readonly IReadOnlyList<Interval<T>> s_empty = [];
 

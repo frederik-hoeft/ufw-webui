@@ -7,14 +7,14 @@ namespace Ufw.Shared.Domain;
 /// One rectangle of packet space. Null interface sets mean that axis is not part of the chain, not that every interface matches.
 /// </summary>
 public sealed class PacketRegion<TAddress> : IEquatable<PacketRegion<TAddress>>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     /// <summary>Creates a rectangle from already canonical axis sets.</summary>
     public PacketRegion(
         IntervalSet<TAddress> source,
-        IntervalSet<ushort> sourcePorts,
+        PacketPortSet sourcePorts,
         IntervalSet<TAddress> destination,
-        IntervalSet<ushort> destinationPorts,
+        PacketPortSet destinationPorts,
         FiniteSet<ProtocolSymbol> protocols,
         FiniteSet<NetworkInterfaceName>? ingress,
         FiniteSet<NetworkInterfaceName>? egress)
@@ -31,14 +31,14 @@ public sealed class PacketRegion<TAddress> : IEquatable<PacketRegion<TAddress>>
     /// <summary>Gets the source addresses.</summary>
     public IntervalSet<TAddress> Source { get; }
 
-    /// <summary>Gets the source ports.</summary>
-    public IntervalSet<ushort> SourcePorts { get; }
+    /// <summary>Gets the source-port values, including not-applicable for protocols without ports.</summary>
+    public PacketPortSet SourcePorts { get; }
 
     /// <summary>Gets the destination addresses.</summary>
     public IntervalSet<TAddress> Destination { get; }
 
-    /// <summary>Gets the destination ports.</summary>
-    public IntervalSet<ushort> DestinationPorts { get; }
+    /// <summary>Gets the destination-port values, including not-applicable for protocols without ports.</summary>
+    public PacketPortSet DestinationPorts { get; }
 
     /// <summary>Gets the protocols.</summary>
     public FiniteSet<ProtocolSymbol> Protocols { get; }
@@ -88,12 +88,7 @@ public sealed class PacketRegion<TAddress> : IEquatable<PacketRegion<TAddress>>
             return false;
         }
 
-        if (!ContainsInterface(Ingress, point.Ingress) || !ContainsInterface(Egress, point.Egress))
-        {
-            return false;
-        }
-
-        return true;
+        return ContainsInterface(Ingress, point.Ingress) && ContainsInterface(Egress, point.Egress);
     }
 
     /// <summary>Returns <see langword="true"/> when the rectangles share at least one packet.</summary>
@@ -147,30 +142,18 @@ public sealed class PacketRegion<TAddress> : IEquatable<PacketRegion<TAddress>>
         }
 
         compared = CompareInterfaces(Ingress, other.Ingress);
-        if (compared != 0)
-        {
-            return compared;
-        }
-
-        return CompareInterfaces(Egress, other.Egress);
+        return compared != 0 ? compared : CompareInterfaces(Egress, other.Egress);
     }
 
     /// <inheritdoc />
-    public bool Equals(PacketRegion<TAddress>? other)
-    {
-        if (other is null)
-        {
-            return false;
-        }
-
-        return Source.Equals(other.Source)
-            && SourcePorts.Equals(other.SourcePorts)
-            && Destination.Equals(other.Destination)
-            && DestinationPorts.Equals(other.DestinationPorts)
-            && Protocols.Equals(other.Protocols)
-            && NullableEquals(Ingress, other.Ingress)
-            && NullableEquals(Egress, other.Egress);
-    }
+    public bool Equals(PacketRegion<TAddress>? other) => other is not null
+        && Source.Equals(other.Source)
+        && SourcePorts.Equals(other.SourcePorts)
+        && Destination.Equals(other.Destination)
+        && DestinationPorts.Equals(other.DestinationPorts)
+        && Protocols.Equals(other.Protocols)
+        && NullableEquals(Ingress, other.Ingress)
+        && NullableEquals(Egress, other.Egress);
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => Equals(obj as PacketRegion<TAddress>);
@@ -218,12 +201,7 @@ public sealed class PacketRegion<TAddress> : IEquatable<PacketRegion<TAddress>>
             return -1;
         }
 
-        if (right is null)
-        {
-            return 1;
-        }
-
-        return left.Value.CompareTo(right.Value);
+        return right is null ? 1 : left.Value.CompareTo(right.Value);
     }
 
     private static bool NullableEquals(FiniteSet<NetworkInterfaceName>? left, FiniteSet<NetworkInterfaceName>? right)

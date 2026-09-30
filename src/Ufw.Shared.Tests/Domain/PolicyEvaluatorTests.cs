@@ -40,7 +40,7 @@ public sealed class PolicyEvaluatorTests
         PolicyCell<uint> allow = Single(partition, PolicyDecision.Allow);
         Assert.IsInstanceOfType<DecisionProvenance.RuleMatch>(allow.Provenance);
         Assert.AreEqual(FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), allow.Region.Protocols);
-        Assert.AreEqual(PacketPorts.Parse("22"), allow.Region.DestinationPorts);
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22")), allow.Region.DestinationPorts);
         Assert.AreEqual(world.AddressUniverse, allow.Region.Source);
         Assert.AreEqual(world.Interfaces, allow.Region.Ingress);
 
@@ -58,7 +58,13 @@ public sealed class PolicyEvaluatorTests
     public void Evaluate_FirstMatch_ShadowsLaterOverlapAndKeepsDistinctDecisions()
     {
         PolicyWorld<uint> world = World(
-            Rule("tcp22", TrafficChain.Input, PolicyDecision.Allow, protocols: FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), destinationPorts: PacketPorts.Parse("22"), ingress: FiniteSet<NetworkInterfaceName>.Of(s_eth0)),
+            Rule(
+                "tcp22",
+                TrafficChain.Input,
+                PolicyDecision.Allow,
+                protocols: FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp),
+                destinationPorts: PacketPorts.Parse("22"),
+                ingress: FiniteSet<NetworkInterfaceName>.Of(s_eth0)),
             Rule("net10", TrafficChain.Input, PolicyDecision.Deny, source: IntervalSet<uint>.Of(NetworkAddress.ParseIPv4("10.0.0.0/8"))),
             Rule("dns", TrafficChain.Input, PolicyDecision.Limit, protocols: FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Udp), destinationPorts: PacketPorts.Parse("53")),
             Rule("output-allow-all", TrafficChain.Output, PolicyDecision.Allow));
@@ -102,7 +108,7 @@ public sealed class PolicyEvaluatorTests
         Assert.AreEqual(IntervalSet<uint>.Of(source), allowed.ProjectSourceAddresses());
         Assert.AreEqual(IntervalSet<uint>.Of(destination), allowed.ProjectDestinationAddresses());
         Assert.AreEqual(FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), allowed.ProjectProtocols());
-        Assert.AreEqual(PacketPorts.Parse("80"), allowed.ProjectDestinationPorts());
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("80")), allowed.ProjectDestinationPorts());
         Assert.IsNull(partition.Decide(Point(source: Host("11.0.0.1"), protocol: ProtocolSymbol.Tcp, destinationPort: 80, ingress: s_eth0)));
         Assert.IsNull(partition.Decide(Point(destination: Host("10.0.0.1"), protocol: ProtocolSymbol.Tcp, destinationPort: 80, ingress: s_eth0)));
         AssertDecision(partition, Point(source: Host("10.9.9.9"), destination: Host("192.168.1.9"), protocol: ProtocolSymbol.Tcp, destinationPort: 80, ingress: s_eth1), PolicyDecision.Allow, "web");
@@ -131,7 +137,7 @@ public sealed class PolicyEvaluatorTests
     public void Evaluate_ForwardUsesBothInterfaces_AndCustomProtocolsStayData()
     {
         ProtocolSymbol sctp = new("SCTP");
-        FiniteSet<ProtocolSymbol> protocols = FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp, sctp);
+        ProtocolDefinition[] protocols = [ProtocolDefinition.Tcp, new ProtocolDefinition(sctp, usesPorts: true)];
         PolicyRuleDefinition<uint> rule = Rule(
             "route",
             TrafficChain.Forward,
@@ -160,6 +166,75 @@ public sealed class PolicyEvaluatorTests
     }
 
     [TestMethod]
+    public void Evaluate_PortlessProtocol_UsesNotApplicablePortsAndPortConstraintsExcludeIt()
+    {
+        ProtocolSymbol icmp = new("icmp");
+        ProtocolDefinition[] protocols = [ProtocolDefinition.Tcp, new ProtocolDefinition(icmp, usesPorts: false)];
+        PolicyWorld<uint> world = PolicyWorld.CreateIPv4(
+            protocols,
+            FiniteSet<NetworkInterfaceName>.Of(s_eth0),
+            PolicyDecision.Deny,
+            PolicyDecision.Deny,
+            PolicyDecision.Deny,
+            [Rule("web", TrafficChain.Input, PolicyDecision.Allow, destinationPorts: PacketPorts.Parse("80"))]);
+        PolicyPartition<uint> partition = Evaluate(world, TrafficChain.Input);
+
+        AssertDecision(partition, Point(protocol: ProtocolSymbol.Tcp, destinationPort: 80, ingress: s_eth0), PolicyDecision.Allow, "web");
+        AssertDecision(partition, Point(protocol: ProtocolSymbol.Tcp, destinationPort: 81, ingress: s_eth0), PolicyDecision.Deny, defaultPolicy: true);
+        AssertDecision(partition, Point(sourcePort: null, destinationPort: null, protocol: icmp, ingress: s_eth0), PolicyDecision.Deny, defaultPolicy: true);
+        Assert.AreEqual(PacketPortSet.NotApplicable, partition.SpaceFor(PolicyDecision.Deny).Intersect(new PolicyConstraint<uint>
+        {
+            Protocols = FiniteSet<ProtocolSymbol>.Of(icmp),
+        }).ProjectDestinationPorts());
+
+        PolicyPartition<uint> impossible = PolicyEvaluator.Evaluate(world, PolicyQuery<uint>.Create(IpFamily.IPv4, TrafficChain.Input, new PolicyConstraint<uint>
+        {
+            Protocols = FiniteSet<ProtocolSymbol>.Of(icmp),
+            DestinationPorts = PacketPorts.Parse("80"),
+        }));
+        Assert.IsTrue(impossible.IsEmpty);
+    }
+
+    [TestMethod]
+    public void PacketSpace_FromRegion_RejectsImpossibleProtocolPortCrossProduct()
+    {
+        ProtocolSymbol icmp = new("icmp");
+        PolicyWorld<uint> world = PolicyWorld.CreateIPv4(
+            [ProtocolDefinition.Tcp, new ProtocolDefinition(icmp, usesPorts: false)],
+            FiniteSet<NetworkInterfaceName>.Of(s_eth0),
+            PolicyDecision.Deny,
+            PolicyDecision.Deny,
+            PolicyDecision.Deny,
+            []);
+        PacketRegion<uint> invalid = new(
+            world.AddressUniverse,
+            PacketPortSet.Complete,
+            world.AddressUniverse,
+            PacketPortSet.Complete,
+            FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp, icmp),
+            FiniteSet<NetworkInterfaceName>.Of(s_eth0),
+            null);
+
+        Assert.ThrowsExactly<ArgumentException>(() => PacketSpace<uint>.FromRegion(world, TrafficChain.Input, invalid));
+    }
+
+    [TestMethod]
+    public void PacketSpaces_FromEquivalentWorldsCanBeComparedAcrossRuleOrderings()
+    {
+        PolicyRuleDefinition<uint> ssh = Rule("ssh", TrafficChain.Input, PolicyDecision.Allow, protocols: FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), destinationPorts: PacketPorts.Parse("22"));
+        PolicyRuleDefinition<uint> web = Rule("web", TrafficChain.Input, PolicyDecision.Allow, protocols: FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), destinationPorts: PacketPorts.Parse("80"));
+        PolicyWorld<uint> original = World(ssh, web);
+        PolicyWorld<uint> reordered = World(web, ssh);
+
+        PacketSpace<uint> originalAllowed = Evaluate(original, TrafficChain.Input).SpaceFor(PolicyDecision.Allow);
+        PacketSpace<uint> reorderedAllowed = Evaluate(reordered, TrafficChain.Input).SpaceFor(PolicyDecision.Allow);
+
+        Assert.IsTrue(originalAllowed.SetEquals(reorderedAllowed));
+        Assert.IsTrue(originalAllowed.Except(reorderedAllowed).IsEmpty);
+        Assert.IsTrue(reorderedAllowed.Except(originalAllowed).IsEmpty);
+    }
+
+    [TestMethod]
     public void Evaluate_IPv6Rule_StaysInsideItsPrefix()
     {
         Interval<UInt128> prefix = NetworkAddress.ParseIPv6("2001:db8::/32");
@@ -171,7 +246,7 @@ public sealed class PolicyEvaluatorTests
             Destination = IntervalSet<UInt128>.Of(prefix),
         };
         PolicyWorld<UInt128> world = PolicyWorld.CreateIPv6(
-            FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp, ProtocolSymbol.Udp),
+            [ProtocolDefinition.Tcp, ProtocolDefinition.Udp],
             FiniteSet<NetworkInterfaceName>.Of(s_eth0),
             PolicyDecision.Deny,
             PolicyDecision.Allow,
@@ -221,16 +296,20 @@ public sealed class PolicyEvaluatorTests
     {
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => World(Rule("bad", TrafficChain.Input, (PolicyDecision)99)));
         Assert.ThrowsExactly<ArgumentException>(() => PolicyWorld.CreateIPv4(
-            FiniteSet<ProtocolSymbol>.Empty,
+            Array.Empty<ProtocolDefinition>(),
             FiniteSet<NetworkInterfaceName>.Of(s_eth0),
             PolicyDecision.Deny,
             PolicyDecision.Deny,
             PolicyDecision.Deny,
             []));
-        Assert.ThrowsExactly<ArgumentException>(() => World(Rule("bad-iface", TrafficChain.Input, PolicyDecision.Allow, ingress: FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("missing")))));
+        Assert.ThrowsExactly<ArgumentException>(() => World(Rule(
+            "bad-iface",
+            TrafficChain.Input,
+            PolicyDecision.Allow,
+            ingress: FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("missing")))));
         Assert.ThrowsExactly<ArgumentException>(() => World(Rule("bad-axis", TrafficChain.Output, PolicyDecision.Allow, ingress: FiniteSet<NetworkInterfaceName>.Of(s_eth0))));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PolicyWorld.CreateIPv4(
-            FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp),
+            [ProtocolDefinition.Tcp],
             FiniteSet<NetworkInterfaceName>.Of(s_eth0),
             PolicyDecision.Limit,
             PolicyDecision.Deny,
@@ -293,14 +372,7 @@ public sealed class PolicyEvaluatorTests
                 continue;
             }
 
-            PacketRegion<uint> match = rule.Match;
-            bool hit = match.Source.Contains(point.Source)
-                && match.SourcePorts.Contains(point.SourcePort)
-                && match.Destination.Contains(point.Destination)
-                && match.DestinationPorts.Contains(point.DestinationPort)
-                && match.Protocols.Contains(point.Protocol)
-                && (match.Ingress is null || (point.Ingress is { } ingress && match.Ingress.Value.Contains(ingress)))
-                && (match.Egress is null || (point.Egress is { } egress && match.Egress.Value.Contains(egress)));
+            bool hit = rule.Matches(point);
             if (hit)
             {
                 return (rule.Decision, new DecisionProvenance.RuleMatch(rule.Id, rule.FamilyOrder));
@@ -315,7 +387,7 @@ public sealed class PolicyEvaluatorTests
 
     private static PolicyWorld<uint> World(params PolicyRuleDefinition<uint>[] rules) =>
         PolicyWorld.CreateIPv4(
-            FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp, ProtocolSymbol.Udp),
+            [ProtocolDefinition.Tcp, ProtocolDefinition.Udp],
             FiniteSet<NetworkInterfaceName>.Of(s_eth0, s_eth1),
             PolicyDecision.Deny,
             PolicyDecision.Allow,
@@ -379,9 +451,9 @@ public sealed class PolicyEvaluatorTests
 
     private static PacketPoint<uint> Point(
         uint source = 0x0a000001,
-        ushort sourcePort = 40000,
+        ushort? sourcePort = 40000,
         uint destination = 0xc0a80001,
-        ushort destinationPort = 80,
+        ushort? destinationPort = 80,
         ProtocolSymbol? protocol = null,
         NetworkInterfaceName? ingress = null,
         NetworkInterfaceName? egress = null) => new(

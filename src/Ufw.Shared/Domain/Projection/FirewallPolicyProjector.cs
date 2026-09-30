@@ -16,7 +16,7 @@ namespace Ufw.Shared.Domain.Projection;
 public static class FirewallPolicyProjector
 {
     /// <summary>Gets the protocols the current UFW rule model can name. <c>any</c> expands to this set.</summary>
-    public static FiniteSet<ProtocolSymbol> SupportedProtocols { get; } = FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp, ProtocolSymbol.Udp);
+    public static IReadOnlyList<ProtocolDefinition> SupportedProtocols { get; } = [ProtocolDefinition.Tcp, ProtocolDefinition.Udp];
 
     /// <summary>Projects the IPv4 rows of an authoritative listing.</summary>
     public static PolicyWorld<uint> ProjectIPv4(
@@ -106,8 +106,15 @@ public static class FirewallPolicyProjector
         bool requireIPv6Enabled,
         bool ipv6Enabled,
         Func<string?, IntervalSet<TAddress>?> parseAddress,
-        Func<FiniteSet<ProtocolSymbol>, FiniteSet<NetworkInterfaceName>, PolicyDecision, PolicyDecision, PolicyDecision, IReadOnlyList<PolicyRuleDefinition<TAddress>>, PolicyWorld<TAddress>> create)
-        where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+        Func<
+            IReadOnlyCollection<ProtocolDefinition>,
+            FiniteSet<NetworkInterfaceName>,
+            PolicyDecision,
+            PolicyDecision,
+            PolicyDecision,
+            IReadOnlyList<PolicyRuleDefinition<TAddress>>,
+            PolicyWorld<TAddress>> create)
+        where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
     {
         ArgumentNullException.ThrowIfNull(rules);
         if (requireIPv6Enabled && !ipv6Enabled)
@@ -158,8 +165,15 @@ public static class FirewallPolicyProjector
         IReadOnlyCollection<string> interfaces,
         FirewallAddressFamily target,
         Func<string?, IntervalSet<TAddress>?> parseAddress,
-        Func<FiniteSet<ProtocolSymbol>, FiniteSet<NetworkInterfaceName>, PolicyDecision, PolicyDecision, PolicyDecision, IReadOnlyList<PolicyRuleDefinition<TAddress>>, PolicyWorld<TAddress>> create)
-        where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+        Func<
+            IReadOnlyCollection<ProtocolDefinition>,
+            FiniteSet<NetworkInterfaceName>,
+            PolicyDecision,
+            PolicyDecision,
+            PolicyDecision,
+            IReadOnlyList<PolicyRuleDefinition<TAddress>>,
+            PolicyWorld<TAddress>> create)
+        where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
     {
         ArgumentNullException.ThrowIfNull(rules);
         FiniteSet<NetworkInterfaceName> interfaceUniverse = NormalizeInterfaces(interfaces);
@@ -190,7 +204,7 @@ public static class FirewallPolicyProjector
         RuleId id,
         Func<string?, IntervalSet<TAddress>?> parseAddress,
         FiniteSet<NetworkInterfaceName> interfaces)
-        where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+        where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
     {
         try
         {
@@ -253,10 +267,9 @@ public static class FirewallPolicyProjector
 
     private static FirewallRuleSpecification NormalizeValidated(FirewallRuleSpecification specification)
     {
-        if (!RuleSpecificationValidator.TryValidate(specification, out Ipc.Model.Responses.ModelValidationErrorResponse? error))
+        if (!RuleSpecificationValidator.TryValidate(specification, out _))
         {
-            string message = error!.Errors.Length == 0 ? "The rule is invalid." : error.Errors[0].ErrorMessage;
-            throw new FirewallProjectionException($"A rule cannot be projected: {message}");
+            throw new FirewallProjectionException("A rule cannot be projected because its normalized firewall semantics are invalid.");
         }
 
         return RuleSpecificationNormalizer.Normalize(specification);
@@ -275,7 +288,7 @@ public static class FirewallPolicyProjector
     }
 
     private static IntervalSet<TAddress>? ParseAddress<TAddress>(string? address, Func<string?, Interval<TAddress>> parse)
-        where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+        where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
     {
         if (string.IsNullOrWhiteSpace(address) || address.Trim().Equals(RuleSpecificationNormalizer.ANY, StringComparison.OrdinalIgnoreCase))
         {

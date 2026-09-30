@@ -3,7 +3,7 @@
 /// <summary>
 /// Inclusive range of a discrete numeric axis.
 /// </summary>
-public readonly record struct Interval<T> where T : struct, IBinaryInteger<T>, IMinMaxValue<T>
+public readonly record struct Interval<T> where T : struct, IBinaryInteger<T>, IUnsignedNumber<T>, IMinMaxValue<T>
 {
     /// <summary>
     /// Creates a range. <paramref name="start"/> and <paramref name="end"/> are both included.

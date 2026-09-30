@@ -7,7 +7,7 @@ namespace Ufw.Shared.Domain;
 /// Non-overlapping cover of a queried packet space. Every packet in the query belongs to exactly one cell.
 /// </summary>
 public sealed class PolicyPartition<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     private readonly PacketLayout<TAddress> _layout;
     private readonly ProductSpace _coverage;
@@ -68,14 +68,14 @@ public sealed class PolicyPartition<TAddress>
     public PolicyPartition<TAddress> Constrain(PolicyConstraint<TAddress> constraint)
     {
         ArgumentNullException.ThrowIfNull(constraint);
-        ProductRegion cut = _layout.Materialize(constraint);
+        ProductSpace cut = _layout.Materialize(constraint);
         List<PolicyCell<TAddress>> cells = [];
         foreach (PolicyCell<TAddress> cell in _cells)
         {
-            ProductRegion hit = _layout.FromPacket(cell.Region).Intersect(cut);
-            if (!hit.IsEmpty)
+            ProductSpace hit = ProductSpace.FromRegions([_layout.FromPacket(cell.Region)]).Intersect(cut);
+            foreach (ProductRegion region in hit.Regions)
             {
-                cells.Add(new PolicyCell<TAddress>(_layout.ToPacket(hit), cell.Decision, cell.Provenance));
+                cells.Add(new PolicyCell<TAddress>(_layout.ToPacket(region), cell.Decision, cell.Provenance));
             }
         }
 

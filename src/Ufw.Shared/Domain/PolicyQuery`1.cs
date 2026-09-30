@@ -4,7 +4,7 @@
 /// One question put to a policy world: a concrete family, one chain, and an optional packet-space constraint.
 /// </summary>
 public sealed class PolicyQuery<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     private PolicyQuery(IpFamily family, TrafficChain chain, PolicyConstraint<TAddress> constraint)
     {

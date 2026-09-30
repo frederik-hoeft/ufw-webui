@@ -1,156 +1,107 @@
 # Semantic Policy Domain
 
-This document describes the read-only policy model in `Ufw.Shared.Domain`: how a normalized UFW rule list becomes a partition of packet space, and which questions that partition can answer. It sits beside the [firewall state and rule model](firewall-model.md). That document defines how UFWeb observes and mutates UFW. This one defines how the same normalized rules are interpreted. Neither one makes PostgreSQL, the browser, or the domain model a second firewall.
+The semantic policy domain is UFWeb's read-only interpretation of normalized UFW rules. It takes the same structural rule semantics used for identity and mutation, combines them with the configured default policies and the finite host/model context needed to interpret `any`, and answers questions about the effective UFW-managed policy over packet space.
 
-The result is a statement about the **modeled UFW user policy**, not about reachability. A region the model allows is not evidence that a packet will arrive. Delivery still depends on routing, topology, whether a service is listening, NAT, other firewalls, kernel connection tracking, and netfilter rules UFWeb does not represent.
+This is deliberately different from network reachability. An allowed region means that the modeled UFW user policy permits those packets if they reach that policy. Routing, NAT, connection tracking, service availability, other firewalls, and netfilter rules outside the normalized UFW user-rule surface can still change what happens on the host or network. The [firewall state and rule model](firewall-model.md) remains authoritative for how UFWeb observes and mutates UFW; the policy domain only interprets a supplied snapshot.
 
-## What the model contains
+## Closed-world policy model
 
-Evaluation reads one closed world:
+Evaluation operates on one closed policy world for one concrete address family. The caller supplies:
 
-- the ordered rules of one address family, already normalized;
+- the normalized rules in authoritative family order;
 - the incoming, outgoing, and routed default policies;
 - the finite set of known interfaces;
-- the finite set of supported protocols.
+- the supported protocol definitions, including whether source and destination ports apply to each protocol.
 
-IPv4 and IPv6 are separate worlds because UFW evaluates them as separate rule sets. A world is pure data. `PolicyEvaluator` does not open a database, call UFW, or know whether the snapshot came from the host daemon or from a hypothetical rule list. `FirewallPolicyProjector` is the adapter that builds a world from `Ufw.Shared.Firewall` types. Another source can build the same world without changing the evaluator.
+IPv4 and IPv6 are separate worlds because UFW evaluates them as separate rule sets. The address universe is the complete selected family, while interfaces and protocols use the finite sets supplied by the caller. A missing rule or query constraint means the complete corresponding domain inside that world; it never means "whatever else may exist on the host."
 
-The configured user policy is what is modeled. The UFW active/inactive flag is operational state and is not an input. Conntrack, `before.rules`, `after.rules`, NAT, and routing are outside the model on purpose: UFWeb cannot authoritatively normalize them into the same rule semantics.
+This closed-world boundary is also the semantic boundary of the evaluator. Connection state, `before.rules`, `after.rules`, NAT, routing, and other state that UFWeb cannot normalize into this model are not inferred or approximated. The UFW active/inactive flag is operational state rather than packet semantics and is therefore not part of a policy world.
 
-## Closed worlds
+Protocol definitions keep protocol membership separate from packet shape. TCP and UDP use numeric source and destination ports. A supported protocol without port semantics instead carries a distinct not-applicable value on those dimensions. A port constraint therefore selects only protocols for which ports exist; an unconstrained query can still cover both port-bearing and portless protocols without inventing combinations such as an ICMP destination port.
 
-Every axis has a universe fixed by the world, not by the addresses or ports that happen to appear in rules. The complement of a match is still in the model and falls through to a later rule or to the default policy.
+The selected traffic chain determines which interface dimensions exist and which default policy resolves unmatched traffic:
 
-| Axis | Universe | What an omitted constraint means |
+| Chain | Interface dimensions | Default policy |
 | --- | --- | --- |
-| Address | Every IPv4 address, or every IPv6 address | The whole family |
-| Port | `1` through `65535`, for every modeled protocol | Every modeled port |
-| Protocol | The world's supported protocol set | Every supported protocol |
-| Interface | The world's known interface set | Every known interface on that axis |
+| Input | ingress | incoming |
+| Output | egress | outgoing |
+| Forward | ingress and egress | routed |
 
-A rule or query that says "any protocol" therefore means every protocol in the world, not every IP protocol number. ICMP and anything else outside the supported set are simply not in the space being partitioned. The same is true of an interface the world was not told about.
-
-Ports are a single shared axis because every protocol the model can name is port-bearing. Adding another port-bearing protocol is new data in the protocol set. A future protocol that has no ports would be a new axis relationship, not a new name in the existing set.
-
-Which interface axes exist depends only on the chain:
-
-```mermaid
-flowchart LR
-    subgraph Input[Input chain]
-        I1[source address and port]
-        I2[destination address and port]
-        I3[protocol]
-        I4[ingress interface]
-    end
-    subgraph Output[Output chain]
-        O1[source address and port]
-        O2[destination address and port]
-        O3[protocol]
-        O4[egress interface]
-    end
-    subgraph Forward[Forward chain]
-        F1[source address and port]
-        F2[destination address and port]
-        F3[protocol]
-        F4[ingress interface]
-        F5[egress interface]
-    end
-```
-
-Input has no egress axis and output has no ingress axis. Forward has both. That follows the interface fields UFW user rules can actually name: inbound `on` is ingress, outbound `on` is egress, and a route rule can name `in on` and `out on` separately. A rule that names an interface outside the known set matches no packet. It does not silently become "any interface".
+For UFW rule projection, inbound `on` maps to ingress, outbound `on` maps to egress, and route rules map their input and output interfaces independently. An interface named by a rule but absent from the supplied interface universe makes that match empty rather than broadening it to `any`.
 
 ## Packet space
 
-The engine does not enumerate packets. A region is one combinatorial rectangle: a product of one canonical set per axis. Address and port axes are disjoint unions of inclusive integer intervals, so subtracting one CIDR or port range from another does not require expanding either into individual values. Protocol and interface axes are sorted finite sets.
+A policy query constrains any combination of source address, source port, destination address, destination port, protocol, and the interfaces meaningful to its chain. Source and destination constraints are conjunctive: specifying both narrows one packet space rather than invoking a separate pairwise evaluation mode.
 
-A space is a disjoint union of those rectangles. Intersection, union, and difference are ordinary set operations on that union. Difference of two rectangles uses one fixed decomposition. For a rectangle \(A = A_1 \times \cdots \times A_n\) and a cut \(B\), each piece \(i\) keeps the intersection on the axes before \(i\), the set difference on axis \(i\), and \(A\)'s original set on the axes after \(i\):
+The domain represents packet space as sets rather than enumerated packets. Address and numeric-port dimensions use interval sets; protocol and interface dimensions use finite sets; the complete packet space is represented as a disjoint union of multidimensional regions. Intersection and set difference can therefore split only the affected parts of a CIDR, port range, protocol set, or interface set while leaving the rest symbolic.
 
-$$
-A \setminus B = \bigsqcup_i \left( (A_1 \cap B_1) \times \cdots \times (A_{i-1} \cap B_{i-1}) \times (A_i \setminus B_i) \times A_{i+1} \times \cdots \times A_n \right)
-$$
+This representation is independent of firewall actions. Adding another interface or supported protocol changes the closed-world data supplied to evaluation, not the first-match algorithm. Adding a protocol with different port applicability changes its protocol definition rather than requiring a separate evaluator.
 
-Empty pieces are dropped. The pieces are disjoint and cover exactly the tuples of \(A\) that are not in \(B\). Rectangles that share a label and differ in only one axis are coalesced by unioning that axis, so the result stays a short list of set-valued rectangles instead of a list of singleton holes.
+## Ordered policy evaluation
 
-`ProductSpace` is the reusable part of this machinery. It does not know what an axis means. The firewall layout is the piece that names axes source, source port, destination, destination port, protocol, and the chain's interfaces. Adding a value to an axis does not change subtraction or coalescing. Adding a new axis is a layout change; the product engine stays as it is.
-
-## Ordered evaluation
-
-A query names the family, one chain, and an optional constraint. A missing component covers that component's whole universe. When source and destination are both present they define one product, not two separate answers. The query rectangle \(U_0\) is the space to be partitioned.
-
-Only rules for the selected chain participate. Their relative order is the order they have in the family list. Rules on other chains are skipped and do not reorder the ones that remain. For each participating rule \(i\), with match rectangle \(R_i\), decision \(a_i\), and provenance \(\pi_i\):
+Policy evaluation applies one chain of the selected family in authoritative order. At every step only the still-undecided packet space is considered. If rule $i$ matches region $R_i$ and $U_i$ is the space still undecided before that rule, then:
 
 $$
-\begin{align*}
-M_i &= U_{i-1} \cap R_i \\
-U_i &= U_{i-1} \setminus R_i
-\end{align*}
+M_i = U_i \cap R_i
 $$
 
-\(M_i\) is emitted as one or more cells labeled \((a_i, \pi_i)\) when it is non-empty. After the last rule, whatever remains in \(U_n\) is labeled with the chain's default policy: incoming for input, outgoing for output, and routed for forward.
+is classified by the rule, and
 
-The decisions are allow, deny, reject, and limit. Limit is terminal for first-match purposes and still conditional: the model does not know the rate or the connection state a live limit rule would consult, so it is not rewritten as allow or deny. Default policies are only allow, deny, or reject, matching what UFW can configure.
+$$
+U_{i+1} = U_i \setminus R_i
+$$
 
-Provenance is either a rule or the chain default. Rule provenance carries the opaque rule identity and the rule's zero-based index in the family list. Two textually identical rules therefore stay distinguishable, and the earlier one wins. Cells with the same decision but different provenance are not merged. The partition can explain which rule produced a region, not only whether the region is allowed.
-
-The cells are pairwise disjoint, none is empty, and their cardinalities sum to the cardinality of the query. That cover is checked when the partition is built. Cardinality is an exact integer, including for the full IPv6 space, so the check does not depend on sampling packets.
-
-This is first match inside the modeled user chain. It is intentionally stricter than live netfilter behavior. UFW's `before.rules` accept established and related flows before user rules run. The domain model does not, because connection state is outside its universe. A denied region means "denied if the packet is judged by this user policy", not "dropped on the wire regardless of conntrack".
-
-## Questions after one evaluation
-
-`PolicyPartition` is the value later code should build on. These operations do not re-run first match, because every packet in the original query already has a decision:
-
-- `Decide` returns the cell containing one fully specified packet, or nothing when the packet lies outside the query but still inside the closed world.
-- `Constrain` intersects every cell with a tighter constraint and keeps provenance. A UI can narrow a result without a second evaluation.
-- `SpaceFor` returns the packets of one decision, or of one provenance, as a set rather than a cover.
-- Projections such as `ProjectSourceAddresses` are existential. A value is included when at least one packet in the space uses it. They do not mean the value is allowed for every other field.
-- `PolicyAnalysis` answers shadowing from a full-chain partition: a rule is ineffective when its match is empty, fully shadowed when an earlier rule already claimed every packet it could match, and partially shadowed on the set difference between its match and the packets actually attributed to it.
-
-A different rule list or a different default is a different world and needs a new evaluation. A narrower question about the same world does not.
+continues to later rules. This is ordinary UFW first-match behavior lifted from individual packets to sets. It naturally handles partial shadowing: an earlier rule can decide only part of a later rule's match while the remainder continues through the chain. After the final user rule, the chain's configured default policy classifies the remaining space.
 
 ```mermaid
 flowchart LR
-    Snapshot[Normalized rules, defaults, interfaces]
-    Projector[FirewallPolicyProjector]
-    World[PolicyWorld]
-    Query[PolicyQuery]
-    Evaluator[PolicyEvaluator]
-    Partition[PolicyPartition]
-    Later[Decide, Constrain, project, explain]
+    Query[Query space U0]
+    R1{Rule 1 match}
+    C1[Decision cells\nrule 1 provenance]
+    U1[Remaining space U1]
+    R2{Rule 2 match}
+    C2[Decision cells\nrule 2 provenance]
+    U2[Remaining space U2]
+    Default[Chain default]
+    CD[Default-policy cells]
+    Partition[Complete policy partition]
 
-    Snapshot --> Projector
-    Projector --> World
-    World --> Evaluator
-    Query --> Evaluator
-    Evaluator --> Partition
-    Partition --> Later
+    Query --> R1
+    R1 -->|matched M1| C1
+    R1 -->|unmatched| U1
+    U1 --> R2
+    R2 -->|matched M2| C2
+    R2 -->|unmatched| U2
+    U2 --> Default --> CD
+    C1 --> Partition
+    C2 --> Partition
+    CD --> Partition
 ```
+
+Rules belonging to other chains are skipped without changing the relative order of the rules that do participate. `Allow`, `Deny`, and `Reject` are terminal decisions. `Limit` remains a distinct terminal classification because the runtime rate state needed to resolve it further is outside the model.
+
+## Policy partitions and provenance
+
+Evaluation returns a complete partition of the queried space. Every packet represented by the query belongs to exactly one result region, result regions do not overlap, and each region carries both its effective decision and the provenance that made that decision final.
+
+Rule provenance contains semantic rule identity plus its occurrence in the family order. This keeps evidence tied to the actual first-match occurrence even when equivalent rules are present. Traffic not claimed by a user rule records the relevant chain default as its provenance. Regions with different provenance remain distinct even when they carry the same decision, so an explanation does not lose the rule responsible for a result.
+
+The partition is intended as the stable input to higher-level analysis. Consumers can narrow an already evaluated result, project dimensions such as source or destination networks, group regions by effective decision or provenance, and compare decision spaces without reimplementing rule semantics. Packet spaces from separately constructed worlds can participate in set comparison when their packet universes are equivalent, which allows policy-equivalence checks such as comparing two different rule orderings while ignoring provenance differences.
 
 ## Projection from firewall state
 
-`FirewallPolicyProjector` is the only type in this namespace that mentions firewall rules. Listed projection takes the authoritative rule list, the configuration snapshot, and the known interface names:
+`Ufw.Shared.Domain` does not read UFW, query a database, or discover interfaces. The firewall projection boundary adapts already normalized `Ufw.Shared.Firewall` state into the closed-world model. Other callers can construct the same domain model directly without depending on daemon or browser types.
 
-- rows are kept in listed order and then restricted to one observed family; provenance stores that family index, and evaluation walks the same list while skipping other chains;
-- an opaque row in the target family fails the projection, because its match is unknown and skipping it would invent a policy;
-- an opaque row known to belong to the other family is ignored;
-- IPv6 projection fails when the snapshot says IPv6 is disabled, since UFW is not evaluating an IPv6 user chain;
-- rule identity is the semantic `RuleId` of the normalized rule, and a listed identity that disagrees with that computation is rejected;
-- `any` protocol expands to the supported set, currently TCP and UDP;
-- comments and display numbers are not part of the match.
+Projection preserves the authoritative rule order and family semantics. A supported listed rule is normalized and checked against its semantic identity before becoming a domain rule. An opaque row in the family being projected fails the projection because its match cannot be represented safely; silently skipping it would allow later rules or the default policy to claim traffic whose first match is unknown. An opaque row that is known to belong only to the other family does not affect the selected world.
 
-Specification projection takes an ordered list of rule specifications instead of a listing. It is for a hypothetical policy. A family-neutral rule is included in the requested family; a rule of the other concrete family is skipped. It does not consult the IPv6 capability bit, because there is no host snapshot.
+IPv6 projection from an authoritative snapshot also requires IPv6 to be enabled, because disabled IPv6 rules are not part of UFW's active observable rule set. Projection from a hypothetical ordered specification list does not apply that host capability check because it is not describing a current host snapshot.
 
-Interface fields use the same mapping as command rendering. On input, the destination interface is ingress. On output, the source interface is egress. On forward, the source interface is ingress and the destination interface is egress. UFW text aliases are normalized before parsing, so a bare `0.0.0.0` becomes the whole IPv4 universe rather than the single address zero. The domain parser itself does not apply that alias.
+Comments, display numbers, application metadata, and presentation state do not participate in packet matching. Known interface names matter only because they define the finite interface universe used by `any` and by explicit interface constraints.
 
-## What can grow without a new engine
+## Extension boundary
 
-The evaluator treats decisions as labels and axes as sets. The following changes stay outside the first-match loop:
+The generic set algebra and first-match evaluator do not encode specific policy-exploration questions. Source-centric, destination-centric, pairwise, shadowing, and rule-order comparison are consumers of the same partition model rather than separate policy engines.
 
-| Change | Where it is made |
-| --- | --- |
-| A new known interface, or a new port-bearing protocol | The world's finite sets, and rules that name them |
-| A new terminal action | A new `PolicyDecision` label; evaluation already copies the rule's label through |
-| A new question about an evaluated policy | `Decide`, `Constrain`, projections, or `ProductSpace` algebra |
-| A new packet axis | The firewall layout that lines axes up; rectangle subtraction is unchanged |
+Extending an existing finite dimension is correspondingly local: a newly known interface expands the interface universe; a newly supported protocol adds a protocol definition; a new terminal action adds another decision label that the evaluator carries through. A genuinely new packet dimension requires the firewall packet layout to expose that dimension, but intersection, subtraction, and ordered evaluation remain unchanged.
 
-A new axis is still a deliberate model change. Connection state, NAT, and rules outside the parsed UFW user chain are not added by widening one of today's sets. They would need their own universe and a reason to believe UFWeb can populate it authoritatively.
+Features such as connection-state reasoning, NAT, or arbitrary netfilter chains cross a different boundary. They require both a new semantic dimension or transformation and an authoritative source from which UFWeb can populate it; they cannot be made correct merely by widening one of the existing closed-world sets.

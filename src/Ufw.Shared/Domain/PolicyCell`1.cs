@@ -4,7 +4,7 @@
 /// One block of a policy partition: a non-empty packet rectangle, the decision that covers it, and the rule or default responsible.
 /// </summary>
 public sealed class PolicyCell<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     /// <summary>Creates a cell. The region is not required to be non-empty here; the partition builder enforces that.</summary>
     public PolicyCell(PacketRegion<TAddress> region, PolicyDecision decision, DecisionProvenance provenance)

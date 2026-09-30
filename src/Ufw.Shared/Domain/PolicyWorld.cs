@@ -7,11 +7,9 @@ namespace Ufw.Shared.Domain;
 /// </summary>
 public static class PolicyWorld
 {
-    /// <summary>
-    /// Creates an IPv4 world. <paramref name="rules"/> is first-match order across every chain.
-    /// </summary>
+    /// <summary>Creates an IPv4 world. <paramref name="rules"/> is first-match order across every chain.</summary>
     public static PolicyWorld<uint> CreateIPv4(
-        FiniteSet<ProtocolSymbol> protocols,
+        IReadOnlyCollection<ProtocolDefinition> protocols,
         FiniteSet<NetworkInterfaceName> interfaces,
         PolicyDecision incomingDefault,
         PolicyDecision outgoingDefault,
@@ -30,11 +28,9 @@ public static class PolicyWorld
             rules);
     }
 
-    /// <summary>
-    /// Creates an IPv6 world. <paramref name="rules"/> is first-match order across every chain.
-    /// </summary>
+    /// <summary>Creates an IPv6 world. <paramref name="rules"/> is first-match order across every chain.</summary>
     public static PolicyWorld<UInt128> CreateIPv6(
-        FiniteSet<ProtocolSymbol> protocols,
+        IReadOnlyCollection<ProtocolDefinition> protocols,
         FiniteSet<NetworkInterfaceName> interfaces,
         PolicyDecision incomingDefault,
         PolicyDecision outgoingDefault,

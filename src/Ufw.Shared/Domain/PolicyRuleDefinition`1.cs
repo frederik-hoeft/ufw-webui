@@ -8,7 +8,7 @@ namespace Ufw.Shared.Domain;
 /// Interface components are legal only on chains that have that axis.
 /// </summary>
 public sealed class PolicyRuleDefinition<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     /// <summary>Gets the opaque rule identity.</summary>
     public required RuleId Id { get; init; }
@@ -22,13 +22,13 @@ public sealed class PolicyRuleDefinition<TAddress>
     /// <summary>Gets the source addresses, or <see langword="null"/> for every address.</summary>
     public IntervalSet<TAddress>? Source { get; init; }
 
-    /// <summary>Gets the source ports, or <see langword="null"/> for every modeled port.</summary>
+    /// <summary>Gets the source ports, or <see langword="null"/> for no port restriction. A numeric port constraint excludes protocols without port semantics.</summary>
     public IntervalSet<ushort>? SourcePorts { get; init; }
 
     /// <summary>Gets the destination addresses, or <see langword="null"/> for every address.</summary>
     public IntervalSet<TAddress>? Destination { get; init; }
 
-    /// <summary>Gets the destination ports, or <see langword="null"/> for every modeled port.</summary>
+    /// <summary>Gets the destination ports, or <see langword="null"/> for no port restriction. A numeric port constraint excludes protocols without port semantics.</summary>
     public IntervalSet<ushort>? DestinationPorts { get; init; }
 
     /// <summary>Gets the protocols, or <see langword="null"/> for every protocol in the world.</summary>

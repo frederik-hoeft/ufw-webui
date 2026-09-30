@@ -3,36 +3,35 @@
 namespace Ufw.Shared.Domain;
 
 /// <summary>
-/// Closed-world snapshot the evaluator reads. It is pure data: address family, universes, defaults, and ordered rules.
+/// Closed-world snapshot the evaluator reads. It is pure data: address family, finite universes, defaults, and ordered rules.
 /// </summary>
-/// <remarks>
-/// The address universe is every address of the family. The port universe is <see cref="PacketPorts.Universe"/>.
-/// Protocols and interfaces are exactly the finite sets given at construction. A later element is a new world, not a new evaluator.
-/// </remarks>
 public sealed class PolicyWorld<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IMinMaxValue<TAddress>
+    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
+    private readonly Dictionary<ProtocolSymbol, ProtocolDefinition> _protocolsBySymbol;
     private readonly PolicyRule<TAddress>[] _rules;
 
     private PolicyWorld(
         IpFamily family,
         IntervalSet<TAddress> addressUniverse,
-        FiniteSet<ProtocolSymbol> protocols,
+        FiniteSet<ProtocolDefinition> protocolDefinitions,
         FiniteSet<NetworkInterfaceName> interfaces,
         PolicyDecision incomingDefault,
         PolicyDecision outgoingDefault,
         PolicyDecision routedDefault,
-        PolicyRule<TAddress>[] rules)
+        IReadOnlyList<PolicyRuleDefinition<TAddress>> definitions)
     {
         Family = family;
         AddressUniverse = addressUniverse;
         PortUniverse = PacketPorts.Universe;
-        Protocols = protocols;
+        ProtocolDefinitions = protocolDefinitions;
+        Protocols = FiniteSet<ProtocolSymbol>.From(protocolDefinitions.Values.Select(static definition => definition.Symbol));
         Interfaces = interfaces;
         IncomingDefault = incomingDefault;
         OutgoingDefault = outgoingDefault;
         RoutedDefault = routedDefault;
-        _rules = rules;
+        _protocolsBySymbol = protocolDefinitions.Values.ToDictionary(static definition => definition.Symbol);
+        _rules = ResolveRules(definitions);
     }
 
     /// <summary>Gets the concrete address family.</summary>
@@ -41,10 +40,13 @@ public sealed class PolicyWorld<TAddress>
     /// <summary>Gets every address the family can name.</summary>
     public IntervalSet<TAddress> AddressUniverse { get; }
 
-    /// <summary>Gets every modeled port.</summary>
+    /// <summary>Gets every numeric port available to protocols that use ports.</summary>
     public IntervalSet<ushort> PortUniverse { get; }
 
-    /// <summary>Gets the protocols <c>any</c> expands to.</summary>
+    /// <summary>Gets the protocol definitions in the closed world.</summary>
+    public FiniteSet<ProtocolDefinition> ProtocolDefinitions { get; }
+
+    /// <summary>Gets the protocol symbols <c>any</c> expands to.</summary>
     public FiniteSet<ProtocolSymbol> Protocols { get; }
 
     /// <summary>Gets the interfaces <c>any</c> expands to.</summary>
@@ -74,13 +76,15 @@ public sealed class PolicyWorld<TAddress>
     internal static PolicyWorld<TAddress> Create(
         IpFamily family,
         IntervalSet<TAddress> addressUniverse,
-        FiniteSet<ProtocolSymbol> protocols,
+        IReadOnlyCollection<ProtocolDefinition> protocols,
         FiniteSet<NetworkInterfaceName> interfaces,
         PolicyDecision incomingDefault,
         PolicyDecision outgoingDefault,
         PolicyDecision routedDefault,
         IReadOnlyList<PolicyRuleDefinition<TAddress>> rules)
     {
+        ArgumentNullException.ThrowIfNull(protocols);
+        ArgumentNullException.ThrowIfNull(rules);
         if (family == IpFamily.IPv4 && typeof(TAddress) != typeof(uint)
             || family == IpFamily.IPv6 && typeof(TAddress) != typeof(UInt128))
         {
@@ -95,32 +99,44 @@ public sealed class PolicyWorld<TAddress>
         ValidateDefault(incomingDefault, nameof(incomingDefault));
         ValidateDefault(outgoingDefault, nameof(outgoingDefault));
         ValidateDefault(routedDefault, nameof(routedDefault));
-        ValidateSymbols(protocols, interfaces);
+        FiniteSet<ProtocolDefinition> protocolSet = NormalizeProtocols(protocols);
+        ValidateInterfaces(interfaces);
 
-        PolicyRule<TAddress>[] resolved = new PolicyRule<TAddress>[rules.Count];
-        for (int index = 0; index < rules.Count; index++)
-        {
-            PolicyRuleDefinition<TAddress> definition = rules[index] ?? throw new ArgumentException("Rules cannot contain null entries.", nameof(rules));
-            resolved[index] = Resolve(definition, index, addressUniverse, protocols, interfaces);
-        }
-
-        return new PolicyWorld<TAddress>(
-            family,
-            addressUniverse,
-            protocols,
-            interfaces,
-            incomingDefault,
-            outgoingDefault,
-            routedDefault,
-            resolved);
+        return new PolicyWorld<TAddress>(family, addressUniverse, protocolSet, interfaces, incomingDefault, outgoingDefault, routedDefault, rules);
     }
 
-    private static PolicyRule<TAddress> Resolve(
-        PolicyRuleDefinition<TAddress> definition,
-        int familyOrder,
-        IntervalSet<TAddress> addressUniverse,
-        FiniteSet<ProtocolSymbol> protocols,
-        FiniteSet<NetworkInterfaceName> interfaces)
+    internal bool ProtocolUsesPorts(ProtocolSymbol protocol)
+    {
+        if (!_protocolsBySymbol.TryGetValue(protocol, out ProtocolDefinition definition))
+        {
+            throw new ArgumentException("The packet protocol is outside the closed world.", nameof(protocol));
+        }
+
+        return definition.UsesPorts;
+    }
+
+    internal bool HasEquivalentPacketUniverse(PolicyWorld<TAddress> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        return Family == other.Family
+            && AddressUniverse.Equals(other.AddressUniverse)
+            && ProtocolDefinitions.Equals(other.ProtocolDefinitions)
+            && Interfaces.Equals(other.Interfaces);
+    }
+
+    private PolicyRule<TAddress>[] ResolveRules(IReadOnlyList<PolicyRuleDefinition<TAddress>> definitions)
+    {
+        PolicyRule<TAddress>[] resolved = new PolicyRule<TAddress>[definitions.Count];
+        for (int index = 0; index < definitions.Count; index++)
+        {
+            PolicyRuleDefinition<TAddress> definition = definitions[index] ?? throw new ArgumentException("Rules cannot contain null entries.", nameof(definitions));
+            resolved[index] = Resolve(definition, index);
+        }
+
+        return resolved;
+    }
+
+    private PolicyRule<TAddress> Resolve(PolicyRuleDefinition<TAddress> definition, int familyOrder)
     {
         if (string.IsNullOrEmpty(definition.Id.Value))
         {
@@ -137,78 +153,55 @@ public sealed class PolicyWorld<TAddress>
             throw new ArgumentOutOfRangeException(nameof(definition), definition.Decision, "Unsupported policy decision.");
         }
 
-        ChainProfile profile = ChainProfile.For(definition.Chain);
-        IntervalSet<TAddress> source = ResolveInterval(definition.Source, addressUniverse, "source address");
-        IntervalSet<ushort> sourcePorts = ResolveInterval(definition.SourcePorts, PacketPorts.Universe, "source port");
-        IntervalSet<TAddress> destination = ResolveInterval(definition.Destination, addressUniverse, "destination address");
-        IntervalSet<ushort> destinationPorts = ResolveInterval(definition.DestinationPorts, PacketPorts.Universe, "destination port");
-        FiniteSet<ProtocolSymbol> ruleProtocols = ResolveFinite(definition.Protocols, protocols, "protocol");
-        FiniteSet<NetworkInterfaceName>? ingress = ResolveInterface(profile.HasIngress, definition.Ingress, interfaces, "ingress", definition.Id);
-        FiniteSet<NetworkInterfaceName>? egress = ResolveInterface(profile.HasEgress, definition.Egress, interfaces, "egress", definition.Id);
-        PacketRegion<TAddress> match = new(source, sourcePorts, destination, destinationPorts, ruleProtocols, ingress, egress);
+        PolicyConstraint<TAddress> constraint = new()
+        {
+            Source = definition.Source,
+            SourcePorts = definition.SourcePorts,
+            Destination = definition.Destination,
+            DestinationPorts = definition.DestinationPorts,
+            Protocols = definition.Protocols,
+            Ingress = definition.Ingress,
+            Egress = definition.Egress,
+        };
+        PacketLayout<TAddress> layout = PacketLayout<TAddress>.Create(this, ChainProfile.For(definition.Chain));
+        PacketSpace<TAddress> match = new(layout, layout.Materialize(constraint));
         return new PolicyRule<TAddress>(definition.Id, familyOrder, definition.Chain, definition.Decision, match);
     }
 
-    private static IntervalSet<T> ResolveInterval<T>(IntervalSet<T>? specified, IntervalSet<T> universe, string axis)
-        where T : struct, IBinaryInteger<T>, IMinMaxValue<T>
+    private static FiniteSet<ProtocolDefinition> NormalizeProtocols(IReadOnlyCollection<ProtocolDefinition> protocols)
     {
-        if (specified is null)
+        if (protocols.Count == 0)
         {
-            return universe;
+            throw new ArgumentException("The protocol universe must name at least one protocol.", nameof(protocols));
         }
 
-        if (!universe.IsSupersetOf(specified.Value))
+        FiniteSet<ProtocolDefinition> result = FiniteSet<ProtocolDefinition>.From(protocols);
+        HashSet<ProtocolSymbol> symbols = [];
+        foreach (ProtocolDefinition definition in result.Values)
         {
-            throw new ArgumentException($"The {axis} match is outside the closed world.");
-        }
-
-        return specified.Value;
-    }
-
-    private static FiniteSet<TSymbol> ResolveFinite<TSymbol>(FiniteSet<TSymbol>? specified, FiniteSet<TSymbol> universe, string axis)
-        where TSymbol : IEquatable<TSymbol>, IComparable<TSymbol>
-    {
-        if (specified is null)
-        {
-            return universe;
-        }
-
-        if (!universe.IsSupersetOf(specified.Value))
-        {
-            throw new ArgumentException($"The {axis} match is outside the closed world.");
-        }
-
-        return specified.Value;
-    }
-
-    private static FiniteSet<NetworkInterfaceName>? ResolveInterface(
-        bool axisExists,
-        FiniteSet<NetworkInterfaceName>? specified,
-        FiniteSet<NetworkInterfaceName> universe,
-        string axis,
-        RuleId id)
-    {
-        if (!axisExists)
-        {
-            if (specified is not null)
+            if (string.IsNullOrEmpty(definition.Symbol.Name))
             {
-                throw new ArgumentException($"Rule '{id}' cannot constrain {axis} on this chain.");
+                throw new ArgumentException("The protocol universe contains an empty protocol.", nameof(protocols));
             }
 
-            return null;
+            if (!symbols.Add(definition.Symbol))
+            {
+                throw new ArgumentException($"Protocol '{definition.Symbol}' is defined more than once.", nameof(protocols));
+            }
         }
 
-        if (specified is null)
+        return result;
+    }
+
+    private static void ValidateInterfaces(FiniteSet<NetworkInterfaceName> interfaces)
+    {
+        foreach (NetworkInterfaceName name in interfaces.Values)
         {
-            return universe;
+            if (string.IsNullOrEmpty(name.Name))
+            {
+                throw new ArgumentException("The interface universe contains an empty interface name.", nameof(interfaces));
+            }
         }
-
-        if (!universe.IsSupersetOf(specified.Value))
-        {
-            throw new ArgumentException($"Rule '{id}' names a {axis} interface that is outside the closed world.");
-        }
-
-        return specified.Value;
     }
 
     private static void ValidateDefault(PolicyDecision decision, string name)
@@ -216,30 +209,6 @@ public sealed class PolicyWorld<TAddress>
         if (decision is not (PolicyDecision.Allow or PolicyDecision.Deny or PolicyDecision.Reject))
         {
             throw new ArgumentOutOfRangeException(name, decision, "Default policy must be allow, deny, or reject.");
-        }
-    }
-
-    private static void ValidateSymbols(FiniteSet<ProtocolSymbol> protocols, FiniteSet<NetworkInterfaceName> interfaces)
-    {
-        if (protocols.IsEmpty)
-        {
-            throw new ArgumentException("The protocol universe must name at least one protocol.", nameof(protocols));
-        }
-
-        foreach (ProtocolSymbol protocol in protocols.Values)
-        {
-            if (string.IsNullOrEmpty(protocol.Name))
-            {
-                throw new ArgumentException("The protocol universe contains an empty protocol.", nameof(protocols));
-            }
-        }
-
-        foreach (NetworkInterfaceName name in interfaces.Values)
-        {
-            if (string.IsNullOrEmpty(name.Name))
-            {
-                throw new ArgumentException("The interface universe contains an empty interface name.", nameof(interfaces));
-            }
         }
     }
 }

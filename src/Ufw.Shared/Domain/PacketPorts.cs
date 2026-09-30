@@ -4,8 +4,8 @@ using Ufw.Shared.Domain.Algebra;
 namespace Ufw.Shared.Domain;
 
 /// <summary>
-/// Port domain shared by every modeled protocol. The closed world is <c>1..65535</c>.
-/// Null, blank, and <c>any</c> parse as that whole domain.
+/// Numeric port domain used by protocols with port semantics. The closed world is <c>1..65535</c>.
+/// Null, blank, and <c>any</c> parse as that whole numeric domain; protocols without ports are represented separately.
 /// </summary>
 public static class PacketPorts
 {
@@ -15,7 +15,7 @@ public static class PacketPorts
     /// <summary>Gets the largest modeled port.</summary>
     public const ushort MAXIMUM = 65535;
 
-    /// <summary>Gets every modeled port.</summary>
+    /// <summary>Gets every modeled numeric port.</summary>
     public static IntervalSet<ushort> Universe { get; } = IntervalSet<ushort>.Between(MINIMUM, MAXIMUM);
 
     /// <summary>

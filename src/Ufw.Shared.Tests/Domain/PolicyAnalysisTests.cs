@@ -37,14 +37,14 @@ public sealed class PolicyAnalysisTests
         PacketSpace<uint> shadowed = PolicyAnalysis.ShadowedPortion(world, world.Rules[1]);
 
         Assert.AreEqual(FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), shadowed.ProjectProtocols());
-        Assert.AreEqual(PacketPorts.Parse("22"), shadowed.ProjectDestinationPorts());
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22")), shadowed.ProjectDestinationPorts());
         Assert.AreEqual(world.Rules[0].Match.Cardinality, shadowed.Cardinality);
         Assert.IsTrue(PolicyAnalysis.ShadowedRules(world, TrafficChain.Input).Count == 0);
     }
 
     private static PolicyWorld<uint> World(params PolicyRuleDefinition<uint>[] rules) =>
         PolicyWorld.CreateIPv4(
-            FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp, ProtocolSymbol.Udp),
+            [ProtocolDefinition.Tcp, ProtocolDefinition.Udp],
             FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth0")),
             PolicyDecision.Deny,
             PolicyDecision.Deny,

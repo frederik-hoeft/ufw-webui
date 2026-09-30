@@ -50,15 +50,15 @@ public sealed class FirewallPolicyProjectorTests
         Assert.AreEqual(0, world.Rules[0].FamilyOrder);
         Assert.AreEqual(2, world.Rules[2].FamilyOrder);
         Assert.AreEqual(RuleIdentity.Compute(inbound), world.Rules[0].Id.Value);
-        Assert.AreEqual(PacketPorts.Parse("22"), world.Rules[0].Match.DestinationPorts);
-        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth0")), world.Rules[0].Match.Ingress);
-        Assert.IsNull(world.Rules[0].Match.Egress);
-        Assert.AreEqual(IntervalSet<uint>.Of(NetworkAddress.ParseIPv4("10.0.0.0/8")), world.Rules[1].Match.Source);
-        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth1")), world.Rules[1].Match.Egress);
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22")), world.Rules[0].Match.ProjectDestinationPorts());
+        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth0")), world.Rules[0].Match.ProjectIngress());
+        Assert.IsNull(world.Rules[0].Match.ProjectEgress());
+        Assert.AreEqual(IntervalSet<uint>.Of(NetworkAddress.ParseIPv4("10.0.0.0/8")), world.Rules[1].Match.ProjectSourceAddresses());
+        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth1")), world.Rules[1].Match.ProjectEgress());
         Assert.AreEqual(PolicyDecision.Limit, world.Rules[2].Decision);
-        Assert.AreEqual(FirewallPolicyProjector.SupportedProtocols, world.Rules[2].Match.Protocols);
-        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth0")), world.Rules[2].Match.Ingress);
-        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth1")), world.Rules[2].Match.Egress);
+        Assert.AreEqual(world.Protocols, world.Rules[2].Match.ProjectProtocols());
+        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth0")), world.Rules[2].Match.ProjectIngress());
+        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(new NetworkInterfaceName("eth1")), world.Rules[2].Match.ProjectEgress());
         Assert.AreEqual(PolicyDecision.Reject, world.RoutedDefault);
 
         PolicyPartition<uint> partition = PolicyEvaluator.Evaluate(world, PolicyQuery<uint>.Create(IpFamily.IPv4, TrafficChain.Input));
@@ -81,8 +81,8 @@ public sealed class FirewallPolicyProjectorTests
 
         PolicyWorld<uint> world = FirewallPolicyProjector.ProjectIPv4([specification], FirewallDefaultPolicy.Allow, FirewallDefaultPolicy.Deny, FirewallDefaultPolicy.Reject, ["eth0"]);
 
-        Assert.AreEqual(world.AddressUniverse, world.Rules[0].Match.Source);
-        Assert.AreEqual(FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Udp), world.Rules[0].Match.Protocols);
+        Assert.AreEqual(world.AddressUniverse, world.Rules[0].Match.ProjectSourceAddresses());
+        Assert.AreEqual(FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Udp), world.Rules[0].Match.ProjectProtocols());
     }
 
     [TestMethod]
@@ -135,7 +135,7 @@ public sealed class FirewallPolicyProjectorTests
 
         Assert.HasCount(2, ipv4.Rules);
         Assert.HasCount(1, ipv6.Rules);
-        Assert.AreEqual(PacketPorts.Parse("443"), ipv6.Rules[0].Match.DestinationPorts);
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("443")), ipv6.Rules[0].Match.ProjectDestinationPorts());
         Assert.HasCount(1, PolicyAnalysis.IneffectiveRules(ipv4, TrafficChain.Input));
         Assert.AreEqual(ipv4.Rules[1], PolicyAnalysis.IneffectiveRules(ipv4, TrafficChain.Input)[0]);
     }
