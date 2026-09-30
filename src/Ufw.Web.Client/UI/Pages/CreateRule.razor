@@ -183,7 +183,7 @@ else
         else
         {
             <MudGrid Spacing="2">
-                <MudItem xs="12" md="9">
+                <MudItem xs="12" md="6">
                     <MudSelect T="Guid?" Label="@(TemplatesText["SelectTemplate"])" @bind-Value="_selectedTemplateId" Disabled="@(!CanEdit)" Clearable="true">
                         @foreach (RuleTemplate template in _templates)
                         {
@@ -191,7 +191,7 @@ else
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" md="3" Class="rule-template-loader-action">
+                <MudItem xs="12" md="6" Class="rule-template-loader-action">
                     <MudButton Variant="Variant.Outlined"
                                Class="rule-template-load-button"
                                StartIcon="@Icons.Material.Filled.Download"

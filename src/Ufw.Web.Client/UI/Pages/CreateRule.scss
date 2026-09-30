@@ -1,16 +1,9 @@
-@use "../Styles/core/tokens" as *;
-
 .rule-template-loader-action {
     display: flex;
     align-items: flex-end;
+    justify-content: flex-end;
 }
 
 .rule-template-load-button {
     min-width: 7rem;
-}
-
-@media (max-width: $mobile-breakpoint) {
-    .rule-template-load-button {
-        width: 100%;
-    }
 }
