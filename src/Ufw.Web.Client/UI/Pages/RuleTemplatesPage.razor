@@ -57,6 +57,7 @@
     </MudAlert>
 }
 
+<div class="rule-templates-page">
 <MudPaper Class="inventory-card rule-template-inventory" Elevation="1">
     <header>
         <div>
@@ -100,7 +101,7 @@
                             aria-expanded="@expanded"
                             @onclick="@(() => ToggleExpanded(template.Id))"
                             @onkeydown="@(args => HandleKeyDown(args, template.Id))">
-                            <RuleDesktopContent Rule="@template.Rule" Tags="@template.Tags" />
+                            <RuleDesktopContent Rule="@template.Rule" Tags="@template.Tags" EmphasizeAction="false" />
                             <td class="actions" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
                                 <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" UseRequested="Use" EditRequested="Edit" DeleteRequested="DeleteAsync" />
                             </td>
@@ -165,3 +166,4 @@
         </div>
     }
 </MudPaper>
+</div>

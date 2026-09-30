@@ -3,6 +3,10 @@
         font-weight: 500;
         text-transform: uppercase;
 
+        &.rule-action-normal {
+            font-weight: 400;
+        }
+
         &-allow {
             color: var(--mud-palette-text-primary);
         }

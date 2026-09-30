@@ -1,6 +1,6 @@
 .rule-template-editor-page {
-    > .page-header,
-    .rule-template-editor-section {
+    ::deep .page-header,
+    ::deep .rule-template-editor-section {
         width: 100%;
         max-width: 72rem;
     }

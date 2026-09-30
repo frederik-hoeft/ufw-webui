@@ -1,11 +1,11 @@
-@use "core/tokens" as *;
+@use "core/variables" as *;
 
 .rule-metadata-management {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
 
-    > .card {
+    ::deep .card {
         display: flex;
         min-width: 0;
         align-items: flex-start;
@@ -36,7 +36,7 @@
 }
 
 @media (max-width: $mobile-breakpoint) {
-    .rule-metadata-management > .card {
+    .rule-metadata-management ::deep .card {
         align-items: stretch;
         flex-direction: column;
         padding: 1rem;

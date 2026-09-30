@@ -12,12 +12,20 @@ public sealed partial class RuleDesktopContent
     [Parameter]
     public IReadOnlyList<RuleTag> Tags { get; set; } = [];
 
-    private static string ActionClass(FirewallAction action) => action switch
+    [Parameter]
+    public bool EmphasizeAction { get; set; } = true;
+
+    private string ActionClass(FirewallAction action)
     {
-        FirewallAction.Allow => "rule-action rule-action-allow",
-        FirewallAction.Deny => "rule-action rule-action-deny",
-        FirewallAction.Reject => "rule-action rule-action-reject",
-        FirewallAction.Limit => "rule-action rule-action-limit",
-        _ => "rule-action",
-    };
+        string semanticClass = action switch
+        {
+            FirewallAction.Allow => "rule-action rule-action-allow",
+            FirewallAction.Deny => "rule-action rule-action-deny",
+            FirewallAction.Reject => "rule-action rule-action-reject",
+            FirewallAction.Limit => "rule-action rule-action-limit",
+            _ => "rule-action",
+        };
+
+        return EmphasizeAction ? semanticClass : $"{semanticClass} rule-action-normal";
+    }
 }

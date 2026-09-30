@@ -50,6 +50,7 @@
     </Actions>
 </PageHeader>
 
+<div class="rules-page">
 @if (_state.Status == RuleInventoryStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
@@ -234,3 +235,4 @@ else if (_state.Snapshot is { })
         }
     </MudTabs>
 }
+</div>
