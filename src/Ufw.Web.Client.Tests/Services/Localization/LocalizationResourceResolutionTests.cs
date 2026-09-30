@@ -69,6 +69,7 @@ public sealed class LocalizationResourceResolutionTests
 
             Assert.AreEqual("Regelvorlagen", localizer["Title"].Value);
             Assert.AreEqual("Vorlage speichern", localizer["SaveTemplate"].Value);
+            Assert.AreEqual("Vorlage wird hinzugefügt...", localizer["AddingTemplate"].Value);
             Assert.AreEqual("Vorlage verwenden", localizer["UseTemplate"].Value);
             Assert.AreEqual("Als Vorlage speichern", localizer["SaveAsTemplate"].Value);
         }

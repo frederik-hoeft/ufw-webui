@@ -50,7 +50,7 @@
     @if (DisableRequested.HasDelegate)
     {
         <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
-                     Icon="@Icons.Material.Filled.Archive"
+                     Icon="@Icons.Material.Filled.Block"
                      OnClick="@(() => DisableRequested.InvokeAsync())">
             @RulesText["DisableRule"]
         </MudMenuItem>

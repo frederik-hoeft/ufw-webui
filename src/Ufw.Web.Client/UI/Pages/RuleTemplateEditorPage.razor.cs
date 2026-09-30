@@ -33,6 +33,12 @@ public sealed partial class RuleTemplateEditorPage
 
     private string DescriptionText => IsEdit ? TemplatesText["EditDescription"] : TemplatesText["CreateDescription"];
 
+    private string SubmitLabel => IsEdit ? TemplatesText["SaveTemplate"] : TemplatesText["AddTemplate"];
+
+    private string SubmittingLabel => IsEdit ? TemplatesText["SavingTemplate"] : TemplatesText["AddingTemplate"];
+
+    private string SubmitIcon => IsEdit ? Icons.Material.Filled.Save : Icons.Material.Filled.Add;
+
     private string ErrorTitle => _notFound
         ? TemplatesText["TemplateNotFoundTitle"]
         : _errorFromSave ? TemplatesText["SaveFailed"] : TemplatesText["LoadFailed"];
@@ -44,7 +50,7 @@ public sealed partial class RuleTemplateEditorPage
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
         new BreadcrumbItem(TemplatesText["TemplatesBreadcrumb"], "/templates"),
-        new BreadcrumbItem(TitleText, null, disabled: true),
+        new BreadcrumbItem(IsEdit ? TemplatesText["EditTemplate"] : TemplatesText["AddTemplate"], null, disabled: true),
     ];
 
     protected async override Task OnParametersSetAsync()

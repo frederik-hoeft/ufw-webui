@@ -1,4 +1,4 @@
-﻿@inject IDialogService DialogService
+@inject IDialogService DialogService
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -47,22 +47,9 @@
         }
         else
         {
-            <div class="desktop-list" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
+            <div class="desktop-list rule-presentation-desktop-list" tabindex="0" role="region" aria-label="@(RulesText["FamilyTableAria", RuleText.FormatAddressFamily(Family.AddressFamily)])">
                 <table aria-busy="@Loading">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="drag"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
-                            <th scope="col" class="position">@RulesText["RulePositionColumn"]</th>
-                            <th scope="col" class="action">@RulesText["ActionColumn"]</th>
-                            <th scope="col" class="direction">@RulesText["DirectionColumn"]</th>
-                            <th scope="col" class="endpoint">@RulesText["FromColumn"]</th>
-                            <th scope="col" class="endpoint">@RulesText["ToColumn"]</th>
-                            <th scope="col" class="protocol">@RulesText["ProtocolColumn"]</th>
-                            <th scope="col" class="tags">@RulesText["TagsColumn"]</th>
-                            <th scope="col" class="comment">@RulesText["CommentColumn"]</th>
-                            <th scope="col" class="actions"><span class="visually-hidden">@RulesText["ActionsColumn"]</span></th>
-                        </tr>
-                    </thead>
+                    <RuleDesktopTableHeader ActionsLabel="@(RulesText["ActionsColumn"])" />
                     @foreach (RuleQueryRow result in DisplayedRows)
                     {
                         RuleRowProjection row = result.Row;
@@ -91,7 +78,7 @@
                 </table>
             </div>
 
-            <div class="mobile-list" aria-busy="@Loading">
+            <div class="mobile-list rule-presentation-mobile-list" aria-busy="@Loading">
                 @foreach (RuleQueryRow result in DisplayedRows)
                 {
                     RuleRowProjection row = result.Row;

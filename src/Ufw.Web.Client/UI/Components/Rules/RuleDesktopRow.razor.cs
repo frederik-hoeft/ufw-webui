@@ -163,15 +163,6 @@ public sealed partial class RuleDesktopRow
             ? "rule-position-change rule-position-change-direct"
             : "rule-position-change rule-position-change-indirect";
 
-    private static string ActionClass(FirewallAction action) => action switch
-    {
-        FirewallAction.Allow => "rule-action rule-action-allow",
-        FirewallAction.Deny => "rule-action rule-action-deny",
-        FirewallAction.Reject => "rule-action rule-action-reject",
-        FirewallAction.Limit => "rule-action rule-action-limit",
-        _ => "rule-action",
-    };
-
     private string PositionChangeLabel(int originalPosition, int currentPosition, bool directlyMoved) =>
         directlyMoved
             ? RulesText["DirectMovePositionAria", originalPosition, currentPosition]

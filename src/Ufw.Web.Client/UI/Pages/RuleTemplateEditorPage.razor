@@ -81,9 +81,9 @@
                     IPv6Enabled="true"
                     ShowAuthorization="false"
                     SubmitDisabled="@_saving"
-                    SubmitLabel="@(TemplatesText["SaveTemplate"])"
-                    SubmittingLabel="@(TemplatesText["SavingTemplate"])"
-                    SubmitIcon="@Icons.Material.Filled.Save"
+                    SubmitLabel="@SubmitLabel"
+                    SubmittingLabel="@SubmittingLabel"
+                    SubmitIcon="@SubmitIcon"
                     Submitting="@_saving"
                     OnSubmit="SaveAsync"
                     OnCancel="Cancel" />

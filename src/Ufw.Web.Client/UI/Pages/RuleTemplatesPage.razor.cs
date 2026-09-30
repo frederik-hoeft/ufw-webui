@@ -140,24 +140,6 @@ public sealed partial class RuleTemplatesPage
         }
     }
 
-    private string DescribeMetadata(RuleTemplate template)
-    {
-        List<string> parts = [];
-        if (!string.IsNullOrWhiteSpace(template.Notes))
-        {
-            parts.Add(TemplatesText["NotesPresent"]);
-        }
-        if (template.Tags.Count > 0)
-        {
-            parts.Add(template.Tags.Count == 1 ? TemplatesText["OneTag"] : TemplatesText["ManyTags", template.Tags.Count]);
-        }
-        if (template.Group is not null)
-        {
-            parts.Add(TemplatesText["GroupPresent"]);
-        }
-        return parts.Count == 0 ? TemplatesText["NoMetadata"] : string.Join(", ", parts);
-    }
-
     private string DescribeTemplateCount(int count) => count == 1
         ? TemplatesText["TemplateCountOne"]
         : TemplatesText["TemplateCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];

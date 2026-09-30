@@ -83,48 +83,43 @@
     }
     else
     {
-        <div class="inventory-desktop rule-template-desktop-list" role="region" aria-label="@(TemplatesText["InventoryTitle"])" aria-busy="@_loading">
+        <div class="inventory-desktop rule-template-desktop-list rule-presentation-desktop-list" role="region" aria-label="@(TemplatesText["InventoryTitle"])" aria-busy="@_loading">
             <table>
-                <thead>
-                    <tr>
-                        <th scope="col" class="name">@TemplatesText["NameColumn"]</th>
-                        <th scope="col" class="rule">@TemplatesText["RuleColumn"]</th>
-                        <th scope="col" class="metadata">@TemplatesText["MetadataColumn"]</th>
-                        <th scope="col" class="actions"><span class="visually-hidden">@TemplatesText["ActionsColumn"]</span></th>
-                    </tr>
-                </thead>
+                <RuleDesktopTableHeader ShowOrderingColumns="false" ActionsLabel="@(TemplatesText["ActionsColumn"])" />
                 @foreach (RuleTemplate template in _templates)
                 {
                     bool expanded = IsExpanded(template.Id);
-                    <tbody class="@(expanded ? "rule-template-row-group expanded" : "rule-template-row-group")" @key="template.Id">
-                        <tr class="rule-template-row"
+                    <tbody class="@(expanded ? "rule-row-group rule-template-row-group metadata-expanded" : "rule-row-group rule-template-row-group")" @key="template.Id">
+                        <tr class="rule-template-header-row"
+                            @onclick="@(() => ToggleExpanded(template.Id))">
+                            <td colspan="8">
+                                <strong>@template.Name</strong>
+                            </td>
+                        </tr>
+                        <tr class="@(expanded ? "rule-desktop-row rule-details-available has-expanded-content" : "rule-desktop-row rule-details-available")"
                             tabindex="0"
                             aria-expanded="@expanded"
                             @onclick="@(() => ToggleExpanded(template.Id))"
                             @onkeydown="@(args => HandleKeyDown(args, template.Id))">
-                            <td class="name">
-                                <div class="rule-template-name-stack">
-                                    <strong>@template.Name</strong>
-                                    <span class="rule-template-description">@(template.Description ?? TemplatesText["NoDescription"])</span>
-                                </div>
-                            </td>
-                            <td class="rule"><code class="rule-template-command">@DescribeRule(template)</code></td>
-                            <td class="metadata">@DescribeMetadata(template)</td>
+                            <RuleDesktopContent Rule="@template.Rule" Tags="@template.Tags" />
                             <td class="actions" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
-                                <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                                               Size="Size.Small"
-                                               Disabled="@IsBusy"
-                                               OnClick="@(() => ToggleExpanded(template.Id))"
-                                               aria-label="@(expanded ? TemplatesText["HideTemplateDetails", template.Name] : TemplatesText["ShowTemplateDetails", template.Name])"
-                                               aria-expanded="@expanded" />
                                 <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" UseRequested="Use" EditRequested="Edit" DeleteRequested="DeleteAsync" />
                             </td>
                         </tr>
                         @if (expanded)
                         {
-                            <tr class="rule-template-details-row">
-                                <td colspan="4">
-                                    <RuleTemplateDetails Template="@template" CanonicalCommand="@DescribeRule(template)" />
+                            <tr class="rule-metadata-details-row">
+                                <td colspan="8">
+                                    <RuleTemplateDetails Template="@template" CanonicalCommand="@DescribeRule(template)">
+                                        <Actions>
+                                            <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                                           Size="Size.Small"
+                                                           Class="rule-metadata-collapse-button"
+                                                           OnClick="@(() => ToggleExpanded(template.Id))"
+                                                           aria-label="@TemplatesText["HideTemplateDetails", template.Name]"
+                                                           aria-expanded="true" />
+                                        </Actions>
+                                    </RuleTemplateDetails>
                                 </td>
                             </tr>
                         }
@@ -133,34 +128,39 @@
             </table>
         </div>
 
-        <div class="inventory-mobile rule-template-mobile-list" aria-busy="@_loading">
+        <div class="inventory-mobile rule-template-mobile-list rule-presentation-mobile-list" aria-busy="@_loading">
             @foreach (RuleTemplate template in _templates)
             {
                 bool expanded = IsExpanded(template.Id);
-                <article class="@(expanded ? "rule-template-mobile-card expanded" : "rule-template-mobile-card")" @key="template.Id">
-                    <header tabindex="0"
-                            aria-expanded="@expanded"
-                            @onclick="@(() => ToggleExpanded(template.Id))"
-                            @onkeydown="@(args => HandleKeyDown(args, template.Id))">
-                        <div class="rule-template-name-stack">
-                            <strong>@template.Name</strong>
-                            <span class="rule-template-description">@(template.Description ?? TemplatesText["NoDescription"])</span>
+                <article class="@(expanded ? "rule-mobile-card metadata-expanded" : "rule-mobile-card")"
+                         tabindex="0"
+                         aria-expanded="@expanded"
+                         @key="template.Id"
+                         @onclick="@(() => ToggleExpanded(template.Id))"
+                         @onkeydown="@(args => HandleKeyDown(args, template.Id))">
+                    <header>
+                        <div class="leading">
+                            <div class="identity">
+                                <strong class="rule-template-name">@template.Name</strong>
+                            </div>
                         </div>
-                        <div @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
-                            <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                                           Size="Size.Small"
-                                           Disabled="@IsBusy"
-                                           OnClick="@(() => ToggleExpanded(template.Id))"
-                                           aria-label="@(expanded ? TemplatesText["HideTemplateDetails", template.Name] : TemplatesText["ShowTemplateDetails", template.Name])"
-                                           aria-expanded="@expanded" />
+                        <div class="trailing" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
                             <RuleTemplateActionsMenu Template="@template" Disabled="@IsBusy" UseRequested="Use" EditRequested="Edit" DeleteRequested="DeleteAsync" />
                         </div>
                     </header>
-                    <code class="rule-template-command">@DescribeRule(template)</code>
-                    <span class="rule-template-metadata-summary">@DescribeMetadata(template)</span>
+                    <RuleMobileContent Rule="@template.Rule" Tags="@template.Tags" />
                     @if (expanded)
                     {
-                        <RuleTemplateDetails Template="@template" CanonicalCommand="@DescribeRule(template)" />
+                        <RuleTemplateDetails Template="@template" CanonicalCommand="@DescribeRule(template)">
+                            <Actions>
+                                <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                                               Size="Size.Small"
+                                               Class="rule-metadata-collapse-button"
+                                               OnClick="@(() => ToggleExpanded(template.Id))"
+                                               aria-label="@TemplatesText["HideTemplateDetails", template.Name]"
+                                               aria-expanded="true" />
+                            </Actions>
+                        </RuleTemplateDetails>
                     }
                 </article>
             }

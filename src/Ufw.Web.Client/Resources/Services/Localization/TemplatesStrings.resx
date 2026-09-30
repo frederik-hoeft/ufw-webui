@@ -84,4 +84,5 @@
   <data name="ManyTags" xml:space="preserve"><value>{0} tags</value></data>
   <data name="GroupPresent" xml:space="preserve"><value>Group</value></data>
   <data name="TagsLabel" xml:space="preserve"><value>Tags</value></data>
+  <data name="AddingTemplate" xml:space="preserve"><value>Adding template...</value></data>
 </root>

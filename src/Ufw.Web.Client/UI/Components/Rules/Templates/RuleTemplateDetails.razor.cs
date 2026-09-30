@@ -10,4 +10,7 @@ public sealed partial class RuleTemplateDetails
 
     [Parameter, EditorRequired]
     public string CanonicalCommand { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
 }
