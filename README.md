@@ -1,4 +1,4 @@
-# UFWeb
+﻿# UFWeb
 
 UFWeb is a web interface for managing UFW on a host without making the web application the firewall authority. UFW remains the source of truth for live rules and policy; UFWeb reads that state through a small privileged host daemon and stores only application-owned data such as users, rule notes and tags, reusable rule templates, known-host aliases, and network-interface annotations in PostgreSQL.
 
@@ -72,7 +72,7 @@ Local development runs the browser client, `Ufw.Web`, PostgreSQL, and the daemon
 
 ## Documentation
 
-For a top-to-bottom understanding of the system, start with the [architecture overview](docs/architecture/architecture-overview.md). From there, the [browser application architecture](docs/architecture/browser-application.md) describes client state and layering, the [firewall state and rule model](docs/architecture/firewall-model.md) covers rule identity and mutation lifecycles, and the [security architecture](docs/architecture/security.md) explains the trust boundaries and signed authorization model. The [IPC protocol index](docs/protocols/README.md) is the entry point for wire-level contracts.
+For a top-to-bottom understanding of the system, start with the [architecture overview](docs/architecture/architecture-overview.md). From there, the [browser application architecture](docs/architecture/browser-application.md) describes client state and layering, the [firewall state and rule model](docs/architecture/firewall-model.md) covers rule identity and mutation lifecycles, the [semantic policy domain](docs/architecture/domain.md) covers read-only evaluation of that model over packet space, and the [security architecture](docs/architecture/security.md) explains the trust boundaries and signed authorization model. The [IPC protocol index](docs/protocols/README.md) is the entry point for wire-level contracts.
 
 Operators should use the [production deployment guide](docs/deployment/deployment.md), its linked rootful/rootless runbooks, the [configuration reference](docs/deployment/configuration.md), and the [operations guide](docs/deployment/operations.md). Contributors can start with [Local development](docs/development/local-development.md), [Client UI development](docs/development/client-ui.md), and [`code-style.md`](code-style.md). The `docs/internal` directory is intentionally non-normative maintainer space for unresolved design work; implemented behavior belongs in the permanent architecture, protocol, deployment, development, or testing documentation.
 
