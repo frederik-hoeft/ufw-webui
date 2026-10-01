@@ -66,8 +66,8 @@ public sealed class ProductSpace
             materialized.Add(region);
         }
 
+        EnsureDisjoint(materialized);
         ProductRegion[] coalesced = Coalesce(materialized);
-        EnsureDisjoint(coalesced);
         return new ProductSpace(coalesced);
     }
 
@@ -252,11 +252,11 @@ public sealed class ProductSpace
         return true;
     }
 
-    private static void EnsureDisjoint(ProductRegion[] regions)
+    private static void EnsureDisjoint(IReadOnlyList<ProductRegion> regions)
     {
-        for (int left = 0; left < regions.Length; left++)
+        for (int left = 0; left < regions.Count; left++)
         {
-            for (int right = left + 1; right < regions.Length; right++)
+            for (int right = left + 1; right < regions.Count; right++)
             {
                 if (regions[left].Overlaps(regions[right]))
                 {

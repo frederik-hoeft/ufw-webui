@@ -32,4 +32,24 @@ public sealed class FiniteSetTests
         Assert.AreEqual(left.Cardinality, left.Intersect(right).Cardinality + left.Except(right).Cardinality);
         Assert.AreEqual(FiniteSet<string>.Empty, left.Except(left));
     }
+
+    [TestMethod]
+    public void ComparisonEquivalenceDefinesMembershipEqualityAndHashing()
+    {
+        FiniteSet<ComparisonSymbol> mixedCase = FiniteSet<ComparisonSymbol>.Of(
+            new ComparisonSymbol("TCP"),
+            new ComparisonSymbol("tcp"));
+        FiniteSet<ComparisonSymbol> lowerCase = FiniteSet<ComparisonSymbol>.Of(new ComparisonSymbol("tcp"));
+
+        Assert.AreEqual(1, mixedCase.Cardinality);
+        Assert.IsTrue(mixedCase.Contains(new ComparisonSymbol("TcP")));
+        Assert.AreEqual(lowerCase, mixedCase);
+        Assert.AreEqual(lowerCase.GetHashCode(), mixedCase.GetHashCode());
+    }
+
+    private readonly record struct ComparisonSymbol(string Value) : IComparable<ComparisonSymbol>
+    {
+        public int CompareTo(ComparisonSymbol other) =>
+            string.Compare(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+    }
 }

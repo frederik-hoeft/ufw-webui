@@ -50,7 +50,7 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
         int distinct = 0;
         for (int index = 0; index < ordered.Count; index++)
         {
-            if (distinct == 0 || !ordered[distinct - 1].Equals(ordered[index]))
+            if (distinct == 0 || ordered[distinct - 1].CompareTo(ordered[index]) != 0)
             {
                 ordered[distinct] = ordered[index];
                 distinct++;
@@ -231,22 +231,7 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
     public override bool Equals(object? obj) => obj is FiniteSet<T> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        HashCode hash = new();
-        if (_values is null)
-        {
-            return 0;
-        }
-
-        hash.Add(_values.Length);
-        foreach (T value in _values)
-        {
-            hash.Add(value);
-        }
-
-        return hash.ToHashCode();
-    }
+    public override int GetHashCode() => _values?.Length ?? 0;
 
     /// <inheritdoc />
     public override string ToString()

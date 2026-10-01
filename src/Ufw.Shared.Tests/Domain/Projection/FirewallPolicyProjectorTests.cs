@@ -141,6 +141,34 @@ public sealed class FirewallPolicyProjectorTests
     }
 
     [TestMethod]
+    public void ProjectSpecifications_SkipsInvalidRulesDeclaredForTheOtherFamily()
+    {
+        FirewallRuleSpecification invalidIpv6 = new()
+        {
+            Action = FirewallAction.Allow,
+            AddressFamily = FirewallAddressFamily.IPv6,
+            Direction = FirewallDirection.In,
+            DestinationPorts = "0",
+        };
+
+        PolicyWorld<uint> ipv4 = FirewallPolicyProjector.ProjectIPv4(
+            [invalidIpv6],
+            FirewallDefaultPolicy.Deny,
+            FirewallDefaultPolicy.Deny,
+            FirewallDefaultPolicy.Deny,
+            ["eth0"]);
+
+        Assert.HasCount(0, ipv4.Rules);
+        Assert.ThrowsExactly<FirewallProjectionException>(() =>
+            FirewallPolicyProjector.ProjectIPv6(
+                [invalidIpv6],
+                FirewallDefaultPolicy.Deny,
+                FirewallDefaultPolicy.Deny,
+                FirewallDefaultPolicy.Deny,
+                ["eth0"]));
+    }
+
+    [TestMethod]
     public void Project_DuplicateSemanticsStayOrderedAndTheLaterCopyIsShadowed()
     {
         FirewallRuleSpecification first = Inbound();
