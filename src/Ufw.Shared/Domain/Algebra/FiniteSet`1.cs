@@ -3,8 +3,14 @@
 namespace Ufw.Shared.Domain.Algebra;
 
 /// <summary>
-/// Sorted set of discrete symbols. Equality and order use <see cref="IComparable{T}"/>.
+/// Sorted set of discrete values. Element identity uses <see cref="IEquatable{T}"/>, while
+/// <see cref="IComparable{T}"/> provides the canonical order used by binary search and merge operations.
 /// </summary>
+/// <remarks>
+/// The natural ordering must not collapse distinct values: whenever <c>x.CompareTo(y) == 0</c>,
+/// <c>x.Equals(y)</c> must also be true. Construction validates comparison-equivalent neighbors after sorting,
+/// and comparison-based operations validate cross-set matches before treating them as the same element.
+/// </remarks>
 public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
     where T : IEquatable<T>, IComparable<T>
 {
@@ -50,11 +56,27 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
         int distinct = 0;
         for (int index = 0; index < ordered.Count; index++)
         {
-            if (distinct == 0 || ordered[distinct - 1].CompareTo(ordered[index]) != 0)
+            if (distinct == 0)
             {
-                ordered[distinct] = ordered[index];
-                distinct++;
+                ordered[distinct++] = ordered[index];
+                continue;
             }
+
+            T previous = ordered[distinct - 1];
+            T current = ordered[index];
+            if (previous.CompareTo(current) == 0)
+            {
+                if (!previous.Equals(current))
+                {
+                    throw new ArgumentException(
+                        "Finite set element ordering must not compare distinct values as equal.",
+                        nameof(values));
+                }
+
+                continue;
+            }
+
+            ordered[distinct++] = current;
         }
 
         if (distinct != ordered.Count)
@@ -73,7 +95,14 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
             return false;
         }
 
-        return Array.BinarySearch(_values, value) >= 0;
+        int index = Array.BinarySearch(_values, value);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        EnsureComparisonEquality(_values[index], value);
+        return true;
     }
 
     /// <summary>Returns the intersection.</summary>
@@ -92,6 +121,7 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
             int compared = _values[index].CompareTo(other._values[otherIndex]);
             if (compared == 0)
             {
+                EnsureComparisonEquality(_values[index], other._values[otherIndex]);
                 result.Add(_values[index]);
                 index++;
                 otherIndex++;
@@ -130,6 +160,7 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
             int compared = _values[index].CompareTo(other._values[otherIndex]);
             if (compared == 0)
             {
+                EnsureComparisonEquality(_values[index], other._values[otherIndex]);
                 result.Add(_values[index]);
                 index++;
                 otherIndex++;
@@ -177,6 +208,7 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
             int compared = _values[index].CompareTo(other._values[otherIndex]);
             if (compared == 0)
             {
+                EnsureComparisonEquality(_values[index], other._values[otherIndex]);
                 index++;
                 otherIndex++;
             }
@@ -219,19 +251,54 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
             {
                 return compared;
             }
+
+            EnsureComparisonEquality(_values[index], other._values[index]);
         }
 
         return count.CompareTo(otherCount);
     }
 
     /// <inheritdoc />
-    public bool Equals(FiniteSet<T> other) => CompareTo(other) == 0;
+    public bool Equals(FiniteSet<T> other)
+    {
+        int count = _values?.Length ?? 0;
+        int otherCount = other._values?.Length ?? 0;
+        if (count != otherCount)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < count; index++)
+        {
+            if (!_values![index].Equals(other._values![index]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is FiniteSet<T> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => _values?.Length ?? 0;
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        if (_values is null)
+        {
+            return 0;
+        }
+
+        hash.Add(_values.Length);
+        foreach (T value in _values)
+        {
+            hash.Add(value);
+        }
+
+        return hash.ToHashCode();
+    }
 
     /// <inheritdoc />
     public override string ToString()
@@ -257,6 +324,15 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
     IDimensionSet IDimensionSet.Except(IDimensionSet other) => Except(Expect(other));
 
     IDimensionSet IDimensionSet.Union(IDimensionSet other) => Union(Expect(other));
+
+    private static void EnsureComparisonEquality(T left, T right)
+    {
+        if (!left.Equals(right))
+        {
+            throw new InvalidOperationException(
+                "Finite set element ordering compared distinct values as equal.");
+        }
+    }
 
     private static FiniteSet<T> Expect(IDimensionSet other)
     {

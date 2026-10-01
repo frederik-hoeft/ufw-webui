@@ -3,8 +3,13 @@
 namespace Ufw.Shared.Domain.Algebra;
 
 /// <summary>
-/// One combinatorial rectangle: the Cartesian product of one set per axis.
+/// One factored Cartesian product <c>A0 × A1 × ... × An</c>, with one set-valued component per axis.
 /// </summary>
+/// <remarks>
+/// "Rectangle" is combinatorial rather than necessarily geometrically connected: an individual axis set may
+/// itself contain multiple disjoint intervals or symbols. The region still represents exactly the Cartesian
+/// product of its axis sets.
+/// </remarks>
 public sealed class ProductRegion
 {
     private readonly IDimensionSet[] _axes;

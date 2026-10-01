@@ -34,17 +34,23 @@ public sealed class FiniteSetTests
     }
 
     [TestMethod]
-    public void ComparisonEquivalenceDefinesMembershipEqualityAndHashing()
+    public void From_RejectsOrderingThatCollapsesDistinctValues()
     {
-        FiniteSet<ComparisonSymbol> mixedCase = FiniteSet<ComparisonSymbol>.Of(
+        Assert.ThrowsExactly<ArgumentException>(() => FiniteSet<ComparisonSymbol>.Of(
             new ComparisonSymbol("TCP"),
-            new ComparisonSymbol("tcp"));
-        FiniteSet<ComparisonSymbol> lowerCase = FiniteSet<ComparisonSymbol>.Of(new ComparisonSymbol("tcp"));
+            new ComparisonSymbol("tcp")));
+    }
 
-        Assert.AreEqual(1, mixedCase.Cardinality);
-        Assert.IsTrue(mixedCase.Contains(new ComparisonSymbol("TcP")));
-        Assert.AreEqual(lowerCase, mixedCase);
-        Assert.AreEqual(lowerCase.GetHashCode(), mixedCase.GetHashCode());
+    [TestMethod]
+    public void Operations_RejectOrderingCollisionsAcrossSets()
+    {
+        FiniteSet<ComparisonSymbol> upper = FiniteSet<ComparisonSymbol>.Of(new ComparisonSymbol("TCP"));
+        FiniteSet<ComparisonSymbol> lower = FiniteSet<ComparisonSymbol>.Of(new ComparisonSymbol("tcp"));
+
+        Assert.IsFalse(upper.Equals(lower));
+        Assert.ThrowsExactly<InvalidOperationException>(() => upper.Contains(new ComparisonSymbol("tcp")));
+        Assert.ThrowsExactly<InvalidOperationException>(() => upper.Union(lower));
+        Assert.ThrowsExactly<InvalidOperationException>(() => upper.CompareTo(lower));
     }
 
     private readonly record struct ComparisonSymbol(string Value) : IComparable<ComparisonSymbol>
