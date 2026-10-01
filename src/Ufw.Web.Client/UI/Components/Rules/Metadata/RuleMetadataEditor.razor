@@ -41,13 +41,7 @@
             <ItemTemplate Context="option">
                 @if (option.Group is { } group)
                 {
-                    <div class="rule-group-select-option">
-                        <span>@group.Name</span>
-                        @if (!string.IsNullOrWhiteSpace(group.Comment))
-                        {
-                            <small>@group.Comment</small>
-                        }
-                    </div>
+                    <RuleGroupOption Group="@group" />
                 }
                 else
                 {
@@ -91,10 +85,7 @@
             <ItemTemplate Context="option">
                 @if (option.Tag is { } tag)
                 {
-                    <span class="rule-tag-select-option">
-                        <span class="rule-tag-color" style="background-color: @tag.Color"></span>
-                        <span>@tag.Name</span>
-                    </span>
+                    <RuleTagOption Tag="@tag" />
                 }
                 else
                 {

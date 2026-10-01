@@ -1,6 +1,7 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ufw.Web.Data;
+using Ufw.Web.Data.Extensions;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Model.V1.RuleGroups;
 using Wkg.AspNetCore.Abstractions.Services;
@@ -15,7 +16,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
     public Task<RuleGroupMutationResult> CreateAsync(string name, string? comment, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleGroupMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             if (await NameExistsAsync(context, name, excludingId: null, cancellationToken))
             {
@@ -32,7 +33,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+            catch (DbUpdateException e) when (e.IsUniqueConstraintViolation)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.NameConflict));
             }
@@ -42,7 +43,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
         });
 
     public Task<RuleGroupMutationResult> UpdateAsync(Guid publicId, string name, string? comment, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleGroupMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleGroupEntry? group = await context.Set<RuleGroupEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (group is null)
@@ -60,7 +61,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+            catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.NameConflict));
             }
@@ -70,7 +71,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
         });
 
     public Task<RuleGroupMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleGroupMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleGroupEntry? group = await context.Set<RuleGroupEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (group is null)
@@ -78,7 +79,8 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.NotFound));
             }
 
-            bool inUse = await context.Set<RuleMetadataEntry>().AnyAsync(metadata => metadata.GroupId == group.Id, cancellationToken);
+            bool inUse = await context.Set<RuleMetadataEntry>().AnyAsync(metadata => metadata.GroupId == group.Id, cancellationToken)
+                || await context.Set<RuleTemplateEntry>().AnyAsync(template => template.GroupId == group.Id, cancellationToken);
             if (inUse)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.InUse));
@@ -89,7 +91,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException exception) when (IsForeignKeyConstraintViolation(exception))
+            catch (DbUpdateException e) when (e.IsForeignKeyConstraintViolation)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.InUse));
             }
@@ -102,17 +104,23 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
     {
         RuleGroupEntry[] groups = await context.Set<RuleGroupEntry>()
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(static group => group.RuleMetadata)
+            .Include(static group => group.RuleTemplates)
             .OrderBy(static group => group.Name)
             .ThenBy(static group => group.PublicId)
             .ToArrayAsync(cancellationToken);
-        RuleGroupItem[] items = [.. groups.Select(static group => new RuleGroupItem
-        {
-            Id = group.PublicId,
-            Name = group.Name,
-            Comment = group.Comment,
-            RuleIds = [.. group.RuleMetadata.Select(static metadata => metadata.RuleId).Order(StringComparer.Ordinal)],
-        })];
+        RuleGroupItem[] items =
+        [
+            .. groups.Select(static group => new RuleGroupItem
+            {
+                Id = group.PublicId,
+                Name = group.Name,
+                Comment = group.Comment,
+                RuleIds = [.. group.RuleMetadata.Select(static metadata => metadata.RuleId).Order(StringComparer.Ordinal)],
+                TemplateIds = [.. group.RuleTemplates.Select(static template => template.PublicId).Order()],
+            })
+        ];
         return new RuleGroupInventoryResponse { Groups = items };
     }
 
@@ -126,10 +134,4 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
 
         return await query.AnyAsync(group => group.Name == name, cancellationToken);
     }
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
-
-    private static bool IsForeignKeyConstraintViolation(DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation };
 }

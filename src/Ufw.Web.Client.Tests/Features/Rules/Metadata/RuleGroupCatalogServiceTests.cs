@@ -19,7 +19,7 @@ public sealed class RuleGroupCatalogServiceTests
         {
             Groups =
             [
-                new RuleGroupItem(zetaId, "  zeta  ", "  later  ", ["rule-b", "rule-a"]),
+                new RuleGroupItem(zetaId, "  zeta  ", "  later  ", ["rule-b", "rule-a"]) { TemplateIds = [Guid.Parse("0199aabb-ccdd-7eef-8000-000000000099")] },
                 new RuleGroupItem(alphaId, "Alpha", "   ", []),
             ],
         });
@@ -35,6 +35,7 @@ public sealed class RuleGroupCatalogServiceTests
         Assert.AreEqual("zeta", groups[1].Name);
         Assert.AreEqual("later", groups[1].Comment);
         CollectionAssert.AreEqual(new[] { "rule-b", "rule-a" }, groups[1].RuleIds.ToArray());
+        CollectionAssert.AreEqual(new[] { Guid.Parse("0199aabb-ccdd-7eef-8000-000000000099") }, groups[1].TemplateIds.ToArray());
         Assert.AreSame(groups, service.Current);
         Assert.AreEqual(0L, service.Version);
     }
@@ -57,6 +58,20 @@ public sealed class RuleGroupCatalogServiceTests
         });
         RuleGroupCatalogService duplicateMembers = new(duplicateMembersApi.Object);
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateMembers.RefreshAsync());
+    }
+
+
+    [TestMethod]
+    public async Task RefreshAsync_InvalidTemplateReferencesRejectProtocolResponseAsync()
+    {
+        Mock<IRuleGroupApiClient> api = new();
+        api.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new RuleGroupInventoryResponse
+        {
+            Groups = [new RuleGroupItem(Guid.CreateVersion7(), "ops", null, []) { TemplateIds = [Guid.Empty] }],
+        });
+        RuleGroupCatalogService service = new(api.Object);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
     }
 
     [TestMethod]

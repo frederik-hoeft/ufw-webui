@@ -36,6 +36,7 @@
     </Status>
 </PageHeader>
 
+<div class="status-page">
 @if (OperationalStatus.Current.ManagementApi == OperationalAvailability.Unavailable)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
@@ -145,3 +146,4 @@ else if (OperationalStatus.Current.IntentProtocolCompatible == false)
         </MudText>
     }
 </MudPaper>
+</div>

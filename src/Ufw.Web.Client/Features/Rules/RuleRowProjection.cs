@@ -16,4 +16,6 @@ public sealed record RuleRowProjection(
     string? CanonicalCommand = null)
 {
     public bool CanEdit { get; init; }
+
+    public bool CanSaveAsTemplate { get; init; }
 }

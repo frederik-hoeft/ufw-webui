@@ -1,24 +1,26 @@
-﻿using MudBlazor;
+using MudBlazor;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.UI.Components.Rules.Metadata;
-using Ufw.Web.Client.UI.Components.Rules;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Ordering;
 using Ufw.Web.Client.Features.Rules.Services;
-using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
+using Ufw.Web.Client.UI.Components.Rules;
+using Ufw.Web.Client.UI.Components.Rules.Metadata;
+using Ufw.Web.Client.UI.Components.Rules.Templates;
+using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class RulesPage
 {
-    private static readonly DialogOptions s_deleteDialogOptions = new()
+    private static readonly DialogOptions s_mutationDialogOptions = new()
     {
         BackdropClick = false,
         CloseButton = true,
@@ -35,6 +37,15 @@ public sealed partial class RulesPage
         CloseOnEscapeKey = true,
         FullWidth = true,
         MaxWidth = MaxWidth.Small,
+    };
+
+    private static readonly DialogOptions s_templateDialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        FullWidth = true,
+        MaxWidth = MaxWidth.ExtraSmall,
     };
 
     private readonly CancellationTokenSource _lifetime = new();
@@ -80,6 +91,8 @@ public sealed partial class RulesPage
     private bool CanMutateFirewall => _state.IsCurrent && _pageInteraction.CanMutateFirewall && !HasOrderingPreview;
 
     private bool CanEditMetadata => _state.IsCurrent && _pageInteraction.CanEditMetadata;
+
+    private bool CanSaveTemplate => _state.Snapshot is not null && !_state.IsLoading && _pageInteraction.CanSaveTemplate && !HasOrderingPreview;
 
     private bool CanPreviewOrdering => _state.IsCurrent && _pageInteraction.CanPreviewOrdering && InteractionState.CanOrder;
 
@@ -207,6 +220,133 @@ public sealed partial class RulesPage
         }
     }
 
+    private async Task SaveAsTemplateAsync(RuleRowProjection row)
+    {
+        if (!CanSaveTemplate || !row.CanSaveAsTemplate || row.Rule.Rule is null)
+        {
+            return;
+        }
+
+        _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.TemplateDialogOpened());
+        try
+        {
+            DialogParameters<SaveRuleAsTemplateDialog> parameters = [];
+            parameters.Add(component => component.CanonicalCommand, row.CanonicalCommand);
+            IDialogReference dialog = await DialogService.ShowAsync<SaveRuleAsTemplateDialog>(TemplatesText["SaveAsTemplate"], parameters, s_templateDialogOptions);
+            SaveRuleAsTemplateDialogResult? result = await dialog.GetReturnValueAsync<SaveRuleAsTemplateDialogResult>();
+            if (result is null)
+            {
+                return;
+            }
+
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.TemplateSaveStarted());
+            RuleTemplateDefinition definition = TemplateAuthoring.CreateDefinition(result.Name, result.Description, row.Rule.Rule, row.Metadata);
+            _ = await TemplateCatalog.CreateAsync(definition, _lifetime.Token);
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.TemplateSaveCompleted());
+            Snackbar.Add(TemplatesText["TemplateSavedFromRule"], Severity.Success);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
+        }
+        finally
+        {
+            if (_pageInteraction.Mode == RulesPageInteractionMode.TemplateSaving)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.TemplateSaveCompleted());
+            }
+            if (_pageInteraction.Mode == RulesPageInteractionMode.TemplateDialog)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.TemplateDialogClosed());
+            }
+        }
+    }
+
+    private async Task BeginDisableAsync(RuleRowProjection row)
+    {
+        if (!CanMutateFirewall || !row.CanMutate || row.Rule.Rule is null || string.IsNullOrWhiteSpace(row.Rule.RuleId))
+        {
+            return;
+        }
+
+        DisableRuleDialogResult? confirmation = null;
+        _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableDialogOpened());
+        try
+        {
+            DialogParameters<DisableRuleDialog> parameters = [];
+            parameters.Add(component => component.Row, row);
+            IDialogReference dialog = await DialogService.ShowAsync<DisableRuleDialog>(TemplatesText["DisableRuleTitle"], parameters, s_mutationDialogOptions);
+            confirmation = await dialog.GetReturnValueAsync<DisableRuleDialogResult>();
+        }
+        finally
+        {
+            if (confirmation is null && _pageInteraction.Mode == RulesPageInteractionMode.DisableDialog)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableDialogClosed());
+            }
+        }
+
+        if (confirmation is null)
+        {
+            return;
+        }
+
+        string privateKey = confirmation.PrivateKey;
+        try
+        {
+            if (_lifetime.IsCancellationRequested)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableDialogClosed());
+                return;
+            }
+
+            _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableConfirmed());
+            RuleDisableWorkflowResult result = await RuleDisable.DisableAsync(row, confirmation.Name, confirmation.Description, privateKey, _lifetime.Token);
+            switch (result.Outcome)
+            {
+                case RuleDisableWorkflowOutcome.Completed:
+                    _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableCompleted());
+                    Snackbar.Add(TemplatesText["DisableCompleted", result.TemplateName], Severity.Success);
+                    await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
+                    break;
+                case RuleDisableWorkflowOutcome.TemplatePersistenceNotConfirmed:
+                {
+                    ClientError error = result.Error ?? throw new InvalidOperationException("A template-persistence failure must include a client error.");
+                    Snackbar.Add(TemplatesText["DisableTemplatePersistenceNotConfirmed", error.Message], Severity.Error);
+                    break;
+                }
+                case RuleDisableWorkflowOutcome.FirewallDeleteNotConfirmed:
+                {
+                    ClientError error = result.Error ?? throw new InvalidOperationException("A firewall-delete failure must include a client error.");
+                    _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
+                    Snackbar.Add(TemplatesText["DisableFirewallDeleteNotConfirmed", result.TemplateName, error.Message], Severity.Error);
+                    break;
+                }
+                default:
+                    throw new InvalidOperationException($"Unsupported rule-disable workflow outcome '{result.Outcome}'.");
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            ClientError error = ClientErrors.Describe(exception);
+            Snackbar.Add(TemplatesText["DisableUnexpectedFailure", error.Message], Severity.Error);
+        }
+        finally
+        {
+            privateKey = string.Empty;
+            if (_pageInteraction.Mode == RulesPageInteractionMode.Disabling)
+            {
+                _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DisableCompleted());
+            }
+        }
+    }
+
     private async Task SaveMetadataAsync(string ruleId, RuleMetadataEditorResult result)
     {
         _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.MetadataSaveStarted());
@@ -266,7 +406,7 @@ public sealed partial class RulesPage
                 { component => component.OrphanGroupCandidate, orphanGroupCandidate },
             };
 
-            IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(RulesText["DeleteDialogTitle"], parameters, s_deleteDialogOptions);
+            IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleDialog>(RulesText["DeleteDialogTitle"], parameters, s_mutationDialogOptions);
             confirmation = await dialog.GetReturnValueAsync<DeleteRuleDialogResult>();
         }
         finally

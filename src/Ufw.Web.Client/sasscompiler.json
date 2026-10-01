@@ -8,8 +8,72 @@
   ],
   "Compilations": [
     {
+      "Source": "UI/Components/Rules/Metadata/EditRuleGroupDialog.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/EditRuleGroupDialog.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/RuleGroupMembers.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleGroupMembers.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/RuleDesktopContent.razor.scss",
+      "Target": "UI/Components/Rules/RuleDesktopContent.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Templates/RuleTemplateDetails.razor.scss",
+      "Target": "UI/Components/Rules/Templates/RuleTemplateDetails.razor.css"
+    },
+    {
       "Source": "UI/Components/Settings/SettingsSection.razor.scss",
       "Target": "UI/Components/Settings/SettingsSection.razor.css"
+    },
+    {
+      "Source": "UI/Pages/ChangePasswordPage.razor.scss",
+      "Target": "UI/Pages/ChangePasswordPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/CreateRule.razor.scss",
+      "Target": "UI/Pages/CreateRule.razor.css"
+    },
+    {
+      "Source": "UI/Pages/EditRule.razor.scss",
+      "Target": "UI/Pages/EditRule.razor.css"
+    },
+    {
+      "Source": "UI/Pages/KnownHostsPage.razor.scss",
+      "Target": "UI/Pages/KnownHostsPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/NetworkInterfacesPage.razor.scss",
+      "Target": "UI/Pages/NetworkInterfacesPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/RuleGroupsManagement.razor.scss",
+      "Target": "UI/Pages/RuleGroupsManagement.razor.css"
+    },
+    {
+      "Source": "UI/Pages/RuleMetadataManagement.razor.scss",
+      "Target": "UI/Pages/RuleMetadataManagement.razor.css"
+    },
+    {
+      "Source": "UI/Pages/RuleTemplateEditorPage.razor.scss",
+      "Target": "UI/Pages/RuleTemplateEditorPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/RuleTemplatesPage.razor.scss",
+      "Target": "UI/Pages/RuleTemplatesPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/RulesPage.razor.scss",
+      "Target": "UI/Pages/RulesPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/SettingsPage.razor.scss",
+      "Target": "UI/Pages/SettingsPage.razor.css"
+    },
+    {
+      "Source": "UI/Pages/Status.razor.scss",
+      "Target": "UI/Pages/Status.razor.css"
     }
   ],
   "Configurations": {

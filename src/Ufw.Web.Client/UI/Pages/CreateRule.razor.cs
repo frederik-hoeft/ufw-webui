@@ -3,12 +3,13 @@ using MudBlazor;
 using System.Globalization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Model.V1.Rules;
-using Ufw.Web.Client.Features.Rules.Insertion;
 using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Insertion;
+using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
+using Ufw.Web.Client.UI.Components.Rules.Metadata;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.UI.Pages;
 
@@ -22,12 +23,21 @@ public sealed partial class CreateRule
     private RuleInsertionResponse? _insertionResult;
     private RuleMetadataEditor? _metadataEditor;
     private RuleMetadataEditorResult _metadataDraft = RuleMetadataEditorResult.Empty;
+    private IReadOnlyList<RuleTemplate> _templates = [];
+    private Guid? _selectedTemplateId;
+    private Guid? _loadedTemplateId;
+    private ClientError? _templateCatalogError;
+    private string? _templateContextWarning;
     private string _privateKey = string.Empty;
     private string? _reconciliationRuleIdentity;
     private bool _mutationMayHaveCompleted;
     private bool _orderedInsertionInvalidated;
     private bool _submitting;
     private bool _initialAddressFamilyApplied;
+    private bool _initialTemplateHandled;
+    private bool _templatesLoaded;
+    private bool _loadingTemplates;
+    private bool _initializing = true;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -45,9 +55,11 @@ public sealed partial class CreateRule
     private bool CanUseOrderedInsertionContext
         => !IsOrderedInsertionRequested || !_orderedInsertionInvalidated && _orderedInsertionContext is not null;
 
-    private bool CanEdit => _state.IsCurrent && !_submitting && !_mutationMayHaveCompleted && CanUseOrderedInsertionContext;
+    private bool CanEdit => _state.IsCurrent && !_initializing && !_submitting && !_mutationMayHaveCompleted && CanUseOrderedInsertionContext;
 
     private bool CanSubmit => CanEdit;
+
+    private bool CanLoadSelectedTemplate => CanEdit && !_loadingTemplates && _selectedTemplateId is not null;
 
     private string HeaderDescription => IsOrderedInsertionRequested
         ? RulesText["CreateOrderedDescription"]
@@ -59,6 +71,9 @@ public sealed partial class CreateRule
 
     [Parameter, SupplyParameterFromQuery(Name = "family")]
     public string? InitialAddressFamilyValue { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "template")]
+    public string? InitialTemplateValue { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "baseline")]
     public string? InsertionBaselineFingerprint { get; set; }
@@ -78,7 +93,15 @@ public sealed partial class CreateRule
     protected async override Task OnInitializedAsync()
     {
         _draft = RuleDraftFactory.Create();
-        await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
+        try
+        {
+            await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
+            await LoadTemplatesAsync();
+        }
+        finally
+        {
+            _initializing = false;
+        }
     }
 
     public void Dispose()
@@ -86,22 +109,6 @@ public sealed partial class CreateRule
         _privateKey = string.Empty;
         _lifetime.Cancel();
         _lifetime.Dispose();
-    }
-
-    private string DescribeRuleCount(int count) => count == 1
-        ? RulesText["CurrentRuleCountOne"]
-        : RulesText["CurrentRuleCountMany", count.ToString("N0", CultureInfo.CurrentCulture)];
-
-    private string DescribeSnapshotStatus()
-    {
-        if (_state.IsStale)
-        {
-            return RulesText["AuthoritativeSnapshotStale"];
-        }
-
-        return _state.Status == RuleInventoryStatus.Refreshing
-            ? RulesText["AuthoritativeSnapshotRefreshing"]
-            : RulesText["AuthoritativeSnapshotCurrent"];
     }
 
     private Task RefreshAsync()
@@ -128,6 +135,7 @@ public sealed partial class CreateRule
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
             ApplyInitialAddressFamily(response.Firewall.Configuration);
             ResolveOrderedInsertionContext(response.Firewall);
+            TryApplyInitialTemplate();
 
             if (_mutationMayHaveCompleted)
             {
@@ -149,6 +157,114 @@ public sealed partial class CreateRule
         {
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
         }
+    }
+
+    private Task ReloadTemplatesAsync() => LoadTemplatesAsync();
+
+    private async Task LoadTemplatesAsync()
+    {
+        if (_loadingTemplates)
+        {
+            return;
+        }
+
+        _loadingTemplates = true;
+        _templateCatalogError = null;
+        try
+        {
+            _templates = await TemplateCatalog.RefreshAsync(_lifetime.Token);
+            _templatesLoaded = true;
+            TryApplyInitialTemplate();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            _templateCatalogError = ClientErrors.Describe(exception);
+            if (!string.IsNullOrWhiteSpace(InitialTemplateValue))
+            {
+                _initialTemplateHandled = true;
+            }
+        }
+        finally
+        {
+            _loadingTemplates = false;
+        }
+    }
+
+    private void TryApplyInitialTemplate()
+    {
+        if (_initialTemplateHandled || string.IsNullOrWhiteSpace(InitialTemplateValue))
+        {
+            return;
+        }
+        if (!Guid.TryParse(InitialTemplateValue, out Guid templateId))
+        {
+            _initialTemplateHandled = true;
+            _templateContextWarning = TemplatesText["TemplateContextInvalid"];
+            return;
+        }
+        if (!_templatesLoaded || IsOrderedInsertionRequested && _orderedInsertionContext is null)
+        {
+            return;
+        }
+
+        _initialTemplateHandled = true;
+        RuleTemplate? template = FindTemplate(templateId);
+        if (template is null)
+        {
+            _templateContextWarning = TemplatesText["TemplateContextMissing"];
+            return;
+        }
+
+        _selectedTemplateId = template.Id;
+        ApplyTemplate(template);
+    }
+
+    private void LoadSelectedTemplate()
+    {
+        if (!CanLoadSelectedTemplate || _selectedTemplateId is not { } templateId || FindTemplate(templateId) is not { } template)
+        {
+            return;
+        }
+        ApplyTemplate(template);
+    }
+
+    private void ApplyTemplate(RuleTemplate template)
+    {
+        FirewallAddressFamily? requiredFamily = IsOrderedInsertionRequested ? _orderedInsertionContext?.AddressFamily : null;
+        RuleTemplateInstantiationResult result = TemplateAuthoring.Initialize(template, requiredFamily);
+        if (!result.Succeeded)
+        {
+            _templateContextWarning = result.Error switch
+            {
+                RuleTemplateInstantiationError.AddressFamilyMismatch when requiredFamily is { } family
+                    => TemplatesText["TemplateFamilyMismatch", template.Name, RuleText.FormatAddressFamily(template.Rule.AddressFamily), RuleText.FormatAddressFamily(family)],
+                _ => TemplatesText["TemplateContextInvalid"],
+            };
+            return;
+        }
+
+        RuleTemplateInstantiation instantiation = result.Instantiation!;
+        _draft = instantiation.Rule;
+        _metadataDraft = new RuleMetadataEditorResult(instantiation.Notes, instantiation.TagIds, instantiation.GroupId);
+        _loadedTemplateId = template.Id;
+        _selectedTemplateId = template.Id;
+        _templateContextWarning = null;
+    }
+
+    private RuleTemplate? FindTemplate(Guid templateId) => _templates.SingleOrDefault(template => template.Id == templateId);
+
+    private string DescribeTemplateOption(RuleTemplate template)
+    {
+        if (_templates.Count(candidate => string.Equals(candidate.Name, template.Name, StringComparison.OrdinalIgnoreCase)) == 1)
+        {
+            return template.Name;
+        }
+
+        // Names are display-only: add a stable short ID when more than one template uses the same label.
+        return $"{template.Name} ({template.Id.ToString("N")[^8..]})";
     }
 
     private void ApplyInitialAddressFamily(FirewallConfigurationSnapshot configuration)

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Regelvorlagen</value></data>
+  <data name="Title" xml:space="preserve"><value>Regelvorlagen</value></data>
+  <data name="Description" xml:space="preserve"><value>Wiederverwendbare Firewall-Regeldefinitionen und ihre Autorenmetadaten verwalten.</value></data>
+  <data name="TemplatesBreadcrumb" xml:space="preserve"><value>Vorlagen</value></data>
+  <data name="AddTemplate" xml:space="preserve"><value>Vorlage hinzufügen</value></data>
+  <data name="TemplateCountOne" xml:space="preserve"><value>1 Vorlage</value></data>
+  <data name="TemplateCountMany" xml:space="preserve"><value>{0} Vorlagen</value></data>
+  <data name="InventoryTitle" xml:space="preserve"><value>Wiederverwendbare Regeln</value></data>
+  <data name="InventoryDescription" xml:space="preserve"><value>Vorlagen sind unabhängige Regeldefinitionen. Sie stellen weder aktiven Firewall-Zustand noch Regelpositionen dar.</value></data>
+  <data name="NameColumn" xml:space="preserve"><value>Name</value></data>
+  <data name="RuleColumn" xml:space="preserve"><value>Regel</value></data>
+  <data name="MetadataColumn" xml:space="preserve"><value>Metadaten</value></data>
+  <data name="ActionsColumn" xml:space="preserve"><value>Aktionen</value></data>
+  <data name="NoTemplates" xml:space="preserve"><value>Es wurden noch keine Regelvorlagen erstellt.</value></data>
+  <data name="NoDescription" xml:space="preserve"><value>Keine Beschreibung</value></data>
+  <data name="NoMetadata" xml:space="preserve"><value>Keine Notizen, Tags oder Gruppe</value></data>
+  <data name="GroupLabel" xml:space="preserve"><value>Gruppe: {0}</value></data>
+  <data name="NotesPresent" xml:space="preserve"><value>Notizen</value></data>
+  <data name="EditTemplate" xml:space="preserve"><value>Vorlage bearbeiten</value></data>
+  <data name="DeleteTemplate" xml:space="preserve"><value>Vorlage löschen</value></data>
+  <data name="DeleteDialogTitle" xml:space="preserve"><value>Regelvorlage löschen</value></data>
+  <data name="DeleteDialogDescription" xml:space="preserve"><value>Vorlage „{0}“ löschen? Aktive Firewall-Regeln werden dadurch nicht verändert.</value></data>
+  <data name="TemplateDeleted" xml:space="preserve"><value>Regelvorlage gelöscht.</value></data>
+  <data name="LoadFailed" xml:space="preserve"><value>Regelvorlagen konnten nicht geladen werden</value></data>
+  <data name="CreatePageTitle" xml:space="preserve"><value>Regelvorlage erstellen</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Regelvorlage erstellen</value></data>
+  <data name="EditPageTitle" xml:space="preserve"><value>Regelvorlage bearbeiten</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Regelvorlage bearbeiten</value></data>
+  <data name="CreateDescription" xml:space="preserve"><value>Eine wiederverwendbare Regel samt Metadaten definieren, ohne die aktive Firewall zu verändern.</value></data>
+  <data name="EditDescription" xml:space="preserve"><value>Diese wiederverwendbare Regeldefinition bearbeiten, ohne aktive Firewall-Regeln zu verändern.</value></data>
+  <data name="BackToTemplates" xml:space="preserve"><value>Zurück zu Vorlagen</value></data>
+  <data name="TemplateDetails" xml:space="preserve"><value>Vorlagendetails</value></data>
+  <data name="TemplateDetailsDescription" xml:space="preserve"><value>Die wiederverwendbare Definition benennen und optional ihren Einsatzzweck beschreiben.</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="DescriptionLabel" xml:space="preserve"><value>Beschreibung</value></data>
+  <data name="NameRequired" xml:space="preserve"><value>Ein Vorlagenname ist erforderlich.</value></data>
+  <data name="RuleDefinitionDescription" xml:space="preserve"><value>Wiederverwendbare UFW-Regelfelder definieren. Aktuelle Firewall-Fähigkeiten und der aktive Regelsatz beschränken die Vorlagenspeicherung nicht.</value></data>
+  <data name="TemplateMetadata" xml:space="preserve"><value>Vorlagenmetadaten</value></data>
+  <data name="TemplateMetadataDescription" xml:space="preserve"><value>Notizen, Tags und Gruppenzugehörigkeit werden kopiert, wenn diese Vorlage einen Regelentwurf initialisiert.</value></data>
+  <data name="SaveTemplate" xml:space="preserve"><value>Vorlage speichern</value></data>
+  <data name="SavingTemplate" xml:space="preserve"><value>Vorlage wird gespeichert...</value></data>
+  <data name="TemplateCreated" xml:space="preserve"><value>Regelvorlage erstellt.</value></data>
+  <data name="TemplateSaved" xml:space="preserve"><value>Regelvorlage gespeichert.</value></data>
+  <data name="TemplateNotFoundTitle" xml:space="preserve"><value>Regelvorlage nicht gefunden</value></data>
+  <data name="TemplateNotFoundDescription" xml:space="preserve"><value>Die angeforderte Vorlage existiert nicht mehr oder ist nicht verfügbar.</value></data>
+  <data name="LoadingTemplate" xml:space="preserve"><value>Regelvorlage wird geladen...</value></data>
+  <data name="SaveFailed" xml:space="preserve"><value>Regelvorlage konnte nicht gespeichert werden</value></data>
+  <data name="OperationFailed" xml:space="preserve"><value>Regelvorlagenvorgang fehlgeschlagen</value></data>
+  <data name="ActionsForTemplate" xml:space="preserve"><value>Aktionen für Vorlage {0}</value></data>
+  <data name="SaveAsTemplate" xml:space="preserve"><value>Als Vorlage speichern</value></data>
+  <data name="SaveLiveRuleDescription" xml:space="preserve"><value>Die geprüfte Regel sowie ihre aktuellen Notizen, Tags und Gruppe als wiederverwendbare Vorlage speichern. Die Firewall wird dadurch nicht geändert.</value></data>
+  <data name="TemplateSavedFromRule" xml:space="preserve"><value>Regel als Vorlage gespeichert.</value></data>
+  <data name="UseTemplate" xml:space="preserve"><value>Vorlage verwenden</value></data>
+  <data name="LoadTemplateTitle" xml:space="preserve"><value>Aus Vorlage initialisieren</value></data>
+  <data name="LoadTemplateDescription" xml:space="preserve"><value>Wiederverwendbare Regelfelder und Metadaten in diesen Entwurf laden. Vor dem Signieren der Firewall-Änderung können sie geprüft und geändert werden.</value></data>
+  <data name="SelectTemplate" xml:space="preserve"><value>Regelvorlage</value></data>
+  <data name="LoadTemplate" xml:space="preserve"><value>Laden</value></data>
+  <data name="TemplateLoaded" xml:space="preserve"><value>Vorlage „{0}“ wurde in den Regelentwurf geladen.</value></data>
+  <data name="TemplateLoadFailed" xml:space="preserve"><value>Regelvorlagen konnten nicht geladen werden. Die Regel kann weiterhin ohne Vorlage erstellt werden.</value></data>
+  <data name="TemplateContextInvalid" xml:space="preserve"><value>Die angeforderte Vorlagenkennung ist ungültig. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
+  <data name="TemplateContextMissing" xml:space="preserve"><value>Die angeforderte Regelvorlage existiert nicht mehr. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
+  <data name="TemplateFamilyMismatch" xml:space="preserve"><value>Vorlage „{0}“ verwendet {1}, diese geordnete Einfügung ist jedoch auf {2} festgelegt. Der aktuelle Regelentwurf wurde nicht verändert.</value></data>
+  <data name="ReloadTemplates" xml:space="preserve"><value>Vorlagen neu laden</value></data>
+  <data name="ReviewedRule" xml:space="preserve"><value>Geprüfte Regel</value></data>
+  <data name="DisableRuleTitle" xml:space="preserve"><value>Regel deaktivieren</value></data>
+  <data name="DisableLiveRuleDescription" xml:space="preserve"><value>Speichert die geprüfte Regel samt Metadaten als Vorlage und löscht anschließend die aktive Firewall-Regel. Die Regel wird erst gelöscht, nachdem das Speichern der Vorlage bestätigt wurde.</value></data>
+  <data name="DisableMetadataPreserved" xml:space="preserve"><value>Notizen, Tags und Gruppenzuordnung werden in die Vorlage übernommen. Eine Gruppenzuordnung bleibt dadurch erhalten; beim Deaktivieren wird die Gruppe nie gelöscht.</value></data>
+  <data name="DisableWarning" xml:space="preserve"><value>Durch Fortfahren wird die aktive Firewall-Regel gelöscht. Die gespeicherte Vorlage bleibt erhalten, auch wenn das Löschen fehlschlägt oder sein Ergebnis nicht bestätigt werden kann.</value></data>
+  <data name="SaveTemplateAndDisable" xml:space="preserve"><value>Vorlage speichern und deaktivieren</value></data>
+  <data name="DisableCompleted" xml:space="preserve"><value>Regel deaktiviert und als Vorlage „{0}“ gespeichert.</value></data>
+  <data name="DisableTemplatePersistenceNotConfirmed" xml:space="preserve"><value>Die aktive Regel wurde nicht deaktiviert, da das Speichern der Vorlage nicht bestätigt werden konnte. Es wurde kein Firewall-Löschvorgang gestartet. Aktualisieren Sie den Vorlagenkatalog, um zu prüfen, ob die Vorlage erstellt wurde. {0}</value></data>
+  <data name="DisableFirewallDeleteNotConfirmed" xml:space="preserve"><value>Vorlage „{0}“ wurde gespeichert, aber das Deaktivieren der aktiven Regel konnte nicht bestätigt werden: {1}</value></data>
+  <data name="DisableUnexpectedFailure" xml:space="preserve"><value>Der Deaktivierungs-Workflow konnte nicht abgeschlossen werden: {0}</value></data>
+  <data name="ShowTemplateDetails" xml:space="preserve"><value>Details für Vorlage {0} anzeigen</value></data>
+  <data name="HideTemplateDetails" xml:space="preserve"><value>Details für Vorlage {0} ausblenden</value></data>
+  <data name="OneTag" xml:space="preserve"><value>1 Tag</value></data>
+  <data name="ManyTags" xml:space="preserve"><value>{0} Tags</value></data>
+  <data name="GroupPresent" xml:space="preserve"><value>Gruppe</value></data>
+  <data name="TagsLabel" xml:space="preserve"><value>Tags</value></data>
+  <data name="AddingTemplate" xml:space="preserve"><value>Vorlage wird hinzugefügt...</value></data>
+</root>

@@ -1,0 +1,138 @@
+@use "core/variables" as *;
+
+.rule-groups-management-page ::deep .rule-group-inventory {
+    .rule-group-desktop-list {
+        overflow-x: auto;
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 0.75rem 0.875rem;
+            border-bottom: 1px solid var(--mud-palette-table-lines);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background: var(--mud-palette-background-gray);
+            color: var(--mud-palette-text-secondary);
+            font-size: 0.6875rem;
+            font-weight: 600;
+        }
+
+        .name {
+            width: 22%;
+        }
+
+        .comment {
+            width: auto;
+        }
+
+        .members {
+            width: 11rem;
+            color: var(--mud-palette-text-secondary);
+            white-space: nowrap;
+        }
+
+        .actions {
+            width: 4rem;
+            text-align: right;
+        }
+    }
+
+    .rule-group-row-group {
+        > tr {
+            transition: background-color 120ms ease;
+        }
+
+        &.expanded > .rule-group-row {
+            background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
+        }
+
+        > .rule-group-row:hover,
+        > .rule-group-row:hover ~ tr {
+            background: var(--mud-palette-table-hover);
+        }
+
+        &.expanded > .rule-group-row > td {
+            border-bottom: 0;
+        }
+    }
+
+    .rule-group-row {
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: 2px solid var(--mud-palette-primary);
+            outline-offset: -2px;
+        }
+
+        .rule-group-comment,
+        .rule-group-comment-empty {
+            display: block;
+            overflow-wrap: anywhere;
+        }
+
+        .rule-group-comment-empty {
+            color: var(--mud-palette-text-secondary);
+        }
+    }
+
+    .rule-group-details-row > td {
+        padding: 0.75rem 0.875rem 1rem;
+    }
+
+    > .rule-group-mobile-list > .rule-group-mobile-card {
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--mud-palette-table-lines);
+        background: var(--mud-palette-surface);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+
+        &.expanded {
+            background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
+        }
+
+        > header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid var(--mud-palette-primary);
+                outline-offset: 2px;
+            }
+
+            > div:first-child {
+                display: grid;
+                min-width: 0;
+                gap: 0.15rem;
+
+                > span {
+                    color: var(--mud-palette-text-secondary);
+                    font-size: 0.75rem;
+                }
+            }
+
+            > div:last-child {
+                flex: 0 0 auto;
+            }
+        }
+
+        > p {
+            margin: 0;
+            overflow-wrap: anywhere;
+            color: var(--mud-palette-text-secondary);
+        }
+    }
+}

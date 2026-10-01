@@ -35,5 +35,8 @@ internal sealed class SqliteApplicationModelLoader : IModelLoader
         builder.Entity<RuleGroupEntry>()
             .Property(static group => group.Name)
             .UseCollation("NOCASE");
+        builder.Entity<RuleTemplateEntry>()
+            .Property(static template => template.Name)
+            .UseCollation("NOCASE");
     }
 }

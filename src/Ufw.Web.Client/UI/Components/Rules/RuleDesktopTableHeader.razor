@@ -1,0 +1,19 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<thead>
+    <tr>
+        @if (ShowOrderingColumns)
+        {
+            <th scope="col" class="drag"><span class="visually-hidden">@RulesText["ReorderColumn"]</span></th>
+            <th scope="col" class="position">@RulesText["RulePositionColumn"]</th>
+        }
+        <th scope="col" class="action">@RulesText["ActionColumn"]</th>
+        <th scope="col" class="direction">@RulesText["DirectionColumn"]</th>
+        <th scope="col" class="endpoint">@RulesText["FromColumn"]</th>
+        <th scope="col" class="endpoint">@RulesText["ToColumn"]</th>
+        <th scope="col" class="protocol">@RulesText["ProtocolColumn"]</th>
+        <th scope="col" class="tags">@RulesText["TagsColumn"]</th>
+        <th scope="col" class="comment">@RulesText["CommentColumn"]</th>
+        <th scope="col" class="actions"><span class="visually-hidden">@ActionsLabel</span></th>
+    </tr>
+</thead>

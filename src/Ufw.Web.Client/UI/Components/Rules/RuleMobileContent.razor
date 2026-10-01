@@ -1,0 +1,41 @@
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<div class="rule-mobile-content details">
+    <div>
+        <span class="field-label">@RulesText["DirectionColumn"]</span>
+        <span class="rule-direction">@RuleText.FormatDirection(Rule.Direction)</span>
+    </div>
+    <div>
+        <span class="field-label">@RulesText["ProtocolColumn"]</span>
+        <span class="rule-protocol">@RuleText.FormatProtocol(Rule.Protocol)</span>
+    </div>
+</div>
+
+<div class="rule-mobile-content rule-mobile-endpoints">
+    <div>
+        <span class="visually-hidden">@RulesText["FromColumn"]</span>
+        <span class="rule-endpoint">@RuleText.DescribeEndpoint(Rule.Source, Rule.SourcePorts, Rule.SourceInterface)</span>
+    </div>
+    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" aria-hidden="true" />
+    <div>
+        <span class="visually-hidden">@RulesText["ToColumn"]</span>
+        <span class="rule-endpoint">@RuleText.DescribeEndpoint(Rule.Destination, Rule.DestinationPorts, Rule.DestinationInterface)</span>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Rule.Comment))
+{
+    <div class="rule-mobile-content comment">
+        <span class="field-label">@RulesText["CommentColumn"]</span>
+        <span class="rule-comment">@Rule.Comment</span>
+    </div>
+}
+@if (Tags.Count > 0)
+{
+    <div class="rule-mobile-content mobile-tags">
+        <span class="field-label">@RulesText["Tags"]</span>
+        <RuleTagList Tags="@Tags" MaxVisible="4" />
+    </div>
+}

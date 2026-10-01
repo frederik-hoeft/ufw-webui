@@ -15,6 +15,9 @@ public sealed partial class RuleGroupMembers
     public bool ShowActions { get; set; } = true;
 
     [Parameter]
+    public RenderFragment? HeaderActions { get; set; }
+
+    [Parameter]
     public EventCallback<RuleGroup> EditRequested { get; set; }
 
     [Parameter]

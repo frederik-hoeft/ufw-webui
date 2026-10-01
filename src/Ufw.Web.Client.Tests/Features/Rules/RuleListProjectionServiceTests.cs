@@ -34,6 +34,7 @@ public sealed class RuleListProjectionServiceTests
         Assert.IsTrue(ipv4.Rows.All(static row => row.CanOrder));
         Assert.IsTrue(ipv4.Rows.All(static row => !row.CanMutate));
         Assert.IsTrue(ipv4.Rows.All(static row => !row.CanEdit));
+        Assert.IsTrue(ipv4.Rows.All(static row => row.CanSaveAsTemplate));
         Assert.IsEmpty(projection.GetFamily(FirewallAddressFamily.IPv6).Rows);
     }
 
@@ -73,6 +74,7 @@ public sealed class RuleListProjectionServiceTests
         Assert.IsFalse(row.CanOrder);
         Assert.IsFalse(row.CanMutate);
         Assert.IsFalse(row.CanEdit);
+        Assert.IsFalse(row.CanSaveAsTemplate);
         Assert.AreEqual(0, row.OccurrenceId);
         Assert.AreEqual(1, row.FamilyPosition);
     }

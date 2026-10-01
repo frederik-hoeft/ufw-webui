@@ -50,7 +50,7 @@ The deployment deliberately separates the daemon's public-to-ASP IPC surface fro
 | `/etc/ufw-manager/settings.json` | daemon configuration |
 | `/etc/ufw-manager/authorized_keys` | operator-managed administrator mutation public keys |
 | `/var/lib/ufw-manager/` | daemon deployment identity, replay records, and reorder recovery state |
-| PostgreSQL storage | ASP-owned users, refresh-token state, authoring metadata, and rule presentation metadata |
+| PostgreSQL storage | ASP-owned users, refresh-token state, reusable rule templates, authoring metadata, and rule presentation metadata |
 | frontend TLS directory | browser-facing certificate/key mounted into nginx |
 | ASP JWT key | private ES256 signing key mounted into `Ufw.Web` |
 

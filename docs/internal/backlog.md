@@ -2,49 +2,6 @@
 
 This document records unresolved larger design directions that are useful to retain between implementation phases. It is deliberately non-normative: none of these sections describes current product behavior unless a permanent architecture/protocol document says so.
 
-## Rule templates and reversible disable workflow
-
-Rule templates are ASP-owned authoring artifacts. They are reusable rule definitions, not live firewall rules, and they do not participate in authoritative UFW identity or ordering.
-
-The core user stories are:
-
-- save an existing live rule as a reusable template from the rule action menu;
-- create, edit, and delete templates in a dedicated template manager without causing UFW side effects;
-- start normal rule creation from a selected template so the existing editor is pre-populated with the template values;
-- disable a live rule by preserving its reusable definition as a template and then deleting the live UFW rule;
-- re-enable a rule by loading its template into the ordinary authoring/mutation flow rather than resurrecting hidden firewall state.
-
-The intended relationship is:
-
-```text
-Rule template
-    |
-    | load
-    v
-FirewallRuleSpecification draft
-    |
-    | edit / validate / sign
-    v
-ordinary UFW mutation
-```
-
-Templates remain independent after creation. Updating a template does not alter any existing live rule, and creating a rule from a template does not create a persistent binding between the template and the resulting UFW rule unless a later feature gives such provenance a concrete use.
-
-### Disable rule
-
-**Disable rule** is an application workflow composed from template persistence plus the existing signed delete mutation; it should not introduce a special daemon-side firewall operation.
-
-The safe failure order is:
-
-1. persist the reusable template successfully;
-2. issue the ordinary signed UFW delete;
-3. if deletion fails, retain the template and report that the live rule is still active;
-4. if deletion succeeds, clean up live-rule metadata according to the normal in-band deletion policy.
-
-Persisting first is intentional. A failed delete can leave an extra template, whereas deleting first could lose the reusable rule definition if template persistence subsequently fails.
-
-Detailed design is deferred until this feature becomes active work, including the template schema, uniqueness/naming rules, provenance, metadata-copy behavior, template ownership/auditing, and template-manager UX.
-
 ## Semantic firewall-policy exploration
 
 Provide an exploratory view that answers questions about what the **UFW-managed policy represented by UFWeb** permits, using the same parsed/normalized rule semantics already exposed by the application.

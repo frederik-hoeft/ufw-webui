@@ -33,7 +33,9 @@ public sealed partial class RuleEditor
         ? Mode == RuleEditorMode.Edit ? RulesText["UpdatingRule"] : RulesText["AddingRule"]
         : SubmittingLabel;
 
-    private string EffectiveSubmitIcon => Mode == RuleEditorMode.Edit ? Icons.Material.Filled.Save : Icons.Material.Filled.Add;
+    private string EffectiveSubmitIcon => string.IsNullOrWhiteSpace(SubmitIcon)
+        ? Mode == RuleEditorMode.Edit ? Icons.Material.Filled.Save : Icons.Material.Filled.Add
+        : SubmitIcon;
 
     private bool EffectiveAddressFamilyLocked => AddressFamilyLocked || Mode == RuleEditorMode.Edit;
 
@@ -81,6 +83,9 @@ public sealed partial class RuleEditor
 
     [Parameter]
     public string? SubmittingLabel { get; set; }
+
+    [Parameter]
+    public string? SubmitIcon { get; set; }
 
     [Parameter]
     public bool Submitting { get; set; }

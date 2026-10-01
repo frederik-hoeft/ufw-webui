@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,7 +54,6 @@ public sealed class RuleGroupsControllerIntegrationTests : ControllerIntegration
             context.ChangeTracker.Clear();
             Assert.IsFalse(await context.Set<RuleGroupEntry>().AnyAsync(cancellationToken));
         }, TestContext.CancellationToken);
-
 
     [TestMethod]
     public Task DeleteAsync_InUseGroupReturnsConflictAndInventoryIncludesSemanticMemberAsync() =>

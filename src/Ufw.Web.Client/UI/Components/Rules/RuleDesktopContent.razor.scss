@@ -1,0 +1,44 @@
+.rule-desktop-content {
+    .rule-action {
+        font-weight: 500;
+        text-transform: uppercase;
+
+        &.rule-action-normal {
+            font-weight: 400;
+        }
+
+        &-allow {
+            color: var(--mud-palette-text-primary);
+        }
+
+        &-deny,
+        &-reject {
+            color: var(--mud-palette-error);
+        }
+
+        &-limit {
+            color: var(--mud-palette-warning);
+        }
+    }
+
+    .rule-direction {
+        color: var(--mud-palette-text-primary);
+    }
+
+    .rule-endpoint,
+    .rule-protocol {
+        font-family: var(--ufw-font-mono);
+        font-size: 0.8125rem;
+    }
+
+    .rule-endpoint,
+    .rule-comment {
+        display: block;
+        overflow-wrap: anywhere;
+    }
+
+    .rule-comment-empty {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.8125rem;
+    }
+}

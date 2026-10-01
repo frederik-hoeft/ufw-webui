@@ -38,6 +38,23 @@
             @RulesText["EditMetadata"]
         </MudMenuItem>
     }
+    @if (SaveAsTemplateRequested.HasDelegate)
+    {
+        <MudMenuItem Disabled="@(TemplateSaveDisabled || !CanSaveAsTemplate)"
+                     Icon="@Icons.Material.Filled.Bookmarks"
+                     OnClick="@(() => SaveAsTemplateRequested.InvokeAsync())">
+            @RulesText["SaveAsTemplate"]
+        </MudMenuItem>
+    }
+    <MudDivider />
+    @if (DisableRequested.HasDelegate)
+    {
+        <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
+                     Icon="@Icons.Material.Filled.Block"
+                     OnClick="@(() => DisableRequested.InvokeAsync())">
+            @RulesText["DisableRule"]
+        </MudMenuItem>
+    }
     <MudMenuItem Disabled="@(MutationDisabled || !CanMutate)"
                  Icon="@Icons.Material.Filled.Delete"
                  IconColor="Color.Error"

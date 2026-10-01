@@ -1,0 +1,21 @@
+.rule-group-option {
+    display: grid;
+    min-width: 0;
+    gap: 0.1rem;
+
+    > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    > small {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.6875rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

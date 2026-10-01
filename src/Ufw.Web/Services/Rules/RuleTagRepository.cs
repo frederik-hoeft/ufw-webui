@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
 using Wkg.AspNetCore.Transactions;
+using Ufw.Web.Data.Extensions;
 
 namespace Ufw.Web.Services.Rules;
 
@@ -15,7 +16,7 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
     public Task<RuleTagMutationResult> CreateAsync(string name, string color, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleTagMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             if (await NameExistsAsync(context, name, excludingId: null, cancellationToken))
             {
@@ -32,7 +33,7 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+            catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
             {
                 return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.NameConflict));
             }
@@ -41,12 +42,8 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
             return transaction.Commit(new RuleTagMutationResult(RuleTagMutationOutcome.Success, response));
         });
 
-    public Task<RuleTagMutationResult> UpdateAsync(
-        Guid publicId,
-        string name,
-        string color,
-        CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleTagMutationResult>(async (context, transaction) =>
+    public Task<RuleTagMutationResult> UpdateAsync(Guid publicId, string name, string color, CancellationToken cancellationToken = default) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleTagEntry? tag = await context.Set<RuleTagEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (tag is null)
@@ -64,7 +61,7 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+            catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
             {
                 return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.NameConflict));
             }
@@ -74,7 +71,7 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
         });
 
     public Task<RuleTagMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleTagMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleTagEntry? tag = await context.Set<RuleTagEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (tag is null)
@@ -82,14 +79,22 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
                 return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.NotFound));
             }
 
-            bool inUse = await context.Set<RuleMetadataTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken);
+            bool inUse = await context.Set<RuleMetadataTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken)
+                || await context.Set<RuleTemplateTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken);
             if (inUse)
             {
                 return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.InUse));
             }
 
             context.Remove(tag);
-            await context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (exception.IsForeignKeyConstraintViolation)
+            {
+                return transaction.Rollback(new RuleTagMutationResult(RuleTagMutationOutcome.InUse));
+            }
             RuleTagInventoryResponse response = await GetCoreAsync(context, cancellationToken);
             return transaction.Commit(new RuleTagMutationResult(RuleTagMutationOutcome.Success, response));
         });
@@ -115,7 +120,4 @@ internal sealed class RuleTagRepository(ITransactionServiceHandle transactionSer
 
         return await query.AnyAsync(tag => tag.Name == name, cancellationToken);
     }
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 }

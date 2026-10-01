@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PageTitle" xml:space="preserve"><value>Rule templates</value></data>
+  <data name="Title" xml:space="preserve"><value>Rule templates</value></data>
+  <data name="Description" xml:space="preserve"><value>Manage reusable firewall rule definitions and their authoring metadata.</value></data>
+  <data name="TemplatesBreadcrumb" xml:space="preserve"><value>Templates</value></data>
+  <data name="AddTemplate" xml:space="preserve"><value>Add template</value></data>
+  <data name="TemplateCountOne" xml:space="preserve"><value>1 template</value></data>
+  <data name="TemplateCountMany" xml:space="preserve"><value>{0} templates</value></data>
+  <data name="InventoryTitle" xml:space="preserve"><value>Reusable rules</value></data>
+  <data name="InventoryDescription" xml:space="preserve"><value>Templates are independent authoring definitions. They do not represent live firewall state or rule positions.</value></data>
+  <data name="NameColumn" xml:space="preserve"><value>Name</value></data>
+  <data name="RuleColumn" xml:space="preserve"><value>Rule</value></data>
+  <data name="MetadataColumn" xml:space="preserve"><value>Metadata</value></data>
+  <data name="ActionsColumn" xml:space="preserve"><value>Actions</value></data>
+  <data name="NoTemplates" xml:space="preserve"><value>No rule templates have been created yet.</value></data>
+  <data name="NoDescription" xml:space="preserve"><value>No description</value></data>
+  <data name="NoMetadata" xml:space="preserve"><value>No notes, tags, or group</value></data>
+  <data name="GroupLabel" xml:space="preserve"><value>Group: {0}</value></data>
+  <data name="NotesPresent" xml:space="preserve"><value>Notes</value></data>
+  <data name="EditTemplate" xml:space="preserve"><value>Edit template</value></data>
+  <data name="DeleteTemplate" xml:space="preserve"><value>Delete template</value></data>
+  <data name="DeleteDialogTitle" xml:space="preserve"><value>Delete rule template</value></data>
+  <data name="DeleteDialogDescription" xml:space="preserve"><value>Delete template “{0}”? This does not affect any live firewall rules.</value></data>
+  <data name="TemplateDeleted" xml:space="preserve"><value>Rule template deleted.</value></data>
+  <data name="LoadFailed" xml:space="preserve"><value>Rule templates could not be loaded</value></data>
+  <data name="CreatePageTitle" xml:space="preserve"><value>Create rule template</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Create rule template</value></data>
+  <data name="EditPageTitle" xml:space="preserve"><value>Edit rule template</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Edit rule template</value></data>
+  <data name="CreateDescription" xml:space="preserve"><value>Define a reusable rule and metadata snapshot without changing the live firewall.</value></data>
+  <data name="EditDescription" xml:space="preserve"><value>Update this reusable rule definition without changing any live firewall rule.</value></data>
+  <data name="BackToTemplates" xml:space="preserve"><value>Back to templates</value></data>
+  <data name="TemplateDetails" xml:space="preserve"><value>Template details</value></data>
+  <data name="TemplateDetailsDescription" xml:space="preserve"><value>Name the reusable definition and optionally describe when it should be used.</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="DescriptionLabel" xml:space="preserve"><value>Description</value></data>
+  <data name="NameRequired" xml:space="preserve"><value>Template name is required.</value></data>
+  <data name="RuleDefinitionDescription" xml:space="preserve"><value>Define reusable UFW rule fields. Current firewall capabilities and rule-set state do not constrain template storage.</value></data>
+  <data name="TemplateMetadata" xml:space="preserve"><value>Template metadata</value></data>
+  <data name="TemplateMetadataDescription" xml:space="preserve"><value>Notes, tags, and group membership are copied when this template initializes a rule draft.</value></data>
+  <data name="SaveTemplate" xml:space="preserve"><value>Save template</value></data>
+  <data name="SavingTemplate" xml:space="preserve"><value>Saving template...</value></data>
+  <data name="TemplateCreated" xml:space="preserve"><value>Rule template created.</value></data>
+  <data name="TemplateSaved" xml:space="preserve"><value>Rule template saved.</value></data>
+  <data name="TemplateNotFoundTitle" xml:space="preserve"><value>Rule template not found</value></data>
+  <data name="TemplateNotFoundDescription" xml:space="preserve"><value>The requested template no longer exists or is not available.</value></data>
+  <data name="LoadingTemplate" xml:space="preserve"><value>Loading rule template...</value></data>
+  <data name="SaveFailed" xml:space="preserve"><value>Rule template could not be saved</value></data>
+  <data name="OperationFailed" xml:space="preserve"><value>Rule template operation failed</value></data>
+  <data name="ActionsForTemplate" xml:space="preserve"><value>Actions for template {0}</value></data>
+  <data name="SaveAsTemplate" xml:space="preserve"><value>Save as template</value></data>
+  <data name="SaveLiveRuleDescription" xml:space="preserve"><value>Save the reviewed rule and its current notes, tags, and group as a reusable template. This does not change the firewall.</value></data>
+  <data name="TemplateSavedFromRule" xml:space="preserve"><value>Rule saved as template.</value></data>
+  <data name="UseTemplate" xml:space="preserve"><value>Use template</value></data>
+  <data name="LoadTemplateTitle" xml:space="preserve"><value>Initialize from template</value></data>
+  <data name="LoadTemplateDescription" xml:space="preserve"><value>Load reusable rule fields and metadata into this draft. You can review and change them before signing the firewall mutation.</value></data>
+  <data name="SelectTemplate" xml:space="preserve"><value>Rule template</value></data>
+  <data name="LoadTemplate" xml:space="preserve"><value>Load</value></data>
+  <data name="TemplateLoaded" xml:space="preserve"><value>Template “{0}” loaded into the rule draft.</value></data>
+  <data name="TemplateLoadFailed" xml:space="preserve"><value>Rule templates could not be loaded. You can continue creating the rule without a template.</value></data>
+  <data name="TemplateContextInvalid" xml:space="preserve"><value>The requested template identifier is invalid. The current rule draft was left unchanged.</value></data>
+  <data name="TemplateContextMissing" xml:space="preserve"><value>The requested rule template no longer exists. The current rule draft was left unchanged.</value></data>
+  <data name="TemplateFamilyMismatch" xml:space="preserve"><value>Template “{0}” uses {1}, but this ordered insertion is fixed to {2}. The current rule draft was left unchanged.</value></data>
+  <data name="ReloadTemplates" xml:space="preserve"><value>Reload templates</value></data>
+  <data name="ReviewedRule" xml:space="preserve"><value>Reviewed rule</value></data>
+  <data name="DisableRuleTitle" xml:space="preserve"><value>Disable rule</value></data>
+  <data name="DisableLiveRuleDescription" xml:space="preserve"><value>Save the reviewed rule and its metadata as a template, then delete the live firewall rule. The rule is deleted only after template persistence is confirmed.</value></data>
+  <data name="DisableMetadataPreserved" xml:space="preserve"><value>Notes, tags, and group membership are copied into the template. Group membership is retained; disabling a rule never deletes its group.</value></data>
+  <data name="DisableWarning" xml:space="preserve"><value>Continuing deletes the active firewall rule. The saved template is retained even if deletion fails or its outcome cannot be confirmed.</value></data>
+  <data name="SaveTemplateAndDisable" xml:space="preserve"><value>Save template and disable</value></data>
+  <data name="DisableCompleted" xml:space="preserve"><value>Rule disabled and saved as template “{0}”.</value></data>
+  <data name="DisableTemplatePersistenceNotConfirmed" xml:space="preserve"><value>The live rule was not disabled because template persistence could not be confirmed. No firewall delete was issued. Refresh the template catalog to check whether the template was created. {0}</value></data>
+  <data name="DisableFirewallDeleteNotConfirmed" xml:space="preserve"><value>Template “{0}” was saved, but disabling the live rule could not be confirmed: {1}</value></data>
+  <data name="DisableUnexpectedFailure" xml:space="preserve"><value>The disable workflow could not be completed: {0}</value></data>
+  <data name="ShowTemplateDetails" xml:space="preserve"><value>Show details for template {0}</value></data>
+  <data name="HideTemplateDetails" xml:space="preserve"><value>Hide details for template {0}</value></data>
+  <data name="OneTag" xml:space="preserve"><value>1 tag</value></data>
+  <data name="ManyTags" xml:space="preserve"><value>{0} tags</value></data>
+  <data name="GroupPresent" xml:space="preserve"><value>Group</value></data>
+  <data name="TagsLabel" xml:space="preserve"><value>Tags</value></data>
+  <data name="AddingTemplate" xml:space="preserve"><value>Adding template...</value></data>
+</root>
