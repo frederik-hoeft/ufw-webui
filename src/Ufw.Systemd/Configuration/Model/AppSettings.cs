@@ -2,26 +2,29 @@
 
 internal sealed class AppSettings : IRequireValidation
 {
-    public bool DebugMode { get; set; }
+    public required bool DebugMode { get; init; }
 
-    public string UfwPath { get; init; } = "/usr/sbin/ufw";
+    public required bool ExposeRemoteExceptionDetails { get; init; }
 
-    public string UfwDefaultsPath { get; init; } = "/etc/default/ufw";
+    public required string UfwPath { get; init; }
 
-    public bool WriteToConsole { get; set; }
+    public required string UfwDefaultsPath { get; init; }
 
-    public required PipeOptions Pipe { get; set; }
+    public required PipeOptions Pipe { get; init; }
 
-    public required NetworkOptions Network { get; set; }
+    public required NetworkOptions Network { get; init; }
 
-    public SecurityOptions? Security { get; set; }
+    public required SecurityOptions? Security { get; init; }
 
-    public bool AssertIsValid() => _ = this is
+    public void ThrowIfInvalid()
     {
-        UfwPath.Length: > 0,
-        UfwDefaultsPath.Length: > 0,
-        Pipe: not null,
-    } && File.Exists(UfwPath) && Pipe.AssertIsValid() && Network.AssertIsValid()
-        && Security?.AssertIsValid() is not false
-        ? true : throw new InvalidOperationException("invalid configuration");
+        if (string.IsNullOrWhiteSpace(UfwPath) || string.IsNullOrWhiteSpace(UfwDefaultsPath))
+        {
+            throw new InvalidOperationException("UFW executable and defaults paths are required.");
+        }
+
+        Pipe.ThrowIfInvalid();
+        Network.ThrowIfInvalid();
+        Security?.ThrowIfInvalid();
+    }
 }

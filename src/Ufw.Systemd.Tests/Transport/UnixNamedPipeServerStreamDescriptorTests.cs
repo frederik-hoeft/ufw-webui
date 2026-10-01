@@ -1,8 +1,6 @@
 ﻿using System.IO.Pipes;
-using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Tests.TestSupport;
 using Ufw.Systemd.Transport.Pipes.Unix;
-using DaemonPipeOptions = Ufw.Systemd.Configuration.Model.PipeOptions;
 using SystemPipeOptions = System.IO.Pipes.PipeOptions;
 
 namespace Ufw.Systemd.Tests.Transport;
@@ -23,11 +21,7 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
         Directory.CreateDirectory(directory);
         try
         {
-            TestConfiguration configuration = new(new AppSettings
-            {
-                Pipe = new DaemonPipeOptions { PipeName = pipePath },
-                Network = new NetworkOptions(),
-            });
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(pipeName: pipePath));
             UnixNamedPipeServerStreamDescriptor descriptor = new(configuration);
 
             Task<NamedPipeServerStream> serverTask = descriptor.ServeAsync(CancellationToken.None);

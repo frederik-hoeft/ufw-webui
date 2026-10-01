@@ -6,5 +6,5 @@ internal interface IConfiguration
 {
     AppSettings Settings { get; }
 
-    ValueTask<bool> TryReloadAsync(string settingsPath, CancellationToken cancellationToken);
+    ValueTask LoadAsync(string settingsPath, CancellationToken cancellationToken);
 }

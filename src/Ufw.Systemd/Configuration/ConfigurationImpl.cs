@@ -1,28 +1,33 @@
 ﻿using System.Text.Json;
 using Ufw.Systemd.Configuration.Model;
-using Ufw.Systemd.Configuration.Providers;
 
 namespace Ufw.Systemd.Configuration;
 
-internal sealed class ConfigurationImpl(AppSettingsJsonSerializerContext jsonSerializerContext, IResourceProvider appSettingsProvider) : IConfiguration
+internal sealed class ConfigurationImpl(
+    AppSettingsJsonSerializerContext jsonSerializerContext,
+    IConfigurationEnvironmentValidator environmentValidator) : IConfiguration
 {
     private AppSettings? _settings;
+    private int _loadStarted;
 
-    public AppSettings Settings => _settings ?? throw new InvalidOperationException("configuration has not been loaded");
+    public AppSettings Settings => Volatile.Read(ref _settings) ?? throw new InvalidOperationException("Configuration has not been loaded.");
 
-    public async ValueTask<bool> TryReloadAsync(string settingsPath, CancellationToken cancellationToken)
+    public async ValueTask LoadAsync(string settingsPath, CancellationToken cancellationToken)
     {
-        await using Stream? stream = appSettingsProvider.OpenRead(settingsPath);
-        if (stream is not null)
+        ArgumentException.ThrowIfNullOrWhiteSpace(settingsPath);
+        if (Interlocked.CompareExchange(ref _loadStarted, 1, 0) != 0)
         {
-            AppSettings? settings = await JsonSerializer.DeserializeAsync(stream, jsonSerializerContext.GetTypeInfo<AppSettings>(), cancellationToken);
-            if (settings is not null)
-            {
-                settings.AssertIsValid();
-                _settings = settings;
-                return true;
-            }
+            throw new InvalidOperationException("Configuration can only be loaded once during process startup.");
         }
-        return false;
+
+        await using FileStream stream = File.OpenRead(settingsPath);
+        AppSettings settings = await JsonSerializer.DeserializeAsync(
+            stream,
+            jsonSerializerContext.GetTypeInfo<AppSettings>(),
+            cancellationToken) ?? throw new JsonException("The configuration root must be a JSON object.");
+
+        settings.ThrowIfInvalid();
+        environmentValidator.ThrowIfInvalid(settings);
+        Volatile.Write(ref _settings, settings);
     }
 }

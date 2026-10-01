@@ -2,19 +2,19 @@
 
 internal sealed class SecurityOptions : IRequireValidation
 {
-    public string AuthorizedKeysPath { get; set; } = "/etc/ufw-manager/authorized_keys";
+    public required string AuthorizedKeysPath { get; init; }
 
-    public string NonceStorePath { get; set; } = "/var/lib/ufw-manager/intent-nonces";
+    public required string NonceStorePath { get; init; }
 
-    public string DeploymentIdPath { get; set; } = "/var/lib/ufw-manager/deployment-id";
+    public required string DeploymentIdPath { get; init; }
 
-    public string ReorderRecoveryJournalPath { get; set; } = "/var/lib/ufw-manager/reorder-recovery.json";
+    public required string ReorderRecoveryJournalPath { get; init; }
 
-    public TimeSpan MaxIntentAge { get; set; } = TimeSpan.FromMinutes(5);
+    public required TimeSpan MaxIntentAge { get; init; }
 
-    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromSeconds(30);
+    public required TimeSpan ClockSkew { get; init; }
 
-    public bool AssertIsValid()
+    public void ThrowIfInvalid()
     {
         if (string.IsNullOrWhiteSpace(AuthorizedKeysPath)
             || string.IsNullOrWhiteSpace(NonceStorePath)
@@ -23,17 +23,7 @@ internal sealed class SecurityOptions : IRequireValidation
             || MaxIntentAge <= TimeSpan.Zero
             || ClockSkew < TimeSpan.Zero)
         {
-            throw new InvalidOperationException("invalid security configuration");
+            throw new InvalidOperationException("Security file paths and intent timing policy must be valid.");
         }
-
-        if (Directory.Exists(AuthorizedKeysPath)
-            || Directory.Exists(NonceStorePath)
-            || Directory.Exists(DeploymentIdPath)
-            || Directory.Exists(ReorderRecoveryJournalPath))
-        {
-            throw new InvalidOperationException("security file paths must not refer to directories");
-        }
-
-        return true;
     }
 }

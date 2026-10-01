@@ -5,8 +5,8 @@ namespace Ufw.Systemd.Tests.TestSupport;
 
 internal sealed class TestConfiguration(AppSettings settings) : IConfiguration
 {
-    public AppSettings Settings { get; set; } = settings;
+    public AppSettings Settings { get; } = settings;
 
-    public ValueTask<bool> TryReloadAsync(string settingsPath, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(true);
+    public ValueTask LoadAsync(string settingsPath, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Test configurations are already initialized.");
 }

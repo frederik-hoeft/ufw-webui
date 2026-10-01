@@ -69,8 +69,7 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        AppSettings settings = TestAppSettingsFactory.Create();
-        settings.Security = new SecurityOptions
+        SecurityOptions security = new()
         {
             AuthorizedKeysPath = _authorizedKeysPath,
             NonceStorePath = Path.Combine(_temporaryDirectory, "intent-nonces"),
@@ -79,6 +78,7 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
             MaxIntentAge = TimeSpan.FromMinutes(5),
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+        AppSettings settings = TestAppSettingsFactory.Create(security: security);
 
         services.RemoveAll<DaemonConfiguration>();
         services.RemoveAll<IApiEndpointMap<IRequestMessage, IResponseMessage>>();

@@ -6,28 +6,35 @@ namespace Ufw.Systemd.Tests.Configuration;
 public sealed class SecurityOptionsTests
 {
     [TestMethod]
-    public void TestAssertIsValid_RejectsDirectoryFilePaths()
+    public void ThrowIfInvalid_DoesNotConsultFilesystem()
     {
-        string directory = Path.Combine(Path.GetTempPath(), "ufw-security-options-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        string directory = Path.GetTempPath();
+        SecurityOptions options = CreateOptions(directory);
 
-        try
-        {
-            SecurityOptions authorizedKeys = new() { AuthorizedKeysPath = directory };
-            Assert.ThrowsExactly<InvalidOperationException>(() => authorizedKeys.AssertIsValid());
-
-            SecurityOptions nonceStore = new() { NonceStorePath = directory };
-            Assert.ThrowsExactly<InvalidOperationException>(() => nonceStore.AssertIsValid());
-
-            SecurityOptions deploymentId = new() { DeploymentIdPath = directory };
-            Assert.ThrowsExactly<InvalidOperationException>(() => deploymentId.AssertIsValid());
-
-            SecurityOptions reorderRecovery = new() { ReorderRecoveryJournalPath = directory };
-            Assert.ThrowsExactly<InvalidOperationException>(() => reorderRecovery.AssertIsValid());
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
+        options.ThrowIfInvalid();
     }
+
+    [TestMethod]
+    public void ThrowIfInvalid_RejectsInvalidTimingPolicy()
+    {
+        SecurityOptions invalidAge = CreateOptions("/tmp/authorized-keys", maxIntentAge: TimeSpan.Zero);
+        SecurityOptions invalidSkew = CreateOptions("/tmp/authorized-keys", clockSkew: TimeSpan.FromTicks(-1));
+
+        Assert.ThrowsExactly<InvalidOperationException>(invalidAge.ThrowIfInvalid);
+        Assert.ThrowsExactly<InvalidOperationException>(invalidSkew.ThrowIfInvalid);
+    }
+
+    private static SecurityOptions CreateOptions(
+        string authorizedKeysPath,
+        TimeSpan? maxIntentAge = null,
+        TimeSpan? clockSkew = null) =>
+        new()
+        {
+            AuthorizedKeysPath = authorizedKeysPath,
+            NonceStorePath = "/tmp/nonces",
+            DeploymentIdPath = "/tmp/deployment-id",
+            ReorderRecoveryJournalPath = "/tmp/reorder-recovery.json",
+            MaxIntentAge = maxIntentAge ?? TimeSpan.FromMinutes(5),
+            ClockSkew = clockSkew ?? TimeSpan.FromSeconds(30),
+        };
 }

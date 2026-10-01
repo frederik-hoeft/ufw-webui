@@ -4,50 +4,41 @@ namespace Ufw.Systemd.Configuration.Model;
 
 internal sealed class PipeOptions : IRequireValidation
 {
-    public string PipeName { get; init; } = "/run/ufw-systemd.pipe";
+    public required string PipeName { get; init; }
 
-    public bool TlsEnabled { get; set; }
+    public required bool TlsEnabled { get; init; }
 
-    public SslProtocols SslProtocols { get; set; } = SslProtocols.None;
+    public required SslProtocols SslProtocols { get; init; }
 
-    public RemoteCertificateValidationOptions? RemoteCertificateValidation { get; set; }
+    public required RemoteCertificateValidationOptions? RemoteCertificateValidation { get; init; }
 
-    public string? ServerCertificatePath { get; set; }
+    public required string? ServerCertificatePath { get; init; }
 
-    public string? ServerCertificateKeyPath { get; set; }
+    public required string? ServerCertificateKeyPath { get; init; }
 
-    public bool AssertIsValid()
+    public void ThrowIfInvalid()
     {
         if (string.IsNullOrWhiteSpace(PipeName))
         {
-            throw new InvalidOperationException("invalid pipe configuration");
-        }
-
-        if (!OperatingSystem.IsWindows()
-            && (!Path.IsPathFullyQualified(PipeName) || Path.EndsInDirectorySeparator(PipeName)))
-        {
-            throw new InvalidOperationException("Unix pipe endpoints must be absolute file paths");
+            throw new InvalidOperationException("A pipe endpoint is required.");
         }
 
         if (!TlsEnabled)
         {
             if (RemoteCertificateValidation is not null)
             {
-                throw new InvalidOperationException("client-certificate validation requires TLS to be enabled");
+                throw new InvalidOperationException("Client-certificate validation requires TLS to be enabled.");
             }
 
-            return true;
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(ServerCertificatePath)
-            || string.IsNullOrWhiteSpace(ServerCertificateKeyPath)
-            || !File.Exists(ServerCertificatePath)
-            || !File.Exists(ServerCertificateKeyPath))
+            || string.IsNullOrWhiteSpace(ServerCertificateKeyPath))
         {
-            throw new InvalidOperationException("TLS requires readable server certificate and private-key files");
+            throw new InvalidOperationException("TLS requires server certificate and private-key paths.");
         }
 
-        _ = RemoteCertificateValidation?.AssertIsValid();
-        return true;
+        RemoteCertificateValidation?.ThrowIfInvalid();
     }
 }

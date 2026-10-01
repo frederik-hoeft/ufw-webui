@@ -121,12 +121,16 @@ public sealed class TransportSecurityTests
         await using CertificateFiles serverCertificate = await CertificateFiles.CreateAsync("daemon.test", serverAuthentication: true, TestContext.CancellationToken);
         await using CertificateFiles clientCertificate = await CertificateFiles.CreateAsync("client.test", serverAuthentication: false, TestContext.CancellationToken);
         using X509Certificate2 certificate = X509Certificate2.CreateFromPem(await File.ReadAllTextAsync(clientCertificate.CertificatePath, TestContext.CancellationToken));
-        AppSettings validationSettings = TestAppSettingsFactory.Create();
-        validationSettings.Pipe.RemoteCertificateValidation = new RemoteCertificateValidationOptions
+        RemoteCertificateValidationOptions remoteCertificateValidation = new()
         {
             RequiredIssuer = certificate.Issuer,
             RequiredSubject = certificate.Subject,
         };
+        AppSettings validationSettings = TestAppSettingsFactory.Create(
+            tlsEnabled: true,
+            remoteCertificateValidation: remoteCertificateValidation,
+            serverCertificatePath: serverCertificate.CertificatePath,
+            serverCertificateKeyPath: serverCertificate.KeyPath);
         ServerMutualTlsCertificateValidationHandler productionValidation = new(new TestConfiguration(validationSettings));
 
         await AssertHandshakeFailsAsync(async cancellationToken =>
@@ -153,23 +157,34 @@ public sealed class TransportSecurityTests
     {
         await using CertificateFiles clientCertificate = await CertificateFiles.CreateAsync("client.test", serverAuthentication: false, TestContext.CancellationToken);
         using X509Certificate2 certificate = X509Certificate2.CreateFromPem(await File.ReadAllTextAsync(clientCertificate.CertificatePath, TestContext.CancellationToken));
-        AppSettings settings = TestAppSettingsFactory.Create();
-        settings.Pipe.TlsEnabled = true;
-        settings.Pipe.ServerCertificatePath = clientCertificate.CertificatePath;
-        settings.Pipe.ServerCertificateKeyPath = clientCertificate.KeyPath;
-        settings.Pipe.RemoteCertificateValidation = new RemoteCertificateValidationOptions
+        RemoteCertificateValidationOptions expectedCertificate = new()
         {
             RequiredIssuer = certificate.Issuer,
             RequiredSubject = certificate.Subject,
         };
+        AppSettings settings = TestAppSettingsFactory.Create(
+            tlsEnabled: true,
+            remoteCertificateValidation: expectedCertificate,
+            serverCertificatePath: clientCertificate.CertificatePath,
+            serverCertificateKeyPath: clientCertificate.KeyPath);
         ServerMutualTlsCertificateValidationHandler handler = new(new TestConfiguration(settings));
 
         Assert.IsTrue(handler.ValidateCertificate(this, certificate, null, SslPolicyErrors.None));
         Assert.IsFalse(handler.ValidateCertificate(this, certificate, null, SslPolicyErrors.RemoteCertificateChainErrors));
         Assert.IsFalse(handler.ValidateCertificate(this, null, null, SslPolicyErrors.RemoteCertificateNotAvailable));
 
-        settings.Pipe.RemoteCertificateValidation.RequiredSubject = "CN=someone-else";
-        Assert.IsFalse(handler.ValidateCertificate(this, certificate, null, SslPolicyErrors.None));
+        RemoteCertificateValidationOptions unexpectedCertificate = new()
+        {
+            RequiredIssuer = certificate.Issuer,
+            RequiredSubject = "CN=someone-else",
+        };
+        AppSettings unexpectedSettings = TestAppSettingsFactory.Create(
+            tlsEnabled: true,
+            remoteCertificateValidation: unexpectedCertificate,
+            serverCertificatePath: clientCertificate.CertificatePath,
+            serverCertificateKeyPath: clientCertificate.KeyPath);
+        ServerMutualTlsCertificateValidationHandler unexpectedHandler = new(new TestConfiguration(unexpectedSettings));
+        Assert.IsFalse(unexpectedHandler.ValidateCertificate(this, certificate, null, SslPolicyErrors.None));
     }
 
     private async Task<TlsConnection> OpenTlsPairAsync(
@@ -205,19 +220,19 @@ public sealed class TransportSecurityTests
         {
             clientSecurity = new ClientTransportSecurityService(clientValidationHandler, certificateLoader, clientOptions);
 
-            AppSettings settings = TestAppSettingsFactory.Create();
-            settings.Pipe.TlsEnabled = true;
-            settings.Pipe.SslProtocols = protocols;
-            settings.Pipe.ServerCertificatePath = serverCertificate.CertificatePath;
-            settings.Pipe.ServerCertificateKeyPath = serverCertificate.KeyPath;
-            if (requireClientCertificate)
-            {
-                settings.Pipe.RemoteCertificateValidation = new RemoteCertificateValidationOptions
+            RemoteCertificateValidationOptions? remoteCertificateValidation = requireClientCertificate
+                ? new RemoteCertificateValidationOptions
                 {
                     RequiredIssuer = "test",
                     RequiredSubject = "test",
-                };
-            }
+                }
+                : null;
+            AppSettings settings = TestAppSettingsFactory.Create(
+                tlsEnabled: true,
+                sslProtocols: protocols,
+                remoteCertificateValidation: remoteCertificateValidation,
+                serverCertificatePath: serverCertificate.CertificatePath,
+                serverCertificateKeyPath: serverCertificate.KeyPath);
             serverSecurity = new ServerTransportSecurityService(serverValidationHandler, new TestConfiguration(settings), certificateLoader);
 
             Task<Stream> serverTask = serverSecurity.OpenSecureStreamAsync(serverInner, timeout.Token);

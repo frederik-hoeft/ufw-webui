@@ -14,12 +14,7 @@ internal sealed class Commands
     {
         await using DefaultServiceProvider serviceProvider = new();
         IConfiguration configuration = serviceProvider.GetService<IConfiguration>();
-        bool success = await configuration.TryReloadAsync(config, cancellationToken);
-        if (!success)
-        {
-            await Console.Error.WriteLineAsync($"Failed to load service configuration from {config}");
-            throw new InvalidOperationException("failed to load service configuration");
-        }
+        await configuration.LoadAsync(config, cancellationToken);
         IFirewallReorderRecoveryService reorderRecovery = serviceProvider.GetService<IFirewallReorderRecoveryService>();
         await reorderRecovery.RecoverAsync(cancellationToken);
 

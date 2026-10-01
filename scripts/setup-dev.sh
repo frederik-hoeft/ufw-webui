@@ -162,6 +162,7 @@ readonly AUTH_DIR="$DEV_DIR/auth"
 readonly INTENT_DIR="$DEV_DIR/intent"
 readonly STATE_DIR="$DEV_DIR/systemd-state"
 readonly NONCE_STORE="$STATE_DIR/nonces"
+readonly REORDER_RECOVERY_JOURNAL="$STATE_DIR/reorder-recovery.json"
 
 PIPE_NAME="$DEV_DIR/ufw-systemd.pipe"
 PIPE_ENDPOINT="$PIPE_NAME"
@@ -439,6 +440,7 @@ config_server_key="$(to_host_path "$SERVER_KEY")"
 config_authorized_keys="$(to_host_path "$AUTHORIZED_KEYS")"
 config_nonce_store="$(to_host_path "$NONCE_STORE")"
 config_deployment_id="$(to_host_path "$STATE_DIR/deployment-id")"
+config_reorder_recovery_journal="$(to_host_path "$REORDER_RECOVERY_JOURNAL")"
 
 escaped_ufw_path="$(json_escape "$ufw_path")"
 escaped_ufw_defaults_path="$(json_escape "$config_ufw_defaults_path")"
@@ -448,13 +450,14 @@ escaped_server_key="$(json_escape "$config_server_key")"
 escaped_authorized_keys="$(json_escape "$config_authorized_keys")"
 escaped_nonce_store="$(json_escape "$config_nonce_store")"
 escaped_deployment_id="$(json_escape "$config_deployment_id")"
+escaped_reorder_recovery_journal="$(json_escape "$config_reorder_recovery_journal")"
 
 cat > "$SYSTEMD_CONFIG" <<EOF_SYSTEMD_CONFIG
 {
   "debug_mode": true,
+  "expose_remote_exception_details": true,
   "ufw_path": "$escaped_ufw_path",
   "ufw_defaults_path": "$escaped_ufw_defaults_path",
-  "write_to_console": true,
   "pipe": {
     "pipe_name": "$escaped_pipe_name",
     "tls_enabled": true,
@@ -475,6 +478,7 @@ cat > "$SYSTEMD_CONFIG" <<EOF_SYSTEMD_CONFIG
     "authorized_keys_path": "$escaped_authorized_keys",
     "nonce_store_path": "$escaped_nonce_store",
     "deployment_id_path": "$escaped_deployment_id",
+    "reorder_recovery_journal_path": "$escaped_reorder_recovery_journal",
     "max_intent_age": "00:05:00",
     "clock_skew": "00:00:30"
   }

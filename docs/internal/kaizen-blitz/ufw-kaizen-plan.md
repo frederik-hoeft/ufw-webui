@@ -258,10 +258,10 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | SYS KZ-006 | D3 | Decompose `FirewallReorderExecutor` | Do only after KZ-004/KZ-005/KZ-016/KZ-029 so the split is around final shared primitives. |
 | [ ] | SYS KZ-007 | D3 | Decompose `FirewallRuleReplacementExecutor` | Do only after KZ-004/KZ-005/KZ-016; avoid extracting helpers that KZ-005 would replace. |
 | [ ] | SYS KZ-008 | D3 | Deduplicate signed mutation service choreography | Do after KZ-014 and KZ-027 so the common signed-mutation choreography consumes the final verifier/gate APIs. |
-| [ ] | SYS KZ-009 | D1 | Resolve configuration lifecycle ambiguity | First daemon architecture decision; it gates KZ-011, KZ-012, KZ-015, KZ-018, KZ-019 and KZ-025. |
+| [x] | SYS KZ-009 | D1 | Resolve configuration lifecycle ambiguity | First daemon architecture decision; it gates KZ-011, KZ-012, KZ-015, KZ-018, KZ-019 and KZ-025. |
 | [ ] | SYS KZ-010 | D1 | Supervise network worker capacity | Apply after configuration lifecycle is settled so worker-count/lifecycle semantics are not built on reload ambiguity. |
-| [ ] | SYS KZ-011 | D1 | Separate configuration shape validation from environment validation | Follow KZ-009; separate startup environment validation from immutable configuration shape. |
-| [ ] | SYS KZ-012 | D1 | Remove configuration drift and dead options; use safe diagnostics defaults | Follow KZ-009/KZ-011; its remote-diagnostics policy must be stable before Web standardizes daemon error handling. |
+| [x] | SYS KZ-011 | D1 | Separate configuration shape validation from environment validation | Follow KZ-009; separate startup environment validation from immutable configuration shape. |
+| [x] | SYS KZ-012 | D1 | Remove configuration drift and dead options; use safe diagnostics defaults | Follow KZ-009/KZ-011; its remote-diagnostics policy must be stable before Web standardizes daemon error handling. |
 | [ ] | SYS KZ-013 | D1 | Consolidate durable file persistence mechanics | Do before KZ-001 and before touching the other file-backed stores. |
 | [ ] | SYS KZ-014 | D3 | Split `IntentVerifier` into stable envelope verification and operation payload binding | Do before KZ-008 and before the client signing refactor; this is the server side of the shared intent/canonicalization contract. |
 | [ ] | SYS KZ-015 | D3 | Keep authorized-key ownership inside the key store | Do after KZ-009; align key lifetime/rotation behavior with the chosen configuration lifecycle and KZ-014 verifier split. |
@@ -274,7 +274,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | SYS KZ-022 | D4 | Consolidate logging and remove bypasses | Do after KZ-012 and API/pipeline cleanup so logging has one final policy and no direct-console bypasses. |
 | [ ] | SYS KZ-023 | D4 | Reduce parser-to-grammar-name coupling | Contained parser cleanup after the mutation/snapshot foundation; preserve conservative unknown-row behavior. |
 | [ ] | SYS KZ-024 | D4 | Remove parser debug side effects and duplicate row-number parsing | Pair with KZ-023 while parser code is already being touched. |
-| [ ] | SYS KZ-025 | D1 | Reassess the configuration resource-provider abstraction | Resolve as part of KZ-009/KZ-011 configuration simplification rather than as a later abstraction rewrite. |
+| [x] | SYS KZ-025 | D1 | Reassess the configuration resource-provider abstraction | Resolve as part of KZ-009/KZ-011 configuration simplification rather than as a later abstraction rewrite. |
 | [ ] | SYS KZ-026 | D2 | Clarify normalized rule equality naming | Rename/clarify before shared snapshot/order helpers proliferate this comparer name. |
 | [ ] | SYS KZ-027 | D2 | Remove small API friction in the execution gate | Small prerequisite for cleaner KZ-008 orchestration. |
 | [ ] | SYS KZ-028 | D2 | Make rule specification copying resilient to model growth | Do while shared firewall model/execution primitives are being stabilized, before later model growth creates another manual-copy site. |

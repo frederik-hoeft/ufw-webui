@@ -18,7 +18,9 @@ The local `appsettings.json` file is gitignored and excluded from publish output
 
 ### Ufw.Systemd
 
-The daemon `serve` command loads one explicit JSON settings file. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
+The daemon `serve` command loads one explicit JSON settings file exactly once during process startup. Configuration is immutable for the lifetime of the daemon; changes require a process restart. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
+
+Daemon settings are explicit rather than backed by independent C# defaults. Required JSON members must be present even when their value is `false`, `null`, or an empty optional path. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, Unix pipe path form, TLS certificate files, and security-state paths.
 
 The installer preserves an existing settings file on update unless `--settings PATH` is supplied explicitly.
 
@@ -109,10 +111,10 @@ The production template is `deploy/systemd/settings.json.example`.
 
 | Setting | Purpose | Production example |
 | --- | --- | --- |
-| `debug_mode` | include daemon diagnostic detail where supported | `false` |
+| `debug_mode` | enable verbose local daemon diagnostics | `false` |
+| `expose_remote_exception_details` | include unexpected exception details in daemon API error responses; enable only for local development | `false` |
 | `ufw_path` | UFW executable | `/usr/sbin/ufw` |
 | `ufw_defaults_path` | UFW host defaults used for IPv6 capability and default policies | `/etc/default/ufw` |
-| `write_to_console` | enable console logging for systemd capture | `true` |
 
 The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
 

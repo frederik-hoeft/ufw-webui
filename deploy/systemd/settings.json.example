@@ -1,8 +1,8 @@
 {
   "debug_mode": false,
+  "expose_remote_exception_details": false,
   "ufw_path": "/usr/sbin/ufw",
   "ufw_defaults_path": "/etc/default/ufw",
-  "write_to_console": true,
   "pipe": {
     "pipe_name": "/var/lib/ufw-webui/ipc/ufw-systemd.sock",
     "tls_enabled": false,

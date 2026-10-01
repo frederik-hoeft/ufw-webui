@@ -9,18 +9,31 @@ internal static class TestAppSettingsFactory
         string? nonceStorePath = null,
         string? deploymentIdPath = null,
         string? reorderRecoveryJournalPath = null,
-        string? ufwDefaultsPath = null) =>
+        string? ufwDefaultsPath = null,
+        string? pipeName = null,
+        bool debugMode = true,
+        bool exposeRemoteExceptionDetails = false) =>
         new()
         {
-            DebugMode = true,
+            DebugMode = debugMode,
+            ExposeRemoteExceptionDetails = exposeRemoteExceptionDetails,
             UfwPath = "/usr/sbin/ufw",
             UfwDefaultsPath = ufwDefaultsPath ?? "/nonexistent/ufw-defaults",
-            WriteToConsole = false,
             Pipe = new PipeOptions
             {
-                PipeName = "/tmp/ufw-systemd-tests.pipe",
+                PipeName = pipeName ?? "/tmp/ufw-systemd-tests.pipe",
+                TlsEnabled = false,
+                SslProtocols = System.Security.Authentication.SslProtocols.None,
+                RemoteCertificateValidation = null,
+                ServerCertificatePath = null,
+                ServerCertificateKeyPath = null,
             },
-            Network = new NetworkOptions(),
+            Network = new NetworkOptions
+            {
+                MaxConnections = 8,
+                IoTimeout = TimeSpan.FromSeconds(30),
+                RequestTimeout = TimeSpan.FromMinutes(30),
+            },
             Security = new SecurityOptions
             {
                 AuthorizedKeysPath = authorizedKeysPath ?? "/nonexistent/authorized_keys",

@@ -2,5 +2,5 @@
 
 internal interface IRequireValidation
 {
-    bool AssertIsValid();
+    void ThrowIfInvalid();
 }

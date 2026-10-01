@@ -4,14 +4,12 @@ using Ufw.Systemd.Configuration.Model;
 namespace Ufw.Ipc.Tests.Adapter.Configuration;
 
 /// <summary>
-/// In-memory <see cref="IConfiguration"/> that never loads from disk.
+/// In-memory <see cref="IConfiguration"/> that is already initialized for the test host.
 /// </summary>
 internal sealed class TestConfiguration(AppSettings settings) : IConfiguration
 {
-    public AppSettings Settings { get; private set; } = settings;
+    public AppSettings Settings { get; } = settings;
 
-    public void ReplaceSettings(AppSettings settings) => Settings = settings;
-
-    public ValueTask<bool> TryReloadAsync(string settingsPath, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(false);
+    public ValueTask LoadAsync(string settingsPath, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Test configurations are already initialized.");
 }

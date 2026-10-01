@@ -47,7 +47,6 @@ internal sealed class ServerTransportSecurityService
         }
 
         PipeOptions pipeOptions = configuration.Settings.Pipe;
-        pipeOptions.AssertIsValid();
         X509Certificate2 certificate = await certificateLoader.LoadCertificateAsync(pipeOptions.ServerCertificatePath!, pipeOptions.ServerCertificateKeyPath!, cancellationToken);
 
         sslOptions = new SslServerAuthenticationOptions
