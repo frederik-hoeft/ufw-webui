@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 
 namespace Ufw.Shared.Domain.Algebra;
 
@@ -329,10 +330,13 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
     {
         if (!left.Equals(right))
         {
-            throw new InvalidOperationException(
-                "Finite set element ordering compared distinct values as equal.");
+            ThrowComparisonEqualityViolation();
         }
     }
+
+    [DoesNotReturn]
+    private static void ThrowComparisonEqualityViolation() =>
+        throw new InvalidOperationException("Finite set element ordering compared distinct values as equal.");
 
     private static FiniteSet<T> Expect(IDimensionSet other)
     {
