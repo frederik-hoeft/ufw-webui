@@ -15,7 +15,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
     public async Task<RuleBatchDeleteExecutionResult> ExecuteAsync(BatchDeleteRulesPayload payload, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
-        RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (baseline is null)
         {
             return Result(RuleBatchDeleteExecutionOutcome.StateUncertain, null, payload.OccurrenceIds, "The current authoritative firewall state could not be read before batch deletion.");
@@ -43,7 +43,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
             cancellationToken.ThrowIfCancellationRequested();
             int occurrenceId = targets[targetIndex];
             int[] pending = targets[targetIndex..];
-            RuleListResponse? beforeDelete = await TryReadSnapshotAsync(cancellationToken);
+            RuleListResponse? beforeDelete = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
             if (beforeDelete is null)
             {
                 return new RuleBatchDeleteExecutionResult(
@@ -78,7 +78,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
             }
 
             ProcessExecution process = await ExecuteProcessAsync(new UfwDeleteRuleCommand(displayNumber), cancellationToken);
-            RuleListResponse? afterDelete = await TryReadSnapshotAsync(CancellationToken.None);
+            RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
             List<int> expectedOrder = [.. currentOrder];
             expectedOrder.RemoveAt(currentIndex);
 
@@ -145,12 +145,6 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
             }
         }
         return null;
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private async Task<ProcessExecution> ExecuteProcessAsync(IUfwCommand command, CancellationToken cancellationToken)

@@ -27,11 +27,10 @@ public sealed class FirewallRuleSnapshotReaderTests
 
         FirewallRuleSnapshotReadResult result = await reader.ReadAsync(TestContext.CancellationToken);
 
-        Assert.IsNull(result.Error);
-        Assert.IsNotNull(result.Snapshot);
-        Assert.IsTrue(result.Snapshot.Active);
-        Assert.HasCount(2, result.Snapshot.Rules);
-        Assert.AreSame(TestFirewallConfiguration.Enabled, result.Configuration);
+        FirewallRuleSnapshotReadResult.Success success = Assert.IsInstanceOfType<FirewallRuleSnapshotReadResult.Success>(result);
+        Assert.IsTrue(success.Snapshot.Active);
+        Assert.HasCount(2, success.Snapshot.Rules);
+        Assert.AreSame(TestFirewallConfiguration.Enabled, success.Snapshot.Configuration);
         runner.Verify(value => value.ExecuteAsync(It.Is<IUfwCommand>(command => command is UfwListCommand), It.IsAny<CancellationToken>()), Times.Once);
         defaultsReader.Verify(value => value.ReadAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -68,9 +67,8 @@ public sealed class FirewallRuleSnapshotReaderTests
 
         FirewallRuleSnapshotReadResult result = await reader.ReadAsync(TestContext.CancellationToken);
 
-        Assert.IsNotNull(result.Error);
-        Assert.IsNull(result.Snapshot);
-        Assert.IsNull(result.Configuration);
+        FirewallRuleSnapshotReadResult.Failure failure = Assert.IsInstanceOfType<FirewallRuleSnapshotReadResult.Failure>(result);
+        Assert.IsNotNull(failure.Error);
         defaultsReader.Verify(value => value.ReadAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

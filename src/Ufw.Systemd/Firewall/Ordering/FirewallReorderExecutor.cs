@@ -25,7 +25,7 @@ internal sealed class FirewallReorderExecutor(
         ArgumentException.ThrowIfNullOrWhiteSpace(request.BaselineFingerprint);
         ArgumentNullException.ThrowIfNull(request.DesiredOrder);
 
-        RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (baseline is null)
         {
             return Result(RuleReorderExecutionOutcome.StateUncertain, null, diagnostic: "The current authoritative firewall state could not be read before reordering.");
@@ -133,7 +133,7 @@ internal sealed class FirewallReorderExecutor(
         RuleReinsertability classification,
         CancellationToken cancellationToken)
     {
-        RuleListResponse? preMoveSnapshot = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? preMoveSnapshot = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (preMoveSnapshot is null)
         {
             return MoveExecutionResult.Interrupted(null, null, "The authoritative firewall state could not be read before the next move started.");
@@ -166,7 +166,7 @@ internal sealed class FirewallReorderExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            RuleListResponse? canceledSnapshot = await TryReadSnapshotAsync(CancellationToken.None);
+            RuleListResponse? canceledSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
             RuleRecoveryResult recovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, canceledSnapshot, CancellationToken.None);
             if (!recovery.PresenceConfirmed)
             {
@@ -174,7 +174,7 @@ internal sealed class FirewallReorderExecutor(
             }
             throw;
         }
-        RuleListResponse? afterDelete = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
 
         if (delete.CancellationRequested || cancellationToken.IsCancellationRequested)
         {
@@ -198,7 +198,7 @@ internal sealed class FirewallReorderExecutor(
 
         IUfwCommand insertCommand = CreatePlannedInsertionCommand(move, afterDelete!, afterDeleteOrder, classification.Specification);
         ProcessExecution insert = await ExecuteProcessAsync(insertCommand, CancellationToken.None);
-        RuleListResponse? afterInsert = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         List<int> expectedOrder = ApplyMove(preMoveOrder, move);
         if (afterInsert is not null && SnapshotMatchesOrder(afterInsert, baseline, expectedOrder))
         {
@@ -331,12 +331,6 @@ internal sealed class FirewallReorderExecutor(
 
         order = mapped;
         return true;
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private async Task<ProcessExecution> ExecuteProcessAsync(IUfwCommand command, CancellationToken cancellationToken)

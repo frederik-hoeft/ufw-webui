@@ -26,7 +26,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         ArgumentNullException.ThrowIfNull(payload);
         RuleInsertionContract.ValidatePayload(payload);
 
-        RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (baseline is null)
         {
             return Result(RuleInsertionExecutionOutcome.StateUncertain, null, "The authoritative firewall state could not be read before ordered insertion.");
@@ -70,7 +70,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
 
         IUfwCommand command = CreateCommand(baseline, payload, anchor, rule);
         ProcessExecution process = await ExecuteProcessAsync(command, cancellationToken);
-        RuleListResponse? finalSnapshot = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? finalSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (finalSnapshot is null)
         {
             return Result(RuleInsertionExecutionOutcome.StateUncertain, null, CombineDiagnostics(process.Diagnostic, "The firewall state could not be read after ordered insertion."));
@@ -133,12 +133,6 @@ internal sealed class FirewallOrderedInsertionExecutor(
             _logger.LogError(exception, "UFW execution failed while applying ordered rule insertion. Authoritative state will be reconciled before classifying the result.");
             return new ProcessExecution(false, false, exception.Message);
         }
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private static int GetExpectedInsertionIndex(IReadOnlyList<ListedFirewallRule> baseline, InsertRulePayload payload, FirewallAddressFamily family)

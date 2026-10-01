@@ -26,7 +26,7 @@ internal sealed class FirewallRuleReplacementExecutor(
         ArgumentNullException.ThrowIfNull(payload);
         RuleReplacementContract.ValidatePayload(payload);
 
-        RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (baseline is null)
         {
             return Result(RuleReplacementExecutionOutcome.StateUncertain, null, diagnostic: "The authoritative firewall state could not be read before rule replacement.");
@@ -95,7 +95,7 @@ internal sealed class FirewallRuleReplacementExecutor(
         CancellationToken cancellationToken)
     {
         ProcessExecution update = await ExecuteProcessAsync(new UfwUpdateExistingRuleCommand(replacement, renderer), "updating the existing rule", cancellationToken);
-        RuleListResponse? finalSnapshot = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? finalSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (finalSnapshot is null)
         {
             return Result(RuleReplacementExecutionOutcome.StateUncertain, null, diagnostic: CombineDiagnostics(update.Diagnostic, "The firewall state could not be read after updating the existing rule."));
@@ -128,7 +128,7 @@ internal sealed class FirewallRuleReplacementExecutor(
     {
         int insertPosition = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, targetOccurrenceId);
         ProcessExecution insert = await ExecuteProcessAsync(new UfwInsertRuleCommand(insertPosition, replacement, renderer), "inserting the replacement rule", cancellationToken);
-        RuleListResponse? afterInsert = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (afterInsert is null)
         {
             return Result(
@@ -180,7 +180,7 @@ internal sealed class FirewallRuleReplacementExecutor(
         }
 
         ProcessExecution delete = await ExecuteProcessAsync(new UfwDeleteRuleCommand(oldDisplayNumber), "deleting the original rule", cancellationToken);
-        RuleListResponse? afterDelete = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         string? mutationDiagnostic = CombineDiagnostics(insert.Succeeded ? null : insert.Diagnostic, delete.Diagnostic);
         if (afterDelete is null)
         {
@@ -240,7 +240,7 @@ internal sealed class FirewallRuleReplacementExecutor(
         }
 
         ProcessExecution rollback = await ExecuteProcessAsync(new UfwDeleteRuleCommand(displayNumber), "rolling back the inserted replacement", CancellationToken.None);
-        RuleListResponse? afterRollback = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? afterRollback = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         string? diagnostic = CombineDiagnostics(operationDiagnostic, rollback.Diagnostic);
         if (afterRollback is null)
         {
@@ -299,12 +299,6 @@ internal sealed class FirewallRuleReplacementExecutor(
             _logger.LogError(exception, $"UFW execution failed while {operation}. Authoritative state will be reconciled before classifying the replacement result.");
             return new ProcessExecution(false, false, exception.Message);
         }
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private static void ThrowIfCanceledAfterConfirmedSafeState(ProcessExecution process, CancellationToken cancellationToken)

@@ -29,20 +29,20 @@ internal sealed class FirewallMutationExecutor(
             return interfaceError;
         }
 
-        FirewallRuleSnapshotReadResult existingSnapshot = await snapshotReader.ReadAsync(cancellationToken);
-        if (existingSnapshot.Error is not null)
+        FirewallRuleSnapshotReadResult existingSnapshotRead = await snapshotReader.ReadAsync(cancellationToken);
+        if (!existingSnapshotRead.TryGetSnapshot(out RuleListResponse? existingSnapshot, out IResponsePayload? readError))
         {
-            return existingSnapshot.Error;
+            return readError;
         }
 
-        IResponsePayload? capabilityError = capabilityValidator.Validate(intent.Rule, existingSnapshot.Configuration!);
+        IResponsePayload? capabilityError = capabilityValidator.Validate(intent.Rule, existingSnapshot.Configuration);
         if (capabilityError is not null)
         {
             return capabilityError;
         }
 
-        IReadOnlyList<string> identities = GetObservableIdentities(intent.Rule, existingSnapshot.Configuration!.IPv6Enabled);
-        if (FirewallRuleSet.FindMatches(existingSnapshot.Snapshot!, identities).Count > 0)
+        IReadOnlyList<string> identities = GetObservableIdentities(intent.Rule, existingSnapshot.Configuration.IPv6Enabled);
+        if (FirewallRuleSet.FindMatches(existingSnapshot, identities).Count > 0)
         {
             return new ConflictResponse("A semantically identical rule already exists.");
         }
@@ -68,14 +68,14 @@ internal sealed class FirewallMutationExecutor(
             return new UnprocessableContentResponse("UFW rejected the add-rule request.");
         }
 
-        FirewallRuleSnapshotReadResult confirmedSnapshot = await snapshotReader.ReadAsync(CancellationToken.None);
-        if (confirmedSnapshot.Error is not null)
+        RuleListResponse? confirmedSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        if (confirmedSnapshot is null)
         {
             ThrowIfCancellationRequested(cancellationToken);
             return new InternalServerErrorResponse("UFW reported a successful add, but the resulting firewall state could not be confirmed.");
         }
 
-        List<ListedFirewallRule> confirmedMatches = FirewallRuleSet.FindMatches(confirmedSnapshot.Snapshot!, identities);
+        List<ListedFirewallRule> confirmedMatches = FirewallRuleSet.FindMatches(confirmedSnapshot, identities);
         if (confirmedMatches.Count == 0 || HasDuplicateIdentity(confirmedMatches))
         {
             _logger.LogError("UFW reported a successful add, but the expected semantic rule could not be reconciled uniquely.");
@@ -93,13 +93,13 @@ internal sealed class FirewallMutationExecutor(
     public async Task<IResponsePayload> DeleteAsync(IntentVerificationResult.AcceptedRuleMutation intent, CancellationToken cancellationToken)
     {
         string identity = intent.RuleId ?? RuleIdentity.Compute(intent.Rule);
-        FirewallRuleSnapshotReadResult currentSnapshot = await snapshotReader.ReadAsync(cancellationToken);
-        if (currentSnapshot.Error is not null)
+        FirewallRuleSnapshotReadResult currentSnapshotRead = await snapshotReader.ReadAsync(cancellationToken);
+        if (!currentSnapshotRead.TryGetSnapshot(out RuleListResponse? currentSnapshot, out IResponsePayload? readError))
         {
-            return currentSnapshot.Error;
+            return readError;
         }
 
-        List<ListedFirewallRule> currentMatches = FirewallRuleSet.FindMatches(currentSnapshot.Snapshot!, identity);
+        List<ListedFirewallRule> currentMatches = FirewallRuleSet.FindMatches(currentSnapshot, identity);
         if (currentMatches.Count == 0)
         {
             return new NotFoundResponse("No current UFW rule matches the signed delete specification.");
@@ -136,13 +136,13 @@ internal sealed class FirewallMutationExecutor(
             return new UnprocessableContentResponse("UFW rejected the delete-rule request.");
         }
 
-        FirewallRuleSnapshotReadResult confirmedSnapshot = await snapshotReader.ReadAsync(CancellationToken.None);
-        if (confirmedSnapshot.Error is not null)
+        RuleListResponse? confirmedSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        if (confirmedSnapshot is null)
         {
             ThrowIfCancellationRequested(cancellationToken);
             return new InternalServerErrorResponse("UFW reported a successful delete, but the resulting firewall state could not be confirmed.");
         }
-        if (FirewallRuleSet.FindMatches(confirmedSnapshot.Snapshot!, identity).Count > 0)
+        if (FirewallRuleSet.FindMatches(confirmedSnapshot, identity).Count > 0)
         {
             _logger.LogError($"UFW reported a successful delete, but firewall rule '{identity}' is still present.");
             ThrowIfCancellationRequested(cancellationToken);
@@ -170,14 +170,14 @@ internal sealed class FirewallMutationExecutor(
 
     private async Task ReconcileInterruptedMutationAsync(string operation, IReadOnlyList<string> identities)
     {
-        FirewallRuleSnapshotReadResult reconciliation = await snapshotReader.ReadAsync(CancellationToken.None);
-        if (reconciliation.Error is not null)
+        RuleListResponse? reconciliation = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        if (reconciliation is null)
         {
             _logger.LogWarning($"The canceled '{operation}' UFW process was reaped, but authoritative state could not be reconciled before releasing the execution gate.");
             return;
         }
 
-        int observedMatches = FirewallRuleSet.FindMatches(reconciliation.Snapshot!, identities).Count;
+        int observedMatches = FirewallRuleSet.FindMatches(reconciliation, identities).Count;
         _logger.LogWarning($"The '{operation}' request was canceled after UFW started. The child process was reaped and reconciliation observed {observedMatches} matching rule(s).");
     }
 

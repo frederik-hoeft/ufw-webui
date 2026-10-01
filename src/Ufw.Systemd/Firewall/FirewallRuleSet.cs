@@ -19,24 +19,16 @@ internal static class FirewallRuleSet
         return new RuleListResponse(snapshot.Active, rules, configuration);
     }
 
-    public static List<ListedFirewallRule> FindMatches(UfwStatusSnapshot snapshot, string identity) =>
+    public static List<ListedFirewallRule> FindMatches(RuleListResponse snapshot, string identity) =>
         FindMatches(snapshot, [identity]);
 
-    public static List<ListedFirewallRule> FindMatches(UfwStatusSnapshot snapshot, IReadOnlyList<string> identities)
+    public static List<ListedFirewallRule> FindMatches(RuleListResponse snapshot, IReadOnlyList<string> identities)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(identities);
         HashSet<string> identitySet = new(identities, StringComparer.Ordinal);
-        List<ListedFirewallRule> matches = [];
-        foreach (ObservedUfwRule observed in snapshot.Rules)
-        {
-            ListedFirewallRule listed = UfwRuleMapper.ToListedRule(observed);
-            if (listed.Parsed && listed.RuleId is not null && identitySet.Contains(listed.RuleId))
-            {
-                matches.Add(listed);
-            }
-        }
-
-        return matches;
+        return snapshot.Rules
+            .Where(rule => rule.Parsed && rule.RuleId is not null && identitySet.Contains(rule.RuleId))
+            .ToList();
     }
 }

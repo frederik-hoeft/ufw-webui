@@ -19,7 +19,11 @@ internal sealed class RuleReorderRecoveryCoordinator(
     public async Task<RuleRecoveryResult> EnsurePresentAsync(ReorderRecoveryJournalEntry entry, RuleListResponse? observedSnapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        RuleListResponse? snapshot = observedSnapshot ?? await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? snapshot = observedSnapshot;
+        if (snapshot is null)
+        {
+            snapshot = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
+        }
         if (snapshot is null)
         {
             return new RuleRecoveryResult(false, false, null, "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
@@ -47,7 +51,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
             _logger.LogError(exception, "Failed to start UFW while recovering an interrupted reorder move.");
         }
 
-        RuleListResponse? confirmed = await TryReadSnapshotAsync(CancellationToken.None);
+        RuleListResponse? confirmed = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (confirmed is not null && CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
@@ -92,12 +96,6 @@ internal sealed class RuleReorderRecoveryCoordinator(
         }
 
         return new UfwAddRuleCommand(entry.Rule, renderer);
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
     }
 
     private static int? FindUniqueAnchorIndex(IReadOnlyList<ListedFirewallRule> rules, RuleRecoveryAnchor? anchor)

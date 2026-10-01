@@ -53,9 +53,9 @@ internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, IUfwDefau
             return Error("Failed to read the current UFW configuration.");
         }
 
-        return new FirewallRuleSnapshotReadResult(null, snapshot, configuration);
+        return new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, configuration));
     }
 
     private static FirewallRuleSnapshotReadResult Error(string message) =>
-        new(new InternalServerErrorResponse(message), null, null);
+        new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse(message));
 }

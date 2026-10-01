@@ -134,7 +134,7 @@ public sealed class FirewallReorderRecoveryServiceTests
             Mock<IFirewallRuleSnapshotReader> snapshotReader = new(MockBehavior.Strict);
             snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("read failed"), null, null));
+                .ReturnsAsync(new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("read failed")));
             Mock<IUfwRunner> runner = new(MockBehavior.Strict);
             RuleReorderRecoveryCoordinator coordinator = new(snapshotReader.Object, runner.Object, new UfwRuleCommandRenderer(), journal, new ConsoleLogger());
             using UfwExecutionGate gate = new();
@@ -179,7 +179,8 @@ public sealed class FirewallReorderRecoveryServiceTests
 
     private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
 
-    private static FirewallRuleSnapshotReadResult ReadResult(UfwStatusSnapshot snapshot) => new(null, snapshot, TestFirewallConfiguration.Enabled);
+    private static FirewallRuleSnapshotReadResult ReadResult(UfwStatusSnapshot snapshot) =>
+        new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled));
 
     private static string CreateTemporaryDirectory()
     {
