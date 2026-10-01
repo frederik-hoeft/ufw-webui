@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
@@ -17,7 +17,7 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
     public Task<RuleTemplateMutationResult> CreateAsync(RuleTemplateValues values, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleTemplateMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             TemplateDependencies dependencies = await ResolveDependenciesAsync(context, values.Metadata, cancellationToken);
             if (dependencies.Outcome is { } dependencyFailure)
@@ -34,7 +34,7 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
         });
 
     public Task<RuleTemplateMutationResult> UpdateAsync(Guid publicId, RuleTemplateValues values, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleTemplateMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleTemplateEntry? template = await context.Set<RuleTemplateEntry>()
                 .Include(static candidate => candidate.Tags)
@@ -58,7 +58,7 @@ internal sealed class RuleTemplateRepository(ITransactionServiceHandle transacti
         });
 
     public Task<RuleTemplateMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
-        Transaction.Scoped.RunAsync<RuleTemplateMutationResult>(async (context, transaction) =>
+        Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleTemplateEntry? template = await context.Set<RuleTemplateEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (template is null)
