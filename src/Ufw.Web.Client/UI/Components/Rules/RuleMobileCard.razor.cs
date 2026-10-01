@@ -55,10 +55,19 @@ public sealed partial class RuleMobileCard
     public bool MetadataEditDisabled { get; set; }
 
     [Parameter]
+    public bool TemplateSaveDisabled { get; set; }
+
+    [Parameter]
     public EventCallback<RuleRowProjection> EditRequested { get; set; }
 
     [Parameter]
     public EventCallback<RuleRowProjection> MetadataEditRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleRowProjection> SaveAsTemplateRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<RuleRowProjection> DisableRequested { get; set; }
 
     [Parameter]
     public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }

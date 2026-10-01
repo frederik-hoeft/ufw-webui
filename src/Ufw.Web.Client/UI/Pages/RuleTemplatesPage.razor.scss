@@ -1,0 +1,67 @@
+@use "core/variables" as *;
+
+.rule-templates-page ::deep .rule-template-inventory {
+    .rule-template-desktop-list {
+        --rule-table-min-width: 68rem;
+    }
+
+    .rule-template-row-group {
+        > .rule-template-header-row {
+            cursor: pointer;
+
+            > td {
+                height: auto;
+                padding-top: 0.875rem;
+                padding-bottom: 0;
+                border-bottom: 0;
+            }
+
+            strong {
+                display: block;
+                min-width: 0;
+                overflow: hidden;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        > .rule-desktop-row > td {
+            padding-top: 0.125rem;
+        }
+
+        &.metadata-expanded > .rule-template-header-row,
+        &.metadata-expanded > .rule-desktop-row {
+            background: color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-surface));
+        }
+
+        &:has(> .rule-template-header-row:hover, > .rule-desktop-row:hover) {
+            > .rule-template-header-row,
+            > .rule-desktop-row,
+            > .rule-metadata-details-row {
+                background: var(--mud-palette-table-hover);
+            }
+        }
+    }
+
+    .rule-template-name {
+        min-width: 0;
+        overflow: hidden;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .rule-templates-page ::deep .rule-template-inventory .rule-mobile-card {
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: 2px solid var(--mud-palette-primary);
+            outline-offset: -2px;
+        }
+    }
+}

@@ -1,0 +1,21 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            @TemplatesText["DeleteDialogDescription", Template.Name]
+        </MudText>
+        <MudPaper Outlined="true" Class="pa-3">
+            <strong>@Template.Name</strong>
+            @if (!string.IsNullOrWhiteSpace(Template.Description))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">@Template.Description</MudText>
+            }
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">@TemplatesText["DeleteTemplate"]</MudButton>
+    </DialogActions>
+</MudDialog>

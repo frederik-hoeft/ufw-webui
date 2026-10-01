@@ -5,6 +5,7 @@ using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Web.Model.V1.RuleTemplates;
 using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Api;
@@ -31,6 +32,9 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(RuleTagInventoryResponse))]
 [JsonSerializable(typeof(CreateRuleTagRequest))]
 [JsonSerializable(typeof(UpdateRuleTagRequest))]
+[JsonSerializable(typeof(RuleTemplateInventoryResponse))]
+[JsonSerializable(typeof(CreateRuleTemplateRequest))]
+[JsonSerializable(typeof(UpdateRuleTemplateRequest))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceCommentRequest))]
 [JsonSerializable(typeof(UpdateNetworkInterfaceVisibilityRequest))]
 internal sealed partial class ClientJsonSerializerContext : JsonSerializerContext;

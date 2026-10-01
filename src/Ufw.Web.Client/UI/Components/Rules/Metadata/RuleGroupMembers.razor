@@ -5,7 +5,11 @@
 <section class="rule-group-members" aria-label="@RulesText["GroupMembersAria", Projection.Group.Name]">
     <header>
         <MudText Typo="Typo.subtitle2" HtmlTag="h3">@RulesText["RulesInThisGroup"]</MudText>
-        @if (ShowActions)
+        @if (HeaderActions is not null)
+        {
+            @HeaderActions
+        }
+        else if (ShowActions)
         {
             <RuleGroupActionsMenu Group="@Projection.Group"
                                   Disabled="@Disabled"

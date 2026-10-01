@@ -1,5 +1,6 @@
 @inherits RuleFilterEditorBase
 @using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <MudAutocomplete T="RuleTag"
@@ -12,9 +13,6 @@
                  Clearable="true"
                  MaxItems="@((int?)null)">
     <ItemTemplate Context="tag">
-        <span class="rule-tag-select-option">
-            <span class="rule-tag-color" style="background-color: @tag.Color"></span>
-            <span>@tag.Name</span>
-        </span>
+        <RuleTagOption Tag="@tag" />
     </ItemTemplate>
 </MudAutocomplete>

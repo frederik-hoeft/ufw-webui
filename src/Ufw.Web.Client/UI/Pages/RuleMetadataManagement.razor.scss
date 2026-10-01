@@ -1,0 +1,44 @@
+@use "core/variables" as *;
+
+.rule-metadata-management {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+
+    ::deep .card {
+        display: flex;
+        min-width: 0;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid var(--mud-palette-lines-default);
+        box-shadow: none;
+
+        > div {
+            display: flex;
+            min-width: 0;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        > .mud-button-root {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+    }
+}
+
+@media (max-width: ($navigation-expanded-breakpoint - 0.02px)) {
+    .rule-metadata-management {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: $mobile-breakpoint) {
+    .rule-metadata-management ::deep .card {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 1rem;
+    }
+}

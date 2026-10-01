@@ -1,19 +1,11 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Metadata;
-using Ufw.Web.Client.Services.Clipboard;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class RuleMetadataDetails
 {
-    [Inject]
-    private IClipboardService Clipboard { get; set; } = null!;
-
-    [Inject]
-    private ISnackbar Snackbar { get; set; } = null!;
-
     [Parameter]
     public RuleMetadata? Metadata { get; set; }
 
@@ -30,23 +22,8 @@ public sealed partial class RuleMetadataDetails
     public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
 
     [Parameter]
+    public RenderFragment? Header { get; set; }
+
+    [Parameter]
     public RenderFragment? Actions { get; set; }
-
-    private async Task CopyCanonicalCommandAsync()
-    {
-        if (string.IsNullOrWhiteSpace(CanonicalCommand))
-        {
-            return;
-        }
-
-        try
-        {
-            await Clipboard.WriteTextAsync(CanonicalCommand);
-            Snackbar.Add(RulesText["CanonicalCommandCopied"], Severity.Success);
-        }
-        catch (Exception)
-        {
-            Snackbar.Add(RulesText["CanonicalCommandCopyFailed"], Severity.Error);
-        }
-    }
 }

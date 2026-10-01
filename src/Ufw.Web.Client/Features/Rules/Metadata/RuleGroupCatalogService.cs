@@ -58,7 +58,7 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
         List<RuleGroup> groups = new(response.Groups.Count);
         foreach (RuleGroupItem item in response.Groups)
         {
-            if (item is null || item.Id == Guid.Empty || string.IsNullOrWhiteSpace(item.Name) || item.RuleIds is null)
+            if (item is null || item.Id == Guid.Empty || string.IsNullOrWhiteSpace(item.Name) || item.RuleIds is null || item.TemplateIds is null)
             {
                 throw new ApiProtocolException("Rule-group inventory response contains an invalid group entry.");
             }
@@ -69,7 +69,13 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
                 throw new ApiProtocolException("Rule-group inventory response contains an invalid member identity.");
             }
 
-            groups.Add(new RuleGroup(item.Id, item.Name.Trim(), string.IsNullOrWhiteSpace(item.Comment) ? null : item.Comment.Trim(), ruleIds));
+            Guid[] templateIds = [.. item.TemplateIds];
+            if (templateIds.Any(static id => id == Guid.Empty) || templateIds.Distinct().Count() != templateIds.Length)
+            {
+                throw new ApiProtocolException("Rule-group inventory response contains an invalid template reference.");
+            }
+
+            groups.Add(new RuleGroup(item.Id, item.Name.Trim(), string.IsNullOrWhiteSpace(item.Comment) ? null : item.Comment.Trim(), ruleIds, templateIds));
         }
 
         if (groups.Select(static group => group.Id).Distinct().Count() != groups.Count

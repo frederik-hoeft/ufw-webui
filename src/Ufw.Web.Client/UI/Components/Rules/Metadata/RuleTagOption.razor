@@ -1,0 +1,11 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+
+<span class="rule-tag-option">
+    <span class="color" style="background-color: @Tag.Color"></span>
+    <span>@Tag.Name</span>
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public RuleTag Tag { get; set; } = null!;
+}

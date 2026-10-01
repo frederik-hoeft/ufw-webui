@@ -8,12 +8,16 @@
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IRuleMutationReconciliationService MutationReconciliation
 @inject IRuleDraftFactory RuleDraftFactory
+@inject IRuleTemplateCatalogService TemplateCatalog
+@inject IRuleTemplateAuthoringService TemplateAuthoring
 @inject NavigationManager Navigation
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
+@inject IFirewallRuleText RuleText
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
 
 <PageTitle>@RulesText["CreatePageTitle"] - UFWeb</PageTitle>
 
@@ -21,7 +25,7 @@
 <PageHeader Title="@(RulesText["CreateTitle"])"
             Description="@HeaderDescription"
             Breadcrumbs="@Breadcrumbs"
-            ShowStatus="@(_state.Snapshot is not null)">
+            ShowStatus="false">
     <Actions>
         <MudButton Href="/rules"
                    Variant="Variant.Outlined"
@@ -31,32 +35,6 @@
             @RulesText["BackToRules"]
         </MudButton>
     </Actions>
-    <Status>
-        @if (_state.Snapshot is { } snapshot)
-        {
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(snapshot.FirewallActive ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(snapshot.FirewallActive ? RulesText["FirewallActive"] : RulesText["FirewallInactive"])
-            </MudChip>
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeRuleCount(snapshot.Rules.Count)
-            </MudChip>
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(snapshot.Configuration.IPv6Enabled ? "page-status-chip page-status-chip-success" : "page-status-chip page-status-chip-warning")">
-                @(snapshot.Configuration.IPv6Enabled ? RulesText["IPv6CapabilityEnabled"] : RulesText["IPv6CapabilityDisabled"])
-            </MudChip>
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Class="@(_state.IsStale ? "page-status-chip page-status-chip-warning" : "page-status-chip")">
-                @DescribeSnapshotStatus()
-            </MudChip>
-        }
-    </Status>
 </PageHeader>
 
 @if (_state.Status == RuleInventoryStatus.Failed)
@@ -153,6 +131,61 @@ else
             }
         </MudAlert>
     }
+
+    <MudPaper Class="pa-5 mb-5" Elevation="1">
+        <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@TemplatesText["LoadTemplateTitle"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@TemplatesText["LoadTemplateDescription"]</MudText>
+
+        @if (_templateCatalogError is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4" role="status">
+                <MudText Typo="Typo.body2" Class="mb-2">@TemplatesText["TemplateLoadFailed"]</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@_templateCatalogError.Message</MudText>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" Disabled="@(_loadingTemplates || _submitting)" OnClick="ReloadTemplatesAsync">
+                    @TemplatesText["ReloadTemplates"]
+                </MudButton>
+            </MudAlert>
+        }
+        else if (_loadingTemplates)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+        }
+        else if (_templates.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@TemplatesText["NoTemplates"]</MudText>
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" Label="@(TemplatesText["SelectTemplate"])" @bind-Value="_selectedTemplateId" Disabled="@(!CanEdit)" Clearable="true">
+                        @foreach (RuleTemplate template in _templates)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)template.Id)">@DescribeTemplateOption(template)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6" Class="rule-template-loader-action">
+                    <MudButton Variant="Variant.Outlined"
+                               Class="rule-template-load-button"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               Disabled="@(!CanLoadSelectedTemplate)"
+                               OnClick="LoadSelectedTemplate">
+                        @TemplatesText["LoadTemplate"]
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_templateContextWarning))
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-4" role="status">@_templateContextWarning</MudAlert>
+        }
+        else if (_loadedTemplateId is { } loadedTemplateId && FindTemplate(loadedTemplateId) is { } loadedTemplate)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4" role="status">@TemplatesText["TemplateLoaded", loadedTemplate.Name]</MudAlert>
+        }
+    </MudPaper>
 
     <RuleEditor @key="_draft"
                 Rule="@_draft"

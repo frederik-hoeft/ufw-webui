@@ -544,6 +544,127 @@ namespace Ufw.Web.Data.Migrations
                     b.ToTable("RuleTags", (string)null);
                 });
 
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTemplateEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer")
+                        .HasColumnName("Action");
+
+                    b.Property<int>("AddressFamily")
+                        .HasColumnType("integer")
+                        .HasColumnName("AddressFamily");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("Comment");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("Description");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("Destination");
+
+                    b.Property<string>("DestinationInterface")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("DestinationInterface");
+
+                    b.Property<string>("DestinationPorts")
+                        .HasColumnType("text")
+                        .HasColumnName("DestinationPorts");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer")
+                        .HasColumnName("Direction");
+
+                    b.Property<long?>("GroupId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("GroupId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("citext")
+                        .HasColumnName("Name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("Notes");
+
+                    b.Property<int>("Protocol")
+                        .HasColumnType("integer")
+                        .HasColumnName("Protocol");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("PublicId");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("Source");
+
+                    b.Property<string>("SourceInterface")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("SourceInterface");
+
+                    b.Property<string>("SourcePorts")
+                        .HasColumnType("text")
+                        .HasColumnName("SourcePorts");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.ToTable("RuleTemplates", (string)null);
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTemplateTagEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("RuleTemplateId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("RuleTemplateId");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("TagId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("RuleTemplateId", "TagId")
+                        .IsUnique();
+
+                    b.ToTable("RuleTemplateTags", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -635,9 +756,40 @@ namespace Ufw.Web.Data.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTemplateEntry", b =>
+                {
+                    b.HasOne("Ufw.Web.Data.Model.RuleGroupEntry", "Group")
+                        .WithMany("RuleTemplates")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTemplateTagEntry", b =>
+                {
+                    b.HasOne("Ufw.Web.Data.Model.RuleTemplateEntry", "RuleTemplate")
+                        .WithMany("Tags")
+                        .HasForeignKey("RuleTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ufw.Web.Data.Model.RuleTagEntry", "Tag")
+                        .WithMany("RuleTemplates")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RuleTemplate");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleGroupEntry", b =>
                 {
                     b.Navigation("RuleMetadata");
+
+                    b.Navigation("RuleTemplates");
                 });
 
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleMetadataEntry", b =>
@@ -648,6 +800,13 @@ namespace Ufw.Web.Data.Migrations
             modelBuilder.Entity("Ufw.Web.Data.Model.RuleTagEntry", b =>
                 {
                     b.Navigation("RuleMetadata");
+
+                    b.Navigation("RuleTemplates");
+                });
+
+            modelBuilder.Entity("Ufw.Web.Data.Model.RuleTemplateEntry", b =>
+                {
+                    b.Navigation("Tags");
                 });
 #pragma warning restore 612, 618
         }

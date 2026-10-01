@@ -1,0 +1,13 @@
+.rule-tag-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    > .color {
+        width: 0.75rem;
+        height: 0.75rem;
+        flex: 0 0 auto;
+        border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+        border-radius: 50%;
+    }
+}

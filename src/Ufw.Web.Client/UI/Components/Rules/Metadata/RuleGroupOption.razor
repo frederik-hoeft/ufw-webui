@@ -1,0 +1,14 @@
+@using Ufw.Web.Client.Features.Rules.Metadata
+
+<div class="rule-group-option">
+    <span>@Group.Name</span>
+    @if (!string.IsNullOrWhiteSpace(Group.Comment))
+    {
+        <small>@Group.Comment</small>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RuleGroup Group { get; set; } = null!;
+}

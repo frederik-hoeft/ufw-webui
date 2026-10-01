@@ -1,70 +1,14 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
 @inject IStringLocalizer<RulesStrings> RulesText
 
-<section class="rule-metadata-details" @onclick:stopPropagation="true">
-    <header class="rule-metadata-details-header">
-        <h3>@RulesText["RuleMetadata"]</h3>
-        <div class="rule-metadata-details-actions">
-            @Actions
-        </div>
-    </header>
-
-    <div class="rule-metadata-columns">
-        <div class="rule-metadata-column rule-metadata-column-organization">
-            <div class="rule-metadata-field">
-                <span class="rule-metadata-field-label">@RulesText["Group"]</span>
-                @if (Metadata?.Group is { } group)
-                {
-                    <strong class="rule-metadata-field-value rule-metadata-group">@group.Name</strong>
-                }
-                else
-                {
-                    <span class="rule-metadata-field-value rule-metadata-empty">@RulesText["None"]</span>
-                }
-            </div>
-
-            <div class="rule-metadata-field">
-                <span class="rule-metadata-field-label">@RulesText["Tags"]</span>
-                @if (Metadata is not { Tags.Count: > 0 } metadata)
-                {
-                    <span class="rule-metadata-field-value rule-metadata-empty">@RulesText["None"]</span>
-                }
-                else
-                {
-                    <RuleTagList Tags="@metadata.Tags" />
-                }
-            </div>
-        </div>
-
-        <div class="rule-metadata-column rule-metadata-column-endpoints">
-            <RuleKnownHostEndpoint Label="@(RulesText["Source"])" Endpoint="@Source" KnownHostsChanged="@KnownHostsChanged" />
-            <RuleKnownHostEndpoint Label="@(RulesText["Destination"])" Endpoint="@Destination" KnownHostsChanged="@KnownHostsChanged" />
-        </div>
-
-        <div class="rule-metadata-column rule-metadata-column-content">
-            <div class="rule-metadata-field">
-                <span class="rule-metadata-field-label">@RulesText["CanonicalCommand"]</span>
-                @if (!string.IsNullOrWhiteSpace(CanonicalCommand))
-                {
-                    <div class="canonical-command">
-                        <code>@CanonicalCommand</code>
-                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
-                                       Size="Size.Small"
-                                       Class="canonical-copy-button"
-                                       OnClick="CopyCanonicalCommandAsync"
-                                       aria-label="@RulesText["CopyCanonicalCommand"]" />
-                    </div>
-                }
-                else
-                {
-                    <span class="rule-metadata-field-value rule-metadata-empty">@RulesText["None"]</span>
-                }
-            </div>
-
-            <div class="rule-metadata-field">
-                <span class="rule-metadata-field-label">@RulesText["Notes"]</span>
-                <span class="rule-metadata-field-value rule-metadata-notes">@(string.IsNullOrWhiteSpace(Metadata?.Notes) ? RulesText["None"] : Metadata.Notes)</span>
-            </div>
-        </div>
-    </div>
-</section>
+<RuleDetailsPanel Title="@(RulesText["RuleMetadata"])"
+                  Notes="@Metadata?.Notes"
+                  Tags="@(Metadata?.Tags ?? [])"
+                  Group="@Metadata?.Group"
+                  CanonicalCommand="@CanonicalCommand"
+                  Source="@Source"
+                  Destination="@Destination"
+                  KnownHostsChanged="@KnownHostsChanged">
+    <Header>@Header</Header>
+    <Actions>@Actions</Actions>
+</RuleDetailsPanel>

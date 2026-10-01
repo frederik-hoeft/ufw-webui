@@ -1,0 +1,39 @@
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IFirewallRuleText RuleText
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<td class="rule-desktop-content action">
+    <span class="@ActionClass(Rule.Action)">@RuleText.FormatAction(Rule.Action)</span>
+</td>
+<td class="rule-desktop-content direction">
+    <span class="rule-direction">@RuleText.FormatDirection(Rule.Direction)</span>
+</td>
+<td class="rule-desktop-content endpoint">
+    <span class="rule-endpoint">@RuleText.DescribeEndpoint(Rule.Source, Rule.SourcePorts, Rule.SourceInterface)</span>
+</td>
+<td class="rule-desktop-content endpoint">
+    <span class="rule-endpoint">@RuleText.DescribeEndpoint(Rule.Destination, Rule.DestinationPorts, Rule.DestinationInterface)</span>
+</td>
+<td class="rule-desktop-content protocol">
+    <span class="rule-protocol">@RuleText.FormatProtocol(Rule.Protocol)</span>
+</td>
+<td class="rule-desktop-content tags">
+    @if (Tags.Count > 0)
+    {
+        <RuleTagList Tags="@Tags" MaxVisible="3" />
+    }
+    else
+    {
+        <span class="rule-comment-empty">@RulesText["None"]</span>
+    }
+</td>
+<td class="rule-desktop-content comment">
+    @if (!string.IsNullOrWhiteSpace(Rule.Comment))
+    {
+        <span class="rule-comment">@Rule.Comment</span>
+    }
+    else
+    {
+        <span class="rule-comment-empty">@RulesText["None"]</span>
+    }
+</td>

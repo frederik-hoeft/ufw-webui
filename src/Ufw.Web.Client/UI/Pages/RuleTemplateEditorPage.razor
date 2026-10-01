@@ -1,0 +1,99 @@
+@page "/templates/create"
+@page "/templates/edit/{TemplateId:guid}"
+@attribute [Authorize]
+@implements IDisposable
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IRuleTemplateCatalogService TemplateCatalog
+@inject IRuleTemplateDraftFactory TemplateDraftFactory
+@inject NavigationManager Navigation
+@inject IClientErrorMapper ClientErrors
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CommonStrings> CommonText
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<PageTitle>@PageTitleText - UFWeb</PageTitle>
+
+<div class="rule-template-editor-page">
+    <PageHeader Title="@TitleText"
+                Description="@DescriptionText"
+                Breadcrumbs="@Breadcrumbs">
+        <Actions>
+            <MudButton Href="/templates"
+                       Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Disabled="@_saving"
+                       Class="page-header-button">
+                @TemplatesText["BackToTemplates"]
+            </MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_error is not null || _notFound)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@ErrorTitle</MudText>
+            <MudText Typo="Typo.body2">@ErrorDescription</MudText>
+        </MudAlert>
+    }
+
+    @if (!_loaded)
+    {
+        <MudPaper Class="pa-5" Elevation="1" role="status" aria-live="polite">
+            <MudProgressLinear Indeterminate="true" Class="mb-3" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@TemplatesText["LoadingTemplate"]</MudText>
+        </MudPaper>
+    }
+    else if (!_notFound && _draft is not null)
+    {
+        <MudPaper Class="pa-5 mb-5 rule-template-editor-section" Elevation="1">
+            <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@TemplatesText["TemplateDetails"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@TemplatesText["TemplateDetailsDescription"]</MudText>
+            <MudForm @ref="_detailsForm" Disabled="@_saving">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string"
+                                      Label="@(TemplatesText["Name"])"
+                                      @bind-Value="_draft.Name"
+                                      Required="true"
+                                      RequiredError="@(TemplatesText["NameRequired"])"
+                                      Validation="@ValidateName"
+                                      Counter="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                                      MaxLength="@RuleTemplateLimits.MAX_NAME_LENGTH"
+                                      Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string"
+                                      Label="@(TemplatesText["DescriptionLabel"])"
+                                      @bind-Value="_draft.Description"
+                                      Counter="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
+                                      MaxLength="@RuleTemplateLimits.MAX_DESCRIPTION_LENGTH"
+                                      Immediate="true" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+
+        <RuleEditor @key="_draft.Rule"
+                    Rule="@_draft.Rule"
+                    DefinitionDescription="@(TemplatesText["RuleDefinitionDescription"])"
+                    Disabled="@_saving"
+                    IPv6Enabled="true"
+                    ShowAuthorization="false"
+                    SubmitDisabled="@_saving"
+                    SubmitLabel="@SubmitLabel"
+                    SubmittingLabel="@SubmittingLabel"
+                    SubmitIcon="@SubmitIcon"
+                    Submitting="@_saving"
+                    OnSubmit="SaveAsync"
+                    OnCancel="Cancel" />
+
+        <MudPaper Class="pa-5 mt-5 rule-template-editor-section" Elevation="1">
+            <MudText Typo="Typo.h6" HtmlTag="h2" GutterBottom="true">@TemplatesText["TemplateMetadata"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@TemplatesText["TemplateMetadataDescription"]</MudText>
+            <RuleMetadataEditor @ref="_metadataEditor"
+                                Value="@_metadataDraft"
+                                ValueChanged="MetadataChanged"
+                                Disabled="@_saving" />
+        </MudPaper>
+    }
+</div>

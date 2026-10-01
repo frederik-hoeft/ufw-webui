@@ -26,7 +26,7 @@ Keep a component's markup and significant component logic together by basename:
 ```text
 RuleEditor.razor
 RuleEditor.razor.cs
-RuleEditor.scss
+RuleEditor.razor.scss
 ```
 
 Small markup-only components do not need an empty code-behind. Conversely, pages/components with substantial orchestration should not accumulate large `@code` blocks when a `.razor.cs` file makes the lifecycle and dependencies easier to navigate.
@@ -35,31 +35,35 @@ Reusable domain behavior that does not depend on Razor lifecycle/DOM state shoul
 
 ## SCSS ownership
 
-UFWeb uses a hybrid Sass model because Blazor CSS isolation works well for self-contained markup but poorly when a component intentionally styles MudBlazor-generated descendants, portal content, or shared child structures.
+CSS isolation is the default for page- and component-owned styling. A Razor page or component is the smallest normal styling unit, including page-specific helper components: one-off rules belong beside that owner in `MyComponent.razor.scss`, not in another page's stylesheet or a feature-wide style bucket.
 
-Use `MyComponent.razor.scss` when the component owns enough of its rendered DOM for normal scoped selectors to work. Use `MyComponent.scss` when the style is still owned by that component but must intentionally cross component or framework-generated DOM boundaries. Reserve `UI/Styles/` for genuinely global primitives and explicit framework/application integration rules.
+When several consumers need the same rendered structure or presentation, extract a reusable Razor component or an explicit global primitive instead of making one component's stylesheet an implicit dependency of another. Parent pages should style layout wrappers they own; a child component owns its internal presentation.
 
-Do not choose CSS isolation if the result is a large collection of `::deep` escape hatches. Isolation is a tool for real component ownership, not a goal by itself. The filename therefore communicates both source ownership and whether Blazor's scoped-CSS transform participates in the build.
+Use one meaningful owner root and nested Sass selectors where practical. Normal scoped selectors should cover markup emitted directly by the owner. A small, deliberate `::deep` selector is appropriate when local composition must reach a MudBlazor-generated descendant or child-component root. If `::deep` becomes pervasive, move the presentation responsibility into the child component or, for generic framework behavior, into the shared global style layer.
+
+Customizations that intentionally change a generic MudBlazor/application control everywhere belong in `UI/Styles/controls/`. Do not independently restyle generic input, button, autocomplete, typography, or table behavior from individual pages.
+
+Use non-isolated `MyComponent.scss` only as an explicit exception when a component intentionally owns cross-boundary styling that cannot be expressed cleanly through isolated markup or a shared global primitive. Such files remain colocated with their Razor owner, use owner-specific root classes, and are imported by `UI/Styles/app.scss`.
 
 ### Isolated SCSS
 
-`AspNetCore.SassCompiler` does not automatically treat every colocated `.scss` file as isolated. Isolated `.razor.scss` files are explicit opt-ins in `sasscompiler.json`, where Sass compilation produces the corresponding `.razor.css` before Blazor's scoped-CSS pipeline runs.
+`AspNetCore.SassCompiler` does not automatically treat every colocated `.scss` file as isolated. Each `MyComponent.razor.scss` file is registered in `sasscompiler.json`, where Sass compilation produces the corresponding `MyComponent.razor.css` before Blazor's scoped-CSS pipeline runs.
 
-`SettingsSection.razor.scss` is the reference implementation. The generated `.razor.css` is build output and must not be committed. Blazor then emits the scoped rules into `Ufw.Web.Client.styles.css`, which is referenced by `wwwroot/index.html`.
+Generated `.razor.css` files are build output and must not be committed. Blazor emits the scoped rules into `Ufw.Web.Client.styles.css`, which is referenced by `wwwroot/index.html`.
 
-When adding another isolated component:
+When adding a page or component with local styling:
 
-1. create `MyComponent.razor.scss` beside the component;
+1. create `MyComponent.razor.scss` beside the Razor owner;
 2. add an explicit Sass compilation entry targeting `MyComponent.razor.css`;
 3. keep the generated `.razor.css` ignored/untracked;
-4. build/publish and verify that `Ufw.Web.Client.styles.css` contains the scoped selector;
-5. switch back to colocated global Sass if normal styling would require pervasive `::deep`.
+4. use a local wrapper plus a narrowly scoped `::deep` selector only when composition crosses into child/framework-generated markup;
+5. build/publish and verify that `Ufw.Web.Client.styles.css` contains the scoped selector.
 
 ### Colocated global SCSS
 
-Global component/page styles are imported by `UI/Styles/app.scss`. Keep the file beside the Razor owner even though its selectors are globally emitted. This preserves source locality without pretending that the rendered DOM is isolated.
+A non-isolated component stylesheet is exceptional. Use it only when the component deliberately needs globally emitted selectors to style markup it does not own and CSS isolation would require broad escape hatches. Keep the file beside the Razor owner and import it through `UI/Styles/app.scss`.
 
-Prefer one meaningful component root and nested selectors over verbose styling-only class names. Add a short local role class when generated component markup makes structural selectors ambiguous; do not force selectors such as `> div` when a MudBlazor component can also render a `<div>` at that position.
+Prefer owner-specific roots and nested selectors over globally generic class names. If a selector describes generic MudBlazor/application behavior rather than one component's composition, move it to the appropriate `UI/Styles/controls/` partial instead.
 
 ## Validation
 

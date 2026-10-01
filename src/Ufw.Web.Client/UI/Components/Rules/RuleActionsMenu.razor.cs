@@ -24,6 +24,9 @@ public sealed partial class RuleActionsMenu
     public bool MetadataEditDisabled { get; set; }
 
     [Parameter]
+    public bool TemplateSaveDisabled { get; set; }
+
+    [Parameter]
     public bool CanOrder { get; set; }
 
     [Parameter]
@@ -33,10 +36,19 @@ public sealed partial class RuleActionsMenu
     public bool CanEdit { get; set; }
 
     [Parameter]
+    public bool CanSaveAsTemplate { get; set; }
+
+    [Parameter]
     public EventCallback EditRequested { get; set; }
 
     [Parameter]
     public EventCallback MetadataEditRequested { get; set; }
+
+    [Parameter]
+    public EventCallback SaveAsTemplateRequested { get; set; }
+
+    [Parameter]
+    public EventCallback DisableRequested { get; set; }
 
     [Parameter]
     public EventCallback MoveToPositionRequested { get; set; }

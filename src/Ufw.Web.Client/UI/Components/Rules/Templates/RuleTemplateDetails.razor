@@ -1,0 +1,18 @@
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IStringLocalizer<TemplatesStrings> TemplatesText
+
+<RuleDetailsPanel Title="@(TemplatesText["TemplateDetails"])"
+                  Notes="@Template.Notes"
+                  Tags="@Template.Tags"
+                  Group="@Template.Group"
+                  CanonicalCommand="@CanonicalCommand"
+                  Source="@Template.Rule.Source"
+                  Destination="@Template.Rule.Destination">
+    <Header>
+        @if (!string.IsNullOrWhiteSpace(Template.Description))
+        {
+            <p class="rule-template-details-description">@Template.Description</p>
+        }
+    </Header>
+    <Actions>@Actions</Actions>
+</RuleDetailsPanel>

@@ -14,4 +14,6 @@ internal sealed partial class RuleTagEntry
     public required string Color { get; set; }
 
     public ICollection<RuleMetadataTagEntry> RuleMetadata { get; set; } = [];
+
+    public ICollection<RuleTemplateTagEntry> RuleTemplates { get; set; } = [];
 }

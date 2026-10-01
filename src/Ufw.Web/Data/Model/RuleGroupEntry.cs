@@ -14,4 +14,6 @@ internal sealed partial class RuleGroupEntry
     public string? Comment { get; set; }
 
     public ICollection<RuleMetadataEntry> RuleMetadata { get; set; } = [];
+
+    public ICollection<RuleTemplateEntry> RuleTemplates { get; set; } = [];
 }

@@ -1,0 +1,72 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<section class="rule-metadata-details" @onclick:stopPropagation="true">
+    <header class="rule-metadata-details-header">
+        <div class="rule-metadata-details-heading">
+            <h3>@Title</h3>
+            @Header
+        </div>
+        <div class="rule-metadata-details-actions">
+            @Actions
+        </div>
+    </header>
+
+    <div class="rule-metadata-columns">
+        <div class="rule-metadata-column rule-metadata-column-organization">
+            <div class="rule-metadata-field">
+                <span class="rule-metadata-field-label">@RulesText["Group"]</span>
+                @if (Group is { } group)
+                {
+                    <strong class="rule-metadata-field-value rule-metadata-group">@group.Name</strong>
+                }
+                else
+                {
+                    <span class="rule-metadata-field-value rule-metadata-empty">@RulesText["None"]</span>
+                }
+            </div>
+
+            <div class="rule-metadata-field">
+                <span class="rule-metadata-field-label">@RulesText["Tags"]</span>
+                @if (Tags.Count == 0)
+                {
+                    <span class="rule-metadata-field-value rule-metadata-empty">@RulesText["None"]</span>
+                }
+                else
+                {
+                    <RuleTagList Tags="@Tags" />
+                }
+            </div>
+        </div>
+
+        <div class="rule-metadata-column rule-metadata-column-endpoints">
+            <RuleKnownHostEndpoint Label="@(RulesText["Source"])" Endpoint="@Source" KnownHostsChanged="@KnownHostsChanged" />
+            <RuleKnownHostEndpoint Label="@(RulesText["Destination"])" Endpoint="@Destination" KnownHostsChanged="@KnownHostsChanged" />
+        </div>
+
+        <div class="rule-metadata-column rule-metadata-column-content">
+            <div class="rule-metadata-field">
+                <span class="rule-metadata-field-label">@RulesText["CanonicalCommand"]</span>
+                @if (!string.IsNullOrWhiteSpace(CanonicalCommand))
+                {
+                    <div class="canonical-command">
+                        <code>@CanonicalCommand</code>
+                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                       Size="Size.Small"
+                                       Class="canonical-copy-button"
+                                       OnClick="CopyCanonicalCommandAsync"
+                                       aria-label="@RulesText["CopyCanonicalCommand"]" />
+                    </div>
+                }
+                else
+                {
+                    <span class="rule-metadata-field-value rule-metadata-empty">@RulesText["None"]</span>
+                }
+            </div>
+
+            <div class="rule-metadata-field">
+                <span class="rule-metadata-field-label">@RulesText["Notes"]</span>
+                <span class="rule-metadata-field-value rule-metadata-notes">@(string.IsNullOrWhiteSpace(Notes) ? RulesText["None"] : Notes)</span>
+            </div>
+        </div>
+    </div>
+</section>

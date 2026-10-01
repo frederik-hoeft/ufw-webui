@@ -1,0 +1,40 @@
+.rule-match-context {
+    display: inline-flex;
+    max-width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 999px;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.35;
+
+    > .mud-icon-root {
+        flex: 0 0 auto;
+    }
+
+    > span:first-of-type {
+        flex: 0 0 auto;
+        color: var(--mud-palette-text-primary);
+        font-weight: 500;
+    }
+
+    > span:nth-of-type(2) {
+        color: var(--mud-palette-text-disabled);
+    }
+
+    .rule-match-evidence {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    mark {
+        padding-inline: 0.125rem;
+        border-radius: 0.125rem;
+        background: color-mix(in srgb, var(--mud-palette-primary) 20%, transparent);
+        color: inherit;
+    }
+}

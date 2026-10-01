@@ -14,4 +14,6 @@ public sealed class RuleGroupItem
     public string? Comment { get; init; }
 
     public IReadOnlyList<string> RuleIds { get; init; } = [];
+
+    public IReadOnlyList<Guid> TemplateIds { get; init; } = [];
 }

@@ -1,0 +1,15 @@
+.rule-tag-list {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+
+    > strong {
+        flex: 0 0 auto;
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+}

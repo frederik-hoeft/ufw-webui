@@ -1,5 +1,5 @@
 @use "../core/mixins" as *;
-@use "../core/tokens" as *;
+@use "../core/variables" as *;
 
 .standalone-shell,
 .login-shell {
