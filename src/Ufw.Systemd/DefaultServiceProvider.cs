@@ -5,6 +5,7 @@ using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Network;
 using Ufw.Systemd.NetworkInterfaces;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Transport;
 using Ufw.Systemd.Transport.Security;
@@ -15,6 +16,7 @@ namespace Ufw.Systemd;
 [Import<IConfigurationModule>]
 [Import<INetworkModule>]
 [Import<INetworkInterfaceModule>]
+[Import<IPersistenceModule>]
 [Import<ITransportModule>]
 [Import<ITransportSecurityModule>]
 [Import<IApiModule>]

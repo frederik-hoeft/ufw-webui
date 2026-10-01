@@ -1,5 +1,6 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Firewall.Ordering;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Tests.TestSupport;
 
 namespace Ufw.Systemd.Tests.Firewall.Ordering;
@@ -17,12 +18,12 @@ public sealed class FileReorderRecoveryJournalTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal writer = new(configuration);
+            FileReorderRecoveryJournal writer = new(configuration, new DurableFileStore());
             ReorderRecoveryJournalEntry expected = CreateEntry();
 
             await writer.WriteAsync(expected, TestContext.CancellationToken);
 
-            FileReorderRecoveryJournal reader = new(configuration);
+            FileReorderRecoveryJournal reader = new(configuration, new DurableFileStore());
             ReorderRecoveryJournalEntry? actual = await reader.ReadAsync(TestContext.CancellationToken);
             Assert.IsNotNull(actual);
             Assert.AreEqual(expected.FormatVersion, actual.FormatVersion);
@@ -49,7 +50,7 @@ public sealed class FileReorderRecoveryJournalTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal journal = new(configuration);
+            FileReorderRecoveryJournal journal = new(configuration, new DurableFileStore());
             await journal.WriteAsync(CreateEntry(), TestContext.CancellationToken);
             string persisted = await File.ReadAllTextAsync(path, TestContext.CancellationToken);
             persisted = persisted.Replace("\"expectedMultiplicity\": 1", "\"expectedMultiplicity\": 0", StringComparison.Ordinal);
@@ -74,7 +75,7 @@ public sealed class FileReorderRecoveryJournalTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal journal = new(configuration);
+            FileReorderRecoveryJournal journal = new(configuration, new DurableFileStore());
             await journal.WriteAsync(CreateEntry(), TestContext.CancellationToken);
             string persisted = await File.ReadAllTextAsync(path, TestContext.CancellationToken);
             persisted = persisted.Replace($"\"formatVersion\": {ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION}", "\"formatVersion\": 99", StringComparison.Ordinal);
@@ -100,7 +101,7 @@ public sealed class FileReorderRecoveryJournalTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal journal = new(configuration);
+            FileReorderRecoveryJournal journal = new(configuration, new DurableFileStore());
             await journal.WriteAsync(CreateEntry(), TestContext.CancellationToken);
             await File.WriteAllTextAsync(path + ".tmp", "stale", TestContext.CancellationToken);
 

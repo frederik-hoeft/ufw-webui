@@ -16,6 +16,7 @@ using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Network;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Services.Logging;
 using ServerTransport = Ufw.Systemd.Transport;
 
@@ -33,6 +34,7 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton(broker);
         services.AddSingleton<IConfiguration>(new TestConfiguration(appSettings));
         services.AddSingleton<ILogger>(NullLogger.Instance);
+        services.AddSingleton<IDurableFileStore, DurableFileStore>();
         services.AddSingleton(MessageJsonSerializerContext.Default);
         services.AddSingleton(HybridMessageJsonSerializerContext.CreateDefault());
         services.AddSingleton<AotJsonSerializerContext>(static sp => sp.GetRequiredService<HybridMessageJsonSerializerContext>());

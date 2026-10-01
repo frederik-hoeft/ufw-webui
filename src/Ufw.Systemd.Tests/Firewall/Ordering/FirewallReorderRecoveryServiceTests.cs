@@ -8,6 +8,7 @@ using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Interop.Output;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;
 
@@ -32,7 +33,7 @@ public sealed class FirewallReorderRecoveryServiceTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal beforeRestart = new(configuration);
+            FileReorderRecoveryJournal beforeRestart = new(configuration, new DurableFileStore());
             RuleListResponse original = ToResponse(Snapshot("22", "80"));
             ReorderRecoveryJournalEntry entry = new(ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION, original.Rules[0].Rule!, 1, 1, null, null);
             await beforeRestart.WriteAsync(entry, TestContext.CancellationToken);
@@ -56,7 +57,7 @@ public sealed class FirewallReorderRecoveryServiceTests
                     return new UfwProcessResult(0, string.Empty, string.Empty, arguments, false);
                 });
 
-            FileReorderRecoveryJournal afterRestart = new(configuration);
+            FileReorderRecoveryJournal afterRestart = new(configuration, new DurableFileStore());
             RuleReorderRecoveryCoordinator coordinator = new(snapshotReader.Object, runner.Object, new UfwRuleCommandRenderer(), afterRestart, new ConsoleLogger());
             using UfwExecutionGate gate = new();
             FirewallMutationSafetyGuard guard = new(afterRestart, coordinator);
@@ -83,7 +84,7 @@ public sealed class FirewallReorderRecoveryServiceTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal journal = new(configuration);
+            FileReorderRecoveryJournal journal = new(configuration, new DurableFileStore());
             RuleListResponse original = ToResponse(SnapshotTokens("80", "443", "80v6", "22v6", "443v6"));
             ReorderRecoveryJournalEntry entry = new(ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION, original.Rules[3].Rule!, 2, 1, null, null);
             await journal.WriteAsync(entry, TestContext.CancellationToken);
@@ -126,7 +127,7 @@ public sealed class FirewallReorderRecoveryServiceTests
         try
         {
             TestConfiguration configuration = new(TestAppSettingsFactory.Create(reorderRecoveryJournalPath: path));
-            FileReorderRecoveryJournal journal = new(configuration);
+            FileReorderRecoveryJournal journal = new(configuration, new DurableFileStore());
             RuleListResponse original = ToResponse(Snapshot("22"));
             ReorderRecoveryJournalEntry entry = new(ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION, original.Rules[0].Rule!, 1, 1, null, null);
             await journal.WriteAsync(entry, TestContext.CancellationToken);

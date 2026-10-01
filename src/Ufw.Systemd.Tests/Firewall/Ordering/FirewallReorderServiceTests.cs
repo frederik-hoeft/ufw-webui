@@ -8,6 +8,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Firewall.Ordering;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 using ExecutionOperationStatus = Ufw.Systemd.Firewall.Ordering.RuleReorderOperationStatus;
@@ -130,13 +131,13 @@ public sealed class FirewallReorderServiceTests
                 .ReturnsAsync(CompletedResult());
             ReorderRulesRequest request = CreateRequest();
 
-            using (FileNonceStore firstStore = new(configuration, clock))
+            using (FileNonceStore firstStore = new(configuration, clock, new DurableFileStore()))
             {
                 FirewallReorderService firstService = new(verifier.Object, firstStore, gate, safetyGuard.Object, executor.Object);
                 Assert.IsInstanceOfType<RuleReorderResponse>(await firstService.ReorderAsync(request, TestContext.CancellationToken));
             }
 
-            using FileNonceStore restartedStore = new(configuration, clock);
+            using FileNonceStore restartedStore = new(configuration, clock, new DurableFileStore());
             FirewallReorderService restartedService = new(verifier.Object, restartedStore, gate, safetyGuard.Object, executor.Object);
             Assert.IsInstanceOfType<ConflictResponse>(await restartedService.ReorderAsync(request, TestContext.CancellationToken));
             executor.Verify(

@@ -1,4 +1,5 @@
-﻿using Ufw.Systemd.Security.Intent;
+﻿using Ufw.Systemd.Persistence;
+using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 
 namespace Ufw.Systemd.Tests.Security.Intent;
@@ -16,12 +17,12 @@ public sealed class FileDeploymentIdentityProviderTests
 
         try
         {
-            FileDeploymentIdentityProvider first = new(configuration);
+            FileDeploymentIdentityProvider first = new(configuration, new DurableFileStore());
             string created = first.GetDeploymentId();
             Assert.IsFalse(string.IsNullOrWhiteSpace(created));
             Assert.AreEqual(created, first.GetDeploymentId());
 
-            FileDeploymentIdentityProvider reloaded = new(configuration);
+            FileDeploymentIdentityProvider reloaded = new(configuration, new DurableFileStore());
             Assert.AreEqual(created, reloaded.GetDeploymentId());
         }
         finally
@@ -41,7 +42,7 @@ public sealed class FileDeploymentIdentityProviderTests
 
         try
         {
-            FileDeploymentIdentityProvider provider = new(configuration);
+            FileDeploymentIdentityProvider provider = new(configuration, new DurableFileStore());
             Assert.ThrowsExactly<InvalidDataException>(() => provider.GetDeploymentId());
         }
         finally

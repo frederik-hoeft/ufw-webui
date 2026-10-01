@@ -18,6 +18,7 @@ using Ufw.Systemd.NetworkInterfaces;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;
+using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Tests.Firewall;
 
@@ -632,8 +633,8 @@ public sealed class FirewallMutationServiceTests
             CurrentStatus = initialStatus;
             ConfigureDefaultProcessRunner();
             _keys = new FileAuthorizedKeyStore(configuration, new ConsoleLogger());
-            _deploymentIdentity = new FileDeploymentIdentityProvider(configuration);
-            _nonces = new FileNonceStore(configuration, clock);
+            _deploymentIdentity = new FileDeploymentIdentityProvider(configuration, new DurableFileStore());
+            _nonces = new FileNonceStore(configuration, clock, new DurableFileStore());
             _gate = new UfwExecutionGate();
             Service = CreateService();
         }
@@ -683,7 +684,7 @@ public sealed class FirewallMutationServiceTests
         public void RestartNonceStore()
         {
             _nonces.Dispose();
-            _nonces = new FileNonceStore(_configuration, _clock);
+            _nonces = new FileNonceStore(_configuration, _clock, new DurableFileStore());
             Service = CreateService();
         }
 

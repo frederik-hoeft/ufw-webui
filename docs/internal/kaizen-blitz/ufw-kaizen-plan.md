@@ -250,7 +250,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 
 | Done | Source item | Planned wave | Finding | Sequencing note |
 |---|---|---|---|---|
-| [ ] | SYS KZ-001 | D1 | Make nonce consumption persistence-consistent | Implement after KZ-013 so nonce durability uses the shared durable-file primitive rather than bespoke I/O that would immediately be rewritten. |
+| [x] | SYS KZ-001 | D1 | Make nonce consumption persistence-consistent | Implement after KZ-013 so nonce durability uses the shared durable-file primitive rather than bespoke I/O that would immediately be rewritten. |
 | [ ] | SYS KZ-002 | D4 | Fix named-pipe stream leaks on setup/accept failure | Do after KZ-019 settles the transport composition so pipe ownership/disposal is fixed in the final pipe implementation. |
 | [ ] | SYS KZ-003 | D1 | Give request logging exception-safe timing/lifecycle behavior | Do with/after KZ-021 so request timing is adapted once to the final middleware composition. |
 | [ ] | SYS KZ-004 | D2 | Define one authoritative firewall snapshot result type | Foundation for KZ-005, KZ-006 and KZ-007; establish the authoritative snapshot success/failure shape before decomposing executors. |
@@ -262,7 +262,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | SYS KZ-010 | D1 | Supervise network worker capacity | Apply after configuration lifecycle is settled so worker-count/lifecycle semantics are not built on reload ambiguity. |
 | [x] | SYS KZ-011 | D1 | Separate configuration shape validation from environment validation | Follow KZ-009; separate startup environment validation from immutable configuration shape. |
 | [x] | SYS KZ-012 | D1 | Remove configuration drift and dead options; use safe diagnostics defaults | Follow KZ-009/KZ-011; its remote-diagnostics policy must be stable before Web standardizes daemon error handling. |
-| [ ] | SYS KZ-013 | D1 | Consolidate durable file persistence mechanics | Do before KZ-001 and before touching the other file-backed stores. |
+| [x] | SYS KZ-013 | D1 | Consolidate durable file persistence mechanics | Do before KZ-001 and before touching the other file-backed stores. |
 | [ ] | SYS KZ-014 | D3 | Split `IntentVerifier` into stable envelope verification and operation payload binding | Do before KZ-008 and before the client signing refactor; this is the server side of the shared intent/canonicalization contract. |
 | [ ] | SYS KZ-015 | D3 | Keep authorized-key ownership inside the key store | Do after KZ-009; align key lifetime/rotation behavior with the chosen configuration lifecycle and KZ-014 verifier split. |
 | [ ] | SYS KZ-016 | D2 | Unify insertion placement logic | Do before KZ-006/KZ-007 so insertion/reorder/recovery all consume one placement calculation. |

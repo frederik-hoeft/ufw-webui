@@ -9,6 +9,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Firewall.Insertion;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Tests.TestSupport;
 
@@ -143,13 +144,13 @@ public sealed class FirewallOrderedInsertionServiceTests
             Mock<IFirewallOrderedInsertionExecutor> executor = CreateExecutor();
             InsertRuleRequest request = CreateRequest();
 
-            using (FileNonceStore firstStore = new(configuration, clock))
+            using (FileNonceStore firstStore = new(configuration, clock, new DurableFileStore()))
             {
                 FirewallOrderedInsertionService first = new(verifier.Object, firstStore, gate, guard.Object, executor.Object);
                 Assert.IsInstanceOfType<RuleInsertionResponse>(await first.InsertAsync(request, TestContext.CancellationToken));
             }
 
-            using FileNonceStore restartedStore = new(configuration, clock);
+            using FileNonceStore restartedStore = new(configuration, clock, new DurableFileStore());
             FirewallOrderedInsertionService restarted = new(verifier.Object, restartedStore, gate, guard.Object, executor.Object);
             Assert.IsInstanceOfType<ConflictResponse>(await restarted.InsertAsync(request, TestContext.CancellationToken));
             executor.Verify(value => value.ExecuteAsync(It.IsAny<InsertRulePayload>(), It.IsAny<CancellationToken>()), Times.Once);

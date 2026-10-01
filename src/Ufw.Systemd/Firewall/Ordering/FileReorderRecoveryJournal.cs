@@ -1,9 +1,10 @@
 ﻿using System.Text.Json;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Firewall.Ordering;
 
-internal sealed class FileReorderRecoveryJournal(IConfiguration configuration) : IReorderRecoveryJournal
+internal sealed class FileReorderRecoveryJournal(IConfiguration configuration, IDurableFileStore durableFiles) : IReorderRecoveryJournal
 {
     public async Task<ReorderRecoveryJournalEntry?> ReadAsync(CancellationToken cancellationToken)
     {
@@ -23,36 +24,17 @@ internal sealed class FileReorderRecoveryJournal(IConfiguration configuration) :
     public async Task WriteAsync(ReorderRecoveryJournalEntry entry, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        string path = GetPath();
-        EnsureParentDirectory(path);
-        string temporaryPath = path + ".tmp";
-
-        await using (FileStream stream = new(temporaryPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous | FileOptions.WriteThrough))
-        {
-            await JsonSerializer.SerializeAsync(stream, entry, ReorderRecoveryJsonSerializerContext.Default.ReorderRecoveryJournalEntry, cancellationToken);
-            await stream.WriteAsync("\n"u8.ToArray(), cancellationToken);
-#pragma warning disable CA1849 // Flush(bool) is intentionally synchronous to guarantee durable recovery-state persistence.
-            stream.Flush(flushToDisk: true);
-#pragma warning restore CA1849
-        }
-
-        File.Move(temporaryPath, path, overwrite: true);
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes(entry, ReorderRecoveryJsonSerializerContext.Default.ReorderRecoveryJournalEntry);
+        byte[] contents = new byte[json.Length + 1];
+        json.CopyTo(contents, 0);
+        contents[^1] = (byte)'\n';
+        await durableFiles.ReplaceAsync(GetPath(), contents, cancellationToken);
     }
 
     public Task ClearAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        string path = GetPath();
-        try
-        {
-            File.Delete(path);
-            File.Delete(path + ".tmp");
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            throw new IOException("Reorder recovery journal could not be cleared.", exception);
-        }
-
+        durableFiles.Delete(GetPath());
         return Task.CompletedTask;
     }
 
@@ -71,17 +53,6 @@ internal sealed class FileReorderRecoveryJournal(IConfiguration configuration) :
     private string GetPath()
     {
         string? path = configuration.Settings.Security?.ReorderRecoveryJournalPath;
-        return !string.IsNullOrWhiteSpace(path)
-            ? path
-            : throw new InvalidOperationException("Reorder recovery journal path is not configured.");
-    }
-
-    private static void EnsureParentDirectory(string path)
-    {
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+        return !string.IsNullOrWhiteSpace(path) ? path : throw new InvalidOperationException("Reorder recovery journal path is not configured.");
     }
 }
