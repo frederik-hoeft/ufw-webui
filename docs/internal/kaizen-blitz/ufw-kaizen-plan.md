@@ -259,7 +259,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | SYS KZ-007 | D3 | Decompose `FirewallRuleReplacementExecutor` | Do only after KZ-004/KZ-005/KZ-016; avoid extracting helpers that KZ-005 would replace. |
 | [ ] | SYS KZ-008 | D3 | Deduplicate signed mutation service choreography | Do after KZ-014 and KZ-027 so the common signed-mutation choreography consumes the final verifier/gate APIs. |
 | [x] | SYS KZ-009 | D1 | Resolve configuration lifecycle ambiguity | First daemon architecture decision; it gates KZ-011, KZ-012, KZ-015, KZ-018, KZ-019 and KZ-025. |
-| [ ] | SYS KZ-010 | D1 | Supervise network worker capacity | Apply after configuration lifecycle is settled so worker-count/lifecycle semantics are not built on reload ambiguity. |
+| [x] | SYS KZ-010 | D1 | Supervise network worker capacity | Apply after configuration lifecycle is settled so worker-count/lifecycle semantics are not built on reload ambiguity. |
 | [x] | SYS KZ-011 | D1 | Separate configuration shape validation from environment validation | Follow KZ-009; separate startup environment validation from immutable configuration shape. |
 | [x] | SYS KZ-012 | D1 | Remove configuration drift and dead options; use safe diagnostics defaults | Follow KZ-009/KZ-011; its remote-diagnostics policy must be stable before Web standardizes daemon error handling. |
 | [x] | SYS KZ-013 | D1 | Consolidate durable file persistence mechanics | Do before KZ-001 and before touching the other file-backed stores. |

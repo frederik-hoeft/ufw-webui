@@ -148,6 +148,8 @@ TLS configuration is immutable for the daemon lifetime. Server certificate mater
 
 These values are connection policy, not fields in the IPC wire protocol.
 
+The daemon starts exactly `network.max_connections` workers. Expected connection failures are isolated to the affected exchange and the worker continues accepting peers. If a worker instead terminates unexpectedly, the daemon cancels the remaining pool and exits rather than continuing at reduced capacity. The production systemd unit uses `Restart=on-failure`, so process supervision restores a fresh worker pool.
+
 ### Mutation security state
 
 | Setting | Purpose | Production example |

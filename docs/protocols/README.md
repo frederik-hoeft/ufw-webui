@@ -51,7 +51,7 @@ Failures stay with the layer that can classify them reliably.
 
 ITP owns malformed framing, unsupported wire versions, unsafe lengths, packet kinds, and payload formats. The application protocol owns malformed JSON envelopes and representation invariants. Routing owns unknown routes, unsupported methods, and route-specific binding failures. Signed-intent verification owns privileged mutation authorization.
 
-Expected peer, I/O, timeout, stream-security, and protocol failures are connection-scoped. They must not terminate a daemon worker that can safely accept a later peer. Unexpected daemon/framework failures are not reclassified as peer errors and remain observable by faulting the owning worker/application.
+Expected peer, I/O, timeout, stream-security, and protocol failures are connection-scoped. They must not terminate a daemon worker that can safely accept a later peer. Unexpected daemon/framework failures are not reclassified as peer errors: a faulted worker causes the network application to cancel its sibling workers and fail the daemon rather than serving indefinitely with reduced capacity.
 
 ## Time bounds
 

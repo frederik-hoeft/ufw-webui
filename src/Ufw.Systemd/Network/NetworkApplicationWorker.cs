@@ -22,27 +22,7 @@ internal sealed class NetworkApplicationWorker(ITransportLayerService transportL
             {
                 break;
             }
-            catch (OperationCanceledException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (SocketException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (InvalidDataException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (AuthenticationException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (TimeoutException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (IOException exception)
+            catch (Exception exception) when (IsExpectedConnectionFailure(exception))
             {
                 LogConnectionFailure(workerId, exception);
             }
@@ -52,4 +32,7 @@ internal sealed class NetworkApplicationWorker(ITransportLayerService transportL
 
     private void LogConnectionFailure(Guid workerId, Exception exception) =>
         logger.Scoped(this).LogWarning(exception, $"Worker {workerId}: connection failed; continuing to serve requests.");
+
+    private static bool IsExpectedConnectionFailure(Exception exception) =>
+        exception is OperationCanceledException or SocketException or InvalidDataException or AuthenticationException or TimeoutException or IOException;
 }

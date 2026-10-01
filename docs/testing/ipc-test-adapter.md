@@ -69,7 +69,7 @@ Tests that claim compatibility with an established production wire contract shou
 
 ## Failure and lifetime behavior
 
-The daemon side uses the production connection-processing and worker failure boundaries. A malformed frame, peer disconnect, transport I/O failure, or TLS failure terminates that connection without consuming the worker permanently. Unexpected failures outside the defined connection boundary remain visible to the test rather than being converted into successful cleanup.
+The daemon side uses the production connection-processing and worker failure boundaries. A malformed frame, peer disconnect, transport I/O failure, or TLS failure terminates that connection without consuming the worker permanently. Unexpected failures outside the defined connection boundary fault the owning worker, cancel the sibling worker pool, and remain visible to the test rather than being converted into successful cleanup.
 
 Each run links the MSTest cancellation token, any caller token, and the optional adapter-level test timeout. Protocol I/O and request deadlines remain independently configurable, matching production's distinction between an idle I/O timeout and an overall request deadline.
 

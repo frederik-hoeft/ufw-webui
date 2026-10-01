@@ -21,7 +21,8 @@ internal static class TestAppSettingsFactory
         string? serverCertificatePath = null,
         string? serverCertificateKeyPath = null,
         bool debugMode = true,
-        bool exposeRemoteExceptionDetails = false) =>
+        bool exposeRemoteExceptionDetails = false,
+        int maxConnections = 8) =>
         new()
         {
             DebugMode = debugMode,
@@ -48,7 +49,7 @@ internal static class TestAppSettingsFactory
             },
             Network = new NetworkOptions
             {
-                MaxConnections = 8,
+                MaxConnections = maxConnections,
                 IoTimeout = TimeSpan.FromSeconds(30),
                 RequestTimeout = TimeSpan.FromMinutes(30),
             },
