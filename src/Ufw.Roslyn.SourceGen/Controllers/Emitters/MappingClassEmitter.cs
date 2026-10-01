@@ -76,13 +76,10 @@ internal sealed class MappingClassEmitter(SourceProductionContext context, Contr
                             "{{endpoint.HttpMethod}}",
                             "{{endpoint.Route}}",
                             priority: {{endpoint.Priority}},
-                            static async (serviceProvider, initializeAsync{{endpoint.RequestParam}}, cancellationToken) =>
+                            static (serviceProvider{{endpoint.RequestParam}}, cancellationToken) =>
                             {
-                                {{endpoint.ControllerTypeFullName}} controller = await {{activatorFullName}}.CreateControllerAsync<{{endpoint.ControllerTypeFullName}}>(
-                                    serviceProvider,
-                                    initializeAsync,
-                                    cancellationToken);
-                                return await controller.{{endpoint.MethodName}}({{endpoint.MethodArgs}}cancellationToken);
+                                {{endpoint.ControllerTypeFullName}} controller = {{activatorFullName}}.CreateController<{{endpoint.ControllerTypeFullName}}>(serviceProvider);
+                                return controller.{{endpoint.MethodName}}({{endpoint.MethodArgs}}cancellationToken);
                             }),
                 """);
         }

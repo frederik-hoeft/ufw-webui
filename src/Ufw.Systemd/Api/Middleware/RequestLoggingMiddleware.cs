@@ -1,45 +1,35 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Ufw.Shared.Ipc.Serialization;
-using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Api.Middleware;
 
-internal sealed class RequestLoggingMiddleware(IConfiguration configuration, ILogger logger) : RequestMiddlewareBase
+internal sealed class RequestLoggingMiddleware(ILogger logger) : IRequestMiddleware
 {
-    private readonly ConcurrentBag<Stopwatch> _stopwatches = [];
+    private readonly ILogger<RequestLoggingMiddleware> _logger = logger.Scoped<RequestLoggingMiddleware>();
 
     // run before most other middleware to log all incoming requests
-    public override int Priority => -1;
+    public int Priority => -1;
 
-    private Stopwatch AcquireStopwatch()
+    public async ValueTask<IResponseMessage> InvokeAsync(IRequestMessage request, RequestMiddlewareDelegate next, CancellationToken cancellationToken)
     {
-        if (_stopwatches.TryTake(out Stopwatch? stopwatch))
+        _logger.LogInformation($"Request starting: {request.Method} '{request.Route}' ...");
+        long startTimestamp = Stopwatch.GetTimestamp();
+        try
         {
-            return stopwatch;
+            IResponseMessage response = await next(request, cancellationToken);
+            _logger.LogInformation($"Request completed: {request.Method} '{request.Route}' - {response.StatusCode} in {Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds} ms.");
+            return response;
         }
-        return new Stopwatch();
-    }
-
-    private void ReleaseStopwatch(Stopwatch stopwatch)
-    {
-        if (_stopwatches.Count <= configuration.Settings.Network.MaxConnections)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Reset();
-            _stopwatches.Add(stopwatch);
+            _logger.LogInformation($"Request canceled: {request.Method} '{request.Route}' after {Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds} ms.");
+            throw;
         }
-    }
-
-    public async override ValueTask<IResponseMessage> InvokeAsync(IRequestMessage request, CancellationToken cancellationToken)
-    {
-        Stopwatch stopwatch = AcquireStopwatch();
-        logger.Scoped(this).LogInformation($"Request starting: {request.Method} '{request.Route}' ...");
-        stopwatch.Start();
-        IResponseMessage response = await Next.InvokeAsync(request, cancellationToken);
-        stopwatch.Stop();
-        logger.Scoped(this).LogInformation($"Request completed: {request.Method} '{request.Route}' - {response.StatusCode} in {stopwatch.Elapsed.TotalMilliseconds} ms.");
-        ReleaseStopwatch(stopwatch);
-        return response;
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, $"Request failed: {request.Method} '{request.Route}' after {Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds} ms.");
+            throw;
+        }
     }
 }
