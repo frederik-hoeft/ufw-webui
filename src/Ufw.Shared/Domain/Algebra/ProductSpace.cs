@@ -3,8 +3,13 @@
 namespace Ufw.Shared.Domain.Algebra;
 
 /// <summary>
-/// Disjoint union of <see cref="ProductRegion"/> values, coalesced when two rectangles differ in only one axis.
+/// Disjoint union of <see cref="ProductRegion"/> values, stored in a factored canonical representation.
 /// </summary>
+/// <remarks>
+/// Regions that are equal on every axis except one can be algebraically factored by unioning that varying axis:
+/// <c>(A \times X) \cup (B \times X) = (A \cup B) \times X</c>. Coalescing applies that identity without changing the represented
+/// tuple set or introducing overlap.
+/// </remarks>
 public sealed class ProductSpace
 {
     private readonly ProductRegion[] _regions;
@@ -39,8 +44,13 @@ public sealed class ProductSpace
     }
 
     /// <summary>
-    /// Builds a space from rectangles. Empty rectangles are dropped. The result is coalesced and rejected when two rectangles overlap.
+    /// Builds a space from product regions, dropping empty regions, requiring a common rank and pairwise disjointness,
+    /// then coalescing regions that can be factored without changing the represented tuple set.
     /// </summary>
+    /// <remarks>
+    /// Disjointness is checked before coalescing so an invalid overlapping input cannot be hidden by a later union
+    /// of one axis.
+    /// </remarks>
     public static ProductSpace FromRegions(IEnumerable<ProductRegion> regions)
     {
         ArgumentNullException.ThrowIfNull(regions);
@@ -66,8 +76,8 @@ public sealed class ProductSpace
             materialized.Add(region);
         }
 
+        EnsureDisjoint(materialized);
         ProductRegion[] coalesced = Coalesce(materialized);
-        EnsureDisjoint(coalesced);
         return new ProductSpace(coalesced);
     }
 
@@ -196,6 +206,13 @@ public sealed class ProductSpace
         return false;
     }
 
+    /// <summary>
+    /// Repeatedly factors regions that are equal on all but one axis until no further representation reduction is possible.
+    /// </summary>
+    /// <remarks>
+    /// A merge on one axis can expose a merge on an axis processed earlier in the same pass, so coalescing iterates to
+    /// a fixed point rather than performing a single sweep.
+    /// </remarks>
     private static ProductRegion[] Coalesce(List<ProductRegion> regions)
     {
         if (regions.Count == 0)
@@ -221,14 +238,17 @@ public sealed class ProductSpace
         return [.. regions];
     }
 
+    /// <summary>
+    /// Factors one axis by grouping regions whose remaining axes are set-equal, then unioning the selected axis inside each group.
+    /// </summary>
     private static bool MergeAxis(List<ProductRegion> regions, int axis)
     {
-        Dictionary<GroupKey, int> groups = new();
+        Dictionary<FixedAxesKey, int> groups = new();
         List<ProductRegion> next = new(regions.Count);
         bool merged = false;
         foreach (ProductRegion region in regions)
         {
-            GroupKey key = new(region, axis);
+            FixedAxesKey key = new(region, axis);
             if (groups.TryGetValue(key, out int index))
             {
                 ProductRegion existing = next[index];
@@ -252,11 +272,11 @@ public sealed class ProductSpace
         return true;
     }
 
-    private static void EnsureDisjoint(ProductRegion[] regions)
+    private static void EnsureDisjoint(IReadOnlyList<ProductRegion> regions)
     {
-        for (int left = 0; left < regions.Length; left++)
+        for (int left = 0; left < regions.Count; left++)
         {
-            for (int right = left + 1; right < regions.Length; right++)
+            for (int right = left + 1; right < regions.Count; right++)
             {
                 if (regions[left].Overlaps(regions[right]))
                 {
@@ -267,21 +287,21 @@ public sealed class ProductSpace
     }
 
     /// <summary>
-    /// Groups rectangles that are equal on every axis except one, so that axis can be unioned.
-    /// The key keeps the pre-merge rectangle: every axis except the merged one is unchanged by the union.
+    /// Hash/equality key for the axes that stay fixed while one selected axis is being coalesced.
+    /// Two keys are equal when they ignore the same varying axis and all remaining axes are set-equal.
     /// </summary>
-    private readonly struct GroupKey : IEquatable<GroupKey>
+    private readonly struct FixedAxesKey : IEquatable<FixedAxesKey>
     {
         private readonly ProductRegion _region;
         private readonly int _axis;
 
-        public GroupKey(ProductRegion region, int axis)
+        public FixedAxesKey(ProductRegion region, int axis)
         {
             _region = region;
             _axis = axis;
         }
 
-        public bool Equals(GroupKey other)
+        public bool Equals(FixedAxesKey other)
         {
             if (_axis != other._axis || _region.DimensionCount != other._region.DimensionCount)
             {
@@ -304,7 +324,7 @@ public sealed class ProductSpace
             return true;
         }
 
-        public override bool Equals(object? obj) => obj is GroupKey other && Equals(other);
+        public override bool Equals(object? obj) => obj is FixedAxesKey other && Equals(other);
 
         public override int GetHashCode()
         {

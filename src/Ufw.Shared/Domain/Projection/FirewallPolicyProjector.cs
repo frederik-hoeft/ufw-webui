@@ -181,6 +181,12 @@ public static class FirewallPolicyProjector
         foreach (FirewallRuleSpecification specification in rules)
         {
             ArgumentNullException.ThrowIfNull(specification);
+            if (specification.AddressFamily is FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6
+                && specification.AddressFamily != target)
+            {
+                continue;
+            }
+
             FirewallRuleSpecification normalized = NormalizeValidated(specification);
             if (!IncludeSpecification(normalized, target))
             {

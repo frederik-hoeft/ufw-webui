@@ -35,6 +35,15 @@ public sealed class ProductSpaceTests
     }
 
     [TestMethod]
+    public void FromRegions_RejectsOverlapBeforeCoalescing()
+    {
+        ProductRegion left = Rectangle(0, 5, 0, 0, 0, 0);
+        ProductRegion right = Rectangle(3, 7, 0, 0, 0, 0);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => ProductSpace.FromRegions([left, right]));
+    }
+
+    [TestMethod]
     public void SmallGrid_ExceptAgreesWithPointEnumeration()
     {
         const int limit = 12;

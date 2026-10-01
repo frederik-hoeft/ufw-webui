@@ -32,4 +32,30 @@ public sealed class FiniteSetTests
         Assert.AreEqual(left.Cardinality, left.Intersect(right).Cardinality + left.Except(right).Cardinality);
         Assert.AreEqual(FiniteSet<string>.Empty, left.Except(left));
     }
+
+    [TestMethod]
+    public void From_RejectsOrderingThatCollapsesDistinctValues()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() => FiniteSet<ComparisonSymbol>.Of(
+            new ComparisonSymbol("TCP"),
+            new ComparisonSymbol("tcp")));
+    }
+
+    [TestMethod]
+    public void Operations_RejectOrderingCollisionsAcrossSets()
+    {
+        FiniteSet<ComparisonSymbol> upper = FiniteSet<ComparisonSymbol>.Of(new ComparisonSymbol("TCP"));
+        FiniteSet<ComparisonSymbol> lower = FiniteSet<ComparisonSymbol>.Of(new ComparisonSymbol("tcp"));
+
+        Assert.IsFalse(upper.Equals(lower));
+        Assert.ThrowsExactly<InvalidOperationException>(() => upper.Contains(new ComparisonSymbol("tcp")));
+        Assert.ThrowsExactly<InvalidOperationException>(() => upper.Union(lower));
+        Assert.ThrowsExactly<InvalidOperationException>(() => upper.CompareTo(lower));
+    }
+
+    private readonly record struct ComparisonSymbol(string Value) : IComparable<ComparisonSymbol>
+    {
+        public int CompareTo(ComparisonSymbol other) =>
+            string.Compare(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+    }
 }
