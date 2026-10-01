@@ -1,4 +1,5 @@
-﻿using Ufw.Systemd.Configuration.Model;
+﻿using System.Security.Authentication;
+using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Systemd.Tests.TestSupport;
 
@@ -11,6 +12,14 @@ internal static class TestAppSettingsFactory
         string? reorderRecoveryJournalPath = null,
         string? ufwDefaultsPath = null,
         string? pipeName = null,
+        TransportType transportType = TransportType.Pipe,
+        string tcpListenAddress = "127.0.0.1",
+        int tcpPort = 1234,
+        bool tlsEnabled = false,
+        SslProtocols sslProtocols = SslProtocols.None,
+        RemoteCertificateValidationOptions? remoteCertificateValidation = null,
+        string? serverCertificatePath = null,
+        string? serverCertificateKeyPath = null,
         bool debugMode = true,
         bool exposeRemoteExceptionDetails = false) =>
         new()
@@ -19,14 +28,23 @@ internal static class TestAppSettingsFactory
             ExposeRemoteExceptionDetails = exposeRemoteExceptionDetails,
             UfwPath = "/usr/sbin/ufw",
             UfwDefaultsPath = ufwDefaultsPath ?? "/nonexistent/ufw-defaults",
-            Pipe = new PipeOptions
+            Transport = new TransportOptions
             {
-                PipeName = pipeName ?? "/tmp/ufw-systemd-tests.pipe",
-                TlsEnabled = false,
-                SslProtocols = System.Security.Authentication.SslProtocols.None,
-                RemoteCertificateValidation = null,
-                ServerCertificatePath = null,
-                ServerCertificateKeyPath = null,
+                Type = transportType,
+                Pipe = transportType is TransportType.Pipe
+                    ? new PipeOptions { PipeName = pipeName ?? "/tmp/ufw-systemd-tests.pipe" }
+                    : null,
+                Tcp = transportType is TransportType.Tcp
+                    ? new TcpOptions { ListenAddress = tcpListenAddress, Port = tcpPort }
+                    : null,
+                Security = new TransportSecurityOptions
+                {
+                    TlsEnabled = tlsEnabled,
+                    SslProtocols = sslProtocols,
+                    RemoteCertificateValidation = remoteCertificateValidation,
+                    ServerCertificatePath = serverCertificatePath,
+                    ServerCertificateKeyPath = serverCertificateKeyPath,
+                },
             },
             Network = new NetworkOptions
             {

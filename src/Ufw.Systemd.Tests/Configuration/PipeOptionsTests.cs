@@ -1,5 +1,4 @@
-﻿using System.Security.Authentication;
-using Ufw.Systemd.Configuration.Model;
+﻿using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Systemd.Tests.Configuration;
 
@@ -7,65 +6,26 @@ namespace Ufw.Systemd.Tests.Configuration;
 public sealed class PipeOptionsTests
 {
     [TestMethod]
-    public void ThrowIfInvalid_PlaintextDoesNotRequireCertificateFiles()
+    public void ThrowIfInvalid_AcceptsNonEmptyEndpoint()
     {
-        PipeOptions options = CreateOptions();
+        PipeOptions options = new() { PipeName = "/tmp/ufw-tests.pipe" };
 
         options.ThrowIfInvalid();
     }
 
     [TestMethod]
-    public void ThrowIfInvalid_RejectsClientValidationWhenTlsIsDisabled()
+    public void ThrowIfInvalid_RejectsEmptyEndpoint()
     {
-        PipeOptions options = CreateOptions(remoteCertificateValidation: new RemoteCertificateValidationOptions
-        {
-            RequiredIssuer = "CN=test-ca",
-            RequiredSubject = "CN=test-client",
-        });
+        PipeOptions options = new() { PipeName = "" };
 
         Assert.ThrowsExactly<InvalidOperationException>(options.ThrowIfInvalid);
     }
 
     [TestMethod]
-    public void ThrowIfInvalid_TlsRequiresCertificatePaths()
+    public void ThrowIfInvalid_DoesNotApplyHostSpecificPathRules()
     {
-        PipeOptions options = CreateOptions(tlsEnabled: true);
-
-        Assert.ThrowsExactly<InvalidOperationException>(options.ThrowIfInvalid);
-    }
-
-    [TestMethod]
-    public void ThrowIfInvalid_DoesNotConsultCertificateFilesystem()
-    {
-        PipeOptions options = CreateOptions(
-            tlsEnabled: true,
-            serverCertificatePath: "/definitely/not/a/certificate.pem",
-            serverCertificateKeyPath: "/definitely/not/a/key.pem");
+        PipeOptions options = new() { PipeName = "relative-pipe-name" };
 
         options.ThrowIfInvalid();
     }
-
-    [TestMethod]
-    public void ThrowIfInvalid_DoesNotApplyHostSpecificPipePathRules()
-    {
-        PipeOptions options = CreateOptions(pipeName: "relative-pipe-name");
-
-        options.ThrowIfInvalid();
-    }
-
-    private static PipeOptions CreateOptions(
-        string pipeName = "/tmp/ufw-tests.pipe",
-        bool tlsEnabled = false,
-        RemoteCertificateValidationOptions? remoteCertificateValidation = null,
-        string? serverCertificatePath = null,
-        string? serverCertificateKeyPath = null) =>
-        new()
-        {
-            PipeName = pipeName,
-            TlsEnabled = tlsEnabled,
-            SslProtocols = SslProtocols.None,
-            RemoteCertificateValidation = remoteCertificateValidation,
-            ServerCertificatePath = serverCertificatePath,
-            ServerCertificateKeyPath = serverCertificateKeyPath,
-        };
 }

@@ -1,6 +1,6 @@
 # IPC protocol test adapter
 
-The IPC test adapter provides an in-process environment for testing the same client-to-daemon protocol stack used in production without starting separate processes or binding a platform-specific Unix socket or named pipe.
+The IPC test adapter provides an in-process environment for testing the same client-to-daemon protocol stack used in production without starting separate processes or binding a Unix socket, named pipe, or TCP listener.
 
 Its purpose is not to replace the production stack with test doubles. The adapter substitutes the physical transport and, where a test requires it, transport security. Framing, application serialization, request binding, middleware, routing, endpoint invocation, response handling, timeouts, and worker lifecycle remain the production implementation. This makes the adapter suitable for both ordinary typed request tests and malformed-wire/failure-path tests.
 

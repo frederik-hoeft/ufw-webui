@@ -23,19 +23,16 @@ public sealed class ConfigurationImplTests
         try
         {
             Mock<IConfigurationEnvironmentValidator> environmentValidator = new(MockBehavior.Strict);
-            environmentValidator
-                .Setup(validator => validator.ThrowIfInvalid(It.IsAny<AppSettings>()));
+            environmentValidator.Setup(validator => validator.ThrowIfInvalid(It.IsAny<AppSettings>()));
             ConfigurationImpl configuration = CreateConfiguration(environmentValidator.Object);
 
             await configuration.LoadAsync(path, CancellationToken.None);
 
             Assert.AreEqual("/usr/sbin/ufw", configuration.Settings.UfwPath);
+            Assert.AreEqual(TransportType.Pipe, configuration.Settings.Transport.Type);
             Assert.AreEqual(TimeSpan.FromMinutes(30), configuration.Settings.Network.RequestTimeout);
-            environmentValidator.Verify(
-                validator => validator.ThrowIfInvalid(It.Is<AppSettings>(settings => settings.Network.MaxConnections == 8)),
-                Times.Once);
-            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
-                await configuration.LoadAsync(path, CancellationToken.None));
+            environmentValidator.Verify(validator => validator.ThrowIfInvalid(It.Is<AppSettings>(settings => settings.Network.MaxConnections == 8)), Times.Once);
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
         }
         finally
         {
@@ -52,8 +49,7 @@ public sealed class ConfigurationImplTests
             Mock<IConfigurationEnvironmentValidator> environmentValidator = new(MockBehavior.Strict);
             ConfigurationImpl configuration = CreateConfiguration(environmentValidator.Object);
 
-            await Assert.ThrowsExactlyAsync<JsonException>(async () =>
-                await configuration.LoadAsync(path, CancellationToken.None));
+            await Assert.ThrowsExactlyAsync<JsonException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
             environmentValidator.VerifyNoOtherCalls();
         }
         finally
@@ -63,9 +59,7 @@ public sealed class ConfigurationImplTests
     }
 
     private static ConfigurationImpl CreateConfiguration(IConfigurationEnvironmentValidator? environmentValidator = null) =>
-        new(
-            AppSettingsJsonSerializerContext.Default,
-            environmentValidator ?? Mock.Of<IConfigurationEnvironmentValidator>());
+        new(AppSettingsJsonSerializerContext.Default, environmentValidator ?? Mock.Of<IConfigurationEnvironmentValidator>());
 
     private static async Task<string> WriteSettingsAsync(bool includeRequestTimeout = true)
     {
@@ -76,13 +70,19 @@ public sealed class ConfigurationImplTests
           "expose_remote_exception_details": false,
           "ufw_path": "/usr/sbin/ufw",
           "ufw_defaults_path": "/etc/default/ufw",
-          "pipe": {
-            "pipe_name": "/tmp/ufw-systemd-tests.pipe",
-            "tls_enabled": false,
-            "ssl_protocols": "none",
-            "remote_certificate_validation": null,
-            "server_certificate_path": null,
-            "server_certificate_key_path": null
+          "transport": {
+            "type": "pipe",
+            "pipe": {
+              "pipe_name": "/tmp/ufw-systemd-tests.pipe"
+            },
+            "tcp": null,
+            "security": {
+              "tls_enabled": false,
+              "ssl_protocols": "none",
+              "remote_certificate_validation": null,
+              "server_certificate_path": null,
+              "server_certificate_key_path": null
+            }
           },
           "network": {
             "max_connections": 8,

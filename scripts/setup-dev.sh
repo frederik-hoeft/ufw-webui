@@ -458,16 +458,22 @@ cat > "$SYSTEMD_CONFIG" <<EOF_SYSTEMD_CONFIG
   "expose_remote_exception_details": true,
   "ufw_path": "$escaped_ufw_path",
   "ufw_defaults_path": "$escaped_ufw_defaults_path",
-  "pipe": {
-    "pipe_name": "$escaped_pipe_name",
-    "tls_enabled": true,
-    "ssl_protocols": "none",
-    "remote_certificate_validation": {
-      "required_issuer": "CN=$CA_COMMON_NAME",
-      "required_subject": "CN=$CLIENT_COMMON_NAME"
+  "transport": {
+    "type": "pipe",
+    "pipe": {
+      "pipe_name": "$escaped_pipe_name"
     },
-    "server_certificate_path": "$escaped_server_cert",
-    "server_certificate_key_path": "$escaped_server_key"
+    "tcp": null,
+    "security": {
+      "tls_enabled": true,
+      "ssl_protocols": "none",
+      "remote_certificate_validation": {
+        "required_issuer": "CN=$CA_COMMON_NAME",
+        "required_subject": "CN=$CLIENT_COMMON_NAME"
+      },
+      "server_certificate_path": "$escaped_server_cert",
+      "server_certificate_key_path": "$escaped_server_key"
+    }
   },
   "network": {
     "max_connections": 8,

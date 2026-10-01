@@ -20,7 +20,7 @@ The local `appsettings.json` file is gitignored and excluded from publish output
 
 The daemon `serve` command loads one explicit JSON settings file exactly once during process startup. Configuration is immutable for the lifetime of the daemon; changes require a process restart. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
 
-Daemon settings are explicit rather than backed by independent C# defaults. Required JSON members must be present even when their value is `false`, `null`, or an empty optional path. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, Unix pipe path form, TLS certificate files, and security-state paths.
+Daemon settings are explicit rather than backed by independent C# defaults. Required JSON members must be present even when their value is `false` or `null`. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, the selected transport endpoint, TLS certificate files, and security-state paths.
 
 The installer preserves an existing settings file on update unless `--settings PATH` is supplied explicitly.
 
@@ -118,20 +118,25 @@ The production template is `deploy/systemd/settings.json.example`.
 
 The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
 
-### Pipe and stream security
+### Daemon transport and stream security
+
+The daemon selects one transport when it starts. `transport.type` accepts `pipe` or `tcp`; changing the selected transport or any of its endpoint/security settings requires a daemon restart. The selected transport configuration must be present, while the unused transport configuration may be `null`.
 
 | Setting | Purpose |
 | --- | --- |
-| `pipe.pipe_name` | local endpoint; production default `/var/lib/ufw-webui/ipc/ufw-systemd.sock` |
-| `pipe.tls_enabled` | wrap the local stream in TLS |
-| `pipe.ssl_protocols` | protocol selection; `none` delegates selection to .NET/OS |
-| `pipe.server_certificate_path` | server certificate path when TLS is enabled |
-| `pipe.server_certificate_key_path` | matching server private key |
-| `pipe.remote_certificate_validation` | optional client-certificate validation policy; enables mTLS when configured |
+| `transport.type` | startup transport selector; production uses `pipe` |
+| `transport.pipe.pipe_name` | named-pipe endpoint; on Unix this is the Unix-domain socket path, with production using `/var/lib/ufw-webui/ipc/ufw-systemd.sock` |
+| `transport.tcp.listen_address` | literal IPv4 or IPv6 address on which the daemon listens when `tcp` is selected |
+| `transport.tcp.port` | TCP listen port from `1` through `65535` |
+| `transport.security.tls_enabled` | wrap the selected transport stream in TLS |
+| `transport.security.ssl_protocols` | TLS protocol selection; `none` delegates selection to .NET/OS |
+| `transport.security.server_certificate_path` | server certificate path when TLS is enabled |
+| `transport.security.server_certificate_key_path` | matching server private key |
+| `transport.security.remote_certificate_validation` | optional client-certificate validation policy; enables mTLS when configured |
 
-Production Compose defaults to TLS disabled because the endpoint is a host Unix socket with group-restricted access. TLS/mTLS is defense in depth and does not replace signed mutation authorization.
+The standard production topology selects a group-restricted Unix-domain socket and therefore leaves TLS disabled. TCP support allows the daemon process boundary to be deployed independently from the container topology, but the listen address must be protected by the host/network firewall and TLS should be enabled whenever the surrounding network does not already provide an equivalent trusted boundary. Signed mutation intents authorize privileged writes; they do not replace transport confidentiality or peer-admission controls.
 
-When TLS is enabled, `Ufw.Web` must use matching `IpcOptions` values for server name, protocol policy, and optional client certificate.
+TLS configuration is immutable for the daemon lifetime. Server certificate material is loaded on the first TLS connection and retained for subsequent connections; after that first load, rotating the certificate files requires a daemon restart. Client-certificate validation policy is snapshotted from startup configuration and likewise changes only after restart. When TLS is enabled, the peer must use matching certificate-name/protocol policy and optional client-certificate settings.
 
 ### Network policy
 

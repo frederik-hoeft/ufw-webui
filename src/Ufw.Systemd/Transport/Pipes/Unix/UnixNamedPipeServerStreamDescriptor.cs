@@ -13,7 +13,7 @@ internal sealed class UnixNamedPipeServerStreamDescriptor(IConfiguration configu
 
     private NamedPipeServerStream CreateServerStream()
     {
-        string pipeName = configuration.Settings.Pipe.PipeName;
+        string pipeName = configuration.Settings.Transport.Pipe?.PipeName ?? throw new InvalidOperationException("Pipe transport settings are not configured.");
         NamedPipeServerStream stream = new
         (
             pipeName,

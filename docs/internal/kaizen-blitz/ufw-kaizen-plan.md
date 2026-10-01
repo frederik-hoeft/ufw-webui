@@ -267,8 +267,8 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | SYS KZ-015 | D3 | Keep authorized-key ownership inside the key store | Do after KZ-009; align key lifetime/rotation behavior with the chosen configuration lifecycle and KZ-014 verifier split. |
 | [ ] | SYS KZ-016 | D2 | Unify insertion placement logic | Do before KZ-006/KZ-007 so insertion/reorder/recovery all consume one placement calculation. |
 | [ ] | SYS KZ-017 | D2 | Separate command execution from output parsing | Do before KZ-005; mutation execution primitives should be built on the final command/runner result shape. |
-| [ ] | SYS KZ-018 | D1 | Make transport security transport-neutral or name it pipe-specific | Do after KZ-009 and before KZ-019 so transport security consumes the final configuration model. |
-| [ ] | SYS KZ-019 | D1 | Remove or finish the dormant TCP server transport | Do after KZ-009/KZ-018. Its final transport-selection contract is a handoff input to Web KZ-02/KZ-04. |
+| [x] | SYS KZ-018 | D1 | Make transport security transport-neutral or name it pipe-specific | Do after KZ-009 and before KZ-019 so transport security consumes the final configuration model. |
+| [x] | SYS KZ-019 | D1 | Remove or finish the dormant TCP server transport | Do after KZ-009/KZ-018. Its final transport-selection contract is a handoff input to Web KZ-02/KZ-04. |
 | [ ] | SYS KZ-020 | D1 | Deduplicate endpoint invocation/exception serialization | Do with KZ-021; deduplicate invocation/serialization against the final middleware/pipeline shape. |
 | [ ] | SYS KZ-021 | D1 | Simplify middleware composition | Do before KZ-003/KZ-020 so later API cleanup targets immutable composition. |
 | [ ] | SYS KZ-022 | D4 | Consolidate logging and remove bypasses | Do after KZ-012 and API/pipeline cleanup so logging has one final policy and no direct-console bypasses. |

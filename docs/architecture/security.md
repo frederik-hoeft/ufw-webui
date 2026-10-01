@@ -88,9 +88,9 @@ Cancellation, an ambiguous post-mutation listing, or a successful exit code with
 
 ## IPC transport security
 
-The local IPC endpoint is protected first by operating-system permissions. Production exposes a group-restricted Unix-domain socket only to the ASP container. This local peer-admission boundary is separate from mutation authorization: access to the socket permits a process to speak the daemon protocol, not to manufacture a valid signed mutation.
+The daemon transport is selected at startup. The standard production deployment uses a group-restricted Unix-domain socket exposed only to the ASP container, so operating-system socket permissions provide the first peer-admission boundary. The daemon can also listen on an explicitly configured TCP address and port when the process boundary must be separated from that deployment topology.
 
-TLS is optional on top of that local transport. When enabled, the IPC client authenticates the daemon certificate, and the daemon can additionally require a client certificate for mTLS. Disabling TLS leaves confidentiality and peer authentication to the local socket boundary, but it does not change the signed-intent requirement for privileged mutations.
+TLS can wrap either transport. When enabled, the IPC client authenticates the daemon certificate, and the daemon can additionally require a client certificate for mTLS. A local Unix socket can rely on its filesystem/host boundary when TLS is disabled; a TCP deployment must establish equivalent network admission and confidentiality appropriate to its environment, normally through host/network filtering and TLS. These controls remain separate from signed mutation authorization: the ability to reach the daemon permits a peer to speak the read protocol, while a privileged mutation still requires a valid signed intent.
 
 The IPC wire protocols are versioned and bounded so malformed framing and malformed application envelopes fail before endpoint execution. The detailed transport and application contracts are documented under [IPC protocols](../protocols/README.md).
 

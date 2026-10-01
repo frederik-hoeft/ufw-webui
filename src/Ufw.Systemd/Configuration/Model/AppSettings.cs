@@ -10,7 +10,7 @@ internal sealed class AppSettings : IRequireValidation
 
     public required string UfwDefaultsPath { get; init; }
 
-    public required PipeOptions Pipe { get; init; }
+    public required TransportOptions Transport { get; init; }
 
     public required NetworkOptions Network { get; init; }
 
@@ -23,7 +23,12 @@ internal sealed class AppSettings : IRequireValidation
             throw new InvalidOperationException("UFW executable and defaults paths are required.");
         }
 
-        Pipe.ThrowIfInvalid();
+        if (Transport is null)
+        {
+            throw new InvalidOperationException("Transport settings are required.");
+        }
+
+        Transport.ThrowIfInvalid();
         Network.ThrowIfInvalid();
         Security?.ThrowIfInvalid();
     }

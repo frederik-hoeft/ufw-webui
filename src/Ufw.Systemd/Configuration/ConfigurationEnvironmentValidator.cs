@@ -13,24 +13,36 @@ internal sealed class ConfigurationEnvironmentValidator : IConfigurationEnvironm
             throw new InvalidOperationException($"The configured UFW executable does not exist: '{settings.UfwPath}'.");
         }
 
-        ThrowIfPipeEnvironmentInvalid(settings.Pipe);
+        ThrowIfTransportEnvironmentInvalid(settings.Transport);
         ThrowIfSecurityEnvironmentInvalid(settings.Security);
+    }
+
+    private static void ThrowIfTransportEnvironmentInvalid(TransportOptions transport)
+    {
+        if (transport.Type is TransportType.Pipe)
+        {
+            ThrowIfPipeEnvironmentInvalid(transport.Pipe!);
+        }
+
+        ThrowIfTransportSecurityEnvironmentInvalid(transport.Security);
     }
 
     private static void ThrowIfPipeEnvironmentInvalid(PipeOptions pipe)
     {
-        if (!OperatingSystem.IsWindows()
-            && (!Path.IsPathFullyQualified(pipe.PipeName) || Path.EndsInDirectorySeparator(pipe.PipeName)))
+        if (!OperatingSystem.IsWindows() && (!Path.IsPathFullyQualified(pipe.PipeName) || Path.EndsInDirectorySeparator(pipe.PipeName)))
         {
             throw new InvalidOperationException("Unix pipe endpoints must be absolute file paths.");
         }
+    }
 
-        if (!pipe.TlsEnabled)
+    private static void ThrowIfTransportSecurityEnvironmentInvalid(TransportSecurityOptions security)
+    {
+        if (!security.TlsEnabled)
         {
             return;
         }
 
-        if (!File.Exists(pipe.ServerCertificatePath) || !File.Exists(pipe.ServerCertificateKeyPath))
+        if (!File.Exists(security.ServerCertificatePath) || !File.Exists(security.ServerCertificateKeyPath))
         {
             throw new InvalidOperationException("TLS requires readable server certificate and private-key files.");
         }

@@ -18,7 +18,8 @@ internal static class TestAppSettingsFactory
         RemoteCertificateValidationOptions? remoteCertificateValidation = null,
         string? serverCertificatePath = null,
         string? serverCertificateKeyPath = null,
-        SecurityOptions? security = null) =>
+        SecurityOptions? security = null,
+        TransportType transportType = TransportType.Pipe) =>
         new()
         {
             DebugMode = debugMode,
@@ -26,14 +27,19 @@ internal static class TestAppSettingsFactory
             // Never executed by the in-process adapter; value is only present to satisfy the model shape.
             UfwPath = "/nonexistent/ufw-for-tests",
             UfwDefaultsPath = "/nonexistent/ufw-defaults-for-tests",
-            Pipe = new PipeOptions
+            Transport = new TransportOptions
             {
-                PipeName = "/tmp/ufw-ipc-tests.inprocess",
-                TlsEnabled = tlsEnabled,
-                SslProtocols = sslProtocols,
-                RemoteCertificateValidation = remoteCertificateValidation,
-                ServerCertificatePath = serverCertificatePath,
-                ServerCertificateKeyPath = serverCertificateKeyPath,
+                Type = transportType,
+                Pipe = transportType is TransportType.Pipe ? new PipeOptions { PipeName = "/tmp/ufw-ipc-tests.inprocess" } : null,
+                Tcp = transportType is TransportType.Tcp ? new TcpOptions { ListenAddress = "127.0.0.1", Port = 1234 } : null,
+                Security = new TransportSecurityOptions
+                {
+                    TlsEnabled = tlsEnabled,
+                    SslProtocols = sslProtocols,
+                    RemoteCertificateValidation = remoteCertificateValidation,
+                    ServerCertificatePath = serverCertificatePath,
+                    ServerCertificateKeyPath = serverCertificateKeyPath,
+                },
             },
             Network = new NetworkOptions
             {

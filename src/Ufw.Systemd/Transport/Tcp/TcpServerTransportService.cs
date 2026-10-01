@@ -3,7 +3,7 @@ using Ufw.Shared.Ipc.Transport;
 
 namespace Ufw.Systemd.Transport.Tcp;
 
-internal sealed class TcpServerTransportService(ITcpServerStreamDescriptor serverStreamDescriptor) : ITransportLayerService
+internal sealed class TcpServerTransportService(ITcpServerStreamDescriptor serverStreamDescriptor) : ITcpTransportLayerService
 {
     public async Task<ITransportLayerConnection> ServeAsync(CancellationToken cancellationToken)
     {

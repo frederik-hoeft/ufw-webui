@@ -1,5 +1,4 @@
-﻿using System.Security.Authentication;
-using Ufw.Systemd.Configuration;
+﻿using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Tests.TestSupport;
 
@@ -46,22 +45,41 @@ public sealed class ConfigurationEnvironmentValidatorTests
     }
 
     [TestMethod]
-    public void ThrowIfInvalid_TlsRequiresExistingCertificateFiles()
+    public void ThrowIfInvalid_TlsRequiresExistingCertificateFilesForAnyTransport()
     {
         string ufwPath = Path.GetTempFileName();
         try
         {
-            AppSettings baseline = TestAppSettingsFactory.Create();
-            PipeOptions pipe = new()
+            ConfigurationEnvironmentValidator validator = new();
+            foreach (TransportType transportType in Enum.GetValues<TransportType>())
             {
-                PipeName = baseline.Pipe.PipeName,
-                TlsEnabled = true,
-                SslProtocols = SslProtocols.None,
-                RemoteCertificateValidation = null,
-                ServerCertificatePath = "/definitely/not/a/certificate.pem",
-                ServerCertificateKeyPath = "/definitely/not/a/key.pem",
-            };
-            AppSettings settings = CopyWithUfwPath(baseline, ufwPath, pipe);
+                AppSettings settings = CopyWithUfwPath(TestAppSettingsFactory.Create(
+                    transportType: transportType,
+                    tlsEnabled: true,
+                    serverCertificatePath: "/definitely/not/a/certificate.pem",
+                    serverCertificateKeyPath: "/definitely/not/a/key.pem"), ufwPath);
+
+                Assert.ThrowsExactly<InvalidOperationException>(() => validator.ThrowIfInvalid(settings));
+            }
+        }
+        finally
+        {
+            File.Delete(ufwPath);
+        }
+    }
+
+    [TestMethod]
+    public void ThrowIfInvalid_RejectsRelativeSelectedPipePathOnUnix()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Windows named pipes use logical pipe names rather than Unix socket paths.");
+        }
+
+        string ufwPath = Path.GetTempFileName();
+        try
+        {
+            AppSettings settings = CopyWithUfwPath(TestAppSettingsFactory.Create(pipeName: "relative-pipe-name"), ufwPath);
             ConfigurationEnvironmentValidator validator = new();
 
             Assert.ThrowsExactly<InvalidOperationException>(() => validator.ThrowIfInvalid(settings));
@@ -73,30 +91,28 @@ public sealed class ConfigurationEnvironmentValidatorTests
     }
 
     [TestMethod]
-    public void ThrowIfInvalid_RejectsRelativePipePathOnUnix()
+    public void ThrowIfInvalid_DoesNotApplyPipePathRulesWhenTcpIsSelectedOnUnix()
     {
         if (OperatingSystem.IsWindows())
         {
-            Assert.Inconclusive("Windows named pipes use logical pipe names rather than Unix socket paths.");
+            return;
         }
 
         string ufwPath = Path.GetTempFileName();
         try
         {
-            AppSettings baseline = TestAppSettingsFactory.Create();
-            PipeOptions pipe = new()
+            AppSettings baseline = TestAppSettingsFactory.Create(transportType: TransportType.Tcp);
+            TransportOptions transport = new()
             {
-                PipeName = "relative-pipe-name",
-                TlsEnabled = false,
-                SslProtocols = SslProtocols.None,
-                RemoteCertificateValidation = null,
-                ServerCertificatePath = null,
-                ServerCertificateKeyPath = null,
+                Type = TransportType.Tcp,
+                Pipe = new PipeOptions { PipeName = "relative-unused-pipe" },
+                Tcp = baseline.Transport.Tcp,
+                Security = baseline.Transport.Security,
             };
-            AppSettings settings = CopyWithUfwPath(baseline, ufwPath, pipe);
+            AppSettings settings = CopyWithUfwPath(baseline, ufwPath, transport);
             ConfigurationEnvironmentValidator validator = new();
 
-            Assert.ThrowsExactly<InvalidOperationException>(() => validator.ThrowIfInvalid(settings));
+            validator.ThrowIfInvalid(settings);
         }
         finally
         {
@@ -104,20 +120,17 @@ public sealed class ConfigurationEnvironmentValidatorTests
         }
     }
 
-    private static AppSettings CreateSettings(string ufwPath)
-    {
-        AppSettings baseline = TestAppSettingsFactory.Create();
-        return CopyWithUfwPath(baseline, ufwPath);
-    }
+    private static AppSettings CreateSettings(string ufwPath) =>
+        CopyWithUfwPath(TestAppSettingsFactory.Create(), ufwPath);
 
-    private static AppSettings CopyWithUfwPath(AppSettings baseline, string ufwPath, PipeOptions? pipe = null) =>
+    private static AppSettings CopyWithUfwPath(AppSettings baseline, string ufwPath, TransportOptions? transport = null) =>
         new()
         {
             DebugMode = baseline.DebugMode,
             ExposeRemoteExceptionDetails = baseline.ExposeRemoteExceptionDetails,
             UfwPath = ufwPath,
             UfwDefaultsPath = baseline.UfwDefaultsPath,
-            Pipe = pipe ?? baseline.Pipe,
+            Transport = transport ?? baseline.Transport,
             Network = baseline.Network,
             Security = baseline.Security,
         };
