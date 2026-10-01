@@ -7,7 +7,7 @@ namespace Ufw.Shared.Domain.Algebra;
 /// </summary>
 /// <remarks>
 /// Regions that are equal on every axis except one can be algebraically factored by unioning that varying axis:
-/// <c>(A × X) ∪ (B × X) = (A ∪ B) × X</c>. Coalescing applies that identity without changing the represented
+/// <c>(A \times X) \cup (B \times X) = (A \cup B) \times X</c>. Coalescing applies that identity without changing the represented
 /// tuple set or introducing overlap.
 /// </remarks>
 public sealed class ProductSpace

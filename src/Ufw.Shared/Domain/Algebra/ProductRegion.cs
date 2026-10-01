@@ -3,7 +3,7 @@
 namespace Ufw.Shared.Domain.Algebra;
 
 /// <summary>
-/// One factored Cartesian product <c>A0 × A1 × ... × An</c>, with one set-valued component per axis.
+/// One factored Cartesian product <c>A0 \times A1 \times ... \times An</c>, with one set-valued component per axis.
 /// </summary>
 /// <remarks>
 /// "Rectangle" is combinatorial rather than necessarily geometrically connected: an individual axis set may
