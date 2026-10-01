@@ -14,8 +14,4 @@ internal sealed class UfwDeleteRuleCommand(int displayNumber) : IUfwCommand
 
         return ["--force", "delete", displayNumber.ToString(CultureInfo.InvariantCulture)];
     }
-
-    public void SetOutput(string output)
-    {
-    }
 }

@@ -35,7 +35,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
         try
         {
             UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            if (!result.Succeeded || result.CancellationRequested)
+            if (!result.Succeeded)
             {
                 processDiagnostic = FormatProcessDiagnostic(result);
                 _logger.LogWarning($"Reorder recovery insertion did not report success: {processDiagnostic}");

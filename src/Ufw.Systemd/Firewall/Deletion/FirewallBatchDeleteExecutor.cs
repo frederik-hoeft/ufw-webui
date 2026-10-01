@@ -84,7 +84,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
 
             if (afterDelete is not null && SnapshotMatchesOrder(afterDelete, baseline, expectedOrder))
             {
-                RuleBatchDeleteOperationStatus status = process.Succeeded && !process.CancellationRequested
+                RuleBatchDeleteOperationStatus status = process.Succeeded
                     ? RuleBatchDeleteOperationStatus.Deleted
                     : RuleBatchDeleteOperationStatus.DeletedAfterProcessFailure;
                 operations.Add(new RuleBatchDeleteOperationReport(occurrenceId, baseline.Rules[occurrenceId].RuleId, status, process.Diagnostic));
@@ -158,7 +158,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
         try
         {
             UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded && !result.CancellationRequested ? null : FormatProcessDiagnostic(result);
+            string? diagnostic = result.Succeeded ? null : FormatProcessDiagnostic(result);
             return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);
         }
         catch (ChildProcessException exception)

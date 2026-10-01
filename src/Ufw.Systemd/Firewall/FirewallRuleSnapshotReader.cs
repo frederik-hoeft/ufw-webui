@@ -39,7 +39,8 @@ internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, IUfwDefau
             return Error("Failed to read the current UFW rule set.");
         }
 
-        UfwStatusSnapshot? snapshot = await command.GetResultAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(result.StandardOutput);
         if (snapshot is null)
         {
             _logger.LogError("UFW status returned successful process output that could not be parsed as a status response.");

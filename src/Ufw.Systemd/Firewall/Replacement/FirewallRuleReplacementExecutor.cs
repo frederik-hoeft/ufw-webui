@@ -291,7 +291,7 @@ internal sealed class FirewallRuleReplacementExecutor(
         try
         {
             UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded && !result.CancellationRequested ? null : FormatProcessDiagnostic(result, operation);
+            string? diagnostic = result.Succeeded ? null : FormatProcessDiagnostic(result, operation);
             return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);
         }
         catch (ChildProcessException exception)

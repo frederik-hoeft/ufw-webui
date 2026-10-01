@@ -123,7 +123,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         try
         {
             UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded && !result.CancellationRequested
+            string? diagnostic = result.Succeeded
                 ? null
                 : FormatProcessDiagnostic(result);
             return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);

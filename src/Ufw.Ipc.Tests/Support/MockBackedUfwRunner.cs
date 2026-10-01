@@ -19,7 +19,6 @@ internal sealed class MockBackedUfwRunner(string statePath) : IUfwRunner
 
         ImmutableArray<string> arguments = command.BuildArguments();
         MockCommandResult result = await InvokeAsync(statePath, arguments, cancellationToken);
-        command.SetOutput(result.StandardOutput);
         if (AfterCommandAsync is not null)
         {
             await AfterCommandAsync(arguments, cancellationToken);
