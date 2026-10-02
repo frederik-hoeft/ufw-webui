@@ -445,13 +445,11 @@ public sealed class FirewallRuleReplacementExecutorTests
             _interfaceValidator.Setup(validator => validator.Validate(It.IsAny<FirewallRuleSpecification>())).Returns(() => _interfaceValidationResponse);
             _ufwRunner.Setup(runner => runner.ExecuteAsync(It.IsAny<IUfwCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync((IUfwCommand command, CancellationToken _) => Execute(command));
 
-            Executor = new FirewallRuleReplacementExecutor(
-                _snapshotReader.Object,
-                _interfaceValidator.Object,
-                new FirewallRuleCapabilityValidator(),
-                new UfwProcessExecutor(_ufwRunner.Object, new ConsoleLogger()),
-                new UfwRuleCommandRenderer(),
-                new ConsoleLogger());
+            ConsoleLogger logger = new();
+            UfwProcessExecutor processExecutor = new(_ufwRunner.Object, logger);
+            FirewallRuleReplacementPreflightEvaluator preflightEvaluator = new(_interfaceValidator.Object, new FirewallRuleCapabilityValidator());
+            FirewallRuleReplacementTransactionExecutor transactionExecutor = new(_snapshotReader.Object, processExecutor, new UfwRuleCommandRenderer(), logger);
+            Executor = new FirewallRuleReplacementExecutor(_snapshotReader.Object, preflightEvaluator, transactionExecutor);
         }
 
         public FirewallRuleReplacementExecutor Executor { get; }

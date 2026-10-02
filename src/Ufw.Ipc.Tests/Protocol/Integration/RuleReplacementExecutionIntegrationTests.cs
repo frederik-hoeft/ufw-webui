@@ -112,6 +112,8 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
         services.AddSingleton<IFirewallRuleCapabilityValidator, FirewallRuleCapabilityValidator>();
         services.AddSingleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>();
         services.AddSingleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>();
+        services.AddSingleton<IFirewallRuleReplacementPreflightEvaluator, FirewallRuleReplacementPreflightEvaluator>();
+        services.AddSingleton<IFirewallRuleReplacementTransactionExecutor, FirewallRuleReplacementTransactionExecutor>();
         services.AddSingleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>();
         services.AddSingleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>();
         services.AddSingleton<IFirewallRuleQueryService, FirewallRuleQueryService>();

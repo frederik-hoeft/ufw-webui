@@ -46,6 +46,8 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IFirewallReorderRecoveryService, FirewallReorderRecoveryService>]
 [Singleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>]
 [Singleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>]
+[Singleton<IFirewallRuleReplacementPreflightEvaluator, FirewallRuleReplacementPreflightEvaluator>]
+[Singleton<IFirewallRuleReplacementTransactionExecutor, FirewallRuleReplacementTransactionExecutor>]
 [Singleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>]
 [Singleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>]
 [Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]

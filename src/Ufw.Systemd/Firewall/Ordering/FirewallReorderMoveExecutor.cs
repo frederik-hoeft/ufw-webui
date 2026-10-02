@@ -1,5 +1,6 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
+using Ufw.Shared.Extensions;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Services.Logging;
@@ -39,7 +40,11 @@ internal sealed class FirewallReorderMoveExecutor(
             return Interrupted(preMoveSnapshot, null, "Authoritative state diverged before the next move started.");
         }
 
-        int currentIndex = IndexOf(preMoveOrder, move.OccurrenceId);
+        int currentIndex = preMoveOrder.IndexOf(move.OccurrenceId);
+        if (currentIndex < 0)
+        {
+            throw new InvalidOperationException($"Occurrence {move.OccurrenceId} is missing from the expected ordering state.");
+        }
         ListedFirewallRule listedRule = preMoveSnapshot.Rules[currentIndex];
         if (listedRule.DisplayNumber is not int displayNumber)
         {
@@ -140,8 +145,12 @@ internal sealed class FirewallReorderMoveExecutor(
     private IUfwCommand CreatePlannedInsertionCommand(RuleReorderMove move, RuleListResponse afterDelete, IReadOnlyList<int> afterDeleteOrder, FirewallRuleSpecification specification)
     {
         int desiredOccurrenceIndex = move.BeforeOccurrenceId is int beforeOccurrenceId
-            ? IndexOf(afterDeleteOrder, beforeOccurrenceId)
+            ? afterDeleteOrder.IndexOf(beforeOccurrenceId)
             : afterDelete.Rules.Count;
+        if (desiredOccurrenceIndex < 0)
+        {
+            throw new InvalidOperationException("Reorder insertion anchor is missing from the expected state.");
+        }
         UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(afterDelete.Rules, specification.AddressFamily, desiredOccurrenceIndex);
         return placement.CreateCommand(specification, renderer);
     }
@@ -183,19 +192,6 @@ internal sealed class FirewallReorderMoveExecutor(
         }
 
         return result;
-    }
-
-    private static int IndexOf(IReadOnlyList<int> order, int occurrenceId)
-    {
-        for (int index = 0; index < order.Count; index++)
-        {
-            if (order[index] == occurrenceId)
-            {
-                return index;
-            }
-        }
-
-        throw new InvalidOperationException($"Occurrence {occurrenceId} is missing from the expected ordering state.");
     }
 
     private static RuleRecoveryAnchor CreateAnchor(ListedFirewallRule rule) =>
