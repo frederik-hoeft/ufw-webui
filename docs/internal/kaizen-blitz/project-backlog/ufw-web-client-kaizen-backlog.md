@@ -411,7 +411,9 @@ The localizer keys a dictionary by exact English strings emitted by the shared v
 
 **Refactor**
 
-Have shared validation return a stable validation code/enum plus field/context, and localize by code in the client. Keep the English diagnostic message only as fallback/debug text if useful.
+S1 has completed the provider-side dependency: shared firewall validation now returns a stable open string code alongside the field and human-readable diagnostic, current producers populate that code, and older application-v1 payloads without a code remain readable.
+
+C1 should switch `RuleValidationMessageLocalizer` to key resources by the stable code and keep the English diagnostic only as fallback/debug text. Do not redefine the shared code vocabulary in the client.
 
 ### KZ-13: Reclassify non-isolated component SCSS and extract generic menu/control styles
 

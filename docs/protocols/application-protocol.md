@@ -189,11 +189,17 @@ A model-validation failure uses the distinct `validation-error` representation:
   "payload": {
     "message": "One or more validation errors occurred.",
     "errors": [
-      { "propertyName": "port", "errorMessage": "Port is out of range." }
+      {
+        "propertyName": "DestinationPorts",
+        "errorMessage": "Ports must be between 1 and 65535.",
+        "code": "firewall.rule.ports.out-of-range"
+      }
     ]
   }
 }
 ```
+
+Each validation error carries the affected `propertyName` and a human-readable `errorMessage`. Firewall-rule validation errors also carry an optional `code`. When present, `code` is the stable machine-readable identity and consumers MUST NOT use `errorMessage` as the validation identity. Current producers emit a code for known firewall-rule validation failures. Receivers MUST continue to accept application-v1 validation errors without `code` so payloads produced before stable validation identities were introduced remain readable. Multiple failures for the same `propertyName` are independent array entries and MUST be preserved.
 
 The daemon maps successful empty results to `empty`, successful DTO results to `data`, model-validation failures to `400 validation-error`, and other application errors to `error` with the DTO-defined status. Verified `rules.insert`, `rules.replace`, `rules.delete-batch`, and `rules.reorder` transactions are returned over IPC as typed `data` results even when their state-conditioned goal was not reached. Insertion preserves completed, stale-baseline, precondition-failed, and state-uncertain outcomes. Replacement preserves completed, stale-baseline, precondition-failed, partial-completion, state-uncertain, optional recovery status, final authoritative snapshot, and the confirmed replacement row on completion. Batch deletion preserves completed, stale-baseline, precondition-failed, partial-completion, state-uncertain, per-occurrence, and pending-occurrence information. Reorder additionally preserves its durable recovery outcomes. This keeps authoritative final snapshots and operation reports intact across the daemon boundary. Signature, replay, malformed-intent, and other authorization failures remain ordinary application errors.
 

@@ -8,9 +8,8 @@ The daemon phase is complete. Web work should consume the finalized daemon contr
 - the daemon server supports startup-selected pipe/TCP with transport-neutral TLS/mTLS, while the current `Ufw.Ipc.Client`/`Ufw.Web` composition and production topology remain Unix-pipe based; Web KZ-02/KZ-04 own any client-side transport selection required for TCP deployments;
 - `RuleListResponse` is the authoritative ordered firewall snapshot; semantic `RuleId` excludes comments/transient numbering, while occurrence IDs are snapshot-local coordinates tied to the exact fingerprinted order;
 - signed-intent v2 canonicalization/verification semantics are stable, authorized mutation keys are snapshotted at daemon startup, and mutation routes return typed transaction/recovery data that must not be collapsed to process success/failure;
-- unexpected remote exception details are opt-in via `expose_remote_exception_details`; `debug_mode` controls local diagnostics only.
-
-The detailed compatibility surface is summarized in the [daemon consumer contract](../../../architecture/architecture-overview.md#daemon-consumer-contract).
+- unexpected remote exception details are opt-in via `expose_remote_exception_details`; `debug_mode` controls local diagnostics only;
+- daemon validation failures now carry stable string codes alongside property/message data; current producers populate them, while application-v1 readers tolerate older code-less payloads. The final Web error boundary must preserve those identities and repeated failures for the same property.
 
 ## Scope and method
 

@@ -107,13 +107,14 @@ Recommended order:
 
 ### Bridge checkpoint S1 - daemon -> Web
 
-Wave D is complete. S1 starts from the frozen daemon consumer contract documented in [UFWeb Architecture](../../architecture/architecture-overview.md#daemon-consumer-contract); daemon internals should not be reopened unless S1 discovers a genuine shared-contract defect. The current standard Web deployment/client remains Unix-pipe based even though the daemon server also supports TCP.
+Wave D is complete. S1 treats the consumer-visible daemon behavior finalized in D4 as frozen; daemon internals should not be reopened unless bridge work discovers a genuine shared-contract defect. The current standard Web deployment/client remains Unix-pipe based even though the daemon server also supports TCP.
 
-Before starting structural work in `Ufw.Web`:
+**Status:** complete. S1 established the provider-side validation identity contract before structural Web work:
 
-- update any shared protocol types required by the daemon result, validation, or transport changes;
-- add stable validation identities/codes in the shared validator here if CLIENT KZ-12 requires a provider-side contract change, updating daemon consumers now rather than reopening them during the client phase;
-- keep downstream Web/client changes at this checkpoint mechanical unless required by the shared contract; do not start client architecture work early.
+- firewall-rule validation failures now carry an open, stable string code alongside property and human-readable diagnostic text;
+- current shared, daemon, and client-side rule-validation producers populate the shared codes, while application-v1 readers continue to accept legacy validation payloads without a code;
+- IPC client propagation preserves the validation array and stable codes without additional translation;
+- the current Web `ValidationProblemDetails` mapping and client localization behavior remain unchanged intentionally. WEB KZ-09/KZ-15 own the final public HTTP error contract, and CLIENT KZ-12 owns switching localization from English text to stable codes.
 
 ### Phase W - `Ufw.Web`
 
@@ -201,7 +202,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 
 ### Checkpoint D - daemon complete
 
-**Status:** complete. The D4 definition-of-done audit revalidated all 29 daemon backlog items against the final tree, and the consumer-visible daemon contract is summarized in [the architecture overview](../../architecture/architecture-overview.md#daemon-consumer-contract). The phase gate passes a source-less offline restore, a zero-warning solution build, all 1,420 managed tests, and the `linux-x64` NativeAOT publish.
+**Status:** complete. The D4 definition-of-done audit revalidated all 29 daemon backlog items against the final tree. The phase gate passes a source-less offline restore, a zero-warning solution build, all 1,420 managed tests, and the `linux-x64` NativeAOT publish.
 
 - Daemon backlog is fully green.
 - Mutation state machines use one authoritative snapshot/process/placement foundation.
@@ -243,7 +244,7 @@ These are architecture decisions, not implementation details, and should be writ
 2. **Daemon transport model — daemon side resolved in D1:** the daemon selects `pipe` or `tcp` at startup and applies the same TLS/mTLS policy to either transport. The shipped production topology and current Web IPC client remain pipe-based; WEB KZ-02/KZ-04 own any Web-side transport selection needed to make TCP end-to-end (SYS KZ-019 -> WEB KZ-02/KZ-04).
 3. **Network-interface metadata retention:** whether transient absence preserves user-owned metadata (WEB KZ-13 -> CLIENT KZ-10/KZ-19).
 4. **Shared management-domain branding:** whether existing `*Item` types are renamed/re-namespaced or simply documented as domain/read models; avoid gratuitous clone DTOs (WEB KZ-01).
-5. **Stable validation identity contract:** code/field/context shape used by server and client rather than English-string identity (CLIENT KZ-12, ideally established at S1/S2).
+5. **Stable validation identity contract — resolved in S1:** firewall-rule validation uses an open string code plus property and human-readable diagnostic text. Current producers populate the code; application-v1 readers accept a missing code only for compatibility with older payloads. WEB KZ-09/KZ-15 and CLIENT KZ-12 consume this identity without redefining it.
 6. **Destructive migration policy:** preflight/fail vs explicitly accepted truncation for future schema changes (WEB KZ-19).
 
 ## Holistic traceability checklist

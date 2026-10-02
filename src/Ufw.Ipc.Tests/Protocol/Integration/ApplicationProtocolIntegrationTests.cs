@@ -1,6 +1,7 @@
 ﻿using Ufw.Ipc.Client;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
@@ -111,10 +112,14 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
-    public Task TestValidationErrorResponse_IsNotTreatedAsGenericBadRequestAsync() => RunAsync(
+    public Task TestValidationErrorResponse_PreservesStableIdentityThroughClientAsync() => RunAsync(
         configureEndpoints: static endpoints => endpoints
             .MapPost<EchoRequest, ModelValidationErrorResponse>("/api/v1/reject", static (_, _) =>
-                ValueTask.FromResult(new ModelValidationErrorResponse([new ModelValidationError("message", "required")]))),
+                ValueTask.FromResult(new ModelValidationErrorResponse(
+                    [new ModelValidationError(
+                        nameof(FirewallRuleSpecification.DestinationPorts),
+                        "Ports must be between 1 and 65535.",
+                        FirewallRuleValidationErrorCodes.PORTS_OUT_OF_RANGE)]))),
         actAsync: async (context, cancellationToken) =>
         {
             UfwIpcException exception = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
@@ -124,7 +129,13 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
                     new EchoRequest("x"),
                     cancellationToken));
             Assert.AreEqual(400, exception.StatusCode);
-            Assert.Contains("message: required", exception.Message);
+            Assert.Contains("DestinationPorts: Ports must be between 1 and 65535.", exception.Message);
+            Assert.IsNotNull(exception.ValidationErrors);
+            Assert.HasCount(1, exception.ValidationErrors);
+            ModelValidationError validationError = exception.ValidationErrors[0];
+            Assert.AreEqual(nameof(FirewallRuleSpecification.DestinationPorts), validationError.PropertyName);
+            Assert.AreEqual("Ports must be between 1 and 65535.", validationError.ErrorMessage);
+            Assert.AreEqual(FirewallRuleValidationErrorCodes.PORTS_OUT_OF_RANGE, validationError.Code);
         }, cancellationToken: TestContext.CancellationToken).AsTask();
 }
 

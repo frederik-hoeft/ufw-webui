@@ -31,15 +31,15 @@ internal sealed class RuleEditorValidationService(IRuleValidationMessageLocalize
         string message = validationText["Ipv6Disabled"];
         if (specification.AddressFamily == FirewallAddressFamily.IPv6)
         {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), message));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), message, FirewallRuleValidationErrorCodes.IPV6_DISABLED));
         }
         if (RuleSpecificationNormalizer.GetAddressFamily(specification.Source) == FirewallAddressFamily.IPv6)
         {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Source), message));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Source), message, FirewallRuleValidationErrorCodes.IPV6_DISABLED));
         }
         if (RuleSpecificationNormalizer.GetAddressFamily(specification.Destination) == FirewallAddressFamily.IPv6)
         {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Destination), message));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.Destination), message, FirewallRuleValidationErrorCodes.IPV6_DISABLED));
         }
     }
 }
