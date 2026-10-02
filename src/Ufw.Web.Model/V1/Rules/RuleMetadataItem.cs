@@ -1,4 +1,4 @@
-using Ufw.Web.Model.V1.RuleGroups;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Model.V1.Rules;

@@ -1,3 +1,5 @@
+using Ufw.Web.Data.Access.Rules.Groups;
+using Ufw.Shared.Management.Rules;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +10,6 @@ using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
-using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.RuleTags;
@@ -181,39 +182,32 @@ public sealed class RuleMetadataServiceTests
 
 
     [TestMethod]
-    public async Task RuleGroups_NormalizeAndSupportEmptyGroupLifecycleAsync()
+    public async Task RuleGroups_SupportEmptyGroupLifecycleAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        RuleGroupMutationResult created = await host.Groups.CreateAsync(
-            new CreateRuleGroupRequest { Name = "  Platform  ", Comment = "  managed rules  " },
-            TestContext.CancellationToken);
+        RuleGroupMutationResult created = await host.Groups.CreateAsync("Platform", "managed rules", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupMutationOutcome.Success, created.Outcome);
-        RuleGroupItem group = created.Inventory!.Groups.Single();
+        RuleGroupItem group = (await host.Groups.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual('7', group.Id.ToString("D")[14]);
         Assert.AreEqual("Platform", group.Name);
         Assert.AreEqual("managed rules", group.Comment);
         Assert.IsEmpty(group.RuleIds);
 
-        RuleGroupMutationResult duplicate = await host.Groups.CreateAsync(
-            new CreateRuleGroupRequest { Name = "PLATFORM" },
-            TestContext.CancellationToken);
+        RuleGroupMutationResult duplicate = await host.Groups.CreateAsync("PLATFORM", null, TestContext.CancellationToken);
         Assert.AreEqual(RuleGroupMutationOutcome.NameConflict, duplicate.Outcome);
 
-        RuleGroupMutationResult updated = await host.Groups.UpdateAsync(
-            group.Id,
-            new UpdateRuleGroupRequest { Name = "Core", Comment = "  " },
-            TestContext.CancellationToken);
+        RuleGroupMutationResult updated = await host.Groups.UpdateAsync(group.Id, "Core", null, TestContext.CancellationToken);
         Assert.AreEqual(RuleGroupMutationOutcome.Success, updated.Outcome);
-        RuleGroupItem renamed = updated.Inventory!.Groups.Single();
+        RuleGroupItem renamed = (await host.Groups.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual(group.Id, renamed.Id);
         Assert.AreEqual("Core", renamed.Name);
         Assert.IsNull(renamed.Comment);
 
         RuleGroupMutationResult deleted = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
         Assert.AreEqual(RuleGroupMutationOutcome.Success, deleted.Outcome);
-        Assert.IsEmpty(deleted.Inventory!.Groups);
+        Assert.IsEmpty(await host.Groups.GetAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.RuleGroupRowCountAsync(TestContext.CancellationToken));
     }
 
@@ -257,9 +251,9 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual(RuleMetadataUpdateOutcome.Success, reassigned.Outcome);
         Assert.AreEqual(second.Id, reassigned.Response!.Metadata!.Group?.Id);
 
-        RuleGroupInventoryResponse groups = await host.Groups.GetAsync(TestContext.CancellationToken);
-        Assert.IsEmpty(groups.Groups.Single(candidate => candidate.Id == first.Id).RuleIds);
-        CollectionAssert.AreEqual(new[] { "sha256:live" }, groups.Groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
+        IReadOnlyList<RuleGroupItem> groups = await host.Groups.GetAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(groups.Single(candidate => candidate.Id == first.Id).RuleIds);
+        CollectionAssert.AreEqual(new[] { "sha256:live" }, groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
     }
 
     [TestMethod]
@@ -283,8 +277,8 @@ public sealed class RuleMetadataServiceTests
 
         Assert.AreEqual(1, cleaned.RemovedCount);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
-        RuleGroupInventoryResponse groups = await host.Groups.GetAsync(TestContext.CancellationToken);
-        RuleGroupItem preserved = groups.Groups.Single();
+        IReadOnlyList<RuleGroupItem> groups = await host.Groups.GetAsync(TestContext.CancellationToken);
+        RuleGroupItem preserved = groups.Single();
         Assert.AreEqual(group.Id, preserved.Id);
         Assert.IsEmpty(preserved.RuleIds);
     }
@@ -762,7 +756,7 @@ public sealed class RuleMetadataServiceTests
             RuleMetadataService metadata,
             RuleInventoryService inventory,
             RuleMetadataReconciliationService reconciliation,
-            RuleGroupService groups,
+            RuleGroupDataAccess groups,
             RuleTagService tags)
         {
             _connection = connection;
@@ -783,7 +777,7 @@ public sealed class RuleMetadataServiceTests
 
         public RuleMetadataReconciliationService Reconciliation { get; }
 
-        public RuleGroupService Groups { get; }
+        public RuleGroupDataAccess Groups { get; }
 
         public RuleTagService Tags { get; }
 
@@ -806,13 +800,12 @@ public sealed class RuleMetadataServiceTests
             TestDaemonRuleSource daemon = new();
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             RuleMetadataRepository metadataRepository = new(transactionHandle);
-            RuleGroupRepository groupRepository = new(transactionHandle);
+            RuleGroupDataAccess groups = new(transactionHandle);
             RuleTagRepository tagRepository = new(transactionHandle);
             RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
-            RuleGroupService groups = new(groupRepository);
-            RuleTagService tags = new(tagRepository);
+                        RuleTagService tags = new(tagRepository);
             return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, groups, tags);
         }
 
@@ -832,10 +825,11 @@ public sealed class RuleMetadataServiceTests
 
         public async Task<RuleGroupItem> CreateGroupAsync(string name, string? comment, CancellationToken cancellationToken)
         {
-            RuleGroupMutationResult result = await Groups.CreateAsync(new CreateRuleGroupRequest { Name = name, Comment = comment }, cancellationToken);
+            string? normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+            RuleGroupMutationResult result = await Groups.CreateAsync(name.Trim(), normalizedComment, cancellationToken);
             Assert.AreEqual(RuleGroupMutationOutcome.Success, result.Outcome);
-            Assert.IsNotNull(result.Inventory);
-            return result.Inventory.Groups.Single(group => string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+            IReadOnlyList<RuleGroupItem> groups = await Groups.GetAsync(cancellationToken);
+            return groups.Single(group => string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public async Task<RuleTagItem> CreateTagAsync(string name, string color, CancellationToken cancellationToken)

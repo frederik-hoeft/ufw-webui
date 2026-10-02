@@ -1,18 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using Ufw.Web.Data;
+using Microsoft.EntityFrameworkCore;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data.Extensions;
 using Ufw.Web.Data.Model;
-using Ufw.Web.Model.V1.RuleGroups;
 using Wkg.AspNetCore.Abstractions.Services;
 using Wkg.AspNetCore.Transactions;
 
-namespace Ufw.Web.Services.Rules;
+namespace Ufw.Web.Data.Access.Rules.Groups;
 
-internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionService)
-    : DatabaseService<ApplicationDbContext>(transactionService), IRuleGroupRepository
+internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionService)
+    : DatabaseService<ApplicationDbContext>(transactionService), IRuleGroupDataAccess
 {
-    public Task<RuleGroupInventoryResponse> GetAsync(CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<RuleGroupItem>> GetAsync(CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
     public Task<RuleGroupMutationResult> CreateAsync(string name, string? comment, CancellationToken cancellationToken = default) =>
@@ -33,13 +31,12 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException e) when (e.IsUniqueConstraintViolation)
+            catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.NameConflict));
             }
 
-            RuleGroupInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new RuleGroupMutationResult(RuleGroupMutationOutcome.Success, response));
+            return transaction.Commit(new RuleGroupMutationResult(RuleGroupMutationOutcome.Success));
         });
 
     public Task<RuleGroupMutationResult> UpdateAsync(Guid publicId, string name, string? comment, CancellationToken cancellationToken = default) =>
@@ -66,8 +63,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.NameConflict));
             }
 
-            RuleGroupInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new RuleGroupMutationResult(RuleGroupMutationOutcome.Success, response));
+            return transaction.Commit(new RuleGroupMutationResult(RuleGroupMutationOutcome.Success));
         });
 
     public Task<RuleGroupMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
@@ -91,16 +87,15 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException e) when (e.IsForeignKeyConstraintViolation)
+            catch (DbUpdateException exception) when (exception.IsForeignKeyConstraintViolation)
             {
                 return transaction.Rollback(new RuleGroupMutationResult(RuleGroupMutationOutcome.InUse));
             }
 
-            RuleGroupInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new RuleGroupMutationResult(RuleGroupMutationOutcome.Success, response));
+            return transaction.Commit(new RuleGroupMutationResult(RuleGroupMutationOutcome.Success));
         });
 
-    private static async Task<RuleGroupInventoryResponse> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<RuleGroupItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
     {
         RuleGroupEntry[] groups = await context.Set<RuleGroupEntry>()
             .AsNoTracking()
@@ -110,7 +105,7 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
             .OrderBy(static group => group.Name)
             .ThenBy(static group => group.PublicId)
             .ToArrayAsync(cancellationToken);
-        RuleGroupItem[] items =
+        return
         [
             .. groups.Select(static group => new RuleGroupItem
             {
@@ -121,7 +116,6 @@ internal sealed class RuleGroupRepository(ITransactionServiceHandle transactionS
                 TemplateIds = [.. group.RuleTemplates.Select(static template => template.PublicId).Order()],
             })
         ];
-        return new RuleGroupInventoryResponse { Groups = items };
     }
 
     private static async Task<bool> NameExistsAsync(ApplicationDbContext context, string name, long? excludingId, CancellationToken cancellationToken)

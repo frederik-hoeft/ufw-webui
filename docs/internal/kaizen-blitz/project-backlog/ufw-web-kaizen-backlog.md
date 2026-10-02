@@ -53,7 +53,7 @@ ASP is an **aggregation/enrichment layer**, not the sole producer of application
 Two existing choices are important and should be preserved:
 
 1. `Ufw.Web.Data.Model/*Entry` types are **persistence entities only**. They are internal and are not used by the client.
-2. `Ufw.Web.Model` is already shared by server and client. Its data-bearing `*Item`/`*InventoryItem` types therefore behave much more like a shared **management-domain/read model** than like EF/DAL entities.
+2. The existing data-bearing `*Item`/`*InventoryItem` types already behave much more like shared **management-domain/read models** than like EF/DAL entities. As each slice migrates, those pure data concepts move to `Ufw.Shared.Management`; `Ufw.Web.Model` remains the versioned HTTP DTO layer.
 
 ### Target data-access and model architecture
 
@@ -72,7 +72,7 @@ RuleGroupEntry  --EF projection--> RuleGroup  -----------------------> RuleGroup
 ```
 
 - **Persistence entities** remain internal under `Ufw.Web.Data.Model`. They describe relational storage, can contain surrogate IDs/navigation properties, and never cross the DAL boundary.
-- **Shared domain/read models** are data-only management concepts usable by both server and Blazor client. The existing `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem`, `KnownHostInventoryItem`, `NetworkInterfaceInventoryItem`, and `RuleMetadataItem` are already close to this role. During the blitz they may be renamed/reorganized for clarity, for example under `Ufw.Web.Model.Domain`, but no duplicate mapping model should be created merely to satisfy layering aesthetics.
+- **Shared domain/read models** are data-only management concepts usable by both server and Blazor client. They live under `Ufw.Shared.Management`, physically separate from the HTTP contracts. The existing `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem`, `KnownHostInventoryItem`, `NetworkInterfaceInventoryItem`, and `RuleMetadataItem` migrate there slice-by-slice; no duplicate mapping model should be created merely to satisfy layering aesthetics.
 - **Request DTOs** remain versioned transport types and carry Data Annotations/nullability required for untrusted JSON input. Before persistence/domain work, controllers or small request mappers convert them to valid normalized arguments or an internal command/query type. A new internal type is justified only when semantics actually change; for simple requests, spreading validated properties into DAL arguments is preferable to creating a 95%-identical object.
 - **Response DTOs/envelopes** remain versioned HTTP contracts and may embed shared domain/read models directly, including collections. Endpoint-specific metadata, diagnostics, pagination, reconciliation state, or upstream daemon state live beside those models as sidecars. There is no per-element remapping allocation when the DAL already projected the desired shared model.
 - **Authoritative upstream shared models** may also be embedded directly when appropriate. `RuleInventoryResponse.Firewall` is the existing example: ASP enriches the daemon snapshot instead of cloning the firewall model simply because it crossed an HTTP boundary.
@@ -197,7 +197,7 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 **Refactor target:**
 
 1. Treat `Data/Model/*Entry` strictly as persistence entities. They never escape the DAL.
-2. Formalize the data-only objects shared by server/client as **domain/read models**, not DAL entities. Reuse them directly in API responses and EF projections. Move/brand the pure shared data concepts under a clear shared-domain namespace such as `Ufw.Web.Model.Domain` (with simple noun names where worthwhile), while keeping V1 request/response envelopes under `Ufw.Web.Model.V1`. Do not introduce structurally identical intermediate models solely to satisfy layering.
+2. Formalize the data-only objects shared by server/client as **domain/read models**, not DAL entities. Reuse them directly in API responses and EF projections. Move the pure shared data concepts under `Ufw.Shared.Management` (with domain-specific subnamespaces), while keeping V1 request/response envelopes under `Ufw.Web.Model.V1`. Do not introduce structurally identical intermediate models solely to satisfy layering.
 3. Keep versioned request/response contracts distinct from those shared models. Response envelopes may hold a domain object/list plus endpoint-specific sidecars. Existing `RuleInventoryResponse { Firewall, Metadata, CapturedAt }` is a good example of enrichment composition.
 4. Move direct EF work into `Data/Access/<domain>` slices (`Auth`, `KnownHosts`, `NetworkInterfaces`, `Rules/Metadata`, `Rules/Groups`, `Rules/Tags`, `Rules/Templates`, etc.). Split read/query and write/store responsibilities when useful, but do not create repository-per-table plumbing.
 5. Keep `IQueryable` private to the DAL. Specialized DAL queries should perform filtering, joining, ordering, aggregation, and projection in SQL before materialization. A query is allowed to span multiple tables when that best answers one request.
@@ -205,7 +205,7 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 7. Prefer direct EF projection into the shared domain/read model. Avoid tracked entity graphs and later in-memory projection unless persistence semantics actually require them.
 8. Add architectural/query-regression tests: direct `ApplicationDbContext`/EF usage outside the DAL should fail an architecture check, and representative list/mutation paths should have bounded SQL-command counts so N+1/materialization fan-out cannot quietly reappear.
 
-**Primary files:** `Services/KnownHosts/IKnownHostRepository.cs`, `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/INetworkInterfaceInventoryRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/IRuleGroupRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/IRuleTagRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/IRuleTemplateRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/IRuleMetadataRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Services/Auth/RefreshTokenService.cs`; adjacent shared models under `Ufw.Web.Model`
+**Primary files:** `Services/KnownHosts/IKnownHostRepository.cs`, `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/INetworkInterfaceInventoryRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/IRuleGroupRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/IRuleTagRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/IRuleTemplateRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/IRuleMetadataRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Services/Auth/RefreshTokenService.cs`; adjacent shared models under `Ufw.Shared.Management` and HTTP contracts under `Ufw.Web.Model`
 
 ### KZ-23 [P1] Remove ceremonial application-service hops; keep coordinators only for real workflows
 

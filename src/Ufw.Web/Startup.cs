@@ -1,3 +1,4 @@
+using Ufw.Web.Data.Access.Rules.Groups;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -88,13 +89,12 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
         services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
-        services.AddScoped<IRuleGroupRepository, RuleGroupRepository>();
+        services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
         services.AddScoped<IRuleTagRepository, RuleTagRepository>();
         services.AddScoped<IRuleTemplateRepository, RuleTemplateRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
-        services.AddScoped<IRuleGroupService, RuleGroupService>();
         services.AddScoped<IRuleTagService, RuleTagService>();
         services.AddScoped<IRuleTemplateService, RuleTemplateService>();
 

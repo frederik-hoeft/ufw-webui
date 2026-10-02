@@ -131,7 +131,9 @@ Treat these as one architecture package rather than independent tickets:
 5. **WEB KZ-14 is resolved here through KZ-05**, not by adding another temporary outcome type.
 6. **WEB KZ-12:** remove dead validators/signing code early so it does not distract from the new validation boundary.
 
-Implementation should then migrate one domain slice at a time into `Data/Access/<domain>`, keeping the solution buildable. If shared `Ufw.Web.Model` types are renamed/reorganized as management-domain models, make only the minimum client compile edits in the same commit; defer client-side architectural cleanup to Phase C.
+Implementation should then migrate one domain slice at a time into `Data/Access/<domain>`, keeping the solution buildable. Pure management-domain/read models move to `Ufw.Shared.Management`; versioned request/response DTOs remain in `Ufw.Web.Model` and may embed those shared types. Make only the minimum client compile edits in the same commit; defer client-side architectural cleanup to Phase C.
+
+W1.1 uses rule groups as the first vertical boundary pilot: group read models/limits move to `Ufw.Shared.Management`, request-shape validation and normalization move to the REST boundary, and the controller talks directly to the domain-sliced DAL. The broader KZ-01/KZ-05/KZ-23 checklist items remain open until the remaining slices have migrated to the same rules.
 
 #### W2 - Vertical DAL/workflow migrations and public error contract
 
@@ -243,7 +245,7 @@ These are architecture decisions, not implementation details, and should be writ
 1. **Daemon configuration lifecycle — resolved in D1:** configuration is startup-immutable; changes require daemon restart (SYS KZ-009).
 2. **Daemon transport model — daemon side resolved in D1:** the daemon selects `pipe` or `tcp` at startup and applies the same TLS/mTLS policy to either transport. The shipped production topology and current Web IPC client remain pipe-based; WEB KZ-02/KZ-04 own any Web-side transport selection needed to make TCP end-to-end (SYS KZ-019 -> WEB KZ-02/KZ-04).
 3. **Network-interface metadata retention:** whether transient absence preserves user-owned metadata (WEB KZ-13 -> CLIENT KZ-10/KZ-19).
-4. **Shared management-domain branding:** whether existing `*Item` types are renamed/re-namespaced or simply documented as domain/read models; avoid gratuitous clone DTOs (WEB KZ-01).
+4. **Shared management-domain boundary — resolved in W1:** pure DAL/read objects live under `Ufw.Shared.Management`; `Ufw.Web.Model` remains the versioned HTTP DTO layer and may embed those shared types. Existing `*Item` names may remain where they describe read-model elements; avoid clone DTOs and keep DTO construction out of the DAL (WEB KZ-01).
 5. **Stable validation identity contract — resolved in S1:** firewall-rule validation uses an open string code plus property and human-readable diagnostic text. Current producers populate the code; application-v1 readers accept a missing code only for compatibility with older payloads. WEB KZ-09/KZ-15 and CLIENT KZ-12 consume this identity without redefining it.
 6. **Destructive migration policy:** preflight/fail vs explicitly accepted truncation for future schema changes (WEB KZ-19).
 

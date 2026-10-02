@@ -1,8 +1,8 @@
+using Ufw.Shared.Management.Rules;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Client.Features.Rules.Metadata;
-using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.RuleTemplates;
 

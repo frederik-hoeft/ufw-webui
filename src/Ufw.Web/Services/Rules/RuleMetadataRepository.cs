@@ -1,5 +1,5 @@
+using Ufw.Shared.Management.Rules;
 using Microsoft.EntityFrameworkCore;
-using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;

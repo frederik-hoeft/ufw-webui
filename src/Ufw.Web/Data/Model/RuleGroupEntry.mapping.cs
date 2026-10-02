@@ -1,3 +1,4 @@
+using Ufw.Shared.Management.Rules;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wkg.EntityFrameworkCore.Configuration;
@@ -25,12 +26,12 @@ internal sealed partial class RuleGroupEntry : IDiscoverableModelConfiguration<R
         self.Property(static group => group.Name)
             .HasColumnName("Name")
             .HasColumnType("citext")
-            .HasMaxLength(MAX_NAME_LENGTH)
+            .HasMaxLength(RuleGroupLimits.MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static group => group.Comment)
             .HasColumnName("Comment")
             .HasColumnType("character varying(4000)")
-            .HasMaxLength(MAX_COMMENT_LENGTH);
+            .HasMaxLength(RuleGroupLimits.MAX_COMMENT_LENGTH);
 
         self.HasIndex(static group => group.PublicId).IsUnique();
         self.HasIndex(static group => group.Name).IsUnique();

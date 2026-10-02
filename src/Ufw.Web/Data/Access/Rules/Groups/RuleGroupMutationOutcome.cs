@@ -1,4 +1,4 @@
-namespace Ufw.Web.Services.Rules;
+namespace Ufw.Web.Data.Access.Rules.Groups;
 
 public enum RuleGroupMutationOutcome
 {
@@ -6,5 +6,4 @@ public enum RuleGroupMutationOutcome
     NotFound,
     NameConflict,
     InUse,
-    InvalidGroup,
 }
