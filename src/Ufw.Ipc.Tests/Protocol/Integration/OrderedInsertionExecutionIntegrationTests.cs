@@ -95,6 +95,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         services.AddSingleton<IIntentVerifier, IntentVerifier>();
         services.AddSingleton<IUfwExecutionGate, UfwExecutionGate>();
         services.AddSingleton<IRuleReorderPlanner, RuleReorderPlanner>();
+        services.AddSingleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>();
         services.AddSingleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>();
         services.AddSingleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>();
         services.AddSingleton<IUfwDefaultsReader, StaticUfwDefaultsReader>();

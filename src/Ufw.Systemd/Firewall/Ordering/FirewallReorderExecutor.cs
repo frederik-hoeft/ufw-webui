@@ -74,7 +74,7 @@ internal sealed class FirewallReorderExecutor(
             }
 
             IReadOnlyList<RuleReorderMove> blocked = preflight.Plan.Moves.Skip(moveIndex).ToArray();
-            IReadOnlyList<RuleReorderMove> pending = CreateSafePendingPlan(baseline, moveResult.Snapshot, request.DesiredOrder, preflight.ImmutableOccurrences, preflight.KeepPriorities);
+            IReadOnlyList<RuleReorderMove> pending = CreateSafePendingPlan(baseline, moveResult.Snapshot, request.DesiredOrder, preflight.ImmutableOccurrences, preflight.ReinsertionCosts);
             RuleReorderExecutionOutcome outcome = moveResult.RecoveryFailed
                 ? RuleReorderExecutionOutcome.RecoveryFailed
                 : moveResult.Snapshot is null
@@ -94,7 +94,7 @@ internal sealed class FirewallReorderExecutor(
         int[] currentOrder = Enumerable.Range(0, baseline.Rules.Count).ToArray();
         Dictionary<int, RuleReinsertability> classifications = [];
         HashSet<int> immutableOccurrences = [];
-        Dictionary<int, int> keepPriorities = [];
+        Dictionary<int, int> reinsertionCosts = [];
 
         for (int occurrenceId = 0; occurrenceId < baseline.Rules.Count; occurrenceId++)
         {
@@ -106,12 +106,12 @@ internal sealed class FirewallReorderExecutor(
             }
             else
             {
-                keepPriorities.Add(occurrenceId, classification.KeepPriority);
+                reinsertionCosts.Add(occurrenceId, classification.ReinsertionCost);
             }
         }
 
         ValidateAddressFamilyOrder(baseline.Rules, desiredOrder);
-        RuleReorderPlan plan = planner.Plan(currentOrder, desiredOrder, immutableOccurrences, keepPriorities);
+        RuleReorderPlan plan = planner.Plan(currentOrder, desiredOrder, immutableOccurrences, reinsertionCosts);
         foreach (RuleReorderMove move in plan.Moves)
         {
             RuleReinsertability classification = classifications[move.OccurrenceId];
@@ -122,7 +122,7 @@ internal sealed class FirewallReorderExecutor(
             }
         }
 
-        return new PreflightResult(plan, classifications, immutableOccurrences, keepPriorities);
+        return new PreflightResult(plan, classifications, immutableOccurrences, reinsertionCosts);
     }
 
     private async Task<MoveExecutionResult> ExecuteMoveAsync(
@@ -269,7 +269,7 @@ internal sealed class FirewallReorderExecutor(
         RuleListResponse? finalSnapshot,
         IReadOnlyList<int> desiredOrder,
         IReadOnlySet<int> immutableOccurrences,
-        IReadOnlyDictionary<int, int> keepPriorities)
+        IReadOnlyDictionary<int, int> reinsertionCosts)
     {
         if (finalSnapshot is null || !TryMapOccurrences(baseline, finalSnapshot, out int[]? currentOrder))
         {
@@ -278,7 +278,7 @@ internal sealed class FirewallReorderExecutor(
 
         try
         {
-            return planner.Plan(currentOrder!, desiredOrder, immutableOccurrences, keepPriorities).Moves;
+            return planner.Plan(currentOrder!, desiredOrder, immutableOccurrences, reinsertionCosts).Moves;
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
@@ -391,7 +391,7 @@ internal sealed class FirewallReorderExecutor(
         RuleReorderPlan Plan,
         IReadOnlyDictionary<int, RuleReinsertability> Classifications,
         IReadOnlySet<int> ImmutableOccurrences,
-        IReadOnlyDictionary<int, int> KeepPriorities);
+        IReadOnlyDictionary<int, int> ReinsertionCosts);
 
     private sealed record MoveExecutionResult(
         bool Completed,

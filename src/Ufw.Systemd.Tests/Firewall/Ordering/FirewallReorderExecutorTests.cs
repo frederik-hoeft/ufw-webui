@@ -418,7 +418,7 @@ public sealed class FirewallReorderExecutorTests
             Executor = new FirewallReorderExecutor(
                 _snapshotReader.Object,
                 new RuleReorderPlanner(),
-                new RuleReinsertabilityClassifier(renderer),
+                new RuleReinsertabilityClassifier(renderer, new UfwArgumentCountReinsertionCostProvider()),
                 recovery,
                 Journal,
                 processExecutor,

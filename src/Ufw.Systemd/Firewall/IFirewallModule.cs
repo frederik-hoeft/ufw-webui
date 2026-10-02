@@ -23,6 +23,7 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
 [Singleton<IRuleReorderPlanner, RuleReorderPlanner>]
+[Singleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>]
 [Singleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>]
 [Singleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>]
 [Singleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>]

@@ -278,7 +278,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | SYS KZ-026 | D2 | Clarify normalized rule equality naming | Rename/clarify before shared snapshot/order helpers proliferate this comparer name. |
 | [x] | SYS KZ-027 | D2 | Remove small API friction in the execution gate | Small prerequisite for cleaner KZ-008 orchestration. |
 | [x] | SYS KZ-028 | D2 | Make rule specification copying resilient to model growth | Do while shared firewall model/execution primitives are being stabilized, before later model growth creates another manual-copy site. |
-| [ ] | SYS KZ-029 | D2 | Make reorder planner cost semantics explicit | Do before KZ-006 so the reordered executor is decomposed around an explicit cost policy. |
+| [x] | SYS KZ-029 | D2 | Make reorder planner cost semantics explicit | Do before KZ-006 so the reordered executor is decomposed around an explicit cost policy. |
 
 ### `Ufw.Web`
 
