@@ -44,6 +44,42 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
         }
     }
 
+    [TestMethod]
+    public async Task CancelingPendingAcceptReleasesSocketForSubsequentServerAsync()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string directory = Path.Combine(Path.GetTempPath(), $"ufw-pipe-{Guid.NewGuid():N}");
+        string pipePath = Path.Combine(directory, "ufw-systemd.sock");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(pipeName: pipePath));
+            UnixNamedPipeServerStreamDescriptor descriptor = new(configuration);
+
+            using CancellationTokenSource cancellation = new();
+            Task<NamedPipeServerStream> canceledAccept = descriptor.ServeAsync(cancellation.Token);
+            await WaitForSocketAsync(pipePath);
+
+            await cancellation.CancelAsync();
+            await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => _ = await canceledAccept);
+
+            Task<NamedPipeServerStream> replacementServerTask = descriptor.ServeAsync(CancellationToken.None);
+            await WaitForSocketAsync(pipePath);
+
+            await using NamedPipeClientStream client = new(".", pipePath, PipeDirection.InOut, SystemPipeOptions.Asynchronous);
+            await client.ConnectAsync();
+            await using NamedPipeServerStream replacementServer = await replacementServerTask;
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static async Task WaitForSocketAsync(string path)
     {
         for (int i = 0; i < 100; i++)

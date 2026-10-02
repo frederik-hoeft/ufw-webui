@@ -251,7 +251,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | Done | Source item | Planned wave | Finding | Sequencing note |
 |---|---|---|---|---|
 | [x] | SYS KZ-001 | D1 | Make nonce consumption persistence-consistent | Implement after KZ-013 so nonce durability uses the shared durable-file primitive rather than bespoke I/O that would immediately be rewritten. |
-| [ ] | SYS KZ-002 | D4 | Fix named-pipe stream leaks on setup/accept failure | Do after KZ-019 settles the transport composition so pipe ownership/disposal is fixed in the final pipe implementation. |
+| [x] | SYS KZ-002 | D4 | Fix named-pipe stream leaks on setup/accept failure | Do after KZ-019 settles the transport composition so pipe ownership/disposal is fixed in the final pipe implementation. |
 | [x] | SYS KZ-003 | D1 | Give request logging exception-safe timing/lifecycle behavior | Do with/after KZ-021 so request timing is adapted once to the final middleware composition. |
 | [x] | SYS KZ-004 | D2 | Define one authoritative firewall snapshot result type | Foundation for KZ-005, KZ-006 and KZ-007; establish the authoritative snapshot success/failure shape before decomposing executors. |
 | [x] | SYS KZ-005 | D2 | Extract common UFW mutation execution primitives | Build on KZ-004 and KZ-017; do before executor decomposition. |
