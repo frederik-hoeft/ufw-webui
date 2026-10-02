@@ -25,12 +25,14 @@ internal sealed class FirewallRuleInterfaceValidator(INetworkInterfaceSnapshotSe
         List<ModelValidationError> errors = [];
         if (!string.IsNullOrWhiteSpace(rule.SourceInterface) && !available.Contains(rule.SourceInterface))
         {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.SourceInterface), $"Interface '{rule.SourceInterface}' is not present on this host."));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.SourceInterface),
+                $"Interface '{rule.SourceInterface}' is not present on this host.", FirewallRuleValidationErrorCodes.INTERFACE_NOT_FOUND));
         }
 
         if (!string.IsNullOrWhiteSpace(rule.DestinationInterface) && !available.Contains(rule.DestinationInterface))
         {
-            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.DestinationInterface), $"Interface '{rule.DestinationInterface}' is not present on this host."));
+            errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.DestinationInterface),
+                $"Interface '{rule.DestinationInterface}' is not present on this host.", FirewallRuleValidationErrorCodes.INTERFACE_NOT_FOUND));
         }
 
         return errors.Count == 0 ? null : new ModelValidationErrorResponse([.. errors]);

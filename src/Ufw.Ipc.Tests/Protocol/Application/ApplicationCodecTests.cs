@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using Ufw.Ipc.Tests.Adapter.Serialization;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
@@ -28,10 +29,13 @@ public sealed class ApplicationCodecTests
     }
 
     [TestMethod]
-    public async Task TestEncodeDecode_ValidationError_KeepsDiscriminatorAsync()
+    public async Task TestEncodeDecode_ValidationErrors_PreserveStableCodesAndRepeatedPropertiesAsync()
     {
         JsonMessageSerializer serializer = CreateSerializer();
-        ModelValidationErrorResponse payload = new([new ModelValidationError("port", "out of range"),]);
+        ModelValidationErrorResponse payload = new([
+            new ModelValidationError("port", "out of range", FirewallRuleValidationErrorCodes.PORTS_OUT_OF_RANGE),
+            new ModelValidationError("port", "invalid syntax", FirewallRuleValidationErrorCodes.PORTS_SYNTAX_INVALID),
+        ]);
         await using IResponseMessage original = await serializer.SerializeResponseAsync(payload, CancellationToken.None);
 
         IResponseMessage decoded = RequireResponse(serializer.Decode(serializer.Encode(original)));
@@ -41,8 +45,29 @@ public sealed class ApplicationCodecTests
 
         ModelValidationErrorResponse? body = await decoded.Payload.ReadAsync<ModelValidationErrorResponse>(CancellationToken.None);
         Assert.IsNotNull(body);
+        Assert.HasCount(2, body.Errors);
+        Assert.AreEqual("port", body.Errors[0].PropertyName);
+        Assert.AreEqual(FirewallRuleValidationErrorCodes.PORTS_OUT_OF_RANGE, body.Errors[0].Code);
+        Assert.AreEqual("port", body.Errors[1].PropertyName);
+        Assert.AreEqual(FirewallRuleValidationErrorCodes.PORTS_SYNTAX_INVALID, body.Errors[1].Code);
+    }
+
+    [TestMethod]
+    public async Task TestDecode_LegacyValidationErrorWithoutCode_IsAcceptedAsync()
+    {
+        JsonMessageSerializer serializer = CreateSerializer();
+        byte[] json = """
+            {"protocolVersion":1,"kind":"response","status":400,"payloadType":"validation-error","payload":{"errors":[{"propertyName":"port","errorMessage":"out of range"}]}}
+            """u8.ToArray();
+
+        IResponseMessage decoded = RequireResponse(serializer.Decode(json));
+        ModelValidationErrorResponse? body = await decoded.Payload.ReadAsync<ModelValidationErrorResponse>(CancellationToken.None);
+
+        Assert.IsNotNull(body);
         Assert.HasCount(1, body.Errors);
         Assert.AreEqual("port", body.Errors[0].PropertyName);
+        Assert.AreEqual("out of range", body.Errors[0].ErrorMessage);
+        Assert.IsNull(body.Errors[0].Code);
     }
 
     [TestMethod]

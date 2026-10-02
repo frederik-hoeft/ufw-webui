@@ -18,7 +18,8 @@ internal sealed class FirewallRuleCapabilityValidator : IFirewallRuleCapabilityV
         }
 
         return new ModelValidationErrorResponse([
-            new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), "IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration."),
+            new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily),
+                "IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration.", FirewallRuleValidationErrorCodes.IPV6_DISABLED),
         ]);
     }
 }
