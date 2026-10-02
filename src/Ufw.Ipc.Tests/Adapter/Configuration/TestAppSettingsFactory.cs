@@ -1,4 +1,5 @@
-﻿using Ufw.Systemd.Configuration.Model;
+﻿using System.Security.Authentication;
+using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Ipc.Tests.Adapter.Configuration;
 
@@ -7,21 +8,45 @@ namespace Ufw.Ipc.Tests.Adapter.Configuration;
 /// </summary>
 internal static class TestAppSettingsFactory
 {
-    public static AppSettings Create(TimeSpan? ioTimeout = null, TimeSpan? requestTimeout = null, int maxConnections = 2, bool debugMode = true) => new()
-    {
-        DebugMode = debugMode,
-        // Never executed by the in-process adapter; value is only present to satisfy the model shape.
-        UfwPath = "/nonexistent/ufw-for-tests",
-        WriteToConsole = false,
-        Pipe = new PipeOptions
+    public static AppSettings Create(
+        TimeSpan? ioTimeout = null,
+        TimeSpan? requestTimeout = null,
+        int maxConnections = 2,
+        bool debugMode = true,
+        bool tlsEnabled = false,
+        SslProtocols sslProtocols = SslProtocols.None,
+        RemoteCertificateValidationOptions? remoteCertificateValidation = null,
+        string? serverCertificatePath = null,
+        string? serverCertificateKeyPath = null,
+        SecurityOptions? security = null,
+        TransportType transportType = TransportType.Pipe) =>
+        new()
         {
-            PipeName = "/tmp/ufw-ipc-tests.inprocess",
-        },
-        Network = new NetworkOptions
-        {
-            MaxConnections = maxConnections,
-            IoTimeout = ioTimeout ?? TimeSpan.FromSeconds(15),
-            RequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(15),
-        },
-    };
+            DebugMode = debugMode,
+            ExposeRemoteExceptionDetails = false,
+            // Never executed by the in-process adapter; value is only present to satisfy the model shape.
+            UfwPath = "/nonexistent/ufw-for-tests",
+            UfwDefaultsPath = "/nonexistent/ufw-defaults-for-tests",
+            Transport = new TransportOptions
+            {
+                Type = transportType,
+                Pipe = transportType is TransportType.Pipe ? new PipeOptions { PipeName = "/tmp/ufw-ipc-tests.inprocess" } : null,
+                Tcp = transportType is TransportType.Tcp ? new TcpOptions { ListenAddress = "127.0.0.1", Port = 1234 } : null,
+                Security = new TransportSecurityOptions
+                {
+                    TlsEnabled = tlsEnabled,
+                    SslProtocols = sslProtocols,
+                    RemoteCertificateValidation = remoteCertificateValidation,
+                    ServerCertificatePath = serverCertificatePath,
+                    ServerCertificateKeyPath = serverCertificateKeyPath,
+                },
+            },
+            Network = new NetworkOptions
+            {
+                MaxConnections = maxConnections,
+                IoTimeout = ioTimeout ?? TimeSpan.FromSeconds(15),
+                RequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(15),
+            },
+            Security = security,
+        };
 }

@@ -3,19 +3,15 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.Commands;
-using Ufw.Systemd.Interop.IO;
-using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.Deletion;
 
-internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader snapshotReader, IUfwRunner ufwRunner, ILogger logger) : IFirewallBatchDeleteExecutor
+internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader snapshotReader, IUfwProcessExecutor processExecutor) : IFirewallBatchDeleteExecutor
 {
-    private readonly ILogger<FirewallBatchDeleteExecutor> _logger = logger.Scoped<FirewallBatchDeleteExecutor>();
-
     public async Task<RuleBatchDeleteExecutionResult> ExecuteAsync(BatchDeleteRulesPayload payload, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
-        RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (baseline is null)
         {
             return Result(RuleBatchDeleteExecutionOutcome.StateUncertain, null, payload.OccurrenceIds, "The current authoritative firewall state could not be read before batch deletion.");
@@ -43,7 +39,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
             cancellationToken.ThrowIfCancellationRequested();
             int occurrenceId = targets[targetIndex];
             int[] pending = targets[targetIndex..];
-            RuleListResponse? beforeDelete = await TryReadSnapshotAsync(cancellationToken);
+            RuleListResponse? beforeDelete = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
             if (beforeDelete is null)
             {
                 return new RuleBatchDeleteExecutionResult(
@@ -53,7 +49,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
                     pending,
                     "The authoritative firewall state could not be read before the next batch-delete operation.");
             }
-            if (!SnapshotMatchesOrder(beforeDelete, baseline, currentOrder))
+            if (!FirewallRuleSnapshotMatcher.MatchesOrder(beforeDelete, baseline, currentOrder))
             {
                 RuleBatchDeleteExecutionOutcome outcome = operations.Count == 0 ? RuleBatchDeleteExecutionOutcome.StaleBaseline : RuleBatchDeleteExecutionOutcome.PartiallyCompleted;
                 return new RuleBatchDeleteExecutionResult(outcome, beforeDelete, operations, pending, "Authoritative firewall state diverged before the next batch-delete operation.");
@@ -77,14 +73,14 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
                 return new RuleBatchDeleteExecutionResult(outcome, beforeDelete, operations, pending, $"Batch-delete occurrence {occurrenceId} does not have a usable UFW display number.");
             }
 
-            ProcessExecution process = await ExecuteProcessAsync(new UfwDeleteRuleCommand(displayNumber), cancellationToken);
-            RuleListResponse? afterDelete = await TryReadSnapshotAsync(CancellationToken.None);
+            UfwProcessExecutionResult process = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(displayNumber), "deleting a firewall rule during batch deletion", cancellationToken);
+            RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
             List<int> expectedOrder = [.. currentOrder];
             expectedOrder.RemoveAt(currentIndex);
 
-            if (afterDelete is not null && SnapshotMatchesOrder(afterDelete, baseline, expectedOrder))
+            if (afterDelete is not null && FirewallRuleSnapshotMatcher.MatchesOrder(afterDelete, baseline, expectedOrder))
             {
-                RuleBatchDeleteOperationStatus status = process.Succeeded && !process.CancellationRequested
+                RuleBatchDeleteOperationStatus status = process.Succeeded
                     ? RuleBatchDeleteOperationStatus.Deleted
                     : RuleBatchDeleteOperationStatus.DeletedAfterProcessFailure;
                 operations.Add(new RuleBatchDeleteOperationReport(occurrenceId, baseline.Rules[occurrenceId].RuleId, status, process.Diagnostic));
@@ -100,7 +96,9 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
 
             if (afterDelete is null)
             {
-                string diagnostic = CombineDiagnostics(process.Diagnostic, $"The authoritative firewall state could not be confirmed after attempting to delete occurrence {occurrenceId}.")!;
+                string diagnostic = UfwProcessDiagnostics.Combine(
+                    process.Diagnostic,
+                    $"The authoritative firewall state could not be confirmed after attempting to delete occurrence {occurrenceId}.")!;
                 operations.Add(new RuleBatchDeleteOperationReport(occurrenceId, baseline.Rules[occurrenceId].RuleId, RuleBatchDeleteOperationStatus.StateUncertain, diagnostic));
                 if (process.CancellationRequested || cancellationToken.IsCancellationRequested)
                 {
@@ -109,7 +107,9 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
                 return new RuleBatchDeleteExecutionResult(RuleBatchDeleteExecutionOutcome.StateUncertain, null, operations, pending, diagnostic);
             }
 
-            string failureDiagnostic = CombineDiagnostics(process.Diagnostic, $"Authoritative firewall state did not match the expected state after attempting to delete occurrence {occurrenceId}.")!;
+            string failureDiagnostic = UfwProcessDiagnostics.Combine(
+                process.Diagnostic,
+                $"Authoritative firewall state did not match the expected state after attempting to delete occurrence {occurrenceId}.")!;
             operations.Add(new RuleBatchDeleteOperationReport(occurrenceId, baseline.Rules[occurrenceId].RuleId, RuleBatchDeleteOperationStatus.Failed, failureDiagnostic));
             if (process.CancellationRequested || cancellationToken.IsCancellationRequested)
             {
@@ -147,65 +147,10 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
         return null;
     }
 
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
-    }
-
-    private async Task<ProcessExecution> ExecuteProcessAsync(IUfwCommand command, CancellationToken cancellationToken)
-    {
-        try
-        {
-            UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded && !result.CancellationRequested ? null : FormatProcessDiagnostic(result);
-            return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);
-        }
-        catch (ChildProcessException exception)
-        {
-            _logger.LogError(exception, "Failed to start UFW while executing a batch-delete operation.");
-            return new ProcessExecution(false, false, exception.Message);
-        }
-    }
-
-    private static bool SnapshotMatchesOrder(RuleListResponse snapshot, RuleListResponse baseline, IReadOnlyList<int> expectedOrder)
-    {
-        if (snapshot.Active != baseline.Active || snapshot.Rules.Count != expectedOrder.Count)
-        {
-            return false;
-        }
-        for (int index = 0; index < expectedOrder.Count; index++)
-        {
-            if (!FirewallRuleSemanticComparer.Equals(snapshot.Rules[index], baseline.Rules[expectedOrder[index]]))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static string FormatProcessDiagnostic(UfwProcessResult result)
-    {
-        string details = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-        if (result.CancellationRequested)
-        {
-            return "UFW process was canceled after it started.";
-        }
-        return $"UFW process exited with code {result.ExitCode}: {details}";
-    }
-
-    private static string? CombineDiagnostics(params string?[] diagnostics)
-    {
-        string[] nonEmpty = diagnostics.Where(static diagnostic => !string.IsNullOrWhiteSpace(diagnostic)).Select(static diagnostic => diagnostic!).ToArray();
-        return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
-    }
-
     private static RuleBatchDeleteExecutionResult Result(
         RuleBatchDeleteExecutionOutcome outcome,
         RuleListResponse? finalSnapshot,
         IReadOnlyList<int> pendingOccurrenceIds,
         string? diagnostic = null) =>
         new(outcome, finalSnapshot, [], [.. pendingOccurrenceIds], diagnostic);
-
-    private sealed record ProcessExecution(bool Succeeded, bool CancellationRequested, string? Diagnostic);
 }

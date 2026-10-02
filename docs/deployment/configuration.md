@@ -18,7 +18,9 @@ The local `appsettings.json` file is gitignored and excluded from publish output
 
 ### Ufw.Systemd
 
-The daemon `serve` command loads one explicit JSON settings file. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
+The daemon `serve` command loads one explicit JSON settings file exactly once during process startup. Configuration is immutable for the lifetime of the daemon; changes require a process restart. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
+
+Daemon settings are explicit rather than backed by independent C# defaults. Required JSON members must be present even when their value is `false` or `null`. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, the selected transport endpoint, TLS certificate files, and security-state paths.
 
 The installer preserves an existing settings file on update unless `--settings PATH` is supplied explicitly.
 
@@ -109,27 +111,32 @@ The production template is `deploy/systemd/settings.json.example`.
 
 | Setting | Purpose | Production example |
 | --- | --- | --- |
-| `debug_mode` | include daemon diagnostic detail where supported | `false` |
+| `debug_mode` | enable verbose local daemon diagnostics | `false` |
+| `expose_remote_exception_details` | include unexpected exception details in daemon API error responses; enable only for local development | `false` |
 | `ufw_path` | UFW executable | `/usr/sbin/ufw` |
 | `ufw_defaults_path` | UFW host defaults used for IPv6 capability and default policies | `/etc/default/ufw` |
-| `write_to_console` | enable console logging for systemd capture | `true` |
 
 The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
 
-### Pipe and stream security
+### Daemon transport and stream security
+
+The daemon selects one transport when it starts. `transport.type` accepts `pipe` or `tcp`; changing the selected transport or any of its endpoint/security settings requires a daemon restart. The selected transport configuration must be present, while the unused transport configuration may be `null`.
 
 | Setting | Purpose |
 | --- | --- |
-| `pipe.pipe_name` | local endpoint; production default `/var/lib/ufw-webui/ipc/ufw-systemd.sock` |
-| `pipe.tls_enabled` | wrap the local stream in TLS |
-| `pipe.ssl_protocols` | protocol selection; `none` delegates selection to .NET/OS |
-| `pipe.server_certificate_path` | server certificate path when TLS is enabled |
-| `pipe.server_certificate_key_path` | matching server private key |
-| `pipe.remote_certificate_validation` | optional client-certificate validation policy; enables mTLS when configured |
+| `transport.type` | startup transport selector; production uses `pipe` |
+| `transport.pipe.pipe_name` | named-pipe endpoint; on Unix this is the Unix-domain socket path, with production using `/var/lib/ufw-webui/ipc/ufw-systemd.sock` |
+| `transport.tcp.listen_address` | literal IPv4 or IPv6 address on which the daemon listens when `tcp` is selected |
+| `transport.tcp.port` | TCP listen port from `1` through `65535` |
+| `transport.security.tls_enabled` | wrap the selected transport stream in TLS |
+| `transport.security.ssl_protocols` | TLS protocol selection; `none` delegates selection to .NET/OS |
+| `transport.security.server_certificate_path` | server certificate path when TLS is enabled |
+| `transport.security.server_certificate_key_path` | matching server private key |
+| `transport.security.remote_certificate_validation` | optional client-certificate validation policy; enables mTLS when configured |
 
-Production Compose defaults to TLS disabled because the endpoint is a host Unix socket with group-restricted access. TLS/mTLS is defense in depth and does not replace signed mutation authorization.
+The standard production topology selects a group-restricted Unix-domain socket and therefore leaves TLS disabled. TCP support allows the daemon process boundary to be deployed independently from the container topology, but the listen address must be protected by the host/network firewall and TLS should be enabled whenever the surrounding network does not already provide an equivalent trusted boundary. Signed mutation intents authorize privileged writes; they do not replace transport confidentiality or peer-admission controls.
 
-When TLS is enabled, `Ufw.Web` must use matching `IpcOptions` values for server name, protocol policy, and optional client certificate.
+TLS configuration is immutable for the daemon lifetime. Server certificate material is loaded on the first TLS connection and retained for subsequent connections; after that first load, rotating the certificate files requires a daemon restart. Client-certificate validation policy is snapshotted from startup configuration and likewise changes only after restart. When TLS is enabled, the peer must use matching certificate-name/protocol policy and optional client-certificate settings.
 
 ### Network policy
 
@@ -140,6 +147,8 @@ When TLS is enabled, `Ufw.Web` must use matching `IpcOptions` values for server 
 | `network.request_timeout` | overall daemon-side request deadline | `00:30:00` |
 
 These values are connection policy, not fields in the IPC wire protocol.
+
+The daemon starts exactly `network.max_connections` workers. Expected connection failures are isolated to the affected exchange and the worker continues accepting peers. If a worker instead terminates unexpectedly, the daemon cancels the remaining pool and exits rather than continuing at reduced capacity. The production systemd unit uses `Restart=on-failure`, so process supervision restores a fresh worker pool.
 
 ### Mutation security state
 
@@ -152,7 +161,7 @@ These values are connection policy, not fields in the IPC wire protocol.
 | `security.max_intent_age` | maximum accepted intent age | `00:05:00` |
 | `security.clock_skew` | tolerated clock skew | `00:00:30` |
 
-Private administrator mutation keys never belong in daemon configuration. The reorder recovery journal is daemon-owned safety state rather than a firewall database; an outstanding record must be reconciled before later firewall mutations are allowed to proceed.
+Private administrator mutation keys never belong in daemon configuration. Startup reconciles any outstanding reorder recovery journal before the daemon snapshots `security.authorized_keys_path` and opens its listener. The authorized public-key set then remains fixed for the process lifetime, so key enrollment, removal, or rotation requires a daemon restart. If the file is absent, the daemon starts with no authorized mutation keys and rejects privileged mutations; malformed configured key material prevents the listener from starting. The reorder recovery journal is daemon-owned safety state rather than a firewall database; an outstanding record must be reconciled before later firewall mutations are allowed to proceed.
 
 ## Secret ownership
 

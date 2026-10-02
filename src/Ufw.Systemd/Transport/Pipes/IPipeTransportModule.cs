@@ -5,5 +5,5 @@ namespace Ufw.Systemd.Transport.Pipes;
 
 [ServiceProviderModule]
 [Singleton<INamedPipeServerStreamDescriptor, UnixNamedPipeServerStreamDescriptor>]
-[Singleton<ITransportLayerService, NamedPipeServerTransportService>]
+[Singleton<IPipeTransportLayerService, NamedPipeServerTransportService>]
 internal interface IPipeTransportModule;

@@ -1,7 +1,6 @@
 ﻿using Moq;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.IO;
-using Ufw.Systemd.Interop.Output;
 using Ufw.Systemd.Tests.TestSupport;
 
 namespace Ufw.Systemd.Tests.Interop.IO;
@@ -23,13 +22,10 @@ public sealed class UfwRunnerTests
             .Setup(static runner => runner.RunAsync(It.IsAny<ChildProcessRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ChildProcessResult(0, UfwStatusFixtures.EMPTY_ACTIVE, "diagnostic stderr\n", CancellationRequested: false));
         UfwRunner runner = new(configuration, processRunner.Object);
-        UfwListCommand command = new();
 
-        UfwProcessResult result = await runner.ExecuteAsync(command, TestContext.CancellationToken);
-        UfwStatusSnapshot? snapshot = await command.GetResultAsync(TestContext.CancellationToken);
+        UfwProcessResult result = await runner.ExecuteAsync(new UfwListCommand(), TestContext.CancellationToken);
 
-        Assert.IsNotNull(snapshot);
-        Assert.IsTrue(snapshot.Active);
+        Assert.IsTrue(result.Succeeded);
         Assert.AreEqual(UfwStatusFixtures.EMPTY_ACTIVE, result.StandardOutput);
         Assert.AreEqual("diagnostic stderr\n", result.StandardError);
         processRunner.Verify(
@@ -56,6 +52,7 @@ public sealed class UfwRunnerTests
 
         UfwProcessResult result = await runner.ExecuteAsync(new UfwListCommand(), TestContext.CancellationToken);
 
+        Assert.IsFalse(result.Succeeded);
         Assert.IsTrue(result.CancellationRequested);
         Assert.AreEqual(137, result.ExitCode);
     }

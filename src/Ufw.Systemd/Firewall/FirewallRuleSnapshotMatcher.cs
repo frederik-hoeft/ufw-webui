@@ -17,12 +17,42 @@ internal static class FirewallRuleSnapshotMatcher
 
         for (int index = 0; index < left.Rules.Count; index++)
         {
-            if (!FirewallRuleSemanticComparer.Equals(left.Rules[index], right.Rules[index]))
+            if (!FirewallRuleStateComparer.Equals(left.Rules[index], right.Rules[index]))
             {
                 return false;
             }
         }
         return true;
+    }
+
+    public static bool MatchesOrder(RuleListResponse snapshot, RuleListResponse baseline, IReadOnlyList<int> expectedOrder)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(baseline);
+        ArgumentNullException.ThrowIfNull(expectedOrder);
+
+        if (snapshot.Active != baseline.Active || snapshot.Rules.Count != expectedOrder.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < expectedOrder.Count; index++)
+        {
+            int occurrenceId = expectedOrder[index];
+            if (occurrenceId < 0 || occurrenceId >= baseline.Rules.Count || !FirewallRuleStateComparer.Equals(snapshot.Rules[index], baseline.Rules[occurrenceId]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int CountMatches(IReadOnlyList<ListedFirewallRule> rules, FirewallRuleSpecification specification)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(specification);
+        return rules.Count(rule => rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, specification));
     }
 
     public static bool TryMatchSingleInsertion(
@@ -46,7 +76,7 @@ internal static class FirewallRuleSnapshotMatcher
             if (currentIndex == insertionIndex)
             {
                 ListedFirewallRule candidate = current.Rules[currentIndex];
-                if (candidate.Rule is null || !FirewallRuleSemanticComparer.Equals(candidate.Rule, inserted))
+                if (candidate.Rule is null || !FirewallRuleStateComparer.Equals(candidate.Rule, inserted))
                 {
                     return false;
                 }
@@ -54,7 +84,7 @@ internal static class FirewallRuleSnapshotMatcher
                 continue;
             }
 
-            if (baselineIndex >= baseline.Rules.Count || !FirewallRuleSemanticComparer.Equals(current.Rules[currentIndex], baseline.Rules[baselineIndex]))
+            if (baselineIndex >= baseline.Rules.Count || !FirewallRuleStateComparer.Equals(current.Rules[currentIndex], baseline.Rules[baselineIndex]))
             {
                 return false;
             }
@@ -85,7 +115,7 @@ internal static class FirewallRuleSnapshotMatcher
             if (index == targetIndex)
             {
                 ListedFirewallRule candidate = current.Rules[index];
-                if (candidate.Rule is null || !FirewallRuleSemanticComparer.Equals(candidate.Rule, replacement))
+                if (candidate.Rule is null || !FirewallRuleStateComparer.Equals(candidate.Rule, replacement))
                 {
                     return false;
                 }
@@ -93,7 +123,7 @@ internal static class FirewallRuleSnapshotMatcher
                 continue;
             }
 
-            if (!FirewallRuleSemanticComparer.Equals(current.Rules[index], baseline.Rules[index]))
+            if (!FirewallRuleStateComparer.Equals(current.Rules[index], baseline.Rules[index]))
             {
                 return false;
             }

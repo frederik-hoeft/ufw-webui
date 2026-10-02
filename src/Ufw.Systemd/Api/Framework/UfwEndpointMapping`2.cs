@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Ufw.Roslyn.Controllers;
+﻿using Ufw.Roslyn.Controllers;
 using Ufw.Roslyn.Controllers.Mapping.Delegates;
 using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
@@ -12,10 +11,9 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
 {
     public async override ValueTask<IResponseMessage> InvokeAsync(IServiceProvider serviceProvider, IRequestMessage request, CancellationToken cancellationToken)
     {
-        IMessageSerializer messageSerializer = serviceProvider.GetRequiredService<IMessageSerializer>();
         if (!request.Payload.HasPayload)
         {
-            return await BadRequestAsync(messageSerializer, "This endpoint requires a request payload.", cancellationToken);
+            return await BadRequestAsync(serviceProvider, "This endpoint requires a request payload.", cancellationToken);
         }
 
         TRequest? requestPayload;
@@ -23,30 +21,16 @@ internal sealed record UfwEndpointMapping<TRequest, TResponse>(string Method, st
         {
             requestPayload = await request.Payload.ReadAsync<TRequest>(cancellationToken);
         }
-        catch (ApplicationProtocolException ex)
+        catch (ApplicationProtocolException exception)
         {
-            return await BadRequestAsync(messageSerializer, ex.Message, cancellationToken);
+            return await BadRequestAsync(serviceProvider, exception.Message, cancellationToken);
         }
 
         if (requestPayload is null)
         {
-            return await BadRequestAsync(messageSerializer, "Request payload JSON null cannot be bound to this endpoint.", cancellationToken);
+            return await BadRequestAsync(serviceProvider, "Request payload JSON null cannot be bound to this endpoint.", cancellationToken);
         }
 
-        TResponse responsePayload;
-        try
-        {
-            responsePayload = await InvokeEndpointAsync(serviceProvider, InitializeControllerAsync, requestPayload, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception e)
-        {
-            IApiExceptionMapper exceptionMapper = serviceProvider.GetRequiredService<IApiExceptionMapper>();
-            return await messageSerializer.SerializeResponseAsync(exceptionMapper.Map(e), cancellationToken);
-        }
-        return await messageSerializer.SerializeResponseAsync(responsePayload, cancellationToken);
+        return await InvokeAndSerializeAsync(serviceProvider, cancellationToken => InvokeEndpointAsync(serviceProvider, requestPayload, cancellationToken), cancellationToken);
     }
 }

@@ -61,7 +61,7 @@ internal sealed class TestEndpointMapBuilder : ITestEndpointMapBuilder
             method,
             NormalizeRoute(route),
             priority,
-            invokeAsync: (serviceProvider, _, cancellationToken) => handler(serviceProvider, cancellationToken));
+            invokeAsync: (serviceProvider, cancellationToken) => handler(serviceProvider, cancellationToken));
 
         return Map(mapping);
     }
@@ -77,7 +77,7 @@ internal sealed class TestEndpointMapBuilder : ITestEndpointMapBuilder
             method,
             NormalizeRoute(route),
             priority,
-            invokeAsync: (serviceProvider, _, request, cancellationToken) => handler(serviceProvider, request, cancellationToken));
+            invokeAsync: (serviceProvider, request, cancellationToken) => handler(serviceProvider, request, cancellationToken));
 
         return Map(mapping);
     }

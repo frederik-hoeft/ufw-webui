@@ -2,14 +2,13 @@
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Interop.Commands;
-using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.Ordering;
 
 internal sealed class RuleReorderRecoveryCoordinator(
     IFirewallRuleSnapshotReader snapshotReader,
-    IUfwRunner ufwRunner,
+    IUfwProcessExecutor processExecutor,
     IUfwRuleCommandRenderer renderer,
     IReorderRecoveryJournal journal,
     ILogger logger) : IRuleReorderRecoveryCoordinator
@@ -19,44 +18,36 @@ internal sealed class RuleReorderRecoveryCoordinator(
     public async Task<RuleRecoveryResult> EnsurePresentAsync(ReorderRecoveryJournalEntry entry, RuleListResponse? observedSnapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        RuleListResponse? snapshot = observedSnapshot ?? await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? snapshot = observedSnapshot;
+        if (snapshot is null)
+        {
+            snapshot = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
+        }
         if (snapshot is null)
         {
             return new RuleRecoveryResult(false, false, null, "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
         }
-        if (CountMatches(snapshot.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
+        if (FirewallRuleSnapshotMatcher.CountMatches(snapshot.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
             return new RuleRecoveryResult(true, false, snapshot, null);
         }
 
         IUfwCommand command = CreateRecoveryCommand(entry, snapshot);
-        string? processDiagnostic = null;
-        try
+        UfwProcessExecutionResult process = await processExecutor.ExecuteAsync(command, "recovering an interrupted reorder move", cancellationToken);
+        if (!process.Succeeded && !process.RunnerFailed)
         {
-            UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            if (!result.Succeeded || result.CancellationRequested)
-            {
-                processDiagnostic = FormatProcessDiagnostic(result);
-                _logger.LogWarning($"Reorder recovery insertion did not report success: {processDiagnostic}");
-            }
-        }
-        catch (ChildProcessException exception)
-        {
-            processDiagnostic = exception.Message;
-            _logger.LogError(exception, "Failed to start UFW while recovering an interrupted reorder move.");
+            _logger.LogWarning($"Reorder recovery insertion did not report success: {process.Diagnostic}");
         }
 
-        RuleListResponse? confirmed = await TryReadSnapshotAsync(CancellationToken.None);
-        if (confirmed is not null && CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
+        RuleListResponse? confirmed = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        if (confirmed is not null && FirewallRuleSnapshotMatcher.CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
-            return new RuleRecoveryResult(true, true, confirmed, processDiagnostic);
+            return new RuleRecoveryResult(true, true, confirmed, process.Diagnostic);
         }
 
-        string diagnostic = processDiagnostic is null
-            ? "The removed rule could not be confirmed after the recovery insertion."
-            : $"{processDiagnostic} The removed rule could not be confirmed afterward.";
+        string diagnostic = UfwProcessDiagnostics.Combine(process.Diagnostic, "The removed rule could not be confirmed after the recovery insertion.")!;
         return new RuleRecoveryResult(false, true, confirmed, diagnostic);
     }
 
@@ -65,39 +56,19 @@ internal sealed class RuleReorderRecoveryCoordinator(
         int? nextIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.NextAnchor);
         if (nextIndex.HasValue && snapshot.Rules[nextIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, nextIndex.Value);
-            return new UfwInsertRuleCommand(position, entry.Rule, renderer);
+            UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(snapshot.Rules, entry.Rule.AddressFamily, nextIndex.Value);
+            return placement.CreateCommand(entry.Rule, renderer);
         }
 
         int? previousIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.PreviousAnchor);
         if (previousIndex.HasValue && snapshot.Rules[previousIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            int previousFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(snapshot.Rules, previousIndex.Value);
-            int familyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
-            int insertionPosition = previousFamilyPosition + 1;
-            if (insertionPosition <= familyCount)
-            {
-                int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, entry.Rule.AddressFamily, insertionPosition);
-                return new UfwInsertRuleCommand(position, entry.Rule, renderer);
-            }
-
-            return new UfwAddRuleCommand(entry.Rule, renderer);
+            UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(snapshot.Rules, entry.Rule.AddressFamily, previousIndex.Value + 1);
+            return placement.CreateCommand(entry.Rule, renderer);
         }
 
-        int currentFamilyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
-        if (entry.OriginalFamilyPosition <= currentFamilyCount)
-        {
-            int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, entry.Rule.AddressFamily, entry.OriginalFamilyPosition);
-            return new UfwInsertRuleCommand(position, entry.Rule, renderer);
-        }
-
-        return new UfwAddRuleCommand(entry.Rule, renderer);
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
+        UfwInsertionPlacement fallback = UfwInsertionPlacementResolver.ResolveFamilyPosition(snapshot.Rules, entry.Rule.AddressFamily, entry.OriginalFamilyPosition);
+        return fallback.CreateCommand(entry.Rule, renderer);
     }
 
     private static int? FindUniqueAnchorIndex(IReadOnlyList<ListedFirewallRule> rules, RuleRecoveryAnchor? anchor)
@@ -127,7 +98,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
     {
         if (anchor.Rule is not null)
         {
-            return rule.Rule is not null && FirewallRuleSemanticComparer.Equals(rule.Rule, anchor.Rule);
+            return rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, anchor.Rule);
         }
 
         if (rule.Parsed || anchor.RawLine is null)
@@ -140,19 +111,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
             Parsed = false,
             RawLine = anchor.RawLine,
         };
-        return FirewallRuleSemanticComparer.Equals(rule, synthetic);
+        return FirewallRuleStateComparer.Equals(rule, synthetic);
     }
 
-    internal static int CountMatches(IReadOnlyList<ListedFirewallRule> rules, FirewallRuleSpecification specification) =>
-        rules.Count(rule => rule.Rule is not null && FirewallRuleSemanticComparer.Equals(rule.Rule, specification));
-
-    private static string FormatProcessDiagnostic(UfwProcessResult result)
-    {
-        string details = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-        if (result.CancellationRequested)
-        {
-            return "UFW recovery was canceled after the process started.";
-        }
-        return $"UFW recovery exited with code {result.ExitCode}: {details}";
-    }
 }

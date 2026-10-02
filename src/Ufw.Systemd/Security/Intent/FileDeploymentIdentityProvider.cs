@@ -2,10 +2,11 @@
 using System.Security.Cryptography;
 using System.Text;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Security.Intent;
 
-internal sealed class FileDeploymentIdentityProvider(IConfiguration configuration) : IDeploymentIdentityProvider
+internal sealed class FileDeploymentIdentityProvider(IConfiguration configuration, IDurableFileStore durableFiles) : IDeploymentIdentityProvider
 {
     private const int DEPLOYMENT_ID_SIZE_BYTES = 32;
     private readonly Lock _sync = new();
@@ -46,25 +47,9 @@ internal sealed class FileDeploymentIdentityProvider(IConfiguration configuratio
             return Read(path);
         }
 
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         string generated = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(DEPLOYMENT_ID_SIZE_BYTES));
         byte[] contents = Encoding.ASCII.GetBytes(generated + "\n");
-        try
-        {
-            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read, bufferSize: 4096, FileOptions.WriteThrough);
-            stream.Write(contents);
-            stream.Flush(flushToDisk: true);
-            return generated;
-        }
-        catch (IOException) when (File.Exists(path))
-        {
-            return Read(path);
-        }
+        return durableFiles.TryCreateNew(path, contents) ? generated : Read(path);
     }
 
     private static string Read(string path)

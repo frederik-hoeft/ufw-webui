@@ -1,6 +1,6 @@
 # IPC protocol test adapter
 
-The IPC test adapter provides an in-process environment for testing the same client-to-daemon protocol stack used in production without starting separate processes or binding a platform-specific Unix socket or named pipe.
+The IPC test adapter provides an in-process environment for testing the same client-to-daemon protocol stack used in production without starting separate processes or binding a Unix socket, named pipe, or TCP listener.
 
 Its purpose is not to replace the production stack with test doubles. The adapter substitutes the physical transport and, where a test requires it, transport security. Framing, application serialization, request binding, middleware, routing, endpoint invocation, response handling, timeouts, and worker lifecycle remain the production implementation. This makes the adapter suitable for both ordinary typed request tests and malformed-wire/failure-path tests.
 
@@ -69,7 +69,7 @@ Tests that claim compatibility with an established production wire contract shou
 
 ## Failure and lifetime behavior
 
-The daemon side uses the production connection-processing and worker failure boundaries. A malformed frame, peer disconnect, transport I/O failure, or TLS failure terminates that connection without consuming the worker permanently. Unexpected failures outside the defined connection boundary remain visible to the test rather than being converted into successful cleanup.
+The daemon side uses the production connection-processing and worker failure boundaries. A malformed frame, peer disconnect, transport I/O failure, or TLS failure terminates that connection without consuming the worker permanently. Unexpected failures outside the defined connection boundary fault the owning worker, cancel the sibling worker pool, and remain visible to the test rather than being converted into successful cleanup.
 
 Each run links the MSTest cancellation token, any caller token, and the optional adapter-level test timeout. Protocol I/O and request deadlines remain independently configurable, matching production's distinction between an idle I/O timeout and an overall request deadline.
 

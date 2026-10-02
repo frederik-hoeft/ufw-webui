@@ -23,8 +23,4 @@ internal sealed class UfwInsertRuleCommand(int displayNumber, FirewallRuleSpecif
 
         return ["insert", number, .. ruleArguments];
     }
-
-    public void SetOutput(string output)
-    {
-    }
 }

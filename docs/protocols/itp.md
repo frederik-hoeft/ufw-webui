@@ -1,6 +1,6 @@
 # IPC Transport Protocol (ITP) v1
 
-ITP is the framing protocol used on the local stream between the web application and daemon. It establishes wire compatibility before application decoding, bounds allocation from untrusted lengths, reassembles frames from arbitrary stream fragments, and provides a small transport-error vocabulary when a v1 peer can be identified safely.
+ITP is the framing protocol used on the connection-oriented stream between the web application and daemon. It establishes wire compatibility before application decoding, bounds allocation from untrusted lengths, reassembles frames from arbitrary stream fragments, and provides a small transport-error vocabulary when a v1 peer can be identified safely.
 
 ITP does not define application routes, JSON semantics, authentication, sessions, multiplexing, or mutation authorization. A connection carries at most one application exchange.
 
@@ -42,7 +42,7 @@ The fixed v1 header is 10 bytes. v1 has no flags, trailer, checksum, or reserved
 
 A stream read is not required to return all requested bytes. Receivers MUST continue reading until each fixed field and the declared payload are complete or the stream ends/cancels.
 
-ITP relies on the ordered stream for reliable delivery. It does not add a checksum; a CRC would neither authenticate a hostile local peer nor add a useful guarantee for the supported transports.
+ITP relies on the ordered stream for reliable delivery. It does not add a checksum; a CRC would neither authenticate a hostile peer nor add a useful guarantee for the supported transports.
 
 ## Packet and payload registries
 
@@ -122,7 +122,7 @@ The client opens a connection, writes one `ApplicationData` frame, reads one res
 
 ITP stores no state across connections.
 
-Stream security, when configured, wraps the stream below ITP. ITP does not know whether the underlying bytes are carried by a Unix-domain socket, Windows named pipe, in-process test transport, or TLS-wrapped stream.
+Stream security, when configured, wraps the stream below ITP. ITP does not know whether the underlying bytes are carried by a Unix-domain socket, Windows named pipe, TCP connection, in-process test transport, or TLS-wrapped stream.
 
 ## Timeouts and cancellation
 

@@ -1,6 +1,6 @@
 # IPC Protocols
 
-`Ufw.Web` and `Ufw.Systemd` communicate over a local, connection-oriented stream. The protocol stack deliberately separates byte framing, application envelopes, route contracts, and privileged mutation authorization so each layer can reject incompatibility without guessing about the layer above it.
+`Ufw.Web` and `Ufw.Systemd` communicate over a connection-oriented byte stream. The protocol stack deliberately separates byte framing, application envelopes, route contracts, and privileged mutation authorization so each layer can reject incompatibility without guessing about the layer above it.
 
 These documents describe project protocols, not external standards. The words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are used pragmatically to distinguish required interoperability behavior from implementation choices.
 
@@ -8,7 +8,7 @@ These documents describe project protocols, not external standards. The words **
 
 | Layer | Unit | Contract |
 | --- | --- | --- |
-| Local stream and optional TLS | bytes | ordered transport, peer connection, I/O cancellation |
+| Stream transport and optional TLS | bytes | ordered transport, peer connection, I/O cancellation |
 | [IPC Transport Protocol (ITP) v1](itp.md) | frame | version bootstrap, bounded framing, packet kind, payload format, transport errors |
 | [Application IPC protocol v1](application-protocol.md) | JSON document | request/response direction, route/method or status, payload representation |
 | Daemon routing | typed request/response | route selection, request binding, endpoint invocation |
@@ -51,7 +51,7 @@ Failures stay with the layer that can classify them reliably.
 
 ITP owns malformed framing, unsupported wire versions, unsafe lengths, packet kinds, and payload formats. The application protocol owns malformed JSON envelopes and representation invariants. Routing owns unknown routes, unsupported methods, and route-specific binding failures. Signed-intent verification owns privileged mutation authorization.
 
-Expected peer, I/O, timeout, stream-security, and protocol failures are connection-scoped. They must not terminate a daemon worker that can safely accept a later peer. Unexpected daemon/framework failures are not reclassified as peer errors and remain observable by faulting the owning worker/application.
+Expected peer, I/O, timeout, stream-security, and protocol failures are connection-scoped. They must not terminate a daemon worker that can safely accept a later peer. Unexpected daemon/framework failures are not reclassified as peer errors: a faulted worker causes the network application to cancel its sibling workers and fail the daemon rather than serving indefinitely with reduced capacity.
 
 ## Time bounds
 
@@ -68,4 +68,4 @@ Caller cancellation and daemon shutdown remain cancellation signals. They are no
 - [Application IPC protocol v1](application-protocol.md) defines the JSON envelope, payload representations, typed binding rules, and application-level errors.
 - [Signed mutation intent v2](signed-intent.md) defines the browser-to-daemon authorization contract for append add, ordered insertion, occurrence-bound replacement, single/batch delete, and reorder operations, including canonicalization, replay protection, semantic rule identity, and exact-snapshot occurrence authority.
 
-For the architectural role of IPC, see [UFWeb Architecture](../architecture/architecture-overview.md). For production socket ownership and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).
+For the architectural role of IPC, see [UFWeb Architecture](../architecture/architecture-overview.md). For transport selection, production socket ownership, and optional TLS/mTLS, see [Deployment configuration](../deployment/configuration.md).

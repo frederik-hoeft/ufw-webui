@@ -9,16 +9,18 @@ public sealed class RuleReplacementContractTests
     private const string VALID_FINGERPRINT = "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     [TestMethod]
-    public void ResolveTarget_ValidExactOccurrence_ReturnsTarget()
+    public void TryResolveTarget_ValidExactOccurrence_ReturnsTarget()
     {
         ListedFirewallRule first = ListedRule(FirewallAddressFamily.IPv4, "22");
         ListedFirewallRule target = ListedRule(FirewallAddressFamily.IPv4, "443");
         ListedFirewallRule[] baseline = [first, target];
         ReplaceRulePayload payload = Payload(target.RuleId!, FirewallAddressFamily.IPv4, targetOccurrenceId: 1);
 
-        ListedFirewallRule actual = RuleReplacementContract.ResolveTarget(baseline, payload);
+        bool resolved = RuleReplacementContract.TryResolveTarget(baseline, payload, out ListedFirewallRule? actual, out string? diagnostic);
 
+        Assert.IsTrue(resolved);
         Assert.AreSame(target, actual);
+        Assert.IsNull(diagnostic);
     }
 
     [TestMethod]
@@ -55,38 +57,54 @@ public sealed class RuleReplacementContractTests
     }
 
     [TestMethod]
-    public void ResolveTarget_OutOfRangeOccurrence_Rejects()
+    public void TryResolveTarget_OutOfRangeOccurrence_Rejects()
     {
         ReplaceRulePayload payload = Payload(ValidRuleId(), FirewallAddressFamily.IPv4, targetOccurrenceId: 1);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => RuleReplacementContract.ResolveTarget([], payload));
+        bool resolved = RuleReplacementContract.TryResolveTarget([], payload, out ListedFirewallRule? target, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(target);
+        StringAssert.Contains(diagnostic, "outside the signed baseline");
     }
 
     [TestMethod]
-    public void ResolveTarget_UnparsedTarget_Rejects()
+    public void TryResolveTarget_UnparsedTarget_Rejects()
     {
         ReplaceRulePayload payload = Payload(ValidRuleId(), FirewallAddressFamily.IPv4);
         ListedFirewallRule target = new() { Parsed = false, RawLine = "opaque" };
 
-        Assert.Throws<InvalidOperationException>(() => RuleReplacementContract.ResolveTarget([target], payload));
+        bool resolved = RuleReplacementContract.TryResolveTarget([target], payload, out ListedFirewallRule? actual, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(actual);
+        StringAssert.Contains(diagnostic, "parsed target rule");
     }
 
     [TestMethod]
-    public void ResolveTarget_OriginalIdentityMismatch_Rejects()
+    public void TryResolveTarget_OriginalIdentityMismatch_Rejects()
     {
         ListedFirewallRule target = ListedRule(FirewallAddressFamily.IPv4, "22");
         ReplaceRulePayload payload = Payload(RuleIdentity.Compute(Rule(FirewallAddressFamily.IPv4, "443")), FirewallAddressFamily.IPv4);
 
-        Assert.Throws<InvalidOperationException>(() => RuleReplacementContract.ResolveTarget([target], payload));
+        bool resolved = RuleReplacementContract.TryResolveTarget([target], payload, out ListedFirewallRule? actual, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(actual);
+        StringAssert.Contains(diagnostic, "identity does not match");
     }
 
     [TestMethod]
-    public void ResolveTarget_AddressFamilyChange_Rejects()
+    public void TryResolveTarget_AddressFamilyChange_Rejects()
     {
         ListedFirewallRule target = ListedRule(FirewallAddressFamily.IPv4, "22");
         ReplaceRulePayload payload = Payload(target.RuleId!, FirewallAddressFamily.IPv6);
 
-        Assert.Throws<InvalidOperationException>(() => RuleReplacementContract.ResolveTarget([target], payload));
+        bool resolved = RuleReplacementContract.TryResolveTarget([target], payload, out ListedFirewallRule? actual, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(actual);
+        StringAssert.Contains(diagnostic, "address family must match");
     }
 
     private static ReplaceRulePayload Payload(string originalRuleId, FirewallAddressFamily family, int targetOccurrenceId = 0) => new()

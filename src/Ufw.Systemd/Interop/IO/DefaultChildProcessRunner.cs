@@ -1,11 +1,14 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using Ufw.Systemd.Configuration;
+using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Interop.IO;
 
-internal sealed class DefaultChildProcessRunner(IConfiguration configuration) : IChildProcessRunner
+internal sealed class DefaultChildProcessRunner(IConfiguration configuration, ILogger logger) : IChildProcessRunner
 {
+    private readonly ILogger<DefaultChildProcessRunner> _logger = logger.Scoped<DefaultChildProcessRunner>();
+
     public async Task<ChildProcessResult> RunAsync(ChildProcessRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -20,7 +23,7 @@ internal sealed class DefaultChildProcessRunner(IConfiguration configuration) : 
         if (configuration.Settings.DebugMode)
         {
             string args = string.Join(' ', request.Arguments);
-            Console.WriteLine($"execute: '{request.Command} {args}'");
+            _logger.LogDebug($"Executing child process: '{request.Command} {args}'.");
         }
 
         try
@@ -64,11 +67,11 @@ internal sealed class DefaultChildProcessRunner(IConfiguration configuration) : 
             {
                 if (!string.IsNullOrEmpty(standardOutput))
                 {
-                    await Console.Out.WriteLineAsync(standardOutput);
+                    _logger.LogDebug($"Child process standard output: {standardOutput}");
                 }
                 if (!string.IsNullOrEmpty(standardError))
                 {
-                    await Console.Error.WriteLineAsync(standardError);
+                    _logger.LogDebug($"Child process standard error: {standardError}");
                 }
             }
 

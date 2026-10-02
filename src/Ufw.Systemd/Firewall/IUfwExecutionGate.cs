@@ -6,5 +6,7 @@
 /// </summary>
 internal interface IUfwExecutionGate
 {
+    Task RunAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken);
+
     Task<TResult> RunAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken cancellationToken);
 }

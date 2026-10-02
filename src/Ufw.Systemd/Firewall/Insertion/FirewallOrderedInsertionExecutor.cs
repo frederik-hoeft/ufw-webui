@@ -6,7 +6,6 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.Commands;
-using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.Insertion;
@@ -15,7 +14,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
     IFirewallRuleSnapshotReader snapshotReader,
     IFirewallRuleInterfaceValidator interfaceValidator,
     IFirewallRuleCapabilityValidator capabilityValidator,
-    IUfwRunner ufwRunner,
+    IUfwProcessExecutor processExecutor,
     IUfwRuleCommandRenderer renderer,
     ILogger logger) : IFirewallOrderedInsertionExecutor
 {
@@ -26,7 +25,7 @@ internal sealed class FirewallOrderedInsertionExecutor(
         ArgumentNullException.ThrowIfNull(payload);
         RuleInsertionContract.ValidatePayload(payload);
 
-        RuleListResponse? baseline = await TryReadSnapshotAsync(cancellationToken);
+        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (baseline is null)
         {
             return Result(RuleInsertionExecutionOutcome.StateUncertain, null, "The authoritative firewall state could not be read before ordered insertion.");
@@ -36,15 +35,10 @@ internal sealed class FirewallOrderedInsertionExecutor(
             return Result(RuleInsertionExecutionOutcome.StaleBaseline, baseline, "The authoritative firewall state no longer matches the signed insertion baseline.");
         }
 
-        ListedFirewallRule anchor;
         FirewallRuleSpecification rule = RuleSpecificationNormalizer.Normalize(payload.Rule);
-        try
+        if (!RuleInsertionContract.TryResolveAnchor(baseline.Rules, payload, out _, out string? anchorDiagnostic))
         {
-            anchor = RuleInsertionContract.ResolveAnchor(baseline.Rules, payload);
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
-        {
-            return Result(RuleInsertionExecutionOutcome.PreconditionFailed, baseline, exception.Message);
+            return Result(RuleInsertionExecutionOutcome.PreconditionFailed, baseline, anchorDiagnostic);
         }
 
         IResponsePayload? capabilityError = capabilityValidator.Validate(rule, baseline.Configuration);
@@ -68,16 +62,18 @@ internal sealed class FirewallOrderedInsertionExecutor(
             return Result(RuleInsertionExecutionOutcome.PreconditionFailed, baseline, "A semantically identical rule already exists.");
         }
 
-        IUfwCommand command = CreateCommand(baseline, payload, anchor, rule);
-        ProcessExecution process = await ExecuteProcessAsync(command, cancellationToken);
-        RuleListResponse? finalSnapshot = await TryReadSnapshotAsync(CancellationToken.None);
+        int desiredOccurrenceIndex = payload.Placement == RuleInsertionPlacement.Before
+            ? payload.AnchorOccurrenceId
+            : payload.AnchorOccurrenceId + 1;
+        UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(baseline.Rules, rule.AddressFamily, desiredOccurrenceIndex);
+        UfwProcessExecutionResult process = await processExecutor.ExecuteAsync(placement.CreateCommand(rule, renderer), "applying ordered rule insertion", cancellationToken);
+        RuleListResponse? finalSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (finalSnapshot is null)
         {
-            return Result(RuleInsertionExecutionOutcome.StateUncertain, null, CombineDiagnostics(process.Diagnostic, "The firewall state could not be read after ordered insertion."));
+            return Result(RuleInsertionExecutionOutcome.StateUncertain, null, UfwProcessDiagnostics.Combine(process.Diagnostic, "The firewall state could not be read after ordered insertion."));
         }
 
-        int expectedIndex = GetExpectedInsertionIndex(baseline.Rules, payload, anchor.Rule!.AddressFamily);
-        if (FirewallRuleSnapshotMatcher.TryMatchSingleInsertion(baseline, finalSnapshot, rule, expectedIndex, out ListedFirewallRule? insertedRule))
+        if (FirewallRuleSnapshotMatcher.TryMatchSingleInsertion(baseline, finalSnapshot, rule, placement.ExpectedOccurrenceIndex, out ListedFirewallRule? insertedRule))
         {
             _logger.LogInformation($"Inserted firewall rule '{identity}' at signed snapshot occurrence {payload.AnchorOccurrenceId} ({payload.Placement}).");
             return new RuleInsertionExecutionResult(RuleInsertionExecutionOutcome.Completed, finalSnapshot, insertedRule, process.Succeeded ? null : process.Diagnostic);
@@ -90,82 +86,13 @@ internal sealed class FirewallOrderedInsertionExecutor(
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            return Result(RuleInsertionExecutionOutcome.PreconditionFailed, finalSnapshot, CombineDiagnostics(process.Diagnostic, "The requested rule was not inserted."));
+            return Result(RuleInsertionExecutionOutcome.PreconditionFailed, finalSnapshot, UfwProcessDiagnostics.Combine(process.Diagnostic, "The requested rule was not inserted."));
         }
 
         return Result(
             RuleInsertionExecutionOutcome.StateUncertain,
             finalSnapshot,
-            CombineDiagnostics(process.Diagnostic, "Firewall state diverged from the exact ordered-insertion postcondition."));
-    }
-
-    private IUfwCommand CreateCommand(RuleListResponse baseline, InsertRulePayload payload, ListedFirewallRule anchor, FirewallRuleSpecification rule)
-    {
-        FirewallAddressFamily family = anchor.Rule!.AddressFamily;
-        if (payload.Placement == RuleInsertionPlacement.Before)
-        {
-            int position = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, payload.AnchorOccurrenceId);
-            return new UfwInsertRuleCommand(position, rule, renderer);
-        }
-
-        int? nextFamilyOccurrence = UfwRulePositionResolver.FindNextFamilyOccurrence(baseline.Rules, payload.AnchorOccurrenceId, family);
-        if (nextFamilyOccurrence.HasValue)
-        {
-            int position = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, nextFamilyOccurrence.Value);
-            return new UfwInsertRuleCommand(position, rule, renderer);
-        }
-
-        return new UfwAddRuleCommand(rule, renderer);
-    }
-
-    private async Task<ProcessExecution> ExecuteProcessAsync(IUfwCommand command, CancellationToken cancellationToken)
-    {
-        try
-        {
-            UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded && !result.CancellationRequested
-                ? null
-                : FormatProcessDiagnostic(result);
-            return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);
-        }
-        catch (ChildProcessException exception)
-        {
-            _logger.LogError(exception, "UFW execution failed while applying ordered rule insertion. Authoritative state will be reconciled before classifying the result.");
-            return new ProcessExecution(false, false, exception.Message);
-        }
-    }
-
-    private async Task<RuleListResponse?> TryReadSnapshotAsync(CancellationToken cancellationToken)
-    {
-        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        return read.Error is null ? FirewallRuleSet.ToListResponse(read.Snapshot!, read.Configuration!) : null;
-    }
-
-    private static int GetExpectedInsertionIndex(IReadOnlyList<ListedFirewallRule> baseline, InsertRulePayload payload, FirewallAddressFamily family)
-    {
-        if (payload.Placement == RuleInsertionPlacement.Before)
-        {
-            return payload.AnchorOccurrenceId;
-        }
-
-        int? nextFamilyOccurrence = UfwRulePositionResolver.FindNextFamilyOccurrence(baseline, payload.AnchorOccurrenceId, family);
-        if (nextFamilyOccurrence.HasValue)
-        {
-            return nextFamilyOccurrence.Value;
-        }
-
-        if (family == FirewallAddressFamily.IPv4)
-        {
-            for (int index = 0; index < baseline.Count; index++)
-            {
-                if (ListedFirewallRuleFamily.GetObservedFamily(baseline[index]) == FirewallAddressFamily.IPv6)
-                {
-                    return index;
-                }
-            }
-        }
-
-        return baseline.Count;
+            UfwProcessDiagnostics.Combine(process.Diagnostic, "Firewall state diverged from the exact ordered-insertion postcondition."));
     }
 
     private static string GetResponseDiagnostic(IResponsePayload response) => response switch
@@ -174,25 +101,6 @@ internal sealed class FirewallOrderedInsertionExecutor(
         _ => "Ordered insertion precondition validation failed.",
     };
 
-    private static string FormatProcessDiagnostic(UfwProcessResult result)
-    {
-        string details = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-        return result.CancellationRequested
-            ? "UFW insertion was canceled after the process started."
-            : $"UFW insertion exited with code {result.ExitCode}: {details}";
-    }
-
-    private static string? CombineDiagnostics(params string?[] diagnostics)
-    {
-        string[] nonEmpty = diagnostics
-            .Where(static diagnostic => !string.IsNullOrWhiteSpace(diagnostic))
-            .Select(static diagnostic => diagnostic!)
-            .ToArray();
-        return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
-    }
-
     private static RuleInsertionExecutionResult Result(RuleInsertionExecutionOutcome outcome, RuleListResponse? finalSnapshot, string? diagnostic) =>
         new(outcome, finalSnapshot, null, diagnostic);
-
-    private sealed record ProcessExecution(bool Succeeded, bool CancellationRequested, string? Diagnostic);
 }

@@ -54,7 +54,7 @@ Mutating daemon endpoints must use the deployment-scoped signed-intent boundary.
 state, and the complete operation-specific mutation semantics before UFW execution. Append, ordered insertion, delete, and reorder all use this mechanism; reuse the shared intent protocol
 rather than creating endpoint-specific authorization conventions. See [signed mutation intent v2](../docs/protocols/signed-intent.md).
 
-The daemon-facing transport is local named-pipe/Unix-domain IPC. Do not add a network transport for the privileged daemon.
+The daemon accepts a startup-selected pipe/Unix-domain or TCP transport. Production defaults to the local Unix-domain socket; transport selection and transport-security configuration are immutable for the daemon lifetime, and runtime transport switching is not supported.
 
 UFW/daemon state is authoritative. PostgreSQL may store users, refresh-token state, and application-owned authoring metadata, but it must not become a second source of truth for firewall
 rules or host state.

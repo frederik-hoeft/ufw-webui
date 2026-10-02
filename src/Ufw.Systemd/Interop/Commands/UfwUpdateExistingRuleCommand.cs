@@ -12,8 +12,4 @@ internal sealed class UfwUpdateExistingRuleCommand(FirewallRuleSpecification spe
         ImmutableArray<string> arguments = renderer.Render(normalized).Arguments;
         return normalized.Comment is null ? [.. arguments, "comment", string.Empty] : arguments;
     }
-
-    public void SetOutput(string output)
-    {
-    }
 }

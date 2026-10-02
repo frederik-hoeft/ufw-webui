@@ -1,8 +1,6 @@
 ﻿using System.IO.Pipes;
-using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Tests.TestSupport;
 using Ufw.Systemd.Transport.Pipes.Unix;
-using DaemonPipeOptions = Ufw.Systemd.Configuration.Model.PipeOptions;
 using SystemPipeOptions = System.IO.Pipes.PipeOptions;
 
 namespace Ufw.Systemd.Tests.Transport;
@@ -23,11 +21,7 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
         Directory.CreateDirectory(directory);
         try
         {
-            TestConfiguration configuration = new(new AppSettings
-            {
-                Pipe = new DaemonPipeOptions { PipeName = pipePath },
-                Network = new NetworkOptions(),
-            });
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(pipeName: pipePath));
             UnixNamedPipeServerStreamDescriptor descriptor = new(configuration);
 
             Task<NamedPipeServerStream> serverTask = descriptor.ServeAsync(CancellationToken.None);
@@ -43,6 +37,42 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
             await using NamedPipeClientStream client = new(".", pipePath, PipeDirection.InOut, SystemPipeOptions.Asynchronous);
             await client.ConnectAsync();
             await using NamedPipeServerStream server = await serverTask;
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task CancelingPendingAcceptReleasesSocketForSubsequentServerAsync()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string directory = Path.Combine(Path.GetTempPath(), $"ufw-pipe-{Guid.NewGuid():N}");
+        string pipePath = Path.Combine(directory, "ufw-systemd.sock");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            TestConfiguration configuration = new(TestAppSettingsFactory.Create(pipeName: pipePath));
+            UnixNamedPipeServerStreamDescriptor descriptor = new(configuration);
+
+            using CancellationTokenSource cancellation = new();
+            Task<NamedPipeServerStream> canceledAccept = descriptor.ServeAsync(cancellation.Token);
+            await WaitForSocketAsync(pipePath);
+
+            await cancellation.CancelAsync();
+            await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => _ = await canceledAccept);
+
+            Task<NamedPipeServerStream> replacementServerTask = descriptor.ServeAsync(CancellationToken.None);
+            await WaitForSocketAsync(pipePath);
+
+            await using NamedPipeClientStream client = new(".", pipePath, PipeDirection.InOut, SystemPipeOptions.Asynchronous);
+            await client.ConnectAsync();
+            await using NamedPipeServerStream replacementServer = await replacementServerTask;
         }
         finally
         {

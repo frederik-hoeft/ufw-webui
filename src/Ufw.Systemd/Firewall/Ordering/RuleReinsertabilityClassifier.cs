@@ -3,7 +3,7 @@ using Ufw.Shared.Firewall.Rendering;
 
 namespace Ufw.Systemd.Firewall.Ordering;
 
-internal sealed class RuleReinsertabilityClassifier(IUfwRuleCommandRenderer renderer) : IRuleReinsertabilityClassifier
+internal sealed class RuleReinsertabilityClassifier(IUfwRuleCommandRenderer renderer, IRuleReinsertionCostProvider reinsertionCostProvider) : IRuleReinsertabilityClassifier
 {
     public RuleReinsertability Classify(ListedFirewallRule rule)
     {
@@ -29,8 +29,8 @@ internal sealed class RuleReinsertabilityClassifier(IUfwRuleCommandRenderer rend
             Reason: null,
             Specification: specification,
             RenderedRule: renderedRule,
-            KeepPriority: renderedRule.Arguments.Length);
+            ReinsertionCost: reinsertionCostProvider.GetReinsertionCost(renderedRule));
     }
 
-    private static RuleReinsertability Unsupported(string reason) => new(false, reason, null, null, int.MaxValue);
+    private static RuleReinsertability Unsupported(string reason) => new(false, reason, null, null, default);
 }

@@ -77,4 +77,27 @@ public sealed class UfwStatusParserTests
 
         Assert.IsNull(snapshot);
     }
+
+    [TestMethod]
+    public void TestParse_OverflowingDisplayNumber_IsIgnoredWithoutThrowing()
+    {
+        string output = UfwStatusFixtures.WithRules("[ 999999999999999999999999999] 22/tcp ALLOW IN Anywhere");
+
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(output);
+
+        Assert.IsNotNull(snapshot);
+        Assert.IsEmpty(snapshot.Rules);
+    }
+
+    [TestMethod]
+    public void TestParse_ZeroDisplayNumber_DoesNotQualifyAsNumberedRow()
+    {
+        string output = UfwStatusFixtures.WithRules("[ 0] 22/tcp ALLOW IN Anywhere");
+
+        UfwStatusSnapshot? snapshot = UfwStatusParser.Parse(output);
+
+        Assert.IsNotNull(snapshot);
+        Assert.IsEmpty(snapshot.Rules);
+    }
+
 }

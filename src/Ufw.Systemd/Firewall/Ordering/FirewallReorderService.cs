@@ -1,6 +1,5 @@
 ﻿using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Security.Intent;
 using ResponseOperationOutcome = Ufw.Shared.Ipc.Model.Responses.Domain.RuleReorderOperationOutcome;
@@ -9,9 +8,7 @@ namespace Ufw.Systemd.Firewall.Ordering;
 
 internal sealed class FirewallReorderService(
     IIntentVerifier intentVerifier,
-    INonceStore nonceStore,
-    IUfwExecutionGate executionGate,
-    IFirewallMutationSafetyGuard mutationSafetyGuard,
+    ISignedMutationOrchestrator mutationOrchestrator,
     IFirewallReorderExecutor executor) : IFirewallReorderService
 {
     public async ValueTask<IResponsePayload> ReorderAsync(ReorderRulesRequest request, CancellationToken cancellationToken)
@@ -24,17 +21,11 @@ internal sealed class FirewallReorderService(
         }
 
         IntentVerificationResult.AcceptedReorder accepted = (IntentVerificationResult.AcceptedReorder)verification;
-        return await executionGate.RunAsync(ct => ExecuteAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteAsync(IntentVerificationResult.AcceptedReorder accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedReorder accepted, CancellationToken cancellationToken)
     {
-        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
-        if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
-        {
-            return new ConflictResponse("Intent nonce has already been used.");
-        }
-
         RuleReorderExecutionRequest executionRequest = new(accepted.Payload.BaselineFingerprint, accepted.Payload.DesiredOrder);
         RuleReorderExecutionResult result = await executor.ExecuteAsync(executionRequest, cancellationToken);
         return ToResponse(result);

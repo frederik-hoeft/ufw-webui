@@ -1,7 +1,10 @@
-﻿namespace Ufw.Systemd.Firewall.Ordering;
+﻿using System.Collections.Frozen;
+
+namespace Ufw.Systemd.Firewall.Ordering;
 
 /// <summary>
 /// Produces a minimum-cardinality remove/reinsert plan over snapshot-local occurrence IDs.
+/// Among plans with the same move count, prefers leaving occurrences with the greater total reinsertion cost untouched.
 /// </summary>
 internal sealed class RuleReorderPlanner : IRuleReorderPlanner
 {
@@ -9,12 +12,12 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         IReadOnlyList<int> currentOrder,
         IReadOnlyList<int> desiredOrder,
         IReadOnlySet<int> immutableOccurrences,
-        IReadOnlyDictionary<int, int>? keepPriorities = null)
+        IReadOnlyDictionary<int, int>? reinsertionCosts = null)
     {
         ArgumentNullException.ThrowIfNull(currentOrder);
         ArgumentNullException.ThrowIfNull(desiredOrder);
         ArgumentNullException.ThrowIfNull(immutableOccurrences);
-        keepPriorities ??= EmptyPriorities.Instance;
+        reinsertionCosts ??= FrozenDictionary<int, int>.Empty;
 
         ValidatePermutation(currentOrder, nameof(currentOrder));
         ValidatePermutation(desiredOrder, nameof(desiredOrder));
@@ -33,8 +36,8 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         }
 
         int[] desiredPositions = CreatePositionMap(desiredOrder);
-        ValidatePriorities(keepPriorities, occurrenceCount);
-        HashSet<int> untouched = SelectUntouchedOccurrences(currentOrder, desiredPositions, immutableOccurrences, keepPriorities);
+        ValidateReinsertionCosts(reinsertionCosts, occurrenceCount);
+        HashSet<int> untouched = SelectUntouchedOccurrences(currentOrder, desiredPositions, immutableOccurrences, reinsertionCosts);
         List<RuleReorderMove> moves = CreateMoves(desiredOrder, untouched);
         return new RuleReorderPlan(untouched, moves);
     }
@@ -43,7 +46,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         IReadOnlyList<int> currentOrder,
         IReadOnlyList<int> desiredPositions,
         IReadOnlySet<int> immutableOccurrences,
-        IReadOnlyDictionary<int, int> keepPriorities)
+        IReadOnlyDictionary<int, int> reinsertionCosts)
     {
         List<ImmutableAnchor> anchors = [];
         for (int currentIndex = 0; currentIndex < currentOrder.Count; currentIndex++)
@@ -75,7 +78,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
                 ? anchors[anchorIndex].DesiredIndex
                 : currentOrder.Count;
 
-            AddLongestIncreasingSubsequence(currentOrder, desiredPositions, previousCurrentIndex + 1, nextCurrentIndex, previousDesiredIndex, nextDesiredIndex, keepPriorities, untouched);
+            AddLongestIncreasingSubsequence(currentOrder, desiredPositions, previousCurrentIndex + 1, nextCurrentIndex, previousDesiredIndex, nextDesiredIndex, reinsertionCosts, untouched);
 
             previousCurrentIndex = nextCurrentIndex;
             previousDesiredIndex = nextDesiredIndex;
@@ -91,7 +94,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         int endIndex,
         int lowerDesiredExclusive,
         int upperDesiredExclusive,
-        IReadOnlyDictionary<int, int> keepPriorities,
+        IReadOnlyDictionary<int, int> reinsertionCosts,
         HashSet<int> untouched)
     {
         List<int> candidates = [];
@@ -121,8 +124,8 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
             int localDesiredPosition = desiredIndex - lowerDesiredExclusive;
             WeightedSequence predecessor = fenwick.Query(localDesiredPosition - 1);
             predecessors[candidateIndex] = predecessor.CandidateIndex;
-            int keepPriority = keepPriorities.TryGetValue(occurrenceId, out int priority) ? priority : 0;
-            WeightedSequence candidate = new(predecessor.Length + 1, predecessor.Priority + keepPriority, candidateIndex);
+            int reinsertionCost = reinsertionCosts.TryGetValue(occurrenceId, out int cost) ? cost : 0;
+            WeightedSequence candidate = new(predecessor.Length + 1, predecessor.TotalReinsertionCost + reinsertionCost, candidateIndex);
             fenwick.Update(localDesiredPosition, candidate);
         }
 
@@ -180,17 +183,17 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         }
     }
 
-    private static void ValidatePriorities(IReadOnlyDictionary<int, int> keepPriorities, int occurrenceCount)
+    private static void ValidateReinsertionCosts(IReadOnlyDictionary<int, int> reinsertionCosts, int occurrenceCount)
     {
-        foreach ((int occurrenceId, int priority) in keepPriorities)
+        foreach ((int occurrenceId, int cost) in reinsertionCosts)
         {
             if (occurrenceId < 0 || occurrenceId >= occurrenceCount)
             {
-                throw new ArgumentException("Keep-priority occurrence IDs must belong to the baseline occurrence set.", nameof(keepPriorities));
+                throw new ArgumentException("Reinsertion-cost occurrence IDs must belong to the baseline occurrence set.", nameof(reinsertionCosts));
             }
-            if (priority < 0)
+            if (cost < 0)
             {
-                throw new ArgumentException("Keep priorities cannot be negative.", nameof(keepPriorities));
+                throw new ArgumentException("Reinsertion costs cannot be negative.", nameof(reinsertionCosts));
             }
         }
     }
@@ -227,7 +230,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
         }
     }
 
-    private readonly record struct WeightedSequence(int Length, long Priority, int CandidateIndex)
+    private readonly record struct WeightedSequence(int Length, long TotalReinsertionCost, int CandidateIndex)
     {
         public static WeightedSequence Empty { get; } = new(0, 0, -1);
 
@@ -237,9 +240,9 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
             {
                 return left.Length > right.Length ? left : right;
             }
-            if (left.Priority != right.Priority)
+            if (left.TotalReinsertionCost != right.TotalReinsertionCost)
             {
-                return left.Priority > right.Priority ? left : right;
+                return left.TotalReinsertionCost > right.TotalReinsertionCost ? left : right;
             }
             if (left.CandidateIndex < 0)
             {
@@ -251,19 +254,6 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
             }
             return left.CandidateIndex >= right.CandidateIndex ? left : right;
         }
-    }
-
-    private sealed class EmptyPriorities : IReadOnlyDictionary<int, int>
-    {
-        public static EmptyPriorities Instance { get; } = new();
-        public int Count => 0;
-        public IEnumerable<int> Keys => [];
-        public IEnumerable<int> Values => [];
-        public int this[int key] => throw new KeyNotFoundException();
-        public bool ContainsKey(int key) => false;
-        public bool TryGetValue(int key, out int value) { value = default; return false; }
-        public IEnumerator<KeyValuePair<int, int>> GetEnumerator() => Enumerable.Empty<KeyValuePair<int, int>>().GetEnumerator();
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     private readonly record struct ImmutableAnchor(int OccurrenceId, int CurrentIndex, int DesiredIndex);

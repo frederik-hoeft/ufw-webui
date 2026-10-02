@@ -2,13 +2,15 @@
 
 internal sealed class RemoteCertificateValidationOptions : IRequireValidation
 {
-    public required string RequiredIssuer { get; set; }
+    public required string RequiredIssuer { get; init; }
 
-    public required string RequiredSubject { get; set; }
+    public required string RequiredSubject { get; init; }
 
-    public bool AssertIsValid() => this is
+    public void ThrowIfInvalid()
     {
-        RequiredIssuer.Length: > 0,
-        RequiredSubject.Length: > 0,
-    } ? true : throw new InvalidOperationException($"invalid {nameof(RemoteCertificateValidationOptions)}");
+        if (string.IsNullOrWhiteSpace(RequiredIssuer) || string.IsNullOrWhiteSpace(RequiredSubject))
+        {
+            throw new InvalidOperationException("Remote certificate issuer and subject requirements must be non-empty.");
+        }
+    }
 }

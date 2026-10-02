@@ -12,7 +12,7 @@ internal sealed class ApiExceptionMapper(IConfiguration configuration, ILogger l
     {
         ArgumentNullException.ThrowIfNull(exception);
         _logger.LogError(exception, "An unexpected error occurred while processing an API endpoint.");
-        return configuration.Settings.DebugMode
+        return configuration.Settings.ExposeRemoteExceptionDetails
             ? new InternalServerErrorResponse($"An unexpected error occurred while processing the request: {exception}")
             : new InternalServerErrorResponse("An unexpected error occurred while processing the request.");
     }

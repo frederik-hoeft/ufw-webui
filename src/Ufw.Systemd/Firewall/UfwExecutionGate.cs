@@ -7,6 +7,12 @@ internal sealed class UfwExecutionGate : IUfwExecutionGate, IDisposable
     private readonly AsyncLock _lock = new();
     private bool _disposed;
 
+    public Task RunAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _lock.RunTaskAsync(action, cancellationToken);
+    }
+
     public Task<TResult> RunAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

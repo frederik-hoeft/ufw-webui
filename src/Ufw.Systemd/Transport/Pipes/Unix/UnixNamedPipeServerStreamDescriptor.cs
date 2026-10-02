@@ -11,10 +11,10 @@ internal sealed class UnixNamedPipeServerStreamDescriptor(IConfiguration configu
         | UnixFileMode.GroupRead
         | UnixFileMode.GroupWrite;
 
-    private NamedPipeServerStream CreateServerStream()
+    public async Task<NamedPipeServerStream> ServeAsync(CancellationToken cancellationToken)
     {
-        string pipeName = configuration.Settings.Pipe.PipeName;
-        NamedPipeServerStream stream = new
+        string pipeName = configuration.Settings.Transport.Pipe?.PipeName ?? throw new InvalidOperationException("Pipe transport settings are not configured.");
+        NamedPipeServerStream serverStream = new
         (
             pipeName,
             PipeDirection.InOut,
@@ -23,18 +23,20 @@ internal sealed class UnixNamedPipeServerStreamDescriptor(IConfiguration configu
             PipeOptions.WriteThrough
         );
 
-        if (!OperatingSystem.IsWindows())
+        try
         {
-            File.SetUnixFileMode(pipeName, SOCKET_MODE);
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(pipeName, SOCKET_MODE);
+            }
+
+            await serverStream.WaitForConnectionAsync(cancellationToken);
+            return serverStream;
         }
-
-        return stream;
-    }
-
-    public async Task<NamedPipeServerStream> ServeAsync(CancellationToken cancellationToken)
-    {
-        NamedPipeServerStream serverStream = CreateServerStream();
-        await serverStream.WaitForConnectionAsync(cancellationToken);
-        return serverStream;
+        catch
+        {
+            await serverStream.DisposeAsync();
+            throw;
+        }
     }
 }

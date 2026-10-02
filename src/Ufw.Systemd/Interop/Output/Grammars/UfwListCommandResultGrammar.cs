@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Parsing;
 using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;
@@ -26,32 +25,27 @@ internal sealed class UfwListCommandResultGrammar
         _ufwRuleListGrammar = Grammar.Sequence(sequence => sequence
             .Parser<RowNumber>()
             .Parser<Whitespace>()
-            .Parser(endpoint.NamedCopy(DestinationGroup))
+            .Parser(new EndpointRoleParser(endpoint, EndpointRole.Destination))
             .Parser<Whitespace>()
             .Parser<RoutingAction>()
             .Parser<Whitespace>()
-            .Parser(endpoint.NamedCopy(SourceGroup))
+            .Parser(new EndpointRoleParser(endpoint, EndpointRole.Source))
             .Parser<Optional<Whitespace>>()
             .Parser<Optional<Sequence<OutHint, Optional<Whitespace>>>>()
             .Parser<Optional<Sequence<CommentStart, Comment>>>())
             .RequireVisitor<IUfwListCommandResultRowVisitor>();
     }
 
-    internal static string SourceGroup => "source";
-
-    internal static string DestinationGroup => "destination";
-
     public static UfwListCommandResultGrammar Instance { get; } = new();
 
     public bool TryParse(string input, [NotNullWhen(true)] out UfwListCommandResultRow? result)
     {
-        if (!_ufwRuleListGrammar.TryParse(input, 0, out ISyntaxNode? node, out int charsConsumed)
-            || charsConsumed != input.Length)
+        if (!_ufwRuleListGrammar.TryParse(input, 0, out ISyntaxNode? node, out int charsConsumed) || charsConsumed != input.Length)
         {
             result = null;
             return false;
         }
-        Debug.WriteLine(node.ToString());
+
         result = new UfwListCommandResultRow();
         UfwListCommandResultRowVisitor visitor = new(result);
         node.Accept(visitor);

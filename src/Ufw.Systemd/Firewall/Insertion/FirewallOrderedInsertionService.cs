@@ -1,6 +1,5 @@
 ﻿using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Security.Intent;
 
@@ -8,9 +7,7 @@ namespace Ufw.Systemd.Firewall.Insertion;
 
 internal sealed class FirewallOrderedInsertionService(
     IIntentVerifier intentVerifier,
-    INonceStore nonceStore,
-    IUfwExecutionGate executionGate,
-    IFirewallMutationSafetyGuard mutationSafetyGuard,
+    ISignedMutationOrchestrator mutationOrchestrator,
     IFirewallOrderedInsertionExecutor executor) : IFirewallOrderedInsertionService
 {
     public async ValueTask<IResponsePayload> InsertAsync(InsertRuleRequest request, CancellationToken cancellationToken)
@@ -23,17 +20,11 @@ internal sealed class FirewallOrderedInsertionService(
         }
 
         IntentVerificationResult.AcceptedInsertion accepted = (IntentVerificationResult.AcceptedInsertion)verification;
-        return await executionGate.RunAsync(ct => ExecuteAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteAsync(IntentVerificationResult.AcceptedInsertion accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedInsertion accepted, CancellationToken cancellationToken)
     {
-        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
-        if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
-        {
-            return new ConflictResponse("Intent nonce has already been used.");
-        }
-
         RuleInsertionExecutionResult result = await executor.ExecuteAsync(accepted.Payload, cancellationToken);
         return new RuleInsertionResponse(
             result.Outcome switch

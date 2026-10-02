@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using System.Diagnostics.CodeAnalysis;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Shared.Security.Intent;
 
@@ -32,37 +33,52 @@ public static class RuleReplacementContract
         }
     }
 
-    public static ListedFirewallRule ResolveTarget(IReadOnlyList<ListedFirewallRule> baselineRules, ReplaceRulePayload payload)
+    public static bool TryResolveTarget(
+        IReadOnlyList<ListedFirewallRule> baselineRules,
+        ReplaceRulePayload payload,
+        [NotNullWhen(true)] out ListedFirewallRule? target,
+        [NotNullWhen(false)] out string? diagnostic)
     {
         ArgumentNullException.ThrowIfNull(baselineRules);
         ValidatePayload(payload);
 
         if (payload.TargetOccurrenceId >= baselineRules.Count)
         {
-            throw new ArgumentOutOfRangeException(nameof(payload), payload.TargetOccurrenceId, "Target occurrence is outside the signed baseline.");
+            target = null;
+            diagnostic = "Target occurrence is outside the signed baseline.";
+            return false;
         }
 
-        ListedFirewallRule target = baselineRules[payload.TargetOccurrenceId];
+        target = baselineRules[payload.TargetOccurrenceId];
         if (!target.Parsed || target.Rule is null || string.IsNullOrWhiteSpace(target.RuleId))
         {
-            throw new InvalidOperationException("Rule replacement requires a parsed target rule with a stable semantic identity and concrete address family.");
+            target = null;
+            diagnostic = "Rule replacement requires a parsed target rule with a stable semantic identity and concrete address family.";
+            return false;
         }
         if (!string.Equals(target.RuleId, payload.OriginalRuleId, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Rule replacement target identity does not match the signed original rule identity.");
+            target = null;
+            diagnostic = "Rule replacement target identity does not match the signed original rule identity.";
+            return false;
         }
 
         FirewallRuleSpecification normalizedReplacement = RuleSpecificationNormalizer.Normalize(payload.ReplacementRule);
         FirewallAddressFamily targetFamily = target.Rule.AddressFamily;
         if (targetFamily is not (FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6))
         {
-            throw new InvalidOperationException("Rule replacement requires a target with a concrete address family.");
+            target = null;
+            diagnostic = "Rule replacement requires a target with a concrete address family.";
+            return false;
         }
         if (normalizedReplacement.AddressFamily != targetFamily)
         {
-            throw new InvalidOperationException("Replacement rule address family must match the target rule address family.");
+            target = null;
+            diagnostic = "Replacement rule address family must match the target rule address family.";
+            return false;
         }
 
-        return target;
+        diagnostic = null;
+        return true;
     }
 }

@@ -1,6 +1,5 @@
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Security.Intent;
 using ResponseOperationOutcome = Ufw.Shared.Ipc.Model.Responses.Domain.RuleBatchDeleteOperationOutcome;
@@ -9,9 +8,7 @@ namespace Ufw.Systemd.Firewall.Deletion;
 
 internal sealed class FirewallBatchDeleteService(
     IIntentVerifier intentVerifier,
-    INonceStore nonceStore,
-    IUfwExecutionGate executionGate,
-    IFirewallMutationSafetyGuard mutationSafetyGuard,
+    ISignedMutationOrchestrator mutationOrchestrator,
     IFirewallBatchDeleteExecutor executor) : IFirewallBatchDeleteService
 {
     public async ValueTask<IResponsePayload> DeleteAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken)
@@ -24,17 +21,11 @@ internal sealed class FirewallBatchDeleteService(
         }
 
         IntentVerificationResult.AcceptedBatchDelete accepted = (IntentVerificationResult.AcceptedBatchDelete)verification;
-        return await executionGate.RunAsync(ct => ExecuteAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteAsync(IntentVerificationResult.AcceptedBatchDelete accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedBatchDelete accepted, CancellationToken cancellationToken)
     {
-        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
-        if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
-        {
-            return new ConflictResponse("Intent nonce has already been used.");
-        }
-
         RuleBatchDeleteExecutionResult result = await executor.ExecuteAsync(accepted.Payload, cancellationToken);
         return ToResponse(result);
     }

@@ -2,20 +2,18 @@
 
 internal sealed class NetworkOptions : IRequireValidation
 {
-    public int MaxConnections { get; set; } = 8;
+    public required int MaxConnections { get; init; }
 
-    public TimeSpan IoTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public required TimeSpan IoTimeout { get; init; }
 
-    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public required TimeSpan RequestTimeout { get; init; }
 
-    public bool AssertIsValid()
+    public void ThrowIfInvalid()
     {
         if (MaxConnections <= 0 || !IsValidTimeout(IoTimeout) || !IsValidTimeout(RequestTimeout))
         {
-            throw new InvalidOperationException("invalid configuration");
+            throw new InvalidOperationException("Network connection limits and timeouts must be positive, or use an infinite timeout.");
         }
-
-        return true;
     }
 
     private static bool IsValidTimeout(TimeSpan timeout) =>

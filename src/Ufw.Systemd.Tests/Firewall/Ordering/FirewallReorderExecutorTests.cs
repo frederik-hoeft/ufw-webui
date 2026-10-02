@@ -402,8 +402,8 @@ public sealed class FirewallReorderExecutorTests
                 : snapshots;
             _snapshots = new Queue<FirewallRuleSnapshotReadResult>(reads.Select(static snapshot =>
                 snapshot is null
-                    ? new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("test read failure"), null, null)
-                    : new FirewallRuleSnapshotReadResult(null, snapshot, TestFirewallConfiguration.Enabled)));
+                    ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test read failure"))
+                    : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled))));
             _snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshots.Dequeue());
@@ -413,16 +413,13 @@ public sealed class FirewallReorderExecutorTests
 
             UfwRuleCommandRenderer renderer = new();
             Journal = new InMemoryJournal();
-            RuleReorderRecoveryCoordinator recovery = new(_snapshotReader.Object, _ufwRunner.Object, renderer, Journal, new ConsoleLogger());
-            Executor = new FirewallReorderExecutor(
-                _snapshotReader.Object,
+            UfwProcessExecutor processExecutor = new(_ufwRunner.Object, new ConsoleLogger());
+            RuleReorderRecoveryCoordinator recovery = new(_snapshotReader.Object, processExecutor, renderer, Journal, new ConsoleLogger());
+            FirewallReorderPreflightEvaluator preflight = new(
                 new RuleReorderPlanner(),
-                new RuleReinsertabilityClassifier(renderer),
-                recovery,
-                Journal,
-                _ufwRunner.Object,
-                renderer,
-                new ConsoleLogger());
+                new RuleReinsertabilityClassifier(renderer, new UfwArgumentCountReinsertionCostProvider()));
+            FirewallReorderMoveExecutor moveExecutor = new(_snapshotReader.Object, recovery, Journal, processExecutor, renderer, new ConsoleLogger());
+            Executor = new FirewallReorderExecutor(_snapshotReader.Object, preflight, moveExecutor);
         }
 
         public FirewallReorderExecutor Executor { get; }
@@ -434,7 +431,7 @@ public sealed class FirewallReorderExecutorTests
         public RuleReorderExecutionRequest Request(IReadOnlyList<int> desiredOrder)
         {
             FirewallRuleSnapshotReadResult baseline = _snapshots.Peek();
-            return new RuleReorderExecutionRequest(FirewallRuleSnapshotFingerprint.Compute(FirewallRuleSet.ToListResponse(baseline.Snapshot!, baseline.Configuration!)), desiredOrder);
+            return new RuleReorderExecutionRequest(baseline.ComputeSnapshotFingerprint(), desiredOrder);
         }
 
         public void EnqueueProcess(int exitCode, string standardError = "", bool cancellationRequested = false, Action? onExecute = null, Exception? exception = null) =>

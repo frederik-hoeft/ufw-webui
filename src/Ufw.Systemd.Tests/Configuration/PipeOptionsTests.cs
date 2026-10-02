@@ -1,5 +1,4 @@
-﻿using System.Security.Authentication;
-using Ufw.Systemd.Configuration.Model;
+﻿using Ufw.Systemd.Configuration.Model;
 
 namespace Ufw.Systemd.Tests.Configuration;
 
@@ -7,86 +6,26 @@ namespace Ufw.Systemd.Tests.Configuration;
 public sealed class PipeOptionsTests
 {
     [TestMethod]
-    public void AssertIsValid_PlaintextDoesNotRequireCertificateFiles()
+    public void ThrowIfInvalid_AcceptsNonEmptyEndpoint()
     {
-        PipeOptions options = new()
-        {
-            PipeName = "/tmp/ufw-tests.pipe",
-            TlsEnabled = false,
-        };
+        PipeOptions options = new() { PipeName = "/tmp/ufw-tests.pipe" };
 
-        Assert.IsTrue(options.AssertIsValid());
+        options.ThrowIfInvalid();
     }
 
     [TestMethod]
-    public void AssertIsValid_RejectsClientValidationWhenTlsIsDisabled()
+    public void ThrowIfInvalid_RejectsEmptyEndpoint()
     {
-        PipeOptions options = new()
-        {
-            PipeName = "/tmp/ufw-tests.pipe",
-            TlsEnabled = false,
-            RemoteCertificateValidation = new RemoteCertificateValidationOptions
-            {
-                RequiredIssuer = "CN=test-ca",
-                RequiredSubject = "CN=test-client",
-            },
-        };
+        PipeOptions options = new() { PipeName = "" };
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => options.AssertIsValid());
+        Assert.ThrowsExactly<InvalidOperationException>(options.ThrowIfInvalid);
     }
 
     [TestMethod]
-    public void AssertIsValid_TlsRequiresCertificateFiles()
+    public void ThrowIfInvalid_DoesNotApplyHostSpecificPathRules()
     {
-        PipeOptions options = new()
-        {
-            PipeName = "/tmp/ufw-tests.pipe",
-            TlsEnabled = true,
-            SslProtocols = SslProtocols.None,
-        };
+        PipeOptions options = new() { PipeName = "relative-pipe-name" };
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => options.AssertIsValid());
-    }
-
-    [TestMethod]
-    public void AssertIsValid_AcceptsAutomaticProtocolSelectionWhenTlsIsEnabled()
-    {
-        string certificatePath = Path.GetTempFileName();
-        string keyPath = Path.GetTempFileName();
-        try
-        {
-            PipeOptions options = new()
-            {
-                PipeName = "/tmp/ufw-tests.pipe",
-                TlsEnabled = true,
-                SslProtocols = SslProtocols.None,
-                ServerCertificatePath = certificatePath,
-                ServerCertificateKeyPath = keyPath,
-            };
-
-            Assert.IsTrue(options.AssertIsValid());
-        }
-        finally
-        {
-            File.Delete(certificatePath);
-            File.Delete(keyPath);
-        }
-    }
-
-    [TestMethod]
-    public void AssertIsValid_RejectsRelativeUnixPipePath()
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            Assert.Inconclusive("Windows named pipes use logical pipe names rather than Unix socket paths.");
-        }
-
-        PipeOptions options = new()
-        {
-            PipeName = "ufw-tests.pipe",
-            TlsEnabled = false,
-        };
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => options.AssertIsValid());
+        options.ThrowIfInvalid();
     }
 }

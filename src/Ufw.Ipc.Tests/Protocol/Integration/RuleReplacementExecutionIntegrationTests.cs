@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Configuration;
+using Ufw.Ipc.Tests.Adapter.DependencyInjection;
 using Ufw.Ipc.Tests.Support;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Shared.Firewall;
@@ -69,8 +70,7 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        AppSettings settings = TestAppSettingsFactory.Create();
-        settings.Security = new SecurityOptions
+        SecurityOptions security = new()
         {
             AuthorizedKeysPath = _authorizedKeysPath,
             NonceStorePath = Path.Combine(_temporaryDirectory, "intent-nonces"),
@@ -79,25 +79,31 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
             MaxIntentAge = TimeSpan.FromMinutes(5),
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+        AppSettings settings = TestAppSettingsFactory.Create(security: security);
 
         services.RemoveAll<DaemonConfiguration>();
         services.RemoveAll<IApiEndpointMap<IRequestMessage, IResponseMessage>>();
         services.AddSingleton<DaemonConfiguration>(new TestConfiguration(settings));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton<IUfwRunner>(new MockBackedUfwRunner(_mockStatePath));
+        services.AddSingleton<IUfwProcessExecutor, UfwProcessExecutor>();
         services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
         services.AddSingleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>();
         services.AddSingleton<INonceStore, FileNonceStore>();
         services.AddSingleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>();
-        services.AddSingleton<IIntentVerifier, IntentVerifier>();
+        services.AddProductionIntentVerification();
         services.AddSingleton<IUfwExecutionGate, UfwExecutionGate>();
         services.AddSingleton<IRuleReorderPlanner, RuleReorderPlanner>();
+        services.AddSingleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>();
         services.AddSingleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>();
+        services.AddSingleton<IFirewallReorderPreflightEvaluator, FirewallReorderPreflightEvaluator>();
+        services.AddSingleton<IFirewallReorderMoveExecutor, FirewallReorderMoveExecutor>();
         services.AddSingleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>();
         services.AddSingleton<IUfwDefaultsReader, StaticUfwDefaultsReader>();
         services.AddSingleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>();
         services.AddSingleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>();
         services.AddSingleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>();
+        services.AddSingleton<ISignedMutationOrchestrator, SignedMutationOrchestrator>();
         services.AddSingleton<IFirewallBatchDeleteExecutor, FirewallBatchDeleteExecutor>();
         services.AddSingleton<IFirewallBatchDeleteService, FirewallBatchDeleteService>();
         services.AddSingleton<IFirewallReorderExecutor, FirewallReorderExecutor>();
@@ -106,6 +112,8 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
         services.AddSingleton<IFirewallRuleCapabilityValidator, FirewallRuleCapabilityValidator>();
         services.AddSingleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>();
         services.AddSingleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>();
+        services.AddSingleton<IFirewallRuleReplacementPreflightEvaluator, FirewallRuleReplacementPreflightEvaluator>();
+        services.AddSingleton<IFirewallRuleReplacementTransactionExecutor, FirewallRuleReplacementTransactionExecutor>();
         services.AddSingleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>();
         services.AddSingleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>();
         services.AddSingleton<IFirewallRuleQueryService, FirewallRuleQueryService>();

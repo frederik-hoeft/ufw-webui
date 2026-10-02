@@ -644,7 +644,7 @@ public sealed class IntentSignatureTests
     {
         StaticAuthorizedKeyStore keys = new(authorizedKey);
         TestConfiguration configuration = new(TestAppSettingsFactory.Create());
-        return new IntentVerifier(keys, new StaticDeploymentIdentityProvider(deploymentId), configuration, clock, MessageJsonSerializerContext.Default);
+        return IntentVerifierTestFactory.Create(keys, new StaticDeploymentIdentityProvider(deploymentId), configuration, clock);
     }
 
     private static void AssertRejected<TResponse>(IntentVerificationResult result) where TResponse : IResponsePayload
@@ -656,16 +656,14 @@ public sealed class IntentSignatureTests
 
     private sealed class StaticAuthorizedKeyStore(ECDsa key) : IAuthorizedKeyStore
     {
-        public bool TryGetKey(string keyId, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ECDsa? found)
+        public AuthorizedKeyVerificationResult VerifySignature(string keyId, ReadOnlyMemory<byte> data, string signature)
         {
-            if (string.Equals(keyId, IntentSigner.ComputeKeyId(key), StringComparison.Ordinal))
+            if (!string.Equals(keyId, IntentSigner.ComputeKeyId(key), StringComparison.Ordinal))
             {
-                found = key;
-                return true;
+                return AuthorizedKeyVerificationResult.UnknownKey;
             }
 
-            found = null;
-            return false;
+            return IntentSigner.Verify(key, data.Span, signature) ? AuthorizedKeyVerificationResult.Verified : AuthorizedKeyVerificationResult.InvalidSignature;
         }
     }
 

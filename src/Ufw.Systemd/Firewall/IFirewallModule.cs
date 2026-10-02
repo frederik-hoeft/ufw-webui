@@ -1,5 +1,6 @@
 ﻿using Jab;
 using Ufw.Shared.Firewall.Rendering;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
@@ -14,15 +15,27 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<TimeProvider>(Factory = nameof(GetTimeProvider))]
 [Singleton<IChildProcessRunner, DefaultChildProcessRunner>]
 [Singleton<IUfwRunner, UfwRunner>]
+[Singleton<IUfwProcessExecutor, UfwProcessExecutor>]
 [Singleton<IUfwDefaultsReader, UfwDefaultsReader>]
 [Singleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>]
 [Singleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>]
 [Singleton<INonceStore, FileNonceStore>]
 [Singleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>]
+[Singleton<IIntentEnvelopeVerifier, IntentEnvelopeVerifier>]
+[Singleton<IIntentPayloadBinder<AddRulePayload>, AddIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<DeleteRulePayload>, DeleteIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<BatchDeleteRulesPayload>, BatchDeleteIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<InsertRulePayload>, InsertIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<ReorderRulesPayload>, ReorderIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<ReplaceRulePayload>, ReplaceIntentPayloadBinder>]
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
+[Singleton<ISignedMutationOrchestrator, SignedMutationOrchestrator>]
 [Singleton<IRuleReorderPlanner, RuleReorderPlanner>]
+[Singleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>]
 [Singleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>]
+[Singleton<IFirewallReorderPreflightEvaluator, FirewallReorderPreflightEvaluator>]
+[Singleton<IFirewallReorderMoveExecutor, FirewallReorderMoveExecutor>]
 [Singleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>]
 [Singleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>]
 [Singleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>]
@@ -33,6 +46,8 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IFirewallReorderRecoveryService, FirewallReorderRecoveryService>]
 [Singleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>]
 [Singleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>]
+[Singleton<IFirewallRuleReplacementPreflightEvaluator, FirewallRuleReplacementPreflightEvaluator>]
+[Singleton<IFirewallRuleReplacementTransactionExecutor, FirewallRuleReplacementTransactionExecutor>]
 [Singleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>]
 [Singleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>]
 [Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]

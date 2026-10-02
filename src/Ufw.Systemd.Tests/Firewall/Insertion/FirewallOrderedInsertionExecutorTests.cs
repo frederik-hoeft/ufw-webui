@@ -297,8 +297,8 @@ public sealed class FirewallOrderedInsertionExecutorTests
         {
             _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Select(snapshot =>
                 snapshot is null
-                    ? new FirewallRuleSnapshotReadResult(new InternalServerErrorResponse("test read failure"), null, null)
-                    : new FirewallRuleSnapshotReadResult(null, snapshot, configuration)));
+                    ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test read failure"))
+                    : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, configuration))));
             _snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshots.Dequeue());
@@ -313,7 +313,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
                 _snapshotReader.Object,
                 _interfaceValidator.Object,
                 new FirewallRuleCapabilityValidator(),
-                _ufwRunner.Object,
+                new UfwProcessExecutor(_ufwRunner.Object, new ConsoleLogger()),
                 new UfwRuleCommandRenderer(),
                 new ConsoleLogger());
         }
@@ -329,7 +329,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         public InsertRulePayload Payload(int anchorOccurrenceId, RuleInsertionPlacement placement, FirewallRuleSpecification rule)
         {
-            RuleListResponse baseline = FirewallRuleSet.ToListResponse(_snapshots.Peek().Snapshot!, _snapshots.Peek().Configuration!);
+            RuleListResponse baseline = _snapshots.Peek().GetRequiredSnapshot();
             return new InsertRulePayload
             {
                 BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),

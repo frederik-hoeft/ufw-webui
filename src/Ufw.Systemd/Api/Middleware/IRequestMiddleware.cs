@@ -5,7 +5,5 @@ namespace Ufw.Systemd.Api.Middleware;
 
 internal interface IRequestMiddleware : IPipelineHandler
 {
-    void Initialize(IRequestMiddleware next);
-
-    ValueTask<IResponseMessage> InvokeAsync(IRequestMessage request, CancellationToken cancellationToken);
+    ValueTask<IResponseMessage> InvokeAsync(IRequestMessage request, RequestMiddlewareDelegate next, CancellationToken cancellationToken);
 }

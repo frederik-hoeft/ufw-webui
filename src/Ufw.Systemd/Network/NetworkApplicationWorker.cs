@@ -7,10 +7,12 @@ namespace Ufw.Systemd.Network;
 
 internal sealed class NetworkApplicationWorker(ITransportLayerService transportLayerService, INetworkConnectionProcessor connectionProcessor, ILogger logger) : INetworkApplicationWorker
 {
+    private readonly ILogger<NetworkApplicationWorker> _logger = logger.Scoped<NetworkApplicationWorker>();
+
     public async Task ServeAsync(CancellationToken cancellationToken)
     {
         Guid workerId = Guid.CreateVersion7();
-        logger.Scoped(this).LogInformation($"Worker {workerId}: started");
+        _logger.LogInformation($"Worker {workerId}: started");
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -22,34 +24,17 @@ internal sealed class NetworkApplicationWorker(ITransportLayerService transportL
             {
                 break;
             }
-            catch (OperationCanceledException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (SocketException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (InvalidDataException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (AuthenticationException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (TimeoutException exception)
-            {
-                LogConnectionFailure(workerId, exception);
-            }
-            catch (IOException exception)
+            catch (Exception exception) when (IsExpectedConnectionFailure(exception))
             {
                 LogConnectionFailure(workerId, exception);
             }
         }
-        logger.Scoped(this).LogInformation($"Worker {workerId}: stopping");
+        _logger.LogInformation($"Worker {workerId}: stopping");
     }
 
     private void LogConnectionFailure(Guid workerId, Exception exception) =>
-        logger.Scoped(this).LogWarning(exception, $"Worker {workerId}: connection failed; continuing to serve requests.");
+        _logger.LogWarning(exception, $"Worker {workerId}: connection failed; continuing to serve requests.");
+
+    private static bool IsExpectedConnectionFailure(Exception exception) =>
+        exception is OperationCanceledException or SocketException or InvalidDataException or AuthenticationException or TimeoutException or IOException;
 }

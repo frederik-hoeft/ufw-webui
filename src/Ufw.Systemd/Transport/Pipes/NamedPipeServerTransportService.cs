@@ -3,7 +3,7 @@ using Ufw.Shared.Ipc.Transport;
 
 namespace Ufw.Systemd.Transport.Pipes;
 
-internal sealed class NamedPipeServerTransportService(INamedPipeServerStreamDescriptor serverPipeDescriptor) : ITransportLayerService
+internal sealed class NamedPipeServerTransportService(INamedPipeServerStreamDescriptor serverPipeDescriptor) : IPipeTransportLayerService
 {
     public async Task<ITransportLayerConnection> ServeAsync(CancellationToken cancellationToken)
     {

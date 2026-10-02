@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using System.Diagnostics.CodeAnalysis;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Shared.Security.Intent;
 
@@ -32,33 +33,41 @@ public static class RuleInsertionContract
         }
     }
 
-    public static ListedFirewallRule ResolveAnchor(IReadOnlyList<ListedFirewallRule> baselineRules, InsertRulePayload payload)
+    public static bool TryResolveAnchor(IReadOnlyList<ListedFirewallRule> baselineRules, InsertRulePayload payload, [NotNullWhen(true)] out ListedFirewallRule? anchor, [NotNullWhen(false)] out string? diagnostic)
     {
         ArgumentNullException.ThrowIfNull(baselineRules);
         ValidatePayload(payload);
 
         if (payload.AnchorOccurrenceId >= baselineRules.Count)
         {
-            throw new ArgumentOutOfRangeException(nameof(payload), payload.AnchorOccurrenceId, "Anchor occurrence is outside the signed baseline.");
+            return Fail("Anchor occurrence is outside the signed baseline.", out anchor, out diagnostic);
         }
 
-        ListedFirewallRule anchor = baselineRules[payload.AnchorOccurrenceId];
+        anchor = baselineRules[payload.AnchorOccurrenceId];
         if (!anchor.Parsed || anchor.Rule is null)
         {
-            throw new InvalidOperationException("Ordered insertion requires a parsed anchor rule with a concrete address family.");
+            return Fail("Ordered insertion requires a parsed anchor rule with a concrete address family.", out anchor, out diagnostic);
         }
 
         FirewallRuleSpecification normalizedRule = RuleSpecificationNormalizer.Normalize(payload.Rule);
         FirewallAddressFamily anchorFamily = anchor.Rule.AddressFamily;
         if (anchorFamily is not (FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6))
         {
-            throw new InvalidOperationException("Ordered insertion requires an anchor with a concrete address family.");
+            return Fail("Ordered insertion requires an anchor with a concrete address family.", out anchor, out diagnostic);
         }
         if (normalizedRule.AddressFamily != anchorFamily)
         {
-            throw new InvalidOperationException("Ordered insertion rule address family must match the anchor address family.");
+            return Fail("Ordered insertion rule address family must match the anchor address family.", out anchor, out diagnostic);
         }
 
-        return anchor;
+        diagnostic = null;
+        return true;
+    }
+
+    private static bool Fail(string message, out ListedFirewallRule? anchor, out string? diagnostic)
+    {
+        anchor = null;
+        diagnostic = message;
+        return false;
     }
 }

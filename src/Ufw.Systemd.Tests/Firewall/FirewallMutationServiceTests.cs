@@ -18,6 +18,7 @@ using Ufw.Systemd.NetworkInterfaces;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;
+using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Tests.Firewall;
 
@@ -632,8 +633,8 @@ public sealed class FirewallMutationServiceTests
             CurrentStatus = initialStatus;
             ConfigureDefaultProcessRunner();
             _keys = new FileAuthorizedKeyStore(configuration, new ConsoleLogger());
-            _deploymentIdentity = new FileDeploymentIdentityProvider(configuration);
-            _nonces = new FileNonceStore(configuration, clock);
+            _deploymentIdentity = new FileDeploymentIdentityProvider(configuration, new DurableFileStore());
+            _nonces = new FileNonceStore(configuration, clock, new DurableFileStore());
             _gate = new UfwExecutionGate();
             Service = CreateService();
         }
@@ -683,7 +684,7 @@ public sealed class FirewallMutationServiceTests
         public void RestartNonceStore()
         {
             _nonces.Dispose();
-            _nonces = new FileNonceStore(_configuration, _clock);
+            _nonces = new FileNonceStore(_configuration, _clock, new DurableFileStore());
             Service = CreateService();
         }
 
@@ -721,21 +722,20 @@ public sealed class FirewallMutationServiceTests
         private FirewallMutationService CreateService()
         {
             ConsoleLogger logger = new();
-            IntentVerifier verifier = new(_keys, _deploymentIdentity, _configuration, _clock, MessageJsonSerializerContext.Default);
+            IntentVerifier verifier = IntentVerifierTestFactory.Create(_keys, _deploymentIdentity, _configuration, _clock);
             UfwRunner runner = new(_configuration, ProcessRunner.Object);
             FirewallRuleSnapshotReader snapshotReader = new(runner, UfwDefaultsReader.Object, logger);
             QueryService = new FirewallRuleQueryService(snapshotReader, _gate);
             NetworkInterfaceSnapshotService networkInterfaceSnapshots = new(NetworkInterfaces.Object, logger);
             FirewallRuleInterfaceValidator interfaceValidator = new(networkInterfaceSnapshots);
             FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, new FirewallRuleCapabilityValidator(), runner, new UfwRuleCommandRenderer(), logger);
-            return new FirewallMutationService(verifier, _nonces, _gate, MutationSafetyGuard.Object, mutationExecutor);
+            return new FirewallMutationService(verifier, new SignedMutationOrchestrator(_nonces, _gate, MutationSafetyGuard.Object), mutationExecutor);
         }
 
         public ValueTask DisposeAsync()
         {
             _gate.Dispose();
             _nonces.Dispose();
-            _keys.Dispose();
             _key.Dispose();
             if (Directory.Exists(_directory))
             {

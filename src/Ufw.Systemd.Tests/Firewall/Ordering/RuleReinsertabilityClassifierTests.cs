@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Moq;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Systemd.Firewall.Ordering;
 
@@ -7,7 +8,7 @@ namespace Ufw.Systemd.Tests.Firewall.Ordering;
 [TestClass]
 public sealed class RuleReinsertabilityClassifierTests
 {
-    private readonly RuleReinsertabilityClassifier _classifier = new(new UfwRuleCommandRenderer());
+    private readonly RuleReinsertabilityClassifier _classifier = new(new UfwRuleCommandRenderer(), new UfwArgumentCountReinsertionCostProvider());
 
     [TestMethod]
     public void Classify_ParsedConcreteRuleWithExplicitProtocol_IsReinsertable()
@@ -19,7 +20,7 @@ public sealed class RuleReinsertabilityClassifierTests
         Assert.IsTrue(result.IsReinsertable);
         Assert.IsNotNull(result.Specification);
         Assert.IsNotNull(result.RenderedRule);
-        Assert.IsGreaterThan(0, result.KeepPriority);
+        Assert.IsGreaterThan(0, result.ReinsertionCost);
     }
 
     [TestMethod]
@@ -35,6 +36,39 @@ public sealed class RuleReinsertabilityClassifierTests
 
         Assert.IsFalse(result.IsReinsertable);
         Assert.IsNotNull(result.Reason);
+    }
+
+    [TestMethod]
+    public void Classify_ReinsertableRule_UsesConfiguredReinsertionCost()
+    {
+        Mock<IRuleReinsertionCostProvider> costProvider = new(MockBehavior.Strict);
+        costProvider.Setup(provider => provider.GetReinsertionCost(It.IsAny<UfwRenderedRule>())).Returns(37);
+        RuleReinsertabilityClassifier classifier = new(new UfwRuleCommandRenderer(), costProvider.Object);
+
+        RuleReinsertability result = classifier.Classify(Listed(CreateRule(FirewallProtocol.Tcp, destinationPorts: "22")));
+
+        Assert.IsTrue(result.IsReinsertable);
+        Assert.AreEqual(37, result.ReinsertionCost);
+        costProvider.Verify(provider => provider.GetReinsertionCost(It.IsAny<UfwRenderedRule>()), Times.Once);
+        costProvider.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public void Classify_UnsupportedRule_DoesNotEvaluateReinsertionCost()
+    {
+        Mock<IRuleReinsertionCostProvider> costProvider = new(MockBehavior.Strict);
+        RuleReinsertabilityClassifier classifier = new(new UfwRuleCommandRenderer(), costProvider.Object);
+        ListedFirewallRule listed = new()
+        {
+            Parsed = false,
+            RawLine = "[ 1] unsupported",
+        };
+
+        RuleReinsertability result = classifier.Classify(listed);
+
+        Assert.IsFalse(result.IsReinsertable);
+        Assert.AreEqual(0, result.ReinsertionCost);
+        costProvider.VerifyNoOtherCalls();
     }
 
     [TestMethod]

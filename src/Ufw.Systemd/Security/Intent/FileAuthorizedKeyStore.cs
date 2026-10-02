@@ -1,5 +1,4 @@
 ﻿using System.Collections.Frozen;
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using Ufw.Shared.Security.Intent;
@@ -8,109 +7,66 @@ using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Security.Intent;
 
-internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore, IDisposable
+internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore
 {
     private const string BEGIN_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----";
     private const string END_PUBLIC_KEY = "-----END PUBLIC KEY-----";
 
-    private readonly IConfiguration _configuration;
     private readonly ILogger<FileAuthorizedKeyStore> _logger;
-    private readonly Lock _sync = new();
-    private FrozenDictionary<string, ECDsa>? _keys;
-    private bool _disposed;
+    private readonly FrozenDictionary<string, byte[]> _keys;
 
     public FileAuthorizedKeyStore(IConfiguration configuration, ILogger logger)
     {
-        _configuration = configuration;
-        _logger = logger.Scoped(this);
+        _logger = logger.Scoped<FileAuthorizedKeyStore>();
+        _keys = LoadKeys(configuration.Settings.Security?.AuthorizedKeysPath);
     }
 
-    public bool TryGetKey(string keyId, [NotNullWhen(true)] out ECDsa? key)
+    public AuthorizedKeyVerificationResult VerifySignature(string keyId, ReadOnlyMemory<byte> data, string signature)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        FrozenDictionary<string, ECDsa> keys = GetOrLoadKeys();
-        return keys.TryGetValue(keyId, out key);
-    }
-
-    private FrozenDictionary<string, ECDsa> GetOrLoadKeys()
-    {
-        FrozenDictionary<string, ECDsa>? keys = Volatile.Read(in _keys);
-        if (keys is not null)
+        if (!_keys.TryGetValue(keyId, out byte[]? subjectPublicKeyInfo))
         {
-            return keys;
+            return AuthorizedKeyVerificationResult.UnknownKey;
         }
 
-        lock (_sync)
-        {
-            keys = _keys;
-            if (keys is not null)
-            {
-                return keys;
-            }
-
-            keys = LoadKeys();
-            Volatile.Write(ref _keys, keys);
-            return keys;
-        }
+        using ECDsa key = ECDsa.Create();
+        key.ImportSubjectPublicKeyInfo(subjectPublicKeyInfo, out _);
+        return IntentSigner.Verify(key, data.Span, signature) ? AuthorizedKeyVerificationResult.Verified : AuthorizedKeyVerificationResult.InvalidSignature;
     }
 
-    private FrozenDictionary<string, ECDsa> LoadKeys()
+    private FrozenDictionary<string, byte[]> LoadKeys(string? path)
     {
-        string? path = _configuration.Settings.Security?.AuthorizedKeysPath;
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
             _logger.LogWarning("Authorized keys file is missing; firewall mutations will be rejected.");
-            return FrozenDictionary<string, ECDsa>.Empty;
+            return FrozenDictionary<string, byte[]>.Empty;
         }
 
         string contents = File.ReadAllText(path);
         List<string> pemBlocks = ExtractPemBlocks(contents);
-        Dictionary<string, ECDsa> loaded = new(StringComparer.Ordinal);
-        try
+        Dictionary<string, byte[]> loaded = new(StringComparer.Ordinal);
+        foreach (string pem in pemBlocks)
         {
-            foreach (string pem in pemBlocks)
+            using ECDsa key = ECDsa.Create();
+            try
             {
-                ECDsa? key = ECDsa.Create();
-                try
-                {
-                    try
-                    {
-                        key.ImportFromPem(pem);
-                    }
-                    catch (Exception exception) when (exception is CryptographicException or ArgumentException or FormatException)
-                    {
-                        throw new InvalidDataException("Authorized keys file contains an unreadable public key.", exception);
-                    }
-
-                    if (!IntentSigner.IsP256(key))
-                    {
-                        throw new InvalidDataException("Authorized intent keys must be ECDSA P-256 public keys.");
-                    }
-
-                    string keyId = IntentSigner.ComputeKeyId(key);
-                    if (loaded.TryAdd(keyId, key))
-                    {
-                        key = null;
-                    }
-                }
-                finally
-                {
-                    key?.Dispose();
-                }
+                key.ImportFromPem(pem);
+            }
+            catch (Exception exception) when (exception is CryptographicException or ArgumentException or FormatException)
+            {
+                throw new InvalidDataException("Authorized keys file contains an unreadable public key.", exception);
             }
 
-            _logger.LogInformation($"Loaded {loaded.Count} authorized intent public key(s).");
-            return loaded.ToFrozenDictionary(StringComparer.Ordinal);
-        }
-        catch
-        {
-            foreach (ECDsa key in loaded.Values)
+            if (!IntentSigner.IsP256(key))
             {
-                key.Dispose();
+                throw new InvalidDataException("Authorized intent keys must be ECDSA P-256 public keys.");
             }
 
-            throw;
+            string keyId = IntentSigner.ComputeKeyId(key);
+            loaded.TryAdd(keyId, key.ExportSubjectPublicKeyInfo());
         }
+
+        _logger.LogInformation($"Loaded {loaded.Count} authorized intent public key(s).");
+        return loaded.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
     internal static List<string> ExtractPemBlocks(string contents)
@@ -162,25 +118,5 @@ internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore, IDisposable
         }
 
         return blocks;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        FrozenDictionary<string, ECDsa>? keys = _keys;
-        if (keys is null)
-        {
-            return;
-        }
-
-        foreach ((_, ECDsa key) in keys)
-        {
-            key.Dispose();
-        }
     }
 }

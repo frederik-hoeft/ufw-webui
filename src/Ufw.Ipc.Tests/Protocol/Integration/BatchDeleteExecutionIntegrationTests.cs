@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Configuration;
+using Ufw.Ipc.Tests.Adapter.DependencyInjection;
 using Ufw.Ipc.Tests.Support;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Shared.Firewall;
@@ -74,8 +75,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        AppSettings settings = TestAppSettingsFactory.Create();
-        settings.Security = new SecurityOptions
+        SecurityOptions security = new()
         {
             AuthorizedKeysPath = _authorizedKeysPath,
             NonceStorePath = Path.Combine(_temporaryDirectory, "intent-nonces"),
@@ -84,25 +84,31 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             MaxIntentAge = TimeSpan.FromMinutes(5),
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+        AppSettings settings = TestAppSettingsFactory.Create(security: security);
 
         services.RemoveAll<DaemonConfiguration>();
         services.RemoveAll<IApiEndpointMap<IRequestMessage, IResponseMessage>>();
         services.AddSingleton<DaemonConfiguration>(new TestConfiguration(settings));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton<IUfwRunner>(_runner);
+        services.AddSingleton<IUfwProcessExecutor, UfwProcessExecutor>();
         services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
         services.AddSingleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>();
         services.AddSingleton<INonceStore, FileNonceStore>();
         services.AddSingleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>();
-        services.AddSingleton<IIntentVerifier, IntentVerifier>();
+        services.AddProductionIntentVerification();
         services.AddSingleton<IUfwExecutionGate, UfwExecutionGate>();
         services.AddSingleton<IRuleReorderPlanner, RuleReorderPlanner>();
+        services.AddSingleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>();
         services.AddSingleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>();
+        services.AddSingleton<IFirewallReorderPreflightEvaluator, FirewallReorderPreflightEvaluator>();
+        services.AddSingleton<IFirewallReorderMoveExecutor, FirewallReorderMoveExecutor>();
         services.AddSingleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>();
         services.AddSingleton<IUfwDefaultsReader, StaticUfwDefaultsReader>();
         services.AddSingleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>();
         services.AddSingleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>();
         services.AddSingleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>();
+        services.AddSingleton<ISignedMutationOrchestrator, SignedMutationOrchestrator>();
         services.AddSingleton<IFirewallBatchDeleteExecutor, FirewallBatchDeleteExecutor>();
         services.AddSingleton<IFirewallBatchDeleteService, FirewallBatchDeleteService>();
         services.AddSingleton<IFirewallReorderExecutor, FirewallReorderExecutor>();
@@ -111,6 +117,8 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
         services.AddSingleton<IFirewallRuleCapabilityValidator, FirewallRuleCapabilityValidator>();
         services.AddSingleton<IFirewallOrderedInsertionExecutor, FirewallOrderedInsertionExecutor>();
         services.AddSingleton<IFirewallOrderedInsertionService, FirewallOrderedInsertionService>();
+        services.AddSingleton<IFirewallRuleReplacementPreflightEvaluator, FirewallRuleReplacementPreflightEvaluator>();
+        services.AddSingleton<IFirewallRuleReplacementTransactionExecutor, FirewallRuleReplacementTransactionExecutor>();
         services.AddSingleton<IFirewallRuleReplacementExecutor, FirewallRuleReplacementExecutor>();
         services.AddSingleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>();
         services.AddSingleton<IFirewallRuleQueryService, FirewallRuleQueryService>();
@@ -141,7 +149,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             CollectionAssert.AreEqual(new[] { 2, 0 }, response.Operations.Select(static operation => operation.OccurrenceId).ToArray());
             Assert.IsEmpty(response.PendingOccurrenceIds);
             Assert.HasCount(1, response.FinalSnapshot.Rules);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[0]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[0]));
 
             UfwIpcException replay = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
                 await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken));
@@ -149,7 +157,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
 
             RuleListResponse afterReplay = await GetRulesAsync(context, cancellationToken);
             Assert.HasCount(1, afterReplay.Rules);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], afterReplay.Rules[0]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(baseline.Rules[1], afterReplay.Rules[0]));
         }, cancellationToken: TestContext.CancellationToken);
     }
 
@@ -172,8 +180,8 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             Assert.IsNotNull(response.FinalSnapshot);
             Assert.HasCount(4, response.FinalSnapshot.Rules);
             Assert.HasCount(2, response.Operations);
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[ipv4Occurrence])));
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[ipv6Occurrence])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleStateComparer.Equals(candidate, baseline.Rules[ipv4Occurrence])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleStateComparer.Equals(candidate, baseline.Rules[ipv6Occurrence])));
             Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.AddressFamily == FirewallAddressFamily.IPv4));
             Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.AddressFamily == FirewallAddressFamily.IPv6));
         }, cancellationToken: TestContext.CancellationToken);
@@ -248,7 +256,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             Assert.AreEqual(RuleBatchDeleteOperationOutcome.Deleted, response.Operations[0].Outcome);
             CollectionAssert.AreEqual(new[] { 0 }, response.PendingOccurrenceIds.ToArray());
             Assert.HasCount(3, response.FinalSnapshot.Rules);
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[2])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleStateComparer.Equals(candidate, baseline.Rules[2])));
             Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.DestinationPorts == "53"));
         }, cancellationToken: TestContext.CancellationToken);
     }
