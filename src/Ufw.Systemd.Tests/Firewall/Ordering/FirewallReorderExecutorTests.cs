@@ -413,14 +413,15 @@ public sealed class FirewallReorderExecutorTests
 
             UfwRuleCommandRenderer renderer = new();
             Journal = new InMemoryJournal();
-            RuleReorderRecoveryCoordinator recovery = new(_snapshotReader.Object, _ufwRunner.Object, renderer, Journal, new ConsoleLogger());
+            UfwProcessExecutor processExecutor = new(_ufwRunner.Object, new ConsoleLogger());
+            RuleReorderRecoveryCoordinator recovery = new(_snapshotReader.Object, processExecutor, renderer, Journal, new ConsoleLogger());
             Executor = new FirewallReorderExecutor(
                 _snapshotReader.Object,
                 new RuleReorderPlanner(),
                 new RuleReinsertabilityClassifier(renderer),
                 recovery,
                 Journal,
-                _ufwRunner.Object,
+                processExecutor,
                 renderer,
                 new ConsoleLogger());
         }

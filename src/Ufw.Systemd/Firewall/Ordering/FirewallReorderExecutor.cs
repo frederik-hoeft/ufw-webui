@@ -2,7 +2,6 @@
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Interop.Commands;
-using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.Ordering;
@@ -13,7 +12,7 @@ internal sealed class FirewallReorderExecutor(
     IRuleReinsertabilityClassifier reinsertabilityClassifier,
     IRuleReorderRecoveryCoordinator recoveryCoordinator,
     IReorderRecoveryJournal recoveryJournal,
-    IUfwRunner ufwRunner,
+    IUfwProcessExecutor processExecutor,
     IUfwRuleCommandRenderer renderer,
     ILogger logger) : IFirewallReorderExecutor
 {
@@ -138,7 +137,7 @@ internal sealed class FirewallReorderExecutor(
         {
             return MoveExecutionResult.Interrupted(null, null, "The authoritative firewall state could not be read before the next move started.");
         }
-        if (!SnapshotMatchesOrder(preMoveSnapshot, baseline, preMoveOrder))
+        if (!FirewallRuleSnapshotMatcher.MatchesOrder(preMoveSnapshot, baseline, preMoveOrder))
         {
             return MoveExecutionResult.Interrupted(preMoveSnapshot, null, "Authoritative state diverged before the next move started.");
         }
@@ -159,10 +158,10 @@ internal sealed class FirewallReorderExecutor(
             cancellationToken.ThrowIfCancellationRequested();
         }
 
-        ProcessExecution delete;
+        UfwProcessExecutionResult delete;
         try
         {
-            delete = await ExecuteProcessAsync(new UfwDeleteRuleCommand(displayNumber), cancellationToken);
+            delete = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(displayNumber), "deleting a rule during reordering", cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -189,7 +188,7 @@ internal sealed class FirewallReorderExecutor(
 
         List<int> afterDeleteOrder = [.. preMoveOrder];
         afterDeleteOrder.RemoveAt(currentIndex);
-        bool deleteStateExpected = afterDelete is not null && SnapshotMatchesOrder(afterDelete, baseline, afterDeleteOrder);
+        bool deleteStateExpected = afterDelete is not null && FirewallRuleSnapshotMatcher.MatchesOrder(afterDelete, baseline, afterDeleteOrder);
         if (!deleteStateExpected)
         {
             RuleRecoveryResult recovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, afterDelete, CancellationToken.None);
@@ -197,14 +196,14 @@ internal sealed class FirewallReorderExecutor(
         }
 
         IUfwCommand insertCommand = CreatePlannedInsertionCommand(move, afterDelete!, afterDeleteOrder, classification.Specification);
-        ProcessExecution insert = await ExecuteProcessAsync(insertCommand, CancellationToken.None);
+        UfwProcessExecutionResult insert = await processExecutor.ExecuteAsync(insertCommand, "reinserting a moved rule", CancellationToken.None);
         RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         List<int> expectedOrder = ApplyMove(preMoveOrder, move);
-        if (afterInsert is not null && SnapshotMatchesOrder(afterInsert, baseline, expectedOrder))
+        if (afterInsert is not null && FirewallRuleSnapshotMatcher.MatchesOrder(afterInsert, baseline, expectedOrder))
         {
             await recoveryJournal.ClearAsync(CancellationToken.None);
             bool processFailure = !delete.Succeeded || !insert.Succeeded;
-            string? diagnostic = CombineDiagnostics(delete.Diagnostic, insert.Diagnostic);
+            string? diagnostic = UfwProcessDiagnostics.Combine(delete.Diagnostic, insert.Diagnostic);
             return MoveExecutionResult.Success(
                 afterInsert,
                 expectedOrder,
@@ -215,12 +214,12 @@ internal sealed class FirewallReorderExecutor(
         }
 
         RuleRecoveryResult postInsertRecovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, afterInsert, CancellationToken.None);
-        return RecoveryInterruption(move, postInsertRecovery, CombineDiagnostics(delete.Diagnostic, insert.Diagnostic), "Firewall state diverged after reinserting the moved rule.");
+        return RecoveryInterruption(move, postInsertRecovery, UfwProcessDiagnostics.Combine(delete.Diagnostic, insert.Diagnostic), "Firewall state diverged after reinserting the moved rule.");
     }
 
     private MoveExecutionResult RecoveryInterruption(RuleReorderMove move, RuleRecoveryResult recovery, string? processDiagnostic, string divergenceDiagnostic)
     {
-        string diagnostic = CombineDiagnostics(processDiagnostic, divergenceDiagnostic, recovery.Diagnostic)
+        string diagnostic = UfwProcessDiagnostics.Combine(processDiagnostic, divergenceDiagnostic, recovery.Diagnostic)
             ?? divergenceDiagnostic;
         if (!recovery.PresenceConfirmed)
         {
@@ -333,40 +332,6 @@ internal sealed class FirewallReorderExecutor(
         return true;
     }
 
-    private async Task<ProcessExecution> ExecuteProcessAsync(IUfwCommand command, CancellationToken cancellationToken)
-    {
-        try
-        {
-            UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded
-                ? null
-                : FormatProcessDiagnostic(result);
-            return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);
-        }
-        catch (ChildProcessException exception)
-        {
-            _logger.LogError(exception, "Failed to start UFW while executing a reorder move.");
-            return new ProcessExecution(false, false, exception.Message);
-        }
-    }
-
-    private static bool SnapshotMatchesOrder(RuleListResponse snapshot, RuleListResponse baseline, IReadOnlyList<int> expectedOrder)
-    {
-        if (snapshot.Active != baseline.Active || snapshot.Rules.Count != expectedOrder.Count)
-        {
-            return false;
-        }
-
-        for (int index = 0; index < expectedOrder.Count; index++)
-        {
-            if (!FirewallRuleStateComparer.Equals(snapshot.Rules[index], baseline.Rules[expectedOrder[index]]))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private static List<int> ApplyMove(IReadOnlyList<int> order, RuleReorderMove move)
     {
         List<int> result = [.. order];
@@ -426,22 +391,6 @@ internal sealed class FirewallReorderExecutor(
         }
     }
 
-    private static string FormatProcessDiagnostic(UfwProcessResult result)
-    {
-        string details = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-        if (result.CancellationRequested)
-        {
-            return "UFW process was canceled after it started.";
-        }
-        return $"UFW process exited with code {result.ExitCode}: {details}";
-    }
-
-    private static string? CombineDiagnostics(params string?[] diagnostics)
-    {
-        string[] nonEmpty = diagnostics.Where(static diagnostic => !string.IsNullOrWhiteSpace(diagnostic)).Select(static diagnostic => diagnostic!).ToArray();
-        return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
-    }
-
     private static RuleReorderExecutionResult Result(RuleReorderExecutionOutcome outcome, RuleListResponse? finalSnapshot, string? diagnostic = null) =>
         new(outcome, finalSnapshot, [], [], [], diagnostic);
 
@@ -450,8 +399,6 @@ internal sealed class FirewallReorderExecutor(
         IReadOnlyDictionary<int, RuleReinsertability> Classifications,
         IReadOnlySet<int> ImmutableOccurrences,
         IReadOnlyDictionary<int, int> KeepPriorities);
-
-    private sealed record ProcessExecution(bool Succeeded, bool CancellationRequested, string? Diagnostic);
 
     private sealed record MoveExecutionResult(
         bool Completed,

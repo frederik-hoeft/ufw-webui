@@ -2,14 +2,13 @@
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Interop.Commands;
-using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.Ordering;
 
 internal sealed class RuleReorderRecoveryCoordinator(
     IFirewallRuleSnapshotReader snapshotReader,
-    IUfwRunner ufwRunner,
+    IUfwProcessExecutor processExecutor,
     IUfwRuleCommandRenderer renderer,
     IReorderRecoveryJournal journal,
     ILogger logger) : IRuleReorderRecoveryCoordinator
@@ -35,32 +34,20 @@ internal sealed class RuleReorderRecoveryCoordinator(
         }
 
         IUfwCommand command = CreateRecoveryCommand(entry, snapshot);
-        string? processDiagnostic = null;
-        try
+        UfwProcessExecutionResult process = await processExecutor.ExecuteAsync(command, "recovering an interrupted reorder move", cancellationToken);
+        if (!process.Succeeded && !process.RunnerFailed)
         {
-            UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            if (!result.Succeeded)
-            {
-                processDiagnostic = FormatProcessDiagnostic(result);
-                _logger.LogWarning($"Reorder recovery insertion did not report success: {processDiagnostic}");
-            }
-        }
-        catch (ChildProcessException exception)
-        {
-            processDiagnostic = exception.Message;
-            _logger.LogError(exception, "Failed to start UFW while recovering an interrupted reorder move.");
+            _logger.LogWarning($"Reorder recovery insertion did not report success: {process.Diagnostic}");
         }
 
         RuleListResponse? confirmed = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (confirmed is not null && CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
-            return new RuleRecoveryResult(true, true, confirmed, processDiagnostic);
+            return new RuleRecoveryResult(true, true, confirmed, process.Diagnostic);
         }
 
-        string diagnostic = processDiagnostic is null
-            ? "The removed rule could not be confirmed after the recovery insertion."
-            : $"{processDiagnostic} The removed rule could not be confirmed afterward.";
+        string diagnostic = UfwProcessDiagnostics.Combine(process.Diagnostic, "The removed rule could not be confirmed after the recovery insertion.")!;
         return new RuleRecoveryResult(false, true, confirmed, diagnostic);
     }
 
@@ -143,14 +130,4 @@ internal sealed class RuleReorderRecoveryCoordinator(
 
     internal static int CountMatches(IReadOnlyList<ListedFirewallRule> rules, FirewallRuleSpecification specification) =>
         rules.Count(rule => rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, specification));
-
-    private static string FormatProcessDiagnostic(UfwProcessResult result)
-    {
-        string details = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-        if (result.CancellationRequested)
-        {
-            return "UFW recovery was canceled after the process started.";
-        }
-        return $"UFW recovery exited with code {result.ExitCode}: {details}";
-    }
 }

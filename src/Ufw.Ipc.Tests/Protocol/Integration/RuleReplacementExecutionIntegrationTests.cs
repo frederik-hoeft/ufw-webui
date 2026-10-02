@@ -85,6 +85,7 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
         services.AddSingleton<DaemonConfiguration>(new TestConfiguration(settings));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton<IUfwRunner>(new MockBackedUfwRunner(_mockStatePath));
+        services.AddSingleton<IUfwProcessExecutor, UfwProcessExecutor>();
         services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
         services.AddSingleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>();
         services.AddSingleton<INonceStore, FileNonceStore>();

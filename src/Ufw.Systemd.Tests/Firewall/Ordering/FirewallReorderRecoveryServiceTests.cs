@@ -58,7 +58,12 @@ public sealed class FirewallReorderRecoveryServiceTests
                 });
 
             FileReorderRecoveryJournal afterRestart = new(configuration, new DurableFileStore());
-            RuleReorderRecoveryCoordinator coordinator = new(snapshotReader.Object, runner.Object, new UfwRuleCommandRenderer(), afterRestart, new ConsoleLogger());
+            RuleReorderRecoveryCoordinator coordinator = new(
+                snapshotReader.Object,
+                new UfwProcessExecutor(runner.Object, new ConsoleLogger()),
+                new UfwRuleCommandRenderer(),
+                afterRestart,
+                new ConsoleLogger());
             using UfwExecutionGate gate = new();
             FirewallMutationSafetyGuard guard = new(afterRestart, coordinator);
             FirewallReorderRecoveryService service = new(gate, guard);
@@ -104,7 +109,12 @@ public sealed class FirewallReorderRecoveryServiceTests
                     commands.Add(arguments.ToArray());
                     return new UfwProcessResult(0, string.Empty, string.Empty, arguments, false);
                 });
-            RuleReorderRecoveryCoordinator coordinator = new(snapshotReader.Object, runner.Object, new UfwRuleCommandRenderer(), journal, new ConsoleLogger());
+            RuleReorderRecoveryCoordinator coordinator = new(
+                snapshotReader.Object,
+                new UfwProcessExecutor(runner.Object, new ConsoleLogger()),
+                new UfwRuleCommandRenderer(),
+                journal,
+                new ConsoleLogger());
 
             RuleRecoveryResult result = await coordinator.EnsurePresentAsync(entry, null, TestContext.CancellationToken);
 
@@ -136,7 +146,12 @@ public sealed class FirewallReorderRecoveryServiceTests
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("read failed")));
             Mock<IUfwRunner> runner = new(MockBehavior.Strict);
-            RuleReorderRecoveryCoordinator coordinator = new(snapshotReader.Object, runner.Object, new UfwRuleCommandRenderer(), journal, new ConsoleLogger());
+            RuleReorderRecoveryCoordinator coordinator = new(
+                snapshotReader.Object,
+                new UfwProcessExecutor(runner.Object, new ConsoleLogger()),
+                new UfwRuleCommandRenderer(),
+                journal,
+                new ConsoleLogger());
             using UfwExecutionGate gate = new();
             FirewallMutationSafetyGuard guard = new(journal, coordinator);
             FirewallReorderRecoveryService service = new(gate, guard);

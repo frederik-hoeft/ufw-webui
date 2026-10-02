@@ -14,6 +14,7 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<TimeProvider>(Factory = nameof(GetTimeProvider))]
 [Singleton<IChildProcessRunner, DefaultChildProcessRunner>]
 [Singleton<IUfwRunner, UfwRunner>]
+[Singleton<IUfwProcessExecutor, UfwProcessExecutor>]
 [Singleton<IUfwDefaultsReader, UfwDefaultsReader>]
 [Singleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>]
 [Singleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>]

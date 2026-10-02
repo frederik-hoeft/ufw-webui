@@ -6,7 +6,6 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Interop.Commands;
-using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.Replacement;
@@ -15,7 +14,7 @@ internal sealed class FirewallRuleReplacementExecutor(
     IFirewallRuleSnapshotReader snapshotReader,
     IFirewallRuleInterfaceValidator interfaceValidator,
     IFirewallRuleCapabilityValidator capabilityValidator,
-    IUfwRunner ufwRunner,
+    IUfwProcessExecutor processExecutor,
     IUfwRuleCommandRenderer renderer,
     ILogger logger) : IFirewallRuleReplacementExecutor
 {
@@ -94,11 +93,14 @@ internal sealed class FirewallRuleReplacementExecutor(
         FirewallRuleSpecification replacement,
         CancellationToken cancellationToken)
     {
-        ProcessExecution update = await ExecuteProcessAsync(new UfwUpdateExistingRuleCommand(replacement, renderer), "updating the existing rule", cancellationToken);
+        UfwProcessExecutionResult update = await processExecutor.ExecuteAsync(new UfwUpdateExistingRuleCommand(replacement, renderer), "updating the existing rule", cancellationToken);
         RuleListResponse? finalSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (finalSnapshot is null)
         {
-            return Result(RuleReplacementExecutionOutcome.StateUncertain, null, diagnostic: CombineDiagnostics(update.Diagnostic, "The firewall state could not be read after updating the existing rule."));
+            return Result(
+                RuleReplacementExecutionOutcome.StateUncertain,
+                null,
+                diagnostic: UfwProcessDiagnostics.Combine(update.Diagnostic, "The firewall state could not be read after updating the existing rule."));
         }
 
         if (FirewallRuleSnapshotMatcher.TryMatchSingleReplacement(baseline, finalSnapshot, replacement, targetOccurrenceId, out ListedFirewallRule? replacementRule))
@@ -110,13 +112,13 @@ internal sealed class FirewallRuleReplacementExecutor(
         if (FirewallRuleSnapshotMatcher.Equivalent(baseline, finalSnapshot))
         {
             ThrowIfCanceledAfterConfirmedSafeState(update, cancellationToken);
-            return Result(RuleReplacementExecutionOutcome.PreconditionFailed, finalSnapshot, diagnostic: CombineDiagnostics(update.Diagnostic, "The existing rule was not updated."));
+            return Result(RuleReplacementExecutionOutcome.PreconditionFailed, finalSnapshot, diagnostic: UfwProcessDiagnostics.Combine(update.Diagnostic, "The existing rule was not updated."));
         }
 
         return Result(
             RuleReplacementExecutionOutcome.StateUncertain,
             finalSnapshot,
-            diagnostic: CombineDiagnostics(update.Diagnostic, "Firewall state diverged from the exact existing-rule update postcondition."));
+            diagnostic: UfwProcessDiagnostics.Combine(update.Diagnostic, "Firewall state diverged from the exact existing-rule update postcondition."));
     }
 
     private async Task<RuleReplacementExecutionResult> ReplaceIdentityAsync(
@@ -127,14 +129,14 @@ internal sealed class FirewallRuleReplacementExecutor(
         CancellationToken cancellationToken)
     {
         int insertPosition = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, targetOccurrenceId);
-        ProcessExecution insert = await ExecuteProcessAsync(new UfwInsertRuleCommand(insertPosition, replacement, renderer), "inserting the replacement rule", cancellationToken);
+        UfwProcessExecutionResult insert = await processExecutor.ExecuteAsync(new UfwInsertRuleCommand(insertPosition, replacement, renderer), "inserting the replacement rule", cancellationToken);
         RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (afterInsert is null)
         {
             return Result(
                 RuleReplacementExecutionOutcome.StateUncertain,
                 null,
-                diagnostic: CombineDiagnostics(insert.Diagnostic, "The firewall state could not be read after inserting the replacement rule."));
+                diagnostic: UfwProcessDiagnostics.Combine(insert.Diagnostic, "The firewall state could not be read after inserting the replacement rule."));
         }
 
         if (FirewallRuleSnapshotMatcher.TryMatchSingleReplacement(baseline, afterInsert, replacement, targetOccurrenceId, out ListedFirewallRule? completedWithoutDelete))
@@ -148,13 +150,13 @@ internal sealed class FirewallRuleReplacementExecutor(
             if (FirewallRuleSnapshotMatcher.Equivalent(baseline, afterInsert))
             {
                 ThrowIfCanceledAfterConfirmedSafeState(insert, cancellationToken);
-                return Result(RuleReplacementExecutionOutcome.PreconditionFailed, afterInsert, diagnostic: CombineDiagnostics(insert.Diagnostic, "The replacement rule was not inserted."));
+                return Result(RuleReplacementExecutionOutcome.PreconditionFailed, afterInsert, diagnostic: UfwProcessDiagnostics.Combine(insert.Diagnostic, "The replacement rule was not inserted."));
             }
 
             return Result(
                 RuleReplacementExecutionOutcome.StateUncertain,
                 afterInsert,
-                diagnostic: CombineDiagnostics(insert.Diagnostic, "Firewall state diverged from the exact replacement-insertion intermediate state."));
+                diagnostic: UfwProcessDiagnostics.Combine(insert.Diagnostic, "Firewall state diverged from the exact replacement-insertion intermediate state."));
         }
 
         if (insert.CancellationRequested || cancellationToken.IsCancellationRequested)
@@ -176,18 +178,18 @@ internal sealed class FirewallRuleReplacementExecutor(
                 afterInsert,
                 targetOccurrenceId,
                 replacement,
-                CombineDiagnostics(insert.Diagnostic, "The original rule does not have a usable UFW display number after replacement insertion."));
+                UfwProcessDiagnostics.Combine(insert.Diagnostic, "The original rule does not have a usable UFW display number after replacement insertion."));
         }
 
-        ProcessExecution delete = await ExecuteProcessAsync(new UfwDeleteRuleCommand(oldDisplayNumber), "deleting the original rule", cancellationToken);
+        UfwProcessExecutionResult delete = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(oldDisplayNumber), "deleting the original rule", cancellationToken);
         RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
-        string? mutationDiagnostic = CombineDiagnostics(insert.Succeeded ? null : insert.Diagnostic, delete.Diagnostic);
+        string? mutationDiagnostic = UfwProcessDiagnostics.Combine(insert.Succeeded ? null : insert.Diagnostic, delete.Diagnostic);
         if (afterDelete is null)
         {
             return Result(
                 RuleReplacementExecutionOutcome.StateUncertain,
                 null,
-                diagnostic: CombineDiagnostics(mutationDiagnostic, "The firewall state could not be read after deleting the original rule, so rollback was not attempted."));
+                diagnostic: UfwProcessDiagnostics.Combine(mutationDiagnostic, "The firewall state could not be read after deleting the original rule, so rollback was not attempted."));
         }
 
         if (FirewallRuleSnapshotMatcher.TryMatchSingleReplacement(baseline, afterDelete, replacement, targetOccurrenceId, out ListedFirewallRule? replacementRule))
@@ -202,7 +204,7 @@ internal sealed class FirewallRuleReplacementExecutor(
             return Result(
                 RuleReplacementExecutionOutcome.PreconditionFailed,
                 afterDelete,
-                diagnostic: CombineDiagnostics(mutationDiagnostic, "The replacement operation left the original firewall state unchanged."));
+                diagnostic: UfwProcessDiagnostics.Combine(mutationDiagnostic, "The replacement operation left the original firewall state unchanged."));
         }
 
         if (!FirewallRuleSnapshotMatcher.TryMatchSingleInsertion(baseline, afterDelete, replacement, targetOccurrenceId, out _))
@@ -210,7 +212,7 @@ internal sealed class FirewallRuleReplacementExecutor(
             return Result(
                 RuleReplacementExecutionOutcome.StateUncertain,
                 afterDelete,
-                diagnostic: CombineDiagnostics(mutationDiagnostic, "Firewall state diverged after attempting to delete the original rule, so rollback was not attempted."));
+                diagnostic: UfwProcessDiagnostics.Combine(mutationDiagnostic, "Firewall state diverged after attempting to delete the original rule, so rollback was not attempted."));
         }
 
         RuleReplacementExecutionResult recovery = await RollBackInsertionAsync(baseline, afterDelete, targetOccurrenceId, replacement, mutationDiagnostic);
@@ -236,19 +238,19 @@ internal sealed class FirewallRuleReplacementExecutor(
                 RuleReplacementExecutionOutcome.PartiallyCompleted,
                 exactIntermediate,
                 recoveryStatus: RuleReplacementRecoveryStatus.Failed,
-                diagnostic: CombineDiagnostics(operationDiagnostic, "The inserted replacement does not have a usable UFW display number for rollback."));
+                diagnostic: UfwProcessDiagnostics.Combine(operationDiagnostic, "The inserted replacement does not have a usable UFW display number for rollback."));
         }
 
-        ProcessExecution rollback = await ExecuteProcessAsync(new UfwDeleteRuleCommand(displayNumber), "rolling back the inserted replacement", CancellationToken.None);
+        UfwProcessExecutionResult rollback = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(displayNumber), "rolling back the inserted replacement", CancellationToken.None);
         RuleListResponse? afterRollback = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
-        string? diagnostic = CombineDiagnostics(operationDiagnostic, rollback.Diagnostic);
+        string? diagnostic = UfwProcessDiagnostics.Combine(operationDiagnostic, rollback.Diagnostic);
         if (afterRollback is null)
         {
             return Result(
                 RuleReplacementExecutionOutcome.StateUncertain,
                 null,
                 recoveryStatus: RuleReplacementRecoveryStatus.Failed,
-                diagnostic: CombineDiagnostics(diagnostic, "The firewall state could not be read after attempting replacement rollback."));
+                diagnostic: UfwProcessDiagnostics.Combine(diagnostic, "The firewall state could not be read after attempting replacement rollback."));
         }
 
         if (FirewallRuleSnapshotMatcher.Equivalent(baseline, afterRollback))
@@ -257,7 +259,7 @@ internal sealed class FirewallRuleReplacementExecutor(
                 RuleReplacementExecutionOutcome.PreconditionFailed,
                 afterRollback,
                 recoveryStatus: RuleReplacementRecoveryStatus.RestoredBaseline,
-                diagnostic: CombineDiagnostics(diagnostic, "The replacement did not complete and the original firewall state was restored."));
+                diagnostic: UfwProcessDiagnostics.Combine(diagnostic, "The replacement did not complete and the original firewall state was restored."));
         }
 
         if (FirewallRuleSnapshotMatcher.TryMatchSingleReplacement(baseline, afterRollback, replacement, targetOccurrenceId, out ListedFirewallRule? replacementRule))
@@ -267,7 +269,7 @@ internal sealed class FirewallRuleReplacementExecutor(
                 afterRollback,
                 replacementRule,
                 RuleReplacementRecoveryStatus.Failed,
-                CombineDiagnostics(diagnostic, "The requested final replacement state was nevertheless confirmed after the rollback attempt."));
+                UfwProcessDiagnostics.Combine(diagnostic, "The requested final replacement state was nevertheless confirmed after the rollback attempt."));
         }
 
         if (FirewallRuleSnapshotMatcher.TryMatchSingleInsertion(baseline, afterRollback, replacement, targetOccurrenceId, out _))
@@ -276,32 +278,17 @@ internal sealed class FirewallRuleReplacementExecutor(
                 RuleReplacementExecutionOutcome.PartiallyCompleted,
                 afterRollback,
                 recoveryStatus: RuleReplacementRecoveryStatus.Failed,
-                diagnostic: CombineDiagnostics(diagnostic, "Rollback did not remove the inserted replacement; both original and replacement rules remain present."));
+                diagnostic: UfwProcessDiagnostics.Combine(diagnostic, "Rollback did not remove the inserted replacement; both original and replacement rules remain present."));
         }
 
         return Result(
             RuleReplacementExecutionOutcome.StateUncertain,
             afterRollback,
             recoveryStatus: RuleReplacementRecoveryStatus.Failed,
-            diagnostic: CombineDiagnostics(diagnostic, "Firewall state diverged from every safe replacement or rollback postcondition."));
+            diagnostic: UfwProcessDiagnostics.Combine(diagnostic, "Firewall state diverged from every safe replacement or rollback postcondition."));
     }
 
-    private async Task<ProcessExecution> ExecuteProcessAsync(IUfwCommand command, string operation, CancellationToken cancellationToken)
-    {
-        try
-        {
-            UfwProcessResult result = await ufwRunner.ExecuteAsync(command, cancellationToken);
-            string? diagnostic = result.Succeeded ? null : FormatProcessDiagnostic(result, operation);
-            return new ProcessExecution(result.Succeeded, result.CancellationRequested, diagnostic);
-        }
-        catch (ChildProcessException exception)
-        {
-            _logger.LogError(exception, $"UFW execution failed while {operation}. Authoritative state will be reconciled before classifying the replacement result.");
-            return new ProcessExecution(false, false, exception.Message);
-        }
-    }
-
-    private static void ThrowIfCanceledAfterConfirmedSafeState(ProcessExecution process, CancellationToken cancellationToken)
+    private static void ThrowIfCanceledAfterConfirmedSafeState(UfwProcessExecutionResult process, CancellationToken cancellationToken)
     {
         if (process.CancellationRequested || cancellationToken.IsCancellationRequested)
         {
@@ -316,20 +303,6 @@ internal sealed class FirewallRuleReplacementExecutor(
         _ => "Rule replacement precondition validation failed.",
     };
 
-    private static string FormatProcessDiagnostic(UfwProcessResult result, string operation)
-    {
-        string details = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-        return result.CancellationRequested
-            ? $"UFW process was canceled after it started while {operation}."
-            : $"UFW process exited with code {result.ExitCode} while {operation}: {details}";
-    }
-
-    private static string? CombineDiagnostics(params string?[] diagnostics)
-    {
-        string[] nonEmpty = diagnostics.Where(static diagnostic => !string.IsNullOrWhiteSpace(diagnostic)).Select(static diagnostic => diagnostic!).ToArray();
-        return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
-    }
-
     private static RuleReplacementExecutionResult Result(
         RuleReplacementExecutionOutcome outcome,
         RuleListResponse? finalSnapshot,
@@ -337,6 +310,4 @@ internal sealed class FirewallRuleReplacementExecutor(
         RuleReplacementRecoveryStatus? recoveryStatus = null,
         string? diagnostic = null) =>
         new(outcome, finalSnapshot, replacementRule, recoveryStatus, diagnostic);
-
-    private sealed record ProcessExecution(bool Succeeded, bool CancellationRequested, string? Diagnostic);
 }

@@ -87,6 +87,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
         services.AddSingleton<DaemonConfiguration>(new TestConfiguration(settings));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton<IUfwRunner>(_runner);
+        services.AddSingleton<IUfwProcessExecutor, UfwProcessExecutor>();
         services.AddSingleton<IUfwRuleCommandRenderer, UfwRuleCommandRenderer>();
         services.AddSingleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>();
         services.AddSingleton<INonceStore, FileNonceStore>();

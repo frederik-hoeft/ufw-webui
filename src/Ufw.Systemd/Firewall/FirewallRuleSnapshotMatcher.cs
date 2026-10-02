@@ -25,6 +25,29 @@ internal static class FirewallRuleSnapshotMatcher
         return true;
     }
 
+    public static bool MatchesOrder(RuleListResponse snapshot, RuleListResponse baseline, IReadOnlyList<int> expectedOrder)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(baseline);
+        ArgumentNullException.ThrowIfNull(expectedOrder);
+
+        if (snapshot.Active != baseline.Active || snapshot.Rules.Count != expectedOrder.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < expectedOrder.Count; index++)
+        {
+            int occurrenceId = expectedOrder[index];
+            if (occurrenceId < 0 || occurrenceId >= baseline.Rules.Count || !FirewallRuleStateComparer.Equals(snapshot.Rules[index], baseline.Rules[occurrenceId]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static bool TryMatchSingleInsertion(
         RuleListResponse baseline,
         RuleListResponse current,

@@ -187,7 +187,7 @@ public sealed class FirewallBatchDeleteExecutorTests
                 : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled))));
             _snapshotReader.Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(() => _snapshots.Dequeue());
             _ufwRunner.Setup(runner => runner.ExecuteAsync(It.IsAny<IUfwCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync((IUfwCommand command, CancellationToken _) => Execute(command));
-            Executor = new FirewallBatchDeleteExecutor(_snapshotReader.Object, _ufwRunner.Object, new ConsoleLogger());
+            Executor = new FirewallBatchDeleteExecutor(_snapshotReader.Object, new UfwProcessExecutor(_ufwRunner.Object, new ConsoleLogger()));
         }
 
         public FirewallBatchDeleteExecutor Executor { get; }

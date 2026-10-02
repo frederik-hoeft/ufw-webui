@@ -449,7 +449,7 @@ public sealed class FirewallRuleReplacementExecutorTests
                 _snapshotReader.Object,
                 _interfaceValidator.Object,
                 new FirewallRuleCapabilityValidator(),
-                _ufwRunner.Object,
+                new UfwProcessExecutor(_ufwRunner.Object, new ConsoleLogger()),
                 new UfwRuleCommandRenderer(),
                 new ConsoleLogger());
         }
