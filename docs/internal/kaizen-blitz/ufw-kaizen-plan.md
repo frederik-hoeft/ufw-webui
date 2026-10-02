@@ -32,7 +32,7 @@ The three source backlogs remain the authority for detailed evidence, affected f
 | REST validation and shared limits | Shared validator/model work; daemon may consume shared validators | WEB KZ-05, KZ-14 | CLIENT KZ-08, KZ-12 | Establish stable shared limits/validation identities before client authoring/localization cleanup |
 | Shared management-domain models / metadata | N/A | WEB KZ-01, KZ-06, KZ-23 | CLIENT KZ-06, KZ-08, KZ-17 | Web defines stable persistence-vs-domain-vs-transport roles -> client consumes the shared domain model directly |
 | Network-interface lifecycle | Daemon remains source of interface presence | WEB KZ-13 + KZ-01 interface slice | CLIENT KZ-10, KZ-19 | Decide persistence semantics on server before client inventory/reference-data state is refactored |
-| Firewall semantic-domain algebra | PR #40 / `Ufw.Shared.Domain` is the shared foundation | Server should not reverse the Firewall -> Domain dependency | CLIENT KZ-02, then KZ-16 | Merge PR #40 before client semantic cleanup |
+| Firewall semantic-domain algebra | PR #40 / `Ufw.Shared.Domain` is the shared foundation | Server should not reverse the Firewall -> Domain dependency | CLIENT KZ-02, then KZ-16 | PR #40 is merged; adapt the client to the shared semantic domain before filter micro-cleanup |
 
 ### Important overlap that should **not** become one shared abstraction
 
@@ -107,6 +107,8 @@ Recommended order:
 
 ### Bridge checkpoint S1 - daemon -> Web
 
+Wave D is complete. S1 starts from the frozen daemon consumer contract documented in [UFWeb Architecture](../../architecture/architecture-overview.md#daemon-consumer-contract); daemon internals should not be reopened unless S1 discovers a genuine shared-contract defect. The current standard Web deployment/client remains Unix-pipe based even though the daemon server also supports TCP.
+
 Before starting structural work in `Ufw.Web`:
 
 - update any shared protocol types required by the daemon result, validation, or transport changes;
@@ -165,7 +167,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 
 #### C1 - Semantic and protocol foundations
 
-1. Ensure PR #40 is merged, then CLIENT KZ-02 adopts `Ufw.Shared.Domain` for network/port semantics.
+1. PR #40 is merged; CLIENT KZ-02 adopts the resulting `Ufw.Shared.Domain` network/port semantics.
 2. CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
 3. CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
 4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
@@ -198,6 +200,8 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 ## Integration checkpoints
 
 ### Checkpoint D - daemon complete
+
+**Status:** complete. The D4 definition-of-done audit revalidated all 29 daemon backlog items against the final tree, and the consumer-visible daemon contract is summarized in [the architecture overview](../../architecture/architecture-overview.md#daemon-consumer-contract). The phase gate passes a source-less offline restore, a zero-warning solution build, all 1,420 managed tests, and the `linux-x64` NativeAOT publish.
 
 - Daemon backlog is fully green.
 - Mutation state machines use one authoritative snapshot/process/placement foundation.
@@ -235,8 +239,8 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 
 These are architecture decisions, not implementation details, and should be written down when resolved:
 
-1. **Daemon configuration lifecycle:** startup-immutable vs true runtime reload (SYS KZ-009).
-2. **Daemon transport model:** how pipe/TCP selection is configured and how Web selects the corresponding client transport (SYS KZ-019 -> WEB KZ-02/KZ-04).
+1. **Daemon configuration lifecycle — resolved in D1:** configuration is startup-immutable; changes require daemon restart (SYS KZ-009).
+2. **Daemon transport model — daemon side resolved in D1:** the daemon selects `pipe` or `tcp` at startup and applies the same TLS/mTLS policy to either transport. The shipped production topology and current Web IPC client remain pipe-based; WEB KZ-02/KZ-04 own any Web-side transport selection needed to make TCP end-to-end (SYS KZ-019 -> WEB KZ-02/KZ-04).
 3. **Network-interface metadata retention:** whether transient absence preserves user-owned metadata (WEB KZ-13 -> CLIENT KZ-10/KZ-19).
 4. **Shared management-domain branding:** whether existing `*Item` types are renamed/re-namespaced or simply documented as domain/read models; avoid gratuitous clone DTOs (WEB KZ-01).
 5. **Stable validation identity contract:** code/field/context shape used by server and client rather than English-string identity (CLIENT KZ-12, ideally established at S1/S2).

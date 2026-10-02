@@ -1,5 +1,17 @@
 # Ufw.Web Kaizen Blitz Review Inventory
 
+## Wave D daemon handoff
+
+The daemon phase is complete. Web work should consume the finalized daemon contract rather than reopening daemon implementation structure:
+
+- daemon configuration is startup-immutable;
+- the daemon server supports startup-selected pipe/TCP with transport-neutral TLS/mTLS, while the current `Ufw.Ipc.Client`/`Ufw.Web` composition and production topology remain Unix-pipe based; Web KZ-02/KZ-04 own any client-side transport selection required for TCP deployments;
+- `RuleListResponse` is the authoritative ordered firewall snapshot; semantic `RuleId` excludes comments/transient numbering, while occurrence IDs are snapshot-local coordinates tied to the exact fingerprinted order;
+- signed-intent v2 canonicalization/verification semantics are stable, authorized mutation keys are snapshotted at daemon startup, and mutation routes return typed transaction/recovery data that must not be collapsed to process success/failure;
+- unexpected remote exception details are opt-in via `expose_remote_exception_details`; `debug_mode` controls local diagnostics only.
+
+The detailed compatibility surface is summarized in the [daemon consumer contract](../../../architecture/architecture-overview.md#daemon-consumer-contract).
+
 ## Scope and method
 
 This review covers the uploaded snapshot of `src/Ufw.Web` in full: **154 files** total, including **133 authored/non-migration files** and **21 EF Core migration files**. The migration set consists of migration implementations plus generated designer/snapshot artifacts. Generated EF files were reviewed for schema consistency and classified as generated/append-only rather than treated as normal refactoring targets.

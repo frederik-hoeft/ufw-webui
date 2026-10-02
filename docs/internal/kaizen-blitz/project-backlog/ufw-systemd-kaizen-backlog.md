@@ -1,5 +1,21 @@
 # Ufw.Systemd Kaizen Blitz Review
 
+## Wave D completion status
+
+**Status: complete.** All 29 findings in this inventory were resolved during Wave D. The problem/evidence sections below intentionally remain as the historical audit baseline; references to removed types or pre-refactor behavior describe the state that motivated the work, not the current implementation. The dependency-driven execution order and cross-project handoff are tracked in the [overall kaizen plan](../ufw-kaizen-plan.md).
+
+The final daemon decisions that later phases should treat as fixed inputs are:
+
+- configuration is loaded once at startup and is immutable for the process lifetime; configuration shape validation is pure and host/environment validation is a separate startup concern;
+- the daemon server supports startup-selected `pipe` and `tcp` transports with one transport-neutral TLS/mTLS policy. The shipped production topology selects the Unix-domain pipe; the current Web IPC client is still pipe-oriented, so end-to-end TCP deployment requires Web-side client transport wiring during the Web phase;
+- unexpected worker failure is process-fatal and delegated to systemd restart, while expected peer/I/O/protocol failures remain connection-scoped;
+- durable daemon state uses shared durable-file primitives; nonce publication is persistence-first and replay storage is compacted;
+- authoritative firewall reads return one explicit success/failure result whose success payload is the mapped `RuleListResponse`; process execution, diagnostics, snapshot matching, insertion placement, and reorder reinsertion cost are centralized primitives;
+- normalized observed-state equality is distinct from semantic rule identity, and unsupported reorder rows are immutable rather than merely expensive to move;
+- signed-intent v2 verification separates stable envelope/security checks from typed operation payload binding; authorized keys are snapshotted at startup and signature verification stays inside the key store; common gate/recovery/nonce choreography has one orchestrator;
+- reorder and replacement retain explicit operation-specific recovery state machines behind smaller preflight/transaction components; post-mutation reconciliation using `CancellationToken.None` remains intentional once UFW may already have changed state;
+- middleware composition is immutable, endpoint invocation/serialization is centralized, request timing is exception-safe, logging has one abstraction/console sink, and parser cleanup preserves opaque numbered UFW rows through a grammar-owned row-number fallback.
+
 ## Overall assessment
 
 `Ufw.Systemd` does **not** need a broad rewrite. Most small abstractions and domain types are reasonably focused. The debt is concentrated in a few areas:
@@ -220,7 +236,7 @@ The default service provider imports only the pipe transport module. The TCP mod
 
 **Fix:** if TCP is not a supported daemon transport, delete this dead surface. If it is intended to be supported, make transport selection explicit in configuration/DI and give TCP real endpoint settings/tests. Do not leave a hardcoded prototype transport in production source.
 
-\(\implies\) Let's officially support TCP transport as an available transport option rather than leaving it as a hardcoded prototype. We can probably abstract the choice of transport behind a compositing proxy transport service that delegates to the appropriate transport based on config-time selection.
+**Wave D resolution:** TCP is an officially supported daemon-server transport selected at startup alongside `pipe`, behind a delegating transport service. The shipped production topology remains pipe-based; Web-side TCP client selection is deferred to the Web daemon-gateway/composition work.
 
 ### KZ-020 — Deduplicate endpoint invocation/exception serialization
 

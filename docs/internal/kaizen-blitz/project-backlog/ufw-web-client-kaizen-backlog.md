@@ -22,13 +22,13 @@ The repository documents these relevant boundaries:
 - Razor pages should primarily coordinate lifecycle, navigation, dialogs, and presentation (`docs/architecture/browser-application.md:122-125`).
 - CSS isolation is the default; non-isolated component SCSS is an explicit exception, and generic Mud/application behavior belongs under `UI/Styles/controls` (`docs/development/client-ui.md:36-46`, `62-66`).
 
-### Planned baseline change before the blitz: PR #40
+### Baseline semantic-domain foundation: PR #40
 
-The kaizen blitz is expected to start **after** [PR #40](https://github.com/frederik-hoeft/ufw-webui/pull/40) is merged. That PR adds the formal read-only firewall-policy semantic domain under `Ufw.Shared.Domain`, including `NetworkAddress`, `PacketPorts`, `PacketPortSet`, generic `IntervalSet<T>` set algebra, packet-space types, and `FirewallPolicyProjector`.
+[PR #40](https://github.com/frederik-hoeft/ufw-webui/pull/40) is merged into the kaizen baseline. It adds the formal read-only firewall-policy semantic domain under `Ufw.Shared.Domain`, including `NetworkAddress`, `PacketPorts`, `PacketPortSet`, generic `IntervalSet<T>` set algebra, packet-space types, and `FirewallPolicyProjector`.
 
-This materially changes KZ-02. The client no longer needs new firewall range/set primitives invented specifically for the cleanup; the pending domain model already supplies the semantic representation and algebra that the filtering subsystem was independently implementing. KZ-02 should therefore be treated as an **integration/adaptation refactor over PR #40**, not as a new domain-model design exercise.
+This materially changes KZ-02. The client no longer needs new firewall range/set primitives invented specifically for the cleanup; the merged domain model already supplies the semantic representation and algebra that the filtering subsystem was independently implementing. KZ-02 should therefore be treated as an **integration/adaptation refactor over PR #40**, not as a new domain-model design exercise.
 
-The existing architectural direction in PR #40 should remain intact: normalized `Ufw.Shared.Firewall` state is projected **into** the semantic domain. Do not make `RuleSpecificationNormalizer` or the firewall mutation model depend upward on `Ufw.Shared.Domain` merely to share text parsing. Any remaining Firewall-vs-Domain lexical parsing duplication should be handled separately, if worthwhile, by extracting neutral syntax/value primitives below both layers.
+The architectural direction established by PR #40 should remain intact: normalized `Ufw.Shared.Firewall` state is projected **into** the semantic domain. Do not make `RuleSpecificationNormalizer` or the firewall mutation model depend upward on `Ufw.Shared.Domain` merely to share text parsing. Any remaining Firewall-vs-Domain lexical parsing duplication should be handled separately, if worthwhile, by extracting neutral syntax/value primitives below both layers.
 
 ## Priority model
 
@@ -621,7 +621,7 @@ The audit did not find meaningful debt requiring action in these areas:
 
 ### Wave 1: correctness-sensitive foundations
 
-1. Merge PR #40, then KZ-02 client semantic adapter over `Ufw.Shared.Domain` (remove client CIDR/port algebra).
+1. KZ-02 client semantic adapter over the merged `Ufw.Shared.Domain` foundation (remove client CIDR/port algebra).
 2. KZ-03 snapshot occurrence index / remove object identity.
 3. KZ-04 signing/context helper.
 4. KZ-05 ordering permutation value/invariant.
