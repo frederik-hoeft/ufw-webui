@@ -128,8 +128,8 @@ internal sealed class FirewallRuleReplacementExecutor(
         string replacementId,
         CancellationToken cancellationToken)
     {
-        int insertPosition = UfwRulePositionResolver.GetUfwInsertPosition(baseline.Rules, targetOccurrenceId);
-        UfwProcessExecutionResult insert = await processExecutor.ExecuteAsync(new UfwInsertRuleCommand(insertPosition, replacement, renderer), "inserting the replacement rule", cancellationToken);
+        UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(baseline.Rules, replacement.AddressFamily, targetOccurrenceId);
+        UfwProcessExecutionResult insert = await processExecutor.ExecuteAsync(placement.CreateCommand(replacement, renderer), "inserting the replacement rule", cancellationToken);
         RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (afterInsert is null)
         {

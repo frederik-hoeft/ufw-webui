@@ -9,16 +9,18 @@ public sealed class RuleInsertionContractTests
     private const string VALID_FINGERPRINT = "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     [TestMethod]
-    public void ResolveAnchor_ValidConcreteSameFamily_ReturnsExactOccurrence()
+    public void TryResolveAnchor_ValidConcreteSameFamily_ReturnsExactOccurrence()
     {
         ListedFirewallRule duplicate = Rule(FirewallAddressFamily.IPv4, "same");
         ListedFirewallRule expected = Rule(FirewallAddressFamily.IPv4, "same");
         ListedFirewallRule[] baseline = [duplicate, expected];
         InsertRulePayload payload = Payload(FirewallAddressFamily.IPv4, anchorOccurrenceId: 1);
 
-        ListedFirewallRule actual = RuleInsertionContract.ResolveAnchor(baseline, payload);
+        bool resolved = RuleInsertionContract.TryResolveAnchor(baseline, payload, out ListedFirewallRule? actual, out string? diagnostic);
 
+        Assert.IsTrue(resolved);
         Assert.AreSame(expected, actual);
+        Assert.IsNull(diagnostic);
     }
 
     [TestMethod]
@@ -56,39 +58,55 @@ public sealed class RuleInsertionContractTests
     }
 
     [TestMethod]
-    public void ResolveAnchor_OutOfRangeOccurrence_Rejects()
+    public void TryResolveAnchor_OutOfRangeOccurrence_ReturnsFailure()
     {
         ListedFirewallRule[] baseline = [Rule(FirewallAddressFamily.IPv4, "one")];
         InsertRulePayload payload = Payload(FirewallAddressFamily.IPv4, anchorOccurrenceId: 1);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => RuleInsertionContract.ResolveAnchor(baseline, payload));
+        bool resolved = RuleInsertionContract.TryResolveAnchor(baseline, payload, out ListedFirewallRule? anchor, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(anchor);
+        Assert.AreEqual("Anchor occurrence is outside the signed baseline.", diagnostic);
     }
 
     [TestMethod]
-    public void ResolveAnchor_UnparsedOccurrence_Rejects()
+    public void TryResolveAnchor_UnparsedOccurrence_ReturnsFailure()
     {
         ListedFirewallRule[] baseline = [new() { DisplayNumber = 1, Parsed = false, RawLine = "opaque" }];
         InsertRulePayload payload = Payload(FirewallAddressFamily.IPv4);
 
-        Assert.Throws<InvalidOperationException>(() => RuleInsertionContract.ResolveAnchor(baseline, payload));
+        bool resolved = RuleInsertionContract.TryResolveAnchor(baseline, payload, out ListedFirewallRule? anchor, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(anchor);
+        Assert.AreEqual("Ordered insertion requires a parsed anchor rule with a concrete address family.", diagnostic);
     }
 
     [TestMethod]
-    public void ResolveAnchor_FamilyMismatch_Rejects()
+    public void TryResolveAnchor_FamilyMismatch_ReturnsFailure()
     {
         ListedFirewallRule[] baseline = [Rule(FirewallAddressFamily.IPv6, "v6")];
         InsertRulePayload payload = Payload(FirewallAddressFamily.IPv4);
 
-        Assert.Throws<InvalidOperationException>(() => RuleInsertionContract.ResolveAnchor(baseline, payload));
+        bool resolved = RuleInsertionContract.TryResolveAnchor(baseline, payload, out ListedFirewallRule? anchor, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(anchor);
+        Assert.AreEqual("Ordered insertion rule address family must match the anchor address family.", diagnostic);
     }
 
     [TestMethod]
-    public void ResolveAnchor_FamilyNeutralAnchor_Rejects()
+    public void TryResolveAnchor_FamilyNeutralAnchor_ReturnsFailure()
     {
         ListedFirewallRule[] baseline = [Rule(FirewallAddressFamily.Any, "any")];
         InsertRulePayload payload = Payload(FirewallAddressFamily.IPv4);
 
-        Assert.Throws<InvalidOperationException>(() => RuleInsertionContract.ResolveAnchor(baseline, payload));
+        bool resolved = RuleInsertionContract.TryResolveAnchor(baseline, payload, out ListedFirewallRule? anchor, out string? diagnostic);
+
+        Assert.IsFalse(resolved);
+        Assert.IsNull(anchor);
+        Assert.AreEqual("Ordered insertion requires an anchor with a concrete address family.", diagnostic);
     }
 
     private static InsertRulePayload Payload(FirewallAddressFamily family, int anchorOccurrenceId = 0) => new()

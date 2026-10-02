@@ -56,33 +56,19 @@ internal sealed class RuleReorderRecoveryCoordinator(
         int? nextIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.NextAnchor);
         if (nextIndex.HasValue && snapshot.Rules[nextIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, nextIndex.Value);
-            return new UfwInsertRuleCommand(position, entry.Rule, renderer);
+            UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(snapshot.Rules, entry.Rule.AddressFamily, nextIndex.Value);
+            return placement.CreateCommand(entry.Rule, renderer);
         }
 
         int? previousIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.PreviousAnchor);
         if (previousIndex.HasValue && snapshot.Rules[previousIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)
         {
-            int previousFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(snapshot.Rules, previousIndex.Value);
-            int familyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
-            int insertionPosition = previousFamilyPosition + 1;
-            if (insertionPosition <= familyCount)
-            {
-                int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, entry.Rule.AddressFamily, insertionPosition);
-                return new UfwInsertRuleCommand(position, entry.Rule, renderer);
-            }
-
-            return new UfwAddRuleCommand(entry.Rule, renderer);
+            UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(snapshot.Rules, entry.Rule.AddressFamily, previousIndex.Value + 1);
+            return placement.CreateCommand(entry.Rule, renderer);
         }
 
-        int currentFamilyCount = UfwRulePositionResolver.CountFamily(snapshot.Rules, entry.Rule.AddressFamily);
-        if (entry.OriginalFamilyPosition <= currentFamilyCount)
-        {
-            int position = UfwRulePositionResolver.GetUfwInsertPosition(snapshot.Rules, entry.Rule.AddressFamily, entry.OriginalFamilyPosition);
-            return new UfwInsertRuleCommand(position, entry.Rule, renderer);
-        }
-
-        return new UfwAddRuleCommand(entry.Rule, renderer);
+        UfwInsertionPlacement fallback = UfwInsertionPlacementResolver.ResolveFamilyPosition(snapshot.Rules, entry.Rule.AddressFamily, entry.OriginalFamilyPosition);
+        return fallback.CreateCommand(entry.Rule, renderer);
     }
 
     private static int? FindUniqueAnchorIndex(IReadOnlyList<ListedFirewallRule> rules, RuleRecoveryAnchor? anchor)

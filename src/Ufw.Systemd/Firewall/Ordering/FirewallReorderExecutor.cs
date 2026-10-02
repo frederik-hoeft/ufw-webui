@@ -149,7 +149,7 @@ internal sealed class FirewallReorderExecutor(
             return MoveExecutionResult.Interrupted(preMoveSnapshot, null, "The move target no longer has a usable UFW rule number.");
         }
 
-        int originalFamilyPosition = UfwRulePositionResolver.GetFamilyPosition(preMoveSnapshot.Rules, currentIndex);
+        int originalFamilyPosition = UfwInsertionPlacementResolver.GetFamilyPosition(preMoveSnapshot.Rules, currentIndex);
         ReorderRecoveryJournalEntry journalEntry = CreateJournalEntry(classification.Specification, originalFamilyPosition, baseline, preMoveOrder, currentIndex);
         await recoveryJournal.WriteAsync(journalEntry, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
@@ -240,18 +240,11 @@ internal sealed class FirewallReorderExecutor(
 
     private IUfwCommand CreatePlannedInsertionCommand(RuleReorderMove move, RuleListResponse afterDelete, IReadOnlyList<int> afterDeleteOrder, FirewallRuleSpecification specification)
     {
-        if (move.BeforeOccurrenceId is int beforeOccurrenceId)
-        {
-            int beforeIndex = IndexOf(afterDeleteOrder, beforeOccurrenceId);
-            FirewallAddressFamily beforeFamily = ListedFirewallRuleFamily.GetObservedFamily(afterDelete.Rules[beforeIndex]);
-            if (beforeFamily == specification.AddressFamily)
-            {
-                int position = UfwRulePositionResolver.GetUfwInsertPosition(afterDelete.Rules, beforeIndex);
-                return new UfwInsertRuleCommand(position, specification, renderer);
-            }
-        }
-
-        return new UfwAddRuleCommand(specification, renderer);
+        int desiredOccurrenceIndex = move.BeforeOccurrenceId is int beforeOccurrenceId
+            ? IndexOf(afterDeleteOrder, beforeOccurrenceId)
+            : afterDelete.Rules.Count;
+        UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(afterDelete.Rules, specification.AddressFamily, desiredOccurrenceIndex);
+        return placement.CreateCommand(specification, renderer);
     }
 
     private ReorderRecoveryJournalEntry CreateJournalEntry(
