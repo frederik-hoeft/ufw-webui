@@ -19,6 +19,8 @@ internal sealed class Commands
         IFirewallReorderRecoveryService reorderRecovery = serviceProvider.GetService<IFirewallReorderRecoveryService>();
         await reorderRecovery.RecoverAsync(cancellationToken);
 
+        // Resolve the key store before exposing the network listener so configured key material is validated and snapshotted for the daemon lifetime.
+        // Key-file changes intentionally require a restart and therefore must not be picked up lazily by the first signed mutation request.
         _ = serviceProvider.GetService<IAuthorizedKeyStore>();
         INetworkApplication networkApp = serviceProvider.GetService<INetworkApplication>();
         await networkApp.RunAsync(cancellationToken);
