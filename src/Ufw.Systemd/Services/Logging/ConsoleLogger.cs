@@ -6,7 +6,7 @@ internal class ConsoleLogger : ILogger
 
     public ILogger<T> Scoped<T>() where T : class => ScopedConsoleLogger<T>.Instance;
 
-    public ILogger<T> Scoped<T>(T owner) where T : class => ScopedConsoleLogger<T>.Instance;
+    public void LogDebug(string message) => Console.WriteLine($"[DEBUG] [{ScopeName}] {message}");
 
     public void LogInformation(string message) => Console.WriteLine($"[INFO] [{ScopeName}] {message}");
 

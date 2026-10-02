@@ -18,6 +18,8 @@ internal sealed class NetworkConnectionProcessor(
     ItpOptions itpOptions,
     ILogger logger) : INetworkConnectionProcessor
 {
+    private readonly ILogger<NetworkConnectionProcessor> _logger = logger.Scoped<NetworkConnectionProcessor>();
+
     public async Task ProcessAsync(ITransportLayerConnection connection, Guid workerId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -48,12 +50,12 @@ internal sealed class NetworkConnectionProcessor(
         }
         catch (ItpException exception) when (exception.IsPeerReported)
         {
-            logger.Scoped(this).LogWarning(exception, $"Worker {workerId}: peer reported ITP failure {exception.ErrorCode}.");
+            _logger.LogWarning(exception, $"Worker {workerId}: peer reported ITP failure {exception.ErrorCode}.");
             return;
         }
         catch (ItpException exception)
         {
-            logger.Scoped(this).LogWarning(exception, $"Worker {workerId}: ITP framing failure {exception.ErrorCode}.");
+            _logger.LogWarning(exception, $"Worker {workerId}: ITP framing failure {exception.ErrorCode}.");
             if (exception.CanReplyWithTransportError)
             {
                 await ItpConnection.TryWriteTransportErrorAsync(secureStream, itpOptions, exception.ErrorCode, exception.Message, cancellationToken);
@@ -68,7 +70,7 @@ internal sealed class NetworkConnectionProcessor(
         }
         catch (ApplicationProtocolException exception)
         {
-            logger.Scoped(this).LogWarning(exception, $"Worker {workerId}: application protocol error {exception.Error}.");
+            _logger.LogWarning(exception, $"Worker {workerId}: application protocol error {exception.Error}.");
             await using IResponseMessage badRequest = await messageSerializer.SerializeResponseAsync(new BadRequestResponse(exception.Message), cancellationToken);
             await itp.WriteApplicationDataAsync(messageSerializer.Encode(badRequest), cancellationToken);
             return;

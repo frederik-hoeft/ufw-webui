@@ -11,7 +11,9 @@ internal class NullLogger : ILogger
 
     public ILogger<T> Scoped<T>() where T : class => ScopedNullLogger<T>.Instance;
 
-    public ILogger<T> Scoped<T>(T owner) where T : class => ScopedNullLogger<T>.Instance;
+    public void LogDebug(string message)
+    {
+    }
 
     public void LogInformation(string message)
     {

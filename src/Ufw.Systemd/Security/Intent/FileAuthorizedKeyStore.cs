@@ -17,7 +17,7 @@ internal sealed class FileAuthorizedKeyStore : IAuthorizedKeyStore
 
     public FileAuthorizedKeyStore(IConfiguration configuration, ILogger logger)
     {
-        _logger = logger.Scoped(this);
+        _logger = logger.Scoped<FileAuthorizedKeyStore>();
         _keys = LoadKeys(configuration.Settings.Security?.AuthorizedKeysPath);
     }
 

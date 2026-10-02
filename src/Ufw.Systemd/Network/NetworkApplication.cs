@@ -6,10 +6,11 @@ namespace Ufw.Systemd.Network;
 internal sealed class NetworkApplication(IConfiguration configuration, INetworkApplicationWorker worker, ILogger logger) : INetworkApplication
 {
     private readonly int _maxWorkers = configuration.Settings.Network.MaxConnections;
+    private readonly ILogger<NetworkApplication> _logger = logger.Scoped<NetworkApplication>();
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        logger.Scoped(this).LogInformation($"Starting network application with {_maxWorkers} workers");
+        _logger.LogInformation($"Starting network application with {_maxWorkers} workers");
         using CancellationTokenSource workerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Task[] workerTasks = new Task[_maxWorkers];
         for (int i = 0; i < _maxWorkers; i++)
@@ -35,7 +36,7 @@ internal sealed class NetworkApplication(IConfiguration configuration, INetworkA
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(unexpectedFailure).Throw();
         }
 
-        logger.Scoped(this).LogInformation("Network application stopped");
+        _logger.LogInformation("Network application stopped");
     }
 
     private static async Task<Exception?> GetUnexpectedFailureAsync(Task completedWorker, CancellationToken applicationCancellationToken)

@@ -271,7 +271,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | SYS KZ-019 | D1 | Remove or finish the dormant TCP server transport | Do after KZ-009/KZ-018. Its final transport-selection contract is a handoff input to Web KZ-02/KZ-04. |
 | [x] | SYS KZ-020 | D1 | Deduplicate endpoint invocation/exception serialization | Do with KZ-021; deduplicate invocation/serialization against the final middleware/pipeline shape. |
 | [x] | SYS KZ-021 | D1 | Simplify middleware composition | Do before KZ-003/KZ-020 so later API cleanup targets immutable composition. |
-| [ ] | SYS KZ-022 | D4 | Consolidate logging and remove bypasses | Do after KZ-012 and API/pipeline cleanup so logging has one final policy and no direct-console bypasses. |
+| [x] | SYS KZ-022 | D4 | Consolidate logging and remove bypasses | Do after KZ-012 and API/pipeline cleanup so logging has one final policy and no direct-console bypasses. |
 | [ ] | SYS KZ-023 | D4 | Reduce parser-to-grammar-name coupling | Contained parser cleanup after the mutation/snapshot foundation; preserve conservative unknown-row behavior. |
 | [ ] | SYS KZ-024 | D4 | Remove parser debug side effects and duplicate row-number parsing | Pair with KZ-023 while parser code is already being touched. |
 | [x] | SYS KZ-025 | D1 | Reassess the configuration resource-provider abstraction | Resolve as part of KZ-009/KZ-011 configuration simplification rather than as a later abstraction rewrite. |
