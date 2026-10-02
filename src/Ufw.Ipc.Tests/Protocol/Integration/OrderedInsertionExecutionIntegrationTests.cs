@@ -98,6 +98,8 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
         services.AddSingleton<IRuleReorderPlanner, RuleReorderPlanner>();
         services.AddSingleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>();
         services.AddSingleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>();
+        services.AddSingleton<IFirewallReorderPreflightEvaluator, FirewallReorderPreflightEvaluator>();
+        services.AddSingleton<IFirewallReorderMoveExecutor, FirewallReorderMoveExecutor>();
         services.AddSingleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>();
         services.AddSingleton<IUfwDefaultsReader, StaticUfwDefaultsReader>();
         services.AddSingleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>();

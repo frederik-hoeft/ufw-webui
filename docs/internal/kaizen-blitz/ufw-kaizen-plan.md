@@ -255,7 +255,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | SYS KZ-003 | D1 | Give request logging exception-safe timing/lifecycle behavior | Do with/after KZ-021 so request timing is adapted once to the final middleware composition. |
 | [x] | SYS KZ-004 | D2 | Define one authoritative firewall snapshot result type | Foundation for KZ-005, KZ-006 and KZ-007; establish the authoritative snapshot success/failure shape before decomposing executors. |
 | [x] | SYS KZ-005 | D2 | Extract common UFW mutation execution primitives | Build on KZ-004 and KZ-017; do before executor decomposition. |
-| [ ] | SYS KZ-006 | D3 | Decompose `FirewallReorderExecutor` | Do only after KZ-004/KZ-005/KZ-016/KZ-029 so the split is around final shared primitives. |
+| [x] | SYS KZ-006 | D3 | Decompose `FirewallReorderExecutor` | Do only after KZ-004/KZ-005/KZ-016/KZ-029 so the split is around final shared primitives. |
 | [ ] | SYS KZ-007 | D3 | Decompose `FirewallRuleReplacementExecutor` | Do only after KZ-004/KZ-005/KZ-016; avoid extracting helpers that KZ-005 would replace. |
 | [x] | SYS KZ-008 | D3 | Deduplicate signed mutation service choreography | Do after KZ-014 and KZ-027 so the common signed-mutation choreography consumes the final verifier/gate APIs. |
 | [x] | SYS KZ-009 | D1 | Resolve configuration lifecycle ambiguity | First daemon architecture decision; it gates KZ-011, KZ-012, KZ-015, KZ-018, KZ-019 and KZ-025. |

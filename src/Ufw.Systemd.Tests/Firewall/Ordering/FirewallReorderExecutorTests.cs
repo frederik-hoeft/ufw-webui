@@ -415,15 +415,11 @@ public sealed class FirewallReorderExecutorTests
             Journal = new InMemoryJournal();
             UfwProcessExecutor processExecutor = new(_ufwRunner.Object, new ConsoleLogger());
             RuleReorderRecoveryCoordinator recovery = new(_snapshotReader.Object, processExecutor, renderer, Journal, new ConsoleLogger());
-            Executor = new FirewallReorderExecutor(
-                _snapshotReader.Object,
+            FirewallReorderPreflightEvaluator preflight = new(
                 new RuleReorderPlanner(),
-                new RuleReinsertabilityClassifier(renderer, new UfwArgumentCountReinsertionCostProvider()),
-                recovery,
-                Journal,
-                processExecutor,
-                renderer,
-                new ConsoleLogger());
+                new RuleReinsertabilityClassifier(renderer, new UfwArgumentCountReinsertionCostProvider()));
+            FirewallReorderMoveExecutor moveExecutor = new(_snapshotReader.Object, recovery, Journal, processExecutor, renderer, new ConsoleLogger());
+            Executor = new FirewallReorderExecutor(_snapshotReader.Object, preflight, moveExecutor);
         }
 
         public FirewallReorderExecutor Executor { get; }

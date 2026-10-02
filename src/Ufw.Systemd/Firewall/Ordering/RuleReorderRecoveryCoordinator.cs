@@ -27,7 +27,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
         {
             return new RuleRecoveryResult(false, false, null, "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
         }
-        if (CountMatches(snapshot.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
+        if (FirewallRuleSnapshotMatcher.CountMatches(snapshot.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
             return new RuleRecoveryResult(true, false, snapshot, null);
@@ -41,7 +41,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
         }
 
         RuleListResponse? confirmed = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
-        if (confirmed is not null && CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
+        if (confirmed is not null && FirewallRuleSnapshotMatcher.CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
             return new RuleRecoveryResult(true, true, confirmed, process.Diagnostic);
@@ -114,6 +114,4 @@ internal sealed class RuleReorderRecoveryCoordinator(
         return FirewallRuleStateComparer.Equals(rule, synthetic);
     }
 
-    internal static int CountMatches(IReadOnlyList<ListedFirewallRule> rules, FirewallRuleSpecification specification) =>
-        rules.Count(rule => rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, specification));
 }

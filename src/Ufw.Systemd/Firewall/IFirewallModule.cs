@@ -34,6 +34,8 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IRuleReorderPlanner, RuleReorderPlanner>]
 [Singleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>]
 [Singleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>]
+[Singleton<IFirewallReorderPreflightEvaluator, FirewallReorderPreflightEvaluator>]
+[Singleton<IFirewallReorderMoveExecutor, FirewallReorderMoveExecutor>]
 [Singleton<IReorderRecoveryJournal, FileReorderRecoveryJournal>]
 [Singleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>]
 [Singleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>]

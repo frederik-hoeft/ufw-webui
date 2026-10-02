@@ -48,6 +48,13 @@ internal static class FirewallRuleSnapshotMatcher
         return true;
     }
 
+    public static int CountMatches(IReadOnlyList<ListedFirewallRule> rules, FirewallRuleSpecification specification)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(specification);
+        return rules.Count(rule => rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, specification));
+    }
+
     public static bool TryMatchSingleInsertion(
         RuleListResponse baseline,
         RuleListResponse current,

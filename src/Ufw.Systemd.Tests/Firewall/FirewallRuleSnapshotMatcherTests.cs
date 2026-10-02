@@ -19,6 +19,17 @@ public sealed class FirewallRuleSnapshotMatcherTests
     }
 
     [TestMethod]
+    public void CountMatches_UsesNormalizedObservedStateEquality()
+    {
+        FirewallRuleSpecification specification = Rule("22").Rule!;
+        IReadOnlyList<ListedFirewallRule> rules = [Rule("22"), Rule("80"), Rule("22")];
+
+        int count = FirewallRuleSnapshotMatcher.CountMatches(rules, specification);
+
+        Assert.AreEqual(2, count);
+    }
+
+    [TestMethod]
     public void MatchesOrder_RejectsDifferentActivityAndInvalidOccurrences()
     {
         RuleListResponse baseline = Response(Rule("22"));
