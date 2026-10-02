@@ -656,16 +656,14 @@ public sealed class IntentSignatureTests
 
     private sealed class StaticAuthorizedKeyStore(ECDsa key) : IAuthorizedKeyStore
     {
-        public bool TryGetKey(string keyId, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ECDsa? found)
+        public AuthorizedKeyVerificationResult VerifySignature(string keyId, ReadOnlyMemory<byte> data, string signature)
         {
-            if (string.Equals(keyId, IntentSigner.ComputeKeyId(key), StringComparison.Ordinal))
+            if (!string.Equals(keyId, IntentSigner.ComputeKeyId(key), StringComparison.Ordinal))
             {
-                found = key;
-                return true;
+                return AuthorizedKeyVerificationResult.UnknownKey;
             }
 
-            found = null;
-            return false;
+            return IntentSigner.Verify(key, data.Span, signature) ? AuthorizedKeyVerificationResult.Verified : AuthorizedKeyVerificationResult.InvalidSignature;
         }
     }
 

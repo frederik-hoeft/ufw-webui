@@ -736,7 +736,6 @@ public sealed class FirewallMutationServiceTests
         {
             _gate.Dispose();
             _nonces.Dispose();
-            _keys.Dispose();
             _key.Dispose();
             if (Directory.Exists(_directory))
             {

@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Network;
+using Ufw.Systemd.Security.Intent;
 
 namespace Ufw.Systemd;
 
@@ -18,6 +19,7 @@ internal sealed class Commands
         IFirewallReorderRecoveryService reorderRecovery = serviceProvider.GetService<IFirewallReorderRecoveryService>();
         await reorderRecovery.RecoverAsync(cancellationToken);
 
+        _ = serviceProvider.GetService<IAuthorizedKeyStore>();
         INetworkApplication networkApp = serviceProvider.GetService<INetworkApplication>();
         await networkApp.RunAsync(cancellationToken);
     }

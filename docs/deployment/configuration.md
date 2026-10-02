@@ -161,7 +161,7 @@ The daemon starts exactly `network.max_connections` workers. Expected connection
 | `security.max_intent_age` | maximum accepted intent age | `00:05:00` |
 | `security.clock_skew` | tolerated clock skew | `00:00:30` |
 
-Private administrator mutation keys never belong in daemon configuration. The reorder recovery journal is daemon-owned safety state rather than a firewall database; an outstanding record must be reconciled before later firewall mutations are allowed to proceed.
+Private administrator mutation keys never belong in daemon configuration. The daemon reads and validates `security.authorized_keys_path` once during startup and snapshots that authorized public-key set for the process lifetime, so key enrollment, removal, or rotation requires a daemon restart. If the file is absent, the daemon starts with no authorized mutation keys and rejects privileged mutations; malformed configured key material fails startup. The reorder recovery journal is daemon-owned safety state rather than a firewall database; an outstanding record must be reconciled before later firewall mutations are allowed to proceed.
 
 ## Secret ownership
 

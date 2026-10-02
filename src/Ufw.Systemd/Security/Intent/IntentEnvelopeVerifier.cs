@@ -76,14 +76,16 @@ internal sealed class IntentEnvelopeVerifier
         }
 
         IntentPayloadBindingResult<TPayload>.Accepted accepted = (IntentPayloadBindingResult<TPayload>.Accepted)payloadBinding;
-        if (!authorizedKeys.TryGetKey(intent.KeyId, out System.Security.Cryptography.ECDsa? key))
+        switch (authorizedKeys.VerifySignature(intent.KeyId, accepted.Canonical, intent.Signature))
         {
-            return Reject(new ForbiddenResponse("Intent was not signed by an authorized key."));
-        }
-
-        if (!IntentSigner.Verify(key, accepted.Canonical, intent.Signature))
-        {
-            return Reject(new ForbiddenResponse("Intent signature is invalid."));
+            case AuthorizedKeyVerificationResult.UnknownKey:
+                return Reject(new ForbiddenResponse("Intent was not signed by an authorized key."));
+            case AuthorizedKeyVerificationResult.InvalidSignature:
+                return Reject(new ForbiddenResponse("Intent signature is invalid."));
+            case AuthorizedKeyVerificationResult.Verified:
+                break;
+            default:
+                throw new InvalidOperationException("Unsupported authorized-key verification result.");
         }
 
         if (ReadSecurity() is not { } security)

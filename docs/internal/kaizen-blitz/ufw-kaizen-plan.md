@@ -264,7 +264,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | SYS KZ-012 | D1 | Remove configuration drift and dead options; use safe diagnostics defaults | Follow KZ-009/KZ-011; its remote-diagnostics policy must be stable before Web standardizes daemon error handling. |
 | [x] | SYS KZ-013 | D1 | Consolidate durable file persistence mechanics | Do before KZ-001 and before touching the other file-backed stores. |
 | [x] | SYS KZ-014 | D3 | Split `IntentVerifier` into stable envelope verification and operation payload binding | Do before KZ-008 and before the client signing refactor; this is the server side of the shared intent/canonicalization contract. |
-| [ ] | SYS KZ-015 | D3 | Keep authorized-key ownership inside the key store | Do after KZ-009; align key lifetime/rotation behavior with the chosen configuration lifecycle and KZ-014 verifier split. |
+| [x] | SYS KZ-015 | D3 | Keep authorized-key ownership inside the key store | Do after KZ-009; align key lifetime/rotation behavior with the chosen configuration lifecycle and KZ-014 verifier split. |
 | [x] | SYS KZ-016 | D2 | Unify insertion placement logic | Do before KZ-006/KZ-007 so insertion/reorder/recovery all consume one placement calculation. |
 | [x] | SYS KZ-017 | D2 | Separate command execution from output parsing | Do before KZ-005; mutation execution primitives should be built on the final command/runner result shape. |
 | [x] | SYS KZ-018 | D1 | Make transport security transport-neutral or name it pipe-specific | Do after KZ-009 and before KZ-019 so transport security consumes the final configuration model. |

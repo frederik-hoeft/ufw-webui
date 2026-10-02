@@ -57,6 +57,32 @@ public sealed class IntentVerificationPipelineTests
         keys.VerifyNoOtherCalls();
     }
 
+
+    [TestMethod]
+    [DataRow((int)AuthorizedKeyVerificationResult.UnknownKey, "Intent was not signed by an authorized key.")]
+    [DataRow((int)AuthorizedKeyVerificationResult.InvalidSignature, "Intent signature is invalid.")]
+    public void EnvelopeVerifier_MapsKeyVerificationFailuresToDistinctForbiddenResponses(int verificationResultValue, string expectedMessage)
+    {
+        TestConfiguration configuration = new(TestAppSettingsFactory.Create());
+        Mock<IAuthorizedKeyStore> keys = new(MockBehavior.Strict);
+        Mock<IIntentPayloadBinder<AddRulePayload>> binder = new(MockBehavior.Strict);
+        AddRuleRequest request = CreateRequest();
+        AddRulePayload payload = new() { Rule = CreateRule() };
+        binder.Setup(static item => item.Bind(It.IsAny<ISignedIntent>())).Returns(new IntentPayloadBindingResult<AddRulePayload>.Accepted(payload, [1, 2, 3]));
+        AuthorizedKeyVerificationResult verificationResult = (AuthorizedKeyVerificationResult)verificationResultValue;
+        keys.Setup(store => store.VerifySignature(request.KeyId, It.IsAny<ReadOnlyMemory<byte>>(), request.Signature)).Returns(verificationResult);
+        IntentEnvelopeVerifier verifier = new(keys.Object, new StaticDeploymentIdentityProvider(DEPLOYMENT_ID), configuration, TimeProvider.System);
+
+        IntentVerificationResult result = verifier.Verify(
+            request,
+            IntentOperations.ADD_RULE,
+            binder.Object,
+            static (verified, boundPayload) => new IntentVerificationResult.AcceptedRuleMutation(verified.KeyId, verified.Nonce, verified.ExpiresAtUnix, boundPayload.Rule, null));
+
+        ForbiddenResponse response = Assert.IsInstanceOfType<ForbiddenResponse>(Assert.IsInstanceOfType<IntentVerificationResult.Rejected>(result).Response);
+        Assert.AreEqual(expectedMessage, response.Message);
+    }
+
     [TestMethod]
     public void PayloadBindingResult_RequiresVariantPayloads()
     {

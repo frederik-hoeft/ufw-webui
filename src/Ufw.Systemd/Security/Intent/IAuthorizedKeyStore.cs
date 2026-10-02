@@ -1,9 +1,13 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
-
-namespace Ufw.Systemd.Security.Intent;
+﻿namespace Ufw.Systemd.Security.Intent;
 
 internal interface IAuthorizedKeyStore
 {
-    bool TryGetKey(string keyId, [NotNullWhen(true)] out ECDsa? key);
+    AuthorizedKeyVerificationResult VerifySignature(string keyId, ReadOnlyMemory<byte> data, string signature);
+}
+
+internal enum AuthorizedKeyVerificationResult
+{
+    Verified,
+    UnknownKey,
+    InvalidSignature,
 }
