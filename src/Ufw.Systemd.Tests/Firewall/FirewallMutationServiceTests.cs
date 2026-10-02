@@ -729,7 +729,7 @@ public sealed class FirewallMutationServiceTests
             NetworkInterfaceSnapshotService networkInterfaceSnapshots = new(NetworkInterfaces.Object, logger);
             FirewallRuleInterfaceValidator interfaceValidator = new(networkInterfaceSnapshots);
             FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, new FirewallRuleCapabilityValidator(), runner, new UfwRuleCommandRenderer(), logger);
-            return new FirewallMutationService(verifier, _nonces, _gate, MutationSafetyGuard.Object, mutationExecutor);
+            return new FirewallMutationService(verifier, new SignedMutationOrchestrator(_nonces, _gate, MutationSafetyGuard.Object), mutationExecutor);
         }
 
         public ValueTask DisposeAsync()

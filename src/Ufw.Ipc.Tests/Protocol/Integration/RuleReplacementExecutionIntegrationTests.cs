@@ -101,6 +101,7 @@ public sealed class RuleReplacementExecutionIntegrationTests : IpcProtocolTestBa
         services.AddSingleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>();
         services.AddSingleton<IRuleReorderRecoveryCoordinator, RuleReorderRecoveryCoordinator>();
         services.AddSingleton<IFirewallMutationSafetyGuard, FirewallMutationSafetyGuard>();
+        services.AddSingleton<ISignedMutationOrchestrator, SignedMutationOrchestrator>();
         services.AddSingleton<IFirewallBatchDeleteExecutor, FirewallBatchDeleteExecutor>();
         services.AddSingleton<IFirewallBatchDeleteService, FirewallBatchDeleteService>();
         services.AddSingleton<IFirewallReorderExecutor, FirewallReorderExecutor>();

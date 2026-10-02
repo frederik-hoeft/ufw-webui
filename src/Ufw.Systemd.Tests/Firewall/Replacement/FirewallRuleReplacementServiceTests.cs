@@ -42,7 +42,7 @@ public sealed class FirewallRuleReplacementServiceTests
         executor.Setup(value => value.ExecuteAsync(It.IsAny<ReplaceRulePayload>(), It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add("executor"))
             .ReturnsAsync(CompletedResult());
-        FirewallRuleReplacementService service = new(verifier.Object, nonceStore.Object, gate.Object, guard.Object, executor.Object);
+        FirewallRuleReplacementService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate.Object, guard.Object), executor.Object);
 
         IResponsePayload result = await service.ReplaceAsync(CreateRequest(), TestContext.CancellationToken);
 
@@ -59,7 +59,7 @@ public sealed class FirewallRuleReplacementServiceTests
         Mock<IUfwExecutionGate> gate = new(MockBehavior.Strict);
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
         Mock<IFirewallRuleReplacementExecutor> executor = new(MockBehavior.Strict);
-        FirewallRuleReplacementService service = new(verifier.Object, nonceStore.Object, gate.Object, guard.Object, executor.Object);
+        FirewallRuleReplacementService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate.Object, guard.Object), executor.Object);
 
         IResponsePayload result = await service.ReplaceAsync(CreateRequest(), TestContext.CancellationToken);
 
@@ -79,7 +79,7 @@ public sealed class FirewallRuleReplacementServiceTests
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
         guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("reorder recovery pending"));
         Mock<IFirewallRuleReplacementExecutor> executor = new(MockBehavior.Strict);
-        FirewallRuleReplacementService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallRuleReplacementService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, guard.Object), executor.Object);
 
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             _ = await service.ReplaceAsync(CreateRequest(), TestContext.CancellationToken));
@@ -98,7 +98,7 @@ public sealed class FirewallRuleReplacementServiceTests
         nonceStore.SetupSequence(value => value.TryConsumeAsync(NONCE, EXPIRES_AT_UNIX, It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
         Mock<IFirewallMutationSafetyGuard> guard = CreateSafetyGuard();
         Mock<IFirewallRuleReplacementExecutor> executor = CreateExecutor();
-        FirewallRuleReplacementService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallRuleReplacementService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, guard.Object), executor.Object);
         ReplaceRuleRequest request = CreateRequest();
 
         Assert.IsInstanceOfType<RuleReplacementResponse>(await service.ReplaceAsync(request, TestContext.CancellationToken));
@@ -116,7 +116,7 @@ public sealed class FirewallRuleReplacementServiceTests
         nonceStore.Setup(value => value.TryConsumeAsync(NONCE, EXPIRES_AT_UNIX, It.IsAny<CancellationToken>())).ReturnsAsync(() => Interlocked.Increment(ref consumed) == 1);
         Mock<IFirewallMutationSafetyGuard> guard = CreateSafetyGuard();
         Mock<IFirewallRuleReplacementExecutor> executor = CreateExecutor();
-        FirewallRuleReplacementService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallRuleReplacementService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, guard.Object), executor.Object);
         ReplaceRuleRequest request = CreateRequest();
 
         IResponsePayload[] results = await Task.WhenAll(
@@ -151,7 +151,7 @@ public sealed class FirewallRuleReplacementServiceTests
         RuleListResponse snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         executor.Setup(value => value.ExecuteAsync(It.IsAny<ReplaceRulePayload>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleReplacementExecutionResult(executionOutcome, snapshot, null, executionRecovery, "diagnostic"));
-        FirewallRuleReplacementService service = new(verifier.Object, nonceStore.Object, gate, guard.Object, executor.Object);
+        FirewallRuleReplacementService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, guard.Object), executor.Object);
 
         IResponsePayload result = await service.ReplaceAsync(CreateRequest(), TestContext.CancellationToken);
 

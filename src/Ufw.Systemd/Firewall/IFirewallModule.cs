@@ -30,6 +30,7 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IIntentPayloadBinder<ReplaceRulePayload>, ReplaceIntentPayloadBinder>]
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
+[Singleton<ISignedMutationOrchestrator, SignedMutationOrchestrator>]
 [Singleton<IRuleReorderPlanner, RuleReorderPlanner>]
 [Singleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>]
 [Singleton<IRuleReinsertabilityClassifier, RuleReinsertabilityClassifier>]
