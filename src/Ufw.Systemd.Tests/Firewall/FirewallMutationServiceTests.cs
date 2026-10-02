@@ -722,7 +722,7 @@ public sealed class FirewallMutationServiceTests
         private FirewallMutationService CreateService()
         {
             ConsoleLogger logger = new();
-            IntentVerifier verifier = new(_keys, _deploymentIdentity, _configuration, _clock, MessageJsonSerializerContext.Default);
+            IntentVerifier verifier = IntentVerifierTestFactory.Create(_keys, _deploymentIdentity, _configuration, _clock);
             UfwRunner runner = new(_configuration, ProcessRunner.Object);
             FirewallRuleSnapshotReader snapshotReader = new(runner, UfwDefaultsReader.Object, logger);
             QueryService = new FirewallRuleQueryService(snapshotReader, _gate);

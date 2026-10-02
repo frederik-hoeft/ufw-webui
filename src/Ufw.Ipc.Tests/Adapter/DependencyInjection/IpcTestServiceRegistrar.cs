@@ -12,11 +12,13 @@ using Ufw.Shared.Ipc.Serialization;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Ipc.Transport.Itp;
 using Ufw.Shared.Ipc.Transport.Security;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Api.Middleware;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
 using Ufw.Systemd.Network;
 using Ufw.Systemd.Persistence;
+using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 using ServerTransport = Ufw.Systemd.Transport;
 
@@ -49,6 +51,20 @@ internal static class IpcTestServiceRegistrar
         services.AddSingleton<INetworkApplication, NetworkApplication>();
         services.AddSingleton<INetworkConnectionProcessor, NetworkConnectionProcessor>();
         services.AddSingleton<INetworkApplicationWorker, NetworkApplicationWorker>();
+        return services;
+    }
+
+    public static IServiceCollection AddProductionIntentVerification(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddSingleton<IIntentEnvelopeVerifier, IntentEnvelopeVerifier>();
+        services.AddSingleton<IIntentPayloadBinder<AddRulePayload>, AddIntentPayloadBinder>();
+        services.AddSingleton<IIntentPayloadBinder<DeleteRulePayload>, DeleteIntentPayloadBinder>();
+        services.AddSingleton<IIntentPayloadBinder<BatchDeleteRulesPayload>, BatchDeleteIntentPayloadBinder>();
+        services.AddSingleton<IIntentPayloadBinder<InsertRulePayload>, InsertIntentPayloadBinder>();
+        services.AddSingleton<IIntentPayloadBinder<ReorderRulesPayload>, ReorderIntentPayloadBinder>();
+        services.AddSingleton<IIntentPayloadBinder<ReplaceRulePayload>, ReplaceIntentPayloadBinder>();
+        services.AddSingleton<IIntentVerifier, IntentVerifier>();
         return services;
     }
 

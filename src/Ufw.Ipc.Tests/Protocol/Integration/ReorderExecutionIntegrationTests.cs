@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Configuration;
+using Ufw.Ipc.Tests.Adapter.DependencyInjection;
 using Ufw.Ipc.Tests.Support;
 using Ufw.Roslyn.Controllers.Mapping;
 using Ufw.Shared.Firewall;
@@ -92,7 +93,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
         services.AddSingleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>();
         services.AddSingleton<INonceStore, FileNonceStore>();
         services.AddSingleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>();
-        services.AddSingleton<IIntentVerifier, IntentVerifier>();
+        services.AddProductionIntentVerification();
         services.AddSingleton<IUfwExecutionGate, UfwExecutionGate>();
         services.AddSingleton<IRuleReorderPlanner, RuleReorderPlanner>();
         services.AddSingleton<IRuleReinsertionCostProvider, UfwArgumentCountReinsertionCostProvider>();

@@ -1,5 +1,6 @@
 ﻿using Jab;
 using Ufw.Shared.Firewall.Rendering;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
@@ -20,6 +21,13 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IAuthorizedKeyStore, FileAuthorizedKeyStore>]
 [Singleton<INonceStore, FileNonceStore>]
 [Singleton<IDeploymentIdentityProvider, FileDeploymentIdentityProvider>]
+[Singleton<IIntentEnvelopeVerifier, IntentEnvelopeVerifier>]
+[Singleton<IIntentPayloadBinder<AddRulePayload>, AddIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<DeleteRulePayload>, DeleteIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<BatchDeleteRulesPayload>, BatchDeleteIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<InsertRulePayload>, InsertIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<ReorderRulesPayload>, ReorderIntentPayloadBinder>]
+[Singleton<IIntentPayloadBinder<ReplaceRulePayload>, ReplaceIntentPayloadBinder>]
 [Singleton<IIntentVerifier, IntentVerifier>]
 [Singleton<IUfwExecutionGate, UfwExecutionGate>]
 [Singleton<IRuleReorderPlanner, RuleReorderPlanner>]

@@ -644,7 +644,7 @@ public sealed class IntentSignatureTests
     {
         StaticAuthorizedKeyStore keys = new(authorizedKey);
         TestConfiguration configuration = new(TestAppSettingsFactory.Create());
-        return new IntentVerifier(keys, new StaticDeploymentIdentityProvider(deploymentId), configuration, clock, MessageJsonSerializerContext.Default);
+        return IntentVerifierTestFactory.Create(keys, new StaticDeploymentIdentityProvider(deploymentId), configuration, clock);
     }
 
     private static void AssertRejected<TResponse>(IntentVerificationResult result) where TResponse : IResponsePayload
