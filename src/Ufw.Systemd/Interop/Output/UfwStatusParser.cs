@@ -1,10 +1,12 @@
-﻿using System.Text.RegularExpressions;
+﻿using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Output.Grammars;
 using Ufw.Systemd.Interop.Output.Model;
+using Ufw.Systemd.Interop.Output.Parsers;
+using Ufw.Systemd.Interop.Output.SyntaxNodes;
 
 namespace Ufw.Systemd.Interop.Output;
 
-internal sealed partial class UfwStatusParser
+internal sealed class UfwStatusParser
 {
     public static UfwStatusSnapshot? Parse(string output)
     {
@@ -32,25 +34,31 @@ internal sealed partial class UfwStatusParser
                 continue;
             }
 
-            Match numbered = NumberedRuleLine().Match(line);
-            if (!numbered.Success)
+            string trimmed = line.Trim();
+            if (UfwListCommandResultGrammar.Instance.TryParse(trimmed, out UfwListCommandResultRow? parsed))
+            {
+                rules.Add(new ObservedUfwRule
+                {
+                    RawLine = trimmed,
+                    DisplayNumber = parsed.RowNumber,
+                    Parsed = parsed,
+                });
+                continue;
+            }
+
+            if (!RowNumber.Instance.TryParse(trimmed, 0, out ISyntaxNode? rowNumberNode, out _) || rowNumberNode is not RowNumberSyntaxNode rowNumber)
             {
                 continue;
             }
 
-            int displayNumber = int.Parse(numbered.Groups["number"].Value, System.Globalization.CultureInfo.InvariantCulture);
-            bool parsed = UfwListCommandResultGrammar.Instance.TryParse(line.Trim(), out UfwListCommandResultRow? row);
             rules.Add(new ObservedUfwRule
             {
-                RawLine = line.Trim(),
-                DisplayNumber = displayNumber,
-                Parsed = parsed ? row : null,
+                RawLine = trimmed,
+                DisplayNumber = rowNumber.Evaluate(),
+                Parsed = null,
             });
         }
 
         return active.HasValue ? new UfwStatusSnapshot(active.Value, rules) : null;
     }
-
-    [GeneratedRegex(@"^\s*\[\s*(?<number>\d+)\]\s+", RegexOptions.CultureInvariant)]
-    private static partial Regex NumberedRuleLine();
 }

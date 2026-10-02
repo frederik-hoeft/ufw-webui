@@ -84,4 +84,22 @@ public sealed class UfwListCommandResultRowParserTests
         Assert.IsTrue(success);
         Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public void TryParse_AssignsEndpointValuesByTypedRole()
+    {
+        const string row = "[ 1] 203.0.113.1 14566/tcp on eth0 ALLOW FWD 172.20.210.0/24 8765/tcp on br2000";
+
+        bool success = UfwListCommandResultGrammar.Instance.TryParse(row, out UfwListCommandResultRow? result);
+
+        Assert.IsTrue(success);
+        Assert.IsNotNull(result);
+        Assert.AreEqual("203.0.113.1", result.Destination);
+        Assert.AreEqual("14566", result.DestinationPorts);
+        Assert.AreEqual("eth0", result.DestinationInterface);
+        Assert.AreEqual("172.20.210.0/24", result.Source);
+        Assert.AreEqual("8765", result.SourcePorts);
+        Assert.AreEqual("br2000", result.SourceInterface);
+    }
+
 }
