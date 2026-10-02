@@ -32,5 +32,5 @@ internal sealed class RuleReinsertabilityClassifier(IUfwRuleCommandRenderer rend
             ReinsertionCost: reinsertionCostProvider.GetReinsertionCost(renderedRule));
     }
 
-    private static RuleReinsertability Unsupported(string reason) => new(false, reason, null, null, 0);
+    private static RuleReinsertability Unsupported(string reason) => new(false, reason, null, null, default);
 }
