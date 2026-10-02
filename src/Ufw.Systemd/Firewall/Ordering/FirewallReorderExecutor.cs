@@ -309,7 +309,7 @@ internal sealed class FirewallReorderExecutor(
             int match = -1;
             for (int baselineIndex = 0; baselineIndex < baseline.Rules.Count; baselineIndex++)
             {
-                if (used[baselineIndex] || !FirewallRuleSemanticComparer.Equals(current.Rules[currentIndex], baseline.Rules[baselineIndex]))
+                if (used[baselineIndex] || !FirewallRuleStateComparer.Equals(current.Rules[currentIndex], baseline.Rules[baselineIndex]))
                 {
                     continue;
                 }
@@ -359,7 +359,7 @@ internal sealed class FirewallReorderExecutor(
 
         for (int index = 0; index < expectedOrder.Count; index++)
         {
-            if (!FirewallRuleSemanticComparer.Equals(snapshot.Rules[index], baseline.Rules[expectedOrder[index]]))
+            if (!FirewallRuleStateComparer.Equals(snapshot.Rules[index], baseline.Rules[expectedOrder[index]]))
             {
                 return false;
             }

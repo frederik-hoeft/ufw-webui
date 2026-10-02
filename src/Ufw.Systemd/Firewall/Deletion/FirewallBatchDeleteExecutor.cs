@@ -170,7 +170,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
         }
         for (int index = 0; index < expectedOrder.Count; index++)
         {
-            if (!FirewallRuleSemanticComparer.Equals(snapshot.Rules[index], baseline.Rules[expectedOrder[index]]))
+            if (!FirewallRuleStateComparer.Equals(snapshot.Rules[index], baseline.Rules[expectedOrder[index]]))
             {
                 return false;
             }

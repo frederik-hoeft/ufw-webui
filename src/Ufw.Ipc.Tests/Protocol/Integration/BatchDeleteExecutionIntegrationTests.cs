@@ -141,7 +141,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             CollectionAssert.AreEqual(new[] { 2, 0 }, response.Operations.Select(static operation => operation.OccurrenceId).ToArray());
             Assert.IsEmpty(response.PendingOccurrenceIds);
             Assert.HasCount(1, response.FinalSnapshot.Rules);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[0]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[0]));
 
             UfwIpcException replay = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
                 await context.Client.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken));
@@ -149,7 +149,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
 
             RuleListResponse afterReplay = await GetRulesAsync(context, cancellationToken);
             Assert.HasCount(1, afterReplay.Rules);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], afterReplay.Rules[0]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(baseline.Rules[1], afterReplay.Rules[0]));
         }, cancellationToken: TestContext.CancellationToken);
     }
 
@@ -172,8 +172,8 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             Assert.IsNotNull(response.FinalSnapshot);
             Assert.HasCount(4, response.FinalSnapshot.Rules);
             Assert.HasCount(2, response.Operations);
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[ipv4Occurrence])));
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[ipv6Occurrence])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleStateComparer.Equals(candidate, baseline.Rules[ipv4Occurrence])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleStateComparer.Equals(candidate, baseline.Rules[ipv6Occurrence])));
             Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.AddressFamily == FirewallAddressFamily.IPv4));
             Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.AddressFamily == FirewallAddressFamily.IPv6));
         }, cancellationToken: TestContext.CancellationToken);
@@ -248,7 +248,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
             Assert.AreEqual(RuleBatchDeleteOperationOutcome.Deleted, response.Operations[0].Outcome);
             CollectionAssert.AreEqual(new[] { 0 }, response.PendingOccurrenceIds.ToArray());
             Assert.HasCount(3, response.FinalSnapshot.Rules);
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleSemanticComparer.Equals(candidate, baseline.Rules[2])));
+            Assert.IsFalse(response.FinalSnapshot.Rules.Any(candidate => FirewallRuleStateComparer.Equals(candidate, baseline.Rules[2])));
             Assert.IsTrue(response.FinalSnapshot.Rules.Any(static candidate => candidate.Rule?.DestinationPorts == "53"));
         }, cancellationToken: TestContext.CancellationToken);
     }

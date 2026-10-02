@@ -27,4 +27,14 @@ public sealed class FirewallRuleSpecification
     public string? DestinationInterface { get; set; }
 
     public string? Comment { get; set; }
+
+    /// <summary>
+    /// Creates a shallow copy of this specification with the requested address family.
+    /// </summary>
+    public FirewallRuleSpecification CopyWithAddressFamily(FirewallAddressFamily addressFamily)
+    {
+        FirewallRuleSpecification copy = (FirewallRuleSpecification)MemberwiseClone();
+        copy.AddressFamily = addressFamily;
+        return copy;
+    }
 }

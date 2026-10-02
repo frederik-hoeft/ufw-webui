@@ -59,7 +59,7 @@ internal sealed class FirewallRuleReplacementExecutor(
                 baseline,
                 diagnostic: "The target semantic rule identity occurs more than once. UFW cannot safely apply an occurrence-specific existing-rule update while duplicates are present.");
         }
-        if (sameIdentity && FirewallRuleSemanticComparer.Equals(original, replacement))
+        if (sameIdentity && FirewallRuleStateComparer.Equals(original, replacement))
         {
             return new RuleReplacementExecutionResult(RuleReplacementExecutionOutcome.Completed, baseline, target, null, null);
         }

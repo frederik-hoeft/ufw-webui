@@ -125,7 +125,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
     {
         if (anchor.Rule is not null)
         {
-            return rule.Rule is not null && FirewallRuleSemanticComparer.Equals(rule.Rule, anchor.Rule);
+            return rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, anchor.Rule);
         }
 
         if (rule.Parsed || anchor.RawLine is null)
@@ -138,11 +138,11 @@ internal sealed class RuleReorderRecoveryCoordinator(
             Parsed = false,
             RawLine = anchor.RawLine,
         };
-        return FirewallRuleSemanticComparer.Equals(rule, synthetic);
+        return FirewallRuleStateComparer.Equals(rule, synthetic);
     }
 
     internal static int CountMatches(IReadOnlyList<ListedFirewallRule> rules, FirewallRuleSpecification specification) =>
-        rules.Count(rule => rule.Rule is not null && FirewallRuleSemanticComparer.Equals(rule.Rule, specification));
+        rules.Count(rule => rule.Rule is not null && FirewallRuleStateComparer.Equals(rule.Rule, specification));
 
     private static string FormatProcessDiagnostic(UfwProcessResult result)
     {

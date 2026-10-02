@@ -137,9 +137,9 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             Assert.IsNotNull(response.InsertedRule);
             Assert.AreEqual(FirewallAddressFamily.IPv4, response.InsertedRule.Rule!.AddressFamily);
             Assert.AreEqual("53", response.InsertedRule.Rule.DestinationPorts);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[0], response.FinalSnapshot.Rules[0]));
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(response.InsertedRule, response.FinalSnapshot.Rules[1]));
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[2]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(baseline.Rules[0], response.FinalSnapshot.Rules[0]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(response.InsertedRule, response.FinalSnapshot.Rules[1]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(baseline.Rules[1], response.FinalSnapshot.Rules[2]));
 
             UfwIpcException replay = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
                 await context.Client.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken));
@@ -173,7 +173,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             Assert.AreEqual(RuleInsertionOutcome.Completed, response.Outcome);
             Assert.IsNotNull(response.FinalSnapshot);
             Assert.IsNotNull(response.InsertedRule);
-            Assert.IsTrue(FirewallRuleSemanticComparer.Equals(response.InsertedRule, response.FinalSnapshot.Rules[firstIpv6Occurrence]));
+            Assert.IsTrue(FirewallRuleStateComparer.Equals(response.InsertedRule, response.FinalSnapshot.Rules[firstIpv6Occurrence]));
             Assert.AreEqual(FirewallAddressFamily.IPv4, response.FinalSnapshot.Rules[firstIpv6Occurrence].Rule!.AddressFamily);
             Assert.AreEqual(FirewallAddressFamily.IPv6, response.FinalSnapshot.Rules[firstIpv6Occurrence + 1].Rule!.AddressFamily);
         }, cancellationToken: TestContext.CancellationToken);

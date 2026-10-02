@@ -218,28 +218,14 @@ internal sealed class FirewallMutationExecutor(
             return [RuleIdentity.Compute(normalized)];
         }
 
-        FirewallRuleSpecification ipv4 = CloneWithAddressFamily(normalized, FirewallAddressFamily.IPv4);
+        FirewallRuleSpecification ipv4 = normalized.CopyWithAddressFamily(FirewallAddressFamily.IPv4);
         if (!ipv6Enabled)
         {
             return [RuleIdentity.Compute(ipv4)];
         }
 
-        FirewallRuleSpecification ipv6 = CloneWithAddressFamily(normalized, FirewallAddressFamily.IPv6);
+        FirewallRuleSpecification ipv6 = normalized.CopyWithAddressFamily(FirewallAddressFamily.IPv6);
         return [RuleIdentity.Compute(ipv4), RuleIdentity.Compute(ipv6)];
     }
 
-    private static FirewallRuleSpecification CloneWithAddressFamily(FirewallRuleSpecification source, FirewallAddressFamily addressFamily) => new()
-    {
-        Action = source.Action,
-        AddressFamily = addressFamily,
-        Direction = source.Direction,
-        Protocol = source.Protocol,
-        Source = source.Source,
-        SourcePorts = source.SourcePorts,
-        SourceInterface = source.SourceInterface,
-        Destination = source.Destination,
-        DestinationPorts = source.DestinationPorts,
-        DestinationInterface = source.DestinationInterface,
-        Comment = source.Comment,
-    };
 }

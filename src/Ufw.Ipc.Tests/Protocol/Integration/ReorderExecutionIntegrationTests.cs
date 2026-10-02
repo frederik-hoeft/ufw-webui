@@ -286,7 +286,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
     }
 
     private static bool SameRule(ListedFirewallRule left, ListedFirewallRule right) =>
-        FirewallRuleSemanticComparer.Equals(left, right);
+        FirewallRuleStateComparer.Equals(left, right);
 
     private sealed class AlwaysValidInterfaceValidator : IFirewallRuleInterfaceValidator
     {

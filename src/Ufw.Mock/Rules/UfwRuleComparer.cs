@@ -19,7 +19,7 @@ internal static class UfwRuleComparer
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
 
-        FirewallRuleSpecification leftForRightFamily = CloneWithAddressFamily(left.Specification, right.Specification.AddressFamily);
+        FirewallRuleSpecification leftForRightFamily = left.Specification.CopyWithAddressFamily(right.Specification.AddressFamily);
         return RuleIdentity.AreEqual(leftForRightFamily, right.Specification)
             && HasEqualMockSurface(left, right);
     }
@@ -30,18 +30,4 @@ internal static class UfwRuleComparer
         && string.Equals(left.SourceApplicationName, right.SourceApplicationName, StringComparison.OrdinalIgnoreCase)
         && string.Equals(left.DestinationApplicationName, right.DestinationApplicationName, StringComparison.OrdinalIgnoreCase);
 
-    private static FirewallRuleSpecification CloneWithAddressFamily(FirewallRuleSpecification specification, FirewallAddressFamily addressFamily) => new()
-    {
-        Action = specification.Action,
-        AddressFamily = addressFamily,
-        Direction = specification.Direction,
-        Protocol = specification.Protocol,
-        Source = specification.Source,
-        SourcePorts = specification.SourcePorts,
-        SourceInterface = specification.SourceInterface,
-        Destination = specification.Destination,
-        DestinationPorts = specification.DestinationPorts,
-        DestinationInterface = specification.DestinationInterface,
-        Comment = specification.Comment,
-    };
 }

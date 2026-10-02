@@ -2,7 +2,10 @@
 
 namespace Ufw.Systemd.Firewall.Ordering;
 
-internal static class FirewallRuleSemanticComparer
+/// <summary>
+/// Compares normalized observed firewall state. Unlike semantic rule identity, comments are part of equality.
+/// </summary>
+internal static class FirewallRuleStateComparer
 {
     public static bool Equals(ListedFirewallRule left, ListedFirewallRule right)
     {

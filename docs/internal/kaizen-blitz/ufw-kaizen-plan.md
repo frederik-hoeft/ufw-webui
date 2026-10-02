@@ -275,9 +275,9 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | SYS KZ-023 | D4 | Reduce parser-to-grammar-name coupling | Contained parser cleanup after the mutation/snapshot foundation; preserve conservative unknown-row behavior. |
 | [ ] | SYS KZ-024 | D4 | Remove parser debug side effects and duplicate row-number parsing | Pair with KZ-023 while parser code is already being touched. |
 | [x] | SYS KZ-025 | D1 | Reassess the configuration resource-provider abstraction | Resolve as part of KZ-009/KZ-011 configuration simplification rather than as a later abstraction rewrite. |
-| [ ] | SYS KZ-026 | D2 | Clarify normalized rule equality naming | Rename/clarify before shared snapshot/order helpers proliferate this comparer name. |
+| [x] | SYS KZ-026 | D2 | Clarify normalized rule equality naming | Rename/clarify before shared snapshot/order helpers proliferate this comparer name. |
 | [ ] | SYS KZ-027 | D2 | Remove small API friction in the execution gate | Small prerequisite for cleaner KZ-008 orchestration. |
-| [ ] | SYS KZ-028 | D2 | Make rule specification copying resilient to model growth | Do while shared firewall model/execution primitives are being stabilized, before later model growth creates another manual-copy site. |
+| [x] | SYS KZ-028 | D2 | Make rule specification copying resilient to model growth | Do while shared firewall model/execution primitives are being stabilized, before later model growth creates another manual-copy site. |
 | [ ] | SYS KZ-029 | D2 | Make reorder planner cost semantics explicit | Do before KZ-006 so the reordered executor is decomposed around an explicit cost policy. |
 
 ### `Ufw.Web`
