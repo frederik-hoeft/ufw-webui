@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
-using Ufw.Web.Model.V1.RuleTemplates;
+using Ufw.Shared.Management.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Templates;
 

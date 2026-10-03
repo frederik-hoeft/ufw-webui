@@ -6,6 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Data;
+using Ufw.Web.Data.Access.Rules.Templates;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleTags;
@@ -172,6 +175,38 @@ public sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegrat
             ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             context.ChangeTracker.Clear();
             Assert.IsFalse(await context.Set<RuleTemplateEntry>().AnyAsync(cancellationToken));
+        }, TestContext.CancellationToken);
+
+
+    [TestMethod]
+    public Task MissingDependencies_PreserveTypedIdentifiersInDataAccessErrorsAsync() =>
+        UsingComponentAsync(async (_, serviceProvider, cancellationToken) =>
+        {
+            IRuleTemplateDataAccess templates = serviceProvider.GetRequiredService<IRuleTemplateDataAccess>();
+            Guid firstMissingTag = Guid.Parse("0199a100-0000-7000-8000-000000000011");
+            Guid secondMissingTag = Guid.Parse("0199a100-0000-7000-8000-000000000012");
+            DataMutationResult tagResult = await templates.CreateAsync(new RuleTemplateValues(
+                "Missing tags",
+                Description: null,
+                ValidRule(),
+                Notes: null,
+                [firstMissingTag, secondMissingTag],
+                GroupId: null), cancellationToken);
+
+            RuleTagsNotFoundError tagError = Assert.IsInstanceOfType<RuleTagsNotFoundError>(tagResult.Error);
+            CollectionAssert.AreEqual(new[] { firstMissingTag, secondMissingTag }, tagError.TagIds.ToArray());
+
+            Guid missingGroup = Guid.Parse("0199a100-0000-7000-8000-000000000013");
+            DataMutationResult groupResult = await templates.CreateAsync(new RuleTemplateValues(
+                "Missing group",
+                Description: null,
+                ValidRule(),
+                Notes: null,
+                TagIds: [],
+                missingGroup), cancellationToken);
+
+            RuleGroupNotFoundError groupError = Assert.IsInstanceOfType<RuleGroupNotFoundError>(groupResult.Error);
+            Assert.AreEqual(missingGroup, groupError.GroupId);
         }, TestContext.CancellationToken);
 
     [TestMethod]

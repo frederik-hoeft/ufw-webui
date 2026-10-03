@@ -108,7 +108,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         string? notes = string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim();
         if (name.Length > RuleTemplateLimits.MAX_NAME_LENGTH
             || description?.Length > RuleTemplateLimits.MAX_DESCRIPTION_LENGTH
-            || notes?.Length > RuleTemplateLimits.MAX_NOTES_LENGTH)
+            || notes?.Length > RuleMetadataLimits.MAX_NOTES_LENGTH)
         {
             throw new ApiProtocolException("Rule-template inventory response contains invalid text values.");
         }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.Rules;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Data.Model;
@@ -16,8 +17,8 @@ internal sealed partial class RuleTemplateEntry : IDiscoverableModelConfiguratio
 
         self.Property(static template => template.Id).HasColumnName("Id").HasColumnType("bigint").ValueGeneratedOnAdd();
         self.Property(static template => template.PublicId).HasColumnName("PublicId").HasColumnType("uuid").ValueGeneratedNever().IsRequired();
-        self.Property(static template => template.Name).HasColumnName("Name").HasColumnType("citext").HasMaxLength(MAX_NAME_LENGTH).IsRequired();
-        self.Property(static template => template.Description).HasColumnName("Description").HasColumnType("character varying(512)").HasMaxLength(MAX_DESCRIPTION_LENGTH);
+        self.Property(static template => template.Name).HasColumnName("Name").HasColumnType("citext").HasMaxLength(RuleTemplateLimits.MAX_NAME_LENGTH).IsRequired();
+        self.Property(static template => template.Description).HasColumnName("Description").HasColumnType("character varying(512)").HasMaxLength(RuleTemplateLimits.MAX_DESCRIPTION_LENGTH);
         self.Property(static template => template.Action).HasColumnName("Action").HasColumnType("integer").IsRequired();
         self.Property(static template => template.AddressFamily).HasColumnName("AddressFamily").HasColumnType("integer").IsRequired();
         self.Property(static template => template.Direction).HasColumnName("Direction").HasColumnType("integer").IsRequired();
@@ -29,7 +30,7 @@ internal sealed partial class RuleTemplateEntry : IDiscoverableModelConfiguratio
         self.Property(static template => template.DestinationPorts).HasColumnName("DestinationPorts").HasColumnType("text");
         self.Property(static template => template.DestinationInterface).HasColumnName("DestinationInterface").HasColumnType("character varying(32)").HasMaxLength(RuleSpecificationValidator.MAX_INTERFACE_LENGTH);
         self.Property(static template => template.Comment).HasColumnName("Comment").HasColumnType("character varying(200)").HasMaxLength(RuleSpecificationValidator.MAX_COMMENT_LENGTH);
-        self.Property(static template => template.Notes).HasColumnName("Notes").HasColumnType("character varying(4000)").HasMaxLength(RuleMetadataEntry.MAX_NOTES_LENGTH);
+        self.Property(static template => template.Notes).HasColumnName("Notes").HasColumnType("character varying(4000)").HasMaxLength(RuleMetadataLimits.MAX_NOTES_LENGTH);
         self.Property(static template => template.GroupId).HasColumnName("GroupId").HasColumnType("bigint");
 
         self.HasOne(static template => template.Group)

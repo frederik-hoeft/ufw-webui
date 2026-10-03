@@ -45,7 +45,7 @@ ASP is an **aggregation/enrichment layer**, not the sole producer of application
 | Rule mutations | signed daemon transaction requests/responses | best-effort metadata cleanup/replacement reconciliation | `RulesController` proxies `IUfwClient` directly and invokes metadata service where required | daemon response types are returned directly, except replacement adds metadata-reconciliation sidecar |
 | Network interfaces | daemon interface-name list | PostgreSQL public identity, comment, visibility, reconciliation timestamp | `NetworkInterfaceInventoryService` coordinates daemon source + repository | `NetworkInterfaceInventoryResponse` |
 | Known hosts | PostgreSQL | DNS resolution/reconciliation state | `KnownHostService` coordinates DNS + repository | `KnownHostInventoryItem` collection |
-| Rule tags/groups/templates | PostgreSQL | none external; templates embed shared firewall specification | feature service normalizes request, repository performs EF work and builds response | `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem` collections |
+| Rule tags/groups/templates | PostgreSQL | none external; templates embed shared firewall specification | V1 controllers validate/map requests and call domain-sliced DAL components; DAL returns shared read models/mutation facts | `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem` collections inside V1 envelopes |
 | Rule metadata reconciliation | daemon live rule identities | PostgreSQL metadata rows | reconciliation service joins daemon identities with DB metadata in memory | orphan/reconciliation response |
 | Authentication | ASP.NET Identity + PostgreSQL refresh-token state | JWT/cookie policy | authentication flow + refresh-token service | auth token response |
 | Intent/status | daemon | none | controllers proxy daemon | daemon/shared response or no-content |
@@ -125,7 +125,7 @@ A concrete classification for the current components is:
 | Current component | Target role |
 |---|---|
 | `RuleGroupService`, `RuleTagService` | remove after KZ-05; controller maps validated request and calls group/tag DAL query/store |
-| `RuleTemplateService` | likely remove; extract pure request/domain mapper + rule semantic validation, then call template DAL store |
+| `RuleTemplateService` | removed in W1.1; controller request mapping normalizes the template and applies `RuleSpecificationValidator` before calling the template DAL |
 | `RuleInventoryService` | retain as cross-source inventory composer (daemon + metadata DAL), with a responsibility-specific name |
 | `RuleMetadataReconciliationService` | retain as cross-source reconciler, but keep daemon protocol parsing outside it |
 | `RuleMetadataService` | split: pure metadata command handling/reconciliation vs daemon protocol interpretation/gateway |
@@ -262,7 +262,28 @@ Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGr
 
 This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`InvalidTag` when they represent nothing more than malformed request shape. Domain-specific failure results remain appropriate where structurally valid input cannot be applied.
 
+**W1.1 status:** Group/tag/template request-shape constraints are now expressed on their V1 DTOs and normalized at the controller boundary. Template semantic rule validation remains in `RuleSpecificationValidator` rather than being encoded as transport metadata. `RuleTemplateLimits` and the metadata-specific `RuleMetadataLimits` live in `Ufw.Shared.Management.Rules`; REST annotations, EF mappings, and current client controls consume those shared sources. Remaining request/DAL slices migrate under the same rule later; KZ-24 is the dedicated API-wide validation audit/cleanup once those request-owning slices have stabilized.
+
 **Primary files:** `Services/KnownHosts/KnownHostService.cs`, `Services/NetworkInterfaces/DaemonNetworkInterfaceSource.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryService.cs`, `Services/Rules/RuleGroupService.cs`, `Services/Rules/RuleTagService.cs`, `Services/Rules/RuleTemplateService.cs`, `Services/Rules/RuleMetadataValuesNormalizer.cs`, `Data/Model/KnownHostEntry.cs`, `Data/Model/NetworkInterfaceEntry.cs`, `Data/Model/RuleGroupEntry.cs`, `Data/Model/RuleTagEntry.cs`, `Data/Model/RuleMetadataEntry.cs`; adjacent request/domain contracts in `Ufw.Web.Model`
+
+### KZ-24 [P1-quality] Audit REST DTO validation and eliminate transport-shape checks from application logic
+
+**Problem:** KZ-05 establishes where request validation belongs, and the W1.1 group/tag/template migrations have applied that rule opportunistically, but there is no dedicated whole-API pass proving that every versioned request DTO declares all transport-shape constraints that ASP.NET Core can enforce before controller/application logic runs. The remaining mixed state makes it easy for manual length/null/format checks to survive indefinitely in services/normalizers or for new DTOs to regress to inline validation.
+
+**Evidence:** `UpdateRuleMetadataRequest` currently declares no validation attributes while `RuleMetadataValuesNormalizer.TryNormalize` rejects null/oversized tag collections, empty GUIDs, empty group IDs, and oversized notes. `KnownHostRequest` declares basic string lengths, but `KnownHostService.TryNormalizeMetadata` still performs request-shape length checks against persistence constants. `NetworkInterfaceInventoryService.UpdateCommentAsync` repeats a comment-length check already represented on the request DTO. The retained `ValidIPv4AddressOrAnyAttribute` and `ValidPortRangeAttribute` are currently internal to `Ufw.Web.Data.Validation`, so they cannot be used by `Ufw.Web.Model` request contracts without first moving/replacing them at the appropriate contract boundary.
+
+**Refactor target:** Perform a holistic request-contract audit rather than continuing to fix DTO validation only while touching adjacent features:
+
+- Inventory every public/versioned REST request DTO and every manual `BadRequest`/`TryNormalize`/length/null/simple-format guard in Web application code. Classify each guard as transport shape, normalization/canonicalization, cross-field request consistency, or true domain semantics.
+- Express transport-shape constraints through Data Annotations or another centralized ASP.NET Core model-validation mechanism on `Ufw.Web.Model` contracts. Move/rework reusable custom validation attributes into a contract-consumable layer where appropriate; do not create a Web.Model -> Web dependency.
+- Use shared limits from `Ufw.Shared` whenever the constraint is a cross-layer invariant. Keep genuinely persistence-only constraints adjacent to the ORM model.
+- Let `[ApiController]`/MVC model validation reject malformed request shape before controller/application/DAL work. Remove duplicate inline checks once equivalent declarative validation is covered by regression tests.
+- Keep normalization/canonicalization explicit after model validation, and keep semantic/cross-field firewall behavior in pure domain validators unless a constraint is specifically a REST request-shape invariant.
+- Add focused DTO/model-validation tests plus representative controller/integration coverage so future request contracts cannot silently bypass the centralized validation path.
+
+**Sequencing:** Schedule this as a dedicated W2 closure pass after the remaining request-owning vertical slices (known hosts, network interfaces, auth, rule metadata) have migrated to their final boundaries, but **before KZ-09 public-error standardization**. At that point the DTO set and shared limits are stable enough for a holistic audit, and KZ-09 can standardize the final validation `ProblemDetails` behavior rather than targeting a mixture of MVC/model-state failures and hand-built bad requests. KZ-24 closes the API-wide completeness aspect of KZ-05; it does not replace KZ-05's W1 boundary rule.
+
+**Primary files:** `Ufw.Web.Model/V1/**/*Request*.cs`, `Ufw.Web.Model/Validation`, `Ufw.Web/Data/Validation`, remaining request normalizers/services/controllers in `Ufw.Web`, and adjacent validation/controller integration tests
 
 ### KZ-04 [P2] Decompose `Startup` into feature registration and startup lifecycle units
 
@@ -294,7 +315,7 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 Avoid an untyped exception-driven API or one giant catch-all enum. The goal is standard error categories plus optional typed domain details, not loss of semantic information.
 
-**W1.1 status:** The group/tag slices now use shared `DataMutationResult` plus typed common errors for not-found, unique-conflict, and reference-conflict outcomes. PostgreSQL unique/FK exceptions are translated through `DbUpdateExceptionExtensions`; operation-specific catch filters avoid consuming unrelated storage failures. Template-specific mutation outcomes remain until the template slice migrates, so KZ-22 is not complete yet.
+**W1.1 status:** The group/tag/template slices now use shared `DataMutationResult` plus typed errors. Common not-found, unique-conflict, and reference-conflict cases remain payloadless markers; template dependency lookup adds payload-bearing `RuleTagsNotFoundError`/`RuleGroupNotFoundError` variants so the error hierarchy preserves exact domain context rather than acting as an enum in disguise. PostgreSQL unique/FK exceptions are translated through `DbUpdateExceptionExtensions`; operation-specific catch filters avoid consuming unrelated storage failures. Other Web slices still carry their legacy outcome vocabularies and migrate later, so KZ-22 remains open globally.
 
 **Primary files:** `Data/Extensions/DbUpdateExceptionExtensions.cs`, `Services/Rules/RuleGroupMutationOutcome.cs`, `Services/Rules/RuleGroupMutationResult.cs`, `Services/Rules/RuleTagMutationOutcome.cs`, `Services/Rules/RuleTagMutationResult.cs`, `Services/Rules/RuleTemplateMutationOutcome.cs`, `Services/Rules/RuleTemplateMutationResult.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Api/V1/Controllers/RuleTemplatesController.cs`
 
@@ -364,9 +385,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Evidence:** Repository-wide symbol search finds no production use of `ValidIPv4AddressOrAnyAttribute`, `ValidPortRangeAttribute`, or `RsaJwtSigningKeyProvider`.
 
-**Refactor target:** Remove genuinely obsolete signing/stale code, but retain the IPv4/port validation attributes and their focused tests because request-DTO validation is now an imminent KZ-05 consumer. Revisit their implementation/messages as they are wired into DTOs rather than deleting and recreating them.
+**Refactor target:** Remove genuinely obsolete signing/stale code, but retain the IPv4/port validation attributes and their focused tests because request-DTO validation remains an active KZ-05/KZ-24 concern. Revisit their ownership, implementation, and messages during the dedicated DTO-validation audit rather than deleting and recreating them.
 
-**Status:** Completed in W1.1 with narrowed scope. The unused RSA JWT signing-key provider is removed and group/tag repository-specific stale imports disappeared with the DAL migration. `ValidIPv4AddressOrAnyAttribute` and `ValidPortRangeAttribute`, plus their tests, are deliberately retained for the KZ-05 request-DTO validation work.
+**Status:** Completed in W1.1 with narrowed scope. The unused RSA JWT signing-key provider is removed and group/tag repository-specific stale imports disappeared with the DAL migration. `ValidIPv4AddressOrAnyAttribute` and `ValidPortRangeAttribute`, plus their tests, are deliberately retained for the KZ-24 request-DTO validation audit.
 
 **Primary files:** `Data/Validation/ValidIPv4AddressOrAnyAttribute.cs`, `Data/Validation/ValidPortRangeAttribute.cs`, `Services/Auth/RsaJwtSigningKeyProvider.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`
 
@@ -422,13 +443,13 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ### KZ-21 [P3-quick/perf] Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant
 
-**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. The project currently has 12 `ToArrayAsync` call sites in `Ufw.Web`.
+**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. After the W1.1 catalog/template migrations, 10 `ToArrayAsync` call sites remain in `Ufw.Web`.
 
-**Evidence:** Current uses occur in `KnownHostRepository.cs:189`, `NetworkInterfaceInventoryRepository.cs:89`, `RuleTemplateRepository.cs:129,157`, `RuleMetadataRepository.cs:29,40,70,130,210,240`, `RuleGroupRepository.cs:112`, and `RuleTagRepository.cs:109`. Several feed code that only enumerates, counts, projects, or exposes an `IReadOnlyList`, so an array is not semantically required.
+**Evidence:** Current uses remain in known hosts, network interfaces, rule metadata, rule-group inventory, and template dependency resolution. The W1.1 template inventory read no longer materializes `RuleTemplateEntry` objects and then projects them offline: it now projects `RuleTemplateItem` (including tags/group) in the EF query and materializes the final read model directly. The surviving array uses still need the planned audit because some are dependency/entity worksets where an array may be locally reasonable while others only enumerate/project the result.
 
-**Refactor target:** Audit the 12 sites and use `ToListAsync` wherever the exact concrete collection type is immaterial. Retain `ToArrayAsync` only where an array is deliberately part of the local/API/domain contract or array semantics materially simplify subsequent work. Where KZ-01 removes whole-inventory re-queries entirely, delete the materialization rather than mechanically changing it.
+**Refactor target:** Audit the surviving sites and use `ToListAsync` wherever the exact concrete collection type is immaterial. Retain `ToArrayAsync` only where an array is deliberately part of the local/API/domain contract or array semantics materially simplify subsequent work. Where KZ-01 removes whole-inventory re-queries entirely, delete the materialization rather than mechanically changing it.
 
-**Primary files:** `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`
+**Primary files:** `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Data/Access/Rules/Groups/RuleGroupDataAccess.cs`, `Data/Access/Rules/Templates/RuleTemplateDataAccess.cs`
 
 ## Recommended blitz sequence
 
@@ -436,9 +457,10 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 2. **Lock the model/DAL rules before moving code:** KZ-01, KZ-05, KZ-23. Establish persistence-entity vs shared-domain vs transport-contract roles, request mapping, the domain-sliced DAL boundary, and the rule that orchestration layers must earn their existence.
 3. **Normalize daemon/application boundaries:** KZ-02 and KZ-03. Establish the daemon gateway and move signed-protocol interpretation out of metadata persistence orchestration.
 4. **Repair mutation/error and relationship plumbing:** KZ-22, then KZ-06 and KZ-08. Standardize persistence/application failures, consolidate tag/group relationship handling, and prevent semantic-rule-ID logic from drifting.
-5. **Collapse repetitive feature/HTTP plumbing:** KZ-07 and KZ-09. Do this only after the service/DAL signatures stabilize so helpers reflect the final architecture rather than the current local outcome enums.
-6. **Composition and auth cleanup:** KZ-04, KZ-10, KZ-11, KZ-16, KZ-17. KZ-10 should move refresh-token EF work into the auth DAL slice established by KZ-01.
-7. **Behavior/performance decisions:** KZ-13, KZ-18, KZ-19, and optionally KZ-20.
+5. **Collapse repetitive feature plumbing and close request validation:** KZ-07, then KZ-24 after the request-owning vertical slices have stabilized. Run the holistic DTO-validation audit before KZ-09 so the public error contract targets one final model-validation path.
+6. **Standardize public HTTP errors:** KZ-09 after KZ-24, KZ-22, and the daemon gateway are stable.
+7. **Composition and auth cleanup:** KZ-04, KZ-10, KZ-11, KZ-16, KZ-17. KZ-10 should move refresh-token EF work into the auth DAL slice established by KZ-01.
+8. **Behavior/performance decisions:** KZ-13, KZ-18, KZ-19, and optionally KZ-20.
 
 ## Refactoring guardrails
 

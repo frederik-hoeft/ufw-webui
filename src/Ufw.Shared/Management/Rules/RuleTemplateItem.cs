@@ -1,7 +1,6 @@
-using Ufw.Shared.Management.Rules;
 using Ufw.Shared.Firewall;
 
-namespace Ufw.Web.Model.V1.RuleTemplates;
+namespace Ufw.Shared.Management.Rules;
 
 public sealed class RuleTemplateItem
 {

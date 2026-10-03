@@ -4,9 +4,6 @@ namespace Ufw.Web.Data.Model;
 
 internal sealed partial class RuleTemplateEntry
 {
-    public const int MAX_NAME_LENGTH = Ufw.Web.Model.V1.RuleTemplates.RuleTemplateLimits.MAX_NAME_LENGTH;
-    public const int MAX_DESCRIPTION_LENGTH = Ufw.Web.Model.V1.RuleTemplates.RuleTemplateLimits.MAX_DESCRIPTION_LENGTH;
-
     public long Id { get; set; }
 
     public Guid PublicId { get; set; } = Guid.CreateVersion7();

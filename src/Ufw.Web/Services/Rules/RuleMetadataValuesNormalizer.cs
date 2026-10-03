@@ -1,18 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
-using Ufw.Web.Data.Model;
+using Ufw.Shared.Management.Rules;
 
 namespace Ufw.Web.Services.Rules;
 
 internal sealed class RuleMetadataValuesNormalizer : IRuleMetadataValuesNormalizer
 {
-    private const int MAX_TAG_COUNT = 32;
-
     public bool TryNormalize(string? notes, IReadOnlyList<Guid>? tagIds, Guid? groupId, [NotNullWhen(true)] out RuleMetadataValues? values)
     {
-        string? normalizedNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
-        if (normalizedNotes?.Length > RuleMetadataEntry.MAX_NOTES_LENGTH
-            || tagIds is null
-            || tagIds.Count > MAX_TAG_COUNT
+        if (tagIds is null
+            || tagIds.Count > RuleMetadataLimits.MAX_TAG_COUNT
             || tagIds.Any(static id => id == Guid.Empty)
             || groupId == Guid.Empty)
         {
@@ -20,8 +16,14 @@ internal sealed class RuleMetadataValuesNormalizer : IRuleMetadataValuesNormaliz
             return false;
         }
 
-        Guid[] normalizedTagIds = [.. tagIds.Distinct().Order()];
-        values = new RuleMetadataValues(normalizedNotes, normalizedTagIds, groupId);
+        RuleMetadataValues normalized = RuleMetadataValues.FromValidatedRequest(notes, tagIds, groupId);
+        if (normalized.Notes?.Length > RuleMetadataLimits.MAX_NOTES_LENGTH)
+        {
+            values = null;
+            return false;
+        }
+
+        values = normalized;
         return true;
     }
 }

@@ -133,7 +133,7 @@ Treat these as one architecture package rather than independent tickets:
 
 Implementation should then migrate one domain slice at a time into `Data/Access/<domain>`, keeping the solution buildable. Pure management-domain/read models move to `Ufw.Shared.Management`; versioned request/response DTOs remain in `Ufw.Web.Model` and may embed those shared types. Make only the minimum client compile edits in the same commit; defer client-side architectural cleanup to Phase C.
 
-W1.1 uses rule groups as the first vertical boundary pilot: group read models/limits move to `Ufw.Shared.Management`, request-shape validation and normalization move to the REST boundary, and the controller talks directly to the domain-sliced DAL. The second review cycle applies the same boundary to rule tags, establishes reusable `DataMutationResult`/`DataMutationError` propagation for common not-found/unique/reference failures, and removes the obsolete KZ-12 RSA signing provider while retaining the reusable validation attributes for KZ-05 DTO validation. The broader KZ-01/KZ-05/KZ-22/KZ-23 checklist items remain open until templates and the remaining slices have migrated to the same rules.
+W1.1 uses rule groups as the first vertical boundary pilot: group read models/limits move to `Ufw.Shared.Management`, request-shape validation and normalization move to the REST boundary, and the controller talks directly to the domain-sliced DAL. The second review cycle applies the same boundary to rule tags, establishes reusable `DataMutationResult`/`DataMutationError` propagation for common not-found/unique/reference failures, and removes the obsolete KZ-12 RSA signing provider while retaining the reusable validation attributes for KZ-05 DTO validation. The third review cycle applies the boundary to rule templates: the template read model and cross-layer limits live in `Ufw.Shared.Management.Rules`, request-shape validation is declarative on the V1 DTO, semantic firewall-rule validation remains a pure domain check during request mapping, the ceremonial template service disappears, and payload-bearing missing-tag/group errors demonstrate the typed `DataMutationError` union. Shared metadata limits are centralized separately from template-only limits because live-rule metadata consumes the same notes/tag-count invariants. The broader KZ-01/KZ-05/KZ-22/KZ-23 checklist items remain open until the remaining Web slices have migrated to the same rules.
 
 #### W2 - Vertical DAL/workflow migrations and public error contract
 
@@ -143,8 +143,9 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 2. **Known hosts:** finish the DAL migration and close WEB KZ-14 with regression coverage through the new request-validation path.
 3. **Network interfaces:** implement the KZ-13 lifecycle decision in the final DAL/reconciliation design.
 4. **Auth:** WEB KZ-10 and KZ-16 together while moving refresh-token EF access behind the Auth DAL slice.
-5. **Public errors:** WEB KZ-09 after KZ-22 and the daemon gateway are stable. Fold WEB KZ-15 into this work and preserve all same-property daemon validation messages.
-6. **Materialization audit:** WEB KZ-21 last within W2, after query shapes are final. Remove obsolete calls before converting surviving array materializations.
+5. **REST DTO validation audit:** WEB KZ-24 after the request-owning vertical slices are on their final boundaries. Audit all versioned request contracts and remove transport-shape checks from business/application logic before finalizing public error behavior.
+6. **Public errors:** WEB KZ-09 after KZ-22, KZ-24, and the daemon gateway are stable. Fold WEB KZ-15 into this work and preserve all same-property daemon validation messages.
+7. **Materialization audit:** WEB KZ-21 last within W2, after query shapes are final. Remove obsolete calls before converting surviving array materializations.
 
 #### W3 - Composition and final server cleanup
 
@@ -298,6 +299,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | WEB KZ-02 | W1 | Create a consistent daemon gateway boundary and centralize IPC exception handling | Start only after the daemon checkpoint. Fold KZ-17 into this work and make this the sole daemon transport/protocol boundary. |
 | [ ] | WEB KZ-03 | W1 | Split rule metadata persistence reconciliation from signed daemon protocol parsing | Build on KZ-02; gateway emits domain reconciliation facts so persistence code no longer parses signed daemon payloads. |
 | [ ] | WEB KZ-05 | W1 | Move REST request-shape validation out of business services and formalize request-to-domain mapping | Co-design with KZ-01. Resolve KZ-14 here rather than introducing a temporary known-host outcome that is removed later. |
+| [ ] | WEB KZ-24 | W2 | Audit REST DTO validation and eliminate transport-shape checks from application logic | Dedicated closure pass after known-host/network-interface/auth/rule-metadata request boundaries stabilize and before KZ-09; move/rework reusable validation attributes into a DTO-consumable layer as needed. |
 | [ ] | WEB KZ-04 | W3 | Decompose `Startup` into feature registration and startup lifecycle units | Do late, after DAL/gateway/coordinator registrations stabilize; otherwise Startup would be decomposed twice. |
 | [ ] | WEB KZ-06 | W2 | Unify rule metadata/template tag and group dependency handling | Implement while migrating metadata/templates into the final DAL; do not extract helpers from the legacy repositories first. |
 | [ ] | WEB KZ-22 | W1 | Standardize mutation/error propagation instead of feature-local outcome plumbing for common failures | Design alongside KZ-01 because DAL mutation signatures depend on the common error/result model; KZ-09 consumes the result. |

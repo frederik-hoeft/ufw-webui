@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Migrations;
-using Ufw.Web.Model.V1.RuleTemplates;
+using Ufw.Shared.Management.Rules;
 
 namespace Ufw.Web.Tests.Data;
 

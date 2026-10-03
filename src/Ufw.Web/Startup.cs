@@ -1,5 +1,6 @@
 using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Data.Access.Rules.Tags;
+using Ufw.Web.Data.Access.Rules.Templates;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -92,11 +93,10 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
         services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();
-        services.AddScoped<IRuleTemplateRepository, RuleTemplateRepository>();
+        services.AddScoped<IRuleTemplateDataAccess, RuleTemplateDataAccess>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
-        services.AddScoped<IRuleTemplateService, RuleTemplateService>();
 
         services.AddAuthentication(options =>
         {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ufw.Shared.Management.Rules;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Data.Model;
@@ -30,7 +31,7 @@ internal sealed partial class RuleMetadataEntry : IDiscoverableModelConfiguratio
         self.Property(static metadata => metadata.Notes)
             .HasColumnName("Notes")
             .HasColumnType("character varying(4000)")
-            .HasMaxLength(MAX_NOTES_LENGTH);
+            .HasMaxLength(RuleMetadataLimits.MAX_NOTES_LENGTH);
         self.Property(static metadata => metadata.GroupId)
             .HasColumnName("GroupId")
             .HasColumnType("bigint");

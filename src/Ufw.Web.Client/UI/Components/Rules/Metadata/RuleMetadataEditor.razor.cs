@@ -7,7 +7,6 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class RuleMetadataEditor
 {
-    internal const int MAX_NOTES_LENGTH = 4000;
     private const int MAX_METADATA_NAME_LENGTH = 64;
     private MudForm? _form;
     private MudAutocomplete<TagOption>? _tagAutocomplete;
