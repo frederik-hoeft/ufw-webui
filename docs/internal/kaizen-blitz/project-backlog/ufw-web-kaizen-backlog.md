@@ -247,7 +247,9 @@ Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGr
 
 **Refactor target:** Move signed request/response interpretation into the rule daemon gateway and emit a small domain reconciliation command such as `(originalRuleId, replacementRuleId, originalStillLive)`. Keep metadata service focused on metadata invariants and persistence reconciliation.
 
-**Primary files:** `Services/Rules/IRuleMetadataService.cs`, `Services/Rules/RuleMetadataService.cs`, `Api/V1/Controllers/RulesController.cs`
+**W1.3 status:** Completed. `RuleDaemonGateway` now interprets completed signed replacement requests together with the authoritative daemon response and emits `RuleReplacementReconciliationFacts` only when the signed replacement identity and final snapshot are coherent. Non-completed firewall outcomes explicitly require no reconciliation; completed-but-inconsistent protocol state is classified as reconciliation preparation failure without discarding the completed firewall report. `RuleMetadataService` consumes only the reconciliation facts and owns database reconciliation/failure handling, with no signed-payload deserialization or daemon response interpretation.
+
+**Primary files:** `Services/Rules/IRuleDaemonGateway.cs`, `Services/Rules/RuleDaemonGateway.cs`, `Services/Rules/IRuleMetadataService.cs`, `Services/Rules/RuleMetadataService.cs`, `Api/V1/Controllers/RulesController.cs`
 
 ### KZ-05 [P1] Move REST request-shape validation out of business services and formalize request-to-domain mapping
 

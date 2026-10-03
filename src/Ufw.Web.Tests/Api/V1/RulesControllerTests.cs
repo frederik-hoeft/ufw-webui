@@ -333,9 +333,11 @@ public sealed class RulesControllerTests
         Mock<IRuleMetadataService> metadata = new();
         ReplaceRuleRequest request = CreateSignedReplace();
         RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
+        RuleReplacementReconciliationFacts facts = new("sha256:original", "sha256:replacement", OriginalRuleStillLive: false);
+        RuleReplacementExecutionResult replacement = new(firewall, new RuleReplacementReconciliationReady(facts));
         daemonRules.Setup(static c => c.ReplaceRuleAsync(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DaemonResult.Success(firewall));
-        metadata.Setup(service => service.ReconcileReplacementAsync(request, firewall, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DaemonResult.Success(replacement));
+        metadata.Setup(service => service.ReconcileReplacementAsync(facts, It.IsAny<CancellationToken>()))
             .ReturnsAsync(RuleReplacementMetadataReconciliationOutcome.Completed);
         RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
 
@@ -356,7 +358,7 @@ public sealed class RulesControllerTests
                     && sent.Signature == request.Signature),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        metadata.Verify(service => service.ReconcileReplacementAsync(request, firewall, CancellationToken.None), Times.Once);
+        metadata.Verify(service => service.ReconcileReplacementAsync(facts, CancellationToken.None), Times.Once);
     }
 
     [TestMethod]
@@ -366,9 +368,11 @@ public sealed class RulesControllerTests
         Mock<IRuleMetadataService> metadata = new();
         ReplaceRuleRequest request = CreateSignedReplace();
         RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
+        RuleReplacementReconciliationFacts facts = new("sha256:original", "sha256:replacement", OriginalRuleStillLive: false);
+        RuleReplacementExecutionResult replacement = new(firewall, new RuleReplacementReconciliationReady(facts));
         daemonRules.Setup(static c => c.ReplaceRuleAsync(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DaemonResult.Success(firewall));
-        metadata.Setup(service => service.ReconcileReplacementAsync(request, firewall, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DaemonResult.Success(replacement));
+        metadata.Setup(service => service.ReconcileReplacementAsync(facts, It.IsAny<CancellationToken>()))
             .ReturnsAsync(RuleReplacementMetadataReconciliationOutcome.Failed);
         RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
 
@@ -384,6 +388,28 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
+    public async Task TestReplaceRuleAsync_ReconciliationInterpretationFailurePreservesCompletedFirewallResultAsync()
+    {
+        Mock<IRuleDaemonGateway> daemonRules = new();
+        Mock<IRuleMetadataService> metadata = new();
+        RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
+        RuleReplacementExecutionResult replacement = new(firewall, new RuleReplacementReconciliationPreparationFailed());
+        daemonRules.Setup(static c => c.ReplaceRuleAsync(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DaemonResult.Success(replacement));
+        RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
+
+        ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(CreateSignedReplace(), TestContext.CancellationToken);
+
+        ObjectResult response = Assert.IsInstanceOfType<ObjectResult>(result.Result);
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, response.StatusCode);
+        RuleReplacementMutationResponse report = Assert.IsInstanceOfType<RuleReplacementMutationResponse>(response.Value);
+        Assert.AreSame(firewall, report.Firewall);
+        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
+        StringAssert.Contains(report.MetadataDiagnostic, "metadata reconciliation failed");
+        metadata.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
     [DataRow(RuleReplacementOutcome.StaleBaseline, StatusCodes.Status409Conflict)]
     [DataRow(RuleReplacementOutcome.PreconditionFailed, StatusCodes.Status422UnprocessableEntity)]
     [DataRow(RuleReplacementOutcome.PartiallyCompleted, StatusCodes.Status409Conflict)]
@@ -393,8 +419,9 @@ public sealed class RulesControllerTests
         Mock<IRuleDaemonGateway> daemonRules = new();
         Mock<IRuleMetadataService> metadata = new();
         RuleReplacementResponse firewall = CreateReplacementResponse(outcome);
+        RuleReplacementExecutionResult replacement = new(firewall, new RuleReplacementReconciliationNotRequired());
         daemonRules.Setup(static c => c.ReplaceRuleAsync(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DaemonResult.Success(firewall));
+            .ReturnsAsync(DaemonResult.Success(replacement));
         RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
 
         ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(CreateSignedReplace(), TestContext.CancellationToken);

@@ -10,8 +10,6 @@ using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Shared.Security.Intent;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Data;
@@ -407,10 +405,9 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { Notes = "source", TagIds = [tag.Id], GroupId = group.Id },
             TestContext.CancellationToken);
         Guid sourceMetadataId = saved.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(replacementRuleId);
@@ -440,10 +437,9 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { Notes = "shared", TagIds = [tag.Id], GroupId = group.Id },
             TestContext.CancellationToken);
         Guid originalMetadataId = saved.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, originalRuleId, replacementRuleId);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: true);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(originalRuleId, replacementRuleId);
@@ -474,10 +470,9 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { Notes = "keep" },
             TestContext.CancellationToken);
         Guid metadataId = saved.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(ruleId, commentUpdate);
-        RuleReplacementResponse response = CompletedReplacement(ruleId, commentUpdate, ruleId);
+        RuleReplacementReconciliationFacts facts = new(ruleId, ruleId, OriginalRuleStillLive: true);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
@@ -505,10 +500,9 @@ public sealed class RuleMetadataServiceTests
             TestContext.CancellationToken);
         Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
         Guid sourceId = source.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(replacementRuleId);
@@ -538,10 +532,9 @@ public sealed class RuleMetadataServiceTests
             TestContext.CancellationToken);
         Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
         Guid sourceId = source.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, originalRuleId, replacementRuleId);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: true);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         RuleMetadataItem[] metadata = [.. (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.OrderBy(static item => item.RuleId, StringComparer.Ordinal)];
@@ -568,41 +561,14 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { Notes = "must not resurrect" },
             TestContext.CancellationToken);
         host.SetRules(originalRuleId);
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(replacementRuleId);
         Assert.IsEmpty((await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
-    }
-
-    [TestMethod]
-    public async Task ReconcileReplacement_NonCompletedFirewallOutcomeLeavesMetadataUntouchedAsync()
-    {
-        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
-        FirewallRuleSpecification originalRule = Rule("22");
-        FirewallRuleSpecification replacementRule = Rule("443");
-        string originalRuleId = RuleIdentity.Compute(originalRule);
-        host.SetRules(originalRuleId);
-        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
-            originalRuleId,
-            new UpdateRuleMetadataRequest { Notes = "keep" },
-            TestContext.CancellationToken);
-        Guid metadataId = saved.Response!.Metadata!.Id;
-        RuleReplacementResponse response = new(RuleReplacementOutcome.PartiallyCompleted, null, null, RecoveryOutcome: null, Diagnostic: "partial");
-
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(
-            ReplacementRequest(originalRuleId, replacementRule),
-            response,
-            TestContext.CancellationToken);
-
-        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.NotAttempted, outcome);
-        RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
-        Assert.AreEqual(metadataId, metadata.Id);
-        Assert.AreEqual("keep", metadata.Notes);
     }
 
     [TestMethod]
@@ -635,10 +601,8 @@ public sealed class RuleMetadataServiceTests
             """,
             TestContext.CancellationToken);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(
-            ReplacementRequest(originalRuleId, replacementRule),
-            CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId),
-            TestContext.CancellationToken);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, outcome);
         Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
@@ -674,56 +638,6 @@ public sealed class RuleMetadataServiceTests
         Protocol = FirewallProtocol.Tcp,
         DestinationPorts = destinationPort,
     };
-
-    private static ReplaceRuleRequest ReplacementRequest(string originalRuleId, FirewallRuleSpecification replacementRule)
-    {
-        ReplaceRulePayload payload = new()
-        {
-            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
-            TargetOccurrenceId = 0,
-            OriginalRuleId = originalRuleId,
-            ReplacementRule = replacementRule,
-        };
-        return new ReplaceRuleRequest
-        {
-            Version = IntentProtocol.VERSION,
-            DeploymentId = "deployment",
-            KeyId = "sha256:key",
-            IssuedAtUnix = 1,
-            Nonce = "nonce",
-            Operation = IntentOperations.REPLACE_RULE,
-            Payload = System.Text.Json.JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.ReplaceRulePayload),
-            Signature = "signature",
-        };
-    }
-
-    private static RuleReplacementResponse CompletedReplacement(string replacementRuleId, FirewallRuleSpecification replacementRule, params string[] finalRuleIds)
-    {
-        ListedFirewallRule replacement = new()
-        {
-            RuleId = replacementRuleId,
-            DisplayNumber = Array.IndexOf(finalRuleIds, replacementRuleId) + 1,
-            Parsed = true,
-            RawLine = replacementRuleId,
-            Rule = replacementRule,
-        };
-        ListedFirewallRule[] finalRules = [.. finalRuleIds.Select((ruleId, index) => string.Equals(ruleId, replacementRuleId, StringComparison.Ordinal)
-            ? new ListedFirewallRule
-            {
-                RuleId = replacement.RuleId,
-                DisplayNumber = index + 1,
-                Parsed = replacement.Parsed,
-                RawLine = replacement.RawLine,
-                Rule = replacement.Rule,
-            }
-            : Listed(ruleId, index + 1))];
-        return new RuleReplacementResponse(
-            RuleReplacementOutcome.Completed,
-            new RuleListResponse(true, finalRules, TestFirewallConfiguration.Enabled),
-            replacement,
-            RecoveryOutcome: null,
-            Diagnostic: null);
-    }
 
     private static ListedFirewallRule Listed(string ruleId, int displayNumber) => new()
     {
@@ -876,7 +790,7 @@ public sealed class RuleMetadataServiceTests
 
             public Task<DaemonResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<DaemonResult<RuleReplacementResponse>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleReplacementExecutionResult>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
             public Task<DaemonResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

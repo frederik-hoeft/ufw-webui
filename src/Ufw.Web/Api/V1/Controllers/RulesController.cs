@@ -69,19 +69,25 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.replace'." });
         }
 
-        DaemonResult<RuleReplacementResponse> daemonResult = await daemonRules.ReplaceRuleAsync(request, cancellationToken);
-        RuleReplacementResponse firewall = daemonResult.Result;
+        DaemonResult<RuleReplacementExecutionResult> daemonResult = await daemonRules.ReplaceRuleAsync(request, cancellationToken);
+        RuleReplacementExecutionResult replacement = daemonResult.Result;
         RuleReplacementMetadataReconciliationOutcome metadataOutcome;
-        if (firewall.Outcome == RuleReplacementOutcome.Completed)
+        switch (replacement.Reconciliation)
         {
-            metadataOutcome = await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None);
-        }
-        else
-        {
-            metadataOutcome = RuleReplacementMetadataReconciliationOutcome.NotAttempted;
+            case RuleReplacementReconciliationReady ready:
+                metadataOutcome = await metadata.ReconcileReplacementAsync(ready.Facts, CancellationToken.None);
+                break;
+            case RuleReplacementReconciliationNotRequired:
+                metadataOutcome = RuleReplacementMetadataReconciliationOutcome.NotAttempted;
+                break;
+            case RuleReplacementReconciliationPreparationFailed:
+                metadataOutcome = RuleReplacementMetadataReconciliationOutcome.Failed;
+                break;
+            default:
+                throw new InvalidOperationException($"Unknown replacement reconciliation plan '{replacement.Reconciliation.GetType().Name}'.");
         }
         RuleReplacementMutationResponse response = new(
-            firewall,
+            replacement.Firewall,
             metadataOutcome,
             metadataOutcome == RuleReplacementMetadataReconciliationOutcome.Failed ? METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC : null);
         return ReplacementResult(response);

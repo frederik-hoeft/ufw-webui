@@ -1,9 +1,4 @@
-using System.Text.Json;
-using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Shared.Security.Intent;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Model.V1.Rules;
 
@@ -45,41 +40,13 @@ internal sealed partial class RuleMetadataService(
     }
 
     public async Task<RuleReplacementMetadataReconciliationOutcome> ReconcileReplacementAsync(
-        ReplaceRuleRequest request,
-        RuleReplacementResponse response,
+        RuleReplacementReconciliationFacts facts,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(response);
-        if (response.Outcome != RuleReplacementOutcome.Completed)
-        {
-            return RuleReplacementMetadataReconciliationOutcome.NotAttempted;
-        }
-
-        string? originalRuleId = null;
-        string replacementRuleId = response.ReplacementRule?.RuleId ?? string.Empty;
+        ArgumentNullException.ThrowIfNull(facts);
         try
         {
-            ReplaceRulePayload payload = JsonSerializer.Deserialize(request.Payload, MessageJsonSerializerContext.Default.ReplaceRulePayload)
-                ?? throw new InvalidDataException("Completed rule replacement request did not contain a replacement payload.");
-            RuleReplacementContract.ValidatePayload(payload);
-            originalRuleId = payload.OriginalRuleId;
-
-            if (response.FinalSnapshot is null || !RuleIdentity.IsValid(replacementRuleId))
-            {
-                throw new InvalidDataException("Completed rule replacement response did not contain an authoritative replacement identity and final snapshot.");
-            }
-            if (!string.Equals(RuleIdentity.Compute(payload.ReplacementRule), replacementRuleId, StringComparison.Ordinal))
-            {
-                throw new InvalidDataException("Completed rule replacement response identity does not match the signed replacement rule.");
-            }
-            if (!response.FinalSnapshot.Rules.Any(rule => string.Equals(rule.RuleId, replacementRuleId, StringComparison.Ordinal)))
-            {
-                throw new InvalidDataException("Completed rule replacement response does not contain the confirmed replacement identity in its final snapshot.");
-            }
-
-            bool originalRuleStillLive = response.FinalSnapshot.Rules.Any(rule => string.Equals(rule.RuleId, originalRuleId, StringComparison.Ordinal));
-            _ = await repository.ReconcileReplacementAsync(originalRuleId, replacementRuleId, originalRuleStillLive, cancellationToken);
+            _ = await repository.ReconcileReplacementAsync(facts.OriginalRuleId, facts.ReplacementRuleId, facts.OriginalRuleStillLive, cancellationToken);
             return RuleReplacementMetadataReconciliationOutcome.Completed;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -88,7 +55,7 @@ internal sealed partial class RuleMetadataService(
         }
         catch (Exception exception)
         {
-            LogReplacementReconciliationFailure(logger, originalRuleId ?? "<unknown>", string.IsNullOrWhiteSpace(replacementRuleId) ? "<unknown>" : replacementRuleId, exception);
+            LogReplacementReconciliationFailure(logger, facts.OriginalRuleId, facts.ReplacementRuleId, exception);
             return RuleReplacementMetadataReconciliationOutcome.Failed;
         }
     }
