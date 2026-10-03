@@ -8,7 +8,7 @@ internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemo
 {
     public async Task<RuleMetadataReconciliationResponse> GetAsync(CancellationToken cancellationToken = default)
     {
-        RuleListResponse snapshot = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = (await daemonRules.GetRulesAsync(cancellationToken)).Result;
         IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);
         return BuildResponse(snapshot, metadata, removedCount: 0);
     }
@@ -22,7 +22,7 @@ internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemo
         }
 
         Guid[] selectedIds = [.. request.MetadataIds.Distinct().Order()];
-        RuleListResponse snapshot = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = (await daemonRules.GetRulesAsync(cancellationToken)).Result;
         string[] liveRuleIds = GetLiveRuleIds(snapshot);
         int removedCount = await repository.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
         IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);

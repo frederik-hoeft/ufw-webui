@@ -4,7 +4,7 @@ using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Intent;
 
 namespace Ufw.Web.Tests.Api.V1;
@@ -21,7 +21,7 @@ public sealed class IntentControllerTests
         IntentContextResponse expected = new(1, "deployment-test");
         daemonIntent
             .Setup(static c => c.GetContextAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+            .ReturnsAsync(DaemonResult.Success(expected));
 
         IntentController controller = CreateController(daemonIntent.Object);
         ActionResult<IntentContextResponse> result = await controller.GetContextAsync(TestContext.CancellationToken);
@@ -31,29 +31,26 @@ public sealed class IntentControllerTests
     }
 
     [TestMethod]
-    public async Task GetContextAsync_MapsDaemonFailureAsync()
+    public async Task GetContextAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
+        UfwIpcException expected = new(StatusCodes.Status500InternalServerError, "context unavailable");
         Mock<IIntentDaemonGateway> daemonIntent = new();
         daemonIntent
             .Setup(static c => c.GetContextAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new UfwIpcException(StatusCodes.Status500InternalServerError, "context unavailable"));
+            .ReturnsAsync(DaemonResult.Failure<IntentContextResponse>(expected));
 
         IntentController controller = CreateController(daemonIntent.Object);
-        ActionResult<IntentContextResponse> result = await controller.GetContextAsync(TestContext.CancellationToken);
+        UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
+            () => controller.GetContextAsync(TestContext.CancellationToken));
 
-        ObjectResult problem = (ObjectResult)result.Result!;
-        Assert.AreEqual(StatusCodes.Status500InternalServerError, problem.StatusCode);
+        Assert.AreSame(expected, actual);
     }
 
-    private static IntentController CreateController(IIntentDaemonGateway daemonIntent)
+    private static IntentController CreateController(IIntentDaemonGateway daemonIntent) => new(daemonIntent)
     {
-        IntentController controller = new(daemonIntent, new DaemonApiErrorMapper())
+        ControllerContext = new ControllerContext
         {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext()
-            }
-        };
-        return controller;
-    }
+            HttpContext = new DefaultHttpContext()
+        }
+    };
 }

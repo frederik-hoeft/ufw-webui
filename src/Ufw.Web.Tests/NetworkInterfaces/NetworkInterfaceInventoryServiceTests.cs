@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -9,6 +9,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Data;
 using Ufw.Web.Tests.Data;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.NetworkInterfaces;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
@@ -92,7 +93,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
         NetworkInterfaceInventoryResponse initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
 
         host.SetDaemonInterfaces("eno1", "eno1");
-        await Assert.ThrowsExactlyAsync<InvalidDataException>(
+        await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(
             () => host.Service.ReconcileAsync(TestContext.CancellationToken));
 
         NetworkInterfaceInventoryResponse cached = await host.Service.GetCachedAsync(TestContext.CancellationToken);

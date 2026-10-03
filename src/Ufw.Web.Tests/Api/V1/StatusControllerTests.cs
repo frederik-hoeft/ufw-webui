@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
-using Ufw.Web.Services.Status;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Services.Daemon;
+using Ufw.Web.Services.Status;
 
 namespace Ufw.Web.Tests.Api.V1;
 
@@ -18,7 +18,7 @@ public sealed class StatusControllerTests
     {
         Mock<IStatusDaemonGateway> daemonStatus = new();
         daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(DaemonResult.Success());
         StatusController controller = CreateController(daemonStatus.Object);
 
         IActionResult result = await controller.GetStatusAsync(TestContext.CancellationToken);
@@ -28,20 +28,21 @@ public sealed class StatusControllerTests
     }
 
     [TestMethod]
-    public async Task GetStatusAsync_MapsDaemonFailureAsync()
+    public async Task GetStatusAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
+        UfwIpcException expected = new(StatusCodes.Status503ServiceUnavailable, "daemon unavailable");
         Mock<IStatusDaemonGateway> daemonStatus = new();
         daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new UfwIpcException(StatusCodes.Status503ServiceUnavailable, "daemon unavailable"));
+            .ReturnsAsync(DaemonResult.Failure(expected));
         StatusController controller = CreateController(daemonStatus.Object);
 
-        IActionResult result = await controller.GetStatusAsync(TestContext.CancellationToken);
+        UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
+            () => controller.GetStatusAsync(TestContext.CancellationToken));
 
-        ObjectResult problem = Assert.IsInstanceOfType<ObjectResult>(result);
-        Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, problem.StatusCode);
+        Assert.AreSame(expected, actual);
     }
 
-    private static StatusController CreateController(IStatusDaemonGateway daemonStatus) => new(daemonStatus, new DaemonApiErrorMapper())
+    private static StatusController CreateController(IStatusDaemonGateway daemonStatus) => new(daemonStatus)
     {
         ControllerContext = new ControllerContext
         {

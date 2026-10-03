@@ -1,3 +1,5 @@
+using Ufw.Web.Services.Daemon;
+
 namespace Ufw.Web.Services.NetworkInterfaces;
 
 /// <summary>
@@ -5,5 +7,5 @@ namespace Ufw.Web.Services.NetworkInterfaces;
 /// </summary>
 internal interface INetworkInterfaceDaemonGateway
 {
-    Task<IReadOnlyList<string>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default);
+    Task<DaemonResult<IReadOnlyList<string>>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default);
 }

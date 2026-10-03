@@ -1,5 +1,7 @@
-﻿using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Ipc.Client;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.NetworkInterfaces;
 
 namespace Ufw.Web.Tests.Services.NetworkInterfaces;
@@ -23,6 +25,20 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         Assert.AreSame(expected, result);
         Assert.AreSame(interfaceNames, repository.ReconciledNames);
         Assert.AreEqual(s_now, repository.ReconciledAt);
+    }
+
+
+    [TestMethod]
+    public async Task ReconcileAsync_DaemonFailureIsClassifiedAsUnavailableBeforeRepositoryAccessAsync()
+    {
+        UfwIpcException ipcError = new(400, "enumeration failed");
+        RecordingRepository repository = new();
+        NetworkInterfaceInventoryService service = new(new FailingDaemonSource(ipcError), repository, TimeProvider.System);
+
+        DaemonUnavailableException exception = await Assert.ThrowsExactlyAsync<DaemonUnavailableException>(() => service.ReconcileAsync());
+
+        Assert.AreSame(ipcError, exception.Error);
+        Assert.IsNull(repository.ReconciledNames);
     }
 
     [TestMethod]
@@ -92,10 +108,20 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
 
     private sealed class RecordingDaemonSource(IReadOnlyList<string> interfaceNames) : INetworkInterfaceDaemonGateway
     {
-        public Task<IReadOnlyList<string>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
+        public Task<DaemonResult<IReadOnlyList<string>>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(interfaceNames);
+            return Task.FromResult(DaemonResult.Success(interfaceNames));
+        }
+    }
+
+
+    private sealed class FailingDaemonSource(UfwIpcException error) : INetworkInterfaceDaemonGateway
+    {
+        public Task<DaemonResult<IReadOnlyList<string>>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(DaemonResult.Failure<IReadOnlyList<string>>(error));
         }
     }
 

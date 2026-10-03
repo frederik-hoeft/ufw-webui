@@ -1,6 +1,7 @@
-﻿using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Rules;
@@ -26,23 +27,23 @@ public sealed class RuleInventoryServiceTests
 
     private sealed class TestRuleDaemonGateway(RuleListResponse response) : IRuleDaemonGateway
     {
-        public Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default)
+        public Task<DaemonResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(response);
+            return Task.FromResult(DaemonResult.Success(response));
         }
 
-        public Task<RuleMutationResponse> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DaemonResult<RuleMutationResponse>> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DaemonResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleReplacementResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DaemonResult<RuleReplacementResponse>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DaemonResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DaemonResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DaemonResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class TestRuleMetadataRepository : IRuleMetadataRepository
@@ -60,8 +61,11 @@ public sealed class RuleInventoryServiceTests
 
         public Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(string originalRuleId, string replacementRuleId, bool originalRuleStillLive, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+        public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(
+            string originalRuleId,
+            string replacementRuleId,
+            bool originalRuleStillLive,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

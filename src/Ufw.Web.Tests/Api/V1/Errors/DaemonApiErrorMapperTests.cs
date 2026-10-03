@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Tests.Api.V1.Errors;
 
@@ -74,7 +75,7 @@ public sealed class DaemonApiErrorMapperTests
     {
         DaemonApiErrorMapper mapper = new();
 
-        DaemonApiError error = mapper.MapInvalidResponse(new InvalidDataException("malformed daemon inventory"));
+        DaemonApiError error = mapper.MapInvalidResponse(new DaemonInvalidResponseException("malformed daemon inventory"));
 
         Assert.AreEqual(StatusCodes.Status502BadGateway, error.StatusCode);
         Assert.AreEqual("malformed daemon inventory", error.Problem.Detail);

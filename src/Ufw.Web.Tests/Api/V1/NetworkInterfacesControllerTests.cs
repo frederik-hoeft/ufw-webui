@@ -1,9 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
-using Ufw.Ipc.Client;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
@@ -22,7 +19,7 @@ public sealed class NetworkInterfacesControllerTests
             [new NetworkInterfaceInventoryItem(Guid.CreateVersion7(), "eno1", "service VLAN", isVisible: true)],
             new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
         inventory.Setup(service => service.GetCachedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
-        NetworkInterfacesController controller = CreateController(inventory.Object);
+        NetworkInterfacesController controller = new(inventory.Object);
 
         ActionResult<NetworkInterfaceInventoryResponse> result = await controller.GetAsync(TestContext.CancellationToken);
 
@@ -32,18 +29,17 @@ public sealed class NetworkInterfacesControllerTests
     }
 
     [TestMethod]
-    public async Task ReconcileAsync_MapsDaemonFailureToBadGatewayAsync()
+    public async Task ReconcileAsync_ReturnsInventoryResponseAsync()
     {
+        NetworkInterfaceInventoryResponse expected = new([], DateTimeOffset.UtcNow);
         Mock<INetworkInterfaceInventoryService> inventory = new();
-        inventory
-            .Setup(service => service.ReconcileAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new UfwIpcException(StatusCodes.Status500InternalServerError, "daemon enumeration failed"));
-        NetworkInterfacesController controller = CreateController(inventory.Object);
+        inventory.Setup(service => service.ReconcileAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+        NetworkInterfacesController controller = new(inventory.Object);
 
         IActionResult result = await controller.ReconcileAsync(TestContext.CancellationToken);
 
-        ObjectResult problem = Assert.IsInstanceOfType<ObjectResult>(result);
-        Assert.AreEqual(StatusCodes.Status502BadGateway, problem.StatusCode);
+        OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result);
+        Assert.AreSame(expected, ok.Value);
     }
 
     [TestMethod]
@@ -55,7 +51,7 @@ public sealed class NetworkInterfacesControllerTests
         inventory
             .Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
-        NetworkInterfacesController controller = CreateController(inventory.Object);
+        NetworkInterfacesController controller = new(inventory.Object);
 
         IActionResult result = await controller.UpdateVisibilityAsync(
             id,
@@ -65,13 +61,4 @@ public sealed class NetworkInterfacesControllerTests
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result);
         Assert.AreSame(expected, ok.Value);
     }
-
-    private static NetworkInterfacesController CreateController(INetworkInterfaceInventoryService inventory) =>
-        new(inventory, new DaemonApiErrorMapper())
-        {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext(),
-            }
-        };
 }

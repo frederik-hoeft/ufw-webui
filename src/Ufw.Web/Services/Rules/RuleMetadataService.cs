@@ -24,7 +24,7 @@ internal sealed partial class RuleMetadataService(
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata);
         }
 
-        RuleListResponse snapshot = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = (await daemonRules.GetRulesAsync(cancellationToken)).Result;
         bool exists = snapshot.Rules.Any(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal));
         if (!exists)
         {

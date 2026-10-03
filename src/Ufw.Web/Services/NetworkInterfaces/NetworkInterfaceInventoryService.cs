@@ -1,5 +1,7 @@
-﻿using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Ipc.Client;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.NetworkInterfaces;
 
@@ -13,7 +15,11 @@ internal sealed class NetworkInterfaceInventoryService(
 
     public async Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<string> currentNames = await daemonGateway.GetInterfaceNamesAsync(cancellationToken);
+        DaemonResult<IReadOnlyList<string>> daemonResult = await daemonGateway.GetInterfaceNamesAsync(cancellationToken);
+        if (!daemonResult.TryGetResult(out IReadOnlyList<string>? currentNames, out UfwIpcException? error))
+        {
+            throw new DaemonUnavailableException(error);
+        }
         return await repository.ReconcileAsync(currentNames, timeProvider.GetUtcNow(), cancellationToken);
     }
 

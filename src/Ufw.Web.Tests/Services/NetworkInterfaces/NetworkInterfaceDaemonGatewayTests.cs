@@ -3,6 +3,7 @@ using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.NetworkInterfaces;
 
 namespace Ufw.Web.Tests.Services.NetworkInterfaces;
@@ -18,9 +19,9 @@ public sealed class NetworkInterfaceDaemonGatewayTests
             .ReturnsAsync(new NetworkInterfaceListResponse(["wlan0", "eno1", "docker0"]));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        IReadOnlyList<string> result = await gateway.GetInterfaceNamesAsync();
+        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
 
-        CollectionAssert.AreEqual(new[] { "docker0", "eno1", "wlan0" }, result.ToArray());
+        CollectionAssert.AreEqual(new[] { "docker0", "eno1", "wlan0" }, result.Result.ToArray());
         client.VerifyAll();
     }
 
@@ -42,8 +43,21 @@ public sealed class NetworkInterfaceDaemonGatewayTests
                 .ReturnsAsync(new NetworkInterfaceListResponse(names!));
             NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => gateway.GetInterfaceNamesAsync());
+            await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetInterfaceNamesAsync());
         }
+    }
+
+    [TestMethod]
+    public async Task GetInterfaceNamesAsync_DaemonFailureIsReturnedForCallerClassificationAsync()
+    {
+        UfwIpcException expected = new(500, "enumeration failed");
+        Mock<IUfwClient> client = new();
+        client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
+        NetworkInterfaceDaemonGateway gateway = new(client.Object);
+
+        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
+
+        Assert.AreSame(expected, result.Error);
     }
 
     [TestMethod]
@@ -54,8 +68,8 @@ public sealed class NetworkInterfaceDaemonGatewayTests
             .ReturnsAsync(new NetworkInterfaceListResponse(["eno1", "ENO1"]));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        IReadOnlyList<string> result = await gateway.GetInterfaceNamesAsync();
+        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
 
-        CollectionAssert.AreEqual(new[] { "ENO1", "eno1" }, result.ToArray());
+        CollectionAssert.AreEqual(new[] { "ENO1", "eno1" }, result.Result.ToArray());
     }
 }

@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRuleInventoryService inventory, IRuleMetadataService metadata, IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRuleInventoryService inventory, IRuleMetadataService metadata) : ControllerBase
 {
     private const string METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC =
         "Firewall rule replacement completed, but application metadata reconciliation failed. "
@@ -17,37 +15,23 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
 
     public async partial Task<ActionResult<RuleInventoryResponse>> GetRulesAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            RuleInventoryResponse response = await inventory.GetAsync(cancellationToken);
-            return Ok(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        RuleInventoryResponse response = await inventory.GetAsync(cancellationToken);
+        return Ok(response);
     }
 
     public async partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        try
+        RuleMetadataUpdateResult result = await metadata.UpdateAsync(ruleId, request, cancellationToken);
+        return result.Outcome switch
         {
-            RuleMetadataUpdateResult result = await metadata.UpdateAsync(ruleId, request, cancellationToken);
-            return result.Outcome switch
-            {
-                RuleMetadataUpdateOutcome.Success => Ok(result.Response),
-                RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
-                RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
-                RuleMetadataUpdateOutcome.GroupNotFound => BadRequest(new { message = "The referenced rule group does not exist." }),
-                RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
-                _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
-            };
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+            RuleMetadataUpdateOutcome.Success => Ok(result.Response),
+            RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
+            RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
+            RuleMetadataUpdateOutcome.GroupNotFound => BadRequest(new { message = "The referenced rule group does not exist." }),
+            RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
+            _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
+        };
     }
 
     public async partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken)
@@ -58,15 +42,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.add'." });
         }
 
-        try
-        {
-            RuleMutationResponse response = await daemonRules.AddRuleAsync(request, cancellationToken);
-            return Ok(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        RuleMutationResponse response = (await daemonRules.AddRuleAsync(request, cancellationToken)).Result;
+        return Ok(response);
     }
 
     public async partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken)
@@ -77,15 +54,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.insert'." });
         }
 
-        try
-        {
-            RuleInsertionResponse response = await daemonRules.InsertRuleAsync(request, cancellationToken);
-            return InsertionResult(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        RuleInsertionResponse response = (await daemonRules.InsertRuleAsync(request, cancellationToken)).Result;
+        return InsertionResult(response);
     }
 
     public async partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken)
@@ -96,22 +66,15 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.replace'." });
         }
 
-        try
-        {
-            RuleReplacementResponse firewall = await daemonRules.ReplaceRuleAsync(request, cancellationToken);
-            RuleReplacementMetadataReconciliationOutcome metadataOutcome = firewall.Outcome == RuleReplacementOutcome.Completed
-                ? await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None)
-                : RuleReplacementMetadataReconciliationOutcome.NotAttempted;
-            RuleReplacementMutationResponse response = new(
-                firewall,
-                metadataOutcome,
-                metadataOutcome == RuleReplacementMetadataReconciliationOutcome.Failed ? METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC : null);
-            return ReplacementResult(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        RuleReplacementResponse firewall = (await daemonRules.ReplaceRuleAsync(request, cancellationToken)).Result;
+        RuleReplacementMetadataReconciliationOutcome metadataOutcome = firewall.Outcome == RuleReplacementOutcome.Completed
+            ? await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None)
+            : RuleReplacementMetadataReconciliationOutcome.NotAttempted;
+        RuleReplacementMutationResponse response = new(
+            firewall,
+            metadataOutcome,
+            metadataOutcome == RuleReplacementMetadataReconciliationOutcome.Failed ? METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC : null);
+        return ReplacementResult(response);
     }
 
     public async partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken)
@@ -122,15 +85,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.reorder'." });
         }
 
-        try
-        {
-            RuleReorderResponse response = await daemonRules.ReorderRulesAsync(request, cancellationToken);
-            return ReorderResult(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        RuleReorderResponse response = (await daemonRules.ReorderRulesAsync(request, cancellationToken)).Result;
+        return ReorderResult(response);
     }
 
     public async partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken)
@@ -141,16 +97,9 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.delete-batch'." });
         }
 
-        try
-        {
-            RuleBatchDeleteResponse response = await daemonRules.BatchDeleteRulesAsync(request, cancellationToken);
-            await metadata.ReconcileBatchDeleteAsync(response, CancellationToken.None);
-            return BatchDeleteResult(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        RuleBatchDeleteResponse response = (await daemonRules.BatchDeleteRulesAsync(request, cancellationToken)).Result;
+        await metadata.ReconcileBatchDeleteAsync(response, CancellationToken.None);
+        return BatchDeleteResult(response);
     }
 
     public async partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken)
@@ -161,19 +110,12 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.delete'." });
         }
 
-        try
+        RuleMutationResponse response = (await daemonRules.DeleteRuleAsync(request, cancellationToken)).Result;
+        if (!string.IsNullOrWhiteSpace(response.Rule.RuleId))
         {
-            RuleMutationResponse response = await daemonRules.DeleteRuleAsync(request, cancellationToken);
-            if (!string.IsNullOrWhiteSpace(response.Rule.RuleId))
-            {
-                await metadata.RemoveForDeletedRuleAsync(response.Rule.RuleId, CancellationToken.None);
-            }
-            return Ok(response);
+            await metadata.RemoveForDeletedRuleAsync(response.Rule.RuleId, CancellationToken.None);
         }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
+        return Ok(response);
     }
 
     private ActionResult<RuleReplacementMutationResponse> ReplacementResult(RuleReplacementMutationResponse response)
@@ -232,11 +174,5 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             _ => throw new ArgumentOutOfRangeException(nameof(response), response.Outcome, "Unknown reorder outcome."),
         };
         return StatusCode(statusCode, response);
-    }
-
-    private ObjectResult MapDaemonError(UfwIpcException exception)
-    {
-        DaemonApiError error = daemonErrors.MapProxyFailure(exception);
-        return StatusCode(error.StatusCode, error.Problem);
     }
 }

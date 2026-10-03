@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Api.V1.Errors;
 
@@ -34,7 +35,7 @@ internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
         return new DaemonApiError(StatusCodes.Status502BadGateway, CreateProblem(StatusCodes.Status502BadGateway, exception.ResponseMessage));
     }
 
-    public DaemonApiError MapInvalidResponse(InvalidDataException exception)
+    public DaemonApiError MapInvalidResponse(DaemonInvalidResponseException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
         return new DaemonApiError(StatusCodes.Status502BadGateway, CreateProblem(StatusCodes.Status502BadGateway, exception.Message));

@@ -3,6 +3,7 @@ using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Services.Rules;
@@ -18,9 +19,39 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ReturnsAsync(expected);
         RuleDaemonGateway gateway = new(client.Object);
 
-        RuleListResponse result = await gateway.GetRulesAsync();
+        DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync();
 
-        Assert.AreSame(expected, result);
+        Assert.AreSame(expected, result.Result);
+        client.VerifyAll();
+    }
+
+    [TestMethod]
+    public async Task GetRulesAsync_DaemonApplicationFailureIsReturnedWithoutThrowingAsync()
+    {
+        UfwIpcException expected = new(409, "conflict");
+        Mock<IUfwClient> client = new(MockBehavior.Strict);
+        client.Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
+        RuleDaemonGateway gateway = new(client.Object);
+
+        DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync();
+
+        Assert.IsFalse(result.IsSuccess);
+        Assert.AreSame(expected, result.Error);
+        client.VerifyAll();
+    }
+
+
+    [TestMethod]
+    public async Task GetRulesAsync_InvalidIpcResponseIsClassifiedAtGatewayBoundaryAsync()
+    {
+        InvalidDataException expected = new("unsupported daemon payload");
+        Mock<IUfwClient> client = new(MockBehavior.Strict);
+        client.Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
+        RuleDaemonGateway gateway = new(client.Object);
+
+        DaemonInvalidResponseException actual = await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetRulesAsync());
+
+        Assert.AreSame(expected, actual.InnerException);
         client.VerifyAll();
     }
 
@@ -48,12 +79,12 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.SendAsync<DeleteRuleRequest, RuleMutationResponse>(delete, It.IsAny<CancellationToken>())).ReturnsAsync(deleteResponse);
         RuleDaemonGateway gateway = new(client.Object);
 
-        Assert.AreSame(addResponse, await gateway.AddRuleAsync(add));
-        Assert.AreSame(insertResponse, await gateway.InsertRuleAsync(insert));
-        Assert.AreSame(replaceResponse, await gateway.ReplaceRuleAsync(replace));
-        Assert.AreSame(reorderResponse, await gateway.ReorderRulesAsync(reorder));
-        Assert.AreSame(batchDeleteResponse, await gateway.BatchDeleteRulesAsync(batchDelete));
-        Assert.AreSame(deleteResponse, await gateway.DeleteRuleAsync(delete));
+        Assert.AreSame(addResponse, (await gateway.AddRuleAsync(add)).Result);
+        Assert.AreSame(insertResponse, (await gateway.InsertRuleAsync(insert)).Result);
+        Assert.AreSame(replaceResponse, (await gateway.ReplaceRuleAsync(replace)).Result);
+        Assert.AreSame(reorderResponse, (await gateway.ReorderRulesAsync(reorder)).Result);
+        Assert.AreSame(batchDeleteResponse, (await gateway.BatchDeleteRulesAsync(batchDelete)).Result);
+        Assert.AreSame(deleteResponse, (await gateway.DeleteRuleAsync(delete)).Result);
         client.VerifyAll();
     }
 }

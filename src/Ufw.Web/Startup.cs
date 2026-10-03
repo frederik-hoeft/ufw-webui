@@ -89,6 +89,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<INetworkInterfaceDaemonGateway, NetworkInterfaceDaemonGateway>();
         services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
+        services.AddSingleton<DaemonApiExceptionFilter>();
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
         services.AddScoped<IRuleDaemonGateway, RuleDaemonGateway>();
         services.AddScoped<IStatusDaemonGateway, StatusDaemonGateway>();
@@ -141,7 +142,7 @@ internal sealed class Startup : IAsyncStartupScript
             options.Cookie.Path = "/";
         });
         services.AddProblemDetails();
-        services.AddControllers();
+        services.AddControllers(options => options.Filters.AddService<DaemonApiExceptionFilter>());
         services.AddApiVersioning(options =>
             {
                 options.ReportApiVersions = true;

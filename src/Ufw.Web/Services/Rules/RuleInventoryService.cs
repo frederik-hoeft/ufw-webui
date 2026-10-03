@@ -7,7 +7,7 @@ internal sealed class RuleInventoryService(IRuleDaemonGateway daemonRules, IRule
 {
     public async Task<RuleInventoryResponse> GetAsync(CancellationToken cancellationToken = default)
     {
-        RuleListResponse firewall = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse firewall = (await daemonRules.GetRulesAsync(cancellationToken)).Result;
         DateTimeOffset capturedAt = timeProvider.GetUtcNow();
         string[] ruleIds = [.. firewall.Rules
             .Select(static rule => rule.RuleId)

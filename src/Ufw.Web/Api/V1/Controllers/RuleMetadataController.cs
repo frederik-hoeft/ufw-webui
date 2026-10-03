@@ -1,24 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using Ufw.Ipc.Client;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RuleMetadataController(IRuleMetadataReconciliationService reconciliation, IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class RuleMetadataController(IRuleMetadataReconciliationService reconciliation) : ControllerBase
 {
-    public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> GetReconciliationAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            return Ok(await reconciliation.GetAsync(cancellationToken));
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
-    }
+    public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> GetReconciliationAsync(CancellationToken cancellationToken) =>
+        Ok(await reconciliation.GetAsync(cancellationToken));
 
     public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken)
     {
@@ -33,19 +22,6 @@ public sealed partial class RuleMetadataController(IRuleMetadataReconciliationSe
             });
         }
 
-        try
-        {
-            return Ok(await reconciliation.CleanupAsync(request, cancellationToken));
-        }
-        catch (UfwIpcException exception)
-        {
-            return MapDaemonError(exception);
-        }
-    }
-
-    private ObjectResult MapDaemonError(UfwIpcException exception)
-    {
-        DaemonApiError error = daemonErrors.MapProxyFailure(exception);
-        return StatusCode(error.StatusCode, error.Problem);
+        return Ok(await reconciliation.CleanupAsync(request, cancellationToken));
     }
 }

@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Ufw.Ipc.Client;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class NetworkInterfacesController(INetworkInterfaceInventoryService inventory, IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class NetworkInterfacesController(INetworkInterfaceInventoryService inventory) : ControllerBase
 {
     public async partial Task<ActionResult<NetworkInterfaceInventoryResponse>> GetAsync(CancellationToken cancellationToken)
     {
@@ -16,21 +14,8 @@ public sealed partial class NetworkInterfacesController(INetworkInterfaceInvento
 
     public async partial Task<IActionResult> ReconcileAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            NetworkInterfaceInventoryResponse response = await inventory.ReconcileAsync(cancellationToken);
-            return Ok(response);
-        }
-        catch (UfwIpcException exception)
-        {
-            DaemonApiError error = daemonErrors.MapUnavailable(exception);
-            return StatusCode(error.StatusCode, error.Problem);
-        }
-        catch (InvalidDataException exception)
-        {
-            DaemonApiError error = daemonErrors.MapInvalidResponse(exception);
-            return StatusCode(error.StatusCode, error.Problem);
-        }
+        NetworkInterfaceInventoryResponse response = await inventory.ReconcileAsync(cancellationToken);
+        return Ok(response);
     }
 
     public async partial Task<IActionResult> UpdateCommentAsync(Guid id, UpdateNetworkInterfaceCommentRequest request, CancellationToken cancellationToken)

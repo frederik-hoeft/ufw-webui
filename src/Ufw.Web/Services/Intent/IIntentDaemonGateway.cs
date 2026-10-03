@@ -1,4 +1,5 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.Intent;
 
@@ -7,5 +8,5 @@ namespace Ufw.Web.Services.Intent;
 /// </summary>
 public interface IIntentDaemonGateway
 {
-    Task<IntentContextResponse> GetContextAsync(CancellationToken cancellationToken = default);
+    Task<DaemonResult<IntentContextResponse>> GetContextAsync(CancellationToken cancellationToken = default);
 }

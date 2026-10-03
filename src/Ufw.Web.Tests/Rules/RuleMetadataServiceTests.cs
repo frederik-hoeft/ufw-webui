@@ -17,6 +17,7 @@ using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Data;
 using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
@@ -865,23 +866,23 @@ public sealed class RuleMetadataServiceTests
         {
             public RuleListResponse Response { get; set; } = new(true, [], TestFirewallConfiguration.Enabled);
 
-            public Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default)
+            public Task<DaemonResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken = default)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                return Task.FromResult(Response);
+                return Task.FromResult(DaemonResult.Success(Response));
             }
 
-            public Task<RuleMutationResponse> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleMutationResponse>> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<RuleReplacementResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleReplacementResponse>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<DaemonResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         }
 
         public async ValueTask DisposeAsync()

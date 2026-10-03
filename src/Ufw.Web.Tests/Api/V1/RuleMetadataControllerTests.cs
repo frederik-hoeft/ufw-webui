@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Services.Rules;
@@ -57,9 +56,5 @@ public sealed class RuleMetadataControllerTests
         Assert.AreSame(expected, ok.Value);
     }
 
-    private static RuleMetadataController CreateController(IRuleMetadataReconciliationService service)
-    {
-        Mock<IDaemonApiErrorMapper> errors = new();
-        return new RuleMetadataController(service, errors.Object);
-    }
+    private static RuleMetadataController CreateController(IRuleMetadataReconciliationService service) => new(service);
 }

@@ -1,4 +1,5 @@
-﻿using Ufw.Ipc.Client;
+using Ufw.Ipc.Client;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Api.V1.Errors;
 
@@ -8,5 +9,5 @@ public interface IDaemonApiErrorMapper
 
     DaemonApiError MapUnavailable(UfwIpcException exception);
 
-    DaemonApiError MapInvalidResponse(InvalidDataException exception);
+    DaemonApiError MapInvalidResponse(DaemonInvalidResponseException exception);
 }

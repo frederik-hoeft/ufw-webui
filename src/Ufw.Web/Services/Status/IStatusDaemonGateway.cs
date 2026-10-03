@@ -1,3 +1,5 @@
+using Ufw.Web.Services.Daemon;
+
 namespace Ufw.Web.Services.Status;
 
 /// <summary>
@@ -5,5 +7,5 @@ namespace Ufw.Web.Services.Status;
 /// </summary>
 public interface IStatusDaemonGateway
 {
-    Task GetStatusAsync(CancellationToken cancellationToken = default);
+    Task<DaemonResult> GetStatusAsync(CancellationToken cancellationToken = default);
 }
