@@ -1,3 +1,4 @@
+using Ufw.Web.Data.Access.Auth;
 using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Data.Access.NetworkInterfaces;
 using Ufw.Web.Data.Access.Rules.Groups;
@@ -82,7 +83,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddSingleton<IJwtSigningKeyProvider, ECDsaJwtSigningKeyProvider>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IRefreshTokenDataAccess, RefreshTokenDataAccess>();
         services.AddScoped<IAuthenticationFlowService, AuthenticationFlowService>();
         services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();

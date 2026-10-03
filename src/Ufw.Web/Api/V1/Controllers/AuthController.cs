@@ -69,15 +69,18 @@ public sealed partial class AuthController(IAntiforgery antiforgery, IAuthentica
             return Unauthorized();
         }
 
-        if (!result.IdentityResult.Succeeded)
+        if (!result.Succeeded)
         {
-            Dictionary<string, string[]> errors = result.IdentityResult.Errors
-                .GroupBy(static error => string.Equals(error.Code, "PasswordMismatch", StringComparison.Ordinal)
-                    ? nameof(ChangePasswordRequest.CurrentPassword)
-                    : nameof(ChangePasswordRequest.NewPassword))
+            Dictionary<string, string[]> errors = result.ValidationErrors
+                .GroupBy(static error => error.Field switch
+                {
+                    PasswordChangeValidationField.CurrentPassword => nameof(ChangePasswordRequest.CurrentPassword),
+                    PasswordChangeValidationField.NewPassword => nameof(ChangePasswordRequest.NewPassword),
+                    _ => throw new InvalidOperationException($"Unsupported password-change validation field '{error.Field}'."),
+                })
                 .ToDictionary(
                     static group => group.Key,
-                    static group => group.Select(static error => error.Description).ToArray(),
+                    static group => group.Select(static error => error.ErrorMessage).ToArray(),
                     StringComparer.Ordinal);
             return ValidationProblem(new ValidationProblemDetails(errors)
             {
@@ -108,24 +111,9 @@ public sealed partial class AuthController(IAntiforgery antiforgery, IAuthentica
     private void SetRefreshTokenCookie(string token, DateTimeOffset expiresAt) => Response.Cookies.Append(
         _refreshTokenOptions.CookieName,
         token,
-        new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Path = "/",
-            Expires = expiresAt,
-            IsEssential = true,
-        });
+        RefreshTokenCookiePolicy.Create(expiresAt));
 
     private void DeleteRefreshTokenCookie() => Response.Cookies.Delete(
         _refreshTokenOptions.CookieName,
-        new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Path = "/",
-            IsEssential = true,
-        });
+        RefreshTokenCookiePolicy.Create());
 }

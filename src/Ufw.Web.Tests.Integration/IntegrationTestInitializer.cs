@@ -1,3 +1,4 @@
+using Ufw.Web.Data.Access.Auth;
 using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Data.Access.NetworkInterfaces;
 using Ufw.Web.Data.Access.Rules.Metadata;
@@ -72,7 +73,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<TimeProvider>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationTimeProvider>());
         services.AddSingleton<IJwtSigningKeyProvider, IntegrationJwtSigningKeyProvider>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IRefreshTokenDataAccess, RefreshTokenDataAccess>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
         services.AddScoped<AuthenticationFlowService>();
         services.AddScoped<AuthController>();

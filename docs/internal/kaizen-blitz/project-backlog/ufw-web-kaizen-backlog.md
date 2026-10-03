@@ -194,7 +194,7 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 
 **Problem:** The current `*Repository` classes successfully centralize most non-auth EF access, but they combine too many responsibilities: SQL construction, persistence mutation, projection, public response-envelope construction, feature-local error results, and usually a full-inventory re-query before a write transaction commits. At the same time, the shared `Ufw.Web.Model` data objects are already consumed directly by the Blazor client, so treating every repository projection as an HTTP DTO leak would drive the project toward a wasteful `EF entity -> DAL DTO -> application DTO -> response DTO` ladder.
 
-**Evidence:** `KnownHostRepository`, `NetworkInterfaceInventoryRepository`, `RuleGroupRepository`, `RuleTagRepository`, and `RuleTemplateRepository` all return `*InventoryResponse` objects directly; successful writes commonly call their full `GetCoreAsync` before commit. `RuleMetadataRepository` projects `RuleMetadataItem`/`RuleTagItem`/`RuleGroupSummary` that the client also uses directly. Conversely, all relational `*Entry` types are internal under `Data/Model`, so EF entities are already correctly hidden. `RefreshTokenService` is the notable direct-EF implementation still located under `Services/Auth` rather than an explicit data-access slice.
+**Historical evidence:** Before the vertical migrations, `KnownHostRepository`, `NetworkInterfaceInventoryRepository`, `RuleGroupRepository`, `RuleTagRepository`, and `RuleTemplateRepository` returned `*InventoryResponse` objects directly and commonly rebuilt a full inventory before commit. `RuleMetadataRepository` projected client-consumed models from the persistence layer, while `RefreshTokenService` was the notable direct-EF implementation still located under `Services/Auth`. Relational `*Entry` types themselves were already internal under `Data/Model`.
 
 **Refactor target:**
 
@@ -207,9 +207,9 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 7. Prefer direct EF projection into the shared domain/read model. Avoid tracked entity graphs and later in-memory projection unless persistence semantics actually require them.
 8. Add architectural/query-regression tests: direct `ApplicationDbContext`/EF usage outside the DAL should fail an architecture check, and representative list/mutation paths should have bounded SQL-command counts so N+1/materialization fan-out cannot quietly reappear.
 
-**W2.1/W2.3/W2.4 status:** Rule metadata, known hosts, and network interfaces now follow the final boundary. Their shared read models live under `Ufw.Shared.Management`; EF access is confined to the matching `Data/Access` slices; response envelopes compose shared models without clone DTOs; and write workflows return mutation facts/domain state before post-commit inventory reads. The overall KZ-01 item remains open until the auth slice and final architectural checks have migrated.
+**W2.1/W2.3/W2.4/W2.5 status:** Rule metadata, known hosts, network interfaces, and refresh-token persistence now follow the final boundary. Shared management read models live under `Ufw.Shared.Management`; EF access is confined to matching `Data/Access` slices; response envelopes compose shared models without clone DTOs; and write workflows return mutation facts/domain state before post-commit inventory reads. Auth deliberately remains an application workflow coordinator, but refresh-token EF access now lives under `Data/Access/Auth` and participates in the transaction context owned by that coordinator. The overall KZ-01 item remains open only for the final architectural/query-regression checks.
 
-**Primary files:** `Services/KnownHosts/IKnownHostRepository.cs`, `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/INetworkInterfaceInventoryRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/IRuleGroupRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/IRuleTagRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/IRuleTemplateRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/IRuleMetadataRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Services/Auth/RefreshTokenService.cs`; adjacent shared models under `Ufw.Shared.Management` and HTTP contracts under `Ufw.Web.Model`
+**Primary files:** `Data/Access/Auth/*`, `Data/Access/KnownHosts/*`, `Data/Access/NetworkInterfaces/*`, `Data/Access/Rules/Groups/*`, `Data/Access/Rules/Metadata/*`, `Data/Access/Rules/Tags/*`, `Data/Access/Rules/Templates/*`; adjacent shared models under `Ufw.Shared.Management` and HTTP contracts under `Ufw.Web.Model`
 
 ### KZ-23 [P1] Remove ceremonial application-service hops; keep coordinators only for real workflows
 
@@ -371,13 +371,15 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ### KZ-10 [P2] Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser`
 
-**Problem:** `AuthenticationFlowService` opens transaction scopes and calls `RefreshTokenService`, which independently opens transaction scopes. Correctness therefore depends on implicit/ambient Wkg transaction joining semantics. Several internal workflow contracts also expose `IdentityUser`/`IdentityResult`, binding orchestration to ASP.NET Identity implementation types.
+**Problem:** `AuthenticationFlowService` opened transaction scopes and called `RefreshTokenService`, which independently opened transaction scopes. Correctness therefore depended on implicit/ambient Wkg transaction joining semantics. Several workflow contracts also exposed `IdentityUser`/`IdentityResult`, binding orchestration to ASP.NET Identity implementation types.
 
-**Evidence:** Outer transaction scopes: `AuthenticationFlowService.cs:20,48,71,94`; nested refresh-token scopes: `RefreshTokenService.cs:24,49,114,136`. `RefreshTokenRotationResult` contains `IdentityUser`.
+**Historical evidence:** The pre-W2.5 `AuthenticationFlowService` owned outer transaction scopes while `RefreshTokenService` opened nested scopes for issue/rotation/revocation; `RefreshTokenRotationResult` carried an `IdentityUser` directly.
 
-**Refactor target:** Choose one transaction owner per auth use case and make nested persistence participate explicitly in that context. If Identity is intentionally permanent, keep the implementation coupling but internalize it; otherwise return a small authenticated-user projection instead of `IdentityUser`.
+**Refactor target:** Choose one transaction owner per auth use case and make nested persistence participate explicitly in that context. If Identity is intentionally permanent, keep the implementation coupling local to the auth implementation; otherwise return a small authenticated-user projection instead of `IdentityUser`.
 
-**Primary files:** `Services/Auth/AuthenticationFlowService.cs`, `Services/Auth/RefreshTokenService.cs`, `Services/Auth/IRefreshTokenService.cs`, `Services/Auth/IJwtTokenService.cs`, `Services/Auth/RefreshTokenRotationResult.cs`, `Services/Auth/PasswordChangeResult.cs`
+**Status:** Completed in W2.5. `AuthenticationFlowService` is the sole transaction owner for login, refresh, password change, and logout. `RefreshTokenDataAccess` receives that exact `ApplicationDbContext` explicitly and never opens a transaction of its own. Rotation returns only user ID plus replacement-token facts, while the workflow resolves `IdentityUser` only when Identity behavior is required. Password-change results no longer expose `IdentityResult`; Identity validation errors are translated into auth workflow validation fields before leaving the implementation boundary. Tests cover caller-owned rollback, committed failed-login state, replay-family invalidation, and rollback of an Identity password change when a later token-issuance step fails.
+
+**Primary files:** `Services/Auth/AuthenticationFlowService.cs`, `Data/Access/Auth/IRefreshTokenDataAccess.cs`, `Data/Access/Auth/RefreshTokenDataAccess.cs`, `Data/Access/Auth/RefreshTokenRotationResult.cs`, `Services/Auth/PasswordChangeResult.cs`
 
 ### KZ-11 [P2] Shrink accidental public surface area
 
@@ -387,7 +389,7 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Internalize application-only contracts/results. Keep controllers and genuinely external framework-facing types public where required. Narrow the CA1515 suppression to intentional exceptions rather than silencing the rule for the entire project.
 
-**Primary files:** `.editorconfig`, `Configuration/RefreshTokenOptions.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Auth/IAuthenticationFlowService.cs`, `Services/Auth/IAuthenticationTimingService.cs`, `Services/Auth/IJwtTokenService.cs`, `Services/Auth/IRefreshTokenService.cs`, `Services/Auth/AccessToken.cs`, `Services/Auth/AuthenticationTokenResult.cs`, `Services/Auth/PasswordChangeResult.cs`, `Services/Auth/RefreshTokenIssueResult.cs` and 11 more
+**Primary files:** `.editorconfig`, `Configuration/RefreshTokenOptions.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Auth/IAuthenticationFlowService.cs`, `Services/Auth/IAuthenticationTimingService.cs`, `Services/Auth/IJwtTokenService.cs`, `Services/Auth/AccessToken.cs`, `Services/Auth/AuthenticationTokenResult.cs`, `Services/Auth/PasswordChangeResult.cs`, `Services/Auth/PasswordChangeValidationError.cs`, `Services/Auth/PasswordChangeValidationField.cs` and other application-only contracts
 
 ### KZ-13 [P2] Retain user-owned interface metadata across transient disappearance
 
@@ -417,13 +419,15 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ### KZ-16 [P3] Extract auth cookie policy and Identity error mapping
 
-**Problem:** Refresh-cookie append/delete duplicate security options, and password-change field mapping is coupled to the literal Identity error code `"PasswordMismatch"`; every other Identity error is assumed to belong to `NewPassword`.
+**Problem:** Refresh-cookie append/delete duplicated security options, and password-change field mapping was coupled to the literal Identity error code `"PasswordMismatch"`; every other Identity error was assumed inline to belong to `NewPassword`.
 
-**Evidence:** Cookie duplication at `AuthController.cs:108-130`; string error-code mapping at `:74-81`.
+**Historical evidence:** The pre-W2.5 `AuthController` repeated `Secure`/`HttpOnly`/`SameSite`/path/essential cookie options and grouped `IdentityError` instances directly by their raw Identity error code.
 
-**Refactor target:** Use one refresh-cookie policy/factory for append/delete. Put Identity-to-API validation translation in a dedicated mapper with explicit mappings/fallback behavior.
+**Refactor target:** Use one refresh-cookie policy/factory for append/delete. Put Identity validation translation behind a dedicated mapper with explicit known mappings and fallback behavior.
 
-**Primary files:** `Api/V1/Controllers/AuthController.cs`
+**Status:** Completed in W2.5. `RefreshTokenCookiePolicy` is the single source of refresh-cookie security attributes for append/delete. `IdentityPasswordChangeErrorMapper` explicitly maps current-password and known replacement-password Identity codes and preserves the previous replacement-password fallback for provider-specific errors. `AuthController` consumes Identity-independent `PasswordChangeValidationError` values rather than inspecting `IdentityResult` or Identity error-code strings.
+
+**Primary files:** `Api/V1/Controllers/AuthController.cs`, `Services/Auth/RefreshTokenCookiePolicy.cs`, `Services/Auth/IdentityPasswordChangeErrorMapper.cs`, `Services/Auth/PasswordChangeResult.cs`
 
 ### KZ-17 [P3] Centralize daemon endpoint paths
 
@@ -487,7 +491,7 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 4. **Repair mutation/error and relationship plumbing:** KZ-22, then KZ-06 and KZ-08. Standardize persistence/application failures, consolidate tag/group relationship handling, and prevent semantic-rule-ID logic from drifting.
 5. **Collapse repetitive feature plumbing and close request validation:** KZ-07, then KZ-24 after the request-owning vertical slices have stabilized. Run the holistic DTO-validation audit before KZ-09 so the public error contract targets one final model-validation path.
 6. **Standardize public HTTP errors:** KZ-09 after KZ-24, KZ-22, and the daemon gateway are stable.
-7. **Composition and auth cleanup:** KZ-04, KZ-10, KZ-11, KZ-16, KZ-17. KZ-10 should move refresh-token EF work into the auth DAL slice established by KZ-01.
+7. **Composition and final surface cleanup:** auth KZ-10/KZ-16 and daemon-route KZ-17 are complete. Defer KZ-04/KZ-11 until registrations and public contracts stabilize, then close migration policy KZ-19 and optional declaration cleanup KZ-20.
 8. **Behavior/performance decisions:** KZ-13, KZ-18, KZ-19, and optionally KZ-20.
 
 ## Refactoring guardrails

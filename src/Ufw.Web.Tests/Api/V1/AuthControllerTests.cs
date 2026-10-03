@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -103,7 +102,7 @@ public sealed class AuthControllerTests
         AccessToken accessToken = new("replacement-access", DateTimeOffset.UtcNow.AddMinutes(5));
         AuthenticationTokenResult tokens = new(accessToken, "replacement-refresh", DateTimeOffset.UtcNow.AddDays(1));
         authentication.Setup(service => service.ChangePasswordAsync("user-id", "current", "replacement", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PasswordChangeResult(IdentityResult.Success, tokens));
+            .ReturnsAsync(new PasswordChangeResult([], tokens));
         AuthController controller = CreateController(authentication.Object);
         controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, "user-id")], "test"));
 
@@ -113,6 +112,29 @@ public sealed class AuthControllerTests
         AuthTokenResponse response = Assert.IsInstanceOfType<AuthTokenResponse>(ok.Value);
         Assert.AreEqual("replacement-access", response.AccessToken);
         StringAssert.Contains(AssertSingleRefreshCookie(controller), "replacement-refresh", StringComparison.Ordinal);
+    }
+
+
+    [TestMethod]
+    public async Task ChangePasswordAsync_WhenValidationFails_MapsValidationFieldsAsync()
+    {
+        Mock<IAuthenticationFlowService> authentication = new();
+        PasswordChangeValidationError[] validationErrors =
+        [
+            new(PasswordChangeValidationField.CurrentPassword, "Current password is incorrect."),
+            new(PasswordChangeValidationField.NewPassword, "Replacement password is too short."),
+        ];
+        authentication.Setup(service => service.ChangePasswordAsync("user-id", "current", "replacement", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PasswordChangeResult(validationErrors, Authentication: null));
+        AuthController controller = CreateController(authentication.Object);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, "user-id")], "test"));
+
+        IActionResult result = await controller.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), TestContext.CancellationToken);
+
+        ObjectResult problemResult = Assert.IsInstanceOfType<ObjectResult>(result);
+        ValidationProblemDetails problem = Assert.IsInstanceOfType<ValidationProblemDetails>(problemResult.Value);
+        CollectionAssert.AreEqual(new[] { "Current password is incorrect." }, problem.Errors[nameof(ChangePasswordRequest.CurrentPassword)]);
+        CollectionAssert.AreEqual(new[] { "Replacement password is too short." }, problem.Errors[nameof(ChangePasswordRequest.NewPassword)]);
     }
 
     [TestMethod]
