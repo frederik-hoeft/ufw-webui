@@ -8,6 +8,7 @@ using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
 
+using Ufw.Shared.Management.NetworkInterfaces;
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 
 internal sealed class RuleEditorReferenceDataService(

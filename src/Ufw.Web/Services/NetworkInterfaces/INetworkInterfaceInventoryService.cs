@@ -1,14 +1,18 @@
-﻿using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Shared.Management.NetworkInterfaces;
 
 namespace Ufw.Web.Services.NetworkInterfaces;
 
 public interface INetworkInterfaceInventoryService
 {
-    Task<NetworkInterfaceInventoryResponse> GetCachedAsync(CancellationToken cancellationToken = default);
+    Task<NetworkInterfaceInventorySnapshot> GetCachedAsync(CancellationToken cancellationToken = default);
 
-    Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default);
+    Task<NetworkInterfaceInventorySnapshot> ReconcileAsync(CancellationToken cancellationToken = default);
 
-    Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(Guid publicId, string? comment, CancellationToken cancellationToken = default);
+    Task<NetworkInterfaceInventorySnapshot?> UpdateCommentAsync(Guid publicId, string? comment, CancellationToken cancellationToken = default);
 
-    Task<NetworkInterfaceInventoryResponse?> UpdateVisibilityAsync(Guid publicId, bool isVisible, CancellationToken cancellationToken = default);
+    Task<NetworkInterfaceInventorySnapshot?> UpdateVisibilityAsync(Guid publicId, bool isVisible, CancellationToken cancellationToken = default);
+
+    Task<NetworkInterfaceCleanupResult> GetStaleAsync(CancellationToken cancellationToken = default);
+
+    Task<NetworkInterfaceCleanupResult> CleanupStaleAsync(IReadOnlyCollection<Guid> interfaceIds, CancellationToken cancellationToken = default);
 }

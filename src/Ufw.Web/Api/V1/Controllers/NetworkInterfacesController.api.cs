@@ -48,4 +48,22 @@ public sealed partial class NetworkInterfacesController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public partial Task<IActionResult> UpdateVisibilityAsync(Guid id, [FromBody] UpdateNetworkInterfaceVisibilityRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns retained metadata for interfaces that were absent from the last daemon reconciliation.
+    /// </summary>
+    [HttpGet("stale")]
+    [ProducesResponseType<NetworkInterfaceCleanupResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public partial Task<ActionResult<NetworkInterfaceCleanupResponse>> GetStaleAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Revalidates interface presence against the daemon and permanently removes selected metadata that is still stale.
+    /// </summary>
+    [HttpPost("stale/cleanup")]
+    [ProducesResponseType<NetworkInterfaceCleanupResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public partial Task<ActionResult<NetworkInterfaceCleanupResponse>> CleanupStaleAsync([FromBody] CleanupNetworkInterfacesRequest request, CancellationToken cancellationToken);
 }

@@ -31,7 +31,7 @@ The three source backlogs remain the authority for detailed evidence, affected f
 | Error/diagnostic contract | SYS KZ-012, KZ-020 | WEB KZ-22, KZ-02, KZ-15, KZ-09 | CLIENT KZ-11, KZ-19 | Daemon remote-error policy -> Web application/gateway error model -> public ProblemDetails -> client mapping/workflows |
 | REST validation and shared limits | Shared validator/model work; daemon may consume shared validators | WEB KZ-05, KZ-14 | CLIENT KZ-08, KZ-12 | Establish stable shared limits/validation identities before client authoring/localization cleanup |
 | Shared management-domain models / metadata | N/A | WEB KZ-01, KZ-06, KZ-23 | CLIENT KZ-06, KZ-08, KZ-17 | Web defines stable persistence-vs-domain-vs-transport roles -> client consumes the shared domain model directly |
-| Network-interface lifecycle | Daemon remains source of interface presence | WEB KZ-13 + KZ-01 interface slice | CLIENT KZ-10, KZ-19 | Decide persistence semantics on server before client inventory/reference-data state is refactored |
+| Network-interface lifecycle | Daemon remains source of interface presence | WEB KZ-13 + KZ-01 interface slice | CLIENT KZ-10, KZ-19, KZ-24 | W2.4 fixes retained-metadata/presence semantics and cleanup contracts before client inventory/reference-data/cleanup state is refactored |
 | Firewall semantic-domain algebra | PR #40 / `Ufw.Shared.Domain` is the shared foundation | Server should not reverse the Firewall -> Domain dependency | CLIENT KZ-02, then KZ-16 | PR #40 is merged; adapt the client to the shared semantic domain before filter micro-cleanup |
 
 ### Important overlap that should **not** become one shared abstraction
@@ -125,7 +125,7 @@ ASP is an aggregation/enrichment layer, so its biggest dependency is having a st
 Treat these as one architecture package rather than independent tickets:
 
 1. **WEB KZ-01 + KZ-05 + KZ-22 + KZ-23:** finalize persistence entities vs shared domain/read models vs HTTP envelopes; request DTO validation/mapping; common mutation errors; and the rule that application coordinators must earn their existence.
-2. **WEB KZ-13 decision before interface migration:** decide whether missing interfaces retain user metadata.
+2. **WEB KZ-13 decision before interface migration:** transiently missing interfaces retain application-owned metadata in a soft-deleted/non-present state; reappearance revives the same row, while permanent purge is explicit cleanup.
 3. **WEB KZ-02 + KZ-17:** introduce the final daemon gateway against the now-stable daemon transport/protocol; endpoint paths disappear inside it.
 4. **WEB KZ-03:** move signed daemon interpretation behind that gateway and pass domain reconciliation facts to metadata persistence.
 5. **WEB KZ-14 is resolved here through KZ-05**, not by adding another temporary outcome type.
@@ -149,11 +149,13 @@ W2.2 centralizes Web-side live semantic rule identity through `LiveRuleIdentityS
 
 W2.3 migrates known hosts onto the final shared-domain/DAL boundary. `KnownHostInventoryItem`, `KnownHostAddressSource`, and cross-layer limits now live under `Ufw.Shared.Management.KnownHosts`; EF access is confined to `Data/Access/KnownHosts`; `KnownHostService` remains the DNS/reconciliation coordinator; and successful writes perform the refreshed inventory read only after the DAL transaction commits. Trim-aware DTO validation now owns known-host name/comment shape, closing WEB KZ-14 without adding another mutation outcome. KZ-24 remains open for the API-wide request-validation audit.
 
+W2.4 migrates network interfaces onto the final shared-domain/DAL boundary and implements the KZ-13 retained-metadata lifecycle. `NetworkInterfaceInventoryItem`, inventory snapshots, and cross-layer limits live under `Ufw.Shared.Management.NetworkInterfaces`; EF access is confined to `Data/Access/NetworkInterfaces`; reconciliation marks missing interfaces non-present instead of deleting their application metadata; and reappearance revives the existing row/identity. Normal inventory remains present-only. Dedicated stale-read and cleanup contracts expose retained metadata for the deferred client cleanup flow, and permanent cleanup revalidates daemon presence before deleting selected rows that are still absent.
+
 Migrate slices against the W1 rules instead of doing horizontal repository rewrites:
 
 1. **Rules groups/tags/templates/metadata:** WEB KZ-06, KZ-07, KZ-08, KZ-18. KZ-07 follows KZ-22/KZ-23; KZ-06 is implemented directly in the final DAL; KZ-18 becomes a set-based final-DAL optimization.
 2. **Known hosts:** completed in W2.3: final DAL/shared-domain migration plus WEB KZ-14 regression coverage through trim-aware request validation.
-3. **Network interfaces:** implement the KZ-13 lifecycle decision in the final DAL/reconciliation design.
+3. **Network interfaces:** completed in W2.4: final DAL/shared-domain migration plus retained non-present metadata, present-only normal inventory, and race-safe stale cleanup contracts for deferred CLIENT KZ-24.
 4. **Auth:** WEB KZ-10 and KZ-16 together while moving refresh-token EF access behind the Auth DAL slice.
 5. **REST DTO validation audit:** WEB KZ-24 after the request-owning vertical slices are on their final boundaries. Audit all versioned request contracts and remove transport-shape checks from business/application logic before finalizing public error behavior.
 6. **Public errors:** WEB KZ-09 after KZ-22, KZ-24, and the daemon gateway are stable. Fold WEB KZ-15 into this work and preserve all same-property daemon validation messages.
@@ -320,7 +322,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | WEB KZ-09 | W2 | Standardize HTTP error shape and declared response contracts | Do after KZ-22 and KZ-02. Fold KZ-15 into this centralized error mapping rather than patching the old mapper first. |
 | [ ] | WEB KZ-10 | W2 | Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser` | Do as the Auth slice is moved behind KZ-01's DAL; choose transaction ownership once rather than moving RefreshTokenService twice. |
 | [ ] | WEB KZ-11 | W3 | Shrink accidental public surface area | Late cleanup after final service/DAL/gateway boundaries determine what truly needs to stay public. |
-| [ ] | WEB KZ-13 | W1 | Decide whether transient interface disappearance is allowed to erase user-owned metadata | Make the lifecycle decision before migrating the network-interface DAL and before the client inventory-page refactor. |
+| [x] | WEB KZ-13 | W1 | Decide whether transient interface disappearance is allowed to erase user-owned metadata | Completed in W2.4: missing interfaces retain public identity/comment/visibility as non-present rows; reappearance revives them; explicit cleanup revalidates daemon presence before hard deletion. |
 | [x] | WEB KZ-12 | W1 | Delete dead validation/signing implementations and minor stale code | Completed in W1.1 with narrowed scope: removed the unused RSA JWT key provider and stale group/tag repository imports. The reusable IPv4/port validation attributes and their tests are deliberately retained for KZ-05 request-DTO validation. |
 | [ ] | WEB KZ-16 | W2 | Extract auth cookie policy and Identity error mapping | Do with the Auth slice after KZ-10 establishes the final workflow/persistence boundary. |
 | [x] | WEB KZ-17 | W1 | Centralize daemon endpoint paths | Completed in W1.2.1: unsigned read/probe paths are private gateway details; signed mutation routes remain owned by shared request-message contracts. |

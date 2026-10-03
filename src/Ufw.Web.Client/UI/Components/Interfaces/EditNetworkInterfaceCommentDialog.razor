@@ -10,8 +10,8 @@
                       Label="@(InterfacesText["CommentColumn"])"
                       @bind-Value="_comment"
                       Immediate="true"
-                      Counter="200"
-                      MaxLength="200"
+                      Counter="@NetworkInterfaceLimits.MAX_COMMENT_LENGTH"
+                      MaxLength="@NetworkInterfaceLimits.MAX_COMMENT_LENGTH"
                       autofocus="true" />
     </DialogContent>
     <DialogActions>

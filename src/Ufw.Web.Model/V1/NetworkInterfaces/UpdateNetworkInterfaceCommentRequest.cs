@@ -1,11 +1,10 @@
-using System.ComponentModel.DataAnnotations;
+using Ufw.Shared.Management.NetworkInterfaces;
+using Ufw.Web.Model.Validation;
 
 namespace Ufw.Web.Model.V1.NetworkInterfaces;
 
 public sealed class UpdateNetworkInterfaceCommentRequest
 {
-    private const int MAX_COMMENT_LENGTH = 200;
-
-    [StringLength(MAX_COMMENT_LENGTH)]
+    [TrimmedStringLength(NetworkInterfaceLimits.MAX_COMMENT_LENGTH)]
     public string? Comment { get; init; }
 }

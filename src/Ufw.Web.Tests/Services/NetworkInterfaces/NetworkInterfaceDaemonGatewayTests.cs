@@ -2,7 +2,7 @@ using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Data.Model;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.NetworkInterfaces;
 
@@ -33,7 +33,7 @@ public sealed class NetworkInterfaceDaemonGatewayTests
             null,
             ["eno1", " "],
             ["eno1", "eno1"],
-            [new string('x', NetworkInterfaceEntry.MAX_NAME_LENGTH + 1)],
+            [new string('x', NetworkInterfaceLimits.MAX_NAME_LENGTH + 1)],
         ];
 
         foreach (IReadOnlyList<string>? names in invalid)

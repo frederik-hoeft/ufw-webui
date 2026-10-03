@@ -10,6 +10,7 @@ using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Features.Rules.Authoring;
 using Ufw.Web.Client.Services.Errors;
 
+using Ufw.Shared.Management.NetworkInterfaces;
 namespace Ufw.Web.Client.Tests.Features.Rules.Authoring;
 
 [TestClass]

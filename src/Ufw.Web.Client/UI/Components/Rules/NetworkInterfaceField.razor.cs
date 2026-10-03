@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Ufw.Web.Client.Api.NetworkInterfaces;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 
+using Ufw.Shared.Management.NetworkInterfaces;
 namespace Ufw.Web.Client.UI.Components.Rules;
 
 public sealed partial class NetworkInterfaceField

@@ -1,4 +1,4 @@
-namespace Ufw.Web.Model.V1.NetworkInterfaces;
+namespace Ufw.Shared.Management.NetworkInterfaces;
 
 public sealed class NetworkInterfaceInventoryItem
 {

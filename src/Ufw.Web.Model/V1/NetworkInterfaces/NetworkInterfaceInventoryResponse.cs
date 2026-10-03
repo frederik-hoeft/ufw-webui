@@ -1,3 +1,5 @@
+using Ufw.Shared.Management.NetworkInterfaces;
+
 namespace Ufw.Web.Model.V1.NetworkInterfaces;
 
 public sealed class NetworkInterfaceInventoryResponse

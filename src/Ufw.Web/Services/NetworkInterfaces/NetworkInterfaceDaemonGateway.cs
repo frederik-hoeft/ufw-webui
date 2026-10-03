@@ -1,7 +1,7 @@
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Data.Model;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.NetworkInterfaces;
@@ -33,7 +33,7 @@ internal sealed class NetworkInterfaceDaemonGateway(IUfwClient ufwClient) : INet
         {
             throw new DaemonInvalidResponseException("Daemon network-interface response contains an invalid interface name.");
         }
-        if (names.Any(static name => name.Length > NetworkInterfaceEntry.MAX_NAME_LENGTH))
+        if (names.Any(static name => name.Length > NetworkInterfaceLimits.MAX_NAME_LENGTH))
         {
             throw new DaemonInvalidResponseException("Daemon returned a network-interface name that exceeds the supported length.");
         }

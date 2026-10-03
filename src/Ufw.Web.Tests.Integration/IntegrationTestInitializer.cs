@@ -1,4 +1,5 @@
 using Ufw.Web.Data.Access.KnownHosts;
+using Ufw.Web.Data.Access.NetworkInterfaces;
 using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Data.Access.Rules.Groups;
@@ -87,8 +88,8 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
 
         services.AddScoped<IntegrationNetworkInterfaceDaemonGateway>();
         services.AddScoped<INetworkInterfaceDaemonGateway>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationNetworkInterfaceDaemonGateway>());
-        services.AddScoped<NetworkInterfaceInventoryRepository>();
-        services.AddScoped<INetworkInterfaceInventoryRepository>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceInventoryRepository>());
+        services.AddScoped<NetworkInterfaceDataAccess>();
+        services.AddScoped<INetworkInterfaceDataAccess>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceDataAccess>());
         services.AddScoped<NetworkInterfaceInventoryService>();
         services.AddScoped<INetworkInterfaceInventoryService>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceInventoryService>());
         services.AddScoped<IntegrationUfwClient>();

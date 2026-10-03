@@ -1,4 +1,5 @@
 using Ufw.Web.Data.Access.KnownHosts;
+using Ufw.Web.Data.Access.NetworkInterfaces;
 using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Data.Access.Rules.Templates;
@@ -89,7 +90,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddSingleton<IKnownHostDnsResolver, KnownHostDnsResolver>();
         services.AddScoped<IKnownHostService, KnownHostService>();
         services.AddScoped<INetworkInterfaceDaemonGateway, NetworkInterfaceDaemonGateway>();
-        services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();
+        services.AddScoped<INetworkInterfaceDataAccess, NetworkInterfaceDataAccess>();
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddSingleton<DaemonApiExceptionFilter>();
         services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();

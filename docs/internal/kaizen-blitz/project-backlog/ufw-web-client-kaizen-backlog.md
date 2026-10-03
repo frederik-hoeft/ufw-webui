@@ -534,6 +534,36 @@ Known-host refresh failures are effectively reduced to an empty/current fallback
 
 Return explicit load results/warnings for both reference-data sources and let `RuleEditor` decide how to present degraded authoring data. This also provides a natural place to remove repeated error-classification boilerplate.
 
+### KZ-24: Integrate stale network-interface metadata into the cleanup workflow
+
+**Where**
+
+- `UI/Pages/RuleMetadataManagement.razor(.cs)`
+- `UI/Components/Rules/Metadata/ReconcileRuleMetadataDialog.razor(.cs)`
+- `Features/NetworkInterfaces/NetworkInterfaceInventoryService.cs`
+- `Api/NetworkInterfaces/*`
+- interface/rule metadata localization resources
+
+**Problem**
+
+WEB KZ-13 is complete in W2.4: a temporarily missing daemon interface retains its application-owned public identity, comment, and visibility in a non-present row, while normal interface inventory remains present-only. The server exposes retained candidates via `GET /api/v1/network-interfaces/stale` and race-safe permanent cleanup via `POST /api/v1/network-interfaces/stale/cleanup`; cleanup revalidates daemon presence before hard deletion. The client already has an analogous rule-metadata reconciliation flow with refresh, selectable orphan rows, confirmation, and bulk cleanup, but that flow is currently rule-metadata-specific.
+
+**Refactor**
+
+Extend the management cleanup experience to surface stale network-interface metadata alongside orphaned rule metadata without forcing both domains into one REST DTO. Reuse the existing cleanup interaction pattern and the dialog/operation primitives produced by KZ-10/KZ-14. Show enough retained interface context to make deletion reviewable (at minimum name, comment, and visibility), allow selected stale rows to be permanently purged, and refresh candidates after cleanup. Interfaces that have reappeared must disappear from the stale candidate set and must not be deletable through a stale cleanup race.
+
+The normal `/interfaces` inventory and rule-editor reference data should continue to contain only currently present interfaces. The cleanup UI is management of retained application state, not another way to select stale interfaces for authoring.
+
+**Acceptance criteria**
+
+- stale interface metadata can be inspected and selectively purged from the same management cleanup flow/pattern used for orphaned rule metadata;
+- rule-metadata and interface cleanup may use separate API contracts/services underneath; presentation reuse must not create a generic cross-domain repository/API abstraction;
+- reappeared interfaces preserve their identity/metadata and are no longer cleanup candidates;
+- cleanup revalidates authoritative daemon presence and cannot delete an interface that became present after the candidate list was loaded;
+- localization and confirmation/selection behavior are covered alongside the existing cleanup UI.
+
+**Sequencing:** implement after KZ-10 and KZ-14 have established the shared inventory-operation and confirmation/dialog primitives, so this feature does not create another temporary cleanup shell.
+
 ---
 
 ## P3 findings
@@ -647,6 +677,7 @@ This wave deliberately attacks logic that can diverge semantically before moving
 2. KZ-13 SCSS ownership classification and menu primitive.
 3. KZ-14 dialog options/confirmation shell.
 4. KZ-10 inventory page shell/state cleanup.
+5. KZ-24 stale interface metadata cleanup integration.
 
 ### Wave 4: low-risk consolidation
 
