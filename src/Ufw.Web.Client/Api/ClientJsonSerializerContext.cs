@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Model.V1.RuleGroups;
@@ -17,6 +18,7 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(AuthTokenResponse))]
 [JsonSerializable(typeof(AntiforgeryTokenResponse))]
 [JsonSerializable(typeof(ApiProblemDetails))]
+[JsonSerializable(typeof(LegacyApiErrorMessage))]
 [JsonSerializable(typeof(KnownHostInventoryResponse))]
 [JsonSerializable(typeof(CreateKnownHostRequest))]
 [JsonSerializable(typeof(UpdateKnownHostRequest))]

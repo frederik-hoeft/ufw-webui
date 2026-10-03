@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization.Metadata;
 using System.Text.Json;
-using Ufw.Web.Client.Api;
+using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Client.Api;
 
@@ -68,27 +68,33 @@ internal static class HttpResponseMessageExtensions
     private static ApiRequestException CreateException(HttpResponseMessage response, ReadOnlySpan<byte> content)
     {
         string message = $"The API request failed with status {(int)response.StatusCode}.";
+        IReadOnlyList<ApiValidationError>? validationErrors = null;
         try
         {
             ApiProblemDetails? problem = JsonSerializer.Deserialize(content, ClientJsonSerializerContext.Default.ApiProblemDetails);
             if (problem is not null)
             {
-                if (problem.Errors is { Count: > 0 })
+                validationErrors = problem.ValidationErrors;
+                if (validationErrors is { Count: > 0 })
                 {
-                    string errors = string.Join(" ", problem.Errors.Values.SelectMany(static values => values));
+                    string errors = string.Join(" ", validationErrors.Select(static error => error.Message));
                     message = string.IsNullOrWhiteSpace(errors) ? message : errors;
                 }
                 else if (!string.IsNullOrWhiteSpace(problem.Detail))
                 {
                     message = problem.Detail;
                 }
-                else if (!string.IsNullOrWhiteSpace(problem.Message))
+                else
                 {
-                    message = problem.Message;
-                }
-                else if (!string.IsNullOrWhiteSpace(problem.Title))
-                {
-                    message = problem.Title;
+                    LegacyApiErrorMessage? legacy = JsonSerializer.Deserialize(content, ClientJsonSerializerContext.Default.LegacyApiErrorMessage);
+                    if (!string.IsNullOrWhiteSpace(legacy?.Message))
+                    {
+                        message = legacy.Message;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(problem.Title))
+                    {
+                        message = problem.Title;
+                    }
                 }
             }
         }
@@ -97,6 +103,11 @@ internal static class HttpResponseMessageExtensions
             // Preserve the status-based fallback for non-problem responses.
         }
 
-        return new ApiRequestException(response.StatusCode, message, response.RequestMessage?.Method, response.RequestMessage?.RequestUri);
+        return new ApiRequestException(
+            response.StatusCode,
+            message,
+            response.RequestMessage?.Method,
+            response.RequestMessage?.RequestUri,
+            validationErrors);
     }
 }

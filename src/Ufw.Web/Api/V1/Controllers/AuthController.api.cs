@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Security;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -46,7 +47,7 @@ public sealed partial class AuthController
     [Authorize]
     [HttpPost("password")]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public partial Task<IActionResult> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken);
 

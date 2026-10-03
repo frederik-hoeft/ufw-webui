@@ -9,6 +9,7 @@ using System.Security.Claims;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Configuration;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Security;
 using Ufw.Web.Services.Auth;
 
@@ -132,9 +133,16 @@ public sealed class AuthControllerTests
         IActionResult result = await controller.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), TestContext.CancellationToken);
 
         ObjectResult problemResult = Assert.IsInstanceOfType<ObjectResult>(result);
-        ValidationProblemDetails problem = Assert.IsInstanceOfType<ValidationProblemDetails>(problemResult.Value);
-        CollectionAssert.AreEqual(new[] { "Current password is incorrect." }, problem.Errors[nameof(ChangePasswordRequest.CurrentPassword)]);
-        CollectionAssert.AreEqual(new[] { "Replacement password is too short." }, problem.Errors[nameof(ChangePasswordRequest.NewPassword)]);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(problemResult.Value);
+        IReadOnlyList<ApiValidationError> errors = Assert.IsInstanceOfType<IReadOnlyList<ApiValidationError>>(
+            problem.Extensions[ApiProblemDetails.VALIDATION_ERRORS_PROPERTY]);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new ApiValidationError(nameof(ChangePasswordRequest.CurrentPassword), Code: null, "Current password is incorrect."),
+                new ApiValidationError(nameof(ChangePasswordRequest.NewPassword), Code: null, "Replacement password is too short."),
+            },
+            errors.ToArray());
     }
 
     [TestMethod]

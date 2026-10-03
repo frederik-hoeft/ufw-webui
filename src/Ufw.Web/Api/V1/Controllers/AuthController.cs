@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Services.Auth;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -71,21 +73,18 @@ public sealed partial class AuthController(IAntiforgery antiforgery, IAuthentica
 
         if (!result.Succeeded)
         {
-            Dictionary<string, string[]> errors = result.ValidationErrors
-                .GroupBy(static error => error.Field switch
-                {
-                    PasswordChangeValidationField.CurrentPassword => nameof(ChangePasswordRequest.CurrentPassword),
-                    PasswordChangeValidationField.NewPassword => nameof(ChangePasswordRequest.NewPassword),
-                    _ => throw new InvalidOperationException($"Unsupported password-change validation field '{error.Field}'."),
-                })
-                .ToDictionary(
-                    static group => group.Key,
-                    static group => group.Select(static error => error.ErrorMessage).ToArray(),
-                    StringComparer.Ordinal);
-            return ValidationProblem(new ValidationProblemDetails(errors)
-            {
-                Title = "Password change rejected.",
-            });
+            ApiValidationError[] validationErrors = result.ValidationErrors
+                .Select(static error => new ApiValidationError(
+                    error.Field switch
+                    {
+                        PasswordChangeValidationField.CurrentPassword => nameof(ChangePasswordRequest.CurrentPassword),
+                        PasswordChangeValidationField.NewPassword => nameof(ChangePasswordRequest.NewPassword),
+                        _ => throw new InvalidOperationException($"Unsupported password-change validation field '{error.Field}'."),
+                    },
+                    Code: null,
+                    error.ErrorMessage))
+                .ToArray();
+            return BadRequest(ApiProblemDetailsFactory.CreateValidation(validationErrors, "Password change rejected."));
         }
 
         AuthenticationTokenResult authentication = result.Authentication

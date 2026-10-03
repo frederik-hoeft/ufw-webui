@@ -186,9 +186,11 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 
 **Evidence:** `DaemonApiErrorMapper.cs:20-23` performs `problem.Errors[error.PropertyName] = [error.ErrorMessage]` for each error.
 
-**Refactor target:** Group validation errors by property and materialize every message, preserving deterministic order.
+**Refactor target:** Preserve every validation failure as an independent structured public entry rather than collapsing by property. Keep deterministic producer order and carry the stable machine-readable code when the daemon supplied one.
 
-**Primary files:** `Api/V1/Errors/DaemonApiErrorMapper.cs`
+**Status:** Completed in W2.7.1. Public validation failures now use an ordered `validationErrors` ProblemDetails extension. The daemon mapper copies every `ModelValidationError` entry independently, so repeated failures for one property no longer overwrite each other and S1 stable validation codes survive the HTTP boundary. Dedicated regression coverage locks down duplicate-property ordering and codes.
+
+**Primary files:** `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Api/V1/Errors/ApiProblemDetailsFactory.cs`, `Ufw.Web.Model/V1/Errors/*`
 
 ### KZ-01 [P1] Establish a domain-sliced DAL and distinguish persistence entities, shared domain models, and API envelopes
 
@@ -367,9 +369,11 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Evidence:** Anonymous rule errors at `RulesController.cs:41-43,58,77,96,122,141,161`; antiforgery empty 400 at `AntiforgeryValidationMiddleware.cs:19-23`; daemon error mapping can return 502 at `DaemonApiErrorMapper.cs:27-28`.
 
-**Refactor target:** Adopt one ProblemDetails-based public error policy, preferably through centralized exception/problem handling. Add response metadata/conventions so Swagger reflects gateway failures consistently.
+**Refactor target:** Adopt one ProblemDetails-based public error policy, preferably through centralized exception/problem handling. Add response metadata/conventions so Swagger reflects gateway failures consistently. Validation failures use an ordered structured collection rather than `ValidationProblemDetails.Errors`, allowing repeated property failures and stable validation identities to survive unchanged.
 
-**Primary files:** `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RulesController.api.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Security/AntiforgeryValidationMiddleware.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`
+**W2.7.1 status:** The validation half is complete. `Ufw.Web.Model` now defines the browser-visible ProblemDetails/validation DTOs; automatic MVC model-state failures, password-change validation, and daemon validation all emit the same `validationErrors` extension, and the client preserves those structured entries on `ApiRequestException`. Remaining work for W2.7.2 is to migrate anonymous `{ message }` payloads and empty application-generated errors to ProblemDetails and reconcile the endpoint/Swagger response declarations.
+
+**Primary files:** `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Security/AntiforgeryValidationMiddleware.cs`, `Api/V1/Errors/ApiProblemDetailsFactory.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Ufw.Web.Model/V1/Errors/*`
 
 ### KZ-10 [P2] Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser`
 

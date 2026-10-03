@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Api.V1.Errors;
@@ -13,37 +14,30 @@ internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
 
         if (daemonError.ValidationErrors is { Length: > 0 })
         {
-            ValidationProblemDetails problem = new()
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = daemonError.ResponseMessage ?? "One or more validation errors occurred.",
-            };
-            foreach (ModelValidationError error in daemonError.ValidationErrors)
-            {
-                problem.Errors[error.PropertyName] = [error.ErrorMessage];
-            }
+            ApiValidationError[] validationErrors = daemonError.ValidationErrors
+                .Select(static error => new ApiValidationError(error.PropertyName, error.Code, error.ErrorMessage))
+                .ToArray();
+            ProblemDetails problem = ApiProblemDetailsFactory.CreateValidation(validationErrors, daemonError.ResponseMessage);
             return new DaemonApiError(StatusCodes.Status400BadRequest, problem);
         }
 
         int statusCode = daemonError.StatusCode is >= 400 and <= 599 ? daemonError.StatusCode : StatusCodes.Status502BadGateway;
-        return new DaemonApiError(statusCode, CreateProblem(statusCode, daemonError.ResponseMessage));
+        return new DaemonApiError(statusCode, ApiProblemDetailsFactory.Create(statusCode, detail: daemonError.ResponseMessage));
     }
 
     public DaemonApiError MapUnavailable(UfwIpcError daemonError)
     {
         ArgumentNullException.ThrowIfNull(daemonError);
-        return new DaemonApiError(StatusCodes.Status502BadGateway, CreateProblem(StatusCodes.Status502BadGateway, daemonError.ResponseMessage));
+        return new DaemonApiError(
+            StatusCodes.Status502BadGateway,
+            ApiProblemDetailsFactory.Create(StatusCodes.Status502BadGateway, detail: daemonError.ResponseMessage));
     }
 
     public DaemonApiError MapInvalidResponse(DaemonInvalidResponseException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
-        return new DaemonApiError(StatusCodes.Status502BadGateway, CreateProblem(StatusCodes.Status502BadGateway, exception.Message));
+        return new DaemonApiError(
+            StatusCodes.Status502BadGateway,
+            ApiProblemDetailsFactory.Create(StatusCodes.Status502BadGateway, detail: exception.Message));
     }
-
-    private static ProblemDetails CreateProblem(int statusCode, string? detail) => new()
-    {
-        Status = statusCode,
-        Detail = detail,
-    };
 }

@@ -415,6 +415,8 @@ S1 has completed the provider-side dependency: shared firewall validation now re
 
 C1 should switch `RuleValidationMessageLocalizer` to key resources by the stable code and keep the English diagnostic only as fallback/debug text. Do not redefine the shared code vocabulary in the client.
 
+W2.7.1 completed the browser-visible transport dependency as well: the public ProblemDetails contract carries structured validation entries with the stable code, and `ApiRequestException.ValidationErrors` preserves them instead of flattening them to message text. C1 therefore does not need another HTTP parsing change before switching localization to the shared code.
+
 ### KZ-13: Reclassify non-isolated component SCSS and extract generic menu/control styles
 
 **Where**

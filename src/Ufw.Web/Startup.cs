@@ -8,6 +8,7 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -145,6 +146,8 @@ internal sealed class Startup : IAsyncStartupScript
             options.Cookie.Path = "/";
         });
         services.AddProblemDetails();
+        services.Configure<ApiBehaviorOptions>(options => options.InvalidModelStateResponseFactory = context =>
+            new BadRequestObjectResult(ApiProblemDetailsFactory.CreateValidation(context.ModelState)));
         services.AddControllers(options => options.Filters.AddService<DaemonApiExceptionFilter>());
         services.AddApiVersioning(options =>
             {
