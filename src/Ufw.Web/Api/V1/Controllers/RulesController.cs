@@ -9,7 +9,7 @@ using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventoryService inventory, IRuleMetadataService metadata, IDaemonApiErrorMapper daemonErrors) : ControllerBase
+public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRuleInventoryService inventory, IRuleMetadataService metadata, IDaemonApiErrorMapper daemonErrors) : ControllerBase
 {
     private const string METADATA_RECONCILIATION_FAILURE_DIAGNOSTIC =
         "Firewall rule replacement completed, but application metadata reconciliation failed. "
@@ -60,7 +60,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
 
         try
         {
-            RuleMutationResponse response = await ufwClient.SendAsync<AddRuleRequest, RuleMutationResponse>(request, cancellationToken);
+            RuleMutationResponse response = await daemonRules.AddRuleAsync(request, cancellationToken);
             return Ok(response);
         }
         catch (UfwIpcException exception)
@@ -79,7 +79,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
 
         try
         {
-            RuleInsertionResponse response = await ufwClient.SendAsync<InsertRuleRequest, RuleInsertionResponse>(request, cancellationToken);
+            RuleInsertionResponse response = await daemonRules.InsertRuleAsync(request, cancellationToken);
             return InsertionResult(response);
         }
         catch (UfwIpcException exception)
@@ -98,7 +98,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
 
         try
         {
-            RuleReplacementResponse firewall = await ufwClient.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, cancellationToken);
+            RuleReplacementResponse firewall = await daemonRules.ReplaceRuleAsync(request, cancellationToken);
             RuleReplacementMetadataReconciliationOutcome metadataOutcome = firewall.Outcome == RuleReplacementOutcome.Completed
                 ? await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None)
                 : RuleReplacementMetadataReconciliationOutcome.NotAttempted;
@@ -124,7 +124,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
 
         try
         {
-            RuleReorderResponse response = await ufwClient.SendAsync<ReorderRulesRequest, RuleReorderResponse>(request, cancellationToken);
+            RuleReorderResponse response = await daemonRules.ReorderRulesAsync(request, cancellationToken);
             return ReorderResult(response);
         }
         catch (UfwIpcException exception)
@@ -143,7 +143,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
 
         try
         {
-            RuleBatchDeleteResponse response = await ufwClient.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(request, cancellationToken);
+            RuleBatchDeleteResponse response = await daemonRules.BatchDeleteRulesAsync(request, cancellationToken);
             await metadata.ReconcileBatchDeleteAsync(response, CancellationToken.None);
             return BatchDeleteResult(response);
         }
@@ -163,7 +163,7 @@ public sealed partial class RulesController(IUfwClient ufwClient, IRuleInventory
 
         try
         {
-            RuleMutationResponse response = await ufwClient.SendAsync<DeleteRuleRequest, RuleMutationResponse>(request, cancellationToken);
+            RuleMutationResponse response = await daemonRules.DeleteRuleAsync(request, cancellationToken);
             if (!string.IsNullOrWhiteSpace(response.Rule.RuleId))
             {
                 await metadata.RemoveForDeletedRuleAsync(response.Rule.RuleId, CancellationToken.None);

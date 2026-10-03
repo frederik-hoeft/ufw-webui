@@ -18,7 +18,7 @@ public sealed class NetworkInterfacesControllerIntegrationTests : ControllerInte
     public Task ReconcileAndUpdateMetadataAsync_PersistsThroughControllerServiceAndRepositoryLayersAsync() =>
         UsingComponentAsync(async (controller, serviceProvider, cancellationToken) =>
         {
-            IntegrationDaemonNetworkInterfaceSource daemonSource = serviceProvider.GetRequiredService<IntegrationDaemonNetworkInterfaceSource>();
+            IntegrationNetworkInterfaceDaemonGateway daemonSource = serviceProvider.GetRequiredService<IntegrationNetworkInterfaceDaemonGateway>();
             IntegrationTimeProvider timeProvider = serviceProvider.GetRequiredService<IntegrationTimeProvider>();
             daemonSource.SetInterfaceNames("eno1", "enp4s0f2.1100");
             DateTimeOffset reconciledAt = new(2026, 9, 11, 16, 30, 0, TimeSpan.Zero);

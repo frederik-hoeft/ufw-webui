@@ -4,7 +4,7 @@ using Ufw.Web.Data.Model;
 namespace Ufw.Web.Services.NetworkInterfaces;
 
 internal sealed class NetworkInterfaceInventoryService(
-    IDaemonNetworkInterfaceSource daemonSource,
+    INetworkInterfaceDaemonGateway daemonGateway,
     INetworkInterfaceInventoryRepository repository,
     TimeProvider timeProvider) : INetworkInterfaceInventoryService
 {
@@ -13,7 +13,7 @@ internal sealed class NetworkInterfaceInventoryService(
 
     public async Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<string> currentNames = await daemonSource.GetInterfaceNamesAsync(cancellationToken);
+        IReadOnlyList<string> currentNames = await daemonGateway.GetInterfaceNamesAsync(cancellationToken);
         return await repository.ReconcileAsync(currentNames, timeProvider.GetUtcNow(), cancellationToken);
     }
 

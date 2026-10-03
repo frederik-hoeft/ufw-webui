@@ -4,11 +4,11 @@ using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleMetadataReconciliationService(IDaemonRuleSource daemonRules, IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
+internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemonRules, IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
 {
     public async Task<RuleMetadataReconciliationResponse> GetAsync(CancellationToken cancellationToken = default)
     {
-        RuleListResponse snapshot = await daemonRules.GetAsync(cancellationToken);
+        RuleListResponse snapshot = await daemonRules.GetRulesAsync(cancellationToken);
         IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);
         return BuildResponse(snapshot, metadata, removedCount: 0);
     }
@@ -22,7 +22,7 @@ internal sealed class RuleMetadataReconciliationService(IDaemonRuleSource daemon
         }
 
         Guid[] selectedIds = [.. request.MetadataIds.Distinct().Order()];
-        RuleListResponse snapshot = await daemonRules.GetAsync(cancellationToken);
+        RuleListResponse snapshot = await daemonRules.GetRulesAsync(cancellationToken);
         string[] liveRuleIds = GetLiveRuleIds(snapshot);
         int removedCount = await repository.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
         IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);

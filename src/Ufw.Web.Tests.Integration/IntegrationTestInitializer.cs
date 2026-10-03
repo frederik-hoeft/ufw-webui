@@ -83,8 +83,8 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IKnownHostService>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostService>());
         services.AddScoped<KnownHostsController>();
 
-        services.AddScoped<IntegrationDaemonNetworkInterfaceSource>();
-        services.AddScoped<IDaemonNetworkInterfaceSource>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationDaemonNetworkInterfaceSource>());
+        services.AddScoped<IntegrationNetworkInterfaceDaemonGateway>();
+        services.AddScoped<INetworkInterfaceDaemonGateway>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationNetworkInterfaceDaemonGateway>());
         services.AddScoped<NetworkInterfaceInventoryRepository>();
         services.AddScoped<INetworkInterfaceInventoryRepository>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceInventoryRepository>());
         services.AddScoped<NetworkInterfaceInventoryService>();
@@ -92,7 +92,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddScoped<IntegrationUfwClient>();
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
-        services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
+        services.AddScoped<IRuleDaemonGateway, RuleDaemonGateway>();
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
         services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();

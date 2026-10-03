@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Services.Intent;
 
 namespace Ufw.Web.Tests.Api.V1;
 
@@ -17,13 +17,13 @@ public sealed class IntentControllerTests
     [TestMethod]
     public async Task GetContextAsync_ForwardsDaemonContextAsync()
     {
-        Mock<IUfwClient> client = new();
+        Mock<IIntentDaemonGateway> daemonIntent = new();
         IntentContextResponse expected = new(1, "deployment-test");
-        client
-            .Setup(static c => c.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", It.IsAny<CancellationToken>()))
+        daemonIntent
+            .Setup(static c => c.GetContextAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        IntentController controller = CreateController(client.Object);
+        IntentController controller = CreateController(daemonIntent.Object);
         ActionResult<IntentContextResponse> result = await controller.GetContextAsync(TestContext.CancellationToken);
 
         OkObjectResult ok = (OkObjectResult)result.Result!;
@@ -33,21 +33,21 @@ public sealed class IntentControllerTests
     [TestMethod]
     public async Task GetContextAsync_MapsDaemonFailureAsync()
     {
-        Mock<IUfwClient> client = new();
-        client
-            .Setup(static c => c.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", It.IsAny<CancellationToken>()))
+        Mock<IIntentDaemonGateway> daemonIntent = new();
+        daemonIntent
+            .Setup(static c => c.GetContextAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UfwIpcException(StatusCodes.Status500InternalServerError, "context unavailable"));
 
-        IntentController controller = CreateController(client.Object);
+        IntentController controller = CreateController(daemonIntent.Object);
         ActionResult<IntentContextResponse> result = await controller.GetContextAsync(TestContext.CancellationToken);
 
         ObjectResult problem = (ObjectResult)result.Result!;
         Assert.AreEqual(StatusCodes.Status500InternalServerError, problem.StatusCode);
     }
 
-    private static IntentController CreateController(IUfwClient client)
+    private static IntentController CreateController(IIntentDaemonGateway daemonIntent)
     {
-        IntentController controller = new(client, new DaemonApiErrorMapper())
+        IntentController controller = new(daemonIntent, new DaemonApiErrorMapper())
         {
             ControllerContext = new ControllerContext
             {

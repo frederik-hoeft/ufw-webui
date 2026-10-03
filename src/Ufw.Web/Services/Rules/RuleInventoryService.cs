@@ -3,11 +3,11 @@ using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleInventoryService(IDaemonRuleSource daemonRules, IRuleMetadataRepository metadata, TimeProvider timeProvider) : IRuleInventoryService
+internal sealed class RuleInventoryService(IRuleDaemonGateway daemonRules, IRuleMetadataRepository metadata, TimeProvider timeProvider) : IRuleInventoryService
 {
     public async Task<RuleInventoryResponse> GetAsync(CancellationToken cancellationToken = default)
     {
-        RuleListResponse firewall = await daemonRules.GetAsync(cancellationToken);
+        RuleListResponse firewall = await daemonRules.GetRulesAsync(cancellationToken);
         DateTimeOffset capturedAt = timeProvider.GetUtcNow();
         string[] ruleIds = [.. firewall.Rules
             .Select(static rule => rule.RuleId)

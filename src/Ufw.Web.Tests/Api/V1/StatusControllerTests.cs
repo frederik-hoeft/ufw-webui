@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
-using Ufw.Shared.Ipc.Model;
+using Ufw.Web.Services.Status;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Api.V1.Errors;
 
@@ -16,24 +16,24 @@ public sealed class StatusControllerTests
     [TestMethod]
     public async Task GetStatusAsync_ForwardsDedicatedDaemonProbeAsync()
     {
-        Mock<IUfwClient> client = new();
-        client.Setup(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>()))
+        Mock<IStatusDaemonGateway> daemonStatus = new();
+        daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        StatusController controller = CreateController(client.Object);
+        StatusController controller = CreateController(daemonStatus.Object);
 
         IActionResult result = await controller.GetStatusAsync(TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<NoContentResult>(result);
-        client.Verify(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>()), Times.Once);
+        daemonStatus.Verify(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
     public async Task GetStatusAsync_MapsDaemonFailureAsync()
     {
-        Mock<IUfwClient> client = new();
-        client.Setup(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>()))
+        Mock<IStatusDaemonGateway> daemonStatus = new();
+        daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UfwIpcException(StatusCodes.Status503ServiceUnavailable, "daemon unavailable"));
-        StatusController controller = CreateController(client.Object);
+        StatusController controller = CreateController(daemonStatus.Object);
 
         IActionResult result = await controller.GetStatusAsync(TestContext.CancellationToken);
 
@@ -41,7 +41,7 @@ public sealed class StatusControllerTests
         Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, problem.StatusCode);
     }
 
-    private static StatusController CreateController(IUfwClient client) => new(client, new DaemonApiErrorMapper())
+    private static StatusController CreateController(IStatusDaemonGateway daemonStatus) => new(daemonStatus, new DaemonApiErrorMapper())
     {
         ControllerContext = new ControllerContext
         {

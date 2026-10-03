@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -8,7 +8,7 @@ using Ufw.Web.Services.NetworkInterfaces;
 namespace Ufw.Web.Tests.Services.NetworkInterfaces;
 
 [TestClass]
-public sealed class DaemonNetworkInterfaceSourceTests
+public sealed class NetworkInterfaceDaemonGatewayTests
 {
     [TestMethod]
     public async Task GetInterfaceNamesAsync_UsesExpectedDaemonEndpointAndReturnsOrdinalOrderingAsync()
@@ -16,9 +16,9 @@ public sealed class DaemonNetworkInterfaceSourceTests
         Mock<IUfwClient> client = new(MockBehavior.Strict);
         client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new NetworkInterfaceListResponse(["wlan0", "eno1", "docker0"]));
-        DaemonNetworkInterfaceSource source = new(client.Object);
+        NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        IReadOnlyList<string> result = await source.GetInterfaceNamesAsync();
+        IReadOnlyList<string> result = await gateway.GetInterfaceNamesAsync();
 
         CollectionAssert.AreEqual(new[] { "docker0", "eno1", "wlan0" }, result.ToArray());
         client.VerifyAll();
@@ -40,9 +40,9 @@ public sealed class DaemonNetworkInterfaceSourceTests
             Mock<IUfwClient> client = new();
             client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new NetworkInterfaceListResponse(names!));
-            DaemonNetworkInterfaceSource source = new(client.Object);
+            NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => source.GetInterfaceNamesAsync());
+            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => gateway.GetInterfaceNamesAsync());
         }
     }
 
@@ -52,9 +52,9 @@ public sealed class DaemonNetworkInterfaceSourceTests
         Mock<IUfwClient> client = new();
         client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new NetworkInterfaceListResponse(["eno1", "ENO1"]));
-        DaemonNetworkInterfaceSource source = new(client.Object);
+        NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        IReadOnlyList<string> result = await source.GetInterfaceNamesAsync();
+        IReadOnlyList<string> result = await gateway.GetInterfaceNamesAsync();
 
         CollectionAssert.AreEqual(new[] { "ENO1", "eno1" }, result.ToArray());
     }

@@ -184,9 +184,9 @@ public sealed class NetworkInterfaceInventoryServiceTests
             MutableTimeProvider clock = new(new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             ITransactionService<ApplicationDbContext> transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService<ApplicationDbContext>>();
-            DaemonNetworkInterfaceSource daemonSource = new(ufwClient.Object);
+            NetworkInterfaceDaemonGateway daemonGateway = new(ufwClient.Object);
             NetworkInterfaceInventoryRepository repository = new(transactionHandle);
-            NetworkInterfaceInventoryService service = new(daemonSource, repository, clock);
+            NetworkInterfaceInventoryService service = new(daemonGateway, repository, clock);
             return new TestHost(connection, serviceProvider, scope, ufwClient, clock, transactionService, service);
         }
 

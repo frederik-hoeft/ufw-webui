@@ -1,15 +1,17 @@
-﻿using Ufw.Ipc.Client;
+using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Services.NetworkInterfaces;
 
-internal sealed class DaemonNetworkInterfaceSource(IUfwClient ufwClient) : IDaemonNetworkInterfaceSource
+internal sealed class NetworkInterfaceDaemonGateway(IUfwClient ufwClient) : INetworkInterfaceDaemonGateway
 {
+    private const string NETWORK_INTERFACES_ROUTE = "/api/v1/network-interfaces";
+
     public async Task<IReadOnlyList<string>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
     {
-        NetworkInterfaceListResponse response = await ufwClient.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", cancellationToken);
+        NetworkInterfaceListResponse response = await ufwClient.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, NETWORK_INTERFACES_ROUTE, cancellationToken);
         return ValidateAndOrderNames(response.Interfaces);
     }
 

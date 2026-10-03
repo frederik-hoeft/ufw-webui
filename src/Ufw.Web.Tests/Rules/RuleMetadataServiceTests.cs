@@ -738,14 +738,14 @@ public sealed class RuleMetadataServiceTests
         private readonly SqliteConnection _connection;
         private readonly ServiceProvider _services;
         private readonly AsyncServiceScope _scope;
-        private readonly TestDaemonRuleSource _daemon;
+        private readonly TestRuleDaemonGateway _daemon;
         private readonly ApplicationDbContext _context;
 
         private TestHost(
             SqliteConnection connection,
             ServiceProvider services,
             AsyncServiceScope scope,
-            TestDaemonRuleSource daemon,
+            TestRuleDaemonGateway daemon,
             ApplicationDbContext context,
             RuleMetadataService metadata,
             RuleInventoryService inventory,
@@ -791,7 +791,7 @@ public sealed class RuleMetadataServiceTests
             ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync(cancellationToken);
 
-            TestDaemonRuleSource daemon = new();
+            TestRuleDaemonGateway daemon = new();
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             RuleMetadataRepository metadataRepository = new(transactionHandle);
             RuleGroupDataAccess groups = new(transactionHandle);
@@ -861,15 +861,27 @@ public sealed class RuleMetadataServiceTests
             return await _context.Set<RuleTagEntry>().CountAsync(cancellationToken);
         }
 
-        private sealed class TestDaemonRuleSource : IDaemonRuleSource
+        private sealed class TestRuleDaemonGateway : IRuleDaemonGateway
         {
             public RuleListResponse Response { get; set; } = new(true, [], TestFirewallConfiguration.Enabled);
 
-            public Task<RuleListResponse> GetAsync(CancellationToken cancellationToken = default)
+            public Task<RuleListResponse> GetRulesAsync(CancellationToken cancellationToken = default)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 return Task.FromResult(Response);
             }
+
+            public Task<RuleMutationResponse> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<RuleReplacementResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         }
 
         public async ValueTask DisposeAsync()

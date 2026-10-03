@@ -42,13 +42,13 @@ ASP is an **aggregation/enrichment layer**, not the sole producer of application
 | Area | Authoritative/source state | ASP-owned/enrichment state | Current composition path | Client-visible shape |
 |---|---|---|---|---|
 | Firewall rules | daemon `RuleListResponse` / `ListedFirewallRule` | PostgreSQL rule metadata (notes, tags, group) plus capture time | `RuleInventoryService` reads daemon snapshot, extracts rule IDs, queries metadata, builds `RuleInventoryResponse` | `RuleInventoryResponse` embeds the daemon firewall snapshot and metadata sidecar directly |
-| Rule mutations | signed daemon transaction requests/responses | best-effort metadata cleanup/replacement reconciliation | `RulesController` proxies `IUfwClient` directly and invokes metadata service where required | daemon response types are returned directly, except replacement adds metadata-reconciliation sidecar |
-| Network interfaces | daemon interface-name list | PostgreSQL public identity, comment, visibility, reconciliation timestamp | `NetworkInterfaceInventoryService` coordinates daemon source + repository | `NetworkInterfaceInventoryResponse` |
+| Rule mutations | signed daemon transaction requests/responses | best-effort metadata cleanup/replacement reconciliation | `RulesController` invokes `IRuleDaemonGateway` and metadata coordination where required | daemon response types are returned directly, except replacement adds metadata-reconciliation sidecar |
+| Network interfaces | daemon interface-name list | PostgreSQL public identity, comment, visibility, reconciliation timestamp | `NetworkInterfaceInventoryService` coordinates the network-interface daemon gateway + repository | `NetworkInterfaceInventoryResponse` |
 | Known hosts | PostgreSQL | DNS resolution/reconciliation state | `KnownHostService` coordinates DNS + repository | `KnownHostInventoryItem` collection |
 | Rule tags/groups/templates | PostgreSQL | none external; templates embed shared firewall specification | V1 controllers validate/map requests and call domain-sliced DAL components; DAL returns shared read models/mutation facts | `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem` collections inside V1 envelopes |
 | Rule metadata reconciliation | daemon live rule identities | PostgreSQL metadata rows | reconciliation service joins daemon identities with DB metadata in memory | orphan/reconciliation response |
 | Authentication | ASP.NET Identity + PostgreSQL refresh-token state | JWT/cookie policy | authentication flow + refresh-token service | auth token response |
-| Intent/status | daemon | none | controllers proxy daemon | daemon/shared response or no-content |
+| Intent/status | daemon | none | controllers invoke narrow intent/status daemon gateways | daemon/shared response or no-content |
 
 Two existing choices are important and should be preserved:
 
@@ -233,7 +233,9 @@ Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGr
 
 **Refactor target:** Introduce feature-oriented daemon gateways, especially an `IRuleMutationGateway`/`IRuleDaemonGateway`, plus small status/intent gateways if needed. Move protocol route selection and IPC calls there. Handle `UfwIpcException` and invalid daemon responses once through ASP.NET exception handling/filter middleware, leaving controllers to map domain outcomes only.
 
-**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Api/V1/Controllers/NetworkInterfacesController.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Rules/DaemonRuleSource.cs`, `Services/NetworkInterfaces/DaemonNetworkInterfaceSource.cs`
+**W1.2.1 status:** Gateway ownership is established. `IRuleDaemonGateway` owns authoritative rule reads and signed mutations; network-interface response validation is behind `INetworkInterfaceDaemonGateway`; status and intent use narrow dedicated gateways. Application controllers/services no longer depend on `IUfwClient`, and the unsigned rules/status/intent/network-interface paths are private gateway constants. Signed rule mutations continue to use the method/route already encoded by their shared request messages. Exception-to-HTTP mapping is intentionally unchanged and remains the W1.2.2 portion of KZ-02.
+
+**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Api/V1/Controllers/NetworkInterfacesController.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Rules/RuleDaemonGateway.cs`, `Services/NetworkInterfaces/NetworkInterfaceDaemonGateway.cs`
 
 ### KZ-03 [P1] Split rule metadata persistence reconciliation from signed daemon protocol parsing
 
@@ -409,7 +411,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Move routes into the daemon gateway/protocol client boundary. This naturally disappears if KZ-02 is implemented well.
 
-**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Services/Rules/DaemonRuleSource.cs`, `Services/NetworkInterfaces/DaemonNetworkInterfaceSource.cs`
+**Status:** Completed in W1.2.1. The four unsigned read/probe routes are private constants of their feature gateways. Signed rule-mutation routes are not duplicated in Web because their shared request-message types already own that protocol metadata.
+
+**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Services/Rules/RuleDaemonGateway.cs`, `Services/NetworkInterfaces/NetworkInterfaceDaemonGateway.cs`
 
 ### KZ-18 [P3] Tighten bulk persistence operations after the boundary refactor
 

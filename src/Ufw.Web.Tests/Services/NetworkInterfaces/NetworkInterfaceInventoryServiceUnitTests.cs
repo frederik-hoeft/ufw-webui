@@ -90,7 +90,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         public override DateTimeOffset GetUtcNow() => now;
     }
 
-    private sealed class RecordingDaemonSource(IReadOnlyList<string> interfaceNames) : IDaemonNetworkInterfaceSource
+    private sealed class RecordingDaemonSource(IReadOnlyList<string> interfaceNames) : INetworkInterfaceDaemonGateway
     {
         public Task<IReadOnlyList<string>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
         {

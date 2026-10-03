@@ -1,8 +1,8 @@
-﻿using Ufw.Web.Services.NetworkInterfaces;
+using Ufw.Web.Services.NetworkInterfaces;
 
 namespace Ufw.Web.Tests.Integration.Support;
 
-internal sealed class IntegrationDaemonNetworkInterfaceSource : IDaemonNetworkInterfaceSource
+internal sealed class IntegrationNetworkInterfaceDaemonGateway : INetworkInterfaceDaemonGateway
 {
     private IReadOnlyList<string> _interfaceNames = [];
 

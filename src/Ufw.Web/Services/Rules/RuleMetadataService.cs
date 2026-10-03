@@ -10,7 +10,7 @@ using Ufw.Web.Model.V1.Rules;
 namespace Ufw.Web.Services.Rules;
 
 internal sealed partial class RuleMetadataService(
-    IDaemonRuleSource daemonRules,
+    IRuleDaemonGateway daemonRules,
     IRuleMetadataRepository repository,
     IRuleMetadataValuesNormalizer metadataNormalizer,
     ILogger<RuleMetadataService> logger) : IRuleMetadataService
@@ -24,7 +24,7 @@ internal sealed partial class RuleMetadataService(
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata);
         }
 
-        RuleListResponse snapshot = await daemonRules.GetAsync(cancellationToken);
+        RuleListResponse snapshot = await daemonRules.GetRulesAsync(cancellationToken);
         bool exists = snapshot.Rules.Any(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal));
         if (!exists)
         {
