@@ -27,7 +27,7 @@ internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemo
         Guid[] selectedIds = [.. request.MetadataIds.Distinct().Order()];
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse snapshot = daemonResult.Result;
-        string[] liveRuleIds = GetLiveRuleIds(snapshot);
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(snapshot);
         int removedCount = await metadata.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
         IReadOnlyList<RuleMetadataItem> items = await metadata.GetAllAsync(cancellationToken);
         return BuildResponse(snapshot, items, removedCount);
@@ -35,17 +35,11 @@ internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemo
 
     private static RuleMetadataReconciliationResponse BuildResponse(RuleListResponse snapshot, IReadOnlyList<RuleMetadataItem> metadata, int removedCount)
     {
-        HashSet<string> liveRuleIds = GetLiveRuleIds(snapshot).ToHashSet(StringComparer.Ordinal);
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(snapshot);
         RuleMetadataItem[] orphans = [.. metadata
             .Where(item => !liveRuleIds.Contains(item.RuleId))
             .OrderBy(static item => item.RuleId, StringComparer.Ordinal)
             .ThenBy(static item => item.Id)];
         return new RuleMetadataReconciliationResponse { Orphans = orphans, RemovedCount = removedCount };
     }
-
-    private static string[] GetLiveRuleIds(RuleListResponse snapshot) => [.. snapshot.Rules
-        .Select(static rule => rule.RuleId)
-        .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
-        .Cast<string>()
-        .Distinct(StringComparer.Ordinal)];
 }

@@ -223,15 +223,10 @@ internal sealed class RuleMetadataDataAccess(ITransactionServiceHandle transacti
 
         return Transaction.Scoped.RunAsync<int>(async (context, transaction) =>
         {
-            RuleMetadataEntry[] metadata = await context.Set<RuleMetadataEntry>()
+            int removedCount = await context.Set<RuleMetadataEntry>()
                 .Where(entry => identities.Contains(entry.RuleId))
-                .ToArrayAsync(cancellationToken);
-            if (metadata.Length > 0)
-            {
-                context.RemoveRange(metadata);
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            return transaction.Commit(metadata.Length);
+                .ExecuteDeleteAsync(cancellationToken);
+            return transaction.Commit(removedCount);
         });
     }
 
@@ -255,13 +250,8 @@ internal sealed class RuleMetadataDataAccess(ITransactionServiceHandle transacti
                 query = query.Where(entry => !liveIdentities.Contains(entry.RuleId));
             }
 
-            RuleMetadataEntry[] metadata = await query.ToArrayAsync(cancellationToken);
-            if (metadata.Length > 0)
-            {
-                context.RemoveRange(metadata);
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            return transaction.Commit(metadata.Length);
+            int removedCount = await query.ExecuteDeleteAsync(cancellationToken);
+            return transaction.Commit(removedCount);
         });
     }
 

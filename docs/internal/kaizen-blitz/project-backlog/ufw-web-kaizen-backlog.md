@@ -349,7 +349,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Introduce a tiny domain helper/value set for live semantic identities and reuse it everywhere. It should own validity filtering, ordinal equality, set conversion, and deterministic ordering when needed.
 
-**Primary files:** `Services/Rules/RuleInventoryService.cs`, `Services/Rules/RuleMetadataReconciliationService.cs`, `Services/Rules/RuleMetadataService.cs`
+**Status:** Completed in W2.2. `LiveRuleIdentitySet` now owns extraction from authoritative daemon snapshots, filters null/whitespace identities, applies ordinal distinctness/membership, and enumerates deterministically. Inventory enrichment, metadata liveness/reconciliation, batch-delete cleanup, and replacement reconciliation all consume the same Web-domain identity semantics. The helper remains Web-local rather than forcing snapshot-consumption behavior into the shared daemon/client domain.
+
+**Primary files:** `Services/Rules/LiveRuleIdentitySet.cs`, `Services/Rules/RuleInventoryService.cs`, `Services/Rules/RuleMetadataReconciliationService.cs`, `Services/Rules/RuleMetadataService.cs`, `Services/Rules/RuleDaemonGateway.cs`
 
 ### KZ-09 [P2] Standardize HTTP error shape and declared response contracts
 
@@ -433,6 +435,8 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** After verifying cascade semantics, use `ExecuteDeleteAsync` or an equivalent set-based delete and return the affected-row count.
 
+**Status:** Completed in W2.2. `DeleteForRuleIdsAsync` and `DeleteUnmatchedAsync` now use `ExecuteDeleteAsync` against the final metadata DAL query and return the database-reported affected metadata-row count without materializing/tracking deletion worksets. Regression coverage verifies that database cascade deletion removes `RuleMetadataTagEntry` relations while preserving reusable tag rows.
+
 **Primary files:** `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`
 
 ### KZ-19 [P3-release-risk] Treat the description-length migration as explicitly destructive history
@@ -457,9 +461,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ### KZ-21 [P3-quick/perf] Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant
 
-**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. After the W1.1 catalog/template migrations and W2.1 metadata read migration, 6 `ToArrayAsync` call sites remain in `Ufw.Web`.
+**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. After the W1.1 catalog/template migrations, W2.1 metadata read migration, and W2.2 set-based metadata cleanup, 4 `ToArrayAsync` call sites remain in `Ufw.Web`.
 
-**Evidence:** Current uses remain in known hosts, network interfaces, rule metadata replacement/bulk-cleanup worksets, and rule-group inventory. The W1.1 template inventory read and W2.1 metadata read paths now project their final shared read models directly with `ToListAsync`; shared tag/group dependency resolution likewise uses `ToListAsync`. The surviving array uses still need the planned audit because some are mutation/entity worksets where an array may be locally reasonable while others only enumerate/project the result.
+**Evidence:** Current uses remain in known hosts, network interfaces, the rule metadata replacement workset, and rule-group inventory. The W1.1 template inventory read and W2.1 metadata read paths now project their final shared read models directly with `ToListAsync`; W2.2 removed both bulk-cleanup materializations by moving those deletes to `ExecuteDeleteAsync`; shared tag/group dependency resolution likewise uses `ToListAsync`. The surviving array uses still need the planned audit because some are mutation/entity worksets where an array may be locally reasonable while others only enumerate/project the result.
 
 **Refactor target:** Audit the surviving sites and use `ToListAsync` wherever the exact concrete collection type is immaterial. Retain `ToArrayAsync` only where an array is deliberately part of the local/API/domain contract or array semantics materially simplify subsequent work. Where KZ-01 removes whole-inventory re-queries entirely, delete the materialization rather than mechanically changing it.
 

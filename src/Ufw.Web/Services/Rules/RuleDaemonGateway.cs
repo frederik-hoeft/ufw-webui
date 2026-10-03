@@ -70,12 +70,13 @@ internal sealed partial class RuleDaemonGateway(IUfwClient ufwClient, ILogger<Ru
             {
                 throw new InvalidDataException("Completed rule replacement response identity does not match the signed replacement rule.");
             }
-            if (!response.FinalSnapshot.Rules.Any(rule => string.Equals(rule.RuleId, replacementRuleId, StringComparison.Ordinal)))
+            LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(response.FinalSnapshot);
+            if (!liveRuleIds.Contains(replacementRuleId))
             {
                 throw new InvalidDataException("Completed rule replacement response does not contain the confirmed replacement identity in its final snapshot.");
             }
 
-            bool originalRuleStillLive = response.FinalSnapshot.Rules.Any(rule => string.Equals(rule.RuleId, originalRuleId, StringComparison.Ordinal));
+            bool originalRuleStillLive = liveRuleIds.Contains(originalRuleId);
             RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, originalRuleStillLive);
             return new RuleReplacementReconciliationReady(facts);
         }

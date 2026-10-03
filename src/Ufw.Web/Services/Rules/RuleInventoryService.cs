@@ -13,12 +13,8 @@ internal sealed class RuleInventoryService(IRuleDaemonGateway daemonRules, IRule
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse firewall = daemonResult.Result;
         DateTimeOffset capturedAt = timeProvider.GetUtcNow();
-        string[] ruleIds = [.. firewall.Rules
-            .Select(static rule => rule.RuleId)
-            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
-            .Cast<string>()
-            .Distinct(StringComparer.Ordinal)];
-        IReadOnlyList<RuleMetadataItem> enrichment = await metadata.GetForRuleIdsAsync(ruleIds, cancellationToken);
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(firewall);
+        IReadOnlyList<RuleMetadataItem> enrichment = await metadata.GetForRuleIdsAsync(liveRuleIds, cancellationToken);
         return new RuleInventoryResponse { Firewall = firewall, Metadata = enrichment, CapturedAt = capturedAt };
     }
 }

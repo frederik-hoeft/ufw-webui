@@ -369,6 +369,58 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
+    public async Task BulkMetadataDeletes_ReportAffectedRowsAndCascadeTagRelationsAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:first", "sha256:second");
+        RuleTagItem tag = await host.CreateTagAsync("shared", "#112233", TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:first",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:second",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken);
+
+        int removedCount = await host.MetadataDataAccess.DeleteForRuleIdsAsync(
+            ["sha256:first", "sha256:missing"],
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(1, removedCount);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(1, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+        IReadOnlyList<RuleMetadataItem> remaining = await host.MetadataDataAccess.GetAllAsync(TestContext.CancellationToken);
+        Assert.AreEqual("sha256:second", remaining.Single().RuleId);
+    }
+
+    [TestMethod]
+    public async Task Reconciliation_CleanupSetDeleteReportsRowsAndCascadesTagRelationsAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live", "sha256:orphan");
+        RuleTagItem tag = await host.CreateTagAsync("shared", "#112233", TestContext.CancellationToken);
+        RuleMetadataItem live = (await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken)).Response!.Metadata!;
+        RuleMetadataItem orphan = (await host.Metadata.UpdateAsync(
+            "sha256:orphan",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken)).Response!.Metadata!;
+        host.SetRules("sha256:live");
+
+        RuleMetadataReconciliationResponse cleaned = await host.Reconciliation.CleanupAsync(
+            new CleanupRuleMetadataRequest { MetadataIds = [live.Id, orphan.Id] },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(1, cleaned.RemovedCount);
+        Assert.IsEmpty(cleaned.Orphans);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(1, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
     public async Task ReconcileBatchDelete_RemovesOnlyConfirmedSemanticIdsAbsentFromFinalSnapshotAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
@@ -693,6 +745,7 @@ public sealed class RuleMetadataServiceTests
             AsyncServiceScope scope,
             TestRuleDaemonGateway daemon,
             ApplicationDbContext context,
+            RuleMetadataDataAccess metadataDataAccess,
             RuleMetadataService metadata,
             RuleInventoryService inventory,
             RuleMetadataReconciliationService reconciliation,
@@ -704,12 +757,15 @@ public sealed class RuleMetadataServiceTests
             _scope = scope;
             _daemon = daemon;
             _context = context;
+            MetadataDataAccess = metadataDataAccess;
             Metadata = metadata;
             Inventory = inventory;
             Reconciliation = reconciliation;
             Groups = groups;
             Tags = tags;
         }
+
+        public RuleMetadataDataAccess MetadataDataAccess { get; }
 
         public RuleMetadataService Metadata { get; }
 
@@ -745,7 +801,7 @@ public sealed class RuleMetadataServiceTests
             RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
-            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, groups, tags);
+            return new TestHost(connection, serviceProvider, scope, daemon, context, metadataRepository, metadata, inventory, reconciliation, groups, tags);
         }
 
         public void SetRules(params string[] ruleIds)

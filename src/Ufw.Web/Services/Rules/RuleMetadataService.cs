@@ -25,7 +25,8 @@ internal sealed partial class RuleMetadataService(
 
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse snapshot = daemonResult.Result;
-        bool exists = snapshot.Rules.Any(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal));
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(snapshot);
+        bool exists = liveRuleIds.Contains(ruleId);
         if (!exists)
         {
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound);
@@ -91,11 +92,7 @@ internal sealed partial class RuleMetadataService(
             return;
         }
 
-        HashSet<string> liveRuleIds = response.FinalSnapshot.Rules
-            .Select(static rule => rule.RuleId)
-            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
-            .Select(static ruleId => ruleId!)
-            .ToHashSet(StringComparer.Ordinal);
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(response.FinalSnapshot);
         string[] confirmedDeletedRuleIds = response.Operations
             .Where(static operation => operation.Outcome is RuleBatchDeleteOperationOutcome.Deleted or RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure)
             .Select(static operation => operation.RuleId)
