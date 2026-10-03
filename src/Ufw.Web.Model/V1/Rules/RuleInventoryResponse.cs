@@ -1,3 +1,4 @@
+using Ufw.Shared.Management.Rules;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
 namespace Ufw.Web.Model.V1.Rules;

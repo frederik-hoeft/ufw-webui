@@ -1,11 +1,12 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
-
 using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleInventoryService(IRuleDaemonGateway daemonRules, IRuleMetadataRepository metadata, TimeProvider timeProvider) : IRuleInventoryService
+internal sealed class RuleInventoryService(IRuleDaemonGateway daemonRules, IRuleMetadataDataAccess metadata, TimeProvider timeProvider) : IRuleInventoryService
 {
     public async Task<RuleInventoryResponse> GetAsync(CancellationToken cancellationToken = default)
     {

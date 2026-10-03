@@ -1,3 +1,6 @@
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules;
 using Ufw.Shared.Management.Rules;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -63,9 +66,9 @@ public sealed class RuleGroupsControllerIntegrationTests : ControllerIntegration
             IActionResult createResult = await controller.CreateAsync(new CreateRuleGroupRequest { Name = "Batch" }, cancellationToken);
             RuleGroupItem group = Assert.IsInstanceOfType<RuleGroupInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(createResult).Value).Groups.Single();
 
-            IRuleMetadataRepository metadata = serviceProvider.GetRequiredService<IRuleMetadataRepository>();
-            RuleMetadataSaveResult saved = await metadata.SaveAsync("sha256:member", new RuleMetadataValues(Notes: null, TagIds: [], GroupId: group.Id), cancellationToken);
-            Assert.AreEqual(RuleMetadataSaveOutcome.Success, saved.Outcome);
+            IRuleMetadataDataAccess metadata = serviceProvider.GetRequiredService<IRuleMetadataDataAccess>();
+            DataMutationResult<RuleMetadataItem?> saved = await metadata.SaveAsync("sha256:member", new RuleMetadataValues(Notes: null, TagIds: [], GroupId: group.Id), cancellationToken);
+            Assert.IsTrue(saved.IsSuccess);
 
             ActionResult<RuleGroupInventoryResponse> inventoryResult = await controller.GetAsync(cancellationToken);
             RuleGroupInventoryResponse inventory = Assert.IsInstanceOfType<RuleGroupInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(inventoryResult.Result).Value);

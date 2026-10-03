@@ -1,18 +1,19 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Model.V1.Rules;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemonRules, IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
+internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemonRules, IRuleMetadataDataAccess metadata) : IRuleMetadataReconciliationService
 {
     public async Task<RuleMetadataReconciliationResponse> GetAsync(CancellationToken cancellationToken = default)
     {
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse snapshot = daemonResult.Result;
-        IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);
-        return BuildResponse(snapshot, metadata, removedCount: 0);
+        IReadOnlyList<RuleMetadataItem> items = await metadata.GetAllAsync(cancellationToken);
+        return BuildResponse(snapshot, items, removedCount: 0);
     }
 
     public async Task<RuleMetadataReconciliationResponse> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken = default)
@@ -27,9 +28,9 @@ internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemo
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse snapshot = daemonResult.Result;
         string[] liveRuleIds = GetLiveRuleIds(snapshot);
-        int removedCount = await repository.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
-        IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);
-        return BuildResponse(snapshot, metadata, removedCount);
+        int removedCount = await metadata.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
+        IReadOnlyList<RuleMetadataItem> items = await metadata.GetAllAsync(cancellationToken);
+        return BuildResponse(snapshot, items, removedCount);
     }
 
     private static RuleMetadataReconciliationResponse BuildResponse(RuleListResponse snapshot, IReadOnlyList<RuleMetadataItem> metadata, int removedCount)

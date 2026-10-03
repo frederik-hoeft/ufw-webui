@@ -143,6 +143,8 @@ W1.3 completes WEB KZ-03. Signed rule-replacement interpretation now belongs to 
 
 #### W2 - Vertical DAL/workflow migrations and public error contract
 
+W2.1 starts with the remaining rule-metadata persistence boundary. `RuleMetadataItem` now lives with the other pure rule-management read models in `Ufw.Shared.Management.Rules`; metadata EF access is confined to `Data/Access/Rules/Metadata` and projects reads directly into that shared model. Metadata and templates now share one persistence-level tag/group dependency resolver plus one tag-relation diff synchronizer, closing WEB KZ-06 without a generic repository hierarchy. Metadata persistence also consumes the common typed `DataMutationError` vocabulary through payload-bearing `DataMutationResult<T>`, while the higher-level metadata workflow remains responsible for daemon liveness and best-effort post-firewall reconciliation.
+
 Migrate slices against the W1 rules instead of doing horizontal repository rewrites:
 
 1. **Rules groups/tags/templates/metadata:** WEB KZ-06, KZ-07, KZ-08, KZ-18. KZ-07 follows KZ-22/KZ-23; KZ-06 is implemented directly in the final DAL; KZ-18 becomes a set-based final-DAL optimization.
@@ -307,7 +309,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | WEB KZ-05 | W1 | Move REST request-shape validation out of business services and formalize request-to-domain mapping | Co-design with KZ-01. Resolve KZ-14 here rather than introducing a temporary known-host outcome that is removed later. |
 | [ ] | WEB KZ-24 | W2 | Audit REST DTO validation and eliminate transport-shape checks from application logic | Dedicated closure pass after known-host/network-interface/auth/rule-metadata request boundaries stabilize and before KZ-09; move/rework reusable validation attributes into a DTO-consumable layer as needed. |
 | [ ] | WEB KZ-04 | W3 | Decompose `Startup` into feature registration and startup lifecycle units | Do late, after DAL/gateway/coordinator registrations stabilize; otherwise Startup would be decomposed twice. |
-| [ ] | WEB KZ-06 | W2 | Unify rule metadata/template tag and group dependency handling | Implement while migrating metadata/templates into the final DAL; do not extract helpers from the legacy repositories first. |
+| [x] | WEB KZ-06 | W2 | Unify rule metadata/template tag and group dependency handling | Completed in W2.1: metadata/templates share persistence dependency resolution and tag-relation diffing in the final rules DAL, while retaining explicit slice-specific data-access operations. |
 | [ ] | WEB KZ-22 | W1 | Standardize mutation/error propagation instead of feature-local outcome plumbing for common failures | Design alongside KZ-01 because DAL mutation signatures depend on the common error/result model; KZ-09 consumes the result. |
 | [ ] | WEB KZ-07 | W2 | Reduce rule-group/rule-tag catalog copy-paste without generic-controller overengineering | Do after KZ-22 and KZ-23. Much of the current duplication disappears when local mutation enums and ceremonial services disappear. |
 | [ ] | WEB KZ-08 | W2 | Centralize semantic rule-ID extraction from daemon snapshots | Do after KZ-02/KZ-03 establish the final daemon snapshot boundary; align semantics with the client snapshot work without forcing one cross-process abstraction. |

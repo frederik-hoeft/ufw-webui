@@ -1,3 +1,7 @@
+using Ufw.Web.Data.Access;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules;
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,10 +53,10 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
 
         await UsingComponentAsync(replacementRequest, async (controller, request, serviceProvider, cancellationToken) =>
         {
-            IRuleMetadataRepository metadata = serviceProvider.GetRequiredService<IRuleMetadataRepository>();
-            RuleMetadataSaveResult saved = await metadata.SaveAsync(originalRuleId, new RuleMetadataValues("source", [], GroupId: null), cancellationToken);
-            Assert.AreEqual(RuleMetadataSaveOutcome.Success, saved.Outcome);
-            Assert.IsNotNull(saved.Metadata);
+            IRuleMetadataDataAccess metadata = serviceProvider.GetRequiredService<IRuleMetadataDataAccess>();
+            DataMutationResult<RuleMetadataItem?> saved = await metadata.SaveAsync(originalRuleId, new RuleMetadataValues("source", [], GroupId: null), cancellationToken);
+            Assert.IsTrue(saved.IsSuccess);
+            Assert.IsNotNull(saved.Value);
 
             IntegrationUfwClient daemon = serviceProvider.GetRequiredService<IntegrationUfwClient>();
             ListedFirewallRule replacement = new()
@@ -81,7 +85,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             IReadOnlyList<RuleMetadataItem> reconciled = await metadata.GetForRuleIdsAsync([originalRuleId, replacementRuleId], cancellationToken);
             Assert.HasCount(1, reconciled);
             Assert.AreEqual(replacementRuleId, reconciled[0].RuleId);
-            Assert.AreEqual(saved.Metadata.Id, reconciled[0].Id);
+            Assert.AreEqual(saved.Value.Id, reconciled[0].Id);
             Assert.AreEqual("source", reconciled[0].Notes);
         }, TestContext.CancellationToken);
     }

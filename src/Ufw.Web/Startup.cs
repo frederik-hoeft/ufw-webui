@@ -28,6 +28,7 @@ using Wkg.AspNetCore.ErrorHandling;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
 using Wkg.EntityFrameworkCore.Configuration;
+using Ufw.Web.Data.Access.Rules.Metadata;
 
 namespace Ufw.Web;
 
@@ -94,7 +95,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<IRuleDaemonGateway, RuleDaemonGateway>();
         services.AddScoped<IStatusDaemonGateway, StatusDaemonGateway>();
         services.AddScoped<IIntentDaemonGateway, IntentDaemonGateway>();
-        services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleMetadataDataAccess, RuleMetadataDataAccess>();
         services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
         services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();

@@ -1,3 +1,7 @@
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
@@ -15,7 +19,7 @@ public sealed class RuleInventoryServiceTests
         DateTimeOffset capturedAt = new(2026, 9, 25, 15, 30, 0, TimeSpan.Zero);
         RuleListResponse firewall = new(Active: true, [], TestFirewallConfiguration.Enabled);
         TestRuleDaemonGateway daemon = new(firewall);
-        TestRuleMetadataRepository metadata = new();
+        TestRuleMetadataDataAccess metadata = new();
         RuleInventoryService service = new(daemon, metadata, new TestTimeProvider(capturedAt));
 
         RuleInventoryResponse response = await service.GetAsync();
@@ -46,7 +50,7 @@ public sealed class RuleInventoryServiceTests
         public Task<DaemonResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
-    private sealed class TestRuleMetadataRepository : IRuleMetadataRepository
+    private sealed class TestRuleMetadataDataAccess : IRuleMetadataDataAccess
     {
         public IReadOnlyCollection<string> LastRuleIds { get; private set; } = [];
 
@@ -59,7 +63,7 @@ public sealed class RuleInventoryServiceTests
 
         public Task<IReadOnlyList<RuleMetadataItem>> GetAllAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DataMutationResult<RuleMetadataItem?>> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(
             string originalRuleId,

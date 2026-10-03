@@ -205,6 +205,8 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 7. Prefer direct EF projection into the shared domain/read model. Avoid tracked entity graphs and later in-memory projection unless persistence semantics actually require them.
 8. Add architectural/query-regression tests: direct `ApplicationDbContext`/EF usage outside the DAL should fail an architecture check, and representative list/mutation paths should have bounded SQL-command counts so N+1/materialization fan-out cannot quietly reappear.
 
+**W2.1 status:** Rule metadata now follows the final boundary: `RuleMetadataItem` lives in `Ufw.Shared.Management.Rules`, `RuleMetadataDataAccess` lives under `Data/Access/Rules/Metadata`, read paths project directly from EF into the shared model, and response envelopes continue to compose that model without a clone DTO. The overall KZ-01 item remains open until the remaining known-host/network-interface/auth slices and the final architectural checks have migrated.
+
 **Primary files:** `Services/KnownHosts/IKnownHostRepository.cs`, `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/INetworkInterfaceInventoryRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/IRuleGroupRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/IRuleTagRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/IRuleTemplateRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/IRuleMetadataRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Services/Auth/RefreshTokenService.cs`; adjacent shared models under `Ufw.Shared.Management` and HTTP contracts under `Ufw.Web.Model`
 
 ### KZ-23 [P1] Remove ceremonial application-service hops; keep coordinators only for real workflows
@@ -309,7 +311,9 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 **Refactor target:** Extract a persistence-level metadata dependency resolver and reusable tag-relation synchronizer. Reuse one tag/group domain projection. Preserve explicit repository methods rather than introducing a deep generic repository hierarchy.
 
-**Primary files:** `Services/Rules/RuleMetadataRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`
+**W2.1 status:** Completed. `RuleManagementDependencyResolver` resolves stable tag/group identities for both live-rule metadata and templates and returns the existing payload-bearing `RuleTagsNotFoundError`/`RuleGroupNotFoundError` variants. `RuleTagRelationSynchronizer` performs one relation diff algorithm for both `RuleMetadataTagEntry` and `RuleTemplateTagEntry`; metadata no longer deletes and reinserts unchanged tag relations. Both read paths project directly into the same `Ufw.Shared.Management.Rules` tag/group models. The small inline constructors remain inside EF projections because introducing expression-splicing infrastructure solely to share those constructors would make SQL translation and review less transparent.
+
+**Primary files:** `Data/Access/Rules/RuleManagementDependencyResolver.cs`, `Data/Access/Rules/RuleTagRelationSynchronizer.cs`, `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`, `Data/Access/Rules/Templates/RuleTemplateDataAccess.cs`
 
 ### KZ-22 [P2] Standardize mutation/error propagation instead of feature-local outcome plumbing for common failures
 
@@ -322,6 +326,8 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 Avoid an untyped exception-driven API or one giant catch-all enum. The goal is standard error categories plus optional typed domain details, not loss of semantic information.
 
 **W1.1 status:** The group/tag/template slices now use shared `DataMutationResult` plus typed errors. Common not-found, unique-conflict, and reference-conflict cases remain payloadless markers; template dependency lookup adds payload-bearing `RuleTagsNotFoundError`/`RuleGroupNotFoundError` variants so the error hierarchy preserves exact domain context rather than acting as an enum in disguise. PostgreSQL unique/FK exceptions are translated through `DbUpdateExceptionExtensions`; operation-specific catch filters avoid consuming unrelated storage failures. Other Web slices still carry their legacy outcome vocabularies and migrate later, so KZ-22 remains open globally.
+
+**W2.1 status:** Rule metadata persistence now uses the same error family and a payload-bearing `DataMutationResult<RuleMetadataItem?>`; successful clears deliberately carry `null`, while successful upserts carry the resulting shared domain item. Missing tag/group dependencies retain their typed payloads, and a concurrent FK/reference failure remains a generic `DataMutationReferenceConflictError`. The higher-level metadata workflow still exposes its existing endpoint-oriented outcome for now, so KZ-22 remains open until the remaining vertical slices/public error boundary are migrated.
 
 **Primary files:** `Data/Extensions/DbUpdateExceptionExtensions.cs`, `Services/Rules/RuleGroupMutationOutcome.cs`, `Services/Rules/RuleGroupMutationResult.cs`, `Services/Rules/RuleTagMutationOutcome.cs`, `Services/Rules/RuleTagMutationResult.cs`, `Services/Rules/RuleTemplateMutationOutcome.cs`, `Services/Rules/RuleTemplateMutationResult.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Api/V1/Controllers/RuleTemplatesController.cs`
 
@@ -423,11 +429,11 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Problem:** Bulk metadata cleanup first loads entities and then `RemoveRange`s them. This adds tracking/materialization overhead for operations whose result only needs a count.
 
-**Evidence:** `RuleMetadataRepository.cs:206-217` and `:231-247`.
+**Evidence:** `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs` still materializes rows before `RemoveRange` in `DeleteForRuleIdsAsync` and `DeleteUnmatchedAsync`.
 
 **Refactor target:** After verifying cascade semantics, use `ExecuteDeleteAsync` or an equivalent set-based delete and return the affected-row count.
 
-**Primary files:** `Services/Rules/RuleMetadataRepository.cs`
+**Primary files:** `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`
 
 ### KZ-19 [P3-release-risk] Treat the description-length migration as explicitly destructive history
 
@@ -451,13 +457,13 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ### KZ-21 [P3-quick/perf] Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant
 
-**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. After the W1.1 catalog/template migrations, 10 `ToArrayAsync` call sites remain in `Ufw.Web`.
+**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. After the W1.1 catalog/template migrations and W2.1 metadata read migration, 6 `ToArrayAsync` call sites remain in `Ufw.Web`.
 
-**Evidence:** Current uses remain in known hosts, network interfaces, rule metadata, rule-group inventory, and template dependency resolution. The W1.1 template inventory read no longer materializes `RuleTemplateEntry` objects and then projects them offline: it now projects `RuleTemplateItem` (including tags/group) in the EF query and materializes the final read model directly. The surviving array uses still need the planned audit because some are dependency/entity worksets where an array may be locally reasonable while others only enumerate/project the result.
+**Evidence:** Current uses remain in known hosts, network interfaces, rule metadata replacement/bulk-cleanup worksets, and rule-group inventory. The W1.1 template inventory read and W2.1 metadata read paths now project their final shared read models directly with `ToListAsync`; shared tag/group dependency resolution likewise uses `ToListAsync`. The surviving array uses still need the planned audit because some are mutation/entity worksets where an array may be locally reasonable while others only enumerate/project the result.
 
 **Refactor target:** Audit the surviving sites and use `ToListAsync` wherever the exact concrete collection type is immaterial. Retain `ToArrayAsync` only where an array is deliberately part of the local/API/domain contract or array semantics materially simplify subsequent work. Where KZ-01 removes whole-inventory re-queries entirely, delete the materialization rather than mechanically changing it.
 
-**Primary files:** `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Data/Access/Rules/Groups/RuleGroupDataAccess.cs`, `Data/Access/Rules/Templates/RuleTemplateDataAccess.cs`
+**Primary files:** `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`, `Data/Access/Rules/Groups/RuleGroupDataAccess.cs`
 
 ## Recommended blitz sequence
 

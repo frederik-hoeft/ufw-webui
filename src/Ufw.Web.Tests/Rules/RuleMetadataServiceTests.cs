@@ -1,3 +1,5 @@
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Data.Access.Rules.Tags;
@@ -130,6 +132,35 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task Update_TagChangesPreserveUnchangedRelationAndDiffOnlyChangedMembershipAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live");
+        RuleTagItem retained = await host.CreateTagAsync("retained", "#112233", TestContext.CancellationToken);
+        RuleTagItem removed = await host.CreateTagAsync("removed", "#223344", TestContext.CancellationToken);
+        RuleTagItem added = await host.CreateTagAsync("added", "#334455", TestContext.CancellationToken);
+
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [retained.Id, removed.Id] },
+            TestContext.CancellationToken);
+        IReadOnlyDictionary<Guid, long> before = await host.MetadataTagRelationIdsAsync("sha256:live", TestContext.CancellationToken);
+
+        RuleMetadataUpdateResult updated = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [retained.Id, added.Id] },
+            TestContext.CancellationToken);
+        IReadOnlyDictionary<Guid, long> after = await host.MetadataTagRelationIdsAsync("sha256:live", TestContext.CancellationToken);
+
+        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, updated.Outcome);
+        Assert.HasCount(2, before);
+        Assert.HasCount(2, after);
+        Assert.AreEqual(before[retained.Id], after[retained.Id]);
+        Assert.IsFalse(after.ContainsKey(removed.Id));
+        Assert.IsTrue(after.ContainsKey(added.Id));
     }
 
     [TestMethod]
@@ -708,7 +739,7 @@ public sealed class RuleMetadataServiceTests
 
             TestRuleDaemonGateway daemon = new();
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
-            RuleMetadataRepository metadataRepository = new(transactionHandle);
+            RuleMetadataDataAccess metadataRepository = new(transactionHandle);
             RuleGroupDataAccess groups = new(transactionHandle);
             RuleTagDataAccess tags = new(transactionHandle);
             RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
@@ -761,6 +792,17 @@ public sealed class RuleMetadataServiceTests
         {
             _context.ChangeTracker.Clear();
             return await _context.Set<RuleMetadataTagEntry>().CountAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyDictionary<Guid, long>> MetadataTagRelationIdsAsync(string ruleId, CancellationToken cancellationToken)
+        {
+            _context.ChangeTracker.Clear();
+            Dictionary<Guid, long> relations = await _context.Set<RuleMetadataTagEntry>()
+                .AsNoTracking()
+                .Where(relation => relation.RuleMetadata.RuleId == ruleId)
+                .Select(static relation => new { relation.Tag.PublicId, relation.Id })
+                .ToDictionaryAsync(static relation => relation.PublicId, static relation => relation.Id, cancellationToken);
+            return relations;
         }
 
 

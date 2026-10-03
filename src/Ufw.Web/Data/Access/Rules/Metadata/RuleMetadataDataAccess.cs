@@ -1,15 +1,14 @@
-using Ufw.Shared.Management.Rules;
 using Microsoft.EntityFrameworkCore;
-using Ufw.Web.Model.V1.Rules;
-using Ufw.Web.Data;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Extensions;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
 using Wkg.AspNetCore.Transactions;
 
-namespace Ufw.Web.Services.Rules;
+namespace Ufw.Web.Data.Access.Rules.Metadata;
 
-internal sealed class RuleMetadataRepository(ITransactionServiceHandle transactionService)
-    : DatabaseService<ApplicationDbContext>(transactionService), IRuleMetadataRepository
+internal sealed class RuleMetadataDataAccess(ITransactionServiceHandle transactionService)
+    : DatabaseService<ApplicationDbContext>(transactionService), IRuleMetadataDataAccess
 {
     public Task<IReadOnlyList<RuleMetadataItem>> GetForRuleIdsAsync(IReadOnlyCollection<string> ruleIds, CancellationToken cancellationToken = default)
     {
@@ -22,11 +21,24 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
 
         return Transaction.Scoped.RunReadOnlyAsync(async context =>
         {
-            RuleMetadataEntry[] metadata = await CreateMetadataQuery(context)
+            List<RuleMetadataItem> metadata = await CreateMetadataQuery(context)
                 .Where(entry => identities.Contains(entry.RuleId))
                 .OrderBy(static entry => entry.RuleId)
-                .ToArrayAsync(cancellationToken);
-            IReadOnlyList<RuleMetadataItem> result = metadata.Select(ToItem).ToArray();
+                .Select(static entry => new RuleMetadataItem
+                {
+                    Id = entry.PublicId,
+                    RuleId = entry.RuleId,
+                    Notes = entry.Notes,
+                    Tags = entry.Tags
+                        .Select(static relation => relation.Tag)
+                        .OrderBy(static tag => tag.Name)
+                        .ThenBy(static tag => tag.PublicId)
+                        .Select(static tag => new RuleTagItem(tag.PublicId, tag.Name, tag.Color))
+                        .ToList(),
+                    Group = entry.Group == null ? null : new RuleGroupSummary(entry.Group.PublicId, entry.Group.Name, entry.Group.Comment),
+                })
+                .ToListAsync(cancellationToken);
+            IReadOnlyList<RuleMetadataItem> result = metadata;
             return result;
         });
     }
@@ -34,24 +46,35 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
     public Task<IReadOnlyList<RuleMetadataItem>> GetAllAsync(CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunReadOnlyAsync(async context =>
         {
-            RuleMetadataEntry[] metadata = await CreateMetadataQuery(context)
+            List<RuleMetadataItem> metadata = await CreateMetadataQuery(context)
                 .OrderBy(static entry => entry.RuleId)
-                .ToArrayAsync(cancellationToken);
-            IReadOnlyList<RuleMetadataItem> result = metadata.Select(ToItem).ToArray();
+                .Select(static entry => new RuleMetadataItem
+                {
+                    Id = entry.PublicId,
+                    RuleId = entry.RuleId,
+                    Notes = entry.Notes,
+                    Tags = entry.Tags
+                        .Select(static relation => relation.Tag)
+                        .OrderBy(static tag => tag.Name)
+                        .ThenBy(static tag => tag.PublicId)
+                        .Select(static tag => new RuleTagItem(tag.PublicId, tag.Name, tag.Color))
+                        .ToList(),
+                    Group = entry.Group == null ? null : new RuleGroupSummary(entry.Group.PublicId, entry.Group.Name, entry.Group.Comment),
+                })
+                .ToListAsync(cancellationToken);
+            IReadOnlyList<RuleMetadataItem> result = metadata;
             return result;
         });
 
-    public Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default)
+    public Task<DataMutationResult<RuleMetadataItem?>> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(values);
 
-        return Transaction.Scoped.RunAsync<RuleMetadataSaveResult>(async (context, transaction) =>
+        return Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             RuleMetadataEntry? metadata = await context.Set<RuleMetadataEntry>()
                 .Include(static entry => entry.Tags)
-                .ThenInclude(static relation => relation.Tag)
-                .Include(static entry => entry.Group)
                 .SingleOrDefaultAsync(entry => entry.RuleId == ruleId, cancellationToken);
 
             if (values.IsEmpty)
@@ -61,25 +84,13 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
                     context.Remove(metadata);
                     await context.SaveChangesAsync(cancellationToken);
                 }
-                return transaction.Commit(new RuleMetadataSaveResult(RuleMetadataSaveOutcome.Success));
+                return transaction.Commit(DataMutationResult.Success<RuleMetadataItem?>(value: null));
             }
 
-            RuleTagEntry[] tags = await context.Set<RuleTagEntry>()
-                .Where(tag => values.TagIds.Contains(tag.PublicId))
-                .ToArrayAsync(cancellationToken);
-            if (tags.Length != values.TagIds.Count)
+            RuleManagementDependencies dependencies = await RuleManagementDependencyResolver.ResolveAsync(context, values.TagIds, values.GroupId, cancellationToken);
+            if (dependencies.Error is { } dependencyError)
             {
-                return transaction.Rollback(new RuleMetadataSaveResult(RuleMetadataSaveOutcome.TagNotFound));
-            }
-
-            RuleGroupEntry? group = null;
-            if (values.GroupId.HasValue)
-            {
-                group = await context.Set<RuleGroupEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == values.GroupId.Value, cancellationToken);
-                if (group is null)
-                {
-                    return transaction.Rollback(new RuleMetadataSaveResult(RuleMetadataSaveOutcome.GroupNotFound));
-                }
+                return transaction.Rollback(DataMutationResult.Failure<RuleMetadataItem?>(dependencyError));
             }
 
             if (metadata is null)
@@ -87,26 +98,34 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
                 metadata = new RuleMetadataEntry { RuleId = ruleId };
                 context.Add(metadata);
             }
-            else
-            {
-                context.RemoveRange(metadata.Tags);
-                metadata.Tags.Clear();
-            }
 
             metadata.Notes = values.Notes;
-            metadata.Group = group;
-            metadata.GroupId = group?.Id;
-            foreach (RuleTagEntry tag in tags.OrderBy(static tag => tag.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                metadata.Tags.Add(new RuleMetadataTagEntry
-                {
-                    RuleMetadata = metadata,
-                    Tag = tag,
-                });
-            }
+            metadata.Group = dependencies.Group;
+            metadata.GroupId = dependencies.Group?.Id;
+            RuleTagRelationSynchronizer.Synchronize(
+                context,
+                metadata.Tags,
+                dependencies.Tags,
+                static relation => relation.TagId,
+                tag => new RuleMetadataTagEntry { RuleMetadata = metadata, Tag = tag });
 
-            await context.SaveChangesAsync(cancellationToken);
-            return transaction.Commit(new RuleMetadataSaveResult(RuleMetadataSaveOutcome.Success, ToItem(metadata)));
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (exception.TryGetDataMutationError(out DataMutationError? error) && error is DataMutationReferenceConflictError)
+            {
+                return transaction.Rollback(DataMutationResult.Failure<RuleMetadataItem?>(error));
+            }
+            RuleTagItem[] tags = [.. dependencies.Tags
+                .OrderBy(static tag => tag.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(static tag => tag.PublicId)
+                .Select(static tag => new RuleTagItem(tag.PublicId, tag.Name, tag.Color))];
+            RuleGroupSummary? group = dependencies.Group is null
+                ? null
+                : new RuleGroupSummary(dependencies.Group.PublicId, dependencies.Group.Name, dependencies.Group.Comment);
+            RuleMetadataItem item = new(metadata.PublicId, metadata.RuleId, metadata.Notes, tags, group);
+            return transaction.Commit(DataMutationResult.Success<RuleMetadataItem?>(item));
         });
     }
 
@@ -246,23 +265,5 @@ internal sealed class RuleMetadataRepository(ITransactionServiceHandle transacti
         });
     }
 
-    private static IQueryable<RuleMetadataEntry> CreateMetadataQuery(ApplicationDbContext context) => context.Set<RuleMetadataEntry>()
-        .AsNoTracking()
-        .Include(static entry => entry.Tags)
-        .ThenInclude(static relation => relation.Tag)
-        .Include(static entry => entry.Group);
-
-    private static RuleMetadataItem ToItem(RuleMetadataEntry metadata)
-    {
-        RuleTagItem[] tags = metadata.Tags
-            .Select(static relation => relation.Tag)
-            .OrderBy(static tag => tag.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(static tag => tag.PublicId)
-            .Select(static tag => new RuleTagItem { Id = tag.PublicId, Name = tag.Name, Color = tag.Color })
-            .ToArray();
-        RuleGroupSummary? group = metadata.Group is null
-            ? null
-            : new RuleGroupSummary { Id = metadata.Group.PublicId, Name = metadata.Group.Name, Comment = metadata.Group.Comment };
-        return new RuleMetadataItem { Id = metadata.PublicId, RuleId = metadata.RuleId, Notes = metadata.Notes, Tags = tags, Group = group };
-    }
+    private static IQueryable<RuleMetadataEntry> CreateMetadataQuery(ApplicationDbContext context) => context.Set<RuleMetadataEntry>().AsNoTracking();
 }

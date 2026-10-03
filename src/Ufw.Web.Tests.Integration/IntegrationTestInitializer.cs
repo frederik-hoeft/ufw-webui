@@ -1,3 +1,5 @@
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Data.Access.Rules.Templates;
@@ -91,7 +93,7 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IntegrationUfwClient>();
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
         services.AddScoped<IRuleDaemonGateway, RuleDaemonGateway>();
-        services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
+        services.AddScoped<IRuleMetadataDataAccess, RuleMetadataDataAccess>();
         services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
         services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();

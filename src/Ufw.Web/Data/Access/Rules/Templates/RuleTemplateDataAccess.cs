@@ -17,7 +17,7 @@ internal sealed class RuleTemplateDataAccess(ITransactionServiceHandle transacti
     public Task<DataMutationResult> CreateAsync(RuleTemplateValues values, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
-            TemplateDependencies dependencies = await ResolveDependenciesAsync(context, values, cancellationToken);
+            RuleManagementDependencies dependencies = await RuleManagementDependencyResolver.ResolveAsync(context, values.TagIds, values.GroupId, cancellationToken);
             if (dependencies.Error is { } dependencyError)
             {
                 return transaction.Rollback(DataMutationResult.Failure(dependencyError));
@@ -46,14 +46,19 @@ internal sealed class RuleTemplateDataAccess(ITransactionServiceHandle transacti
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
 
-            TemplateDependencies dependencies = await ResolveDependenciesAsync(context, values, cancellationToken);
+            RuleManagementDependencies dependencies = await RuleManagementDependencyResolver.ResolveAsync(context, values.TagIds, values.GroupId, cancellationToken);
             if (dependencies.Error is { } dependencyError)
             {
                 return transaction.Rollback(DataMutationResult.Failure(dependencyError));
             }
 
             ApplyValues(template, values, dependencies.Group);
-            SynchronizeTags(context, template, dependencies.Tags);
+            RuleTagRelationSynchronizer.Synchronize(
+                context,
+                template.Tags,
+                dependencies.Tags,
+                static relation => relation.TagId,
+                tag => new RuleTemplateTagEntry { RuleTemplate = template, Tag = tag });
             try
             {
                 await context.SaveChangesAsync(cancellationToken);
@@ -79,7 +84,7 @@ internal sealed class RuleTemplateDataAccess(ITransactionServiceHandle transacti
             return transaction.Commit(DataMutationResult.Success());
         });
 
-    private static RuleTemplateEntry CreateEntry(RuleTemplateValues values, TemplateDependencies dependencies)
+    private static RuleTemplateEntry CreateEntry(RuleTemplateValues values, RuleManagementDependencies dependencies)
     {
         RuleTemplateEntry template = new()
         {
@@ -116,50 +121,6 @@ internal sealed class RuleTemplateDataAccess(ITransactionServiceHandle transacti
         template.GroupId = group?.Id;
     }
 
-    private static void SynchronizeTags(ApplicationDbContext context, RuleTemplateEntry template, IReadOnlyList<RuleTagEntry> desiredTags)
-    {
-        HashSet<long> desiredTagIds = [.. desiredTags.Select(static tag => tag.Id)];
-        RuleTemplateTagEntry[] removed = [.. template.Tags.Where(relation => !desiredTagIds.Contains(relation.TagId))];
-        context.RemoveRange(removed);
-
-        HashSet<long> existingTagIds = [.. template.Tags.Select(static relation => relation.TagId)];
-        foreach (RuleTagEntry tag in desiredTags.Where(tag => !existingTagIds.Contains(tag.Id)))
-        {
-            template.Tags.Add(new RuleTemplateTagEntry { RuleTemplate = template, Tag = tag });
-        }
-    }
-
-    private static async Task<TemplateDependencies> ResolveDependenciesAsync(ApplicationDbContext context, RuleTemplateValues values, CancellationToken cancellationToken)
-    {
-        RuleTagEntry[] tags;
-        if (values.TagIds.Count == 0)
-        {
-            tags = [];
-        }
-        else
-        {
-            tags = await context.Set<RuleTagEntry>().Where(tag => values.TagIds.Contains(tag.PublicId)).ToArrayAsync(cancellationToken);
-        }
-        if (tags.Length != values.TagIds.Count)
-        {
-            HashSet<Guid> resolvedTagIds = [.. tags.Select(static tag => tag.PublicId)];
-            Guid[] missingTagIds = [.. values.TagIds.Where(tagId => !resolvedTagIds.Contains(tagId))];
-            return new TemplateDependencies(new RuleTagsNotFoundError(missingTagIds), [], Group: null);
-        }
-
-        RuleGroupEntry? group = null;
-        if (values.GroupId is { } groupId)
-        {
-            group = await context.Set<RuleGroupEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == groupId, cancellationToken);
-            if (group is null)
-            {
-                return new TemplateDependencies(new RuleGroupNotFoundError(groupId), [], Group: null);
-            }
-        }
-
-        return new TemplateDependencies(Error: null, [.. tags.OrderBy(static tag => tag.PublicId)], group);
-    }
-
     private static async Task<IReadOnlyList<RuleTemplateItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken) =>
         await context.Set<RuleTemplateEntry>()
             .AsNoTracking()
@@ -194,6 +155,4 @@ internal sealed class RuleTemplateDataAccess(ITransactionServiceHandle transacti
                 Group = template.Group == null ? null : new RuleGroupSummary(template.Group.PublicId, template.Group.Name, template.Group.Comment),
             })
             .ToListAsync(cancellationToken);
-
-    private sealed record TemplateDependencies(DataMutationError? Error, IReadOnlyList<RuleTagEntry> Tags, RuleGroupEntry? Group);
 }

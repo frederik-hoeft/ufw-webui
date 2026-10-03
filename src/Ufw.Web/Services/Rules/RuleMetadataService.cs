@@ -1,14 +1,16 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Data.Model;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
-
 using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.Rules;
 
 internal sealed partial class RuleMetadataService(
     IRuleDaemonGateway daemonRules,
-    IRuleMetadataRepository repository,
+    IRuleMetadataDataAccess metadata,
     IRuleMetadataValuesNormalizer metadataNormalizer,
     ILogger<RuleMetadataService> logger) : IRuleMetadataService
 {
@@ -29,13 +31,18 @@ internal sealed partial class RuleMetadataService(
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound);
         }
 
-        RuleMetadataSaveResult save = await repository.SaveAsync(ruleId, values, cancellationToken);
-        return save.Outcome switch
+        DataMutationResult<RuleMetadataItem?> save = await metadata.SaveAsync(ruleId, values, cancellationToken);
+        if (save.IsSuccess)
         {
-            RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Metadata }),
-            RuleMetadataSaveOutcome.TagNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
-            RuleMetadataSaveOutcome.GroupNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
-            _ => throw new InvalidOperationException($"Unknown metadata save outcome '{save.Outcome}'."),
+            return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Value });
+        }
+
+        return save.Error switch
+        {
+            RuleTagsNotFoundError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
+            RuleGroupNotFoundError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
+            DataMutationReferenceConflictError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata),
+            _ => throw new InvalidOperationException($"Unknown metadata mutation error '{save.Error!.GetType().Name}'."),
         };
     }
 
@@ -46,7 +53,7 @@ internal sealed partial class RuleMetadataService(
         ArgumentNullException.ThrowIfNull(facts);
         try
         {
-            _ = await repository.ReconcileReplacementAsync(facts.OriginalRuleId, facts.ReplacementRuleId, facts.OriginalRuleStillLive, cancellationToken);
+            _ = await metadata.ReconcileReplacementAsync(facts.OriginalRuleId, facts.ReplacementRuleId, facts.OriginalRuleStillLive, cancellationToken);
             return RuleReplacementMetadataReconciliationOutcome.Completed;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -65,7 +72,7 @@ internal sealed partial class RuleMetadataService(
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         try
         {
-            _ = await repository.DeleteAsync(ruleId, cancellationToken);
+            _ = await metadata.DeleteAsync(ruleId, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -104,7 +111,7 @@ internal sealed partial class RuleMetadataService(
 
         try
         {
-            _ = await repository.DeleteForRuleIdsAsync(confirmedDeletedRuleIds, cancellationToken);
+            _ = await metadata.DeleteForRuleIdsAsync(confirmedDeletedRuleIds, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
