@@ -1,3 +1,5 @@
+using Ufw.Shared.Management.KnownHosts;
+
 namespace Ufw.Web.Model.V1.KnownHosts;
 
 public sealed class KnownHostInventoryResponse

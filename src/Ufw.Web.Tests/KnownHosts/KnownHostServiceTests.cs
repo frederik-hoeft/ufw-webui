@@ -1,10 +1,12 @@
-﻿using Microsoft.Data.Sqlite;
+using Ufw.Shared.Management.KnownHosts;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Data;
+using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Services.KnownHosts;
@@ -37,7 +39,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, result.Outcome);
         Assert.IsNotNull(result.Inventory);
-        KnownHostInventoryItem item = result.Inventory.Hosts.Single();
+        KnownHostInventoryItem item = result.Inventory.Single();
         Assert.AreEqual('7', item.Id.ToString("D")[14]);
         Assert.AreEqual("Database primary", item.Name);
         Assert.AreEqual("192.0.2.0/24", item.Address);
@@ -66,9 +68,9 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.NameConflict, duplicate.Outcome);
-        KnownHostInventoryResponse inventory = await host.Service.GetAsync(TestContext.CancellationToken);
-        Assert.HasCount(1, inventory.Hosts);
-        Assert.AreEqual("192.0.2.10", inventory.Hosts[0].Address);
+        IReadOnlyList<KnownHostInventoryItem> inventory = await host.Service.GetAsync(TestContext.CancellationToken);
+        Assert.HasCount(1, inventory);
+        Assert.AreEqual("192.0.2.10", inventory[0].Address);
     }
 
     [TestMethod]
@@ -79,7 +81,7 @@ public sealed class KnownHostServiceTests
             new CreateKnownHostRequest { Name = "proxy", Address = "192.0.2.10" },
             TestContext.CancellationToken);
         Assert.IsNotNull(created.Inventory);
-        KnownHostInventoryItem existing = created.Inventory.Hosts.Single();
+        KnownHostInventoryItem existing = created.Inventory.Single();
 
         KnownHostMutationResult updated = await host.Service.UpdateAsync(
             existing.Id,
@@ -94,7 +96,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, updated.Outcome);
         Assert.IsNotNull(updated.Inventory);
-        KnownHostInventoryItem item = updated.Inventory.Hosts.Single();
+        KnownHostInventoryItem item = updated.Inventory.Single();
         Assert.AreEqual(existing.Id, item.Id);
         Assert.AreEqual("edge proxy", item.Name);
         Assert.AreEqual("198.51.100.44", item.Address);
@@ -110,7 +112,7 @@ public sealed class KnownHostServiceTests
             new CreateKnownHostRequest { Name = "router", Address = "192.0.2.1" },
             TestContext.CancellationToken);
         Assert.IsNotNull(created.Inventory);
-        KnownHostInventoryItem existing = created.Inventory.Hosts.Single();
+        KnownHostInventoryItem existing = created.Inventory.Single();
 
         KnownHostMutationResult updated = await host.Service.UpdateAsync(
             existing.Id,
@@ -118,7 +120,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.AddressFamilyConflict, updated.Outcome);
-        KnownHostInventoryItem persisted = (await host.Service.GetAsync(TestContext.CancellationToken)).Hosts.Single();
+        KnownHostInventoryItem persisted = (await host.Service.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual("192.0.2.1", persisted.Address);
         Assert.AreEqual(FirewallAddressFamily.IPv4, persisted.AddressFamily);
     }
@@ -133,7 +135,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.InvalidAddress, result.Outcome);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)).Hosts);
+        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
     }
 
     [TestMethod]
@@ -170,7 +172,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, result.Outcome);
-        KnownHostInventoryItem item = result.Inventory!.Hosts.Single();
+        KnownHostInventoryItem item = result.Inventory!.Single();
         Assert.AreEqual("192.0.2.44", item.Address);
         Assert.AreEqual(KnownHostAddressSource.Dns, item.AddressSource);
         Assert.AreEqual(host.TimeProvider.GetUtcNow(), item.DnsResolvedAt);
@@ -195,7 +197,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.InvalidDnsConfiguration, result.Outcome);
         Assert.AreEqual(0, host.DnsResolver.CallCount);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)).Hosts);
+        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
     }
 
     [TestMethod]
@@ -215,7 +217,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.InvalidDnsConfiguration, result.Outcome);
         Assert.AreEqual(0, host.DnsResolver.CallCount);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)).Hosts);
+        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
     }
 
     [TestMethod]
@@ -235,7 +237,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.InvalidDnsConfiguration, result.Outcome);
         Assert.AreEqual(0, host.DnsResolver.CallCount);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)).Hosts);
+        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
     }
 
     [TestMethod]
@@ -254,7 +256,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.DnsResolutionFailed, result.Outcome);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)).Hosts);
+        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
     }
 
     [TestMethod]
@@ -269,7 +271,7 @@ public sealed class KnownHostServiceTests
                 AddressSource = KnownHostAddressSource.Dns,
                 DnsAddressFamily = FirewallAddressFamily.IPv4,
             },
-            TestContext.CancellationToken)).Inventory!.Hosts.Single();
+            TestContext.CancellationToken)).Inventory!.Single();
         int callsAfterCreate = host.DnsResolver.CallCount;
 
         KnownHostMutationResult updated = await host.Service.UpdateAsync(
@@ -285,7 +287,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, updated.Outcome);
-        KnownHostInventoryItem item = updated.Inventory!.Hosts.Single();
+        KnownHostInventoryItem item = updated.Inventory!.Single();
         Assert.AreEqual(callsAfterCreate, host.DnsResolver.CallCount);
         Assert.AreEqual(created.Address, item.Address);
         Assert.AreEqual(created.DnsResolvedAt, item.DnsResolvedAt);
@@ -305,7 +307,7 @@ public sealed class KnownHostServiceTests
                 AddressSource = KnownHostAddressSource.Dns,
                 DnsAddressFamily = FirewallAddressFamily.IPv4,
             },
-            TestContext.CancellationToken)).Inventory!.Hosts.Single();
+            TestContext.CancellationToken)).Inventory!.Single();
         DateTimeOffset createdAt = created.DnsResolvedAt!.Value;
         host.TimeProvider.Advance(TimeSpan.FromMinutes(30));
         host.DnsResolver.Result = "192.0.2.20";
@@ -322,7 +324,7 @@ public sealed class KnownHostServiceTests
             TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, updated.Outcome);
-        KnownHostInventoryItem item = updated.Inventory!.Hosts.Single();
+        KnownHostInventoryItem item = updated.Inventory!.Single();
         Assert.AreEqual(created.Id, item.Id);
         Assert.AreEqual("storage.example.test", item.Name);
         Assert.AreEqual("192.0.2.20", item.Address);
@@ -344,14 +346,14 @@ public sealed class KnownHostServiceTests
                 AddressSource = KnownHostAddressSource.Dns,
                 DnsAddressFamily = FirewallAddressFamily.IPv4,
             },
-            TestContext.CancellationToken)).Inventory!.Hosts.Single();
+            TestContext.CancellationToken)).Inventory!.Single();
         host.TimeProvider.Advance(TimeSpan.FromHours(2));
         host.DnsResolver.Result = "192.0.2.20";
 
         KnownHostMutationResult reconciled = await host.Service.ReconcileDnsAsync(created.Id, TestContext.CancellationToken);
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, reconciled.Outcome);
-        KnownHostInventoryItem item = reconciled.Inventory!.Hosts.Single();
+        KnownHostInventoryItem item = reconciled.Inventory!.Single();
         Assert.AreEqual(created.Id, item.Id);
         Assert.AreEqual("192.0.2.20", item.Address);
         Assert.AreEqual(host.TimeProvider.GetUtcNow(), item.DnsResolvedAt);
@@ -364,7 +366,7 @@ public sealed class KnownHostServiceTests
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         KnownHostInventoryItem created = (await host.Service.CreateAsync(
             new CreateKnownHostRequest { Name = "router", Address = "192.0.2.1" },
-            TestContext.CancellationToken)).Inventory!.Hosts.Single();
+            TestContext.CancellationToken)).Inventory!.Single();
 
         KnownHostMutationResult result = await host.Service.ReconcileDnsAsync(created.Id, TestContext.CancellationToken);
 
@@ -380,7 +382,7 @@ public sealed class KnownHostServiceTests
             new CreateKnownHostRequest { Name = "one", Address = "192.0.2.1" },
             TestContext.CancellationToken);
         Assert.IsNotNull(created.Inventory);
-        KnownHostInventoryItem first = created.Inventory.Hosts.Single();
+        KnownHostInventoryItem first = created.Inventory.Single();
         _ = await host.Service.CreateAsync(
             new CreateKnownHostRequest { Name = "two", Address = "192.0.2.2" },
             TestContext.CancellationToken);
@@ -389,7 +391,7 @@ public sealed class KnownHostServiceTests
 
         Assert.AreEqual(KnownHostMutationOutcome.Success, deleted.Outcome);
         Assert.IsNotNull(deleted.Inventory);
-        KnownHostInventoryItem remaining = deleted.Inventory.Hosts.Single();
+        KnownHostInventoryItem remaining = deleted.Inventory.Single();
         Assert.AreEqual("two", remaining.Name);
         Assert.AreEqual(KnownHostMutationOutcome.NotFound, (await host.Service.DeleteAsync(first.Id, TestContext.CancellationToken)).Outcome);
     }
@@ -440,10 +442,10 @@ public sealed class KnownHostServiceTests
             await context.Database.EnsureCreatedAsync(cancellationToken);
 
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
-            KnownHostRepository repository = new(transactionHandle);
+            KnownHostDataAccess dataAccess = new(transactionHandle);
             TestKnownHostDnsResolver dnsResolver = new();
             TestTimeProvider timeProvider = new(new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero));
-            KnownHostService service = new(repository, dnsResolver, timeProvider);
+            KnownHostService service = new(dataAccess, dnsResolver, timeProvider);
             return new TestHost(connection, serviceProvider, scope, service, dnsResolver, timeProvider);
         }
 

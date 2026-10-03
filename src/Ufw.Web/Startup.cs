@@ -1,3 +1,4 @@
+using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Data.Access.Rules.Templates;
@@ -84,7 +85,7 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<IAuthenticationFlowService, AuthenticationFlowService>();
         services.AddScoped<AuthenticationBootstrapService>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
-        services.AddScoped<IKnownHostRepository, KnownHostRepository>();
+        services.AddScoped<IKnownHostDataAccess, KnownHostDataAccess>();
         services.AddSingleton<IKnownHostDnsResolver, KnownHostDnsResolver>();
         services.AddScoped<IKnownHostService, KnownHostService>();
         services.AddScoped<INetworkInterfaceDaemonGateway, NetworkInterfaceDaemonGateway>();

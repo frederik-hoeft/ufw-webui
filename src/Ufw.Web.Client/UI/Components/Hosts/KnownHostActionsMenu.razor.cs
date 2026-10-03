@@ -1,3 +1,4 @@
+using Ufw.Shared.Management.KnownHosts;
 using Microsoft.AspNetCore.Components;
 using Ufw.Web.Model.V1.KnownHosts;
 

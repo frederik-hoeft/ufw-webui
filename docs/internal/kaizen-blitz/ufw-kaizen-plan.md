@@ -147,10 +147,12 @@ W2.1 starts with the remaining rule-metadata persistence boundary. `RuleMetadata
 
 W2.2 centralizes Web-side live semantic rule identity through `LiveRuleIdentitySet`, which derives one ordinal, deterministically enumerable set from authoritative daemon snapshots for inventory, metadata liveness/cleanup, and replacement reconciliation. Metadata bulk cleanup now uses set-based `ExecuteDeleteAsync` operations in the final DAL, with regression coverage for affected-row counts and database-cascaded metadata-tag relations. This closes WEB KZ-08 and KZ-18 without introducing a cross-process snapshot abstraction.
 
+W2.3 migrates known hosts onto the final shared-domain/DAL boundary. `KnownHostInventoryItem`, `KnownHostAddressSource`, and cross-layer limits now live under `Ufw.Shared.Management.KnownHosts`; EF access is confined to `Data/Access/KnownHosts`; `KnownHostService` remains the DNS/reconciliation coordinator; and successful writes perform the refreshed inventory read only after the DAL transaction commits. Trim-aware DTO validation now owns known-host name/comment shape, closing WEB KZ-14 without adding another mutation outcome. KZ-24 remains open for the API-wide request-validation audit.
+
 Migrate slices against the W1 rules instead of doing horizontal repository rewrites:
 
 1. **Rules groups/tags/templates/metadata:** WEB KZ-06, KZ-07, KZ-08, KZ-18. KZ-07 follows KZ-22/KZ-23; KZ-06 is implemented directly in the final DAL; KZ-18 becomes a set-based final-DAL optimization.
-2. **Known hosts:** finish the DAL migration and close WEB KZ-14 with regression coverage through the new request-validation path.
+2. **Known hosts:** completed in W2.3: final DAL/shared-domain migration plus WEB KZ-14 regression coverage through trim-aware request validation.
 3. **Network interfaces:** implement the KZ-13 lifecycle decision in the final DAL/reconciliation design.
 4. **Auth:** WEB KZ-10 and KZ-16 together while moving refresh-token EF access behind the Auth DAL slice.
 5. **REST DTO validation audit:** WEB KZ-24 after the request-owning vertical slices are on their final boundaries. Audit all versioned request contracts and remove transport-shape checks from business/application logic before finalizing public error behavior.
@@ -302,7 +304,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 
 | Done | Source item | Planned wave | Finding | Sequencing note |
 |---|---|---|---|---|
-| [ ] | WEB KZ-14 | W1 | Fix known-host metadata validation being reported as an address error | Subsumed by KZ-05 request validation/mapping; retain its regression test as a checklist item. |
+| [x] | WEB KZ-14 | W2 | Fix known-host metadata validation being reported as an address error | Completed in W2.3 through trim-aware DTO validation backed by shared limits; `InvalidAddress` now represents actual address failures only. |
 | [ ] | WEB KZ-15 | W2 | Preserve multiple daemon validation errors for the same property | Subsumed by KZ-02/KZ-09 centralized daemon/error mapping; retain dedicated multi-error regression coverage. |
 | [ ] | WEB KZ-01 | W1 | Establish a domain-sliced DAL and distinguish persistence entities, shared domain models, and API envelopes | Core Web architecture item. Co-design with KZ-05/KZ-22/KZ-23; migrate domain slices only after the DAL/model/error contracts are fixed. |
 | [ ] | WEB KZ-23 | W1 | Remove ceremonial application-service hops; keep coordinators only for real workflows | Apply as part of KZ-01/KZ-05 slice migration; remove one-hop services only after their validation/orchestration responsibility has moved somewhere explicit. |

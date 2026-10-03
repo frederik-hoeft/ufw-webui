@@ -1,3 +1,5 @@
+using Ufw.Shared.Management.KnownHosts;
+using System.ComponentModel.DataAnnotations;
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -66,4 +68,40 @@ public sealed class KnownHostsControllerTests
 
         Assert.IsInstanceOfType<NotFoundResult>(result);
     }
+    [TestMethod]
+    public void RequestValidation_UsesSharedTrimmedMetadataLimits()
+    {
+        AssertInvalid(new CreateKnownHostRequest { Name = "   ", Address = "192.0.2.1" });
+        AssertInvalid(new CreateKnownHostRequest { Name = new string('n', KnownHostLimits.MAX_NAME_LENGTH + 1), Address = "192.0.2.1" });
+        AssertInvalid(new CreateKnownHostRequest
+        {
+            Name = "host",
+            Address = "192.0.2.1",
+            Comment = new string('c', KnownHostLimits.MAX_COMMENT_LENGTH + 1),
+        });
+
+        AssertValid(new CreateKnownHostRequest
+        {
+            Name = $"  {new string('n', KnownHostLimits.MAX_NAME_LENGTH)}  ",
+            Address = "192.0.2.1",
+            Comment = $"  {new string('c', KnownHostLimits.MAX_COMMENT_LENGTH)}  ",
+        });
+    }
+
+    private static void AssertInvalid(KnownHostRequest request)
+    {
+        List<ValidationResult> errors = [];
+        bool valid = Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true);
+        Assert.IsFalse(valid);
+        Assert.IsNotEmpty(errors);
+    }
+
+    private static void AssertValid(KnownHostRequest request)
+    {
+        List<ValidationResult> errors = [];
+        bool valid = Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true);
+        Assert.IsTrue(valid);
+        Assert.IsEmpty(errors);
+    }
+
 }

@@ -1,15 +1,15 @@
-﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
 
-namespace Ufw.Web.Services.KnownHosts;
+namespace Ufw.Web.Data.Access.KnownHosts;
 
-internal interface IKnownHostRepository
+internal interface IKnownHostDataAccess
 {
-    Task<KnownHostInventoryResponse> GetAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<KnownHostInventoryItem>> GetAsync(CancellationToken cancellationToken = default);
 
     Task<KnownHostInventoryItem?> GetByIdAsync(Guid publicId, CancellationToken cancellationToken = default);
 
-    Task<KnownHostMutationResult> CreateAsync(
+    Task<DataMutationResult> CreateAsync(
         string name,
         string normalizedName,
         string address,
@@ -19,7 +19,7 @@ internal interface IKnownHostRepository
         bool isVisible,
         CancellationToken cancellationToken = default);
 
-    Task<KnownHostMutationResult> UpdateAsync(
+    Task<DataMutationResult> UpdateAsync(
         Guid publicId,
         string name,
         string normalizedName,
@@ -31,7 +31,7 @@ internal interface IKnownHostRepository
         bool isVisible,
         CancellationToken cancellationToken = default);
 
-    Task<KnownHostMutationResult> ReconcileDnsAsync(
+    Task<DataMutationResult> ReconcileDnsAsync(
         Guid publicId,
         string expectedName,
         string expectedAddress,
@@ -41,5 +41,5 @@ internal interface IKnownHostRepository
         DateTimeOffset resolvedAt,
         CancellationToken cancellationToken = default);
 
-    Task<KnownHostMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default);
+    Task<DataMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default);
 }

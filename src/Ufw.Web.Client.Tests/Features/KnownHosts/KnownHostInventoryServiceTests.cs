@@ -1,4 +1,5 @@
-﻿using Moq;
+using Ufw.Shared.Management.KnownHosts;
+using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;

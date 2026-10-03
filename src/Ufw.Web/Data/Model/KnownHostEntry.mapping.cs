@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wkg.EntityFrameworkCore.Configuration;
-using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Shared.Management.KnownHosts;
 
 namespace Ufw.Web.Data.Model;
 
@@ -25,18 +25,18 @@ internal sealed partial class KnownHostEntry : IDiscoverableModelConfiguration<K
             .IsRequired();
         self.Property(static host => host.Name)
             .HasColumnName("Name")
-            .HasColumnType("character varying(128)")
-            .HasMaxLength(MAX_NAME_LENGTH)
+            .HasColumnType($"character varying({KnownHostLimits.MAX_NAME_LENGTH})")
+            .HasMaxLength(KnownHostLimits.MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static host => host.NormalizedName)
             .HasColumnName("NormalizedName")
-            .HasColumnType("character varying(128)")
-            .HasMaxLength(MAX_NAME_LENGTH)
+            .HasColumnType($"character varying({KnownHostLimits.MAX_NAME_LENGTH})")
+            .HasMaxLength(KnownHostLimits.MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static host => host.Address)
             .HasColumnName("Address")
-            .HasColumnType("character varying(64)")
-            .HasMaxLength(MAX_ADDRESS_LENGTH)
+            .HasColumnType($"character varying({KnownHostLimits.MAX_ADDRESS_LENGTH})")
+            .HasMaxLength(KnownHostLimits.MAX_ADDRESS_LENGTH)
             .IsRequired();
         self.Property(static host => host.AddressSource)
             .HasColumnName("AddressSource")
@@ -48,8 +48,8 @@ internal sealed partial class KnownHostEntry : IDiscoverableModelConfiguration<K
             .HasColumnType("timestamp with time zone");
         self.Property(static host => host.Comment)
             .HasColumnName("Comment")
-            .HasColumnType("character varying(200)")
-            .HasMaxLength(MAX_COMMENT_LENGTH);
+            .HasColumnType($"character varying({KnownHostLimits.MAX_COMMENT_LENGTH})")
+            .HasMaxLength(KnownHostLimits.MAX_COMMENT_LENGTH);
         self.Property(static host => host.IsVisible)
             .HasColumnName("IsVisible")
             .HasColumnType("boolean")

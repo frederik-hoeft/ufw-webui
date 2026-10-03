@@ -1,21 +1,20 @@
-﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Data.Model;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Services.KnownHosts;
 
-internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHostDnsResolver dnsResolver, TimeProvider timeProvider) : IKnownHostService
+internal sealed class KnownHostService(IKnownHostDataAccess dataAccess, IKnownHostDnsResolver dnsResolver, TimeProvider timeProvider) : IKnownHostService
 {
-    public Task<KnownHostInventoryResponse> GetAsync(CancellationToken cancellationToken = default) =>
-        repository.GetAsync(cancellationToken);
+    public Task<IReadOnlyList<KnownHostInventoryItem>> GetAsync(CancellationToken cancellationToken = default) =>
+        dataAccess.GetAsync(cancellationToken);
 
     public async Task<KnownHostMutationResult> CreateAsync(CreateKnownHostRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!TryNormalizeMetadata(request.Name, request.Comment, out KnownHostMetadata metadata))
-        {
-            return new KnownHostMutationResult(KnownHostMutationOutcome.InvalidAddress);
-        }
+        KnownHostMetadata metadata = NormalizeMetadata(request.Name, request.Comment);
         if (!HasValidAddressSourceConfiguration(request))
         {
             return new KnownHostMutationResult(KnownHostMutationOutcome.InvalidDnsConfiguration);
@@ -27,7 +26,7 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
             return new KnownHostMutationResult(AddressFailureOutcome(request));
         }
 
-        return await repository.CreateAsync(
+        DataMutationResult result = await dataAccess.CreateAsync(
             metadata.Name,
             metadata.NormalizedName,
             address.Value.Address,
@@ -36,21 +35,19 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
             metadata.Comment,
             request.IsVisible,
             cancellationToken);
+        return await MapDataMutationAsync(result, cancellationToken);
     }
 
     public async Task<KnownHostMutationResult> UpdateAsync(Guid publicId, UpdateKnownHostRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!TryNormalizeMetadata(request.Name, request.Comment, out KnownHostMetadata metadata))
-        {
-            return new KnownHostMutationResult(KnownHostMutationOutcome.InvalidAddress);
-        }
+        KnownHostMetadata metadata = NormalizeMetadata(request.Name, request.Comment);
         if (!HasValidAddressSourceConfiguration(request))
         {
             return new KnownHostMutationResult(KnownHostMutationOutcome.InvalidDnsConfiguration);
         }
 
-        KnownHostInventoryItem? currentHost = await repository.GetByIdAsync(publicId, cancellationToken);
+        KnownHostInventoryItem? currentHost = await dataAccess.GetByIdAsync(publicId, cancellationToken);
         if (currentHost is null)
         {
             return new KnownHostMutationResult(KnownHostMutationOutcome.NotFound);
@@ -78,7 +75,7 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
             }
         }
 
-        return await repository.UpdateAsync(
+        DataMutationResult result = await dataAccess.UpdateAsync(
             publicId,
             metadata.Name,
             metadata.NormalizedName,
@@ -89,11 +86,12 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
             metadata.Comment,
             request.IsVisible,
             cancellationToken);
+        return await MapDataMutationAsync(result, cancellationToken);
     }
 
     public async Task<KnownHostMutationResult> ReconcileDnsAsync(Guid publicId, CancellationToken cancellationToken = default)
     {
-        KnownHostInventoryItem? host = await repository.GetByIdAsync(publicId, cancellationToken);
+        KnownHostInventoryItem? host = await dataAccess.GetByIdAsync(publicId, cancellationToken);
         if (host is null)
         {
             return new KnownHostMutationResult(KnownHostMutationOutcome.NotFound);
@@ -109,7 +107,7 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
             return new KnownHostMutationResult(KnownHostMutationOutcome.DnsResolutionFailed);
         }
 
-        return await repository.ReconcileDnsAsync(
+        DataMutationResult result = await dataAccess.ReconcileDnsAsync(
             publicId,
             host.Name,
             host.Address,
@@ -118,10 +116,14 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
             host.AddressFamily,
             timeProvider.GetUtcNow(),
             cancellationToken);
+        return await MapDataMutationAsync(result, cancellationToken);
     }
 
-    public Task<KnownHostMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
-        repository.DeleteAsync(publicId, cancellationToken);
+    public async Task<KnownHostMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default)
+    {
+        DataMutationResult result = await dataAccess.DeleteAsync(publicId, cancellationToken);
+        return await MapDataMutationAsync(result, cancellationToken);
+    }
 
     private async Task<KnownHostAddressValues?> ResolveAddressAsync(KnownHostRequest request, KnownHostInventoryItem? currentHost, CancellationToken cancellationToken)
     {
@@ -159,25 +161,31 @@ internal sealed class KnownHostService(IKnownHostRepository repository, IKnownHo
         _ => KnownHostMutationOutcome.InvalidDnsConfiguration,
     };
 
-    private static bool TryNormalizeMetadata(string name, string? comment, out KnownHostMetadata metadata)
+    private async Task<KnownHostMutationResult> MapDataMutationAsync(DataMutationResult result, CancellationToken cancellationToken)
+    {
+        if (result.IsSuccess)
+        {
+            IReadOnlyList<KnownHostInventoryItem> inventory = await dataAccess.GetAsync(cancellationToken);
+            return new KnownHostMutationResult(KnownHostMutationOutcome.Success, inventory);
+        }
+
+        KnownHostMutationOutcome outcome = result.Error switch
+        {
+            DataMutationNotFoundError => KnownHostMutationOutcome.NotFound,
+            DataMutationUniqueConflictError => KnownHostMutationOutcome.NameConflict,
+            KnownHostAddressFamilyConflictError => KnownHostMutationOutcome.AddressFamilyConflict,
+            KnownHostNotDnsManagedError => KnownHostMutationOutcome.NotDnsManaged,
+            KnownHostDnsConfigurationChangedError => KnownHostMutationOutcome.DnsConfigurationChanged,
+            _ => throw new InvalidOperationException($"Unexpected known-host data mutation error '{result.Error!.GetType().Name}'."),
+        };
+        return new KnownHostMutationResult(outcome);
+    }
+
+    private static KnownHostMetadata NormalizeMetadata(string name, string? comment)
     {
         string normalizedName = name.Trim();
-        string lookupName = normalizedName.ToUpperInvariant();
-        if (normalizedName.Length is 0 or > KnownHostEntry.MAX_NAME_LENGTH || lookupName.Length > KnownHostEntry.MAX_NAME_LENGTH)
-        {
-            metadata = default;
-            return false;
-        }
-
         string? normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
-        if (normalizedComment?.Length > KnownHostEntry.MAX_COMMENT_LENGTH)
-        {
-            metadata = default;
-            return false;
-        }
-
-        metadata = new KnownHostMetadata(normalizedName, lookupName, normalizedComment);
-        return true;
+        return new KnownHostMetadata(normalizedName, normalizedName.ToUpperInvariant(), normalizedComment);
     }
 
     private readonly record struct KnownHostMetadata(string Name, string NormalizedName, string? Comment);

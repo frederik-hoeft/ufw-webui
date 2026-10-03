@@ -1,3 +1,4 @@
+using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Data.Access.Rules.Groups;
@@ -76,10 +77,10 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<AuthController>();
         services.AddScoped<IAuthenticationFlowService>(static serviceProvider => serviceProvider.GetRequiredService<AuthenticationFlowService>());
 
-        services.AddScoped<KnownHostRepository>();
+        services.AddScoped<KnownHostDataAccess>();
         services.AddScoped<IntegrationKnownHostDnsResolver>();
         services.AddScoped<IKnownHostDnsResolver>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationKnownHostDnsResolver>());
-        services.AddScoped<IKnownHostRepository>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostRepository>());
+        services.AddScoped<IKnownHostDataAccess>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostDataAccess>());
         services.AddScoped<KnownHostService>();
         services.AddScoped<IKnownHostService>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostService>());
         services.AddScoped<KnownHostsController>();

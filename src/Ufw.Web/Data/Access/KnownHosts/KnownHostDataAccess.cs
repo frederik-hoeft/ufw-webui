@@ -1,17 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Data;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Data.Extensions;
 using Ufw.Web.Data.Model;
-using Ufw.Web.Model.V1.KnownHosts;
 using Wkg.AspNetCore.Abstractions.Services;
 using Wkg.AspNetCore.Transactions;
 
-namespace Ufw.Web.Services.KnownHosts;
+namespace Ufw.Web.Data.Access.KnownHosts;
 
-internal sealed class KnownHostRepository(ITransactionServiceHandle transactionService) : DatabaseService<ApplicationDbContext>(transactionService), IKnownHostRepository
+internal sealed class KnownHostDataAccess(ITransactionServiceHandle transactionService) : DatabaseService<ApplicationDbContext>(transactionService), IKnownHostDataAccess
 {
-    public Task<KnownHostInventoryResponse> GetAsync(CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<KnownHostInventoryItem>> GetAsync(CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
     public Task<KnownHostInventoryItem?> GetByIdAsync(Guid publicId, CancellationToken cancellationToken = default) =>
@@ -32,7 +31,7 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             return host is null ? null : ToInventoryItem(host);
         });
 
-    public Task<KnownHostMutationResult> CreateAsync(
+    public Task<DataMutationResult> CreateAsync(
         string name,
         string normalizedName,
         string address,
@@ -46,7 +45,7 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             bool duplicateName = await context.Set<KnownHostEntry>().AnyAsync(host => host.NormalizedName == normalizedName, cancellationToken);
             if (duplicateName)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NameConflict));
+                return transaction.Rollback(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
             }
 
             context.Add(new KnownHostEntry
@@ -64,16 +63,15 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException e) when (e.IsUniqueConstraintViolation)
+            catch (DbUpdateException exception) when (exception.TryGetDataMutationError(out DataMutationError? error) && error is DataMutationUniqueConflictError)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NameConflict));
+                return transaction.Rollback(DataMutationResult.Failure(error));
             }
 
-            KnownHostInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new KnownHostMutationResult(KnownHostMutationOutcome.Success, response));
+            return transaction.Commit(DataMutationResult.Success());
         });
 
-    public Task<KnownHostMutationResult> UpdateAsync(
+    public Task<DataMutationResult> UpdateAsync(
         Guid publicId,
         string name,
         string normalizedName,
@@ -89,23 +87,22 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             KnownHostEntry? host = await context.Set<KnownHostEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (host is null)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NotFound));
+                return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
-
             if (!FirewallAddressValue.TryNormalizeLiteral(host.Address, out _, out FirewallAddressFamily existingFamily))
             {
                 throw new InvalidDataException($"Known host '{host.PublicId:D}' contains an invalid persisted address.");
             }
             if (existingFamily != addressFamily)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.AddressFamilyConflict));
+                return transaction.Rollback(DataMutationResult.Failure(new KnownHostAddressFamilyConflictError()));
             }
 
             bool nameConflict = await context.Set<KnownHostEntry>()
                 .AnyAsync(candidate => candidate.Id != host.Id && candidate.NormalizedName == normalizedName, cancellationToken);
             if (nameConflict)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NameConflict));
+                return transaction.Rollback(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
             }
 
             host.Name = name;
@@ -120,16 +117,16 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             {
                 await context.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException e) when (e.IsUniqueConstraintViolation)
+            catch (DbUpdateException exception) when (exception.TryGetDataMutationError(out DataMutationError? error) && error is DataMutationUniqueConflictError)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NameConflict));
+                return transaction.Rollback(DataMutationResult.Failure(error));
             }
 
-            KnownHostInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new KnownHostMutationResult(KnownHostMutationOutcome.Success, response));
+            return transaction.Commit(DataMutationResult.Success());
         });
 
-    public Task<KnownHostMutationResult> ReconcileDnsAsync(Guid publicId,
+    public Task<DataMutationResult> ReconcileDnsAsync(
+        Guid publicId,
         string expectedName,
         string expectedAddress,
         DateTimeOffset? expectedResolvedAt,
@@ -142,17 +139,17 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             KnownHostEntry? host = await context.Set<KnownHostEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (host is null)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NotFound));
+                return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
             if (host.AddressSource != KnownHostAddressSource.Dns)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NotDnsManaged));
+                return transaction.Rollback(DataMutationResult.Failure(new KnownHostNotDnsManagedError()));
             }
             if (!string.Equals(host.Name, expectedName, StringComparison.Ordinal)
                 || !string.Equals(host.Address, expectedAddress, StringComparison.Ordinal)
                 || host.DnsResolvedAt != expectedResolvedAt)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.DnsConfigurationChanged));
+                return transaction.Rollback(DataMutationResult.Failure(new KnownHostDnsConfigurationChangedError()));
             }
             if (!FirewallAddressValue.TryNormalizeLiteral(host.Address, out _, out FirewallAddressFamily existingFamily))
             {
@@ -160,35 +157,33 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
             }
             if (existingFamily != addressFamily)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.AddressFamilyConflict));
+                return transaction.Rollback(DataMutationResult.Failure(new KnownHostAddressFamilyConflictError()));
             }
 
             host.Address = address;
             host.DnsResolvedAt = resolvedAt;
             await context.SaveChangesAsync(cancellationToken);
-            KnownHostInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new KnownHostMutationResult(KnownHostMutationOutcome.Success, response));
+            return transaction.Commit(DataMutationResult.Success());
         });
 
-    public Task<KnownHostMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
+    public Task<DataMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             KnownHostEntry? host = await context.Set<KnownHostEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
             if (host is null)
             {
-                return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NotFound));
+                return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
 
             context.Remove(host);
             await context.SaveChangesAsync(cancellationToken);
-            KnownHostInventoryResponse response = await GetCoreAsync(context, cancellationToken);
-            return transaction.Commit(new KnownHostMutationResult(KnownHostMutationOutcome.Success, response));
+            return transaction.Commit(DataMutationResult.Success());
         });
 
-    private static async Task<KnownHostInventoryResponse> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<KnownHostInventoryItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
     {
         KnownHostProjection[] hosts = await Query(context).ToArrayAsync(cancellationToken);
-        return new KnownHostInventoryResponse { Hosts = [.. hosts.Select(ToInventoryItem)] };
+        return [.. hosts.Select(ToInventoryItem)];
     }
 
     private static IQueryable<KnownHostProjection> Query(ApplicationDbContext context) => context.Set<KnownHostEntry>()

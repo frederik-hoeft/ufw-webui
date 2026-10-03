@@ -1,26 +1,24 @@
 using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
+using Ufw.Web.Model.Validation;
 
 namespace Ufw.Web.Model.V1.KnownHosts;
 
 public abstract class KnownHostRequest
 {
-    private const int MAX_NAME_LENGTH = 128;
-    private const int MAX_ADDRESS_LENGTH = 64;
-    private const int MAX_COMMENT_LENGTH = 200;
-
     [Required]
-    [StringLength(MAX_NAME_LENGTH)]
+    [TrimmedStringLength(KnownHostLimits.MAX_NAME_LENGTH, MinimumLength = 1)]
     public string Name { get; init; } = string.Empty;
 
-    [StringLength(MAX_ADDRESS_LENGTH)]
+    [StringLength(KnownHostLimits.MAX_ADDRESS_LENGTH)]
     public string? Address { get; init; }
 
     public KnownHostAddressSource AddressSource { get; init; } = KnownHostAddressSource.Literal;
 
     public FirewallAddressFamily? DnsAddressFamily { get; init; }
 
-    [StringLength(MAX_COMMENT_LENGTH)]
+    [TrimmedStringLength(KnownHostLimits.MAX_COMMENT_LENGTH)]
     public string? Comment { get; init; }
 
     public bool IsVisible { get; init; } = true;

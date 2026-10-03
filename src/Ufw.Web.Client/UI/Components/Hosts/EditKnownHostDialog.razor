@@ -13,8 +13,8 @@
                           Required="true"
                           RequiredError="@(HostsText["NameRequired"])"
                           Immediate="true"
-                          Counter="@MAX_NAME_LENGTH"
-                          MaxLength="@MAX_NAME_LENGTH"
+                          Counter="@KnownHostLimits.MAX_NAME_LENGTH"
+                          MaxLength="@KnownHostLimits.MAX_NAME_LENGTH"
                           autofocus="true" />
             <MudCheckBox T="bool"
                          @bind-Value="_resolveDns"
@@ -50,8 +50,8 @@
                               Error="@(_addressError is not null)"
                               ErrorText="@_addressError"
                               Immediate="true"
-                              Counter="@MAX_ADDRESS_LENGTH"
-                              MaxLength="@MAX_ADDRESS_LENGTH"
+                              Counter="@KnownHostLimits.MAX_ADDRESS_LENGTH"
+                              MaxLength="@KnownHostLimits.MAX_ADDRESS_LENGTH"
                               Placeholder="192.0.2.10, 10.0.0.0/24, 2001:db8::/64"
                               Class="mt-3" />
             }
@@ -59,8 +59,8 @@
                           Label="@(HostsText["CommentColumn"])"
                           @bind-Value="_comment"
                           Immediate="true"
-                          Counter="@MAX_COMMENT_LENGTH"
-                          MaxLength="@MAX_COMMENT_LENGTH"
+                          Counter="@KnownHostLimits.MAX_COMMENT_LENGTH"
+                          MaxLength="@KnownHostLimits.MAX_COMMENT_LENGTH"
                           Class="mt-3" />
             <MudCheckBox T="bool"
                          @bind-Value="_isVisible"

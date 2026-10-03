@@ -1,4 +1,4 @@
-namespace Ufw.Web.Model.V1.KnownHosts;
+namespace Ufw.Shared.Management.KnownHosts;
 
 public enum KnownHostAddressSource
 {

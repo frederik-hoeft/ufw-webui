@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Migrations;
 using Ufw.Shared.Management.Rules;
+using Ufw.Shared.Management.KnownHosts;
 
 namespace Ufw.Web.Tests.Data;
 
@@ -92,6 +93,22 @@ public sealed class ApplicationDbContextTests
         Assert.IsNotNull(description);
         Assert.AreEqual(RuleTemplateLimits.MAX_DESCRIPTION_LENGTH, description.GetMaxLength());
         Assert.AreEqual("character varying(512)", description.GetColumnType());
+    }
+
+    [TestMethod]
+    public void PostgreSqlModel_KnownHostLengthsUseSharedLimits()
+    {
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql("Host=localhost;Database=ufw_webui;Username=ufw_webui;Password=ufw_webui")
+            .Options;
+        using ApplicationDbContext context = new(options, new ApplicationModelLoader());
+
+        Microsoft.EntityFrameworkCore.Metadata.IEntityType? host = context.Model.FindEntityType("Ufw.Web.Data.Model.KnownHostEntry");
+        Assert.IsNotNull(host);
+        Assert.AreEqual(KnownHostLimits.MAX_NAME_LENGTH, host.FindProperty("Name")?.GetMaxLength());
+        Assert.AreEqual(KnownHostLimits.MAX_NAME_LENGTH, host.FindProperty("NormalizedName")?.GetMaxLength());
+        Assert.AreEqual(KnownHostLimits.MAX_ADDRESS_LENGTH, host.FindProperty("Address")?.GetMaxLength());
+        Assert.AreEqual(KnownHostLimits.MAX_COMMENT_LENGTH, host.FindProperty("Comment")?.GetMaxLength());
     }
 
 }
