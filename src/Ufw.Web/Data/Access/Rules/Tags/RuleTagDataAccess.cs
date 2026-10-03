@@ -5,15 +5,15 @@ using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;
 using Wkg.AspNetCore.Transactions;
 
-namespace Ufw.Web.Data.Access.Rules.Groups;
+namespace Ufw.Web.Data.Access.Rules.Tags;
 
-internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionService)
-    : DatabaseService<ApplicationDbContext>(transactionService), IRuleGroupDataAccess
+internal sealed class RuleTagDataAccess(ITransactionServiceHandle transactionService)
+    : DatabaseService<ApplicationDbContext>(transactionService), IRuleTagDataAccess
 {
-    public Task<IReadOnlyList<RuleGroupItem>> GetAsync(CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<RuleTagItem>> GetAsync(CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunReadOnlyAsync(context => GetCoreAsync(context, cancellationToken));
 
-    public Task<DataMutationResult> CreateAsync(string name, string? comment, CancellationToken cancellationToken = default) =>
+    public Task<DataMutationResult> CreateAsync(string name, string color, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
             if (await NameExistsAsync(context, name, excludingId: null, cancellationToken))
@@ -21,10 +21,10 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
             }
 
-            context.Add(new RuleGroupEntry
+            context.Add(new RuleTagEntry
             {
                 Name = name,
-                Comment = comment,
+                Color = color,
             });
 
             try
@@ -39,21 +39,21 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
             return transaction.Commit(DataMutationResult.Success());
         });
 
-    public Task<DataMutationResult> UpdateAsync(Guid publicId, string name, string? comment, CancellationToken cancellationToken = default) =>
+    public Task<DataMutationResult> UpdateAsync(Guid publicId, string name, string color, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
-            RuleGroupEntry? group = await context.Set<RuleGroupEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
-            if (group is null)
+            RuleTagEntry? tag = await context.Set<RuleTagEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
+            if (tag is null)
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
-            if (await NameExistsAsync(context, name, group.Id, cancellationToken))
+            if (await NameExistsAsync(context, name, tag.Id, cancellationToken))
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
             }
 
-            group.Name = name;
-            group.Comment = comment;
+            tag.Name = name;
+            tag.Color = color;
             try
             {
                 await context.SaveChangesAsync(cancellationToken);
@@ -69,20 +69,20 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
     public Task<DataMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
-            RuleGroupEntry? group = await context.Set<RuleGroupEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
-            if (group is null)
+            RuleTagEntry? tag = await context.Set<RuleTagEntry>().SingleOrDefaultAsync(candidate => candidate.PublicId == publicId, cancellationToken);
+            if (tag is null)
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
 
-            bool inUse = await context.Set<RuleMetadataEntry>().AnyAsync(metadata => metadata.GroupId == group.Id, cancellationToken)
-                || await context.Set<RuleTemplateEntry>().AnyAsync(template => template.GroupId == group.Id, cancellationToken);
+            bool inUse = await context.Set<RuleMetadataTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken)
+                || await context.Set<RuleTemplateTagEntry>().AnyAsync(relation => relation.TagId == tag.Id, cancellationToken);
             if (inUse)
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationReferenceConflictError()));
             }
 
-            context.Remove(group);
+            context.Remove(tag);
             try
             {
                 await context.SaveChangesAsync(cancellationToken);
@@ -95,37 +95,22 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
             return transaction.Commit(DataMutationResult.Success());
         });
 
-    private static async Task<IReadOnlyList<RuleGroupItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
-    {
-        RuleGroupEntry[] groups = await context.Set<RuleGroupEntry>()
+    private static async Task<IReadOnlyList<RuleTagItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken) =>
+        await context.Set<RuleTagEntry>()
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(static group => group.RuleMetadata)
-            .Include(static group => group.RuleTemplates)
-            .OrderBy(static group => group.Name)
-            .ThenBy(static group => group.PublicId)
-            .ToArrayAsync(cancellationToken);
-        return
-        [
-            .. groups.Select(static group => new RuleGroupItem
-            {
-                Id = group.PublicId,
-                Name = group.Name,
-                Comment = group.Comment,
-                RuleIds = [.. group.RuleMetadata.Select(static metadata => metadata.RuleId).Order(StringComparer.Ordinal)],
-                TemplateIds = [.. group.RuleTemplates.Select(static template => template.PublicId).Order()],
-            })
-        ];
-    }
+            .OrderBy(static tag => tag.Name)
+            .ThenBy(static tag => tag.PublicId)
+            .Select(static tag => new RuleTagItem(tag.PublicId, tag.Name, tag.Color))
+            .ToListAsync(cancellationToken);
 
     private static async Task<bool> NameExistsAsync(ApplicationDbContext context, string name, long? excludingId, CancellationToken cancellationToken)
     {
-        IQueryable<RuleGroupEntry> query = context.Set<RuleGroupEntry>().AsNoTracking();
+        IQueryable<RuleTagEntry> query = context.Set<RuleTagEntry>().AsNoTracking();
         if (excludingId.HasValue)
         {
-            query = query.Where(group => group.Id != excludingId.Value);
+            query = query.Where(tag => tag.Id != excludingId.Value);
         }
 
-        return await query.AnyAsync(group => group.Name == name, cancellationToken);
+        return await query.AnyAsync(tag => tag.Name == name, cancellationToken);
     }
 }

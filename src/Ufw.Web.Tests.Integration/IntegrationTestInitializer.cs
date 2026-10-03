@@ -1,4 +1,5 @@
 using Ufw.Web.Data.Access.Rules.Groups;
+using Ufw.Web.Data.Access.Rules.Tags;
 using Microsoft.AspNetCore.Identity;
 using Ufw.Shared.Web;
 using Microsoft.Data.Sqlite;
@@ -94,12 +95,11 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
         services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
-        services.AddScoped<IRuleTagRepository, RuleTagRepository>();
+        services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();
         services.AddScoped<IRuleTemplateRepository, RuleTemplateRepository>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
-        services.AddScoped<IRuleTagService, RuleTagService>();
         services.AddScoped<IRuleTemplateService, RuleTemplateService>();
         services.AddScoped<NetworkInterfacesController>();
         services.AddScoped<RulesController>();

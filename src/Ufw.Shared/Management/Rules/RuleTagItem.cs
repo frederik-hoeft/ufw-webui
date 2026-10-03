@@ -1,4 +1,4 @@
-namespace Ufw.Web.Model.V1.RuleTags;
+namespace Ufw.Shared.Management.Rules;
 
 public sealed class RuleTagItem
 {

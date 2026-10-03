@@ -1,3 +1,4 @@
+using Ufw.Shared.Management.Rules;
 using Moq;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTags;

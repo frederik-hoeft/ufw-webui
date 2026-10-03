@@ -1,4 +1,6 @@
+using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules.Groups;
+using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Shared.Management.Rules;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +14,6 @@ using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;
 using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
@@ -138,27 +139,20 @@ public sealed class RuleMetadataServiceTests
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live");
 
-        RuleTagMutationResult created = await host.Tags.CreateAsync(
-            new CreateRuleTagRequest { Name = "  Production  ", Color = "#12ab34" },
-            TestContext.CancellationToken);
+        DataMutationResult created = await host.Tags.CreateAsync("Production", "#12AB34", TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleTagMutationOutcome.Success, created.Outcome);
-        RuleTagItem tag = created.Inventory!.Tags.Single();
+        Assert.IsTrue(created.IsSuccess);
+        RuleTagItem tag = (await host.Tags.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual('7', tag.Id.ToString("D")[14]);
         Assert.AreEqual("Production", tag.Name);
         Assert.AreEqual("#12AB34", tag.Color);
 
-        RuleTagMutationResult duplicate = await host.Tags.CreateAsync(
-            new CreateRuleTagRequest { Name = "PRODUCTION", Color = "#FFFFFF" },
-            TestContext.CancellationToken);
-        Assert.AreEqual(RuleTagMutationOutcome.NameConflict, duplicate.Outcome);
+        DataMutationResult duplicate = await host.Tags.CreateAsync("PRODUCTION", "#FFFFFF", TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationUniqueConflictError>(duplicate.Error);
 
-        RuleTagMutationResult updated = await host.Tags.UpdateAsync(
-            tag.Id,
-            new UpdateRuleTagRequest { Name = "Prod", Color = "#0011aa" },
-            TestContext.CancellationToken);
-        Assert.AreEqual(RuleTagMutationOutcome.Success, updated.Outcome);
-        RuleTagItem renamed = updated.Inventory!.Tags.Single();
+        DataMutationResult updated = await host.Tags.UpdateAsync(tag.Id, "Prod", "#0011AA", TestContext.CancellationToken);
+        Assert.IsTrue(updated.IsSuccess);
+        RuleTagItem renamed = (await host.Tags.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual(tag.Id, renamed.Id);
         Assert.AreEqual("Prod", renamed.Name);
         Assert.AreEqual("#0011AA", renamed.Color);
@@ -168,15 +162,15 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
             TestContext.CancellationToken);
 
-        RuleTagMutationResult inUse = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
-        Assert.AreEqual(RuleTagMutationOutcome.InUse, inUse.Outcome);
+        DataMutationResult inUse = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationReferenceConflictError>(inUse.Error);
         Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
 
         _ = await host.Metadata.UpdateAsync("sha256:live", new UpdateRuleMetadataRequest(), TestContext.CancellationToken);
-        RuleTagMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
+        DataMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleTagMutationOutcome.Success, deleted.Outcome);
-        Assert.IsEmpty(deleted.Inventory!.Tags);
+        Assert.IsTrue(deleted.IsSuccess);
+        Assert.IsEmpty(await host.Tags.GetAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
     }
 
@@ -186,27 +180,27 @@ public sealed class RuleMetadataServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        RuleGroupMutationResult created = await host.Groups.CreateAsync("Platform", "managed rules", TestContext.CancellationToken);
+        DataMutationResult created = await host.Groups.CreateAsync("Platform", "managed rules", TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleGroupMutationOutcome.Success, created.Outcome);
+        Assert.IsTrue(created.IsSuccess);
         RuleGroupItem group = (await host.Groups.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual('7', group.Id.ToString("D")[14]);
         Assert.AreEqual("Platform", group.Name);
         Assert.AreEqual("managed rules", group.Comment);
         Assert.IsEmpty(group.RuleIds);
 
-        RuleGroupMutationResult duplicate = await host.Groups.CreateAsync("PLATFORM", null, TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.NameConflict, duplicate.Outcome);
+        DataMutationResult duplicate = await host.Groups.CreateAsync("PLATFORM", null, TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationUniqueConflictError>(duplicate.Error);
 
-        RuleGroupMutationResult updated = await host.Groups.UpdateAsync(group.Id, "Core", null, TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.Success, updated.Outcome);
+        DataMutationResult updated = await host.Groups.UpdateAsync(group.Id, "Core", null, TestContext.CancellationToken);
+        Assert.IsTrue(updated.IsSuccess);
         RuleGroupItem renamed = (await host.Groups.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual(group.Id, renamed.Id);
         Assert.AreEqual("Core", renamed.Name);
         Assert.IsNull(renamed.Comment);
 
-        RuleGroupMutationResult deleted = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.Success, deleted.Outcome);
+        DataMutationResult deleted = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
+        Assert.IsTrue(deleted.IsSuccess);
         Assert.IsEmpty(await host.Groups.GetAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.RuleGroupRowCountAsync(TestContext.CancellationToken));
     }
@@ -267,8 +261,8 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { GroupId = group.Id },
             TestContext.CancellationToken)).Response!.Metadata!;
 
-        RuleGroupMutationResult inUse = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.InUse, inUse.Outcome);
+        DataMutationResult inUse = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationReferenceConflictError>(inUse.Error);
 
         host.SetRules();
         RuleMetadataReconciliationResponse cleaned = await host.Reconciliation.CleanupAsync(
@@ -757,7 +751,7 @@ public sealed class RuleMetadataServiceTests
             RuleInventoryService inventory,
             RuleMetadataReconciliationService reconciliation,
             RuleGroupDataAccess groups,
-            RuleTagService tags)
+            RuleTagDataAccess tags)
         {
             _connection = connection;
             _services = services;
@@ -779,7 +773,7 @@ public sealed class RuleMetadataServiceTests
 
         public RuleGroupDataAccess Groups { get; }
 
-        public RuleTagService Tags { get; }
+        public RuleTagDataAccess Tags { get; }
 
         public static async Task<TestHost> CreateAsync(CancellationToken cancellationToken)
         {
@@ -801,11 +795,10 @@ public sealed class RuleMetadataServiceTests
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             RuleMetadataRepository metadataRepository = new(transactionHandle);
             RuleGroupDataAccess groups = new(transactionHandle);
-            RuleTagRepository tagRepository = new(transactionHandle);
+            RuleTagDataAccess tags = new(transactionHandle);
             RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
-                        RuleTagService tags = new(tagRepository);
             return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, groups, tags);
         }
 
@@ -826,18 +819,18 @@ public sealed class RuleMetadataServiceTests
         public async Task<RuleGroupItem> CreateGroupAsync(string name, string? comment, CancellationToken cancellationToken)
         {
             string? normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
-            RuleGroupMutationResult result = await Groups.CreateAsync(name.Trim(), normalizedComment, cancellationToken);
-            Assert.AreEqual(RuleGroupMutationOutcome.Success, result.Outcome);
+            DataMutationResult result = await Groups.CreateAsync(name.Trim(), normalizedComment, cancellationToken);
+            Assert.IsTrue(result.IsSuccess);
             IReadOnlyList<RuleGroupItem> groups = await Groups.GetAsync(cancellationToken);
             return groups.Single(group => string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public async Task<RuleTagItem> CreateTagAsync(string name, string color, CancellationToken cancellationToken)
         {
-            RuleTagMutationResult result = await Tags.CreateAsync(new CreateRuleTagRequest { Name = name, Color = color }, cancellationToken);
-            Assert.AreEqual(RuleTagMutationOutcome.Success, result.Outcome);
-            Assert.IsNotNull(result.Inventory);
-            return result.Inventory.Tags.Single(tag => string.Equals(tag.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+            DataMutationResult result = await Tags.CreateAsync(name.Trim(), color.Trim().ToUpperInvariant(), cancellationToken);
+            Assert.IsTrue(result.IsSuccess);
+            IReadOnlyList<RuleTagItem> tags = await Tags.GetAsync(cancellationToken);
+            return tags.Single(tag => string.Equals(tag.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public Task<int> ExecuteSqlAsync(string sql, CancellationToken cancellationToken) =>

@@ -1,3 +1,5 @@
+using Ufw.Shared.Management.Rules;
+
 namespace Ufw.Web.Model.V1.RuleTags;
 
 public sealed class RuleTagInventoryResponse

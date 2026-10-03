@@ -1,6 +1,6 @@
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api.RuleMetadata;
 using Ufw.Web.Model.V1.RuleMetadata;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Client.Api;
 

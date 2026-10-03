@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.RuleTemplates;
 using Wkg.AspNetCore.Abstractions.Services;
 using Wkg.AspNetCore.Transactions;

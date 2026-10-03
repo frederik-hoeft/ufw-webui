@@ -15,15 +15,15 @@ public interface IRuleGroupDataAccess
     /// <summary>
     /// Creates a rule group from normalized, request-validated values.
     /// </summary>
-    Task<RuleGroupMutationResult> CreateAsync(string name, string? comment, CancellationToken cancellationToken = default);
+    Task<DataMutationResult> CreateAsync(string name, string? comment, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates a rule group from normalized, request-validated values.
     /// </summary>
-    Task<RuleGroupMutationResult> UpdateAsync(Guid publicId, string name, string? comment, CancellationToken cancellationToken = default);
+    Task<DataMutationResult> UpdateAsync(Guid publicId, string name, string? comment, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes an unused rule group.
     /// </summary>
-    Task<RuleGroupMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default);
+    Task<DataMutationResult> DeleteAsync(Guid publicId, CancellationToken cancellationToken = default);
 }

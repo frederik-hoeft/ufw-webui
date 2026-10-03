@@ -294,6 +294,8 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 Avoid an untyped exception-driven API or one giant catch-all enum. The goal is standard error categories plus optional typed domain details, not loss of semantic information.
 
+**W1.1 status:** The group/tag slices now use shared `DataMutationResult` plus typed common errors for not-found, unique-conflict, and reference-conflict outcomes. PostgreSQL unique/FK exceptions are translated through `DbUpdateExceptionExtensions`; operation-specific catch filters avoid consuming unrelated storage failures. Template-specific mutation outcomes remain until the template slice migrates, so KZ-22 is not complete yet.
+
 **Primary files:** `Data/Extensions/DbUpdateExceptionExtensions.cs`, `Services/Rules/RuleGroupMutationOutcome.cs`, `Services/Rules/RuleGroupMutationResult.cs`, `Services/Rules/RuleTagMutationOutcome.cs`, `Services/Rules/RuleTagMutationResult.cs`, `Services/Rules/RuleTemplateMutationOutcome.cs`, `Services/Rules/RuleTemplateMutationResult.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Api/V1/Controllers/RuleTemplatesController.cs`
 
 ### KZ-07 [P2] Reduce rule-group/rule-tag catalog copy-paste without generic-controller overengineering
@@ -356,13 +358,15 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Primary files:** `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Data/Model/NetworkInterfaceEntry.cs`
 
-### KZ-12 [P3-quick] Delete dead validation/signing implementations and minor stale code
+### KZ-12 [P3-quick] Remove obsolete signing/stale code and preserve reusable validation primitives
 
-**Problem:** Two custom validation attributes have no production references; only their tests reference them. The RSA JWT key provider is also unreferenced while DI always uses ECDSA. The dead port validator contains a commented-out implementation and a bit-mask expression that obscures simple parsing; the IPv4 validator contains a malformed validation message. Group/tag repositories contain unused `Npgsql` imports.
+**Problem:** Two custom validation attributes currently have no production references, while the RSA JWT key provider is unreferenced and DI always uses ECDSA. Group/tag repositories also contain stale imports. The validation attributes are nevertheless reusable request-shape primitives needed by the upcoming KZ-05 DTO-validation migration, so deleting them now would only recreate them shortly afterward.
 
 **Evidence:** Repository-wide symbol search finds no production use of `ValidIPv4AddressOrAnyAttribute`, `ValidPortRangeAttribute`, or `RsaJwtSigningKeyProvider`.
 
-**Refactor target:** Delete the dead implementations and their dedicated tests unless algorithm/validator selection is an imminent requirement. Remove stale imports/comments rather than preserving dormant alternatives.
+**Refactor target:** Remove genuinely obsolete signing/stale code, but retain the IPv4/port validation attributes and their focused tests because request-DTO validation is now an imminent KZ-05 consumer. Revisit their implementation/messages as they are wired into DTOs rather than deleting and recreating them.
+
+**Status:** Completed in W1.1 with narrowed scope. The unused RSA JWT signing-key provider is removed and group/tag repository-specific stale imports disappeared with the DAL migration. `ValidIPv4AddressOrAnyAttribute` and `ValidPortRangeAttribute`, plus their tests, are deliberately retained for the KZ-05 request-DTO validation work.
 
 **Primary files:** `Data/Validation/ValidIPv4AddressOrAnyAttribute.cs`, `Data/Validation/ValidPortRangeAttribute.cs`, `Services/Auth/RsaJwtSigningKeyProvider.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`
 
@@ -461,7 +465,7 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ## Definition of done for the blitz
 
-- No production references remain to deleted validators/RSA provider, and their obsolete tests are removed or repurposed.
+- No production references remain to the deleted RSA provider; retained validation attributes are either consumed by the KZ-05 request-validation boundary or removed if they prove unnecessary there.
 - Known-host invalid metadata and daemon multi-error validation have regression tests.
 - Controllers no longer inject `IUfwClient` directly for normal daemon workflows.
 - Daemon transport exceptions are converted to the public HTTP error contract in one place.

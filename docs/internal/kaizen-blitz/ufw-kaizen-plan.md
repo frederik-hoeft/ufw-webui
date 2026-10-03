@@ -129,11 +129,11 @@ Treat these as one architecture package rather than independent tickets:
 3. **WEB KZ-02 + KZ-17:** introduce the final daemon gateway against the now-stable daemon transport/protocol; endpoint paths disappear inside it.
 4. **WEB KZ-03:** move signed daemon interpretation behind that gateway and pass domain reconciliation facts to metadata persistence.
 5. **WEB KZ-14 is resolved here through KZ-05**, not by adding another temporary outcome type.
-6. **WEB KZ-12:** remove dead validators/signing code early so it does not distract from the new validation boundary.
+6. **WEB KZ-12:** remove genuinely obsolete signing/stale code early, but retain the existing reusable validation attributes for KZ-05 DTO validation rather than deleting and recreating them.
 
 Implementation should then migrate one domain slice at a time into `Data/Access/<domain>`, keeping the solution buildable. Pure management-domain/read models move to `Ufw.Shared.Management`; versioned request/response DTOs remain in `Ufw.Web.Model` and may embed those shared types. Make only the minimum client compile edits in the same commit; defer client-side architectural cleanup to Phase C.
 
-W1.1 uses rule groups as the first vertical boundary pilot: group read models/limits move to `Ufw.Shared.Management`, request-shape validation and normalization move to the REST boundary, and the controller talks directly to the domain-sliced DAL. The broader KZ-01/KZ-05/KZ-23 checklist items remain open until the remaining slices have migrated to the same rules.
+W1.1 uses rule groups as the first vertical boundary pilot: group read models/limits move to `Ufw.Shared.Management`, request-shape validation and normalization move to the REST boundary, and the controller talks directly to the domain-sliced DAL. The second review cycle applies the same boundary to rule tags, establishes reusable `DataMutationResult`/`DataMutationError` propagation for common not-found/unique/reference failures, and removes the obsolete KZ-12 RSA signing provider while retaining the reusable validation attributes for KZ-05 DTO validation. The broader KZ-01/KZ-05/KZ-22/KZ-23 checklist items remain open until templates and the remaining slices have migrated to the same rules.
 
 #### W2 - Vertical DAL/workflow migrations and public error contract
 
@@ -307,7 +307,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | WEB KZ-10 | W2 | Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser` | Do as the Auth slice is moved behind KZ-01's DAL; choose transaction ownership once rather than moving RefreshTokenService twice. |
 | [ ] | WEB KZ-11 | W3 | Shrink accidental public surface area | Late cleanup after final service/DAL/gateway boundaries determine what truly needs to stay public. |
 | [ ] | WEB KZ-13 | W1 | Decide whether transient interface disappearance is allowed to erase user-owned metadata | Make the lifecycle decision before migrating the network-interface DAL and before the client inventory-page refactor. |
-| [ ] | WEB KZ-12 | W1 | Delete dead validation/signing implementations and minor stale code | Safe early deletion during W1 to reduce noise before structural changes. |
+| [x] | WEB KZ-12 | W1 | Delete dead validation/signing implementations and minor stale code | Completed in W1.1 with narrowed scope: removed the unused RSA JWT key provider and stale group/tag repository imports. The reusable IPv4/port validation attributes and their tests are deliberately retained for KZ-05 request-DTO validation. |
 | [ ] | WEB KZ-16 | W2 | Extract auth cookie policy and Identity error mapping | Do with the Auth slice after KZ-10 establishes the final workflow/persistence boundary. |
 | [ ] | WEB KZ-17 | W1 | Centralize daemon endpoint paths | Do not implement separately; endpoint paths become private details of KZ-02 daemon gateways. |
 | [ ] | WEB KZ-18 | W2 | Tighten bulk persistence operations after the boundary refactor | Do after KZ-01/KZ-06 migration so set-based deletes target the final DAL instead of legacy repositories. |

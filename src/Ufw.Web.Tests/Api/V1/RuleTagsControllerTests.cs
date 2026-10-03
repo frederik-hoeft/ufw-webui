@@ -5,66 +5,68 @@ using Moq;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Data.Access;
-using Ufw.Web.Data.Access.Rules.Groups;
-using Ufw.Web.Model.V1.RuleGroups;
+using Ufw.Web.Data.Access.Rules.Tags;
+using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Tests.Api.V1;
 
 [TestClass]
-public sealed class RuleGroupsControllerTests
+public sealed class RuleTagsControllerTests
 {
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task GetAsync_WrapsDomainInventoryInResponseAsync()
     {
-        IReadOnlyList<RuleGroupItem> expected = [new RuleGroupItem(Guid.CreateVersion7(), "Core", "comment", ["sha256:rule"])];
-        Mock<IRuleGroupDataAccess> data = new();
+        IReadOnlyList<RuleTagItem> expected = [new RuleTagItem(Guid.CreateVersion7(), "Production", "#12AB34")];
+        Mock<IRuleTagDataAccess> data = new();
         data.Setup(candidate => candidate.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
-        RuleGroupsController controller = new(data.Object);
+        RuleTagsController controller = new(data.Object);
 
-        ActionResult<RuleGroupInventoryResponse> action = await controller.GetAsync(TestContext.CancellationToken);
+        ActionResult<RuleTagInventoryResponse> action = await controller.GetAsync(TestContext.CancellationToken);
 
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(action.Result);
-        RuleGroupInventoryResponse response = Assert.IsInstanceOfType<RuleGroupInventoryResponse>(ok.Value);
-        Assert.AreSame(expected, response.Groups);
+        RuleTagInventoryResponse response = Assert.IsInstanceOfType<RuleTagInventoryResponse>(ok.Value);
+        Assert.AreSame(expected, response.Tags);
     }
 
     [TestMethod]
     public async Task CreateAsync_NormalizesRequestAndReadsInventoryAfterSuccessfulMutationAsync()
     {
         Guid id = Guid.CreateVersion7();
-        IReadOnlyList<RuleGroupItem> inventory = [new RuleGroupItem(id, "Core", "managed", [])];
-        Mock<IRuleGroupDataAccess> data = new();
-        data.Setup(candidate => candidate.CreateAsync("Core", "managed", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DataMutationResult.Success());
+        IReadOnlyList<RuleTagItem> inventory = [new RuleTagItem(id, "Production", "#12AB34")];
+        Mock<IRuleTagDataAccess> data = new();
+        data.Setup(candidate => candidate.CreateAsync("Production", "#12AB34", It.IsAny<CancellationToken>())).ReturnsAsync(DataMutationResult.Success());
         data.Setup(candidate => candidate.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(inventory);
-        RuleGroupsController controller = new(data.Object);
+        RuleTagsController controller = new(data.Object);
 
         IActionResult action = await controller.CreateAsync(
-            new CreateRuleGroupRequest { Name = "  Core  ", Comment = "  managed  " },
+            new CreateRuleTagRequest { Name = "  Production  ", Color = "  #12ab34  " },
             TestContext.CancellationToken);
 
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(action);
-        RuleGroupInventoryResponse response = Assert.IsInstanceOfType<RuleGroupInventoryResponse>(ok.Value);
-        Assert.AreSame(inventory, response.Groups);
-        data.Verify(candidate => candidate.CreateAsync("Core", "managed", It.IsAny<CancellationToken>()), Times.Once);
+        RuleTagInventoryResponse response = Assert.IsInstanceOfType<RuleTagInventoryResponse>(ok.Value);
+        Assert.AreSame(inventory, response.Tags);
+        data.Verify(candidate => candidate.CreateAsync("Production", "#12AB34", It.IsAny<CancellationToken>()), Times.Once);
         data.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
-    public async Task UpdateAsync_NameConflictReturnsConflictWithoutInventoryReadAsync()
+    public async Task UpdateAsync_UniqueConflictReturnsConflictWithoutInventoryReadAsync()
     {
         Guid id = Guid.CreateVersion7();
-        Mock<IRuleGroupDataAccess> data = new();
-        data.Setup(candidate => candidate.UpdateAsync(id, "Core", null, It.IsAny<CancellationToken>()))
+        Mock<IRuleTagDataAccess> data = new();
+        data.Setup(candidate => candidate.UpdateAsync(id, "Production", "#12AB34", It.IsAny<CancellationToken>()))
             .ReturnsAsync(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
-        RuleGroupsController controller = new(data.Object)
+        RuleTagsController controller = new(data.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
 
-        IActionResult action = await controller.UpdateAsync(id, new UpdateRuleGroupRequest { Name = " Core ", Comment = "  " }, TestContext.CancellationToken);
+        IActionResult action = await controller.UpdateAsync(
+            id,
+            new UpdateRuleTagRequest { Name = " Production ", Color = " #12ab34 " },
+            TestContext.CancellationToken);
 
         ConflictObjectResult conflict = Assert.IsInstanceOfType<ConflictObjectResult>(action);
         ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(conflict.Value);
@@ -73,13 +75,13 @@ public sealed class RuleGroupsControllerTests
     }
 
     [TestMethod]
-    public async Task DeleteAsync_InUseReturnsConflictWithoutInventoryReadAsync()
+    public async Task DeleteAsync_ReferenceConflictReturnsConflictWithoutInventoryReadAsync()
     {
         Guid id = Guid.CreateVersion7();
-        Mock<IRuleGroupDataAccess> data = new();
+        Mock<IRuleTagDataAccess> data = new();
         data.Setup(candidate => candidate.DeleteAsync(id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(DataMutationResult.Failure(new DataMutationReferenceConflictError()));
-        RuleGroupsController controller = new(data.Object)
+        RuleTagsController controller = new(data.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
@@ -95,10 +97,10 @@ public sealed class RuleGroupsControllerTests
     [TestMethod]
     public void CreateRequest_RejectsInvalidTransportShape()
     {
-        CreateRuleGroupRequest request = new()
+        CreateRuleTagRequest request = new()
         {
             Name = " ",
-            Comment = new string('x', RuleGroupLimits.MAX_COMMENT_LENGTH + 1),
+            Color = "#12345G",
         };
 
         List<ValidationResult> errors = [];
@@ -111,10 +113,10 @@ public sealed class RuleGroupsControllerTests
     [TestMethod]
     public void UpdateRequest_AcceptsValuesAtSharedLimits()
     {
-        UpdateRuleGroupRequest request = new()
+        UpdateRuleTagRequest request = new()
         {
-            Name = new string('n', RuleGroupLimits.MAX_NAME_LENGTH),
-            Comment = new string('c', RuleGroupLimits.MAX_COMMENT_LENGTH),
+            Name = new string('n', RuleTagLimits.MAX_NAME_LENGTH),
+            Color = "#a1B2c3",
         };
 
         List<ValidationResult> errors = [];

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ufw.Shared.Management.Rules;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Data.Model;
@@ -25,12 +26,12 @@ internal sealed partial class RuleTagEntry : IDiscoverableModelConfiguration<Rul
         self.Property(static tag => tag.Name)
             .HasColumnName("Name")
             .HasColumnType("citext")
-            .HasMaxLength(MAX_NAME_LENGTH)
+            .HasMaxLength(RuleTagLimits.MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static tag => tag.Color)
             .HasColumnName("Color")
             .HasColumnType("character(7)")
-            .HasMaxLength(COLOR_LENGTH)
+            .HasMaxLength(RuleTagLimits.COLOR_LENGTH)
             .IsFixedLength()
             .IsRequired();
 

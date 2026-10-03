@@ -4,7 +4,6 @@ using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Client.Features.Rules.Templates;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.RuleTemplates;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Templates;
