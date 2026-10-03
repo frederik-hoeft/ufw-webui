@@ -1,6 +1,5 @@
 ﻿using Moq;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Client.Api;
@@ -8,6 +7,7 @@ using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Intent;
 
@@ -19,7 +19,7 @@ public sealed class RuleMutationServiceTests
     {
         TestHost host = new();
         FirewallRuleSpecification rule = new() { Action = FirewallAction.Allow };
-        AddRuleRequest signed = CreateAddRequest();
+        AddRuleIntentRequest signed = CreateAddRequest();
         RuleMutationResponse expected = new(IntentOperations.ADD_RULE, new ListedFirewallRule());
         host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
@@ -73,7 +73,7 @@ public sealed class RuleMutationServiceTests
         TestHost host = new();
         FirewallRuleSpecification specification = new() { Action = FirewallAction.Deny };
         ListedFirewallRule rule = new() { Parsed = true, RuleId = "stable-id", Rule = specification };
-        DeleteRuleRequest signed = CreateDeleteRequest();
+        DeleteRuleIntentRequest signed = CreateDeleteRequest();
         RuleMutationResponse expected = new(IntentOperations.DELETE_RULE, rule);
         host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
@@ -93,7 +93,7 @@ public sealed class RuleMutationServiceTests
             Active: true,
             [new ListedFirewallRule { Parsed = true, RuleId = "one", Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 } }],
             TestFirewallConfiguration.Enabled);
-        BatchDeleteRulesRequest signed = CreateBatchDeleteRequest();
+        BatchDeleteRulesIntentRequest signed = CreateBatchDeleteRequest();
         RuleBatchDeleteResponse expected = new(RuleBatchDeleteOutcome.Completed, baseline, [], [], null);
         host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
         host.Signer.Setup(service => service.CreateBatchDeleteRulesRequestAsync(
@@ -126,7 +126,7 @@ public sealed class RuleMutationServiceTests
             Action = FirewallAction.Allow,
             AddressFamily = FirewallAddressFamily.IPv4,
         };
-        InsertRuleRequest signed = CreateInsertRequest();
+        InsertRuleIntentRequest signed = CreateInsertRequest();
         RuleInsertionResponse expected = new(RuleInsertionOutcome.Completed, baseline, anchor, Diagnostic: null);
         host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
@@ -169,7 +169,7 @@ public sealed class RuleMutationServiceTests
             Protocol = FirewallProtocol.Tcp,
             DestinationPorts = "443",
         };
-        ReplaceRuleRequest signed = CreateReplaceRequest();
+        ReplaceRuleIntentRequest signed = CreateReplaceRequest();
         RuleReplacementResponse firewall = new(RuleReplacementOutcome.Completed, baseline, target, RecoveryOutcome: null, Diagnostic: null);
         RuleReplacementMutationResponse expected = new(firewall, RuleReplacementMetadataReconciliationOutcome.Completed);
         host.Context.Setup(client => client.GetAsync(It.IsAny<CancellationToken>()))
@@ -226,7 +226,7 @@ public sealed class RuleMutationServiceTests
         host.Rules.VerifyNoOtherCalls();
     }
 
-    private static AddRuleRequest CreateAddRequest() => new()
+    private static AddRuleIntentRequest CreateAddRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -236,7 +236,7 @@ public sealed class RuleMutationServiceTests
         Signature = "signature",
     };
 
-    private static BatchDeleteRulesRequest CreateBatchDeleteRequest() => new()
+    private static BatchDeleteRulesIntentRequest CreateBatchDeleteRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -246,7 +246,7 @@ public sealed class RuleMutationServiceTests
         Signature = "signature",
     };
 
-    private static InsertRuleRequest CreateInsertRequest() => new()
+    private static InsertRuleIntentRequest CreateInsertRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -256,7 +256,7 @@ public sealed class RuleMutationServiceTests
         Signature = "signature",
     };
 
-    private static ReplaceRuleRequest CreateReplaceRequest() => new()
+    private static ReplaceRuleIntentRequest CreateReplaceRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -266,7 +266,7 @@ public sealed class RuleMutationServiceTests
         Signature = "signature",
     };
 
-    private static DeleteRuleRequest CreateDeleteRequest() => new()
+    private static DeleteRuleIntentRequest CreateDeleteRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",

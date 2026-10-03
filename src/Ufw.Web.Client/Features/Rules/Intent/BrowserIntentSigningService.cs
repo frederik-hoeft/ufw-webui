@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
 
@@ -8,7 +8,7 @@ namespace Ufw.Web.Client.Features.Rules.Intent;
 
 internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService crypto, TimeProvider timeProvider) : IIntentSigningService
 {
-    public async Task<AddRuleRequest> CreateAddRuleRequestAsync(string deploymentId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default)
+    public async Task<AddRuleIntentRequest> CreateAddRuleRequestAsync(string deploymentId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
         ArgumentNullException.ThrowIfNull(rule);
@@ -17,8 +17,9 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
         string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
         AddRulePayload payload = new() { Rule = RuleSpecificationNormalizer.Normalize(rule) };
-        AddRuleRequest unsignedRequest = new()
+        AddRuleIntentRequest unsignedRequest = new()
         {
+            Version = IntentProtocol.VERSION,
             DeploymentId = deploymentId,
             KeyId = keyId,
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
@@ -33,7 +34,7 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
-    public async Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(
+    public async Task<DeleteRuleIntentRequest> CreateDeleteRuleRequestAsync(
         string deploymentId,
         string ruleId,
         FirewallRuleSpecification rule,
@@ -52,8 +53,9 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
             RuleId = ruleId,
             Rule = RuleSpecificationNormalizer.Normalize(rule),
         };
-        DeleteRuleRequest unsignedRequest = new()
+        DeleteRuleIntentRequest unsignedRequest = new()
         {
+            Version = IntentProtocol.VERSION,
             DeploymentId = deploymentId,
             KeyId = keyId,
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
@@ -68,7 +70,7 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
-    public async Task<BatchDeleteRulesRequest> CreateBatchDeleteRulesRequestAsync(
+    public async Task<BatchDeleteRulesIntentRequest> CreateBatchDeleteRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         IReadOnlyList<int> occurrenceIds,
@@ -88,8 +90,9 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
 
         string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
         string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
-        BatchDeleteRulesRequest unsignedRequest = new()
+        BatchDeleteRulesIntentRequest unsignedRequest = new()
         {
+            Version = IntentProtocol.VERSION,
             DeploymentId = deploymentId,
             KeyId = keyId,
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
@@ -104,7 +107,7 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
-    public async Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
+    public async Task<InsertRuleIntentRequest> CreateInsertRuleRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         int anchorOccurrenceId,
@@ -128,8 +131,9 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
 
         string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
         string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
-        InsertRuleRequest unsignedRequest = new()
+        InsertRuleIntentRequest unsignedRequest = new()
         {
+            Version = IntentProtocol.VERSION,
             DeploymentId = deploymentId,
             KeyId = keyId,
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
@@ -144,7 +148,7 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
-    public async Task<ReplaceRuleRequest> CreateReplaceRuleRequestAsync(
+    public async Task<ReplaceRuleIntentRequest> CreateReplaceRuleRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         int targetOccurrenceId,
@@ -168,8 +172,9 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
 
         string keyId = await crypto.GetKeyIdAsync(privateKey, cancellationToken);
         string nonce = await crypto.CreateNonceAsync(IntentProtocol.NONCE_SIZE_BYTES, cancellationToken);
-        ReplaceRuleRequest unsignedRequest = new()
+        ReplaceRuleIntentRequest unsignedRequest = new()
         {
+            Version = IntentProtocol.VERSION,
             DeploymentId = deploymentId,
             KeyId = keyId,
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
@@ -184,7 +189,7 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
         return unsignedRequest with { Signature = signature };
     }
 
-    public async Task<ReorderRulesRequest> CreateReorderRulesRequestAsync(
+    public async Task<ReorderRulesIntentRequest> CreateReorderRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         IReadOnlyList<int> desiredOrder,
@@ -207,8 +212,9 @@ internal sealed class BrowserIntentSigningService(IBrowserIntentCryptoService cr
             BaselineFingerprint = baselineFingerprint,
             DesiredOrder = [.. desiredOrder],
         };
-        ReorderRulesRequest unsignedRequest = new()
+        ReorderRulesIntentRequest unsignedRequest = new()
         {
+            Version = IntentProtocol.VERSION,
             DeploymentId = deploymentId,
             KeyId = keyId,
             IssuedAtUnix = timeProvider.GetUtcNow().ToUnixTimeSeconds(),

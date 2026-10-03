@@ -41,7 +41,7 @@ The runtime components form a chain in which each layer owns a different concern
 
 ### Browser application
 
-`Ufw.Web.Client` authenticates to the REST API, loads authoritative firewall snapshots, combines those snapshots with application-owned metadata for presentation, validates rule input for usability, and creates signed mutation intents. It talks only to HTTP resources exposed by `Ufw.Web`; it does not know how the daemon transport is framed or how UFW subprocesses are constructed. Browser and ASP compile against the same versioned REST DTOs from `Ufw.Web.Model`, which keeps the transport contract shared without coupling client feature logic to server implementation code.
+`Ufw.Web.Client` authenticates to the REST API, loads authoritative firewall snapshots, combines those snapshots with application-owned metadata for presentation, validates rule input for usability, and creates signed mutation intents. It talks only to HTTP resources exposed by `Ufw.Web`; it does not know how the daemon transport is framed or how UFW subprocesses are constructed. Browser and ASP compile against the same versioned REST DTOs from `Ufw.Web.Model`, which keeps the transport contract shared without coupling client feature logic to server implementation code. Signed mutation REST DTOs are intentionally distinct from the daemon IPC request types: ASP validates signed HTTP envelope shape/format and state-independent canonical payload semantics and then maps it to IPC by copying the signed values unchanged.
 
 The browser keeps short-lived access JWTs in memory, while the refresh token is held in an `HttpOnly` cookie. Administrator mutation private keys are supplied to the signing workflow for individual operations and are not persisted by UFWeb. Browser-side validation provides immediate feedback and prevents obviously invalid requests from being composed, but it is not an authorization boundary. The daemon reconstructs and validates the signed semantics independently before any privileged execution takes place.
 
@@ -141,7 +141,7 @@ sequenceDiagram
     W-->>B: intent context
     Note over B: Build canonical operation payload\nand sign with authorized P-256 key
     B->>W: authenticated REST mutation + signed intent
-    W->>D: forward signed mutation
+    W->>D: forward validated signed values unchanged
     Note over D: Verify signature, deployment,\nfreshness, nonce, semantics
     D->>U: read fresh authoritative state
     Note over D: Validate target / snapshot conditions\nand durably consume nonce

@@ -1,7 +1,7 @@
 ﻿using Moq;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Security.Intent;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Client.Tests.Support;
 
@@ -19,7 +19,7 @@ public sealed class BrowserIntentSigningServiceTests
         BrowserIntentSigningService service = new(crypto.Object, new MutableTimeProvider(s_now));
         FirewallRuleSpecification rule = CreateNonCanonicalRule();
 
-        AddRuleRequest request = await service.CreateAddRuleRequestAsync("deployment", rule, "private-key");
+        AddRuleIntentRequest request = await service.CreateAddRuleRequestAsync("deployment", rule, "private-key");
 
         Assert.AreEqual("deployment", request.DeploymentId);
         Assert.AreEqual("key-id", request.KeyId);
@@ -41,7 +41,7 @@ public sealed class BrowserIntentSigningServiceTests
         BrowserIntentSigningService service = new(crypto.Object, new MutableTimeProvider(s_now));
         FirewallRuleSpecification rule = CreateNonCanonicalRule();
 
-        DeleteRuleRequest request = await service.CreateDeleteRuleRequestAsync("deployment", "stable-id", rule, "private-key");
+        DeleteRuleIntentRequest request = await service.CreateDeleteRuleRequestAsync("deployment", "stable-id", rule, "private-key");
 
         Assert.AreEqual(IntentOperations.DELETE_RULE, request.Operation);
         Assert.AreEqual("stable-id", request.Payload.GetProperty("ruleId").GetString());
@@ -56,7 +56,7 @@ public sealed class BrowserIntentSigningServiceTests
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
         int[] occurrenceIds = [4, 1, 3];
 
-        BatchDeleteRulesRequest request = await service.CreateBatchDeleteRulesRequestAsync("deployment", fingerprint, occurrenceIds, "private-key");
+        BatchDeleteRulesIntentRequest request = await service.CreateBatchDeleteRulesRequestAsync("deployment", fingerprint, occurrenceIds, "private-key");
 
         Assert.AreEqual(IntentOperations.DELETE_RULES_BATCH, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
@@ -73,7 +73,7 @@ public sealed class BrowserIntentSigningServiceTests
         FirewallRuleSpecification rule = CreateNonCanonicalRule();
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
 
-        InsertRuleRequest request = await service.CreateInsertRuleRequestAsync("deployment", fingerprint, anchorOccurrenceId: 3, RuleInsertionPlacement.Before, rule, "private-key");
+        InsertRuleIntentRequest request = await service.CreateInsertRuleRequestAsync("deployment", fingerprint, anchorOccurrenceId: 3, RuleInsertionPlacement.Before, rule, "private-key");
 
         Assert.AreEqual(IntentOperations.INSERT_RULE, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
@@ -106,7 +106,7 @@ public sealed class BrowserIntentSigningServiceTests
             DestinationPorts = "22",
         });
 
-        ReplaceRuleRequest request = await service.CreateReplaceRuleRequestAsync(
+        ReplaceRuleIntentRequest request = await service.CreateReplaceRuleRequestAsync(
             "deployment",
             fingerprint,
             targetOccurrenceId: 3,
@@ -138,7 +138,7 @@ public sealed class BrowserIntentSigningServiceTests
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
         int[] desiredOrder = [2, 0, 1];
 
-        ReorderRulesRequest request = await service.CreateReorderRulesRequestAsync("deployment", fingerprint, desiredOrder, "private-key");
+        ReorderRulesIntentRequest request = await service.CreateReorderRulesRequestAsync("deployment", fingerprint, desiredOrder, "private-key");
 
         Assert.AreEqual(IntentOperations.REORDER_RULES, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());

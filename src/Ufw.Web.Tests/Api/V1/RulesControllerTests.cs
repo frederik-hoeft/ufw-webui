@@ -9,6 +9,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 
@@ -108,7 +109,7 @@ public sealed class RulesControllerTests
     public async Task TestAddRuleAsync_ForwardsSignedEnvelopeAsync()
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
-        AddRuleRequest request = CreateSignedAdd();
+        AddRuleIntentRequest request = CreateSignedAdd();
         RuleMutationResponse expected = new(IntentOperations.ADD_RULE, null!);
         daemonRules.Setup(static c => c.AddRuleAsync(It.IsAny<AddRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DaemonResult.Success(expected));
@@ -120,27 +121,18 @@ public sealed class RulesControllerTests
         Assert.AreSame(expected, ok.Value);
         daemonRules.Verify(
             c => c.AddRuleAsync(
-                It.Is<AddRuleRequest>(sent => sent.DeploymentId == request.DeploymentId
+                It.Is<AddRuleRequest>(sent => sent.Version == request.Version
+                    && sent.DeploymentId == request.DeploymentId
+                    && sent.KeyId == request.KeyId
+                    && sent.IssuedAtUnix == request.IssuedAtUnix
                     && sent.Nonce == request.Nonce
+                    && sent.Operation == request.Operation
+                    && sent.Payload.GetRawText() == request.Payload.GetRawText()
                     && sent.Signature == request.Signature),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
-    [TestMethod]
-    public async Task TestAddRuleAsync_RejectsWrongOperationAsync()
-    {
-        Mock<IRuleDaemonGateway> daemonRules = new();
-        AddRuleRequest request = CreateSignedAdd() with { Operation = IntentOperations.DELETE_RULE };
-        RulesController controller = CreateController(daemonRules.Object);
-
-        ActionResult<RuleMutationResponse> result = await controller.AddRuleAsync(request, TestContext.CancellationToken);
-
-        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
-        daemonRules.Verify(
-            static c => c.AddRuleAsync(It.IsAny<AddRuleRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
 
     [TestMethod]
     public void InsertRuleAsync_UsesDedicatedInsertSubresource()
@@ -157,7 +149,7 @@ public sealed class RulesControllerTests
     public async Task TestInsertRuleAsync_ForwardsSignedEnvelopeAsync()
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
-        InsertRuleRequest request = CreateSignedInsert();
+        InsertRuleIntentRequest request = CreateSignedInsert();
         RuleInsertionResponse expected = CreateInsertionResponse(RuleInsertionOutcome.Completed);
         daemonRules.Setup(static c => c.InsertRuleAsync(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DaemonResult.Success(expected));
@@ -196,18 +188,6 @@ public sealed class RulesControllerTests
         Assert.AreSame(expected, response.Value);
     }
 
-    [TestMethod]
-    public async Task TestInsertRuleAsync_RejectsWrongOperationBeforeIpcAsync()
-    {
-        Mock<IRuleDaemonGateway> daemonRules = new();
-        InsertRuleRequest request = CreateSignedInsert() with { Operation = IntentOperations.ADD_RULE };
-        RulesController controller = CreateController(daemonRules.Object);
-
-        ActionResult<RuleInsertionResponse> result = await controller.InsertRuleAsync(request, TestContext.CancellationToken);
-
-        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
-        daemonRules.Verify(static c => c.InsertRuleAsync(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
 
     [TestMethod]
     public async Task TestInsertRuleAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
@@ -239,7 +219,7 @@ public sealed class RulesControllerTests
     public async Task TestReorderRulesAsync_ForwardsSignedEnvelopeAsync()
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
-        ReorderRulesRequest request = CreateSignedReorder();
+        ReorderRulesIntentRequest request = CreateSignedReorder();
         RuleReorderResponse expected = CreateReorderResponse(RuleReorderOutcome.Completed);
         daemonRules
             .Setup(static c => c.ReorderRulesAsync(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()))
@@ -284,20 +264,6 @@ public sealed class RulesControllerTests
         Assert.AreSame(expected, response.Value);
     }
 
-    [TestMethod]
-    public async Task TestReorderRulesAsync_RejectsWrongOperationBeforeIpcAsync()
-    {
-        Mock<IRuleDaemonGateway> daemonRules = new();
-        ReorderRulesRequest request = CreateSignedReorder() with { Operation = IntentOperations.ADD_RULE };
-        RulesController controller = CreateController(daemonRules.Object);
-
-        ActionResult<RuleReorderResponse> result = await controller.ReorderRulesAsync(request, TestContext.CancellationToken);
-
-        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
-        daemonRules.Verify(
-            static c => c.ReorderRulesAsync(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
 
     [TestMethod]
     public async Task TestReorderRulesAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
@@ -331,7 +297,7 @@ public sealed class RulesControllerTests
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
         Mock<IRuleMetadataService> metadata = new();
-        ReplaceRuleRequest request = CreateSignedReplace();
+        ReplaceRuleIntentRequest request = CreateSignedReplace();
         RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
         RuleReplacementReconciliationFacts facts = new("sha256:original", "sha256:replacement", OriginalRuleStillLive: false);
         RuleReplacementExecutionResult replacement = new(firewall, new RuleReplacementReconciliationReady(facts));
@@ -366,7 +332,7 @@ public sealed class RulesControllerTests
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
         Mock<IRuleMetadataService> metadata = new();
-        ReplaceRuleRequest request = CreateSignedReplace();
+        ReplaceRuleIntentRequest request = CreateSignedReplace();
         RuleReplacementResponse firewall = CreateReplacementResponse(RuleReplacementOutcome.Completed);
         RuleReplacementReconciliationFacts facts = new("sha256:original", "sha256:replacement", OriginalRuleStillLive: false);
         RuleReplacementExecutionResult replacement = new(firewall, new RuleReplacementReconciliationReady(facts));
@@ -434,22 +400,6 @@ public sealed class RulesControllerTests
         metadata.VerifyNoOtherCalls();
     }
 
-    [TestMethod]
-    public async Task TestReplaceRuleAsync_RejectsWrongOperationBeforeIpcAsync()
-    {
-        Mock<IRuleDaemonGateway> daemonRules = new();
-        Mock<IRuleMetadataService> metadata = new();
-        ReplaceRuleRequest request = CreateSignedReplace() with { Operation = IntentOperations.ADD_RULE };
-        RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
-
-        ActionResult<RuleReplacementMutationResponse> result = await controller.ReplaceRuleAsync(request, TestContext.CancellationToken);
-
-        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
-        daemonRules.Verify(
-            static c => c.ReplaceRuleAsync(It.IsAny<ReplaceRuleRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        metadata.VerifyNoOtherCalls();
-    }
 
     [TestMethod]
     public void BatchDeleteRulesAsync_UsesDedicatedBatchSubresource()
@@ -467,7 +417,7 @@ public sealed class RulesControllerTests
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
         Mock<IRuleMetadataService> metadata = new();
-        BatchDeleteRulesRequest request = CreateSignedBatchDelete();
+        BatchDeleteRulesIntentRequest request = CreateSignedBatchDelete();
         RuleBatchDeleteResponse expected = CreateBatchDeleteResponse(RuleBatchDeleteOutcome.Completed);
         daemonRules
             .Setup(static c => c.BatchDeleteRulesAsync(It.IsAny<BatchDeleteRulesRequest>(), It.IsAny<CancellationToken>()))
@@ -514,22 +464,6 @@ public sealed class RulesControllerTests
         metadata.Verify(service => service.ReconcileBatchDeleteAsync(expected, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [TestMethod]
-    public async Task TestBatchDeleteRulesAsync_RejectsWrongOperationBeforeIpcAsync()
-    {
-        Mock<IRuleDaemonGateway> daemonRules = new();
-        Mock<IRuleMetadataService> metadata = new();
-        BatchDeleteRulesRequest request = CreateSignedBatchDelete() with { Operation = IntentOperations.DELETE_RULE };
-        RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
-
-        ActionResult<RuleBatchDeleteResponse> result = await controller.BatchDeleteRulesAsync(request, TestContext.CancellationToken);
-
-        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
-        daemonRules.Verify(
-            static c => c.BatchDeleteRulesAsync(It.IsAny<BatchDeleteRulesRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        metadata.VerifyNoOtherCalls();
-    }
 
     [TestMethod]
     public async Task TestDeleteRuleAsync_RemovesMetadataForAuthoritativeDeletedIdentityAsync()
@@ -544,13 +478,26 @@ public sealed class RulesControllerTests
             Rule = new FirewallRuleSpecification(),
         };
         RuleMutationResponse expected = new(IntentOperations.DELETE_RULE, deleted);
+        DeleteRuleIntentRequest request = CreateSignedDelete();
         daemonRules.Setup(static c => c.DeleteRuleAsync(It.IsAny<DeleteRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DaemonResult.Success(expected));
         RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
 
-        ActionResult<RuleMutationResponse> result = await controller.DeleteRuleAsync(CreateSignedDelete(), TestContext.CancellationToken);
+        ActionResult<RuleMutationResponse> result = await controller.DeleteRuleAsync(request, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<OkObjectResult>(result.Result);
+        daemonRules.Verify(
+            c => c.DeleteRuleAsync(
+                It.Is<DeleteRuleRequest>(sent => sent.Version == request.Version
+                    && sent.DeploymentId == request.DeploymentId
+                    && sent.KeyId == request.KeyId
+                    && sent.IssuedAtUnix == request.IssuedAtUnix
+                    && sent.Nonce == request.Nonce
+                    && sent.Operation == request.Operation
+                    && sent.Payload.GetRawText() == request.Payload.GetRawText()
+                    && sent.Signature == request.Signature),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         metadata.Verify(service => service.RemoveForDeletedRuleAsync("sha256:deleted", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -587,7 +534,7 @@ public sealed class RulesControllerTests
         return controller;
     }
 
-    private static AddRuleRequest CreateSignedAdd() => new()
+    private static AddRuleIntentRequest CreateSignedAdd() => new()
     {
         Version = 1,
         DeploymentId = "deployment-test",
@@ -599,7 +546,7 @@ public sealed class RulesControllerTests
         Signature = "sig",
     };
 
-    private static InsertRuleRequest CreateSignedInsert() => new()
+    private static InsertRuleIntentRequest CreateSignedInsert() => new()
     {
         Version = 1,
         DeploymentId = "deployment-test",
@@ -623,7 +570,7 @@ public sealed class RulesControllerTests
         null,
         "diagnostic");
 
-    private static ReorderRulesRequest CreateSignedReorder() => new()
+    private static ReorderRulesIntentRequest CreateSignedReorder() => new()
     {
         Version = 1,
         DeploymentId = "deployment-test",
@@ -647,7 +594,7 @@ public sealed class RulesControllerTests
         [new RuleReorderMoveResponse(0, 1, null)],
         "diagnostic");
 
-    private static ReplaceRuleRequest CreateSignedReplace() => new()
+    private static ReplaceRuleIntentRequest CreateSignedReplace() => new()
     {
         Version = IntentProtocol.VERSION,
         DeploymentId = "deployment-test",
@@ -685,7 +632,7 @@ public sealed class RulesControllerTests
             Diagnostic: "diagnostic");
     }
 
-    private static BatchDeleteRulesRequest CreateSignedBatchDelete() => new()
+    private static BatchDeleteRulesIntentRequest CreateSignedBatchDelete() => new()
     {
         Version = IntentProtocol.VERSION,
         DeploymentId = "deployment-test",
@@ -708,7 +655,7 @@ public sealed class RulesControllerTests
         outcome is RuleBatchDeleteOutcome.Completed ? [] : [1],
         "diagnostic");
 
-    private static DeleteRuleRequest CreateSignedDelete() => new()
+    private static DeleteRuleIntentRequest CreateSignedDelete() => new()
     {
         Version = 1,
         DeploymentId = "deployment-test",

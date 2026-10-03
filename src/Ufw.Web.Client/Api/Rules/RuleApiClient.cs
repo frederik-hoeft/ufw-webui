@@ -1,10 +1,10 @@
 ﻿using System.Net.Http.Json;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Api.Rules;
 
@@ -36,30 +36,30 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.RuleMetadataMutationResponse, cancellationToken);
     }
 
-    public async Task<RuleMutationResponse> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleMutationResponse> AddRuleAsync(AddRuleIntentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(s_rulesUri, request, MessageJsonSerializerContext.Default.AddRuleRequest, cancellationToken);
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(s_rulesUri, request, ClientJsonSerializerContext.Default.AddRuleIntentRequest, cancellationToken);
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleMutationResponse, cancellationToken);
     }
 
-    public async Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleIntentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         using HttpRequestMessage httpRequest = new(HttpMethod.Delete, s_rulesUri)
         {
-            Content = JsonContent.Create(request, MessageJsonSerializerContext.Default.DeleteRuleRequest),
+            Content = JsonContent.Create(request, ClientJsonSerializerContext.Default.DeleteRuleIntentRequest),
         };
         using HttpResponseMessage response = await httpClient.SendAsync(httpRequest, cancellationToken);
         return await response.ReadRequiredAsync(MessageJsonSerializerContext.Default.RuleMutationResponse, cancellationToken);
     }
 
-    public async Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesIntentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         using HttpRequestMessage httpRequest = new(HttpMethod.Delete, s_ruleBatchDeleteUri)
         {
-            Content = JsonContent.Create(request, MessageJsonSerializerContext.Default.BatchDeleteRulesRequest),
+            Content = JsonContent.Create(request, ClientJsonSerializerContext.Default.BatchDeleteRulesIntentRequest),
         };
         using HttpResponseMessage response = await httpClient.SendAsync(httpRequest, cancellationToken);
         return await response.ReadTransactionResponseAsync(
@@ -70,10 +70,10 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
             cancellationToken);
     }
 
-    public async Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleIntentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(s_ruleInsertUri, request, MessageJsonSerializerContext.Default.InsertRuleRequest, cancellationToken);
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(s_ruleInsertUri, request, ClientJsonSerializerContext.Default.InsertRuleIntentRequest, cancellationToken);
         return await response.ReadTransactionResponseAsync(
             MessageJsonSerializerContext.Default.RuleInsertionResponse,
             static candidate => candidate.Outcome != RuleInsertionOutcome.Completed
@@ -81,10 +81,10 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
             cancellationToken);
     }
 
-    public async Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleIntentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleReplaceUri, request, MessageJsonSerializerContext.Default.ReplaceRuleRequest, cancellationToken);
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleReplaceUri, request, ClientJsonSerializerContext.Default.ReplaceRuleIntentRequest, cancellationToken);
         return await response.ReadTransactionResponseAsync(
             ClientJsonSerializerContext.Default.RuleReplacementMutationResponse,
             IsValidReplacementResponse,
@@ -113,10 +113,10 @@ internal sealed class RuleApiClient(HttpClient httpClient) : IRuleApiClient
         };
     }
 
-    public async Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default)
+    public async Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesIntentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleOrderUri, request, MessageJsonSerializerContext.Default.ReorderRulesRequest, cancellationToken);
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(s_ruleOrderUri, request, ClientJsonSerializerContext.Default.ReorderRulesIntentRequest, cancellationToken);
         return await response.ReadTransactionResponseAsync(
             MessageJsonSerializerContext.Default.RuleReorderResponse,
             static candidate => candidate.Operations is not null

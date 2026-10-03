@@ -1,9 +1,9 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -46,7 +46,7 @@ public sealed partial class RulesController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync([FromBody] AddRuleRequest request, CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync([FromBody] AddRuleIntentRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed ordered-insertion intent to the privileged daemon.
@@ -59,7 +59,7 @@ public sealed partial class RulesController
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status503ServiceUnavailable)]
-    public partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync([FromBody] InsertRuleRequest request, CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync([FromBody] InsertRuleIntentRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed rule-replacement intent to the privileged daemon and reconciles application-owned metadata after confirmed completion.
@@ -73,7 +73,7 @@ public sealed partial class RulesController
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status503ServiceUnavailable)]
-    public partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync([FromBody] ReplaceRuleRequest request, CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync([FromBody] ReplaceRuleIntentRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed reorder intent to the privileged daemon.
@@ -87,7 +87,7 @@ public sealed partial class RulesController
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status503ServiceUnavailable)]
-    public partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync([FromBody] ReorderRulesRequest request, CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync([FromBody] ReorderRulesIntentRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed batch-delete intent to the privileged daemon.
@@ -100,7 +100,7 @@ public sealed partial class RulesController
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status503ServiceUnavailable)]
-    public partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync([FromBody] BatchDeleteRulesRequest request, CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync([FromBody] BatchDeleteRulesIntentRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Forwards an administrator-signed delete-rule intent to the privileged daemon.
@@ -112,5 +112,5 @@ public sealed partial class RulesController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync([FromBody] DeleteRuleRequest request, CancellationToken cancellationToken);
+    public partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync([FromBody] DeleteRuleIntentRequest request, CancellationToken cancellationToken);
 }

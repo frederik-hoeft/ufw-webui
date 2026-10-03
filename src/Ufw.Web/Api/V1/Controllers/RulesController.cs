@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Security.Intent;
+using Ufw.Web.Api.V1.Mapping;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 
@@ -35,41 +36,32 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
         };
     }
 
-    public async partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync(AddRuleIntentRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!string.Equals(request.Operation, IntentOperations.ADD_RULE, StringComparison.Ordinal))
-        {
-            return BadRequest(new { message = "Request operation must be 'rules.add'." });
-        }
 
-        DaemonResult<RuleMutationResponse> daemonResult = await daemonRules.AddRuleAsync(request, cancellationToken);
+        AddRuleRequest daemonRequest = request.ToDaemonRequest();
+        DaemonResult<RuleMutationResponse> daemonResult = await daemonRules.AddRuleAsync(daemonRequest, cancellationToken);
         RuleMutationResponse response = daemonResult.Result;
         return Ok(response);
     }
 
-    public async partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleIntentRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!string.Equals(request.Operation, IntentOperations.INSERT_RULE, StringComparison.Ordinal))
-        {
-            return BadRequest(new { message = "Request operation must be 'rules.insert'." });
-        }
 
-        DaemonResult<RuleInsertionResponse> daemonResult = await daemonRules.InsertRuleAsync(request, cancellationToken);
+        InsertRuleRequest daemonRequest = request.ToDaemonRequest();
+        DaemonResult<RuleInsertionResponse> daemonResult = await daemonRules.InsertRuleAsync(daemonRequest, cancellationToken);
         RuleInsertionResponse response = daemonResult.Result;
         return InsertionResult(response);
     }
 
-    public async partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync(ReplaceRuleIntentRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!string.Equals(request.Operation, IntentOperations.REPLACE_RULE, StringComparison.Ordinal))
-        {
-            return BadRequest(new { message = "Request operation must be 'rules.replace'." });
-        }
 
-        DaemonResult<RuleReplacementExecutionResult> daemonResult = await daemonRules.ReplaceRuleAsync(request, cancellationToken);
+        ReplaceRuleRequest daemonRequest = request.ToDaemonRequest();
+        DaemonResult<RuleReplacementExecutionResult> daemonResult = await daemonRules.ReplaceRuleAsync(daemonRequest, cancellationToken);
         RuleReplacementExecutionResult replacement = daemonResult.Result;
         RuleReplacementMetadataReconciliationOutcome metadataOutcome;
         switch (replacement.Reconciliation)
@@ -93,42 +85,33 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
         return ReplacementResult(response);
     }
 
-    public async partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesIntentRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!string.Equals(request.Operation, IntentOperations.REORDER_RULES, StringComparison.Ordinal))
-        {
-            return BadRequest(new { message = "Request operation must be 'rules.reorder'." });
-        }
 
-        DaemonResult<RuleReorderResponse> daemonResult = await daemonRules.ReorderRulesAsync(request, cancellationToken);
+        ReorderRulesRequest daemonRequest = request.ToDaemonRequest();
+        DaemonResult<RuleReorderResponse> daemonResult = await daemonRules.ReorderRulesAsync(daemonRequest, cancellationToken);
         RuleReorderResponse response = daemonResult.Result;
         return ReorderResult(response);
     }
 
-    public async partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesIntentRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!string.Equals(request.Operation, IntentOperations.DELETE_RULES_BATCH, StringComparison.Ordinal))
-        {
-            return BadRequest(new { message = "Request operation must be 'rules.delete-batch'." });
-        }
 
-        DaemonResult<RuleBatchDeleteResponse> daemonResult = await daemonRules.BatchDeleteRulesAsync(request, cancellationToken);
+        BatchDeleteRulesRequest daemonRequest = request.ToDaemonRequest();
+        DaemonResult<RuleBatchDeleteResponse> daemonResult = await daemonRules.BatchDeleteRulesAsync(daemonRequest, cancellationToken);
         RuleBatchDeleteResponse response = daemonResult.Result;
         await metadata.ReconcileBatchDeleteAsync(response, CancellationToken.None);
         return BatchDeleteResult(response);
     }
 
-    public async partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken)
+    public async partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleIntentRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!string.Equals(request.Operation, IntentOperations.DELETE_RULE, StringComparison.Ordinal))
-        {
-            return BadRequest(new { message = "Request operation must be 'rules.delete'." });
-        }
 
-        DaemonResult<RuleMutationResponse> daemonResult = await daemonRules.DeleteRuleAsync(request, cancellationToken);
+        DeleteRuleRequest daemonRequest = request.ToDaemonRequest();
+        DaemonResult<RuleMutationResponse> daemonResult = await daemonRules.DeleteRuleAsync(daemonRequest, cancellationToken);
         RuleMutationResponse response = daemonResult.Result;
         if (!string.IsNullOrWhiteSpace(response.Rule.RuleId))
         {

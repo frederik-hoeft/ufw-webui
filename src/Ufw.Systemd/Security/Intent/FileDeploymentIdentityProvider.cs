@@ -1,6 +1,7 @@
 ﻿using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
+using Ufw.Shared.Security.Intent;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Persistence;
 
@@ -8,7 +9,6 @@ namespace Ufw.Systemd.Security.Intent;
 
 internal sealed class FileDeploymentIdentityProvider(IConfiguration configuration, IDurableFileStore durableFiles) : IDeploymentIdentityProvider
 {
-    private const int DEPLOYMENT_ID_SIZE_BYTES = 32;
     private readonly Lock _sync = new();
     private string? _deploymentId;
 
@@ -47,7 +47,7 @@ internal sealed class FileDeploymentIdentityProvider(IConfiguration configuratio
             return Read(path);
         }
 
-        string generated = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(DEPLOYMENT_ID_SIZE_BYTES));
+        string generated = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(IntentProtocol.DEPLOYMENT_ID_SIZE_BYTES));
         byte[] contents = Encoding.ASCII.GetBytes(generated + "\n");
         return durableFiles.TryCreateNew(path, contents) ? generated : Read(path);
     }
@@ -70,7 +70,7 @@ internal sealed class FileDeploymentIdentityProvider(IConfiguration configuratio
             throw new InvalidDataException("Daemon deployment identity is not valid base64url.", exception);
         }
 
-        if (decoded.Length != DEPLOYMENT_ID_SIZE_BYTES)
+        if (decoded.Length != IntentProtocol.DEPLOYMENT_ID_SIZE_BYTES)
         {
             throw new InvalidDataException("Daemon deployment identity has an invalid length.");
         }

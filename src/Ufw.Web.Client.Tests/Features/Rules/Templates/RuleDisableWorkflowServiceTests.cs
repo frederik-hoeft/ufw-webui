@@ -1,9 +1,9 @@
 using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
@@ -85,7 +85,7 @@ public sealed class RuleDisableWorkflowServiceTests
         Mock<IRuleApiClient> ruleApi = new(MockBehavior.Strict);
         Mock<IClientErrorMapper> errors = new(MockBehavior.Strict);
         RuleRowProjection row = Row(canMutate: true);
-        DeleteRuleRequest signedRequest = new()
+        DeleteRuleIntentRequest signedRequest = new()
         {
             DeploymentId = "deployment",
             KeyId = "key-id",

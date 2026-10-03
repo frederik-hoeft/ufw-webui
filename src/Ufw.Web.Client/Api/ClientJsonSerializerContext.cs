@@ -7,6 +7,7 @@ using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.RuleTemplates;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Api;
 
@@ -21,6 +22,12 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(UpdateKnownHostRequest))]
 [JsonSerializable(typeof(NetworkInterfaceInventoryResponse))]
 [JsonSerializable(typeof(RuleInventoryResponse))]
+[JsonSerializable(typeof(AddRuleIntentRequest))]
+[JsonSerializable(typeof(DeleteRuleIntentRequest))]
+[JsonSerializable(typeof(BatchDeleteRulesIntentRequest))]
+[JsonSerializable(typeof(InsertRuleIntentRequest))]
+[JsonSerializable(typeof(ReorderRulesIntentRequest))]
+[JsonSerializable(typeof(ReplaceRuleIntentRequest))]
 [JsonSerializable(typeof(RuleMetadataMutationResponse))]
 [JsonSerializable(typeof(RuleReplacementMutationResponse))]
 [JsonSerializable(typeof(RuleGroupInventoryResponse))]
