@@ -31,8 +31,8 @@ public sealed class DaemonApiExceptionFilterTests
     public void OnException_WorkflowClassifiedUnavailableFailureForcesBadGateway()
     {
         DaemonApiExceptionFilter filter = new(new DaemonApiErrorMapper());
-        UfwIpcException ipc = new(StatusCodes.Status400BadRequest, "enumeration failed");
-        ExceptionContext context = CreateContext(new DaemonUnavailableException(ipc));
+        UfwIpcError daemonError = new(StatusCodes.Status400BadRequest, "enumeration failed");
+        ExceptionContext context = CreateContext(new DaemonUnavailableException(daemonError));
 
         filter.OnException(context);
 

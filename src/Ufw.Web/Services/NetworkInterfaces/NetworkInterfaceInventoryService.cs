@@ -16,11 +16,12 @@ internal sealed class NetworkInterfaceInventoryService(
     public async Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default)
     {
         DaemonResult<IReadOnlyList<string>> daemonResult = await daemonGateway.GetInterfaceNamesAsync(cancellationToken);
-        if (!daemonResult.TryGetResult(out IReadOnlyList<string>? currentNames, out UfwIpcException? error))
+        if (!daemonResult.TryGetResult(out IReadOnlyList<string>? currentNames, out UfwIpcError? error))
         {
             throw new DaemonUnavailableException(error);
         }
-        return await repository.ReconcileAsync(currentNames, timeProvider.GetUtcNow(), cancellationToken);
+        NetworkInterfaceInventoryResponse response = await repository.ReconcileAsync(currentNames, timeProvider.GetUtcNow(), cancellationToken);
+        return response;
     }
 
     public Task<NetworkInterfaceInventoryResponse?> UpdateCommentAsync(Guid publicId, string? comment, CancellationToken cancellationToken = default) =>

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Model.V1.RuleGroups;
@@ -7,8 +8,11 @@ namespace Ufw.Web.Api.V1.Controllers;
 
 public sealed partial class RuleGroupsController(IRuleGroupDataAccess groups) : ControllerBase
 {
-    public async partial Task<ActionResult<RuleGroupInventoryResponse>> GetAsync(CancellationToken cancellationToken) =>
-        Ok(await GetInventoryAsync(cancellationToken));
+    public async partial Task<ActionResult<RuleGroupInventoryResponse>> GetAsync(CancellationToken cancellationToken)
+    {
+        RuleGroupInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+        return Ok(inventory);
+    }
 
     public async partial Task<IActionResult> CreateAsync(CreateRuleGroupRequest request, CancellationToken cancellationToken)
     {
@@ -29,7 +33,8 @@ public sealed partial class RuleGroupsController(IRuleGroupDataAccess groups) : 
         DataMutationResult result = await groups.DeleteAsync(id, cancellationToken);
         if (result.IsSuccess)
         {
-            return Ok(await GetInventoryAsync(cancellationToken));
+            RuleGroupInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
         }
 
         return result.Error switch
@@ -49,7 +54,8 @@ public sealed partial class RuleGroupsController(IRuleGroupDataAccess groups) : 
     {
         if (result.IsSuccess)
         {
-            return Ok(await GetInventoryAsync(cancellationToken));
+            RuleGroupInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
         }
 
         return result.Error switch
@@ -65,7 +71,11 @@ public sealed partial class RuleGroupsController(IRuleGroupDataAccess groups) : 
         };
     }
 
-    private async Task<RuleGroupInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken) => new(await groups.GetAsync(cancellationToken));
+    private async Task<RuleGroupInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<RuleGroupItem> items = await groups.GetAsync(cancellationToken);
+        return new RuleGroupInventoryResponse(items);
+    }
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

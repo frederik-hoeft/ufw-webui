@@ -192,8 +192,8 @@ public sealed class NetworkInterfaceInventoryServiceTests
         }
 
         public void SetDaemonInterfaces(params string[] names) => _ufwClient
-            .Setup(client => client.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new NetworkInterfaceListResponse(names));
+            .Setup(client => client.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(names)));
 
         public async ValueTask DisposeAsync()
         {

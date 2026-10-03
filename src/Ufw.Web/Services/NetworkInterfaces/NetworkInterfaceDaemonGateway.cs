@@ -10,12 +10,18 @@ internal sealed class NetworkInterfaceDaemonGateway(IUfwClient ufwClient) : INet
 {
     private const string NETWORK_INTERFACES_ROUTE = "/api/v1/network-interfaces";
 
-    public Task<DaemonResult<IReadOnlyList<string>>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default) =>
-        DaemonResult.CaptureAsync(async () =>
+    public async Task<DaemonResult<IReadOnlyList<string>>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
+    {
+        DaemonResult<NetworkInterfaceListResponse> daemonResult = await DaemonResult.FromIpcAsync(
+            () => ufwClient.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, NETWORK_INTERFACES_ROUTE, cancellationToken));
+        if (!daemonResult.TryGetResult(out NetworkInterfaceListResponse? response, out UfwIpcError? error))
         {
-            NetworkInterfaceListResponse response = await ufwClient.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, NETWORK_INTERFACES_ROUTE, cancellationToken);
-            return ValidateAndOrderNames(response.Interfaces);
-        });
+            return DaemonResult.Failure<IReadOnlyList<string>>(error);
+        }
+
+        IReadOnlyList<string> names = ValidateAndOrderNames(response.Interfaces);
+        return DaemonResult.Success(names);
+    }
 
     private static IReadOnlyList<string> ValidateAndOrderNames(IReadOnlyList<string>? names)
     {

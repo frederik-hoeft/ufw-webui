@@ -16,7 +16,8 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
     public Task<DataMutationResult> CreateAsync(string name, string? comment, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
-            if (await NameExistsAsync(context, name, excludingId: null, cancellationToken))
+            bool duplicateName = await NameExistsAsync(context, name, excludingId: null, cancellationToken);
+            if (duplicateName)
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
             }
@@ -47,7 +48,8 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationNotFoundError()));
             }
-            if (await NameExistsAsync(context, name, group.Id, cancellationToken))
+            bool duplicateName = await NameExistsAsync(context, name, group.Id, cancellationToken);
+            if (duplicateName)
             {
                 return transaction.Rollback(DataMutationResult.Failure(new DataMutationUniqueConflictError()));
             }

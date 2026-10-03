@@ -7,6 +7,8 @@ using Ufw.Shared.Security.Intent;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Model.V1.Rules;
 
+using Ufw.Web.Services.Daemon;
+
 namespace Ufw.Web.Services.Rules;
 
 internal sealed partial class RuleMetadataService(
@@ -24,7 +26,8 @@ internal sealed partial class RuleMetadataService(
             return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata);
         }
 
-        RuleListResponse snapshot = (await daemonRules.GetRulesAsync(cancellationToken)).Result;
+        DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = daemonResult.Result;
         bool exists = snapshot.Rules.Any(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal));
         if (!exists)
         {

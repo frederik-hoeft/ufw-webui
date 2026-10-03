@@ -13,7 +13,8 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
 
     public async Task<IReadOnlyList<RuleTag>> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        RuleTagInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
@@ -43,7 +44,8 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
 
     public async Task<IReadOnlyList<RuleTag>> DeleteAsync(Guid tagId, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.DeleteAsync(tagId, cancellationToken));
+        RuleTagInventoryResponse response = await apiClient.DeleteAsync(tagId, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }

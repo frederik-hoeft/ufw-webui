@@ -109,9 +109,14 @@ public sealed partial class ManageRuleTagsDialog
         _error = null;
         try
         {
-            _tags = _editingTag is null
-                ? await TagCatalog.CreateAsync(name, color)
-                : await TagCatalog.UpdateAsync(_editingTag.Id, name, color);
+            if (_editingTag is null)
+            {
+                _tags = await TagCatalog.CreateAsync(name, color);
+            }
+            else
+            {
+                _tags = await TagCatalog.UpdateAsync(_editingTag.Id, name, color);
+            }
             _editing = false;
             _editingTag = null;
             Snackbar.Add(RulesText["TagSaved"], Severity.Success);
@@ -137,7 +142,8 @@ public sealed partial class ManageRuleTagsDialog
         DialogParameters<DeleteRuleTagDialog> parameters = [];
         parameters.Add(component => component.Tag, tag);
         IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleTagDialog>(RulesText["DeleteTag"], parameters, s_deleteDialogOptions);
-        if (await dialog.GetReturnValueAsync<bool?>() != true)
+        bool? confirmed = await dialog.GetReturnValueAsync<bool?>();
+        if (confirmed != true)
         {
             return;
         }

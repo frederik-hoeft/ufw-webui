@@ -5,9 +5,9 @@ namespace Ufw.Web.Api.V1.Errors;
 
 public interface IDaemonApiErrorMapper
 {
-    DaemonApiError MapProxyFailure(UfwIpcException exception);
+    DaemonApiError MapProxyFailure(UfwIpcError daemonError);
 
-    DaemonApiError MapUnavailable(UfwIpcException exception);
+    DaemonApiError MapUnavailable(UfwIpcError daemonError);
 
     DaemonApiError MapInvalidResponse(DaemonInvalidResponseException exception);
 }

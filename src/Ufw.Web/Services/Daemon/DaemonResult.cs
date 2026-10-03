@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.ExceptionServices;
 using Ufw.Ipc.Client;
 
 namespace Ufw.Web.Services.Daemon;
@@ -12,28 +11,18 @@ namespace Ufw.Web.Services.Daemon;
 /// </remarks>
 public sealed class DaemonResult
 {
-    private DaemonResult(UfwIpcException? error) => Error = error;
+    private DaemonResult(UfwIpcError? error) => Error = error;
 
-    /// <summary>
-    /// Gets whether the daemon operation completed successfully.
-    /// </summary>
     [MemberNotNullWhen(false, nameof(Error))]
     public bool IsSuccess => Error is null;
 
-    /// <summary>
-    /// Gets the daemon application error when the operation did not complete successfully.
-    /// </summary>
-    public UfwIpcException? Error { get; }
+    public UfwIpcError? Error { get; }
 
-    /// <summary>
-    /// Throws the daemon application error when the operation did not complete successfully.
-    /// </summary>
-    /// <returns>This result.</returns>
     public DaemonResult EnsureSuccess()
     {
         if (Error is not null)
         {
-            ExceptionDispatchInfo.Capture(Error).Throw();
+            throw new UfwIpcException(Error);
         }
         return this;
     }
@@ -46,29 +35,25 @@ public sealed class DaemonResult
         return new DaemonResult<T>(result, null);
     }
 
-    public static DaemonResult Failure(UfwIpcException error)
+    public static DaemonResult Failure(UfwIpcError error)
     {
         ArgumentNullException.ThrowIfNull(error);
         return new(error);
     }
 
-    public static DaemonResult<T> Failure<T>(UfwIpcException error) where T : class
+    public static DaemonResult<T> Failure<T>(UfwIpcError error) where T : class
     {
         ArgumentNullException.ThrowIfNull(error);
         return new DaemonResult<T>(null, error);
     }
 
-    internal static async Task<DaemonResult> CaptureAsync(Func<Task> operation)
+    internal static async Task<DaemonResult> FromIpcAsync(Func<Task<UfwIpcResult>> operation)
     {
         ArgumentNullException.ThrowIfNull(operation);
         try
         {
-            await operation();
-            return Success();
-        }
-        catch (UfwIpcException exception)
-        {
-            return Failure(exception);
+            UfwIpcResult result = await operation();
+            return result.IsSuccess ? Success() : Failure(result.Error);
         }
         catch (InvalidDataException exception)
         {
@@ -76,16 +61,17 @@ public sealed class DaemonResult
         }
     }
 
-    internal static async Task<DaemonResult<T>> CaptureAsync<T>(Func<Task<T>> operation) where T : class
+    internal static async Task<DaemonResult<T>> FromIpcAsync<T>(Func<Task<UfwIpcResult<T>>> operation) where T : class, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(operation);
         try
         {
-            return Success(await operation());
-        }
-        catch (UfwIpcException exception)
-        {
-            return Failure<T>(exception);
+            UfwIpcResult<T> result = await operation();
+            if (result.TryGetResult(out T? response, out UfwIpcError? error))
+            {
+                return Success(response);
+            }
+            return Failure<T>(error);
         }
         catch (InvalidDataException exception)
         {
@@ -105,52 +91,36 @@ public sealed class DaemonResult<T> where T : class
 {
     private readonly T? _result;
 
-    internal DaemonResult(T? result, UfwIpcException? error)
+    internal DaemonResult(T? result, UfwIpcError? error)
     {
         _result = result;
         Error = error;
     }
 
-    /// <summary>
-    /// Gets whether the daemon operation completed successfully.
-    /// </summary>
     [MemberNotNullWhen(false, nameof(Error))]
     public bool IsSuccess => Error is null;
 
-    /// <summary>
-    /// Gets the daemon application error when the operation did not complete successfully.
-    /// </summary>
-    public UfwIpcException? Error { get; }
+    public UfwIpcError? Error { get; }
 
-    /// <summary>
-    /// Gets the successful response payload, throwing the daemon application error when the operation failed.
-    /// </summary>
     public T Result
     {
         get
         {
             if (Error is not null)
             {
-                ExceptionDispatchInfo.Capture(Error).Throw();
+                throw new UfwIpcException(Error);
             }
             return _result!;
         }
     }
 
-    /// <summary>
-    /// Throws the daemon application error when the operation failed.
-    /// </summary>
-    /// <returns>This result.</returns>
     public DaemonResult<T> EnsureSuccess()
     {
         _ = Result;
         return this;
     }
 
-    /// <summary>
-    /// Attempts to obtain the successful response without throwing for a daemon application error.
-    /// </summary>
-    public bool TryGetResult([NotNullWhen(true)] out T? result, [NotNullWhen(false)] out UfwIpcException? error)
+    public bool TryGetResult([NotNullWhen(true)] out T? result, [NotNullWhen(false)] out UfwIpcError? error)
     {
         result = _result;
         error = Error;

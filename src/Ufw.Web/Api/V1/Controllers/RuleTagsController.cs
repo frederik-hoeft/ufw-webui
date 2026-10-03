@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Model.V1.RuleTags;
@@ -7,8 +8,11 @@ namespace Ufw.Web.Api.V1.Controllers;
 
 public sealed partial class RuleTagsController(IRuleTagDataAccess tags) : ControllerBase
 {
-    public async partial Task<ActionResult<RuleTagInventoryResponse>> GetAsync(CancellationToken cancellationToken) =>
-        Ok(await GetInventoryAsync(cancellationToken));
+    public async partial Task<ActionResult<RuleTagInventoryResponse>> GetAsync(CancellationToken cancellationToken)
+    {
+        RuleTagInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+        return Ok(inventory);
+    }
 
     public async partial Task<IActionResult> CreateAsync(CreateRuleTagRequest request, CancellationToken cancellationToken)
     {
@@ -29,7 +33,8 @@ public sealed partial class RuleTagsController(IRuleTagDataAccess tags) : Contro
         DataMutationResult result = await tags.DeleteAsync(id, cancellationToken);
         if (result.IsSuccess)
         {
-            return Ok(await GetInventoryAsync(cancellationToken));
+            RuleTagInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
         }
 
         return result.Error switch
@@ -49,7 +54,8 @@ public sealed partial class RuleTagsController(IRuleTagDataAccess tags) : Contro
     {
         if (result.IsSuccess)
         {
-            return Ok(await GetInventoryAsync(cancellationToken));
+            RuleTagInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
         }
 
         return result.Error switch
@@ -65,5 +71,9 @@ public sealed partial class RuleTagsController(IRuleTagDataAccess tags) : Contro
         };
     }
 
-    private async Task<RuleTagInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken) => new(await tags.GetAsync(cancellationToken));
+    private async Task<RuleTagInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<RuleTagItem> items = await tags.GetAsync(cancellationToken);
+        return new RuleTagInventoryResponse(items);
+    }
 }

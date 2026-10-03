@@ -15,14 +15,17 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
 
     public async Task<IReadOnlyList<RuleTemplate>> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        RuleTemplateInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<IReadOnlyList<RuleTemplate>> CreateAsync(RuleTemplateDefinition definition, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        Current = Normalize(await apiClient.CreateAsync(CreateRequest(definition), cancellationToken));
+        CreateRuleTemplateRequest request = CreateRequest(definition);
+        RuleTemplateInventoryResponse response = await apiClient.CreateAsync(request, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }
@@ -34,7 +37,9 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
             throw new ArgumentException("Rule template ID must not be empty.", nameof(templateId));
         }
         ArgumentNullException.ThrowIfNull(definition);
-        Current = Normalize(await apiClient.UpdateAsync(templateId, UpdateRequest(definition), cancellationToken));
+        UpdateRuleTemplateRequest request = UpdateRequest(definition);
+        RuleTemplateInventoryResponse response = await apiClient.UpdateAsync(templateId, request, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }
@@ -45,7 +50,8 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         {
             throw new ArgumentException("Rule template ID must not be empty.", nameof(templateId));
         }
-        Current = Normalize(await apiClient.DeleteAsync(templateId, cancellationToken));
+        RuleTemplateInventoryResponse response = await apiClient.DeleteAsync(templateId, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }

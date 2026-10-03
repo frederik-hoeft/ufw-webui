@@ -5,8 +5,8 @@ namespace Ufw.Web.Services.Daemon;
 /// <summary>
 /// Represents a daemon failure that the consuming workflow classifies as upstream unavailability.
 /// </summary>
-public sealed class DaemonUnavailableException(UfwIpcException error)
-    : InvalidOperationException(error.ResponseMessage ?? "The daemon is unavailable.", error)
+public sealed class DaemonUnavailableException(UfwIpcError error)
+    : InvalidOperationException(error.ResponseMessage ?? "The daemon is unavailable.")
 {
-    public UfwIpcException Error { get; } = error;
+    public UfwIpcError Error { get; } = error;
 }

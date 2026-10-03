@@ -3,6 +3,7 @@ using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -42,7 +43,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.add'." });
         }
 
-        RuleMutationResponse response = (await daemonRules.AddRuleAsync(request, cancellationToken)).Result;
+        DaemonResult<RuleMutationResponse> daemonResult = await daemonRules.AddRuleAsync(request, cancellationToken);
+        RuleMutationResponse response = daemonResult.Result;
         return Ok(response);
     }
 
@@ -54,7 +56,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.insert'." });
         }
 
-        RuleInsertionResponse response = (await daemonRules.InsertRuleAsync(request, cancellationToken)).Result;
+        DaemonResult<RuleInsertionResponse> daemonResult = await daemonRules.InsertRuleAsync(request, cancellationToken);
+        RuleInsertionResponse response = daemonResult.Result;
         return InsertionResult(response);
     }
 
@@ -66,10 +69,17 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.replace'." });
         }
 
-        RuleReplacementResponse firewall = (await daemonRules.ReplaceRuleAsync(request, cancellationToken)).Result;
-        RuleReplacementMetadataReconciliationOutcome metadataOutcome = firewall.Outcome == RuleReplacementOutcome.Completed
-            ? await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None)
-            : RuleReplacementMetadataReconciliationOutcome.NotAttempted;
+        DaemonResult<RuleReplacementResponse> daemonResult = await daemonRules.ReplaceRuleAsync(request, cancellationToken);
+        RuleReplacementResponse firewall = daemonResult.Result;
+        RuleReplacementMetadataReconciliationOutcome metadataOutcome;
+        if (firewall.Outcome == RuleReplacementOutcome.Completed)
+        {
+            metadataOutcome = await metadata.ReconcileReplacementAsync(request, firewall, CancellationToken.None);
+        }
+        else
+        {
+            metadataOutcome = RuleReplacementMetadataReconciliationOutcome.NotAttempted;
+        }
         RuleReplacementMutationResponse response = new(
             firewall,
             metadataOutcome,
@@ -85,7 +95,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.reorder'." });
         }
 
-        RuleReorderResponse response = (await daemonRules.ReorderRulesAsync(request, cancellationToken)).Result;
+        DaemonResult<RuleReorderResponse> daemonResult = await daemonRules.ReorderRulesAsync(request, cancellationToken);
+        RuleReorderResponse response = daemonResult.Result;
         return ReorderResult(response);
     }
 
@@ -97,7 +108,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.delete-batch'." });
         }
 
-        RuleBatchDeleteResponse response = (await daemonRules.BatchDeleteRulesAsync(request, cancellationToken)).Result;
+        DaemonResult<RuleBatchDeleteResponse> daemonResult = await daemonRules.BatchDeleteRulesAsync(request, cancellationToken);
+        RuleBatchDeleteResponse response = daemonResult.Result;
         await metadata.ReconcileBatchDeleteAsync(response, CancellationToken.None);
         return BatchDeleteResult(response);
     }
@@ -110,7 +122,8 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             return BadRequest(new { message = "Request operation must be 'rules.delete'." });
         }
 
-        RuleMutationResponse response = (await daemonRules.DeleteRuleAsync(request, cancellationToken)).Result;
+        DaemonResult<RuleMutationResponse> daemonResult = await daemonRules.DeleteRuleAsync(request, cancellationToken);
+        RuleMutationResponse response = daemonResult.Result;
         if (!string.IsNullOrWhiteSpace(response.Rule.RuleId))
         {
             await metadata.RemoveForDeletedRuleAsync(response.Rule.RuleId, CancellationToken.None);

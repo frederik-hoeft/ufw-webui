@@ -131,9 +131,15 @@ internal sealed class RuleTemplateDataAccess(ITransactionServiceHandle transacti
 
     private static async Task<TemplateDependencies> ResolveDependenciesAsync(ApplicationDbContext context, RuleTemplateValues values, CancellationToken cancellationToken)
     {
-        RuleTagEntry[] tags = values.TagIds.Count == 0
-            ? []
-            : await context.Set<RuleTagEntry>().Where(tag => values.TagIds.Contains(tag.PublicId)).ToArrayAsync(cancellationToken);
+        RuleTagEntry[] tags;
+        if (values.TagIds.Count == 0)
+        {
+            tags = [];
+        }
+        else
+        {
+            tags = await context.Set<RuleTagEntry>().Where(tag => values.TagIds.Contains(tag.PublicId)).ToArrayAsync(cancellationToken);
+        }
         if (tags.Length != values.TagIds.Count)
         {
             HashSet<Guid> resolvedTagIds = [.. tags.Select(static tag => tag.PublicId)];

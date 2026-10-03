@@ -33,7 +33,7 @@ public sealed class IntentControllerTests
     [TestMethod]
     public async Task GetContextAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
-        UfwIpcException expected = new(StatusCodes.Status500InternalServerError, "context unavailable");
+        UfwIpcError expected = new(StatusCodes.Status500InternalServerError, "context unavailable");
         Mock<IIntentDaemonGateway> daemonIntent = new();
         daemonIntent
             .Setup(static c => c.GetContextAsync(It.IsAny<CancellationToken>()))
@@ -43,7 +43,7 @@ public sealed class IntentControllerTests
         UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
             () => controller.GetContextAsync(TestContext.CancellationToken));
 
-        Assert.AreSame(expected, actual);
+        Assert.AreSame(expected, actual.Error);
     }
 
     private static IntentController CreateController(IIntentDaemonGateway daemonIntent) => new(daemonIntent)

@@ -10,5 +10,5 @@ internal sealed class IntentDaemonGateway(IUfwClient ufwClient) : IIntentDaemonG
     private const string INTENT_CONTEXT_ROUTE = "/api/v1/intent/context";
 
     public Task<DaemonResult<IntentContextResponse>> GetContextAsync(CancellationToken cancellationToken = default) =>
-        DaemonResult.CaptureAsync(() => ufwClient.SendAsync<IntentContextResponse>(RequestMethod.Get, INTENT_CONTEXT_ROUTE, cancellationToken));
+        DaemonResult.FromIpcAsync(() => ufwClient.TrySendAsync<IntentContextResponse>(RequestMethod.Get, INTENT_CONTEXT_ROUTE, cancellationToken));
 }

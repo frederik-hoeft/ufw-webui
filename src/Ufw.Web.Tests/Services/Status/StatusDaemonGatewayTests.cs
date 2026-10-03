@@ -13,7 +13,7 @@ public sealed class StatusDaemonGatewayTests
     public async Task GetStatusAsync_UsesExpectedDaemonEndpointAsync()
     {
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        client.Setup(static c => c.TrySendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult.Success());
         StatusDaemonGateway gateway = new(client.Object);
 
         DaemonResult result = await gateway.GetStatusAsync();

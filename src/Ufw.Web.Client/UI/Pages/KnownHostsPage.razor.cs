@@ -107,7 +107,8 @@ public sealed partial class KnownHostsPage
             return;
         }
 
-        if (await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken)))
+        bool saved = await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken));
+        if (saved)
         {
             Snackbar.Add(HostsText["DnsReconciled", host.Name], Severity.Success);
         }

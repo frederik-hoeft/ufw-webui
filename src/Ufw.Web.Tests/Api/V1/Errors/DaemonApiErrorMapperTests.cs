@@ -13,7 +13,7 @@ public sealed class DaemonApiErrorMapperTests
     [TestMethod]
     public void MapProxyFailure_ValidationErrorsProducesBadRequestValidationProblem()
     {
-        UfwIpcException exception = new(
+        UfwIpcError daemonError = new(
             StatusCodes.Status422UnprocessableEntity,
             "Invalid rule.",
             [
@@ -22,7 +22,7 @@ public sealed class DaemonApiErrorMapperTests
             ]);
         DaemonApiErrorMapper mapper = new();
 
-        DaemonApiError error = mapper.MapProxyFailure(exception);
+        DaemonApiError error = mapper.MapProxyFailure(daemonError);
 
         Assert.AreEqual(StatusCodes.Status400BadRequest, error.StatusCode);
         ValidationProblemDetails problem = Assert.IsInstanceOfType<ValidationProblemDetails>(error.Problem);
@@ -37,7 +37,7 @@ public sealed class DaemonApiErrorMapperTests
     {
         DaemonApiErrorMapper mapper = new();
 
-        DaemonApiError error = mapper.MapProxyFailure(new UfwIpcException(StatusCodes.Status409Conflict, "Rule already exists."));
+        DaemonApiError error = mapper.MapProxyFailure(new UfwIpcError(StatusCodes.Status409Conflict, "Rule already exists."));
 
         Assert.AreEqual(StatusCodes.Status409Conflict, error.StatusCode);
         Assert.AreEqual(StatusCodes.Status409Conflict, error.Problem.Status);
@@ -52,7 +52,7 @@ public sealed class DaemonApiErrorMapperTests
     {
         DaemonApiErrorMapper mapper = new();
 
-        DaemonApiError error = mapper.MapProxyFailure(new UfwIpcException(daemonStatusCode, "Unexpected daemon status."));
+        DaemonApiError error = mapper.MapProxyFailure(new UfwIpcError(daemonStatusCode, "Unexpected daemon status."));
 
         Assert.AreEqual(StatusCodes.Status502BadGateway, error.StatusCode);
         Assert.AreEqual(StatusCodes.Status502BadGateway, error.Problem.Status);
@@ -64,7 +64,7 @@ public sealed class DaemonApiErrorMapperTests
     {
         DaemonApiErrorMapper mapper = new();
 
-        DaemonApiError error = mapper.MapUnavailable(new UfwIpcException(StatusCodes.Status400BadRequest, "transport failed"));
+        DaemonApiError error = mapper.MapUnavailable(new UfwIpcError(StatusCodes.Status400BadRequest, "transport failed"));
 
         Assert.AreEqual(StatusCodes.Status502BadGateway, error.StatusCode);
         Assert.AreEqual("transport failed", error.Problem.Detail);

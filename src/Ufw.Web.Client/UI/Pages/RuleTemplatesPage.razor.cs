@@ -83,7 +83,8 @@ public sealed partial class RuleTemplatesPage
         DialogParameters<DeleteRuleTemplateDialog> parameters = [];
         parameters.Add(component => component.Template, template);
         IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleTemplateDialog>(TemplatesText["DeleteDialogTitle"], parameters, s_deleteDialogOptions);
-        if (await dialog.GetReturnValueAsync<bool?>() != true)
+        bool? confirmed = await dialog.GetReturnValueAsync<bool?>();
+        if (confirmed != true)
         {
             return;
         }

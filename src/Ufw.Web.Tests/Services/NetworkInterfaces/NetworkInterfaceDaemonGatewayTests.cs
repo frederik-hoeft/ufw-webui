@@ -15,8 +15,8 @@ public sealed class NetworkInterfaceDaemonGatewayTests
     public async Task GetInterfaceNamesAsync_UsesExpectedDaemonEndpointAndReturnsOrdinalOrderingAsync()
     {
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new NetworkInterfaceListResponse(["wlan0", "eno1", "docker0"]));
+        client.Setup(ufw => ufw.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(["wlan0", "eno1", "docker0"])));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
         DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
@@ -39,8 +39,8 @@ public sealed class NetworkInterfaceDaemonGatewayTests
         foreach (IReadOnlyList<string>? names in invalid)
         {
             Mock<IUfwClient> client = new();
-            client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new NetworkInterfaceListResponse(names!));
+            client.Setup(ufw => ufw.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(names!)));
             NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
             await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetInterfaceNamesAsync());
@@ -50,9 +50,9 @@ public sealed class NetworkInterfaceDaemonGatewayTests
     [TestMethod]
     public async Task GetInterfaceNamesAsync_DaemonFailureIsReturnedForCallerClassificationAsync()
     {
-        UfwIpcException expected = new(500, "enumeration failed");
+        UfwIpcError expected = new(500, "enumeration failed");
         Mock<IUfwClient> client = new();
-        client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
+        client.Setup(ufw => ufw.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Failure(expected));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
         DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
@@ -64,8 +64,8 @@ public sealed class NetworkInterfaceDaemonGatewayTests
     public async Task GetInterfaceNamesAsync_CaseDistinctLinuxInterfaceNamesRemainDistinctAsync()
     {
         Mock<IUfwClient> client = new();
-        client.Setup(ufw => ufw.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new NetworkInterfaceListResponse(["eno1", "ENO1"]));
+        client.Setup(ufw => ufw.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(["eno1", "ENO1"])));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
         DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();

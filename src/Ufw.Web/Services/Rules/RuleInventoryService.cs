@@ -1,13 +1,16 @@
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
 
+using Ufw.Web.Services.Daemon;
+
 namespace Ufw.Web.Services.Rules;
 
 internal sealed class RuleInventoryService(IRuleDaemonGateway daemonRules, IRuleMetadataRepository metadata, TimeProvider timeProvider) : IRuleInventoryService
 {
     public async Task<RuleInventoryResponse> GetAsync(CancellationToken cancellationToken = default)
     {
-        RuleListResponse firewall = (await daemonRules.GetRulesAsync(cancellationToken)).Result;
+        DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse firewall = daemonResult.Result;
         DateTimeOffset capturedAt = timeProvider.GetUtcNow();
         string[] ruleIds = [.. firewall.Rules
             .Select(static rule => rule.RuleId)

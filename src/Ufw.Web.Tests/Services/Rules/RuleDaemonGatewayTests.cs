@@ -16,7 +16,7 @@ public sealed class RuleDaemonGatewayTests
     {
         RuleListResponse expected = new(Active: true, [], TestFirewallConfiguration.Enabled);
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+        client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleListResponse>.Success(expected));
         RuleDaemonGateway gateway = new(client.Object);
 
         DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync();
@@ -28,9 +28,9 @@ public sealed class RuleDaemonGatewayTests
     [TestMethod]
     public async Task GetRulesAsync_DaemonApplicationFailureIsReturnedWithoutThrowingAsync()
     {
-        UfwIpcException expected = new(409, "conflict");
+        UfwIpcError expected = new(409, "conflict");
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
+        client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleListResponse>.Failure(expected));
         RuleDaemonGateway gateway = new(client.Object);
 
         DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync();
@@ -46,7 +46,7 @@ public sealed class RuleDaemonGatewayTests
     {
         InvalidDataException expected = new("unsupported daemon payload");
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(static c => c.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
+        client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
         RuleDaemonGateway gateway = new(client.Object);
 
         DaemonInvalidResponseException actual = await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetRulesAsync());
@@ -71,20 +71,27 @@ public sealed class RuleDaemonGatewayTests
         RuleBatchDeleteResponse batchDeleteResponse = new(RuleBatchDeleteOutcome.Completed, null, [], [], null);
         RuleMutationResponse deleteResponse = new("rules.delete", null!);
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(c => c.SendAsync<AddRuleRequest, RuleMutationResponse>(add, It.IsAny<CancellationToken>())).ReturnsAsync(addResponse);
-        client.Setup(c => c.SendAsync<InsertRuleRequest, RuleInsertionResponse>(insert, It.IsAny<CancellationToken>())).ReturnsAsync(insertResponse);
-        client.Setup(c => c.SendAsync<ReplaceRuleRequest, RuleReplacementResponse>(replace, It.IsAny<CancellationToken>())).ReturnsAsync(replaceResponse);
-        client.Setup(c => c.SendAsync<ReorderRulesRequest, RuleReorderResponse>(reorder, It.IsAny<CancellationToken>())).ReturnsAsync(reorderResponse);
-        client.Setup(c => c.SendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(batchDelete, It.IsAny<CancellationToken>())).ReturnsAsync(batchDeleteResponse);
-        client.Setup(c => c.SendAsync<DeleteRuleRequest, RuleMutationResponse>(delete, It.IsAny<CancellationToken>())).ReturnsAsync(deleteResponse);
+        client.Setup(c => c.TrySendAsync<AddRuleRequest, RuleMutationResponse>(add, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleMutationResponse>.Success(addResponse));
+        client.Setup(c => c.TrySendAsync<InsertRuleRequest, RuleInsertionResponse>(insert, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleInsertionResponse>.Success(insertResponse));
+        client.Setup(c => c.TrySendAsync<ReplaceRuleRequest, RuleReplacementResponse>(replace, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReplacementResponse>.Success(replaceResponse));
+        client.Setup(c => c.TrySendAsync<ReorderRulesRequest, RuleReorderResponse>(reorder, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReorderResponse>.Success(reorderResponse));
+        client.Setup(c => c.TrySendAsync<BatchDeleteRulesRequest, RuleBatchDeleteResponse>(batchDelete, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleBatchDeleteResponse>.Success(batchDeleteResponse));
+        client.Setup(c => c.TrySendAsync<DeleteRuleRequest, RuleMutationResponse>(delete, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleMutationResponse>.Success(deleteResponse));
         RuleDaemonGateway gateway = new(client.Object);
 
-        Assert.AreSame(addResponse, (await gateway.AddRuleAsync(add)).Result);
-        Assert.AreSame(insertResponse, (await gateway.InsertRuleAsync(insert)).Result);
-        Assert.AreSame(replaceResponse, (await gateway.ReplaceRuleAsync(replace)).Result);
-        Assert.AreSame(reorderResponse, (await gateway.ReorderRulesAsync(reorder)).Result);
-        Assert.AreSame(batchDeleteResponse, (await gateway.BatchDeleteRulesAsync(batchDelete)).Result);
-        Assert.AreSame(deleteResponse, (await gateway.DeleteRuleAsync(delete)).Result);
+        DaemonResult<RuleMutationResponse> addResult = await gateway.AddRuleAsync(add);
+        DaemonResult<RuleInsertionResponse> insertResult = await gateway.InsertRuleAsync(insert);
+        DaemonResult<RuleReplacementResponse> replaceResult = await gateway.ReplaceRuleAsync(replace);
+        DaemonResult<RuleReorderResponse> reorderResult = await gateway.ReorderRulesAsync(reorder);
+        DaemonResult<RuleBatchDeleteResponse> batchDeleteResult = await gateway.BatchDeleteRulesAsync(batchDelete);
+        DaemonResult<RuleMutationResponse> deleteResult = await gateway.DeleteRuleAsync(delete);
+
+        Assert.AreSame(addResponse, addResult.Result);
+        Assert.AreSame(insertResponse, insertResult.Result);
+        Assert.AreSame(replaceResponse, replaceResult.Result);
+        Assert.AreSame(reorderResponse, reorderResult.Result);
+        Assert.AreSame(batchDeleteResponse, batchDeleteResult.Result);
+        Assert.AreSame(deleteResponse, deleteResult.Result);
         client.VerifyAll();
     }
 }

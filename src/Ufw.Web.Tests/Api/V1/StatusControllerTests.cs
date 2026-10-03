@@ -30,7 +30,7 @@ public sealed class StatusControllerTests
     [TestMethod]
     public async Task GetStatusAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
-        UfwIpcException expected = new(StatusCodes.Status503ServiceUnavailable, "daemon unavailable");
+        UfwIpcError expected = new(StatusCodes.Status503ServiceUnavailable, "daemon unavailable");
         Mock<IStatusDaemonGateway> daemonStatus = new();
         daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(DaemonResult.Failure(expected));
@@ -39,7 +39,7 @@ public sealed class StatusControllerTests
         UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
             () => controller.GetStatusAsync(TestContext.CancellationToken));
 
-        Assert.AreSame(expected, actual);
+        Assert.AreSame(expected, actual.Error);
     }
 
     private static StatusController CreateController(IStatusDaemonGateway daemonStatus) => new(daemonStatus)

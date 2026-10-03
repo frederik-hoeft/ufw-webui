@@ -31,7 +31,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
     [TestMethod]
     public async Task ReconcileAsync_DaemonFailureIsClassifiedAsUnavailableBeforeRepositoryAccessAsync()
     {
-        UfwIpcException ipcError = new(400, "enumeration failed");
+        UfwIpcError ipcError = new(400, "enumeration failed");
         RecordingRepository repository = new();
         NetworkInterfaceInventoryService service = new(new FailingDaemonSource(ipcError), repository, TimeProvider.System);
 
@@ -116,7 +116,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
     }
 
 
-    private sealed class FailingDaemonSource(UfwIpcException error) : INetworkInterfaceDaemonGateway
+    private sealed class FailingDaemonSource(UfwIpcError error) : INetworkInterfaceDaemonGateway
     {
         public Task<DaemonResult<IReadOnlyList<string>>> GetInterfaceNamesAsync(CancellationToken cancellationToken = default)
         {

@@ -9,8 +9,11 @@ namespace Ufw.Web.Client.Features.Rules.Metadata;
 internal sealed class RuleMetadataReconciliationService(IRuleMetadataReconciliationApiClient apiClient)
     : IRuleMetadataReconciliationService
 {
-    public async Task<RuleMetadataReconciliationSnapshot> RefreshAsync(CancellationToken cancellationToken = default) =>
-        Normalize(await apiClient.GetAsync(cancellationToken));
+    public async Task<RuleMetadataReconciliationSnapshot> RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        RuleMetadataReconciliationResponse response = await apiClient.GetAsync(cancellationToken);
+        return Normalize(response);
+    }
 
     public async Task<RuleMetadataReconciliationSnapshot> CleanupAsync(IReadOnlyCollection<Guid> metadataIds, CancellationToken cancellationToken = default)
     {
@@ -22,7 +25,9 @@ internal sealed class RuleMetadataReconciliationService(IRuleMetadataReconciliat
 
         Guid[] selectedIds = [.. metadataIds.Distinct().Order()];
 
-        return Normalize(await apiClient.CleanupAsync(new CleanupRuleMetadataRequest { MetadataIds = selectedIds }, cancellationToken));
+        CleanupRuleMetadataRequest request = new() { MetadataIds = selectedIds };
+        RuleMetadataReconciliationResponse response = await apiClient.CleanupAsync(request, cancellationToken);
+        return Normalize(response);
     }
 
     private static RuleMetadataReconciliationSnapshot Normalize(RuleMetadataReconciliationResponse response)

@@ -16,7 +16,7 @@ public sealed class DaemonResultTests
         Assert.IsNull(result.Error);
         Assert.AreSame(expected, result.Result);
         Assert.AreSame(result, result.EnsureSuccess());
-        Assert.IsTrue(result.TryGetResult(out object? actual, out UfwIpcException? error));
+        Assert.IsTrue(result.TryGetResult(out object? actual, out UfwIpcError? error));
         Assert.AreSame(expected, actual);
         Assert.IsNull(error);
     }
@@ -24,26 +24,29 @@ public sealed class DaemonResultTests
     [TestMethod]
     public void Failure_ExposesErrorWithoutThrowingThroughTryApiAndThrowsThroughAssertiveApis()
     {
-        UfwIpcException expected = new(409, "conflict");
+        UfwIpcError expected = new(409, "conflict");
         DaemonResult<object> result = DaemonResult.Failure<object>(expected);
 
         Assert.IsFalse(result.IsSuccess);
         Assert.AreSame(expected, result.Error);
-        Assert.IsFalse(result.TryGetResult(out object? actual, out UfwIpcException? error));
+        Assert.IsFalse(result.TryGetResult(out object? actual, out UfwIpcError? error));
         Assert.IsNull(actual);
         Assert.AreSame(expected, error);
-        Assert.AreSame(expected, Assert.ThrowsExactly<UfwIpcException>(() => _ = result.Result));
-        Assert.AreSame(expected, Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess()));
+        UfwIpcException resultException = Assert.ThrowsExactly<UfwIpcException>(() => _ = result.Result);
+        UfwIpcException ensureException = Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess());
+        Assert.AreSame(expected, resultException.Error);
+        Assert.AreSame(expected, ensureException.Error);
     }
 
     [TestMethod]
-    public void PayloadlessFailure_EnsureSuccessThrowsOriginalDaemonError()
+    public void PayloadlessFailure_EnsureSuccessThrowsDaemonError()
     {
-        UfwIpcException expected = new(503, "unavailable");
+        UfwIpcError expected = new(503, "unavailable");
         DaemonResult result = DaemonResult.Failure(expected);
 
         Assert.IsFalse(result.IsSuccess);
         Assert.AreSame(expected, result.Error);
-        Assert.AreSame(expected, Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess()));
+        UfwIpcException exception = Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess());
+        Assert.AreSame(expected, exception.Error);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Status;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -7,7 +8,8 @@ public sealed partial class StatusController(IStatusDaemonGateway daemonStatus) 
 {
     public async partial Task<IActionResult> GetStatusAsync(CancellationToken cancellationToken)
     {
-        (await daemonStatus.GetStatusAsync(cancellationToken)).EnsureSuccess();
+        DaemonResult daemonResult = await daemonStatus.GetStatusAsync(cancellationToken);
+        daemonResult.EnsureSuccess();
         return NoContent();
     }
 }

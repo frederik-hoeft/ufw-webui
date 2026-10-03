@@ -12,8 +12,11 @@ namespace Ufw.Web.Api.V1.Controllers;
 
 public sealed partial class RuleTemplatesController(IRuleTemplateDataAccess templates) : ControllerBase
 {
-    public async partial Task<ActionResult<RuleTemplateInventoryResponse>> GetAsync(CancellationToken cancellationToken) =>
-        Ok(await GetInventoryAsync(cancellationToken));
+    public async partial Task<ActionResult<RuleTemplateInventoryResponse>> GetAsync(CancellationToken cancellationToken)
+    {
+        RuleTemplateInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+        return Ok(inventory);
+    }
 
     public async partial Task<IActionResult> CreateAsync(CreateRuleTemplateRequest request, CancellationToken cancellationToken)
     {
@@ -49,7 +52,8 @@ public sealed partial class RuleTemplatesController(IRuleTemplateDataAccess temp
     {
         if (result.IsSuccess)
         {
-            return Ok(await GetInventoryAsync(cancellationToken));
+            RuleTemplateInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
         }
 
         return result.Error switch
@@ -77,7 +81,11 @@ public sealed partial class RuleTemplatesController(IRuleTemplateDataAccess temp
         };
     }
 
-    private async Task<RuleTemplateInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken) => new(await templates.GetAsync(cancellationToken));
+    private async Task<RuleTemplateInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<RuleTemplateItem> items = await templates.GetAsync(cancellationToken);
+        return new RuleTemplateInventoryResponse(items);
+    }
 
     private static bool TryMapRequest(RuleTemplateRequest request, [NotNullWhen(true)] out RuleTemplateValues? values)
     {

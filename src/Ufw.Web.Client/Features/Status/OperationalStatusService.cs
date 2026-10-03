@@ -56,12 +56,18 @@ internal sealed class OperationalStatusService
 
             bool managementSucceeded = managementTask.Status == TaskStatus.RanToCompletion;
             bool daemonSucceeded = daemonTask.Status == TaskStatus.RanToCompletion;
-            IntentContextResponse? intentContext = intentContextTask.Status == TaskStatus.RanToCompletion
-                ? await intentContextTask
-                : null;
-            RuleListResponse? rules = rulesTask.Status == TaskStatus.RanToCompletion
-                ? (await rulesTask).Firewall
-                : null;
+            IntentContextResponse? intentContext = null;
+            if (intentContextTask.Status == TaskStatus.RanToCompletion)
+            {
+                intentContext = await intentContextTask;
+            }
+
+            RuleInventoryResponse? ruleInventory = null;
+            if (rulesTask.Status == TaskStatus.RanToCompletion)
+            {
+                ruleInventory = await rulesTask;
+            }
+            RuleListResponse? rules = ruleInventory?.Firewall;
 
             OperationalAvailability managementAvailability = managementSucceeded
                 ? OperationalAvailability.Available

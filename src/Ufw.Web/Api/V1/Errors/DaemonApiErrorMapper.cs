@@ -7,32 +7,32 @@ namespace Ufw.Web.Api.V1.Errors;
 
 internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
 {
-    public DaemonApiError MapProxyFailure(UfwIpcException exception)
+    public DaemonApiError MapProxyFailure(UfwIpcError daemonError)
     {
-        ArgumentNullException.ThrowIfNull(exception);
+        ArgumentNullException.ThrowIfNull(daemonError);
 
-        if (exception.ValidationErrors is { Length: > 0 })
+        if (daemonError.ValidationErrors is { Length: > 0 })
         {
             ValidationProblemDetails problem = new()
             {
                 Status = StatusCodes.Status400BadRequest,
-                Title = exception.ResponseMessage ?? "One or more validation errors occurred.",
+                Title = daemonError.ResponseMessage ?? "One or more validation errors occurred.",
             };
-            foreach (ModelValidationError error in exception.ValidationErrors)
+            foreach (ModelValidationError error in daemonError.ValidationErrors)
             {
                 problem.Errors[error.PropertyName] = [error.ErrorMessage];
             }
             return new DaemonApiError(StatusCodes.Status400BadRequest, problem);
         }
 
-        int statusCode = exception.StatusCode is >= 400 and <= 599 ? exception.StatusCode : StatusCodes.Status502BadGateway;
-        return new DaemonApiError(statusCode, CreateProblem(statusCode, exception.ResponseMessage));
+        int statusCode = daemonError.StatusCode is >= 400 and <= 599 ? daemonError.StatusCode : StatusCodes.Status502BadGateway;
+        return new DaemonApiError(statusCode, CreateProblem(statusCode, daemonError.ResponseMessage));
     }
 
-    public DaemonApiError MapUnavailable(UfwIpcException exception)
+    public DaemonApiError MapUnavailable(UfwIpcError daemonError)
     {
-        ArgumentNullException.ThrowIfNull(exception);
-        return new DaemonApiError(StatusCodes.Status502BadGateway, CreateProblem(StatusCodes.Status502BadGateway, exception.ResponseMessage));
+        ArgumentNullException.ThrowIfNull(daemonError);
+        return new DaemonApiError(StatusCodes.Status502BadGateway, CreateProblem(StatusCodes.Status502BadGateway, daemonError.ResponseMessage));
     }
 
     public DaemonApiError MapInvalidResponse(DaemonInvalidResponseException exception)

@@ -43,7 +43,8 @@ internal sealed class KnownHostRepository(ITransactionServiceHandle transactionS
         CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunAsync(async (context, transaction) =>
         {
-            if (await context.Set<KnownHostEntry>().AnyAsync(host => host.NormalizedName == normalizedName, cancellationToken))
+            bool duplicateName = await context.Set<KnownHostEntry>().AnyAsync(host => host.NormalizedName == normalizedName, cancellationToken);
+            if (duplicateName)
             {
                 return transaction.Rollback(new KnownHostMutationResult(KnownHostMutationOutcome.NameConflict));
             }

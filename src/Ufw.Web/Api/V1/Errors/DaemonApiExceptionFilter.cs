@@ -13,7 +13,7 @@ internal sealed class DaemonApiExceptionFilter(IDaemonApiErrorMapper errors) : I
 
         DaemonApiError? error = context.Exception switch
         {
-            UfwIpcException exception => errors.MapProxyFailure(exception),
+            UfwIpcException exception => errors.MapProxyFailure(exception.Error),
             DaemonUnavailableException exception => errors.MapUnavailable(exception.Error),
             DaemonInvalidResponseException exception => errors.MapInvalidResponse(exception),
             _ => null,

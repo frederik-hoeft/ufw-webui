@@ -29,7 +29,8 @@ internal static class FirewallRuleSnapshotReadResultExtensions
     public static async Task<RuleListResponse?> OrDefaultAsync(this Task<FirewallRuleSnapshotReadResult> resultTask)
     {
         ArgumentNullException.ThrowIfNull(resultTask);
-        return (await resultTask).OrDefault();
+        FirewallRuleSnapshotReadResult result = await resultTask;
+        return result.OrDefault();
     }
 
     public static IResponsePayload ToResponsePayload(this FirewallRuleSnapshotReadResult result) =>

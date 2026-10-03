@@ -10,25 +10,29 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
 
     public async Task<NetworkInterfaceInventoryResponse> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.ReconcileAsync(cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.ReconcileAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(Guid interfaceId, string? comment, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(Guid interfaceId, bool isVisible, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 

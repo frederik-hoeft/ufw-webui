@@ -212,7 +212,7 @@ public sealed class RulesControllerTests
     [TestMethod]
     public async Task TestInsertRuleAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
-        UfwIpcException expected = new(StatusCodes.Status409Conflict, "Intent nonce has already been used.");
+        UfwIpcError expected = new(StatusCodes.Status409Conflict, "Intent nonce has already been used.");
         Mock<IRuleDaemonGateway> daemonRules = new();
         daemonRules.Setup(static c => c.InsertRuleAsync(It.IsAny<InsertRuleRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DaemonResult.Failure<RuleInsertionResponse>(expected));
@@ -221,7 +221,7 @@ public sealed class RulesControllerTests
         UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
             () => controller.InsertRuleAsync(CreateSignedInsert(), TestContext.CancellationToken));
 
-        Assert.AreSame(expected, actual);
+        Assert.AreSame(expected, actual.Error);
     }
 
     [TestMethod]
@@ -302,7 +302,7 @@ public sealed class RulesControllerTests
     [TestMethod]
     public async Task TestReorderRulesAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
-        UfwIpcException expected = new(StatusCodes.Status409Conflict, "Intent nonce has already been used.");
+        UfwIpcError expected = new(StatusCodes.Status409Conflict, "Intent nonce has already been used.");
         Mock<IRuleDaemonGateway> daemonRules = new();
         daemonRules
             .Setup(static c => c.ReorderRulesAsync(It.IsAny<ReorderRulesRequest>(), It.IsAny<CancellationToken>()))
@@ -312,7 +312,7 @@ public sealed class RulesControllerTests
         UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
             () => controller.ReorderRulesAsync(CreateSignedReorder(), TestContext.CancellationToken));
 
-        Assert.AreSame(expected, actual);
+        Assert.AreSame(expected, actual.Error);
     }
 
     [TestMethod]
@@ -530,7 +530,7 @@ public sealed class RulesControllerTests
     [TestMethod]
     public async Task TestDeleteRuleAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
-        UfwIpcException expected = new(StatusCodes.Status409Conflict, "A semantically identical rule already exists.");
+        UfwIpcError expected = new(StatusCodes.Status409Conflict, "A semantically identical rule already exists.");
         Mock<IRuleDaemonGateway> daemonRules = new();
         daemonRules
             .Setup(static c => c.DeleteRuleAsync(It.IsAny<DeleteRuleRequest>(), It.IsAny<CancellationToken>()))
@@ -540,7 +540,7 @@ public sealed class RulesControllerTests
         UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
             () => controller.DeleteRuleAsync(CreateSignedDelete(), TestContext.CancellationToken));
 
-        Assert.AreSame(expected, actual);
+        Assert.AreSame(expected, actual.Error);
     }
 
     private static RulesController CreateController(

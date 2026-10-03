@@ -9,5 +9,5 @@ internal sealed class StatusDaemonGateway(IUfwClient ufwClient) : IStatusDaemonG
     private const string STATUS_ROUTE = "/api/v1/status";
 
     public Task<DaemonResult> GetStatusAsync(CancellationToken cancellationToken = default) =>
-        DaemonResult.CaptureAsync(() => ufwClient.SendAsync(RequestMethod.Get, STATUS_ROUTE, cancellationToken));
+        DaemonResult.FromIpcAsync(() => ufwClient.TrySendAsync(RequestMethod.Get, STATUS_ROUTE, cancellationToken));
 }

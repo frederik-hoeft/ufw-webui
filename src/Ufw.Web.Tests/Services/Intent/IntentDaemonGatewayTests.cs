@@ -15,7 +15,7 @@ public sealed class IntentDaemonGatewayTests
     {
         IntentContextResponse expected = new(1, "deployment-test");
         Mock<IUfwClient> client = new(MockBehavior.Strict);
-        client.Setup(static c => c.SendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+        client.Setup(static c => c.TrySendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<IntentContextResponse>.Success(expected));
         IntentDaemonGateway gateway = new(client.Object);
 
         DaemonResult<IntentContextResponse> result = await gateway.GetContextAsync();

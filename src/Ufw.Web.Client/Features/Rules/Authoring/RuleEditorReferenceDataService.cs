@@ -20,8 +20,9 @@ internal sealed class RuleEditorReferenceDataService(
         Task<InterfaceInventoryResult> interfacesTask = LoadInterfacesAsync(cancellationToken);
         await Task.WhenAll(hostsTask, interfacesTask);
 
+        IReadOnlyList<KnownHostInventoryItem> hosts = await hostsTask;
         InterfaceInventoryResult interfaces = await interfacesTask;
-        return new RuleEditorReferenceData(await hostsTask, interfaces.All, interfaces.Visible, interfaces.Error);
+        return new RuleEditorReferenceData(hosts, interfaces.All, interfaces.Visible, interfaces.Error);
     }
 
     public IReadOnlyList<KnownHostInventoryItem> GetVisibleKnownHosts(RuleEditorReferenceData data, bool ipv6Enabled)
