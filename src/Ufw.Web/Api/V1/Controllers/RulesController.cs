@@ -30,7 +30,7 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
             RuleMetadataUpdateOutcome.RuleNotFound => NotFound(),
             RuleMetadataUpdateOutcome.TagNotFound => BadRequest(new { message = "One or more referenced rule tags do not exist." }),
             RuleMetadataUpdateOutcome.GroupNotFound => BadRequest(new { message = "The referenced rule group does not exist." }),
-            RuleMetadataUpdateOutcome.InvalidMetadata => BadRequest(new { message = "Rule metadata is invalid." }),
+            RuleMetadataUpdateOutcome.DependencyChanged => BadRequest(new { message = "Rule metadata dependencies changed." }),
             _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
         };
     }

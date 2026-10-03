@@ -158,6 +158,14 @@ public sealed class RuleTemplatesControllerTests
         AssertInvalid(new CreateRuleTemplateRequest { Name = "Template", Rule = null!, TagIds = [] });
         AssertInvalid(new CreateRuleTemplateRequest { Name = "Template", Rule = ValidRule(), TagIds = null! });
 
+        AssertInvalid(new CreateRuleTemplateRequest
+        {
+            Name = $" {new string('x', RuleTemplateLimits.MAX_NAME_LENGTH)} ",
+            Description = $" {new string('x', RuleTemplateLimits.MAX_DESCRIPTION_LENGTH)} ",
+            Rule = ValidRule(),
+            Notes = $" {new string('x', RuleMetadataLimits.MAX_NOTES_LENGTH)} ",
+            TagIds = [],
+        });
         AssertValid(new CreateRuleTemplateRequest
         {
             Name = new string('x', RuleTemplateLimits.MAX_NAME_LENGTH),

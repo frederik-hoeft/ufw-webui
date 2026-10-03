@@ -15,16 +15,6 @@ public sealed partial class RuleMetadataController(IRuleMetadataReconciliationSe
     public async partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.MetadataIds is null || request.MetadataIds.Count == 0 || request.MetadataIds.Any(static id => id == Guid.Empty))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Rule metadata cleanup selection is invalid",
-                Detail = "Select at least one valid orphaned metadata identity to remove.",
-            });
-        }
-
         RuleMetadataReconciliationResponse response = await reconciliation.CleanupAsync(request, cancellationToken);
         return Ok(response);
     }

@@ -6,8 +6,6 @@ public enum KnownHostMutationOutcome
     NotFound,
     NameConflict,
     AddressFamilyConflict,
-    InvalidAddress,
-    InvalidDnsConfiguration,
     DnsResolutionFailed,
     NotDnsManaged,
     DnsConfigurationChanged,

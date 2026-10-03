@@ -111,18 +111,27 @@ public sealed class RuleTagsControllerTests
     }
 
     [TestMethod]
-    public void UpdateRequest_AcceptsValuesAtSharedLimits()
+    public void UpdateRequest_ValidatesRawValuesAtSharedLimits()
     {
-        UpdateRuleTagRequest request = new()
+        UpdateRuleTagRequest padded = new()
+        {
+            Name = $" {new string('n', RuleTagLimits.MAX_NAME_LENGTH)} ",
+            Color = " #a1B2c3 ",
+        };
+        UpdateRuleTagRequest exact = new()
         {
             Name = new string('n', RuleTagLimits.MAX_NAME_LENGTH),
             Color = "#a1B2c3",
         };
 
-        List<ValidationResult> errors = [];
-        bool valid = Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true);
+        List<ValidationResult> paddedErrors = [];
+        bool paddedValid = Validator.TryValidateObject(padded, new ValidationContext(padded), paddedErrors, validateAllProperties: true);
+        List<ValidationResult> exactErrors = [];
+        bool exactValid = Validator.TryValidateObject(exact, new ValidationContext(exact), exactErrors, validateAllProperties: true);
 
-        Assert.IsTrue(valid);
-        Assert.IsEmpty(errors);
+        Assert.IsFalse(paddedValid);
+        Assert.HasCount(3, paddedErrors);
+        Assert.IsTrue(exactValid);
+        Assert.IsEmpty(exactErrors);
     }
 }

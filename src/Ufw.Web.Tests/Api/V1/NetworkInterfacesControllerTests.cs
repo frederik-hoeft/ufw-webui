@@ -95,13 +95,13 @@ public sealed class NetworkInterfacesControllerTests
     }
 
     [TestMethod]
-    public void UpdateCommentRequest_UsesSharedTrimAwareLimit()
+    public void UpdateCommentRequest_UsesSharedRawLimit()
     {
-        UpdateNetworkInterfaceCommentRequest valid = new() { Comment = $"  {new string('x', NetworkInterfaceLimits.MAX_COMMENT_LENGTH)}  " };
-        UpdateNetworkInterfaceCommentRequest invalid = new() { Comment = new string('x', NetworkInterfaceLimits.MAX_COMMENT_LENGTH + 1) };
+        UpdateNetworkInterfaceCommentRequest exact = new() { Comment = new string('x', NetworkInterfaceLimits.MAX_COMMENT_LENGTH) };
+        UpdateNetworkInterfaceCommentRequest padded = new() { Comment = $" {new string('x', NetworkInterfaceLimits.MAX_COMMENT_LENGTH)} " };
 
-        Assert.IsTrue(IsValid(valid));
-        Assert.IsFalse(IsValid(invalid));
+        Assert.IsTrue(IsValid(exact));
+        Assert.IsFalse(IsValid(padded));
     }
 
     [TestMethod]

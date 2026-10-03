@@ -75,7 +75,7 @@ public sealed class RulesControllerTests
     }
 
     [TestMethod]
-    public async Task TestUpdateMetadataAsync_MapsMissingAndInvalidMetadataAsync()
+    public async Task TestUpdateMetadataAsync_MapsMissingAndDependencyChangedAsync()
     {
         Mock<IRuleDaemonGateway> daemonRules = new();
         Mock<IRuleMetadataService> metadata = new();
@@ -86,7 +86,7 @@ public sealed class RulesControllerTests
         metadata.Setup(service => service.UpdateAsync("missing", missingRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound));
         metadata.Setup(service => service.UpdateAsync("invalid", invalidRequest, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata));
+            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.DependencyChanged));
         metadata.Setup(service => service.UpdateAsync("missing-tag", missingTagRequest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound));
         metadata.Setup(service => service.UpdateAsync("missing-group", missingGroupRequest, It.IsAny<CancellationToken>()))

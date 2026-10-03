@@ -15,15 +15,10 @@ internal sealed class KnownHostService(IKnownHostDataAccess dataAccess, IKnownHo
     {
         ArgumentNullException.ThrowIfNull(request);
         KnownHostMetadata metadata = NormalizeMetadata(request.Name, request.Comment);
-        if (!HasValidAddressSourceConfiguration(request))
-        {
-            return new KnownHostMutationResult(KnownHostMutationOutcome.InvalidDnsConfiguration);
-        }
-
         KnownHostAddressValues? address = await ResolveAddressAsync(request, currentHost: null, cancellationToken);
         if (address is null)
         {
-            return new KnownHostMutationResult(AddressFailureOutcome(request));
+            return new KnownHostMutationResult(KnownHostMutationOutcome.DnsResolutionFailed);
         }
 
         DataMutationResult result = await dataAccess.CreateAsync(
@@ -42,11 +37,6 @@ internal sealed class KnownHostService(IKnownHostDataAccess dataAccess, IKnownHo
     {
         ArgumentNullException.ThrowIfNull(request);
         KnownHostMetadata metadata = NormalizeMetadata(request.Name, request.Comment);
-        if (!HasValidAddressSourceConfiguration(request))
-        {
-            return new KnownHostMutationResult(KnownHostMutationOutcome.InvalidDnsConfiguration);
-        }
-
         KnownHostInventoryItem? currentHost = await dataAccess.GetByIdAsync(publicId, cancellationToken);
         if (currentHost is null)
         {
@@ -71,7 +61,7 @@ internal sealed class KnownHostService(IKnownHostDataAccess dataAccess, IKnownHo
             address = await ResolveAddressAsync(request, currentHost, cancellationToken);
             if (address is null)
             {
-                return new KnownHostMutationResult(AddressFailureOutcome(request));
+                return new KnownHostMutationResult(KnownHostMutationOutcome.DnsResolutionFailed);
             }
         }
 
@@ -131,14 +121,14 @@ internal sealed class KnownHostService(IKnownHostDataAccess dataAccess, IKnownHo
         {
             if (!FirewallAddressValue.TryNormalizeLiteral(request.Address, out string? normalizedAddress, out FirewallAddressFamily addressFamily))
             {
-                return null;
+                throw new ArgumentException("Literal known-host address must be validated before application processing.", nameof(request));
             }
 
             return new KnownHostAddressValues(normalizedAddress, addressFamily, DnsResolvedAt: null);
         }
         if (request.AddressSource != KnownHostAddressSource.Dns || request.DnsAddressFamily is not { } dnsAddressFamily)
         {
-            return null;
+            throw new ArgumentException("Known-host address configuration must be validated before application processing.", nameof(request));
         }
 
         string? resolvedAddress = await dnsResolver.ResolveAsync(request.Name.Trim(), dnsAddressFamily, currentHost?.Address, cancellationToken);
@@ -146,20 +136,6 @@ internal sealed class KnownHostService(IKnownHostDataAccess dataAccess, IKnownHo
             ? null
             : new KnownHostAddressValues(resolvedAddress, dnsAddressFamily, timeProvider.GetUtcNow());
     }
-
-    private static bool HasValidAddressSourceConfiguration(KnownHostRequest request) => request.AddressSource switch
-    {
-        KnownHostAddressSource.Literal => request.DnsAddressFamily is null,
-        KnownHostAddressSource.Dns => request.Address is null && request.DnsAddressFamily is FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6,
-        _ => false,
-    };
-
-    private static KnownHostMutationOutcome AddressFailureOutcome(KnownHostRequest request) => request.AddressSource switch
-    {
-        KnownHostAddressSource.Literal => KnownHostMutationOutcome.InvalidAddress,
-        KnownHostAddressSource.Dns => KnownHostMutationOutcome.DnsResolutionFailed,
-        _ => KnownHostMutationOutcome.InvalidDnsConfiguration,
-    };
 
     private async Task<KnownHostMutationResult> MapDataMutationAsync(DataMutationResult result, CancellationToken cancellationToken)
     {

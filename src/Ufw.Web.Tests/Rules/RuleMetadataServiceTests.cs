@@ -87,7 +87,7 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
-    public async Task Update_RejectsMissingRuleInvalidMetadataAndUnknownTagsWithoutPersistingAsync()
+    public async Task Update_RejectsMissingRuleAndUnknownTagsWithoutPersistingAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live");
@@ -96,17 +96,12 @@ public sealed class RuleMetadataServiceTests
             "sha256:missing",
             new UpdateRuleMetadataRequest { Notes = "edge" },
             TestContext.CancellationToken);
-        RuleMetadataUpdateResult invalid = await host.Metadata.UpdateAsync(
-            "sha256:live",
-            new UpdateRuleMetadataRequest { TagIds = Enumerable.Repeat(Guid.CreateVersion7(), 33).ToArray() },
-            TestContext.CancellationToken);
         RuleMetadataUpdateResult unknownTag = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest { TagIds = [Guid.CreateVersion7()] },
             TestContext.CancellationToken);
 
         Assert.AreEqual(RuleMetadataUpdateOutcome.RuleNotFound, missing.Outcome);
-        Assert.AreEqual(RuleMetadataUpdateOutcome.InvalidMetadata, invalid.Outcome);
         Assert.AreEqual(RuleMetadataUpdateOutcome.TagNotFound, unknownTag.Outcome);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
     }
@@ -798,7 +793,7 @@ public sealed class RuleMetadataServiceTests
             RuleMetadataDataAccess metadataRepository = new(transactionHandle);
             RuleGroupDataAccess groups = new(transactionHandle);
             RuleTagDataAccess tags = new(transactionHandle);
-            RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
+            RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
             return new TestHost(connection, serviceProvider, scope, daemon, context, metadataRepository, metadata, inventory, reconciliation, groups, tags);

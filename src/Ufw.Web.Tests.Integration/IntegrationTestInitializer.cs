@@ -97,7 +97,6 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
         services.AddScoped<IRuleDaemonGateway, RuleDaemonGateway>();
         services.AddScoped<IRuleMetadataDataAccess, RuleMetadataDataAccess>();
-        services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
         services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();
         services.AddScoped<IRuleTemplateDataAccess, RuleTemplateDataAccess>();

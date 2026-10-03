@@ -1,4 +1,5 @@
 using Ufw.Shared.Management.KnownHosts;
+using Ufw.Shared.Firewall;
 using System.ComponentModel.DataAnnotations;
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -69,7 +70,7 @@ public sealed class KnownHostsControllerTests
         Assert.IsInstanceOfType<NotFoundResult>(result);
     }
     [TestMethod]
-    public void RequestValidation_UsesSharedTrimmedMetadataLimits()
+    public void RequestValidation_UsesSharedRawMetadataLimits()
     {
         AssertInvalid(new CreateKnownHostRequest { Name = "   ", Address = "192.0.2.1" });
         AssertInvalid(new CreateKnownHostRequest { Name = new string('n', KnownHostLimits.MAX_NAME_LENGTH + 1), Address = "192.0.2.1" });
@@ -80,11 +81,51 @@ public sealed class KnownHostsControllerTests
             Comment = new string('c', KnownHostLimits.MAX_COMMENT_LENGTH + 1),
         });
 
+        AssertInvalid(new CreateKnownHostRequest
+        {
+            Name = $" {new string('n', KnownHostLimits.MAX_NAME_LENGTH)} ",
+            Address = "192.0.2.1",
+            Comment = $" {new string('c', KnownHostLimits.MAX_COMMENT_LENGTH)} ",
+        });
         AssertValid(new CreateKnownHostRequest
         {
-            Name = $"  {new string('n', KnownHostLimits.MAX_NAME_LENGTH)}  ",
+            Name = new string('n', KnownHostLimits.MAX_NAME_LENGTH),
             Address = "192.0.2.1",
-            Comment = $"  {new string('c', KnownHostLimits.MAX_COMMENT_LENGTH)}  ",
+            Comment = new string('c', KnownHostLimits.MAX_COMMENT_LENGTH),
+        });
+
+        AssertInvalid(new CreateKnownHostRequest { Name = "broken", Address = " 192.0.2.1 " });
+        AssertInvalid(new CreateKnownHostRequest { Name = "broken", Address = "192.0.2.1/99" });
+        AssertInvalid(new CreateKnownHostRequest
+        {
+            Name = "literal",
+            Address = "192.0.2.1",
+            DnsAddressFamily = FirewallAddressFamily.IPv4,
+        });
+        AssertInvalid(new CreateKnownHostRequest
+        {
+            Name = "dns.example.test",
+            AddressSource = KnownHostAddressSource.Dns,
+            DnsAddressFamily = FirewallAddressFamily.Any,
+        });
+        AssertInvalid(new CreateKnownHostRequest
+        {
+            Name = "dns.example.test",
+            Address = "192.0.2.1",
+            AddressSource = KnownHostAddressSource.Dns,
+            DnsAddressFamily = FirewallAddressFamily.IPv4,
+        });
+        AssertInvalid(new CreateKnownHostRequest
+        {
+            Name = "unknown",
+            Address = "192.0.2.1",
+            AddressSource = (KnownHostAddressSource)999,
+        });
+        AssertValid(new CreateKnownHostRequest
+        {
+            Name = "dns.example.test",
+            AddressSource = KnownHostAddressSource.Dns,
+            DnsAddressFamily = FirewallAddressFamily.IPv6,
         });
     }
 

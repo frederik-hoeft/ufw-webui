@@ -61,18 +61,6 @@ public sealed partial class KnownHostsController(IKnownHostService knownHosts) :
                 Title = "Known host address family cannot be changed",
                 Detail = "Create a new known host to replace an IPv4 alias with IPv6 or vice versa.",
             }),
-            KnownHostMutationOutcome.InvalidAddress => BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Known host address is invalid",
-                Detail = "The address must be a literal IPv4 or IPv6 host or CIDR network.",
-            }),
-            KnownHostMutationOutcome.InvalidDnsConfiguration => BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Known host DNS configuration is invalid",
-                Detail = "DNS-backed aliases require an IPv4 or IPv6 address family.",
-            }),
             KnownHostMutationOutcome.DnsResolutionFailed => UnprocessableEntity(new ProblemDetails
             {
                 Status = StatusCodes.Status422UnprocessableEntity,

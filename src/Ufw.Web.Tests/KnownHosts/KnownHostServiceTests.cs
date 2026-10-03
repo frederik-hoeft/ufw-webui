@@ -125,18 +125,6 @@ public sealed class KnownHostServiceTests
         Assert.AreEqual(FirewallAddressFamily.IPv4, persisted.AddressFamily);
     }
 
-    [TestMethod]
-    public async Task CreateAsync_InvalidAddress_IsRejectedBeforePersistenceAsync()
-    {
-        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
-
-        KnownHostMutationResult result = await host.Service.CreateAsync(
-            new CreateKnownHostRequest { Name = "broken", Address = "192.0.2.1/99" },
-            TestContext.CancellationToken);
-
-        Assert.AreEqual(KnownHostMutationOutcome.InvalidAddress, result.Outcome);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
-    }
 
     [TestMethod]
     public async Task GetAsync_InvalidPersistedAddress_FailsClosedAsync()
@@ -181,64 +169,8 @@ public sealed class KnownHostServiceTests
         Assert.AreEqual(FirewallAddressFamily.IPv4, host.DnsResolver.LastFamily);
     }
 
-    [TestMethod]
-    public async Task CreateAsync_DnsWithNonConcreteAddressFamily_IsRejectedBeforeResolutionAsync()
-    {
-        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        KnownHostMutationResult result = await host.Service.CreateAsync(
-            new CreateKnownHostRequest
-            {
-                Name = "db.example.test",
-                AddressSource = KnownHostAddressSource.Dns,
-                DnsAddressFamily = FirewallAddressFamily.Any,
-            },
-            TestContext.CancellationToken);
 
-        Assert.AreEqual(KnownHostMutationOutcome.InvalidDnsConfiguration, result.Outcome);
-        Assert.AreEqual(0, host.DnsResolver.CallCount);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
-    }
-
-    [TestMethod]
-    public async Task CreateAsync_LiteralWithDnsAddressFamily_IsRejectedBeforePersistenceAsync()
-    {
-        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
-
-        KnownHostMutationResult result = await host.Service.CreateAsync(
-            new CreateKnownHostRequest
-            {
-                Name = "db",
-                Address = "192.0.2.44",
-                AddressSource = KnownHostAddressSource.Literal,
-                DnsAddressFamily = FirewallAddressFamily.IPv4,
-            },
-            TestContext.CancellationToken);
-
-        Assert.AreEqual(KnownHostMutationOutcome.InvalidDnsConfiguration, result.Outcome);
-        Assert.AreEqual(0, host.DnsResolver.CallCount);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
-    }
-
-    [TestMethod]
-    public async Task CreateAsync_DnsWithCallerSuppliedAddress_IsRejectedBeforeResolutionAsync()
-    {
-        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
-
-        KnownHostMutationResult result = await host.Service.CreateAsync(
-            new CreateKnownHostRequest
-            {
-                Name = "db.example.test",
-                Address = "192.0.2.44",
-                AddressSource = KnownHostAddressSource.Dns,
-                DnsAddressFamily = FirewallAddressFamily.IPv4,
-            },
-            TestContext.CancellationToken);
-
-        Assert.AreEqual(KnownHostMutationOutcome.InvalidDnsConfiguration, result.Outcome);
-        Assert.AreEqual(0, host.DnsResolver.CallCount);
-        Assert.IsEmpty((await host.Service.GetAsync(TestContext.CancellationToken)));
-    }
 
     [TestMethod]
     public async Task CreateAsync_DnsResolutionFailure_DoesNotPersistAliasAsync()

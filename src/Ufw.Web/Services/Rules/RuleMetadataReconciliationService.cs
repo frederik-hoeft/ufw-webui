@@ -19,11 +19,6 @@ internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemo
     public async Task<RuleMetadataReconciliationResponse> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.MetadataIds is null || request.MetadataIds.Count == 0 || request.MetadataIds.Any(static id => id == Guid.Empty))
-        {
-            throw new ArgumentException("At least one valid metadata identity is required.", nameof(request));
-        }
-
         Guid[] selectedIds = [.. request.MetadataIds.Distinct().Order()];
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse snapshot = daemonResult.Result;

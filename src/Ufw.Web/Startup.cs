@@ -99,7 +99,6 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddScoped<IStatusDaemonGateway, StatusDaemonGateway>();
         services.AddScoped<IIntentDaemonGateway, IntentDaemonGateway>();
         services.AddScoped<IRuleMetadataDataAccess, RuleMetadataDataAccess>();
-        services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
         services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
         services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();
         services.AddScoped<IRuleTemplateDataAccess, RuleTemplateDataAccess>();

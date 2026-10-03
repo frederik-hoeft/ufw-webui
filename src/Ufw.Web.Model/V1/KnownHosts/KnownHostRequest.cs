@@ -5,10 +5,11 @@ using Ufw.Web.Model.Validation;
 
 namespace Ufw.Web.Model.V1.KnownHosts;
 
+[KnownHostAddressConfiguration]
 public abstract class KnownHostRequest
 {
     [Required]
-    [TrimmedStringLength(KnownHostLimits.MAX_NAME_LENGTH, MinimumLength = 1)]
+    [StringLength(KnownHostLimits.MAX_NAME_LENGTH, MinimumLength = 1)]
     public string Name { get; init; } = string.Empty;
 
     [StringLength(KnownHostLimits.MAX_ADDRESS_LENGTH)]
@@ -18,7 +19,7 @@ public abstract class KnownHostRequest
 
     public FirewallAddressFamily? DnsAddressFamily { get; init; }
 
-    [TrimmedStringLength(KnownHostLimits.MAX_COMMENT_LENGTH)]
+    [StringLength(KnownHostLimits.MAX_COMMENT_LENGTH)]
     public string? Comment { get; init; }
 
     public bool IsVisible { get; init; } = true;

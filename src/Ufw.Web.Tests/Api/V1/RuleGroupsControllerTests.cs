@@ -109,18 +109,27 @@ public sealed class RuleGroupsControllerTests
     }
 
     [TestMethod]
-    public void UpdateRequest_AcceptsValuesAtSharedLimits()
+    public void UpdateRequest_ValidatesRawValuesAtSharedLimits()
     {
-        UpdateRuleGroupRequest request = new()
+        UpdateRuleGroupRequest padded = new()
+        {
+            Name = $" {new string('n', RuleGroupLimits.MAX_NAME_LENGTH)} ",
+            Comment = $" {new string('c', RuleGroupLimits.MAX_COMMENT_LENGTH)} ",
+        };
+        UpdateRuleGroupRequest exact = new()
         {
             Name = new string('n', RuleGroupLimits.MAX_NAME_LENGTH),
             Comment = new string('c', RuleGroupLimits.MAX_COMMENT_LENGTH),
         };
 
-        List<ValidationResult> errors = [];
-        bool valid = Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true);
+        List<ValidationResult> paddedErrors = [];
+        bool paddedValid = Validator.TryValidateObject(padded, new ValidationContext(padded), paddedErrors, validateAllProperties: true);
+        List<ValidationResult> exactErrors = [];
+        bool exactValid = Validator.TryValidateObject(exact, new ValidationContext(exact), exactErrors, validateAllProperties: true);
 
-        Assert.IsTrue(valid);
-        Assert.IsEmpty(errors);
+        Assert.IsFalse(paddedValid);
+        Assert.HasCount(2, paddedErrors);
+        Assert.IsTrue(exactValid);
+        Assert.IsEmpty(exactErrors);
     }
 }

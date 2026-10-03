@@ -11,17 +11,13 @@ namespace Ufw.Web.Services.Rules;
 internal sealed partial class RuleMetadataService(
     IRuleDaemonGateway daemonRules,
     IRuleMetadataDataAccess metadata,
-    IRuleMetadataValuesNormalizer metadataNormalizer,
     ILogger<RuleMetadataService> logger) : IRuleMetadataService
 {
     public async Task<RuleMetadataUpdateResult> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(request);
-        if (!metadataNormalizer.TryNormalize(request.Notes, request.TagIds, request.GroupId, out RuleMetadataValues? values))
-        {
-            return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata);
-        }
+        RuleMetadataValues values = RuleMetadataValues.FromValidatedRequest(request.Notes, request.TagIds, request.GroupId);
 
         DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
         RuleListResponse snapshot = daemonResult.Result;
@@ -42,7 +38,7 @@ internal sealed partial class RuleMetadataService(
         {
             RuleTagsNotFoundError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
             RuleGroupNotFoundError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
-            DataMutationReferenceConflictError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata),
+            DataMutationReferenceConflictError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.DependencyChanged),
             _ => throw new InvalidOperationException($"Unknown metadata mutation error '{save.Error!.GetType().Name}'."),
         };
     }
