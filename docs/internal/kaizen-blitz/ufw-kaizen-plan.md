@@ -175,8 +175,8 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 
 1. **Startup composition:** completed in W3.1. WEB KZ-04 separates the domain-grouped application service catalog from ASP.NET/Identity/EF/HTTP host wiring without fragmenting the composition root; the explicit migration/bootstrap lifecycle stays visible in `Startup`, and IPC options are bound/validated once.
 2. **Public surface:** completed in W3.2. WEB KZ-11 internalizes application-only implementation/detail types, including the EF context, and enforces CA1515 with explicit exceptions only for MVC/framework-required public surface.
-3. WEB KZ-19 close the destructive-migration policy/documentation item without rewriting applied history.
-4. WEB KZ-20 only if the resulting MVC convention remains more transparent than repeated attributes.
+3. **Migration-history review:** completed in W3.3. WEB KZ-19 confirmed the template-description shrink was same-branch development churn with no meaningful deployed data boundary; the historical migration stays unchanged and no special runtime policy is added.
+4. **Controller policy declarations:** reviewed in W3.3 and intentionally left explicit. WEB KZ-20 would save little code while hiding authorization, versioning, or no-store policy behind broader conventions.
 
 ### Bridge checkpoint S2 - Web -> client
 
@@ -272,7 +272,7 @@ These are architecture decisions, not implementation details, and should be writ
 3. **Network-interface metadata retention:** whether transient absence preserves user-owned metadata (WEB KZ-13 -> CLIENT KZ-10/KZ-19).
 4. **Shared management-domain boundary — resolved in W1:** pure DAL/read objects live under `Ufw.Shared.Management`; `Ufw.Web.Model` remains the versioned HTTP DTO layer and may embed those shared types. Existing `*Item` names may remain where they describe read-model elements; avoid clone DTOs and keep DTO construction out of the DAL (WEB KZ-01).
 5. **Stable validation identity contract — resolved in S1:** firewall-rule validation uses an open string code plus property and human-readable diagnostic text. Current producers populate the code; application-v1 readers accept a missing code only for compatibility with older payloads. WEB KZ-09/KZ-15 and CLIENT KZ-12 consume this identity without redefining it.
-6. **Destructive migration policy:** preflight/fail vs explicitly accepted truncation for future schema changes (WEB KZ-19).
+6. **Description-length migration history:** WEB KZ-19 confirmed the truncation occurred only in same-branch development churn before a meaningful data/release boundary.
 
 ## Holistic traceability checklist
 
@@ -337,8 +337,8 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | WEB KZ-16 | W2 | Extract auth cookie policy and Identity error mapping | Completed in W2.5 with one refresh-cookie policy and explicit Identity password-error translation into Identity-independent workflow validation fields. |
 | [x] | WEB KZ-17 | W1 | Centralize daemon endpoint paths | Completed in W1.2.1: unsigned read/probe paths are private gateway details; signed mutation routes remain owned by shared request-message contracts. |
 | [x] | WEB KZ-18 | W2 | Tighten bulk persistence operations after the boundary refactor | Completed in W2.2: final-DAL metadata bulk cleanup uses `ExecuteDeleteAsync`, returns affected-row counts, and preserves relation cleanup through database cascades. |
-| [ ] | WEB KZ-19 | W3 | Treat the description-length migration as explicitly destructive history | Policy/documentation item; close before blitz exit, but do not rewrite an applied migration. |
-| [ ] | WEB KZ-20 | W3 | Reduce repeated versioned-controller policy attributes only if conventions stay obvious | Last/optional declaration cleanup after the controller/error conventions stabilize. |
+| [x] | WEB KZ-19 | W3 | Treat the description-length migration as explicitly destructive history | Completed in W3.3: confirmed as same-branch development churn with no meaningful deployed description data; migration history remains unchanged. |
+| [x] | WEB KZ-20 | W3 | Reduce repeated versioned-controller policy attributes only if conventions stay obvious | Reviewed in W3.3 and intentionally retained: explicit per-controller authorization/version/cache declarations are clearer than the available conventions. |
 | [x] | WEB KZ-21 | W2 | Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant | Completed in W2.8 after final W2 query shapes stabilized; all three surviving sites now use `ToListAsync`, with SQL-side final projection used wherever the read model is translatable. |
 
 ### `Ufw.Web.Client`

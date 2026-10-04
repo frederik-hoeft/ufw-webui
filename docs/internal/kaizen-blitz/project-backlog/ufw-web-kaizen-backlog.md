@@ -473,7 +473,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Evidence:** `RuleTemplateDescriptionLength.cs:13-17` performs `LEFT("Description", 512)`.
 
-**Refactor target:** Do not edit an already-applied migration. If this migration has not shipped, decide whether truncation is acceptable; otherwise fail/preflight instead. If it has shipped, document the irreversible behavior and keep future destructive migrations gated by explicit data-migration policy.
+**Refactor target:** Do not edit migration history merely to make development churn look reversible. Establish whether the migration ever crossed a release/data boundary before deciding whether a destructive-data policy is required.
+
+**Status:** Completed in W3.3. The 4000-to-512 description migration was a same-development-branch follow-up to the feature that introduced template descriptions, so there was no meaningful deployed description data to preserve. The truncation is therefore accepted as development migration churn and the migration is left unchanged. No additional product/runtime policy is introduced for this historical case; normal release backups and schema-compatibility rollback guidance remain the operational safety boundary for future releases.
 
 **Primary files:** `Data/Migrations/20260930110937_RuleTemplateDescriptionLength.cs`
 
@@ -484,6 +486,8 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 **Evidence:** Repeated across the V1 `*.api.cs` files; auth intentionally differs because some endpoints are anonymous.
 
 **Refactor target:** Prefer an MVC convention or a very small common attribute/base contract only if it remains transparent in Swagger and authorization review. This is low-value compared with the boundary work and should not drive a generic-controller hierarchy.
+
+**Status:** Reviewed and intentionally retained in W3.3. The repeated attributes are declarative controller policy rather than duplicated application logic. Moving authorization into a fallback policy, response-cache behavior into a global filter, or API-version membership into conventions would save little code while making security/version/cache behavior less obvious at the controller contract. An assembly-level `ApiController` alone is too small a win to justify splitting the policy model.
 
 **Primary files:** `Api/V1/Controllers/IntentController.api.cs`, `Api/V1/Controllers/AuthController.api.cs`, `Api/V1/Controllers/RuleTagsController.api.cs`, `Api/V1/Controllers/RuleGroupsController.api.cs`, `Api/V1/Controllers/RuleTemplatesController.api.cs`, `Api/V1/Controllers/RulesController.api.cs`, `Api/V1/Controllers/RuleMetadataController.api.cs`, `Api/V1/Controllers/StatusController.api.cs`, `Api/V1/Controllers/KnownHostsController.api.cs`, `Api/V1/Controllers/NetworkInterfacesController.api.cs`
 
