@@ -1,7 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
@@ -141,6 +141,9 @@ public sealed class RuleTemplatesControllerTests
 
         BadRequestObjectResult badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(action);
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(badRequest.Value);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, problem.Status);
+        Assert.AreEqual("The template rule definition is invalid.", problem.Detail);
         dataAccess.Verify(candidate => candidate.CreateAsync(It.IsAny<RuleTemplateValues>(), It.IsAny<CancellationToken>()), Times.Never);
         dataAccess.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -208,7 +211,10 @@ public sealed class RuleTemplatesControllerTests
 
         IActionResult action = await controller.UpdateAsync(id, ValidUpdateRequest(), TestContext.CancellationToken);
 
-        Assert.IsInstanceOfType<NotFoundResult>(action);
+        NotFoundObjectResult notFound = Assert.IsInstanceOfType<NotFoundObjectResult>(action);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(notFound.Value);
+        Assert.AreEqual(StatusCodes.Status404NotFound, problem.Status);
+        Assert.AreEqual("The requested rule template does not exist.", problem.Detail);
         dataAccess.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

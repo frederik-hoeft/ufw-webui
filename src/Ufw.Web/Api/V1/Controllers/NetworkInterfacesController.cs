@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Management.NetworkInterfaces;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
@@ -23,14 +24,18 @@ public sealed partial class NetworkInterfacesController(INetworkInterfaceInvento
     {
         ArgumentNullException.ThrowIfNull(request);
         NetworkInterfaceInventorySnapshot? snapshot = await inventory.UpdateCommentAsync(id, request.Comment, cancellationToken);
-        return snapshot is null ? NotFound() : Ok(ToResponse(snapshot));
+        return snapshot is null
+            ? NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, title: "Network interface not found", detail: "The requested network interface does not exist."))
+            : Ok(ToResponse(snapshot));
     }
 
     public async partial Task<IActionResult> UpdateVisibilityAsync(Guid id, UpdateNetworkInterfaceVisibilityRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         NetworkInterfaceInventorySnapshot? snapshot = await inventory.UpdateVisibilityAsync(id, request.IsVisible, cancellationToken);
-        return snapshot is null ? NotFound() : Ok(ToResponse(snapshot));
+        return snapshot is null
+            ? NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, title: "Network interface not found", detail: "The requested network interface does not exist."))
+            : Ok(ToResponse(snapshot));
     }
 
     public async partial Task<ActionResult<NetworkInterfaceCleanupResponse>> GetStaleAsync(CancellationToken cancellationToken)

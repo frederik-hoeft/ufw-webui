@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Management.NetworkInterfaces;
@@ -60,6 +61,27 @@ public sealed class NetworkInterfacesControllerTests
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result);
         NetworkInterfaceInventoryResponse response = Assert.IsInstanceOfType<NetworkInterfaceInventoryResponse>(ok.Value);
         Assert.AreSame(item, response.Interfaces.Single());
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_MissingInterfaceReturnsProblemDetailsAsync()
+    {
+        Mock<INetworkInterfaceInventoryService> inventory = new();
+        Guid id = Guid.CreateVersion7();
+        inventory.Setup(service => service.UpdateCommentAsync(id, "comment", It.IsAny<CancellationToken>())).ReturnsAsync((NetworkInterfaceInventorySnapshot?)null);
+        inventory.Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>())).ReturnsAsync((NetworkInterfaceInventorySnapshot?)null);
+        NetworkInterfacesController controller = new(inventory.Object);
+
+        IActionResult commentAction = await controller.UpdateCommentAsync(id, new UpdateNetworkInterfaceCommentRequest { Comment = "comment" }, TestContext.CancellationToken);
+        IActionResult visibilityAction = await controller.UpdateVisibilityAsync(id, new UpdateNetworkInterfaceVisibilityRequest { IsVisible = false }, TestContext.CancellationToken);
+
+        foreach (IActionResult action in new[] { commentAction, visibilityAction })
+        {
+            NotFoundObjectResult notFound = Assert.IsInstanceOfType<NotFoundObjectResult>(action);
+            ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(notFound.Value);
+            Assert.AreEqual(StatusCodes.Status404NotFound, problem.Status);
+            Assert.AreEqual("The requested network interface does not exist.", problem.Detail);
+        }
     }
 
     [TestMethod]

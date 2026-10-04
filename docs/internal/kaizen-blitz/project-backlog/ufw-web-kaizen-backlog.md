@@ -373,6 +373,8 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **W2.7.1 status:** The validation half is complete. `Ufw.Web.Model` now defines the browser-visible ProblemDetails/validation DTOs; automatic MVC model-state failures, password-change validation, and daemon validation all emit the same `validationErrors` extension, and the client preserves those structured entries on `ApiRequestException`. Remaining work for W2.7.2 is to migrate anonymous `{ message }` payloads and empty application-generated errors to ProblemDetails and reconcile the endpoint/Swagger response declarations.
 
+**W2.7.2a status:** Runtime producer migration is complete. Application-owned 400/404/conflict failures now use `ApiProblemDetailsFactory`, antiforgery writes ProblemDetails through the registered ASP.NET Core problem-details service, and clear authentication/authorization 401/403 responses intentionally remain bodyless. W2.7.2b still owns response metadata/Swagger reconciliation, including accurate union schemas where one non-success status can represent either a typed transaction outcome or ProblemDetails.
+
 **Primary files:** `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Security/AntiforgeryValidationMiddleware.cs`, `Api/V1/Errors/ApiProblemDetailsFactory.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Ufw.Web.Model/V1/Errors/*`
 
 ### KZ-10 [P2] Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser`

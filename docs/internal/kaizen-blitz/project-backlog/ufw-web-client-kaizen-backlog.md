@@ -399,6 +399,8 @@ Give the error mapper a filter-friendly `CanDescribe(Exception)` if that is the 
 
 Also remove the unused parameter from `ClientErrorMapper.DescribeProtocolError` if it remains unnecessary.
 
+**W-phase compatibility note:** `HttpResponseMessageExtensions` intentionally retains the `LegacyApiErrorMessage` / `{ message }` fallback while Web and client work can be migrated independently and the W-phase acceptance gate is still pending. The finalized Web contract is ProblemDetails-based after W2.7; remove the legacy parser and its source-generation/test plumbing during the client error-handling cleanup once the client phase can rely on that finalized contract.
+
 ### KZ-12: Stop localizing validator failures by exact English error text
 
 **Where**

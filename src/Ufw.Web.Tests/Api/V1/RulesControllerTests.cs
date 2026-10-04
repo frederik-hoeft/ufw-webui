@@ -1,11 +1,11 @@
-using Ufw.Shared.Management.Rules;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Management.Rules;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Model.V1.Rules;
@@ -99,10 +99,23 @@ public sealed class RulesControllerTests
         ActionResult<RuleMetadataMutationResponse> missingTag = await controller.UpdateMetadataAsync("missing-tag", missingTagRequest, TestContext.CancellationToken);
         ActionResult<RuleMetadataMutationResponse> missingGroup = await controller.UpdateMetadataAsync("missing-group", missingGroupRequest, TestContext.CancellationToken);
 
-        Assert.IsInstanceOfType<NotFoundResult>(missing.Result);
-        Assert.IsInstanceOfType<BadRequestObjectResult>(invalid.Result);
-        Assert.IsInstanceOfType<BadRequestObjectResult>(missingTag.Result);
-        Assert.IsInstanceOfType<BadRequestObjectResult>(missingGroup.Result);
+        NotFoundObjectResult notFound = Assert.IsInstanceOfType<NotFoundObjectResult>(missing.Result);
+        ProblemDetails missingProblem = Assert.IsInstanceOfType<ProblemDetails>(notFound.Value);
+        Assert.AreEqual(StatusCodes.Status404NotFound, missingProblem.Status);
+        Assert.AreEqual("The referenced firewall rule does not exist.", missingProblem.Detail);
+
+        BadRequestObjectResult dependencyChanged = Assert.IsInstanceOfType<BadRequestObjectResult>(invalid.Result);
+        ProblemDetails dependencyProblem = Assert.IsInstanceOfType<ProblemDetails>(dependencyChanged.Value);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, dependencyProblem.Status);
+        Assert.AreEqual("Rule metadata dependencies changed.", dependencyProblem.Detail);
+
+        BadRequestObjectResult tagNotFound = Assert.IsInstanceOfType<BadRequestObjectResult>(missingTag.Result);
+        ProblemDetails tagProblem = Assert.IsInstanceOfType<ProblemDetails>(tagNotFound.Value);
+        Assert.AreEqual("One or more referenced rule tags do not exist.", tagProblem.Detail);
+
+        BadRequestObjectResult groupNotFound = Assert.IsInstanceOfType<BadRequestObjectResult>(missingGroup.Result);
+        ProblemDetails groupProblem = Assert.IsInstanceOfType<ProblemDetails>(groupNotFound.Value);
+        Assert.AreEqual("The referenced rule group does not exist.", groupProblem.Detail);
     }
 
     [TestMethod]

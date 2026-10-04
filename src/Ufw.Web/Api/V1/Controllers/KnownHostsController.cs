@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Management.KnownHosts;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Services.KnownHosts;
 
@@ -48,37 +49,30 @@ public sealed partial class KnownHostsController(IKnownHostService knownHosts) :
 
         return result.Outcome switch
         {
-            KnownHostMutationOutcome.NotFound => NotFound(),
-            KnownHostMutationOutcome.NameConflict => Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Known host name already exists",
-                Detail = "Known host names must be unique.",
-            }),
-            KnownHostMutationOutcome.AddressFamilyConflict => Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Known host address family cannot be changed",
-                Detail = "Create a new known host to replace an IPv4 alias with IPv6 or vice versa.",
-            }),
-            KnownHostMutationOutcome.DnsResolutionFailed => UnprocessableEntity(new ProblemDetails
-            {
-                Status = StatusCodes.Status422UnprocessableEntity,
-                Title = "Known host DNS resolution failed",
-                Detail = "The alias name did not resolve to an address in the configured address family.",
-            }),
-            KnownHostMutationOutcome.NotDnsManaged => Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Known host is not DNS-backed",
-                Detail = "Only DNS-backed known hosts can be reconciled from DNS.",
-            }),
-            KnownHostMutationOutcome.DnsConfigurationChanged => Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Known host DNS configuration changed",
-                Detail = "The known host changed while DNS was being resolved. Retry the reconciliation against the current configuration.",
-            }),
+            KnownHostMutationOutcome.NotFound => NotFound(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status404NotFound,
+                title: "Known host not found",
+                detail: "The requested known host does not exist.")),
+            KnownHostMutationOutcome.NameConflict => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Known host name already exists",
+                detail: "Known host names must be unique.")),
+            KnownHostMutationOutcome.AddressFamilyConflict => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Known host address family cannot be changed",
+                detail: "Create a new known host to replace an IPv4 alias with IPv6 or vice versa.")),
+            KnownHostMutationOutcome.DnsResolutionFailed => UnprocessableEntity(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status422UnprocessableEntity,
+                title: "Known host DNS resolution failed",
+                detail: "The alias name did not resolve to an address in the configured address family.")),
+            KnownHostMutationOutcome.NotDnsManaged => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Known host is not DNS-backed",
+                detail: "Only DNS-backed known hosts can be reconciled from DNS.")),
+            KnownHostMutationOutcome.DnsConfigurationChanged => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Known host DNS configuration changed",
+                detail: "The known host changed while DNS was being resolved. Retry the reconciliation against the current configuration.")),
             _ => throw new InvalidOperationException($"Unknown known-host mutation outcome '{result.Outcome}'."),
         };
     }

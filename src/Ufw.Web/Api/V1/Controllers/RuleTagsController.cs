@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Management.Rules;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Model.V1.RuleTags;
@@ -39,13 +40,14 @@ public sealed partial class RuleTagsController(IRuleTagDataAccess tags) : Contro
 
         return result.Error switch
         {
-            DataMutationNotFoundError => NotFound(),
-            DataMutationReferenceConflictError => Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Rule tag is still in use",
-                Detail = "Remove the tag from live rule metadata and rule templates before deleting it.",
-            }),
+            DataMutationNotFoundError => NotFound(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status404NotFound,
+                title: "Rule tag not found",
+                detail: "The requested rule tag does not exist.")),
+            DataMutationReferenceConflictError => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Rule tag is still in use",
+                detail: "Remove the tag from live rule metadata and rule templates before deleting it.")),
             _ => throw new InvalidOperationException($"Unexpected rule-tag deletion error '{result.Error!.GetType().Name}'."),
         };
     }
@@ -60,13 +62,14 @@ public sealed partial class RuleTagsController(IRuleTagDataAccess tags) : Contro
 
         return result.Error switch
         {
-            DataMutationNotFoundError => NotFound(),
-            DataMutationUniqueConflictError => Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Rule tag name already exists",
-                Detail = "Rule tag names must be unique without regard to case.",
-            }),
+            DataMutationNotFoundError => NotFound(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status404NotFound,
+                title: "Rule tag not found",
+                detail: "The requested rule tag does not exist.")),
+            DataMutationUniqueConflictError => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Rule tag name already exists",
+                detail: "Rule tag names must be unique without regard to case.")),
             _ => throw new InvalidOperationException($"Unexpected rule-tag mutation error '{result.Error!.GetType().Name}'."),
         };
     }

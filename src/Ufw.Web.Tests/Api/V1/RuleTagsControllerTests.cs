@@ -1,7 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Data.Access;
@@ -91,6 +91,27 @@ public sealed class RuleTagsControllerTests
         ConflictObjectResult conflict = Assert.IsInstanceOfType<ConflictObjectResult>(action);
         ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(conflict.Value);
         Assert.AreEqual(StatusCodes.Status409Conflict, problem.Status);
+        data.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_NotFoundReturnsProblemDetailsWithoutInventoryReadAsync()
+    {
+        Guid id = Guid.CreateVersion7();
+        Mock<IRuleTagDataAccess> data = new();
+        data.Setup(candidate => candidate.UpdateAsync(id, "Production", "#12AB34", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DataMutationResult.Failure(new DataMutationNotFoundError()));
+        RuleTagsController controller = new(data.Object);
+
+        IActionResult action = await controller.UpdateAsync(
+            id,
+            new UpdateRuleTagRequest { Name = "Production", Color = "#12AB34" },
+            TestContext.CancellationToken);
+
+        NotFoundObjectResult notFound = Assert.IsInstanceOfType<NotFoundObjectResult>(action);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(notFound.Value);
+        Assert.AreEqual(StatusCodes.Status404NotFound, problem.Status);
+        Assert.AreEqual("The requested rule tag does not exist.", problem.Detail);
         data.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

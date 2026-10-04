@@ -1,9 +1,9 @@
-using Ufw.Shared.Management.KnownHosts;
-using Ufw.Shared.Firewall;
-using System.ComponentModel.DataAnnotations;
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.ComponentModel.DataAnnotations;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Services.KnownHosts;
@@ -67,8 +67,12 @@ public sealed class KnownHostsControllerTests
 
         IActionResult result = await controller.DeleteAsync(id, TestContext.CancellationToken);
 
-        Assert.IsInstanceOfType<NotFoundResult>(result);
+        NotFoundObjectResult notFound = Assert.IsInstanceOfType<NotFoundObjectResult>(result);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(notFound.Value);
+        Assert.AreEqual(StatusCodes.Status404NotFound, problem.Status);
+        Assert.AreEqual("The requested known host does not exist.", problem.Detail);
     }
+
     [TestMethod]
     public void RequestValidation_UsesSharedRawMetadataLimits()
     {

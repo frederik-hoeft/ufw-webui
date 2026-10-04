@@ -1,7 +1,8 @@
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.Rules;
+using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Data.Access.Rules.Templates;
@@ -58,25 +59,22 @@ public sealed partial class RuleTemplatesController(IRuleTemplateDataAccess temp
 
         return result.Error switch
         {
-            DataMutationNotFoundError => NotFound(),
-            RuleTagsNotFoundError => BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Rule template tag does not exist",
-                Detail = "One or more referenced rule tags no longer exist.",
-            }),
-            RuleGroupNotFoundError => BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Rule template group does not exist",
-                Detail = "The referenced rule group no longer exists.",
-            }),
-            DataMutationReferenceConflictError => BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Rule template dependency changed",
-                Detail = "A referenced rule tag or group no longer exists.",
-            }),
+            DataMutationNotFoundError => NotFound(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status404NotFound,
+                title: "Rule template not found",
+                detail: "The requested rule template does not exist.")),
+            RuleTagsNotFoundError => BadRequest(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status400BadRequest,
+                title: "Rule template tag does not exist",
+                detail: "One or more referenced rule tags no longer exist.")),
+            RuleGroupNotFoundError => BadRequest(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status400BadRequest,
+                title: "Rule template group does not exist",
+                detail: "The referenced rule group no longer exists.")),
+            DataMutationReferenceConflictError => BadRequest(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status400BadRequest,
+                title: "Rule template dependency changed",
+                detail: "A referenced rule tag or group no longer exists.")),
             _ => throw new InvalidOperationException($"Unexpected rule-template mutation error '{result.Error!.GetType().Name}'."),
         };
     }
@@ -107,10 +105,8 @@ public sealed partial class RuleTemplatesController(IRuleTemplateDataAccess temp
         return true;
     }
 
-    private BadRequestObjectResult InvalidTemplate() => BadRequest(new ProblemDetails
-    {
-        Status = StatusCodes.Status400BadRequest,
-        Title = "Rule template is invalid",
-        Detail = "The template rule definition is invalid.",
-    });
+    private BadRequestObjectResult InvalidTemplate() => BadRequest(ApiProblemDetailsFactory.Create(
+        StatusCodes.Status400BadRequest,
+        title: "Rule template is invalid",
+        detail: "The template rule definition is invalid."));
 }
