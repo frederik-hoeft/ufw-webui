@@ -141,11 +141,11 @@ internal sealed class RuleMetadataDataAccess(ITransactionServiceHandle transacti
         return Transaction.Scoped.RunAsync<RuleMetadataReplacementPersistenceOutcome>(async (context, transaction) =>
         {
             string[] ruleIds = [originalRuleId, replacementRuleId];
-            RuleMetadataEntry[] metadata = await context.Set<RuleMetadataEntry>()
+            List<RuleMetadataEntry> metadata = await context.Set<RuleMetadataEntry>()
                 .Include(static entry => entry.Tags)
                 .ThenInclude(static relation => relation.Tag)
                 .Where(entry => ruleIds.Contains(entry.RuleId))
-                .ToArrayAsync(cancellationToken);
+                .ToListAsync(cancellationToken);
             RuleMetadataEntry? source = metadata.SingleOrDefault(entry => string.Equals(entry.RuleId, originalRuleId, StringComparison.Ordinal));
             RuleMetadataEntry? staleTarget = metadata.SingleOrDefault(entry => string.Equals(entry.RuleId, replacementRuleId, StringComparison.Ordinal));
 

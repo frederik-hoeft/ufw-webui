@@ -169,7 +169,7 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 4. **Auth:** completed in W2.5: WEB KZ-10 and KZ-16 moved refresh-token EF access behind the Auth DAL, made the flow coordinator the explicit transaction owner, centralized cookie policy, and removed Identity result/error-code leakage from the controller contract.
 5. **REST DTO validation audit:** completed in W2.6: WEB KZ-24 audited the full V1 request surface, removed duplicate transport-shape checks from application logic, and closed the API-wide completeness aspect of KZ-05.
 6. **Public errors:** completed in W2.7 after KZ-24 and the daemon gateway stabilized. WEB KZ-15 was folded into this work so repeated same-property daemon validation failures survive the final ProblemDetails contract.
-7. **Materialization audit:** WEB KZ-21 last within W2, after query shapes are final. Remove obsolete calls before converting surviving array materializations.
+7. **Materialization audit:** completed in W2.8. WEB KZ-21 audited the three surviving EF materializations after query shapes stabilized; none required array identity/semantics, so all use `ToListAsync`. The rule-group inventory now projects the final read model in SQL, while known-host inventory leaves only address normalization/persisted-data validation in EF's final client projection.
 
 #### W3 - Composition and final server cleanup
 
@@ -339,7 +339,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | WEB KZ-18 | W2 | Tighten bulk persistence operations after the boundary refactor | Completed in W2.2: final-DAL metadata bulk cleanup uses `ExecuteDeleteAsync`, returns affected-row counts, and preserves relation cleanup through database cascades. |
 | [ ] | WEB KZ-19 | W3 | Treat the description-length migration as explicitly destructive history | Policy/documentation item; close before blitz exit, but do not rewrite an applied migration. |
 | [ ] | WEB KZ-20 | W3 | Reduce repeated versioned-controller policy attributes only if conventions stay obvious | Last/optional declaration cleanup after the controller/error conventions stabilize. |
-| [ ] | WEB KZ-21 | W2 | Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant | Do after KZ-01 migrations; delete obsolete materializations first, then change only the surviving array materializations. |
+| [x] | WEB KZ-21 | W2 | Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant | Completed in W2.8 after final W2 query shapes stabilized; all three surviving sites now use `ToListAsync`, with SQL-side final projection used wherever the read model is translatable. |
 
 ### `Ufw.Web.Client`
 

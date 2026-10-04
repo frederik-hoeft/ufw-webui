@@ -97,28 +97,27 @@ internal sealed class RuleGroupDataAccess(ITransactionServiceHandle transactionS
             return transaction.Commit(DataMutationResult.Success());
         });
 
-    private static async Task<IReadOnlyList<RuleGroupItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
-    {
-        RuleGroupEntry[] groups = await context.Set<RuleGroupEntry>()
+    private static async Task<IReadOnlyList<RuleGroupItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken) =>
+        await context.Set<RuleGroupEntry>()
             .AsNoTracking()
             .AsSplitQuery()
-            .Include(static group => group.RuleMetadata)
-            .Include(static group => group.RuleTemplates)
             .OrderBy(static group => group.Name)
             .ThenBy(static group => group.PublicId)
-            .ToArrayAsync(cancellationToken);
-        return
-        [
-            .. groups.Select(static group => new RuleGroupItem
+            .Select(static group => new RuleGroupItem
             {
                 Id = group.PublicId,
                 Name = group.Name,
                 Comment = group.Comment,
-                RuleIds = [.. group.RuleMetadata.Select(static metadata => metadata.RuleId).Order(StringComparer.Ordinal)],
-                TemplateIds = [.. group.RuleTemplates.Select(static template => template.PublicId).Order()],
+                RuleIds = group.RuleMetadata
+                    .OrderBy(static metadata => metadata.RuleId)
+                    .Select(static metadata => metadata.RuleId)
+                    .ToList(),
+                TemplateIds = group.RuleTemplates
+                    .OrderBy(static template => template.PublicId)
+                    .Select(static template => template.PublicId)
+                    .ToList(),
             })
-        ];
-    }
+            .ToListAsync(cancellationToken);
 
     private static async Task<bool> NameExistsAsync(ApplicationDbContext context, string name, long? excludingId, CancellationToken cancellationToken)
     {

@@ -16,19 +16,11 @@ internal sealed class KnownHostDataAccess(ITransactionServiceHandle transactionS
     public Task<KnownHostInventoryItem?> GetByIdAsync(Guid publicId, CancellationToken cancellationToken = default) =>
         Transaction.Scoped.RunReadOnlyAsync(async context =>
         {
-            KnownHostProjection? host = await context.Set<KnownHostEntry>()
+            IQueryable<KnownHostEntry> query = context.Set<KnownHostEntry>()
                 .AsNoTracking()
-                .Where(candidate => candidate.PublicId == publicId)
-                .Select(static candidate => new KnownHostProjection(
-                    candidate.PublicId,
-                    candidate.Name,
-                    candidate.Address,
-                    candidate.AddressSource,
-                    candidate.DnsResolvedAt,
-                    candidate.Comment,
-                    candidate.IsVisible))
-                .SingleOrDefaultAsync(cancellationToken);
-            return host is null ? null : ToInventoryItem(host);
+                .Where(candidate => candidate.PublicId == publicId);
+            KnownHostInventoryItem? host = await ProjectInventory(query).SingleOrDefaultAsync(cancellationToken);
+            return host;
         });
 
     public Task<DataMutationResult> CreateAsync(
@@ -182,55 +174,46 @@ internal sealed class KnownHostDataAccess(ITransactionServiceHandle transactionS
 
     private static async Task<IReadOnlyList<KnownHostInventoryItem>> GetCoreAsync(ApplicationDbContext context, CancellationToken cancellationToken)
     {
-        KnownHostProjection[] hosts = await Query(context).ToArrayAsync(cancellationToken);
-        return [.. hosts.Select(ToInventoryItem)];
+        IQueryable<KnownHostEntry> query = context.Set<KnownHostEntry>()
+            .AsNoTracking()
+            .OrderBy(static host => host.NormalizedName)
+            .ThenBy(static host => host.Name);
+        return await ProjectInventory(query).ToListAsync(cancellationToken);
     }
 
-    private static IQueryable<KnownHostProjection> Query(ApplicationDbContext context) => context.Set<KnownHostEntry>()
-        .AsNoTracking()
-        .OrderBy(static host => host.NormalizedName)
-        .ThenBy(static host => host.Name)
-        .Select(static host => new KnownHostProjection(
-            host.PublicId,
-            host.Name,
-            host.Address,
-            host.AddressSource,
-            host.DnsResolvedAt,
-            host.Comment,
-            host.IsVisible));
+    private static IQueryable<KnownHostInventoryItem> ProjectInventory(IQueryable<KnownHostEntry> query) => query
+        .Select(static host => ToInventoryItem(host.PublicId, host.Name, host.Address, host.AddressSource, host.DnsResolvedAt, host.Comment, host.IsVisible));
 
-    private static KnownHostInventoryItem ToInventoryItem(KnownHostProjection host)
+    private static KnownHostInventoryItem ToInventoryItem(
+        Guid id,
+        string name,
+        string persistedAddress,
+        KnownHostAddressSource addressSource,
+        DateTimeOffset? dnsResolvedAt,
+        string? comment,
+        bool isVisible)
     {
-        if (!FirewallAddressValue.TryNormalizeLiteral(host.Address, out string? address, out FirewallAddressFamily addressFamily))
+        if (!FirewallAddressValue.TryNormalizeLiteral(persistedAddress, out string? address, out FirewallAddressFamily addressFamily))
         {
-            throw new InvalidDataException($"Known host '{host.Id:D}' contains an invalid persisted address.");
+            throw new InvalidDataException($"Known host '{id:D}' contains an invalid persisted address.");
         }
-        if (!Enum.IsDefined(host.AddressSource)
-            || host.AddressSource == KnownHostAddressSource.Literal && host.DnsResolvedAt is not null
-            || host.AddressSource == KnownHostAddressSource.Dns && host.DnsResolvedAt is null)
+        if (!Enum.IsDefined(addressSource)
+            || addressSource == KnownHostAddressSource.Literal && dnsResolvedAt is not null
+            || addressSource == KnownHostAddressSource.Dns && dnsResolvedAt is null)
         {
-            throw new InvalidDataException($"Known host '{host.Id:D}' contains invalid address-source metadata.");
+            throw new InvalidDataException($"Known host '{id:D}' contains invalid address-source metadata.");
         }
 
         return new KnownHostInventoryItem
         {
-            Id = host.Id,
-            Name = host.Name,
+            Id = id,
+            Name = name,
             Address = address,
             AddressFamily = addressFamily,
-            AddressSource = host.AddressSource,
-            DnsResolvedAt = host.DnsResolvedAt,
-            Comment = host.Comment,
-            IsVisible = host.IsVisible,
+            AddressSource = addressSource,
+            DnsResolvedAt = dnsResolvedAt,
+            Comment = comment,
+            IsVisible = isVisible,
         };
     }
-
-    private sealed record KnownHostProjection(
-        Guid Id,
-        string Name,
-        string Address,
-        KnownHostAddressSource AddressSource,
-        DateTimeOffset? DnsResolvedAt,
-        string? Comment,
-        bool IsVisible);
 }

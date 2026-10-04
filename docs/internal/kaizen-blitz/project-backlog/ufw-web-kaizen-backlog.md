@@ -493,6 +493,8 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Primary files:** `Data/Access/KnownHosts/KnownHostDataAccess.cs`, `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`, `Data/Access/Rules/Groups/RuleGroupDataAccess.cs`
 
+**Status:** Completed in W2.8. All three surviving sites were audited after the W2 query-shape migrations. Rule-group inventory now projects its final read model in SQL rather than materializing entity graphs for a second client-side projection. Known-host inventory keeps only its address normalization/persisted-data validation as EF's final client projection while SQL selects the required columns. Rule-metadata replacement needs a tracked mutable workset but no array semantics. All three use `ToListAsync`, and no production `ToArrayAsync` remains in `Ufw.Web`.
+
 ## Recommended blitz sequence
 
 1. **Safe deletions, correctness, and mechanical allocation cleanup:** KZ-12, KZ-14, KZ-15, KZ-21. These reduce noise before structural work and are easy to verify.
