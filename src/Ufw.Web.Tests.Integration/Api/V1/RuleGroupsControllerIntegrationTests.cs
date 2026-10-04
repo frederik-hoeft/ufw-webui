@@ -15,7 +15,7 @@ using Ufw.Web.Services.Rules;
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class RuleGroupsControllerIntegrationTests : ControllerIntegrationTest<RuleGroupsController>
+internal sealed class RuleGroupsControllerIntegrationTests : ControllerIntegrationTest<RuleGroupsController>
 {
     public required TestContext TestContext { get; set; }
 

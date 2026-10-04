@@ -12,7 +12,7 @@ using Ufw.Web.Tests.Integration.Support;
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class KnownHostsControllerIntegrationTests : ControllerIntegrationTest<KnownHostsController>
+internal sealed class KnownHostsControllerIntegrationTests : ControllerIntegrationTest<KnownHostsController>
 {
     public required TestContext TestContext { get; set; }
 

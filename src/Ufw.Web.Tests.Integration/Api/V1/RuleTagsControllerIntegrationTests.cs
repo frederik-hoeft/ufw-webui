@@ -10,7 +10,7 @@ using Ufw.Web.Data.Model;
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class RuleTagsControllerIntegrationTests : ControllerIntegrationTest<RuleTagsController>
+internal sealed class RuleTagsControllerIntegrationTests : ControllerIntegrationTest<RuleTagsController>
 {
     public required TestContext TestContext { get; set; }
 

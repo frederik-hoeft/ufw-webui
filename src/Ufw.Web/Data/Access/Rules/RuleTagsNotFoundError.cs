@@ -1,3 +1,3 @@
 namespace Ufw.Web.Data.Access.Rules;
 
-public sealed record RuleTagsNotFoundError(IReadOnlyList<Guid> TagIds) : DataMutationError;
+internal sealed record RuleTagsNotFoundError(IReadOnlyList<Guid> TagIds) : DataMutationError;

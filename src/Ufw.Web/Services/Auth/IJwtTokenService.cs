@@ -2,7 +2,7 @@
 
 namespace Ufw.Web.Services.Auth;
 
-public interface IJwtTokenService
+internal interface IJwtTokenService
 {
     Task<AccessToken> IssueAsync(IdentityUser user, CancellationToken cancellationToken = default);
 }

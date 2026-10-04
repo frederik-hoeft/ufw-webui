@@ -1,3 +1,3 @@
 namespace Ufw.Web.Data.Access;
 
-public sealed record DataMutationReferenceConflictError : DataMutationError;
+internal sealed record DataMutationReferenceConflictError : DataMutationError;

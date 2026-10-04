@@ -174,7 +174,7 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 #### W3 - Composition and final server cleanup
 
 1. **Startup composition:** completed in W3.1. WEB KZ-04 separates the domain-grouped application service catalog from ASP.NET/Identity/EF/HTTP host wiring without fragmenting the composition root; the explicit migration/bootstrap lifecycle stays visible in `Startup`, and IPC options are bound/validated once.
-2. WEB KZ-11 internalize accidental public contracts now that actual boundaries are known.
+2. **Public surface:** completed in W3.2. WEB KZ-11 internalizes application-only implementation/detail types, including the EF context, and enforces CA1515 with explicit exceptions only for MVC/framework-required public surface.
 3. WEB KZ-19 close the destructive-migration policy/documentation item without rewriting applied history.
 4. WEB KZ-20 only if the resulting MVC convention remains more transparent than repeated attributes.
 
@@ -331,7 +331,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | WEB KZ-08 | W2 | Centralize semantic rule-ID extraction from daemon snapshots | Completed in W2.2 with a Web-local `LiveRuleIdentitySet` consumed by inventory, metadata reconciliation/liveness, batch cleanup, and replacement interpretation. |
 | [x] | WEB KZ-09 | W2 | Standardize HTTP error shape and declared response contracts | Completed in W2.7: structured validation errors, centralized application ProblemDetails producers, ProblemDetails antiforgery failures, explicit daemon/gateway response declarations, and OpenAPI media-type alternatives for statuses shared with typed transaction outcomes. Clear framework 401/403 responses remain bodyless. |
 | [x] | WEB KZ-10 | W2 | Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser` | Completed in W2.5: `AuthenticationFlowService` owns auth transactions; context-bound `RefreshTokenDataAccess` participates explicitly; refresh rotation no longer returns `IdentityUser`. |
-| [ ] | WEB KZ-11 | W3 | Shrink accidental public surface area | Late cleanup after final service/DAL/gateway boundaries determine what truly needs to stay public. |
+| [x] | WEB KZ-11 | W3 | Shrink accidental public surface area | Completed in W3.2: internalized application-only types, verified internal `ApplicationDbContext` with EF Core design-time discovery, and replaced project-wide CA1515 silence with enforced, explicit public-surface suppressions. |
 | [x] | WEB KZ-13 | W1 | Decide whether transient interface disappearance is allowed to erase user-owned metadata | Completed in W2.4: missing interfaces retain public identity/comment/visibility as non-present rows; reappearance revives them; explicit cleanup revalidates daemon presence before hard deletion. |
 | [x] | WEB KZ-12 | W1 | Delete dead validation/signing implementations and minor stale code | Completed in W1.1 with narrowed scope: removed the unused RSA JWT key provider and stale group/tag repository imports. The IPv4/port attributes were retained until KZ-24 could decide their ownership, then removed in W2.6 once the signed REST boundary reused the shared firewall validator instead. |
 | [x] | WEB KZ-16 | W2 | Extract auth cookie policy and Identity error mapping | Completed in W2.5 with one refresh-cookie policy and explicit Identity password-error translation into Identity-independent workflow validation fields. |

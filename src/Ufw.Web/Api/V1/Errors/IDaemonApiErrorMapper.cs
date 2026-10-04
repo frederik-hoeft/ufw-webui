@@ -3,7 +3,7 @@ using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Api.V1.Errors;
 
-public interface IDaemonApiErrorMapper
+internal interface IDaemonApiErrorMapper
 {
     DaemonApiError MapProxyFailure(UfwIpcError daemonError);
 
