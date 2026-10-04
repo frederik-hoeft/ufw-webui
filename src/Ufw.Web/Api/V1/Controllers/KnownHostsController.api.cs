@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -25,10 +26,10 @@ public sealed partial class KnownHostsController
     /// </summary>
     [HttpPost]
     [ProducesResponseType<KnownHostInventoryResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public partial Task<IActionResult> CreateAsync([FromBody] CreateKnownHostRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -36,11 +37,11 @@ public sealed partial class KnownHostsController
     /// </summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType<KnownHostInventoryResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public partial Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateKnownHostRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -49,9 +50,9 @@ public sealed partial class KnownHostsController
     [HttpPost("{id:guid}/dns/reconcile")]
     [ProducesResponseType<KnownHostInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public partial Task<IActionResult> ReconcileDnsAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
@@ -60,6 +61,6 @@ public sealed partial class KnownHostsController
     [HttpDelete("{id:guid}")]
     [ProducesResponseType<KnownHostInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
     public partial Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken);
 }

@@ -37,7 +37,7 @@ public sealed partial class AuthController
     [HttpPost("refresh")]
     [RequireAntiforgeryValidation]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public partial Task<IActionResult> RefreshAsync(CancellationToken cancellationToken);
 
@@ -58,6 +58,6 @@ public sealed partial class AuthController
     [HttpPost("logout")]
     [RequireAntiforgeryValidation]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     public partial Task<IActionResult> LogoutAsync(CancellationToken cancellationToken);
 }

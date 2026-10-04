@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.Rules.Intent;
 
@@ -20,7 +21,8 @@ public sealed partial class RulesController
     [HttpGet]
     [ProducesResponseType<RuleInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<RuleInventoryResponse>> GetRulesAsync(CancellationToken cancellationToken);
 
     /// <summary>
@@ -28,10 +30,11 @@ public sealed partial class RulesController
     /// </summary>
     [HttpPut("{ruleId}/metadata")]
     [ProducesResponseType<RuleMetadataMutationResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(
         [FromRoute] string ruleId,
         [FromBody] UpdateRuleMetadataRequest request,
@@ -42,10 +45,14 @@ public sealed partial class RulesController
     /// </summary>
     [HttpPost]
     [ProducesResponseType<RuleMutationResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<RuleMutationResponse>> AddRuleAsync([FromBody] AddRuleIntentRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -53,11 +60,15 @@ public sealed partial class RulesController
     /// </summary>
     [HttpPost("insert")]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     [ProducesResponseType<RuleInsertionResponse>(StatusCodes.Status503ServiceUnavailable)]
     public partial Task<ActionResult<RuleInsertionResponse>> InsertRuleAsync([FromBody] InsertRuleIntentRequest request, CancellationToken cancellationToken);
 
@@ -66,12 +77,16 @@ public sealed partial class RulesController
     /// </summary>
     [HttpPut("replace")]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     [ProducesResponseType<RuleReplacementMutationResponse>(StatusCodes.Status503ServiceUnavailable)]
     public partial Task<ActionResult<RuleReplacementMutationResponse>> ReplaceRuleAsync([FromBody] ReplaceRuleIntentRequest request, CancellationToken cancellationToken);
 
@@ -80,12 +95,16 @@ public sealed partial class RulesController
     /// </summary>
     [HttpPut("order")]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     [ProducesResponseType<RuleReorderResponse>(StatusCodes.Status503ServiceUnavailable)]
     public partial Task<ActionResult<RuleReorderResponse>> ReorderRulesAsync([FromBody] ReorderRulesIntentRequest request, CancellationToken cancellationToken);
 
@@ -94,11 +113,15 @@ public sealed partial class RulesController
     /// </summary>
     [HttpDelete("batch")]
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     [ProducesResponseType<RuleBatchDeleteResponse>(StatusCodes.Status503ServiceUnavailable)]
     public partial Task<ActionResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync([FromBody] BatchDeleteRulesIntentRequest request, CancellationToken cancellationToken);
 
@@ -107,10 +130,14 @@ public sealed partial class RulesController
     /// </summary>
     [HttpDelete]
     [ProducesResponseType<RuleMutationResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<RuleMutationResponse>> DeleteRuleAsync([FromBody] DeleteRuleIntentRequest request, CancellationToken cancellationToken);
 }

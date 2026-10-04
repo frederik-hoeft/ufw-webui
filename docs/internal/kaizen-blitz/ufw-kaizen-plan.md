@@ -114,7 +114,7 @@ Wave D is complete. S1 treats the consumer-visible daemon behavior finalized in 
 - firewall-rule validation failures now carry an open, stable string code alongside property and human-readable diagnostic text;
 - current shared, daemon, and client-side rule-validation producers populate the shared codes, while application-v1 readers continue to accept legacy validation payloads without a code;
 - IPC client propagation preserves the validation array and stable codes without additional translation;
-- the current Web `ValidationProblemDetails` mapping and client localization behavior remain unchanged intentionally. WEB KZ-09/KZ-15 own the final public HTTP error contract, and CLIENT KZ-12 owns switching localization from English text to stable codes.
+- at the S1 checkpoint, the then-current Web `ValidationProblemDetails` mapping and client localization behavior remained unchanged intentionally; W2.7 subsequently finalized WEB KZ-09/KZ-15, while CLIENT KZ-12 still owns switching localization from English text to stable codes.
 
 ### Phase W - `Ufw.Web`
 
@@ -159,6 +159,8 @@ W2.7.1 establishes the final validation-error contract used by that MVC path. Pu
 
 W2.7.2a converges the remaining application-owned runtime error producers on that ProblemDetails contract. Rule/catalog/interface misses now return ProblemDetails instead of empty 404s, rule-metadata failures no longer use anonymous `{ message }` payloads, controller-local ProblemDetails construction uses the central factory, and antiforgery failures are written through ASP.NET Core's registered ProblemDetails service. Clear authentication/authorization failures such as 401/403 deliberately remain bodyless. WEB KZ-09 stays open for W2.7.2b, which owns the final response declarations and accurate OpenAPI representation of statuses that can carry either typed transaction results or ProblemDetails. The client retains its legacy `{ message }` reader temporarily for W-phase compatibility; CLIENT KZ-11 tracks removal once the client phase can assume the finalized ProblemDetails-only server contract.
 
+W2.7.2b completes WEB KZ-09 by making the declared response contract match those runtime semantics. Application and daemon failures are explicitly typed as `ApiProblemDetails`, signed daemon mutations declare their reachable server/gateway failure statuses, and clear framework 401/403 responses remain bodyless. A Swagger operation filter normalizes the generated contract: bodyless failures advertise no payload, ProblemDetails uses `application/problem+json`, and statuses shared with typed transaction outcomes expose the typed JSON and ProblemDetails media types side by side. Dual bodyless/application 403 responses are documented explicitly. The temporary client `{ message }` fallback remains tracked under CLIENT KZ-11 until the client phase can remove W-phase compatibility.
+
 Migrate slices against the W1 rules instead of doing horizontal repository rewrites:
 
 1. **Rules groups/tags/templates/metadata:** WEB KZ-06, KZ-07, KZ-08, KZ-18. KZ-07 follows KZ-22/KZ-23; KZ-06 is implemented directly in the final DAL; KZ-18 becomes a set-based final-DAL optimization.
@@ -166,7 +168,7 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 3. **Network interfaces:** completed in W2.4: final DAL/shared-domain migration plus retained non-present metadata, present-only normal inventory, and race-safe stale cleanup contracts for deferred CLIENT KZ-24.
 4. **Auth:** completed in W2.5: WEB KZ-10 and KZ-16 moved refresh-token EF access behind the Auth DAL, made the flow coordinator the explicit transaction owner, centralized cookie policy, and removed Identity result/error-code leakage from the controller contract.
 5. **REST DTO validation audit:** completed in W2.6: WEB KZ-24 audited the full V1 request surface, removed duplicate transport-shape checks from application logic, and closed the API-wide completeness aspect of KZ-05.
-6. **Public errors:** WEB KZ-09 after KZ-22, KZ-24, and the daemon gateway are stable. Fold WEB KZ-15 into this work and preserve all same-property daemon validation messages.
+6. **Public errors:** completed in W2.7 after KZ-24 and the daemon gateway stabilized. WEB KZ-15 was folded into this work so repeated same-property daemon validation failures survive the final ProblemDetails contract.
 7. **Materialization audit:** WEB KZ-21 last within W2, after query shapes are final. Remove obsolete calls before converting surviving array materializations.
 
 #### W3 - Composition and final server cleanup
@@ -327,7 +329,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | WEB KZ-22 | W1 | Standardize mutation/error propagation instead of feature-local outcome plumbing for common failures | Design alongside KZ-01 because DAL mutation signatures depend on the common error/result model; KZ-09 consumes the result. |
 | [ ] | WEB KZ-07 | W2 | Reduce rule-group/rule-tag catalog copy-paste without generic-controller overengineering | Do after KZ-22 and KZ-23. Much of the current duplication disappears when local mutation enums and ceremonial services disappear. |
 | [x] | WEB KZ-08 | W2 | Centralize semantic rule-ID extraction from daemon snapshots | Completed in W2.2 with a Web-local `LiveRuleIdentitySet` consumed by inventory, metadata reconciliation/liveness, batch cleanup, and replacement interpretation. |
-| [ ] | WEB KZ-09 | W2 | Standardize HTTP error shape and declared response contracts | W2.7.1 completed the structured validation-error half and KZ-15; W2.7.2 still owns remaining anonymous/empty errors plus final response declarations. |
+| [x] | WEB KZ-09 | W2 | Standardize HTTP error shape and declared response contracts | Completed in W2.7: structured validation errors, centralized application ProblemDetails producers, ProblemDetails antiforgery failures, explicit daemon/gateway response declarations, and OpenAPI media-type alternatives for statuses shared with typed transaction outcomes. Clear framework 401/403 responses remain bodyless. |
 | [x] | WEB KZ-10 | W2 | Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser` | Completed in W2.5: `AuthenticationFlowService` owns auth transactions; context-bound `RefreshTokenDataAccess` participates explicitly; refresh rotation no longer returns `IdentityUser`. |
 | [ ] | WEB KZ-11 | W3 | Shrink accidental public surface area | Late cleanup after final service/DAL/gateway boundaries determine what truly needs to stay public. |
 | [x] | WEB KZ-13 | W1 | Decide whether transient interface disappearance is allowed to erase user-owned metadata | Completed in W2.4: missing interfaces retain public identity/comment/visibility as non-present rows; reappearance revives them; explicit cleanup revalidates daemon presence before hard deletion. |

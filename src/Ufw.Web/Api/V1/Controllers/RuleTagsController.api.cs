@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -25,9 +26,9 @@ public sealed partial class RuleTagsController
     /// </summary>
     [HttpPost]
     [ProducesResponseType<RuleTagInventoryResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     public partial Task<IActionResult> CreateAsync([FromBody] CreateRuleTagRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -35,10 +36,10 @@ public sealed partial class RuleTagsController
     /// </summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType<RuleTagInventoryResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     public partial Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateRuleTagRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -47,7 +48,7 @@ public sealed partial class RuleTagsController
     [HttpDelete("{id:guid}")]
     [ProducesResponseType<RuleTagInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status409Conflict)]
     public partial Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken);
 }

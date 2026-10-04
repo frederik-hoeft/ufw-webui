@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -17,6 +18,7 @@ public sealed partial class StatusController
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<IActionResult> GetStatusAsync(CancellationToken cancellationToken);
 }

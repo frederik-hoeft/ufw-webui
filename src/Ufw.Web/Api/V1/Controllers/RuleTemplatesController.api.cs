@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Model.V1.RuleTemplates;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -25,7 +26,7 @@ public sealed partial class RuleTemplatesController
     /// </summary>
     [HttpPost]
     [ProducesResponseType<RuleTemplateInventoryResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public partial Task<IActionResult> CreateAsync([FromBody] CreateRuleTemplateRequest request, CancellationToken cancellationToken);
 
@@ -34,9 +35,9 @@ public sealed partial class RuleTemplatesController
     /// </summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType<RuleTemplateInventoryResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
     public partial Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateRuleTemplateRequest request, CancellationToken cancellationToken);
 
     /// <summary>
@@ -45,6 +46,6 @@ public sealed partial class RuleTemplatesController
     [HttpDelete("{id:guid}")]
     [ProducesResponseType<RuleTemplateInventoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status404NotFound)]
     public partial Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken);
 }
