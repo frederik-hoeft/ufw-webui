@@ -5,6 +5,8 @@ using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Services.KnownHosts;
 
@@ -22,7 +24,7 @@ public sealed class KnownHostsControllerTests
         Guid id = Guid.CreateVersion7();
         UpdateKnownHostRequest request = new() { Name = "router", Address = "2001:db8::1" };
         service.Setup(candidate => candidate.UpdateAsync(id, request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KnownHostMutationResult(KnownHostMutationOutcome.AddressFamilyConflict));
+            .ReturnsAsync(DataMutationResult.Failure<IReadOnlyList<KnownHostInventoryItem>>(new KnownHostAddressFamilyConflictError()));
         KnownHostsController controller = new(service.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
@@ -42,7 +44,7 @@ public sealed class KnownHostsControllerTests
         Mock<IKnownHostService> service = new();
         Guid id = Guid.CreateVersion7();
         service.Setup(candidate => candidate.ReconcileDnsAsync(id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KnownHostMutationResult(KnownHostMutationOutcome.DnsResolutionFailed));
+            .ReturnsAsync(DataMutationResult.Failure<IReadOnlyList<KnownHostInventoryItem>>(new KnownHostDnsResolutionFailedError()));
         KnownHostsController controller = new(service.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
@@ -62,7 +64,7 @@ public sealed class KnownHostsControllerTests
         Mock<IKnownHostService> service = new();
         Guid id = Guid.CreateVersion7();
         service.Setup(candidate => candidate.DeleteAsync(id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KnownHostMutationResult(KnownHostMutationOutcome.NotFound));
+            .ReturnsAsync(DataMutationResult.Failure<IReadOnlyList<KnownHostInventoryItem>>(new DataMutationNotFoundError()));
         KnownHostsController controller = new(service.Object);
 
         IActionResult result = await controller.DeleteAsync(id, TestContext.CancellationToken);

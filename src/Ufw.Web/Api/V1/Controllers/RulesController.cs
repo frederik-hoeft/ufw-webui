@@ -3,6 +3,8 @@ using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Api.V1.Mapping;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Services.Daemon;
@@ -25,27 +27,31 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
     public async partial Task<ActionResult<RuleMetadataMutationResponse>> UpdateMetadataAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        RuleMetadataUpdateResult result = await metadata.UpdateAsync(ruleId, request, cancellationToken);
-        return result.Outcome switch
+        DataMutationResult<RuleMetadataMutationResponse> result = await metadata.UpdateAsync(ruleId, request, cancellationToken);
+        if (result.IsSuccess)
         {
-            RuleMetadataUpdateOutcome.Success => Ok(result.Response),
-            RuleMetadataUpdateOutcome.RuleNotFound => NotFound(ApiProblemDetailsFactory.Create(
+            return Ok(result.Value);
+        }
+
+        return result.Error switch
+        {
+            DataMutationNotFoundError => NotFound(ApiProblemDetailsFactory.Create(
                 StatusCodes.Status404NotFound,
                 title: "Firewall rule not found",
                 detail: "The referenced firewall rule does not exist.")),
-            RuleMetadataUpdateOutcome.TagNotFound => BadRequest(ApiProblemDetailsFactory.Create(
+            RuleTagsNotFoundError => BadRequest(ApiProblemDetailsFactory.Create(
                 StatusCodes.Status400BadRequest,
                 title: "Rule metadata tag does not exist",
                 detail: "One or more referenced rule tags do not exist.")),
-            RuleMetadataUpdateOutcome.GroupNotFound => BadRequest(ApiProblemDetailsFactory.Create(
+            RuleGroupNotFoundError => BadRequest(ApiProblemDetailsFactory.Create(
                 StatusCodes.Status400BadRequest,
                 title: "Rule metadata group does not exist",
                 detail: "The referenced rule group does not exist.")),
-            RuleMetadataUpdateOutcome.DependencyChanged => BadRequest(ApiProblemDetailsFactory.Create(
+            DataMutationReferenceConflictError => BadRequest(ApiProblemDetailsFactory.Create(
                 StatusCodes.Status400BadRequest,
                 title: "Rule metadata dependencies changed",
                 detail: "Rule metadata dependencies changed.")),
-            _ => throw new InvalidOperationException($"Unknown rule metadata update outcome '{result.Outcome}'."),
+            _ => throw new InvalidOperationException($"Unknown rule metadata mutation error '{result.Error!.GetType().Name}'."),
         };
     }
 

@@ -1,4 +1,4 @@
-using Ufw.Web.Data.Access;
+﻿using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Data.Access.Rules;
 using Ufw.Shared.Management.Rules;
@@ -11,6 +11,7 @@ using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Services.Rules;
+using Ufw.Web.Tests.Integration.Support;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
@@ -79,5 +80,32 @@ internal sealed class RuleGroupsControllerIntegrationTests : ControllerIntegrati
             IActionResult deleteResult = await controller.DeleteAsync(group.Id, cancellationToken);
             ConflictObjectResult conflict = Assert.IsInstanceOfType<ConflictObjectResult>(deleteResult);
             Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
+        }, TestContext.CancellationToken);
+
+    [TestMethod]
+    public Task ListAndCreateAsync_UseBoundedSqlCommandCountsAsync() =>
+        UsingComponentAsync(async (controller, serviceProvider, cancellationToken) =>
+        {
+            ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            for (int i = 0; i < 8; ++i)
+            {
+                context.Add(new RuleGroupEntry { Name = $"Group {i:D2}" });
+            }
+            await context.SaveChangesAsync(cancellationToken);
+            context.ChangeTracker.Clear();
+
+            SqlCommandCounterInterceptor commands = serviceProvider.GetRequiredService<SqlCommandCounterInterceptor>();
+            commands.Reset();
+
+            ActionResult<RuleGroupInventoryResponse> listResult = await controller.GetAsync(cancellationToken);
+
+            _ = Assert.IsInstanceOfType<OkObjectResult>(listResult.Result);
+            Assert.IsLessThanOrEqualTo(3, commands.CommandCount, $"Rule-group list unexpectedly executed {commands.CommandCount} SQL commands.");
+
+            commands.Reset();
+            IActionResult createResult = await controller.CreateAsync(new CreateRuleGroupRequest { Name = "Created" }, cancellationToken);
+
+            _ = Assert.IsInstanceOfType<OkObjectResult>(createResult);
+            Assert.IsLessThanOrEqualTo(5, commands.CommandCount, $"Rule-group create plus refreshed inventory unexpectedly executed {commands.CommandCount} SQL commands.");
         }, TestContext.CancellationToken);
 }

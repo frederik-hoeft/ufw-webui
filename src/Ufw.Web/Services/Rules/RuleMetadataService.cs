@@ -13,7 +13,7 @@ internal sealed partial class RuleMetadataService(
     IRuleMetadataDataAccess metadata,
     ILogger<RuleMetadataService> logger) : IRuleMetadataService
 {
-    public async Task<RuleMetadataUpdateResult> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
+    public async Task<DataMutationResult<RuleMetadataMutationResponse>> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(request);
@@ -25,20 +25,19 @@ internal sealed partial class RuleMetadataService(
         bool exists = liveRuleIds.Contains(ruleId);
         if (!exists)
         {
-            return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound);
+            return DataMutationResult.Failure<RuleMetadataMutationResponse>(new DataMutationNotFoundError());
         }
 
         DataMutationResult<RuleMetadataItem?> save = await metadata.SaveAsync(ruleId, values, cancellationToken);
         if (save.IsSuccess)
         {
-            return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Value });
+            return DataMutationResult.Success(new RuleMetadataMutationResponse { Metadata = save.Value });
         }
 
         return save.Error switch
         {
-            RuleTagsNotFoundError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
-            RuleGroupNotFoundError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
-            DataMutationReferenceConflictError => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.DependencyChanged),
+            RuleTagsNotFoundError or RuleGroupNotFoundError or DataMutationReferenceConflictError =>
+                DataMutationResult.Failure<RuleMetadataMutationResponse>(save.Error),
             _ => throw new InvalidOperationException($"Unknown metadata mutation error '{save.Error!.GetType().Name}'."),
         };
     }

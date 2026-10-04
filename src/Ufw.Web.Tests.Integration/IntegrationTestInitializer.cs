@@ -40,8 +40,11 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddControllers();
         services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
         services.AddSingleton(static _ => new SqliteConnection("Data Source=:memory:"));
+        services.AddScoped<SqlCommandCounterInterceptor>();
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
-            options.UseSqlite(serviceProvider.GetRequiredService<SqliteConnection>()));
+            options
+                .UseSqlite(serviceProvider.GetRequiredService<SqliteConnection>())
+                .AddInterceptors(serviceProvider.GetRequiredService<SqlCommandCounterInterceptor>()));
         services.AddTransactionManagement<ApplicationDbContext>(options =>
             options.UseIsolationLevel(IsolationLevel.ReadCommitted));
         services.MockDatabaseTransactions<ApplicationDbContext>();

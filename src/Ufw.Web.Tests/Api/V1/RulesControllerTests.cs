@@ -8,6 +8,8 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Management.Rules;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Services.Daemon;
@@ -66,7 +68,7 @@ public sealed class RulesControllerTests
         UpdateRuleMetadataRequest request = new() { TagIds = [tagId] };
         RuleMetadataMutationResponse expected = new(new RuleMetadataItem(metadataId, "sha256:abc", null, [new RuleTagItem(tagId, "prod", "#336699")]));
         metadata.Setup(service => service.UpdateAsync("sha256:abc", request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, expected));
+            .ReturnsAsync(DataMutationResult.Success(expected));
 
         RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
         ActionResult<RuleMetadataMutationResponse> result = await controller.UpdateMetadataAsync("sha256:abc", request, TestContext.CancellationToken);
@@ -85,13 +87,13 @@ public sealed class RulesControllerTests
         UpdateRuleMetadataRequest missingTagRequest = new();
         UpdateRuleMetadataRequest missingGroupRequest = new();
         metadata.Setup(service => service.UpdateAsync("missing", missingRequest, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound));
+            .ReturnsAsync(DataMutationResult.Failure<RuleMetadataMutationResponse>(new DataMutationNotFoundError()));
         metadata.Setup(service => service.UpdateAsync("invalid", invalidRequest, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.DependencyChanged));
+            .ReturnsAsync(DataMutationResult.Failure<RuleMetadataMutationResponse>(new DataMutationReferenceConflictError()));
         metadata.Setup(service => service.UpdateAsync("missing-tag", missingTagRequest, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound));
+            .ReturnsAsync(DataMutationResult.Failure<RuleMetadataMutationResponse>(new RuleTagsNotFoundError([Guid.CreateVersion7()])));
         metadata.Setup(service => service.UpdateAsync("missing-group", missingGroupRequest, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound));
+            .ReturnsAsync(DataMutationResult.Failure<RuleMetadataMutationResponse>(new RuleGroupNotFoundError(Guid.CreateVersion7())));
         RulesController controller = CreateController(daemonRules.Object, metadata: metadata.Object);
 
         ActionResult<RuleMetadataMutationResponse> missing = await controller.UpdateMetadataAsync("missing", missingRequest, TestContext.CancellationToken);
