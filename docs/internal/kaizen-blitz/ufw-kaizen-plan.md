@@ -173,7 +173,7 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 
 #### W3 - Composition and final server cleanup
 
-1. WEB KZ-04 decompose Startup against the final registrations/lifecycle.
+1. **Startup composition:** completed in W3.1. WEB KZ-04 separates the domain-grouped application service catalog from ASP.NET/Identity/EF/HTTP host wiring without fragmenting the composition root; the explicit migration/bootstrap lifecycle stays visible in `Startup`, and IPC options are bound/validated once.
 2. WEB KZ-11 internalize accidental public contracts now that actual boundaries are known.
 3. WEB KZ-19 close the destructive-migration policy/documentation item without rewriting applied history.
 4. WEB KZ-20 only if the resulting MVC convention remains more transparent than repeated attributes.
@@ -324,7 +324,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | WEB KZ-03 | W1 | Split rule metadata persistence reconciliation from signed daemon protocol parsing | Completed in W1.3: the rule daemon gateway emits explicit replacement reconciliation facts/plan state, while metadata persistence consumes only domain facts and preserves post-firewall reconciliation failure semantics. |
 | [x] | WEB KZ-05 | W1 | Move REST request-shape validation out of business services and formalize request-to-domain mapping | Completed across W1 slice migrations and the W2.6 API-wide audit: DTOs own transport shape, mapping owns normalization, and domain validators remain authoritative for semantics; signed REST DTOs may invoke those shared validators non-mutatingly as defense in depth. |
 | [x] | WEB KZ-24 | W2 | Audit REST DTO validation and eliminate transport-shape checks from application logic | Completed in W2.6: full V1 DTO audit, strict raw-value validation, duplicate guard removal, signed REST/IPC contract separation with non-mutating defense-in-depth payload validation, and retirement of obsolete Web-only firewall validators. |
-| [ ] | WEB KZ-04 | W3 | Decompose `Startup` into feature registration and startup lifecycle units | Do late, after DAL/gateway/coordinator registrations stabilize; otherwise Startup would be decomposed twice. |
+| [x] | WEB KZ-04 | W3 | Decompose `Startup` into feature registration and startup lifecycle units | Completed in W3.1 with a single domain-grouped application registration unit, visible host/framework composition in `Startup`, the existing cohesive migration/bootstrap lifecycle retained in place, and one IPC bind/validation path. |
 | [x] | WEB KZ-06 | W2 | Unify rule metadata/template tag and group dependency handling | Completed in W2.1: metadata/templates share persistence dependency resolution and tag-relation diffing in the final rules DAL, while retaining explicit slice-specific data-access operations. |
 | [ ] | WEB KZ-22 | W1 | Standardize mutation/error propagation instead of feature-local outcome plumbing for common failures | Design alongside KZ-01 because DAL mutation signatures depend on the common error/result model; KZ-09 consumes the result. |
 | [ ] | WEB KZ-07 | W2 | Reduce rule-group/rule-tag catalog copy-paste without generic-controller overengineering | Do after KZ-22 and KZ-23. Much of the current duplication disappears when local mutation enums and ceremonial services disappear. |

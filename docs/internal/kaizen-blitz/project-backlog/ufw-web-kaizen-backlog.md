@@ -309,9 +309,11 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 **Evidence:** `Startup.cs:33-198` is all service configuration; `:201-251` configures middleware and performs migration/bootstrap. IPC options are registered with `AddOptions` at `:170-173`, then independently rebound and revalidated at `:175-180`.
 
-**Refactor target:** Keep `Startup` as orchestration only. Extract feature extension methods such as `AddPersistence`, `AddAuthenticationSubsystem`, `AddDaemonClient`, and `AddRuleManagement`. Move migration/bootstrap execution to an explicit startup initializer or deployment migrator. Configure the daemon client from validated options instead of binding the same section twice.
+**Refactor target:** Keep `Startup` as the visible host composition root, but separate application-specific service registration from ASP.NET/Identity/EF/HTTP boilerplate. Keep the application registration catalog together and group it by stable feature/domain boundaries rather than creating one extension method per small subsystem. Keep the current migration/bootstrap lifecycle visible in `Startup` while it remains one explicit cohesive startup sequence. Bind and validate daemon-client configuration once before constructing the IPC client.
 
-**Primary files:** `Startup.cs`, `Program.cs`, `Configuration/IpcClientOptions.cs`
+**W3.1 status:** Completed with that narrower composition-root scope. `ApplicationServiceCollectionExtensions.AddApplicationServices` owns the application-specific Auth, known-host, network-interface, rule-management, status, and intent registrations in one domain-grouped catalog. `Startup` retains framework/host configuration and the explicit migration/bootstrap startup sequence instead of scattering composition across feature-specific extension classes or startup-initializer types. IPC configuration is bound and validated once, then the same validated values configure `Ufw.Ipc.Client`; the unused duplicate `IOptions<IpcClientOptions>` binding was removed.
+
+**Primary files:** `Startup.cs`, `ApplicationServiceCollectionExtensions.cs`, `Configuration/IpcClientOptions.cs`
 
 ### KZ-06 [P2] Unify rule metadata/template tag and group dependency handling
 
