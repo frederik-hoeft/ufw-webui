@@ -15,11 +15,13 @@ internal sealed class SignedIntentValidationFilter : IActionFilter
             return;
         }
 
-        List<ApiValidationError> structuredErrors = context.ActionArguments.Values
+        List<ApiValidationError> structuredErrors =
+        [
+            .. context.ActionArguments.Values
             .OfType<SignedRuleIntentRequest>()
             .SelectMany(static request => request.GetApiValidationErrors())
             .Where(static error => error.Code is not null)
-            .ToList();
+        ];
         if (structuredErrors.Count == 0)
         {
             return;

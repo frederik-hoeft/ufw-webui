@@ -82,21 +82,13 @@ public sealed partial class RulesController(IRuleDaemonGateway daemonRules, IRul
         ReplaceRuleRequest daemonRequest = request.ToDaemonRequest();
         DaemonResult<RuleReplacementExecutionResult> daemonResult = await daemonRules.ReplaceRuleAsync(daemonRequest, cancellationToken);
         RuleReplacementExecutionResult replacement = daemonResult.Result;
-        RuleReplacementMetadataReconciliationOutcome metadataOutcome;
-        switch (replacement.Reconciliation)
+        RuleReplacementMetadataReconciliationOutcome metadataOutcome = replacement.Reconciliation switch
         {
-            case RuleReplacementReconciliationReady ready:
-                metadataOutcome = await metadata.ReconcileReplacementAsync(ready.Facts, CancellationToken.None);
-                break;
-            case RuleReplacementReconciliationNotRequired:
-                metadataOutcome = RuleReplacementMetadataReconciliationOutcome.NotAttempted;
-                break;
-            case RuleReplacementReconciliationPreparationFailed:
-                metadataOutcome = RuleReplacementMetadataReconciliationOutcome.Failed;
-                break;
-            default:
-                throw new InvalidOperationException($"Unknown replacement reconciliation plan '{replacement.Reconciliation.GetType().Name}'.");
-        }
+            RuleReplacementReconciliationReady ready => await metadata.ReconcileReplacementAsync(ready.Facts, CancellationToken.None),
+            RuleReplacementReconciliationNotRequired => RuleReplacementMetadataReconciliationOutcome.NotAttempted,
+            RuleReplacementReconciliationPreparationFailed => RuleReplacementMetadataReconciliationOutcome.Failed,
+            _ => throw new InvalidOperationException($"Unknown replacement reconciliation plan '{replacement.Reconciliation.GetType().Name}'."),
+        };
         RuleReplacementMutationResponse response = new(
             replacement.Firewall,
             metadataOutcome,
