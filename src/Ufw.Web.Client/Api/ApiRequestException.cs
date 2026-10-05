@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Client.Api;

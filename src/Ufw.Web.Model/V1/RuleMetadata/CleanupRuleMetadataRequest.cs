@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Ufw.Web.Model.Validation;
 
 namespace Ufw.Web.Model.V1.RuleMetadata;

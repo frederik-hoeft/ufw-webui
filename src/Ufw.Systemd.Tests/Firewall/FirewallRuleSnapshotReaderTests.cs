@@ -1,5 +1,5 @@
-﻿using System.Collections.Immutable;
-using Moq;
+﻿using Moq;
+using System.Collections.Immutable;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.Configuration;

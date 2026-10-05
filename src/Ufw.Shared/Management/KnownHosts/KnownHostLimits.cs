@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Management.KnownHosts;
+﻿namespace Ufw.Shared.Management.KnownHosts;
 
 public static class KnownHostLimits
 {

@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model.Requests.Domain;
+﻿using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Services.Daemon;
 

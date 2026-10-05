@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model.Responses.Domain;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;

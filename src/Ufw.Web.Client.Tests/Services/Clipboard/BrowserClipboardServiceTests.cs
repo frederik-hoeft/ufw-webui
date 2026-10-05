@@ -1,4 +1,4 @@
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 using Ufw.Web.Client.Services.Clipboard;
 
 namespace Ufw.Web.Client.Tests.Services.Clipboard;

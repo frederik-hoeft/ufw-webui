@@ -1,14 +1,14 @@
-using Ufw.Shared.Management.Rules;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Data;
-using Ufw.Web.Data.Access.Rules.Templates;
-using Ufw.Web.Data.Access.Rules;
 using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Templates;
 using Ufw.Web.Data.Model;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleTags;
@@ -155,8 +155,6 @@ internal sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegr
             Assert.IsEmpty(persisted.Tags);
         }, TestContext.CancellationToken);
 
-
-
     [TestMethod]
     public Task MissingGroupDependency_CreateFailsWithoutPersistingTemplateAsync() =>
         UsingComponentAsync(async (controller, serviceProvider, cancellationToken) =>
@@ -176,7 +174,6 @@ internal sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegr
             context.ChangeTracker.Clear();
             Assert.IsFalse(await context.Set<RuleTemplateEntry>().AnyAsync(cancellationToken));
         }, TestContext.CancellationToken);
-
 
     [TestMethod]
     public Task MissingDependencies_PreserveTypedIdentifiersInDataAccessErrorsAsync() =>

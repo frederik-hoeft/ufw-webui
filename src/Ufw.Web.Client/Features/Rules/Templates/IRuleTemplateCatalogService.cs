@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Features.Rules.Templates;
+﻿namespace Ufw.Web.Client.Features.Rules.Templates;
 
 public interface IRuleTemplateCatalogService
 {

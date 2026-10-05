@@ -1,9 +1,9 @@
+﻿using Moq;
 using Ufw.Shared.Management.Rules;
-using Moq;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTags;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Client.Features.Rules.Metadata;
+using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Metadata;
 

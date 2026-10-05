@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Ufw.Web.Client.Features.Rules.Metadata;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Metadata;

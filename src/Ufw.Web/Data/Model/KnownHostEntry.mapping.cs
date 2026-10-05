@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Wkg.EntityFrameworkCore.Configuration;
 using Ufw.Shared.Management.KnownHosts;
+using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Data.Model;
 

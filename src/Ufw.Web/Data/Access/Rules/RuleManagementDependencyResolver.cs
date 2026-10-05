@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Data.Access.Rules;

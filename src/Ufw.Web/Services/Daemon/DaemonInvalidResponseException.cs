@@ -1,4 +1,4 @@
-namespace Ufw.Web.Services.Daemon;
+﻿namespace Ufw.Web.Services.Daemon;
 
 /// <summary>
 /// Represents a daemon response that was successfully received but violates the Web application's expected response contract.

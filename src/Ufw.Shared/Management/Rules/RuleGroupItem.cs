@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Management.Rules;
+﻿namespace Ufw.Shared.Management.Rules;
 
 public sealed class RuleGroupItem
 {

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Ufw.Web.Client.Features.Rules.Templates;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Templates;

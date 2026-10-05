@@ -1,4 +1,4 @@
-using Ufw.Web.Model.V1.RuleMetadata;
+﻿using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Services.Rules;
 

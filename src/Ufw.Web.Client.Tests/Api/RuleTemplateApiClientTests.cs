@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Model.V1.RuleTemplates;

@@ -31,7 +31,6 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         Assert.IsEmpty(preflight.ImmutableOccurrences);
     }
 
-
     [TestMethod]
     public void Evaluate_InvalidOccurrencePermutation_ReturnsExplicitPreconditionRejection()
     {
@@ -82,7 +81,6 @@ public sealed class FirewallReorderPreflightEvaluatorTests
 
         Assert.IsEmpty(pending);
     }
-
 
     [TestMethod]
     public void CreateSafePendingPlan_ImmutableAnchorsChangedOrder_ReturnsEmptyPlan()

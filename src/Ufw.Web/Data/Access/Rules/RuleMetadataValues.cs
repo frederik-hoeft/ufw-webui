@@ -1,4 +1,4 @@
-namespace Ufw.Web.Data.Access.Rules;
+﻿namespace Ufw.Web.Data.Access.Rules;
 
 internal sealed record RuleMetadataValues(string? Notes, IReadOnlyList<Guid> TagIds, Guid? GroupId)
 {

@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Features.Rules.Authoring;
+﻿using Ufw.Web.Client.Features.Rules.Authoring;
 
 namespace Ufw.Web.Client.Features.Rules.Templates;
 

@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Management.NetworkInterfaces;
+﻿namespace Ufw.Shared.Management.NetworkInterfaces;
 
 public static class NetworkInterfaceLimits
 {

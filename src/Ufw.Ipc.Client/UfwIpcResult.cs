@@ -1,5 +1,5 @@
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Ipc.Model.Responses;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Ufw.Ipc.Client;
 

@@ -1,16 +1,16 @@
-using Ufw.Shared.Management.KnownHosts;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Access;
 using Ufw.Web.Data.Access.KnownHosts;
-using Ufw.Web.Tests.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Services.KnownHosts;
+using Ufw.Web.Tests.Data;
 using Wkg.AspNetCore.Exceptions;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
@@ -122,7 +122,6 @@ public sealed class KnownHostServiceTests
         Assert.AreEqual(FirewallAddressFamily.IPv4, persisted.AddressFamily);
     }
 
-
     [TestMethod]
     public async Task GetAsync_InvalidPersistedAddress_FailsClosedAsync()
     {
@@ -165,9 +164,6 @@ public sealed class KnownHostServiceTests
         Assert.AreEqual("db.example.test", host.DnsResolver.LastName);
         Assert.AreEqual(FirewallAddressFamily.IPv4, host.DnsResolver.LastFamily);
     }
-
-
-
 
     [TestMethod]
     public async Task CreateAsync_DnsResolutionFailure_DoesNotPersistAliasAsync()

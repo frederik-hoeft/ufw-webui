@@ -1,6 +1,6 @@
 ﻿using Moq;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model.Responses.Domain;

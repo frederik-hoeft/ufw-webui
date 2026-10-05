@@ -1,4 +1,4 @@
-using Ufw.Ipc.Client;
+﻿using Ufw.Ipc.Client;
 using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Tests.Services.Daemon;
@@ -33,7 +33,7 @@ public sealed class DaemonResultTests
         Assert.IsNull(actual);
         Assert.AreSame(expected, error);
         UfwIpcException resultException = Assert.ThrowsExactly<UfwIpcException>(() => _ = result.Result);
-        UfwIpcException ensureException = Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess());
+        UfwIpcException ensureException = Assert.ThrowsExactly<UfwIpcException>(result.EnsureSuccess);
         Assert.AreSame(expected, resultException.Error);
         Assert.AreSame(expected, ensureException.Error);
     }
@@ -46,7 +46,7 @@ public sealed class DaemonResultTests
 
         Assert.IsFalse(result.IsSuccess);
         Assert.AreSame(expected, result.Error);
-        UfwIpcException exception = Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess());
+        UfwIpcException exception = Assert.ThrowsExactly<UfwIpcException>(result.EnsureSuccess);
         Assert.AreSame(expected, exception.Error);
     }
 

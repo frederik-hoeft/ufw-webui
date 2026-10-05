@@ -1,10 +1,4 @@
-using Ufw.Web.Data.Access.Rules.Metadata;
-using Ufw.Web.Data.Access.Rules;
-using Ufw.Web.Data.Access;
-using Ufw.Web.Data.Access.Rules.Groups;
-using Ufw.Web.Data.Access.Rules.Tags;
-using Ufw.Shared.Management.Rules;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,13 +6,19 @@ using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Model.V1.Rules;
-using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data;
-using Ufw.Web.Tests.Data;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Groups;
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
+using Ufw.Web.Tests.Data;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
 using Wkg.EntityFrameworkCore.Configuration;
@@ -198,7 +198,6 @@ public sealed class RuleMetadataServiceTests
         Assert.IsEmpty(await host.Tags.GetAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
     }
-
 
     [TestMethod]
     public async Task RuleGroups_SupportEmptyGroupLifecycleAsync()
@@ -812,7 +811,6 @@ public sealed class RuleMetadataServiceTests
             _daemon.Response = new RuleListResponse(true, rules, TestFirewallConfiguration.Enabled);
         }
 
-
         public async Task<RuleGroupItem> CreateGroupAsync(string name, string? comment, CancellationToken cancellationToken)
         {
             string? normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
@@ -855,7 +853,6 @@ public sealed class RuleMetadataServiceTests
                 .ToDictionaryAsync(static relation => relation.PublicId, static relation => relation.Id, cancellationToken);
             return relations;
         }
-
 
         public async Task<int> RuleGroupRowCountAsync(CancellationToken cancellationToken)
         {

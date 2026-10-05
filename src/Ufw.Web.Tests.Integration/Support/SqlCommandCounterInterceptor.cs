@@ -1,5 +1,5 @@
+﻿using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Data.Common;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Ufw.Web.Tests.Integration.Support;
 

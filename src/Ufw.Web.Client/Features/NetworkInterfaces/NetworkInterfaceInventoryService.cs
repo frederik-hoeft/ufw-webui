@@ -1,8 +1,7 @@
-﻿using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
+﻿using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Client.Api;
-
-using Ufw.Shared.Management.NetworkInterfaces;
+using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 namespace Ufw.Web.Client.Features.NetworkInterfaces;
 
 internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClient apiClient) : INetworkInterfaceInventoryService

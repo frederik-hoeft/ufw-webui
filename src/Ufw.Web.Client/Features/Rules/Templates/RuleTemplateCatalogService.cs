@@ -1,5 +1,5 @@
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.Rules;
-using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Client.Features.Rules.Metadata;

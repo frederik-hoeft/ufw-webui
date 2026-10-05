@@ -1,4 +1,4 @@
-namespace Ufw.Web.Data.Access.Rules.Metadata;
+﻿namespace Ufw.Web.Data.Access.Rules.Metadata;
 
 internal enum RuleMetadataReplacementPersistenceOutcome
 {

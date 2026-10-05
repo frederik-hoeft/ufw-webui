@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;

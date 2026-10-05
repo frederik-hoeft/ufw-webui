@@ -1,13 +1,13 @@
-using System.Diagnostics.CodeAnalysis;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using System.Diagnostics.CodeAnalysis;
 using Ufw.Web.Data.Access;
 
 namespace Ufw.Web.Data.Extensions;
 
 internal static class DbUpdateExceptionExtensions
 {
-    extension (DbUpdateException self)
+    extension(DbUpdateException self)
     {
         public bool HasPostgresErrorCode(string sqlState) => self.InnerException is PostgresException
         {

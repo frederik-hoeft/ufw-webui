@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Api;
+﻿namespace Ufw.Web.Client.Api;
 
 internal sealed class LegacyApiErrorMessage
 {

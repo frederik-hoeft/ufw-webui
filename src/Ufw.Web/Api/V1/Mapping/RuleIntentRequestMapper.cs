@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model.Requests.Domain;
+﻿using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Api.V1.Mapping;

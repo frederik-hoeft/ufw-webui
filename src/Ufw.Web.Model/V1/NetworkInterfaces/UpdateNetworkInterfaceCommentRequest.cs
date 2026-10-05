@@ -1,5 +1,5 @@
+﻿using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Management.NetworkInterfaces;
-using System.ComponentModel.DataAnnotations;
 
 namespace Ufw.Web.Model.V1.NetworkInterfaces;
 

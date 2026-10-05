@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Moq;
 using System.Security.Claims;
-using Ufw.Web.Client.Features.Authentication;
 using Ufw.Web.Client.Api;
+using Ufw.Web.Client.Features.Authentication;
 
 namespace Ufw.Web.Client.Tests.Features.Authentication;
 

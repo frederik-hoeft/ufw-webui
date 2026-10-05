@@ -1,3 +1,3 @@
-namespace Ufw.Web.Model.V1.KnownHosts;
+﻿namespace Ufw.Web.Model.V1.KnownHosts;
 
 public sealed class CreateKnownHostRequest : KnownHostRequest;

@@ -1,4 +1,4 @@
-using Ufw.Web.Data.Model;
+﻿using Ufw.Web.Data.Model;
 
 namespace Ufw.Web.Data.Access.Rules;
 

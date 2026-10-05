@@ -1,8 +1,8 @@
 ﻿using Moq;
-using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
-using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Api;
+using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Client.Features.NetworkInterfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 
 namespace Ufw.Web.Client.Tests.Features.NetworkInterfaces;
 

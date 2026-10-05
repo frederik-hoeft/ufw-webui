@@ -1,4 +1,4 @@
-using Ufw.Ipc.Client;
+﻿using Ufw.Ipc.Client;
 using Ufw.Ipc.Tests.Adapter;
 using Ufw.Ipc.Tests.Adapter.Endpoints;
 using Ufw.Shared.Firewall;

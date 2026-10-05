@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Model.Validation;

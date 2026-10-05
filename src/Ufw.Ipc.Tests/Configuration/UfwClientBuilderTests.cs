@@ -85,7 +85,7 @@ public sealed class UfwClientBuilderTests
         using UfwClientBuilder builder = new();
         _ = builder.ConnectTo(TestEndpoint).UseSsl();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+        Assert.ThrowsExactly<InvalidOperationException>(builder.Build);
     }
 
     [TestMethod]
@@ -100,7 +100,7 @@ public sealed class UfwClientBuilderTests
                 .ConnectTo(TestEndpoint)
                 .UseClientCertificate(certificatePath, keyPath);
 
-            Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+            Assert.ThrowsExactly<InvalidOperationException>(builder.Build);
         }
         finally
         {
@@ -118,6 +118,6 @@ public sealed class UfwClientBuilderTests
             .UseSsl("daemon.test")
             .UseClientCertificate("/nonexistent/client-cert.pem", "/nonexistent/client-key.pem");
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+        Assert.ThrowsExactly<InvalidOperationException>(builder.Build);
     }
 }

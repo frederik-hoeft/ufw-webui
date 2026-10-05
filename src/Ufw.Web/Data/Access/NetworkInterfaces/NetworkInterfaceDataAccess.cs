@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Data.Model;
 using Wkg.AspNetCore.Abstractions.Services;

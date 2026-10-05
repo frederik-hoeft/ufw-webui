@@ -1,4 +1,4 @@
-namespace Ufw.Web.Services.Auth;
+﻿namespace Ufw.Web.Services.Auth;
 
 public sealed record PasswordChangeResult(IReadOnlyList<PasswordChangeValidationError> ValidationErrors, AuthenticationTokenResult? Authentication)
 {

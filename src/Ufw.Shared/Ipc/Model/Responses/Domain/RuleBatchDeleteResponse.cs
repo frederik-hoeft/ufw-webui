@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Ipc.Model.Responses.Domain;
+﻿namespace Ufw.Shared.Ipc.Model.Responses.Domain;
 
 public sealed record RuleBatchDeleteResponse(
     RuleBatchDeleteOutcome Outcome,

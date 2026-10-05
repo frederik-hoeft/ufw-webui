@@ -5,10 +5,10 @@ using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleMetadata;
-using Ufw.Web.Model.V1.RuleTags;
-using Ufw.Web.Model.V1.RuleTemplates;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.Rules.Intent;
+using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Web.Model.V1.RuleTemplates;
 
 namespace Ufw.Web.Client.Api;
 

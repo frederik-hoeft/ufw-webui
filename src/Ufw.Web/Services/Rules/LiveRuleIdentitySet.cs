@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
 namespace Ufw.Web.Services.Rules;

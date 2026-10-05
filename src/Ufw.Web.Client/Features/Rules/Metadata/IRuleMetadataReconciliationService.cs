@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Features.Rules.Metadata;
+﻿namespace Ufw.Web.Client.Features.Rules.Metadata;
 
 public interface IRuleMetadataReconciliationService
 {

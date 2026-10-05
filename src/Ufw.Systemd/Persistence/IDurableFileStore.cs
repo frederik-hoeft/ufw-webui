@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Persistence;
+﻿namespace Ufw.Systemd.Persistence;
 
 internal interface IDurableFileStore
 {

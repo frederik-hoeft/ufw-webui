@@ -1,5 +1,5 @@
-using System.Text.Json;
-﻿using Ufw.Shared.Security.Intent;
+﻿using System.Text.Json;
+using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Systemd.Security.Intent;
 

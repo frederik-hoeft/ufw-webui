@@ -150,5 +150,4 @@ public sealed class KnownHostsControllerTests
         Assert.IsTrue(valid);
         Assert.IsEmpty(errors);
     }
-
 }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Antiforgery;
+﻿using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;

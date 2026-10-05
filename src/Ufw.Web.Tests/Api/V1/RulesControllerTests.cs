@@ -148,7 +148,6 @@ public sealed class RulesControllerTests
             Times.Once);
     }
 
-
     [TestMethod]
     public void InsertRuleAsync_UsesDedicatedInsertSubresource()
     {
@@ -202,7 +201,6 @@ public sealed class RulesControllerTests
         Assert.AreEqual(expectedStatusCode, response.StatusCode);
         Assert.AreSame(expected, response.Value);
     }
-
 
     [TestMethod]
     public async Task TestInsertRuleAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
@@ -278,7 +276,6 @@ public sealed class RulesControllerTests
         Assert.AreEqual(expectedStatusCode, response.StatusCode);
         Assert.AreSame(expected, response.Value);
     }
-
 
     [TestMethod]
     public async Task TestReorderRulesAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
@@ -415,7 +412,6 @@ public sealed class RulesControllerTests
         metadata.VerifyNoOtherCalls();
     }
 
-
     [TestMethod]
     public void BatchDeleteRulesAsync_UsesDedicatedBatchSubresource()
     {
@@ -478,7 +474,6 @@ public sealed class RulesControllerTests
         Assert.AreSame(expected, response.Value);
         metadata.Verify(service => service.ReconcileBatchDeleteAsync(expected, It.IsAny<CancellationToken>()), Times.Once);
     }
-
 
     [TestMethod]
     public async Task TestDeleteRuleAsync_RemovesMetadataForAuthoritativeDeletedIdentityAsync()

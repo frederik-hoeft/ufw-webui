@@ -1,4 +1,4 @@
-using Ufw.Web.Model.V1.RuleTemplates;
+﻿using Ufw.Web.Model.V1.RuleTemplates;
 
 namespace Ufw.Web.Client.Api.RuleTemplates;
 

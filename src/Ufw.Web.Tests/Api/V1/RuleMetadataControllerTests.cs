@@ -1,11 +1,11 @@
-using Ufw.Shared.Management.Rules;
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc;
-using Ufw.Web.Model.Validation;
+﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.ComponentModel.DataAnnotations;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.Validation;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Api.V1;

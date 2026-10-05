@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;

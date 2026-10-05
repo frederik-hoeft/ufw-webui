@@ -1,4 +1,4 @@
-namespace Ufw.Ipc.Client;
+﻿namespace Ufw.Ipc.Client;
 
 /// <summary>
 /// Raised when the daemon returns an application response that cannot be interpreted according to the IPC response contract.

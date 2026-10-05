@@ -1,8 +1,8 @@
-﻿using Ufw.Shared.Firewall.Rendering;
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall.Rendering;
+using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Ordering;
-using Ufw.Web.Client.Features.Rules;
 
 namespace Ufw.Web.Client.Tests.Features.Rules;
 

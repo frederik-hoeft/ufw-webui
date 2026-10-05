@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Tests.Integration.Support;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;

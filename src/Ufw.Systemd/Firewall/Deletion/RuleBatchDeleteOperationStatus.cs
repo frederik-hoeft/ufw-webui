@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Firewall.Deletion;
+﻿namespace Ufw.Systemd.Firewall.Deletion;
 
 internal enum RuleBatchDeleteOperationStatus
 {

@@ -6,8 +6,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
-using Ufw.Web.Tests.Data;
 using Ufw.Web.Services.Auth;
+using Ufw.Web.Tests.Data;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Tests.Services.Auth;

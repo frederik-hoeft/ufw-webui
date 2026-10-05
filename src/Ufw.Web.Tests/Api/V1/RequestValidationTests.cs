@@ -1,11 +1,11 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Model.V1.NetworkInterfaces;
-using Ufw.Web.Model.V1.RuleTemplates;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.RuleTemplates;
 
 namespace Ufw.Web.Tests.Api.V1;
 

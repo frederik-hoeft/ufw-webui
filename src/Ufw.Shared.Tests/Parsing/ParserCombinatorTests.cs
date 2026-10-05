@@ -16,7 +16,7 @@ public sealed class ParserCombinatorTests
 
         Assert.IsTrue(grammar.CanAccept<CountingVisitor>());
         Assert.IsFalse(grammar.CanAccept<OtherVisitor>());
-        Assert.ThrowsExactly<InvalidOperationException>(() => grammar.RequireVisitor<OtherVisitor>());
+        Assert.ThrowsExactly<InvalidOperationException>(grammar.RequireVisitor<OtherVisitor>);
     }
 
     [TestMethod]

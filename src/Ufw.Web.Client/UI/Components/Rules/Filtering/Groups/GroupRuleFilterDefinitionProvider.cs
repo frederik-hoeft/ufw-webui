@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Features.Rules.Filtering.Groups;
+﻿using Ufw.Web.Client.Features.Rules.Filtering.Groups;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Filtering.Groups;
 

@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Tests.Integration.Support;
 

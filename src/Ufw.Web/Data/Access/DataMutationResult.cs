@@ -1,4 +1,4 @@
-namespace Ufw.Web.Data.Access;
+﻿namespace Ufw.Web.Data.Access;
 
 public sealed record DataMutationResult
 {

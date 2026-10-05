@@ -1,5 +1,5 @@
-﻿using System.Collections.Immutable;
-using Moq;
+﻿using Moq;
+using System.Collections.Immutable;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;

@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Templates;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Templates;
 

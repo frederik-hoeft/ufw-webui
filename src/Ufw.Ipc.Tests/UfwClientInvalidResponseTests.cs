@@ -1,4 +1,4 @@
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using System.Security.Authentication;
 using Ufw.Ipc.Client;
 using Ufw.Ipc.Client.Configuration;

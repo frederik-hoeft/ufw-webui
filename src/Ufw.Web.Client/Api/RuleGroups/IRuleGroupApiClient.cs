@@ -1,4 +1,4 @@
-using Ufw.Web.Model.V1.RuleGroups;
+﻿using Ufw.Web.Model.V1.RuleGroups;
 
 namespace Ufw.Web.Client.Api.RuleGroups;
 

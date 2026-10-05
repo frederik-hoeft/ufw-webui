@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Features.Rules.Metadata;
+﻿using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 namespace Ufw.Web.Client.Tests.UI.Components.Rules.Metadata;

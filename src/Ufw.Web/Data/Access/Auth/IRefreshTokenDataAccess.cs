@@ -1,4 +1,4 @@
-namespace Ufw.Web.Data.Access.Auth;
+﻿namespace Ufw.Web.Data.Access.Auth;
 
 /// <summary>
 /// Persists refresh-token state inside a transaction context owned by the calling authentication workflow.

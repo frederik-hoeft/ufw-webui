@@ -1,5 +1,5 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Ufw.Shared.Management.KnownHosts;
-using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

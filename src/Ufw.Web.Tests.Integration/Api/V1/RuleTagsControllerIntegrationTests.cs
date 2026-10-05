@@ -1,11 +1,11 @@
-using Ufw.Shared.Management.Rules;
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;
 

@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Ufw.Shared.Ipc.Handlers;
 using Ufw.Shared.Ipc.Model.Responses;

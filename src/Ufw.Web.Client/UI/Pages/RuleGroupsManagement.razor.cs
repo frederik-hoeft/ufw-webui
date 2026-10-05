@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Web;
+﻿using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api.Rules;

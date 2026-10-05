@@ -1,4 +1,4 @@
-using Ufw.Shared.Management.Rules;
+﻿using Ufw.Shared.Management.Rules;
 
 namespace Ufw.Web.Data.Access.Rules.Metadata;
 

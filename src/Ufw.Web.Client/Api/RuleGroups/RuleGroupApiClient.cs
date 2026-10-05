@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Ufw.Shared.Web;
 using Ufw.Web.Model.V1.RuleGroups;
 

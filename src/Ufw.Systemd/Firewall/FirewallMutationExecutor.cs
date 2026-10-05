@@ -227,5 +227,4 @@ internal sealed class FirewallMutationExecutor(
         FirewallRuleSpecification ipv6 = normalized.CopyWithAddressFamily(FirewallAddressFamily.IPv6);
         return [RuleIdentity.Compute(ipv4), RuleIdentity.Compute(ipv6)];
     }
-
 }

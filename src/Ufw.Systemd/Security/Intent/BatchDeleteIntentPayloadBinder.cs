@@ -1,5 +1,5 @@
-using System.Text.Json;
-﻿using Ufw.Shared.Ipc.Model.Responses;
+﻿using System.Text.Json;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
 

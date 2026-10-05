@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
 using Ufw.Shared.Firewall;
-using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Features.Rules.Intent;
 

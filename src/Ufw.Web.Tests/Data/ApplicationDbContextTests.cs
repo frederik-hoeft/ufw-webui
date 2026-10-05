@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Ufw.Shared.Management.KnownHosts;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Migrations;
-using Ufw.Shared.Management.Rules;
-using Ufw.Shared.Management.KnownHosts;
 
 namespace Ufw.Web.Tests.Data;
 
@@ -110,5 +110,4 @@ public sealed class ApplicationDbContextTests
         Assert.AreEqual(KnownHostLimits.MAX_ADDRESS_LENGTH, host.FindProperty("Address")?.GetMaxLength());
         Assert.AreEqual(KnownHostLimits.MAX_COMMENT_LENGTH, host.FindProperty("Comment")?.GetMaxLength());
     }
-
 }

@@ -115,7 +115,6 @@ public sealed class AuthControllerTests
         StringAssert.Contains(AssertSingleRefreshCookie(controller), "replacement-refresh", StringComparison.Ordinal);
     }
 
-
     [TestMethod]
     public async Task ChangePasswordAsync_WhenValidationFails_MapsValidationFieldsAsync()
     {

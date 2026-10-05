@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Model.V1.RuleMetadata;
 

@@ -1,5 +1,5 @@
+﻿using Moq;
 using Ufw.Shared.Management.Rules;
-using Moq;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Client.Features.Rules.Metadata;
@@ -60,7 +60,6 @@ public sealed class RuleGroupCatalogServiceTests
         RuleGroupCatalogService duplicateMembers = new(duplicateMembersApi.Object);
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateMembers.RefreshAsync());
     }
-
 
     [TestMethod]
     public async Task RefreshAsync_InvalidTemplateReferencesRejectProtocolResponseAsync()

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data.Extensions;
 using Ufw.Web.Data.Model;

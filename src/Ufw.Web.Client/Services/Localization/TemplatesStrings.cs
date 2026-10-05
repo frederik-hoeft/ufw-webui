@@ -1,3 +1,3 @@
-namespace Ufw.Web.Client.Services.Localization;
+﻿namespace Ufw.Web.Client.Services.Localization;
 
 internal sealed class TemplatesStrings;

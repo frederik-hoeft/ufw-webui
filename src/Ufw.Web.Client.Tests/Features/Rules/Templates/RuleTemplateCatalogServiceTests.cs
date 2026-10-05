@@ -1,6 +1,6 @@
-using Ufw.Shared.Management.Rules;
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Client.Features.Rules.Templates;
@@ -87,7 +87,6 @@ public sealed class RuleTemplateCatalogServiceTests
         });
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleTemplateCatalogService(invalidApi.Object).RefreshAsync());
     }
-
 
     [TestMethod]
     public async Task MutationFailure_PreservesCurrentInventoryAndVersionAsync()

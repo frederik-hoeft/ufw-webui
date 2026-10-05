@@ -131,7 +131,6 @@ public sealed class SignedMutationOrchestratorTests
         Assert.IsTrue(competingEntered);
     }
 
-
     [TestMethod]
     public async Task ExecuteAsync_CancellationWhileQueuedDoesNotEnterMutationBoundaryAsync()
     {

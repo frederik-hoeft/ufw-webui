@@ -1,4 +1,4 @@
-using Ufw.Shared.Management.Rules;
+﻿using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Model.V1.RuleGroups;

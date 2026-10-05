@@ -1,6 +1,6 @@
-using Ufw.Shared.Management.Rules;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ufw.Shared.Management.Rules;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Data.Model;

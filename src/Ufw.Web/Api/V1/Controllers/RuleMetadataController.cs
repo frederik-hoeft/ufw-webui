@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Services.Rules;
 

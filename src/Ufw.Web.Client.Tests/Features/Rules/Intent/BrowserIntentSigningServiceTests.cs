@@ -1,9 +1,9 @@
 ﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Security.Intent;
-using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Client.Tests.Support;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Intent;
 

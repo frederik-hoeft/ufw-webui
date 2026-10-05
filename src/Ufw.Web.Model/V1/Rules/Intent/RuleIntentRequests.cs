@@ -1,4 +1,4 @@
-using Ufw.Shared.Security.Intent;
+﻿using Ufw.Shared.Security.Intent;
 using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Model.V1.Rules.Intent;

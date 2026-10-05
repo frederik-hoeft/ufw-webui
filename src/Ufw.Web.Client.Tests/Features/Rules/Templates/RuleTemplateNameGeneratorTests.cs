@@ -1,7 +1,7 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
-using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Shared.Management.Rules;
+using Ufw.Web.Client.Features.Rules.Templates;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Templates;
 

@@ -1,4 +1,4 @@
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Actions;
+﻿using Ufw.Web.Client.UI.Components.Rules.Filtering.Actions;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Directions;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Groups;
 using Ufw.Web.Client.UI.Components.Rules.Filtering.Networks;

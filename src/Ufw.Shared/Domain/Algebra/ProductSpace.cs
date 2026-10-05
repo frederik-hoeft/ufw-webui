@@ -290,16 +290,10 @@ public sealed class ProductSpace
     /// Hash/equality key for the axes that stay fixed while one selected axis is being coalesced.
     /// Two keys are equal when they ignore the same varying axis and all remaining axes are set-equal.
     /// </summary>
-    private readonly struct FixedAxesKey : IEquatable<FixedAxesKey>
+    private readonly struct FixedAxesKey(ProductRegion region, int axis) : IEquatable<FixedAxesKey>
     {
-        private readonly ProductRegion _region;
-        private readonly int _axis;
-
-        public FixedAxesKey(ProductRegion region, int axis)
-        {
-            _region = region;
-            _axis = axis;
-        }
+        private readonly ProductRegion _region = region;
+        private readonly int _axis = axis;
 
         public bool Equals(FixedAxesKey other)
         {

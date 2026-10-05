@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Ufw.Shared.Management.Rules;
 
 namespace Ufw.Web.Model.V1.RuleTags;

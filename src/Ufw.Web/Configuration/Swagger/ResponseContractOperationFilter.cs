@@ -1,8 +1,8 @@
-using System.Globalization;
-using System.Reflection;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Globalization;
+using System.Reflection;
 using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Configuration.Swagger;

@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using System.Text;
+using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Model.V1.Errors;
-using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Tests.Api;
 
