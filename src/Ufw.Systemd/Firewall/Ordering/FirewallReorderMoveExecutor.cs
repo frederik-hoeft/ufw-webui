@@ -1,6 +1,6 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Extensions;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
-using Ufw.Shared.Extensions;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Services.Logging;

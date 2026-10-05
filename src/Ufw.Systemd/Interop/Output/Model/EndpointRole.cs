@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Interop.Output.Model;
+﻿namespace Ufw.Systemd.Interop.Output.Model;
 
 internal enum EndpointRole
 {

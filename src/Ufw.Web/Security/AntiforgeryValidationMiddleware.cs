@@ -1,8 +1,14 @@
 ﻿using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Api.V1.Errors;
 
 namespace Ufw.Web.Security;
 
-internal sealed partial class AntiforgeryValidationMiddleware(RequestDelegate next, IAntiforgery antiforgery, ILogger<AntiforgeryValidationMiddleware> logger)
+internal sealed partial class AntiforgeryValidationMiddleware(
+    RequestDelegate next,
+    IAntiforgery antiforgery,
+    IProblemDetailsService problemDetails,
+    ILogger<AntiforgeryValidationMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -19,7 +25,16 @@ internal sealed partial class AntiforgeryValidationMiddleware(RequestDelegate ne
         catch (AntiforgeryValidationException exception)
         {
             LogInvalidToken(logger, exception.Message, exception);
+            ProblemDetails problem = ApiProblemDetailsFactory.Create(
+                StatusCodes.Status400BadRequest,
+                title: "Antiforgery validation failed",
+                detail: "The antiforgery token is invalid or missing.");
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await problemDetails.WriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = context,
+                ProblemDetails = problem,
+            });
             return;
         }
 

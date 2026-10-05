@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Features.Rules.Filtering.Tags;
+﻿using Ufw.Web.Client.Features.Rules.Filtering.Tags;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Filtering.Tags;
 

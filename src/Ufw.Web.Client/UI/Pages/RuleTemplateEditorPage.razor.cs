@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Features.Rules.Templates;

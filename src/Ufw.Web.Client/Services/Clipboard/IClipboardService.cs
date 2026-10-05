@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Services.Clipboard;
+﻿namespace Ufw.Web.Client.Services.Clipboard;
 
 internal interface IClipboardService
 {

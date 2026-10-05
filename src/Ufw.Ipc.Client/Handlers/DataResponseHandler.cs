@@ -16,7 +16,7 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
 
     public bool CanHandle(IResponseMessage message) => message.StatusCode == 200;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>
+    public async ValueTask<UfwIpcResult<TResult>> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>
     {
         if (message.PayloadType == ApplicationPayloadTypes.EMPTY)
         {
@@ -26,7 +26,8 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
             }
 
             OkResponse okResponse = s_okResponse;
-            return Unsafe.As<OkResponse, TResult>(ref okResponse);
+            TResult emptyResponse = Unsafe.As<OkResponse, TResult>(ref okResponse);
+            return UfwIpcResult<TResult>.Success(emptyResponse);
         }
 
         if (message.PayloadType != ApplicationPayloadTypes.DATA)
@@ -35,6 +36,7 @@ internal sealed class DataResponseHandler : IResponseMessageHandler, IMessageHan
         }
 
         TResult? result = await message.Payload.ReadAsync<TResult>(cancellationToken);
-        return result ?? throw new SerializationException($"Unable to deserialize payload of response '{message.StatusCode}' to type {typeof(TResult)}.");
+        TResult response = result ?? throw new SerializationException($"Unable to deserialize payload of response '{message.StatusCode}' to type {typeof(TResult)}.");
+        return UfwIpcResult<TResult>.Success(response);
     }
 }

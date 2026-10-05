@@ -2,16 +2,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Tests.Integration.Support;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class KnownHostsControllerIntegrationTests : ControllerIntegrationTest<KnownHostsController>
+internal sealed class KnownHostsControllerIntegrationTests : ControllerIntegrationTest<KnownHostsController>
 {
     public required TestContext TestContext { get; set; }
 

@@ -44,7 +44,7 @@ internal sealed class MockBackedUfwRunner(string statePath) : IUfwRunner
             Environment.SetEnvironmentVariable("UFW_MOCK_STATE_PATH", statePath);
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            int exitCode = await UfwMockApplication.RunAsync(arguments.ToArray());
+            int exitCode = await UfwMockApplication.RunAsync([.. arguments]);
             return new MockCommandResult(exitCode, Normalize(stdout.ToString()), Normalize(stderr.ToString()));
         }
         finally

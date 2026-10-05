@@ -1,5 +1,5 @@
-﻿using System.Collections.Immutable;
-using Moq;
+﻿using Moq;
+using System.Collections.Immutable;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.IO;
@@ -85,5 +85,5 @@ public sealed class UfwProcessExecutorTests
     }
 
     private static UfwProcessResult ProcessResult(int exitCode, string standardError = "", bool cancellationRequested = false) =>
-        new(exitCode, string.Empty, standardError, ImmutableArray.Create("delete", "1"), cancellationRequested);
+        new(exitCode, string.Empty, standardError, ["delete", "1"], cancellationRequested);
 }

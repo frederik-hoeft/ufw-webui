@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Ipc.Model.Responses;
+﻿using Ufw.Shared.Ipc.Model;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Tests.TestSupport;
@@ -36,7 +37,7 @@ public sealed class FirewallRuleSnapshotReadResultTests
 
         Assert.AreSame(snapshot, result.OrDefault());
         Assert.AreSame(snapshot, result.ToResponsePayload());
-        Assert.IsTrue(result.TryGetSnapshot(out RuleListResponse? projected, out var error));
+        Assert.IsTrue(result.TryGetSnapshot(out RuleListResponse? projected, out IResponsePayload? error));
         Assert.AreSame(snapshot, projected);
         Assert.IsNull(error);
         Assert.AreEqual("success", result.Match(static _ => "success", static _ => "failure"));
@@ -61,7 +62,7 @@ public sealed class FirewallRuleSnapshotReadResultTests
 
         Assert.IsNull(result.OrDefault());
         Assert.AreSame(error, result.ToResponsePayload());
-        Assert.IsFalse(result.TryGetSnapshot(out RuleListResponse? snapshot, out var projectedError));
+        Assert.IsFalse(result.TryGetSnapshot(out RuleListResponse? snapshot, out IResponsePayload? projectedError));
         Assert.IsNull(snapshot);
         Assert.AreSame(error, projectedError);
         Assert.AreEqual("failure", result.Match(static _ => "success", static _ => "failure"));

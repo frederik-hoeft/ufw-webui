@@ -185,9 +185,7 @@ public sealed class ProductSpace
             added = added.Except(region);
         }
 
-        List<ProductRegion> combined = new(_regions.Length + added._regions.Length);
-        combined.AddRange(_regions);
-        combined.AddRange(added._regions);
+        List<ProductRegion> combined = [.. _regions, .. added._regions];
         return FromRegions(combined);
     }
 
@@ -243,7 +241,7 @@ public sealed class ProductSpace
     /// </summary>
     private static bool MergeAxis(List<ProductRegion> regions, int axis)
     {
-        Dictionary<FixedAxesKey, int> groups = new();
+        Dictionary<FixedAxesKey, int> groups = [];
         List<ProductRegion> next = new(regions.Count);
         bool merged = false;
         foreach (ProductRegion region in regions)
@@ -290,16 +288,10 @@ public sealed class ProductSpace
     /// Hash/equality key for the axes that stay fixed while one selected axis is being coalesced.
     /// Two keys are equal when they ignore the same varying axis and all remaining axes are set-equal.
     /// </summary>
-    private readonly struct FixedAxesKey : IEquatable<FixedAxesKey>
+    private readonly struct FixedAxesKey(ProductRegion region, int axis) : IEquatable<FixedAxesKey>
     {
-        private readonly ProductRegion _region;
-        private readonly int _axis;
-
-        public FixedAxesKey(ProductRegion region, int axis)
-        {
-            _region = region;
-            _axis = axis;
-        }
+        private readonly ProductRegion _region = region;
+        private readonly int _axis = axis;
 
         public bool Equals(FixedAxesKey other)
         {

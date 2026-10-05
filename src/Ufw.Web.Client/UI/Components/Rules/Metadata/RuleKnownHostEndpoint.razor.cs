@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Presentation;
 using Ufw.Web.Model.V1.KnownHosts;
 

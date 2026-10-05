@@ -15,10 +15,10 @@ using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.NetworkInterfaces;
+using Ufw.Systemd.Persistence;
 using Ufw.Systemd.Security.Intent;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;
-using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Tests.Firewall;
 

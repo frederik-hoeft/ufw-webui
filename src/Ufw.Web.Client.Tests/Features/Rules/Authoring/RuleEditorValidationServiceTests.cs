@@ -1,4 +1,6 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Moq;
+using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Web.Client.Features.Rules.Authoring;
 using Ufw.Web.Client.Services.Localization;
 using Ufw.Web.Client.Tests.Support;
@@ -36,6 +38,28 @@ public sealed class RuleEditorValidationServiceTests
         CollectionAssert.Contains(_service.Validate(rule, nameof(FirewallRuleSpecification.AddressFamily), ipv6Enabled: false).ToArray(), "Ipv6Disabled");
         CollectionAssert.Contains(_service.Validate(rule, nameof(FirewallRuleSpecification.Source), ipv6Enabled: false).ToArray(), "Ipv6Disabled");
         CollectionAssert.Contains(_service.Validate(rule, $"Rule.{nameof(FirewallRuleSpecification.Destination)}", ipv6Enabled: false).ToArray(), "Ipv6Disabled");
+    }
+
+    [TestMethod]
+    public void Validate_SynthesizedIpv6CapabilityErrorUsesSharedStableCode()
+    {
+        FirewallRuleSpecification rule = ValidRule();
+        rule.AddressFamily = FirewallAddressFamily.IPv6;
+        rule.Source = "2001:db8::1";
+        rule.Destination = "2001:db8::2";
+        ModelValidationError? captured = null;
+        Mock<IRuleValidationMessageLocalizer> localizer = new();
+        localizer
+            .Setup(candidate => candidate.Localize(It.IsAny<ModelValidationError>()))
+            .Callback<ModelValidationError>(candidate => captured = candidate)
+            .Returns("localized");
+        RuleEditorValidationService service = new(localizer.Object, new PassthroughStringLocalizer<ValidationStrings>());
+
+        IReadOnlyList<string> result = service.Validate(rule, nameof(FirewallRuleSpecification.AddressFamily), ipv6Enabled: false);
+
+        CollectionAssert.AreEqual(new[] { "localized" }, result.ToArray());
+        Assert.IsNotNull(captured);
+        Assert.AreEqual(FirewallRuleValidationErrorCodes.IPV6_DISABLED, captured.Code);
     }
 
     [TestMethod]

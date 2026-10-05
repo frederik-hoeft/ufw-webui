@@ -1,6 +1,5 @@
 ﻿using Moq;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Client.Api;
@@ -8,6 +7,7 @@ using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Client.Features.Rules.Ordering;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Ordering;
 
@@ -25,7 +25,7 @@ public sealed class RuleOrderingServiceTests
         Mock<IIntentSigningService> signer = new();
         context.Setup(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "deployment"));
-        ReorderRulesRequest signed = Request();
+        ReorderRulesIntentRequest signed = Request();
         signer.Setup(candidate => candidate.CreateReorderRulesRequestAsync("deployment", It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), "private-key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(signed);
         api.Setup(candidate => candidate.ReorderRulesAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
@@ -89,7 +89,7 @@ public sealed class RuleOrderingServiceTests
         Rule = new FirewallRuleSpecification(),
     };
 
-    private static ReorderRulesRequest Request() => new()
+    private static ReorderRulesIntentRequest Request() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key",

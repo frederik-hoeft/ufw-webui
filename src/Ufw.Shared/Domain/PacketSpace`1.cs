@@ -10,36 +10,35 @@ public sealed class PacketSpace<TAddress>
     where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     private readonly PacketLayout<TAddress> _layout;
-    private readonly ProductSpace _space;
 
     internal PacketSpace(PacketLayout<TAddress> layout, ProductSpace space)
     {
         _layout = layout;
-        _space = space;
+        Product = space;
     }
 
     /// <summary>Gets a value indicating whether the space contains no packets.</summary>
-    public bool IsEmpty => _space.IsEmpty;
+    public bool IsEmpty => Product.IsEmpty;
 
     /// <summary>Gets the number of packets.</summary>
-    public BigInteger Cardinality => _space.Cardinality;
+    public BigInteger Cardinality => Product.Cardinality;
 
     /// <summary>Gets the disjoint rectangles in canonical order.</summary>
     public IReadOnlyList<PacketRegion<TAddress>> Regions
     {
         get
         {
-            PacketRegion<TAddress>[] regions = new PacketRegion<TAddress>[_space.Regions.Count];
+            PacketRegion<TAddress>[] regions = new PacketRegion<TAddress>[Product.Regions.Count];
             for (int index = 0; index < regions.Length; index++)
             {
-                regions[index] = _layout.ToPacket(_space.Regions[index]);
+                regions[index] = _layout.ToPacket(Product.Regions[index]);
             }
 
             return regions;
         }
     }
 
-    internal ProductSpace Product => _space;
+    internal ProductSpace Product { get; }
 
     /// <summary>Builds a space from one rectangle of <paramref name="chain"/>.</summary>
     public static PacketSpace<TAddress> FromRegion(PolicyWorld<TAddress> world, TrafficChain chain, PacketRegion<TAddress> region)
@@ -69,42 +68,42 @@ public sealed class PacketSpace<TAddress>
     public PacketSpace<TAddress> Intersect(PolicyConstraint<TAddress> constraint)
     {
         ArgumentNullException.ThrowIfNull(constraint);
-        return new PacketSpace<TAddress>(_layout, _space.Intersect(_layout.Materialize(constraint)));
+        return new PacketSpace<TAddress>(_layout, Product.Intersect(_layout.Materialize(constraint)));
     }
 
     /// <summary>Returns the packets shared with <paramref name="other"/>.</summary>
     public PacketSpace<TAddress> Intersect(PacketSpace<TAddress> other)
     {
         EnsureCompatible(other);
-        return new PacketSpace<TAddress>(_layout, _space.Intersect(other._space));
+        return new PacketSpace<TAddress>(_layout, Product.Intersect(other.Product));
     }
 
     /// <summary>Returns the packets that are outside <paramref name="region"/>.</summary>
     public PacketSpace<TAddress> Except(PacketRegion<TAddress> region)
     {
         ArgumentNullException.ThrowIfNull(region);
-        return new PacketSpace<TAddress>(_layout, _space.Except(_layout.FromPacket(region)));
+        return new PacketSpace<TAddress>(_layout, Product.Except(_layout.FromPacket(region)));
     }
 
     /// <summary>Returns the packets that are outside <paramref name="other"/>.</summary>
     public PacketSpace<TAddress> Except(PacketSpace<TAddress> other)
     {
         EnsureCompatible(other);
-        return new PacketSpace<TAddress>(_layout, _space.Except(other._space));
+        return new PacketSpace<TAddress>(_layout, Product.Except(other.Product));
     }
 
     /// <summary>Returns the union with <paramref name="other"/>.</summary>
     public PacketSpace<TAddress> Union(PacketSpace<TAddress> other)
     {
         EnsureCompatible(other);
-        return new PacketSpace<TAddress>(_layout, _space.Union(other._space));
+        return new PacketSpace<TAddress>(_layout, Product.Union(other.Product));
     }
 
     /// <summary>Returns whether both spaces contain the same packets.</summary>
     public bool SetEquals(PacketSpace<TAddress> other)
     {
         EnsureCompatible(other);
-        return _space.Except(other._space).IsEmpty && other._space.Except(_space).IsEmpty;
+        return Product.Except(other.Product).IsEmpty && other.Product.Except(Product).IsEmpty;
     }
 
     /// <summary>Gets every source address that appears in at least one packet.</summary>
@@ -142,7 +141,7 @@ public sealed class PacketSpace<TAddress>
     private IntervalSet<TAddress> ProjectAddresses(int axis)
     {
         IntervalSet<TAddress> union = IntervalSet<TAddress>.Empty;
-        foreach (ProductRegion region in _space.Regions)
+        foreach (ProductRegion region in Product.Regions)
         {
             union = union.Union((IntervalSet<TAddress>)region.Axis(axis));
         }
@@ -153,7 +152,7 @@ public sealed class PacketSpace<TAddress>
     private PacketPortSet ProjectPorts(int axis)
     {
         PacketPortSet union = PacketPortSet.Empty;
-        foreach (ProductRegion region in _space.Regions)
+        foreach (ProductRegion region in Product.Regions)
         {
             union = union.Union((PacketPortSet)region.Axis(axis));
         }
@@ -165,7 +164,7 @@ public sealed class PacketSpace<TAddress>
         where TSymbol : IEquatable<TSymbol>, IComparable<TSymbol>
     {
         FiniteSet<TSymbol> union = FiniteSet<TSymbol>.Empty;
-        foreach (ProductRegion region in _space.Regions)
+        foreach (ProductRegion region in Product.Regions)
         {
             union = union.Union((FiniteSet<TSymbol>)region.Axis(axis));
         }

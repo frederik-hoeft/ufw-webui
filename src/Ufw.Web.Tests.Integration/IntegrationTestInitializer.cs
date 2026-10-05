@@ -1,14 +1,21 @@
-using Microsoft.AspNetCore.Identity;
-using Ufw.Shared.Web;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 using Ufw.Ipc.Client;
+using Ufw.Shared.Web;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Configuration;
 using Ufw.Web.Data;
+using Ufw.Web.Data.Access.Auth;
+using Ufw.Web.Data.Access.KnownHosts;
+using Ufw.Web.Data.Access.NetworkInterfaces;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Groups;
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules.Tags;
+using Ufw.Web.Data.Access.Rules.Templates;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.KnownHosts;
 using Ufw.Web.Services.NetworkInterfaces;
@@ -33,8 +40,11 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddControllers();
         services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
         services.AddSingleton(static _ => new SqliteConnection("Data Source=:memory:"));
+        services.AddScoped<SqlCommandCounterInterceptor>();
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
-            options.UseSqlite(serviceProvider.GetRequiredService<SqliteConnection>()));
+            options
+                .UseSqlite(serviceProvider.GetRequiredService<SqliteConnection>())
+                .AddInterceptors(serviceProvider.GetRequiredService<SqlCommandCounterInterceptor>()));
         services.AddTransactionManagement<ApplicationDbContext>(options =>
             options.UseIsolationLevel(IsolationLevel.ReadCommitted));
         services.MockDatabaseTransactions<ApplicationDbContext>();
@@ -66,41 +76,36 @@ public sealed class IntegrationTestInitializer : IAsyncDITestInitializer
         services.AddScoped<TimeProvider>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationTimeProvider>());
         services.AddSingleton<IJwtSigningKeyProvider, IntegrationJwtSigningKeyProvider>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IRefreshTokenDataAccess, RefreshTokenDataAccess>();
         services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
         services.AddScoped<AuthenticationFlowService>();
         services.AddScoped<AuthController>();
         services.AddScoped<IAuthenticationFlowService>(static serviceProvider => serviceProvider.GetRequiredService<AuthenticationFlowService>());
 
-        services.AddScoped<KnownHostRepository>();
+        services.AddScoped<KnownHostDataAccess>();
         services.AddScoped<IntegrationKnownHostDnsResolver>();
         services.AddScoped<IKnownHostDnsResolver>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationKnownHostDnsResolver>());
-        services.AddScoped<IKnownHostRepository>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostRepository>());
+        services.AddScoped<IKnownHostDataAccess>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostDataAccess>());
         services.AddScoped<KnownHostService>();
         services.AddScoped<IKnownHostService>(static serviceProvider => serviceProvider.GetRequiredService<KnownHostService>());
         services.AddScoped<KnownHostsController>();
 
-        services.AddScoped<IntegrationDaemonNetworkInterfaceSource>();
-        services.AddScoped<IDaemonNetworkInterfaceSource>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationDaemonNetworkInterfaceSource>());
-        services.AddScoped<NetworkInterfaceInventoryRepository>();
-        services.AddScoped<INetworkInterfaceInventoryRepository>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceInventoryRepository>());
+        services.AddScoped<IntegrationNetworkInterfaceDaemonGateway>();
+        services.AddScoped<INetworkInterfaceDaemonGateway>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationNetworkInterfaceDaemonGateway>());
+        services.AddScoped<NetworkInterfaceDataAccess>();
+        services.AddScoped<INetworkInterfaceDataAccess>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceDataAccess>());
         services.AddScoped<NetworkInterfaceInventoryService>();
         services.AddScoped<INetworkInterfaceInventoryService>(static serviceProvider => serviceProvider.GetRequiredService<NetworkInterfaceInventoryService>());
-        services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddScoped<IntegrationUfwClient>();
         services.AddScoped<IUfwClient>(static serviceProvider => serviceProvider.GetRequiredService<IntegrationUfwClient>());
-        services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
-        services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
-        services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
-        services.AddScoped<IRuleGroupRepository, RuleGroupRepository>();
-        services.AddScoped<IRuleTagRepository, RuleTagRepository>();
-        services.AddScoped<IRuleTemplateRepository, RuleTemplateRepository>();
+        services.AddScoped<IRuleDaemonGateway, RuleDaemonGateway>();
+        services.AddScoped<IRuleMetadataDataAccess, RuleMetadataDataAccess>();
+        services.AddScoped<IRuleGroupDataAccess, RuleGroupDataAccess>();
+        services.AddScoped<IRuleTagDataAccess, RuleTagDataAccess>();
+        services.AddScoped<IRuleTemplateDataAccess, RuleTemplateDataAccess>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
         services.AddScoped<IRuleMetadataService, RuleMetadataService>();
         services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
-        services.AddScoped<IRuleGroupService, RuleGroupService>();
-        services.AddScoped<IRuleTagService, RuleTagService>();
-        services.AddScoped<IRuleTemplateService, RuleTemplateService>();
         services.AddScoped<NetworkInterfacesController>();
         services.AddScoped<RulesController>();
         services.AddScoped<RuleMetadataController>();

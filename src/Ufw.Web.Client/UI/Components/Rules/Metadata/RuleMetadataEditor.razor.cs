@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
@@ -7,7 +7,6 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class RuleMetadataEditor
 {
-    internal const int MAX_NOTES_LENGTH = 4000;
     private const int MAX_METADATA_NAME_LENGTH = 64;
     private MudForm? _form;
     private MudAutocomplete<TagOption>? _tagAutocomplete;
@@ -68,7 +67,7 @@ public sealed partial class RuleMetadataEditor
             available = available.Where(group => group.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        List<GroupOption> options = available.Select(static group => new GroupOption(group, null)).ToList();
+        List<GroupOption> options = [.. available.Select(static group => new GroupOption(group, null))];
         bool exactMatch = GroupCatalog.Current.Any(group => string.Equals(group.Name, term, StringComparison.OrdinalIgnoreCase));
         if (term.Length is > 0 and <= MAX_METADATA_NAME_LENGTH && !exactMatch)
         {
@@ -136,7 +135,7 @@ public sealed partial class RuleMetadataEditor
             available = available.Where(tag => tag.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        List<TagOption> options = available.Select(static tag => new TagOption(tag, null)).ToList();
+        List<TagOption> options = [.. available.Select(static tag => new TagOption(tag, null))];
         bool exactMatch = TagCatalog.Current.Any(tag => string.Equals(tag.Name, term, StringComparison.OrdinalIgnoreCase));
         if (term.Length is > 0 and <= MAX_METADATA_NAME_LENGTH && !exactMatch)
         {

@@ -1,6 +1,6 @@
-﻿using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Ipc.Model.Responses.Domain;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Api.Rules;
 
@@ -10,15 +10,15 @@ internal interface IRuleApiClient
 
     Task<RuleMetadataMutationResponse> UpdateMetadataAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleMutationResponse> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default);
+    Task<RuleMutationResponse> AddRuleAsync(AddRuleIntentRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default);
+    Task<RuleMutationResponse> DeleteRuleAsync(DeleteRuleIntentRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default);
+    Task<RuleBatchDeleteResponse> BatchDeleteRulesAsync(BatchDeleteRulesIntentRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default);
+    Task<RuleInsertionResponse> InsertRuleAsync(InsertRuleIntentRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default);
+    Task<RuleReorderResponse> ReorderRulesAsync(ReorderRulesIntentRequest request, CancellationToken cancellationToken = default);
 
-    Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default);
+    Task<RuleReplacementMutationResponse> ReplaceRuleAsync(ReplaceRuleIntentRequest request, CancellationToken cancellationToken = default);
 }

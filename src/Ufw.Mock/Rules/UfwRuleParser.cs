@@ -445,7 +445,7 @@ internal sealed partial class UfwRuleParser
             throw Error("Multiple ports require protocol 'tcp' or 'udp'.");
         }
 
-        if (protocol is not null && protocol is not "tcp" and not "udp")
+        if (protocol is not null and not "tcp" and not "udp")
         {
             throw Error($"Protocol '{protocol}' cannot be combined with a port clause.");
         }

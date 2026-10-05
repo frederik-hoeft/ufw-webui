@@ -1,6 +1,8 @@
 ﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
 using Ufw.Web.Client.Features.Rules.Filtering.Groups;
@@ -10,9 +12,8 @@ using Ufw.Web.Client.Features.Rules.Filtering.Ports;
 using Ufw.Web.Client.Features.Rules.Filtering.Protocols;
 using Ufw.Web.Client.Features.Rules.Filtering.Tags;
 using Ufw.Web.Client.Features.Rules.Filtering.Text;
-using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Metadata;
-using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Filtering;
 
@@ -397,14 +398,14 @@ public sealed class RuleQueryServiceTests
         FirewallAddressFamily addressFamily,
         bool isVisible,
         string? comment = null) => new()
-    {
-        Id = Guid.CreateVersion7(),
-        Name = name,
-        Address = address,
-        AddressFamily = addressFamily,
-        IsVisible = isVisible,
-        Comment = comment,
-    };
+        {
+            Id = Guid.CreateVersion7(),
+            Name = name,
+            Address = address,
+            AddressFamily = addressFamily,
+            IsVisible = isVisible,
+            Comment = comment,
+        };
 
     private static RuleRowProjection Row(
         int occurrenceId,

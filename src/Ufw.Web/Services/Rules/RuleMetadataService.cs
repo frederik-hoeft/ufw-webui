@@ -1,82 +1,55 @@
-using System.Text.Json;
-using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
-using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Shared.Security.Intent;
-using Ufw.Web.Data.Model;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.Rules;
 
 internal sealed partial class RuleMetadataService(
-    IDaemonRuleSource daemonRules,
-    IRuleMetadataRepository repository,
-    IRuleMetadataValuesNormalizer metadataNormalizer,
+    IRuleDaemonGateway daemonRules,
+    IRuleMetadataDataAccess metadata,
     ILogger<RuleMetadataService> logger) : IRuleMetadataService
 {
-    public async Task<RuleMetadataUpdateResult> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
+    public async Task<DataMutationResult<RuleMetadataMutationResponse>> UpdateAsync(string ruleId, UpdateRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(request);
-        if (!metadataNormalizer.TryNormalize(request.Notes, request.TagIds, request.GroupId, out RuleMetadataValues? values))
-        {
-            return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.InvalidMetadata);
-        }
+        RuleMetadataValues values = RuleMetadataValues.FromValidatedRequest(request.Notes, request.TagIds, request.GroupId);
 
-        RuleListResponse snapshot = await daemonRules.GetAsync(cancellationToken);
-        bool exists = snapshot.Rules.Any(rule => string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal));
+        DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = daemonResult.Result;
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(snapshot);
+        bool exists = liveRuleIds.Contains(ruleId);
         if (!exists)
         {
-            return new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.RuleNotFound);
+            return DataMutationResult.Failure<RuleMetadataMutationResponse>(new DataMutationNotFoundError());
         }
 
-        RuleMetadataSaveResult save = await repository.SaveAsync(ruleId, values, cancellationToken);
-        return save.Outcome switch
+        DataMutationResult<RuleMetadataItem?> save = await metadata.SaveAsync(ruleId, values, cancellationToken);
+        if (save.IsSuccess)
         {
-            RuleMetadataSaveOutcome.Success => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.Success, new RuleMetadataMutationResponse { Metadata = save.Metadata }),
-            RuleMetadataSaveOutcome.TagNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.TagNotFound),
-            RuleMetadataSaveOutcome.GroupNotFound => new RuleMetadataUpdateResult(RuleMetadataUpdateOutcome.GroupNotFound),
-            _ => throw new InvalidOperationException($"Unknown metadata save outcome '{save.Outcome}'."),
+            return DataMutationResult.Success(new RuleMetadataMutationResponse { Metadata = save.Value });
+        }
+
+        return save.Error switch
+        {
+            RuleTagsNotFoundError or RuleGroupNotFoundError or DataMutationReferenceConflictError =>
+                DataMutationResult.Failure<RuleMetadataMutationResponse>(save.Error),
+            _ => throw new InvalidOperationException($"Unknown metadata mutation error '{save.Error!.GetType().Name}'."),
         };
     }
 
     public async Task<RuleReplacementMetadataReconciliationOutcome> ReconcileReplacementAsync(
-        ReplaceRuleRequest request,
-        RuleReplacementResponse response,
+        RuleReplacementReconciliationFacts facts,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(response);
-        if (response.Outcome != RuleReplacementOutcome.Completed)
-        {
-            return RuleReplacementMetadataReconciliationOutcome.NotAttempted;
-        }
-
-        string? originalRuleId = null;
-        string replacementRuleId = response.ReplacementRule?.RuleId ?? string.Empty;
+        ArgumentNullException.ThrowIfNull(facts);
         try
         {
-            ReplaceRulePayload payload = JsonSerializer.Deserialize(request.Payload, MessageJsonSerializerContext.Default.ReplaceRulePayload)
-                ?? throw new InvalidDataException("Completed rule replacement request did not contain a replacement payload.");
-            RuleReplacementContract.ValidatePayload(payload);
-            originalRuleId = payload.OriginalRuleId;
-
-            if (response.FinalSnapshot is null || !RuleIdentity.IsValid(replacementRuleId))
-            {
-                throw new InvalidDataException("Completed rule replacement response did not contain an authoritative replacement identity and final snapshot.");
-            }
-            if (!string.Equals(RuleIdentity.Compute(payload.ReplacementRule), replacementRuleId, StringComparison.Ordinal))
-            {
-                throw new InvalidDataException("Completed rule replacement response identity does not match the signed replacement rule.");
-            }
-            if (!response.FinalSnapshot.Rules.Any(rule => string.Equals(rule.RuleId, replacementRuleId, StringComparison.Ordinal)))
-            {
-                throw new InvalidDataException("Completed rule replacement response does not contain the confirmed replacement identity in its final snapshot.");
-            }
-
-            bool originalRuleStillLive = response.FinalSnapshot.Rules.Any(rule => string.Equals(rule.RuleId, originalRuleId, StringComparison.Ordinal));
-            _ = await repository.ReconcileReplacementAsync(originalRuleId, replacementRuleId, originalRuleStillLive, cancellationToken);
+            _ = await metadata.ReconcileReplacementAsync(facts.OriginalRuleId, facts.ReplacementRuleId, facts.OriginalRuleStillLive, cancellationToken);
             return RuleReplacementMetadataReconciliationOutcome.Completed;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -85,7 +58,7 @@ internal sealed partial class RuleMetadataService(
         }
         catch (Exception exception)
         {
-            LogReplacementReconciliationFailure(logger, originalRuleId ?? "<unknown>", string.IsNullOrWhiteSpace(replacementRuleId) ? "<unknown>" : replacementRuleId, exception);
+            LogReplacementReconciliationFailure(logger, facts.OriginalRuleId, facts.ReplacementRuleId, exception);
             return RuleReplacementMetadataReconciliationOutcome.Failed;
         }
     }
@@ -95,7 +68,7 @@ internal sealed partial class RuleMetadataService(
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         try
         {
-            _ = await repository.DeleteAsync(ruleId, cancellationToken);
+            _ = await metadata.DeleteAsync(ruleId, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -114,19 +87,14 @@ internal sealed partial class RuleMetadataService(
             return;
         }
 
-        HashSet<string> liveRuleIds = response.FinalSnapshot.Rules
-            .Select(static rule => rule.RuleId)
-            .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
-            .Select(static ruleId => ruleId!)
-            .ToHashSet(StringComparer.Ordinal);
-        string[] confirmedDeletedRuleIds = response.Operations
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(response.FinalSnapshot);
+        string[] confirmedDeletedRuleIds = [.. response.Operations
             .Where(static operation => operation.Outcome is RuleBatchDeleteOperationOutcome.Deleted or RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure)
             .Select(static operation => operation.RuleId)
             .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
             .Select(static ruleId => ruleId!)
             .Distinct(StringComparer.Ordinal)
-            .Where(ruleId => !liveRuleIds.Contains(ruleId))
-            .ToArray();
+            .Where(ruleId => !liveRuleIds.Contains(ruleId))];
         if (confirmedDeletedRuleIds.Length == 0)
         {
             return;
@@ -134,7 +102,7 @@ internal sealed partial class RuleMetadataService(
 
         try
         {
-            _ = await repository.DeleteForRuleIdsAsync(confirmedDeletedRuleIds, cancellationToken);
+            _ = await metadata.DeleteForRuleIdsAsync(confirmedDeletedRuleIds, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

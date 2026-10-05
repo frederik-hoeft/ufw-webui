@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
 using Ufw.Web.Client.Features.Rules.Filtering.Groups;
@@ -7,7 +8,6 @@ using Ufw.Web.Client.Features.Rules.Filtering.Ports;
 using Ufw.Web.Client.Features.Rules.Filtering.Protocols;
 using Ufw.Web.Client.Features.Rules.Filtering.Tags;
 using Ufw.Web.Client.Features.Rules.Filtering.Text;
-using Ufw.Web.Client.Features.Rules.Filtering;
 
 namespace Ufw.Web.Client.UI.Components.Rules;
 

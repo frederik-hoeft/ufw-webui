@@ -1,4 +1,4 @@
-using Ufw.Web.Client.UI.Components.Rules;
+﻿using Ufw.Web.Client.UI.Components.Rules;
 
 namespace Ufw.Web.Client.Tests.Features.Rules;
 

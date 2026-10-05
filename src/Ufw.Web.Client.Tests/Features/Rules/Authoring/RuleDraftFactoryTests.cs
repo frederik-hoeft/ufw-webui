@@ -57,5 +57,4 @@ public sealed class RuleDraftFactoryTests
         draft.Comment = "changed";
         Assert.AreEqual(" managed ", source.Comment);
     }
-
 }

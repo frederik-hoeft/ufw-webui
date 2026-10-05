@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics;
+using System.Text.Json;
 using Ufw.Web.Security;
 
 namespace Ufw.Web.Tests.Security;
@@ -50,24 +51,37 @@ public sealed class AntiforgeryValidationMiddlewareTests
     }
 
     [TestMethod]
-    public async Task InvokeAsync_WithRequirementAndInvalidToken_ReturnsBadRequestAsync()
+    public async Task InvokeAsync_WithRequirementAndInvalidToken_ReturnsProblemDetailsAsync()
     {
         Mock<IAntiforgery> antiforgery = new();
         antiforgery
             .Setup(service => service.ValidateRequestAsync(It.IsAny<HttpContext>()))
             .ThrowsAsync(new AntiforgeryValidationException("Invalid antiforgery token."));
+        ServiceCollection services = new();
+        services.AddOptions();
+        services.AddProblemDetails();
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
+        IProblemDetailsService problemDetails = serviceProvider.GetRequiredService<IProblemDetailsService>();
         bool nextInvoked = false;
         AntiforgeryValidationMiddleware middleware = CreateMiddleware(antiforgery.Object, _ =>
         {
             nextInvoked = true;
             return Task.CompletedTask;
-        });
+        }, problemDetails);
         DefaultHttpContext context = CreateProtectedContext();
+        context.RequestServices = serviceProvider;
+        context.Response.Body = new MemoryStream();
 
         await middleware.InvokeAsync(context);
 
         Assert.IsFalse(nextInvoked);
         Assert.AreEqual(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.AreEqual("application/problem+json", context.Response.ContentType);
+        string body = await ReadResponseBodyAsync(context.Response);
+        using JsonDocument document = JsonDocument.Parse(body);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, document.RootElement.GetProperty("status").GetInt32());
+        Assert.AreEqual("Antiforgery validation failed", document.RootElement.GetProperty("title").GetString());
+        Assert.AreEqual("The antiforgery token is invalid or missing.", document.RootElement.GetProperty("detail").GetString());
         antiforgery.Verify(service => service.ValidateRequestAsync(context), Times.Once);
     }
 
@@ -78,6 +92,8 @@ public sealed class AntiforgeryValidationMiddlewareTests
         antiforgery.Setup(service => service.ValidateRequestAsync(It.IsAny<HttpContext>())).Returns(Task.CompletedTask);
         ServiceCollection services = new();
         services.AddLogging();
+        services.AddOptions();
+        services.AddProblemDetails();
         services.AddRouting();
         services.AddSingleton(antiforgery.Object);
         using DiagnosticListener diagnosticListener = new("Ufw.Web.Tests");
@@ -105,8 +121,8 @@ public sealed class AntiforgeryValidationMiddlewareTests
         antiforgery.Verify(service => service.ValidateRequestAsync(context), Times.Once);
     }
 
-    private static AntiforgeryValidationMiddleware CreateMiddleware(IAntiforgery antiforgery, RequestDelegate next) =>
-        new(next, antiforgery, NullLogger<AntiforgeryValidationMiddleware>.Instance);
+    private static AntiforgeryValidationMiddleware CreateMiddleware(IAntiforgery antiforgery, RequestDelegate next, IProblemDetailsService? problemDetails = null) =>
+        new(next, antiforgery, problemDetails ?? new Mock<IProblemDetailsService>().Object, NullLogger<AntiforgeryValidationMiddleware>.Instance);
 
     private static async Task<string> ReadResponseBodyAsync(HttpResponse response)
     {

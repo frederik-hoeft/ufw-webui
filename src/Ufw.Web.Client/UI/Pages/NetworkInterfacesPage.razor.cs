@@ -1,9 +1,9 @@
 ﻿using MudBlazor;
-using Ufw.Web.Client.UI.Components.Interfaces;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
-
+using Ufw.Web.Client.UI.Components.Interfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class NetworkInterfacesPage
@@ -99,9 +99,11 @@ public sealed partial class NetworkInterfacesPage
             return;
         }
 
-        DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new();
-        parameters.Add(component => component.InterfaceName, item.Name);
-        parameters.Add(component => component.Comment, item.Comment);
+        DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new()
+        {
+            { component => component.InterfaceName, item.Name },
+            { component => component.Comment, item.Comment }
+        };
         IDialogReference dialog = await DialogService.ShowAsync<EditNetworkInterfaceCommentDialog>(InterfacesText["EditCommentTitle"], parameters, s_commentDialogOptions);
         string? comment = await dialog.GetReturnValueAsync<string>();
         if (comment is null)

@@ -18,11 +18,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
     public async Task<RuleRecoveryResult> EnsurePresentAsync(ReorderRecoveryJournalEntry entry, RuleListResponse? observedSnapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        RuleListResponse? snapshot = observedSnapshot;
-        if (snapshot is null)
-        {
-            snapshot = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
-        }
+        RuleListResponse? snapshot = observedSnapshot ?? await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (snapshot is null)
         {
             return new RuleRecoveryResult(false, false, null, "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
@@ -113,5 +109,4 @@ internal sealed class RuleReorderRecoveryCoordinator(
         };
         return FirewallRuleStateComparer.Equals(rule, synthetic);
     }
-
 }

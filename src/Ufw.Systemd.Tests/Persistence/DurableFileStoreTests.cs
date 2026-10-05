@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Tests.Persistence;

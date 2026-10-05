@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -6,16 +6,19 @@ using System.Data;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Ipc.Serialization.Json;
-using Ufw.Shared.Security.Intent;
-using Ufw.Web.Model.V1.RuleGroups;
-using Ufw.Web.Model.V1.Rules;
-using Ufw.Web.Model.V1.RuleMetadata;
-using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Data;
-using Ufw.Web.Tests.Data;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Groups;
+using Ufw.Web.Data.Access.Rules.Metadata;
+using Ufw.Web.Data.Access.Rules.Tags;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
+using Ufw.Web.Tests.Data;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
 using Wkg.EntityFrameworkCore.Configuration;
@@ -35,7 +38,7 @@ public sealed class RuleMetadataServiceTests
         RuleTagItem production = await host.CreateTagAsync(" Production ", "#12ab34", TestContext.CancellationToken);
         RuleTagItem ssh = await host.CreateTagAsync("SSH", "#AABBCC", TestContext.CancellationToken);
 
-        RuleMetadataUpdateResult updated = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> updated = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest
             {
@@ -44,14 +47,14 @@ public sealed class RuleMetadataServiceTests
             },
             TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, updated.Outcome);
-        Assert.IsNotNull(updated.Response?.Metadata);
-        Assert.AreEqual('7', updated.Response.Metadata.Id.ToString("D")[14]);
-        Assert.AreEqual("managed by platform", updated.Response.Metadata.Notes);
-        Assert.HasCount(2, updated.Response.Metadata.Tags);
-        Assert.AreEqual("Production", updated.Response.Metadata.Tags[0].Name);
-        Assert.AreEqual("#12AB34", updated.Response.Metadata.Tags[0].Color);
-        Assert.AreEqual("SSH", updated.Response.Metadata.Tags[1].Name);
+        Assert.IsTrue(updated.IsSuccess);
+        Assert.IsNotNull(updated.Value?.Metadata);
+        Assert.AreEqual('7', updated.Value.Metadata.Id.ToString("D")[14]);
+        Assert.AreEqual("managed by platform", updated.Value.Metadata.Notes);
+        Assert.HasCount(2, updated.Value.Metadata.Tags);
+        Assert.AreEqual("Production", updated.Value.Metadata.Tags[0].Name);
+        Assert.AreEqual("#12AB34", updated.Value.Metadata.Tags[0].Color);
+        Assert.AreEqual("SSH", updated.Value.Metadata.Tags[1].Name);
         Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(2, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(2, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
@@ -60,7 +63,7 @@ public sealed class RuleMetadataServiceTests
         Assert.HasCount(2, inventory.Firewall.Rules);
         Assert.HasCount(1, inventory.Metadata);
         Assert.AreEqual("sha256:live", inventory.Metadata[0].RuleId);
-        Assert.AreEqual(updated.Response.Metadata.Id, inventory.Metadata[0].Id);
+        Assert.AreEqual(updated.Value.Metadata.Id, inventory.Metadata[0].Id);
 
         host.SetRules("sha256:other");
         RuleInventoryResponse afterExternalRemoval = await host.Inventory.GetAsync(TestContext.CancellationToken);
@@ -84,27 +87,22 @@ public sealed class RuleMetadataServiceTests
     }
 
     [TestMethod]
-    public async Task Update_RejectsMissingRuleInvalidMetadataAndUnknownTagsWithoutPersistingAsync()
+    public async Task Update_RejectsMissingRuleAndUnknownTagsWithoutPersistingAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live");
 
-        RuleMetadataUpdateResult missing = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> missing = await host.Metadata.UpdateAsync(
             "sha256:missing",
             new UpdateRuleMetadataRequest { Notes = "edge" },
             TestContext.CancellationToken);
-        RuleMetadataUpdateResult invalid = await host.Metadata.UpdateAsync(
-            "sha256:live",
-            new UpdateRuleMetadataRequest { TagIds = Enumerable.Repeat(Guid.CreateVersion7(), 33).ToArray() },
-            TestContext.CancellationToken);
-        RuleMetadataUpdateResult unknownTag = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> unknownTag = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest { TagIds = [Guid.CreateVersion7()] },
             TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleMetadataUpdateOutcome.RuleNotFound, missing.Outcome);
-        Assert.AreEqual(RuleMetadataUpdateOutcome.InvalidMetadata, invalid.Outcome);
-        Assert.AreEqual(RuleMetadataUpdateOutcome.TagNotFound, unknownTag.Outcome);
+        Assert.IsInstanceOfType<DataMutationNotFoundError>(missing.Error);
+        Assert.IsInstanceOfType<RuleTagsNotFoundError>(unknownTag.Error);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
     }
 
@@ -119,16 +117,45 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { TagIds = [production.Id] },
             TestContext.CancellationToken);
 
-        RuleMetadataUpdateResult cleared = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> cleared = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest { Notes = "  ", TagIds = [] },
             TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, cleared.Outcome);
-        Assert.IsNull(cleared.Response?.Metadata);
+        Assert.IsTrue(cleared.IsSuccess);
+        Assert.IsNull(cleared.Value?.Metadata);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
         Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task Update_TagChangesPreserveUnchangedRelationAndDiffOnlyChangedMembershipAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live");
+        RuleTagItem retained = await host.CreateTagAsync("retained", "#112233", TestContext.CancellationToken);
+        RuleTagItem removed = await host.CreateTagAsync("removed", "#223344", TestContext.CancellationToken);
+        RuleTagItem added = await host.CreateTagAsync("added", "#334455", TestContext.CancellationToken);
+
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [retained.Id, removed.Id] },
+            TestContext.CancellationToken);
+        IReadOnlyDictionary<Guid, long> before = await host.MetadataTagRelationIdsAsync("sha256:live", TestContext.CancellationToken);
+
+        DataMutationResult<RuleMetadataMutationResponse> updated = await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [retained.Id, added.Id] },
+            TestContext.CancellationToken);
+        IReadOnlyDictionary<Guid, long> after = await host.MetadataTagRelationIdsAsync("sha256:live", TestContext.CancellationToken);
+
+        Assert.IsTrue(updated.IsSuccess);
+        Assert.HasCount(2, before);
+        Assert.HasCount(2, after);
+        Assert.AreEqual(before[retained.Id], after[retained.Id]);
+        Assert.IsFalse(after.ContainsKey(removed.Id));
+        Assert.IsTrue(after.ContainsKey(added.Id));
     }
 
     [TestMethod]
@@ -137,27 +164,20 @@ public sealed class RuleMetadataServiceTests
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetRules("sha256:live");
 
-        RuleTagMutationResult created = await host.Tags.CreateAsync(
-            new CreateRuleTagRequest { Name = "  Production  ", Color = "#12ab34" },
-            TestContext.CancellationToken);
+        DataMutationResult created = await host.Tags.CreateAsync("Production", "#12AB34", TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleTagMutationOutcome.Success, created.Outcome);
-        RuleTagItem tag = created.Inventory!.Tags.Single();
+        Assert.IsTrue(created.IsSuccess);
+        RuleTagItem tag = (await host.Tags.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual('7', tag.Id.ToString("D")[14]);
         Assert.AreEqual("Production", tag.Name);
         Assert.AreEqual("#12AB34", tag.Color);
 
-        RuleTagMutationResult duplicate = await host.Tags.CreateAsync(
-            new CreateRuleTagRequest { Name = "PRODUCTION", Color = "#FFFFFF" },
-            TestContext.CancellationToken);
-        Assert.AreEqual(RuleTagMutationOutcome.NameConflict, duplicate.Outcome);
+        DataMutationResult duplicate = await host.Tags.CreateAsync("PRODUCTION", "#FFFFFF", TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationUniqueConflictError>(duplicate.Error);
 
-        RuleTagMutationResult updated = await host.Tags.UpdateAsync(
-            tag.Id,
-            new UpdateRuleTagRequest { Name = "Prod", Color = "#0011aa" },
-            TestContext.CancellationToken);
-        Assert.AreEqual(RuleTagMutationOutcome.Success, updated.Outcome);
-        RuleTagItem renamed = updated.Inventory!.Tags.Single();
+        DataMutationResult updated = await host.Tags.UpdateAsync(tag.Id, "Prod", "#0011AA", TestContext.CancellationToken);
+        Assert.IsTrue(updated.IsSuccess);
+        RuleTagItem renamed = (await host.Tags.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual(tag.Id, renamed.Id);
         Assert.AreEqual("Prod", renamed.Name);
         Assert.AreEqual("#0011AA", renamed.Color);
@@ -167,53 +187,45 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
             TestContext.CancellationToken);
 
-        RuleTagMutationResult inUse = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
-        Assert.AreEqual(RuleTagMutationOutcome.InUse, inUse.Outcome);
+        DataMutationResult inUse = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationReferenceConflictError>(inUse.Error);
         Assert.AreEqual(1, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
 
         _ = await host.Metadata.UpdateAsync("sha256:live", new UpdateRuleMetadataRequest(), TestContext.CancellationToken);
-        RuleTagMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
+        DataMutationResult deleted = await host.Tags.DeleteAsync(tag.Id, TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleTagMutationOutcome.Success, deleted.Outcome);
-        Assert.IsEmpty(deleted.Inventory!.Tags);
+        Assert.IsTrue(deleted.IsSuccess);
+        Assert.IsEmpty(await host.Tags.GetAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.RuleTagRowCountAsync(TestContext.CancellationToken));
     }
 
-
     [TestMethod]
-    public async Task RuleGroups_NormalizeAndSupportEmptyGroupLifecycleAsync()
+    public async Task RuleGroups_SupportEmptyGroupLifecycleAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        RuleGroupMutationResult created = await host.Groups.CreateAsync(
-            new CreateRuleGroupRequest { Name = "  Platform  ", Comment = "  managed rules  " },
-            TestContext.CancellationToken);
+        DataMutationResult created = await host.Groups.CreateAsync("Platform", "managed rules", TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleGroupMutationOutcome.Success, created.Outcome);
-        RuleGroupItem group = created.Inventory!.Groups.Single();
+        Assert.IsTrue(created.IsSuccess);
+        RuleGroupItem group = (await host.Groups.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual('7', group.Id.ToString("D")[14]);
         Assert.AreEqual("Platform", group.Name);
         Assert.AreEqual("managed rules", group.Comment);
         Assert.IsEmpty(group.RuleIds);
 
-        RuleGroupMutationResult duplicate = await host.Groups.CreateAsync(
-            new CreateRuleGroupRequest { Name = "PLATFORM" },
-            TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.NameConflict, duplicate.Outcome);
+        DataMutationResult duplicate = await host.Groups.CreateAsync("PLATFORM", null, TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationUniqueConflictError>(duplicate.Error);
 
-        RuleGroupMutationResult updated = await host.Groups.UpdateAsync(
-            group.Id,
-            new UpdateRuleGroupRequest { Name = "Core", Comment = "  " },
-            TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.Success, updated.Outcome);
-        RuleGroupItem renamed = updated.Inventory!.Groups.Single();
+        DataMutationResult updated = await host.Groups.UpdateAsync(group.Id, "Core", null, TestContext.CancellationToken);
+        Assert.IsTrue(updated.IsSuccess);
+        RuleGroupItem renamed = (await host.Groups.GetAsync(TestContext.CancellationToken)).Single();
         Assert.AreEqual(group.Id, renamed.Id);
         Assert.AreEqual("Core", renamed.Name);
         Assert.IsNull(renamed.Comment);
 
-        RuleGroupMutationResult deleted = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.Success, deleted.Outcome);
-        Assert.IsEmpty(deleted.Inventory!.Groups);
+        DataMutationResult deleted = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
+        Assert.IsTrue(deleted.IsSuccess);
+        Assert.IsEmpty(await host.Groups.GetAsync(TestContext.CancellationToken));
         Assert.AreEqual(0, await host.RuleGroupRowCountAsync(TestContext.CancellationToken));
     }
 
@@ -225,23 +237,23 @@ public sealed class RuleMetadataServiceTests
         RuleGroupItem first = await host.CreateGroupAsync("First", null, TestContext.CancellationToken);
         RuleGroupItem second = await host.CreateGroupAsync("Second", "secondary", TestContext.CancellationToken);
 
-        RuleMetadataUpdateResult assigned = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> assigned = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest { GroupId = first.Id },
             TestContext.CancellationToken);
 
-        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, assigned.Outcome);
-        Assert.IsNotNull(assigned.Response?.Metadata?.Group);
-        Assert.AreEqual(first.Id, assigned.Response.Metadata.Group.Id);
-        Assert.IsNull(assigned.Response.Metadata.Notes);
-        Assert.IsEmpty(assigned.Response.Metadata.Tags);
+        Assert.IsTrue(assigned.IsSuccess);
+        Assert.IsNotNull(assigned.Value?.Metadata?.Group);
+        Assert.AreEqual(first.Id, assigned.Value.Metadata.Group.Id);
+        Assert.IsNull(assigned.Value.Metadata.Notes);
+        Assert.IsEmpty(assigned.Value.Metadata.Tags);
         Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
 
-        RuleMetadataUpdateResult unknown = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> unknown = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest { GroupId = Guid.CreateVersion7() },
             TestContext.CancellationToken);
-        Assert.AreEqual(RuleMetadataUpdateOutcome.GroupNotFound, unknown.Outcome);
+        Assert.IsInstanceOfType<RuleGroupNotFoundError>(unknown.Error);
 
         RuleInventoryResponse afterRejectedUpdate = await host.Inventory.GetAsync(TestContext.CancellationToken);
         RuleGroupSummary? effectiveGroup = afterRejectedUpdate.Metadata.Single().Group;
@@ -250,16 +262,16 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual("First", effectiveGroup.Name);
         Assert.IsNull(effectiveGroup.Comment);
 
-        RuleMetadataUpdateResult reassigned = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> reassigned = await host.Metadata.UpdateAsync(
             "sha256:live",
             new UpdateRuleMetadataRequest { GroupId = second.Id },
             TestContext.CancellationToken);
-        Assert.AreEqual(RuleMetadataUpdateOutcome.Success, reassigned.Outcome);
-        Assert.AreEqual(second.Id, reassigned.Response!.Metadata!.Group?.Id);
+        Assert.IsTrue(reassigned.IsSuccess);
+        Assert.AreEqual(second.Id, reassigned.Value!.Metadata!.Group?.Id);
 
-        RuleGroupInventoryResponse groups = await host.Groups.GetAsync(TestContext.CancellationToken);
-        Assert.IsEmpty(groups.Groups.Single(candidate => candidate.Id == first.Id).RuleIds);
-        CollectionAssert.AreEqual(new[] { "sha256:live" }, groups.Groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
+        IReadOnlyList<RuleGroupItem> groups = await host.Groups.GetAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(groups.Single(candidate => candidate.Id == first.Id).RuleIds);
+        CollectionAssert.AreEqual(new[] { "sha256:live" }, groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
     }
 
     [TestMethod]
@@ -271,10 +283,10 @@ public sealed class RuleMetadataServiceTests
         RuleMetadataItem metadata = (await host.Metadata.UpdateAsync(
             "sha256:orphan",
             new UpdateRuleMetadataRequest { GroupId = group.Id },
-            TestContext.CancellationToken)).Response!.Metadata!;
+            TestContext.CancellationToken)).Value!.Metadata!;
 
-        RuleGroupMutationResult inUse = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
-        Assert.AreEqual(RuleGroupMutationOutcome.InUse, inUse.Outcome);
+        DataMutationResult inUse = await host.Groups.DeleteAsync(group.Id, TestContext.CancellationToken);
+        Assert.IsInstanceOfType<DataMutationReferenceConflictError>(inUse.Error);
 
         host.SetRules();
         RuleMetadataReconciliationResponse cleaned = await host.Reconciliation.CleanupAsync(
@@ -283,8 +295,8 @@ public sealed class RuleMetadataServiceTests
 
         Assert.AreEqual(1, cleaned.RemovedCount);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
-        RuleGroupInventoryResponse groups = await host.Groups.GetAsync(TestContext.CancellationToken);
-        RuleGroupItem preserved = groups.Groups.Single();
+        IReadOnlyList<RuleGroupItem> groups = await host.Groups.GetAsync(TestContext.CancellationToken);
+        RuleGroupItem preserved = groups.Single();
         Assert.AreEqual(group.Id, preserved.Id);
         Assert.IsEmpty(preserved.RuleIds);
     }
@@ -321,15 +333,15 @@ public sealed class RuleMetadataServiceTests
         RuleMetadataItem reattached = (await host.Metadata.UpdateAsync(
             "sha256:reattached",
             new UpdateRuleMetadataRequest { Notes = "reattached" },
-            TestContext.CancellationToken)).Response!.Metadata!;
+            TestContext.CancellationToken)).Value!.Metadata!;
         RuleMetadataItem remove = (await host.Metadata.UpdateAsync(
             "sha256:remove",
             new UpdateRuleMetadataRequest { Notes = "remove" },
-            TestContext.CancellationToken)).Response!.Metadata!;
+            TestContext.CancellationToken)).Value!.Metadata!;
         RuleMetadataItem keep = (await host.Metadata.UpdateAsync(
             "sha256:keep",
             new UpdateRuleMetadataRequest { Notes = "keep" },
-            TestContext.CancellationToken)).Response!.Metadata!;
+            TestContext.CancellationToken)).Value!.Metadata!;
         host.SetRules();
 
         RuleMetadataReconciliationResponse discovered = await host.Reconciliation.GetAsync(TestContext.CancellationToken);
@@ -348,6 +360,58 @@ public sealed class RuleMetadataServiceTests
         RuleInventoryResponse inventory = await host.Inventory.GetAsync(TestContext.CancellationToken);
         Assert.HasCount(1, inventory.Metadata);
         Assert.AreEqual(reattached.Id, inventory.Metadata[0].Id);
+    }
+
+    [TestMethod]
+    public async Task BulkMetadataDeletes_ReportAffectedRowsAndCascadeTagRelationsAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:first", "sha256:second");
+        RuleTagItem tag = await host.CreateTagAsync("shared", "#112233", TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:first",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken);
+        _ = await host.Metadata.UpdateAsync(
+            "sha256:second",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken);
+
+        int removedCount = await host.MetadataDataAccess.DeleteForRuleIdsAsync(
+            ["sha256:first", "sha256:missing"],
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(1, removedCount);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(1, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
+        IReadOnlyList<RuleMetadataItem> remaining = await host.MetadataDataAccess.GetAllAsync(TestContext.CancellationToken);
+        Assert.AreEqual("sha256:second", remaining.Single().RuleId);
+    }
+
+    [TestMethod]
+    public async Task Reconciliation_CleanupSetDeleteReportsRowsAndCascadesTagRelationsAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetRules("sha256:live", "sha256:orphan");
+        RuleTagItem tag = await host.CreateTagAsync("shared", "#112233", TestContext.CancellationToken);
+        RuleMetadataItem live = (await host.Metadata.UpdateAsync(
+            "sha256:live",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken)).Value!.Metadata!;
+        RuleMetadataItem orphan = (await host.Metadata.UpdateAsync(
+            "sha256:orphan",
+            new UpdateRuleMetadataRequest { TagIds = [tag.Id] },
+            TestContext.CancellationToken)).Value!.Metadata!;
+        host.SetRules("sha256:live");
+
+        RuleMetadataReconciliationResponse cleaned = await host.Reconciliation.CleanupAsync(
+            new CleanupRuleMetadataRequest { MetadataIds = [live.Id, orphan.Id] },
+            TestContext.CancellationToken);
+
+        Assert.AreEqual(1, cleaned.RemovedCount);
+        Assert.IsEmpty(cleaned.Orphans);
+        Assert.AreEqual(1, await host.MetadataRowCountAsync(TestContext.CancellationToken));
+        Assert.AreEqual(1, await host.MetadataTagRowCountAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -413,15 +477,14 @@ public sealed class RuleMetadataServiceTests
         host.SetRules(originalRuleId);
         RuleTagItem tag = await host.CreateTagAsync("prod", "#112233", TestContext.CancellationToken);
         RuleGroupItem group = await host.CreateGroupAsync("platform", "managed", TestContext.CancellationToken);
-        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> saved = await host.Metadata.UpdateAsync(
             originalRuleId,
             new UpdateRuleMetadataRequest { Notes = "source", TagIds = [tag.Id], GroupId = group.Id },
             TestContext.CancellationToken);
-        Guid sourceMetadataId = saved.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+        Guid sourceMetadataId = saved.Value!.Metadata!.Id;
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(replacementRuleId);
@@ -446,15 +509,14 @@ public sealed class RuleMetadataServiceTests
         host.SetRules(originalRuleId);
         RuleTagItem tag = await host.CreateTagAsync("prod", "#112233", TestContext.CancellationToken);
         RuleGroupItem group = await host.CreateGroupAsync("platform", "managed", TestContext.CancellationToken);
-        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> saved = await host.Metadata.UpdateAsync(
             originalRuleId,
             new UpdateRuleMetadataRequest { Notes = "shared", TagIds = [tag.Id], GroupId = group.Id },
             TestContext.CancellationToken);
-        Guid originalMetadataId = saved.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, originalRuleId, replacementRuleId);
+        Guid originalMetadataId = saved.Value!.Metadata!.Id;
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: true);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(originalRuleId, replacementRuleId);
@@ -480,15 +542,14 @@ public sealed class RuleMetadataServiceTests
         commentUpdate.Comment = "updated";
         string ruleId = RuleIdentity.Compute(originalRule);
         host.SetRules(ruleId);
-        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> saved = await host.Metadata.UpdateAsync(
             ruleId,
             new UpdateRuleMetadataRequest { Notes = "keep" },
             TestContext.CancellationToken);
-        Guid metadataId = saved.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(ruleId, commentUpdate);
-        RuleReplacementResponse response = CompletedReplacement(ruleId, commentUpdate, ruleId);
+        Guid metadataId = saved.Value!.Metadata!.Id;
+        RuleReplacementReconciliationFacts facts = new(ruleId, ruleId, OriginalRuleStillLive: true);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
@@ -506,20 +567,19 @@ public sealed class RuleMetadataServiceTests
         string originalRuleId = RuleIdentity.Compute(originalRule);
         string replacementRuleId = RuleIdentity.Compute(replacementRule);
         host.SetRules(originalRuleId, replacementRuleId);
-        RuleMetadataUpdateResult staleTarget = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> staleTarget = await host.Metadata.UpdateAsync(
             replacementRuleId,
             new UpdateRuleMetadataRequest { Notes = "stale target" },
             TestContext.CancellationToken);
-        RuleMetadataUpdateResult source = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> source = await host.Metadata.UpdateAsync(
             originalRuleId,
             new UpdateRuleMetadataRequest { Notes = "source wins" },
             TestContext.CancellationToken);
-        Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
-        Guid sourceId = source.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+        Guid staleTargetId = staleTarget.Value!.Metadata!.Id;
+        Guid sourceId = source.Value!.Metadata!.Id;
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(replacementRuleId);
@@ -539,20 +599,19 @@ public sealed class RuleMetadataServiceTests
         string originalRuleId = RuleIdentity.Compute(originalRule);
         string replacementRuleId = RuleIdentity.Compute(replacementRule);
         host.SetRules(originalRuleId, replacementRuleId);
-        RuleMetadataUpdateResult staleTarget = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> staleTarget = await host.Metadata.UpdateAsync(
             replacementRuleId,
             new UpdateRuleMetadataRequest { Notes = "stale target" },
             TestContext.CancellationToken);
-        RuleMetadataUpdateResult source = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> source = await host.Metadata.UpdateAsync(
             originalRuleId,
             new UpdateRuleMetadataRequest { Notes = "source copy" },
             TestContext.CancellationToken);
-        Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
-        Guid sourceId = source.Response!.Metadata!.Id;
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, originalRuleId, replacementRuleId);
+        Guid staleTargetId = staleTarget.Value!.Metadata!.Id;
+        Guid sourceId = source.Value!.Metadata!.Id;
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: true);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         RuleMetadataItem[] metadata = [.. (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.OrderBy(static item => item.RuleId, StringComparer.Ordinal)];
@@ -579,41 +638,14 @@ public sealed class RuleMetadataServiceTests
             new UpdateRuleMetadataRequest { Notes = "must not resurrect" },
             TestContext.CancellationToken);
         host.SetRules(originalRuleId);
-        ReplaceRuleRequest request = ReplacementRequest(originalRuleId, replacementRule);
-        RuleReplacementResponse response = CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(request, response, TestContext.CancellationToken);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, outcome);
         host.SetRules(replacementRuleId);
         Assert.IsEmpty((await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata);
         Assert.AreEqual(0, await host.MetadataRowCountAsync(TestContext.CancellationToken));
-    }
-
-    [TestMethod]
-    public async Task ReconcileReplacement_NonCompletedFirewallOutcomeLeavesMetadataUntouchedAsync()
-    {
-        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
-        FirewallRuleSpecification originalRule = Rule("22");
-        FirewallRuleSpecification replacementRule = Rule("443");
-        string originalRuleId = RuleIdentity.Compute(originalRule);
-        host.SetRules(originalRuleId);
-        RuleMetadataUpdateResult saved = await host.Metadata.UpdateAsync(
-            originalRuleId,
-            new UpdateRuleMetadataRequest { Notes = "keep" },
-            TestContext.CancellationToken);
-        Guid metadataId = saved.Response!.Metadata!.Id;
-        RuleReplacementResponse response = new(RuleReplacementOutcome.PartiallyCompleted, null, null, RecoveryOutcome: null, Diagnostic: "partial");
-
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(
-            ReplacementRequest(originalRuleId, replacementRule),
-            response,
-            TestContext.CancellationToken);
-
-        Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.NotAttempted, outcome);
-        RuleMetadataItem metadata = (await host.Inventory.GetAsync(TestContext.CancellationToken)).Metadata.Single();
-        Assert.AreEqual(metadataId, metadata.Id);
-        Assert.AreEqual("keep", metadata.Notes);
     }
 
     [TestMethod]
@@ -625,16 +657,16 @@ public sealed class RuleMetadataServiceTests
         string originalRuleId = RuleIdentity.Compute(originalRule);
         string replacementRuleId = RuleIdentity.Compute(replacementRule);
         host.SetRules(originalRuleId, replacementRuleId);
-        RuleMetadataUpdateResult staleTarget = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> staleTarget = await host.Metadata.UpdateAsync(
             replacementRuleId,
             new UpdateRuleMetadataRequest { Notes = "stale target" },
             TestContext.CancellationToken);
-        RuleMetadataUpdateResult source = await host.Metadata.UpdateAsync(
+        DataMutationResult<RuleMetadataMutationResponse> source = await host.Metadata.UpdateAsync(
             originalRuleId,
             new UpdateRuleMetadataRequest { Notes = "source" },
             TestContext.CancellationToken);
-        Guid staleTargetId = staleTarget.Response!.Metadata!.Id;
-        Guid sourceId = source.Response!.Metadata!.Id;
+        Guid staleTargetId = staleTarget.Value!.Metadata!.Id;
+        Guid sourceId = source.Value!.Metadata!.Id;
         await host.ExecuteSqlAsync(
             $"""
             CREATE TRIGGER FailRuleMetadataReplacement
@@ -646,10 +678,8 @@ public sealed class RuleMetadataServiceTests
             """,
             TestContext.CancellationToken);
 
-        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(
-            ReplacementRequest(originalRuleId, replacementRule),
-            CompletedReplacement(replacementRuleId, replacementRule, replacementRuleId),
-            TestContext.CancellationToken);
+        RuleReplacementReconciliationFacts facts = new(originalRuleId, replacementRuleId, OriginalRuleStillLive: false);
+        RuleReplacementMetadataReconciliationOutcome outcome = await host.Metadata.ReconcileReplacementAsync(facts, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, outcome);
         Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
@@ -686,56 +716,6 @@ public sealed class RuleMetadataServiceTests
         DestinationPorts = destinationPort,
     };
 
-    private static ReplaceRuleRequest ReplacementRequest(string originalRuleId, FirewallRuleSpecification replacementRule)
-    {
-        ReplaceRulePayload payload = new()
-        {
-            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
-            TargetOccurrenceId = 0,
-            OriginalRuleId = originalRuleId,
-            ReplacementRule = replacementRule,
-        };
-        return new ReplaceRuleRequest
-        {
-            Version = IntentProtocol.VERSION,
-            DeploymentId = "deployment",
-            KeyId = "sha256:key",
-            IssuedAtUnix = 1,
-            Nonce = "nonce",
-            Operation = IntentOperations.REPLACE_RULE,
-            Payload = System.Text.Json.JsonSerializer.SerializeToElement(payload, MessageJsonSerializerContext.Default.ReplaceRulePayload),
-            Signature = "signature",
-        };
-    }
-
-    private static RuleReplacementResponse CompletedReplacement(string replacementRuleId, FirewallRuleSpecification replacementRule, params string[] finalRuleIds)
-    {
-        ListedFirewallRule replacement = new()
-        {
-            RuleId = replacementRuleId,
-            DisplayNumber = Array.IndexOf(finalRuleIds, replacementRuleId) + 1,
-            Parsed = true,
-            RawLine = replacementRuleId,
-            Rule = replacementRule,
-        };
-        ListedFirewallRule[] finalRules = [.. finalRuleIds.Select((ruleId, index) => string.Equals(ruleId, replacementRuleId, StringComparison.Ordinal)
-            ? new ListedFirewallRule
-            {
-                RuleId = replacement.RuleId,
-                DisplayNumber = index + 1,
-                Parsed = replacement.Parsed,
-                RawLine = replacement.RawLine,
-                Rule = replacement.Rule,
-            }
-            : Listed(ruleId, index + 1))];
-        return new RuleReplacementResponse(
-            RuleReplacementOutcome.Completed,
-            new RuleListResponse(true, finalRules, TestFirewallConfiguration.Enabled),
-            replacement,
-            RecoveryOutcome: null,
-            Diagnostic: null);
-    }
-
     private static ListedFirewallRule Listed(string ruleId, int displayNumber) => new()
     {
         RuleId = ruleId,
@@ -750,26 +730,28 @@ public sealed class RuleMetadataServiceTests
         private readonly SqliteConnection _connection;
         private readonly ServiceProvider _services;
         private readonly AsyncServiceScope _scope;
-        private readonly TestDaemonRuleSource _daemon;
+        private readonly TestRuleDaemonGateway _daemon;
         private readonly ApplicationDbContext _context;
 
         private TestHost(
             SqliteConnection connection,
             ServiceProvider services,
             AsyncServiceScope scope,
-            TestDaemonRuleSource daemon,
+            TestRuleDaemonGateway daemon,
             ApplicationDbContext context,
+            RuleMetadataDataAccess metadataDataAccess,
             RuleMetadataService metadata,
             RuleInventoryService inventory,
             RuleMetadataReconciliationService reconciliation,
-            RuleGroupService groups,
-            RuleTagService tags)
+            RuleGroupDataAccess groups,
+            RuleTagDataAccess tags)
         {
             _connection = connection;
             _services = services;
             _scope = scope;
             _daemon = daemon;
             _context = context;
+            MetadataDataAccess = metadataDataAccess;
             Metadata = metadata;
             Inventory = inventory;
             Reconciliation = reconciliation;
@@ -777,15 +759,17 @@ public sealed class RuleMetadataServiceTests
             Tags = tags;
         }
 
+        public RuleMetadataDataAccess MetadataDataAccess { get; }
+
         public RuleMetadataService Metadata { get; }
 
         public RuleInventoryService Inventory { get; }
 
         public RuleMetadataReconciliationService Reconciliation { get; }
 
-        public RuleGroupService Groups { get; }
+        public RuleGroupDataAccess Groups { get; }
 
-        public RuleTagService Tags { get; }
+        public RuleTagDataAccess Tags { get; }
 
         public static async Task<TestHost> CreateAsync(CancellationToken cancellationToken)
         {
@@ -803,17 +787,15 @@ public sealed class RuleMetadataServiceTests
             ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync(cancellationToken);
 
-            TestDaemonRuleSource daemon = new();
+            TestRuleDaemonGateway daemon = new();
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
-            RuleMetadataRepository metadataRepository = new(transactionHandle);
-            RuleGroupRepository groupRepository = new(transactionHandle);
-            RuleTagRepository tagRepository = new(transactionHandle);
-            RuleMetadataService metadata = new(daemon, metadataRepository, new RuleMetadataValuesNormalizer(), scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
+            RuleMetadataDataAccess metadataRepository = new(transactionHandle);
+            RuleGroupDataAccess groups = new(transactionHandle);
+            RuleTagDataAccess tags = new(transactionHandle);
+            RuleMetadataService metadata = new(daemon, metadataRepository, scope.ServiceProvider.GetRequiredService<ILogger<RuleMetadataService>>());
             RuleInventoryService inventory = new(daemon, metadataRepository, TimeProvider.System);
             RuleMetadataReconciliationService reconciliation = new(daemon, metadataRepository);
-            RuleGroupService groups = new(groupRepository);
-            RuleTagService tags = new(tagRepository);
-            return new TestHost(connection, serviceProvider, scope, daemon, context, metadata, inventory, reconciliation, groups, tags);
+            return new TestHost(connection, serviceProvider, scope, daemon, context, metadataRepository, metadata, inventory, reconciliation, groups, tags);
         }
 
         public void SetRules(params string[] ruleIds)
@@ -829,21 +811,21 @@ public sealed class RuleMetadataServiceTests
             _daemon.Response = new RuleListResponse(true, rules, TestFirewallConfiguration.Enabled);
         }
 
-
         public async Task<RuleGroupItem> CreateGroupAsync(string name, string? comment, CancellationToken cancellationToken)
         {
-            RuleGroupMutationResult result = await Groups.CreateAsync(new CreateRuleGroupRequest { Name = name, Comment = comment }, cancellationToken);
-            Assert.AreEqual(RuleGroupMutationOutcome.Success, result.Outcome);
-            Assert.IsNotNull(result.Inventory);
-            return result.Inventory.Groups.Single(group => string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+            string? normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+            DataMutationResult result = await Groups.CreateAsync(name.Trim(), normalizedComment, cancellationToken);
+            Assert.IsTrue(result.IsSuccess);
+            IReadOnlyList<RuleGroupItem> groups = await Groups.GetAsync(cancellationToken);
+            return groups.Single(group => string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public async Task<RuleTagItem> CreateTagAsync(string name, string color, CancellationToken cancellationToken)
         {
-            RuleTagMutationResult result = await Tags.CreateAsync(new CreateRuleTagRequest { Name = name, Color = color }, cancellationToken);
-            Assert.AreEqual(RuleTagMutationOutcome.Success, result.Outcome);
-            Assert.IsNotNull(result.Inventory);
-            return result.Inventory.Tags.Single(tag => string.Equals(tag.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+            DataMutationResult result = await Tags.CreateAsync(name.Trim(), color.Trim().ToUpperInvariant(), cancellationToken);
+            Assert.IsTrue(result.IsSuccess);
+            IReadOnlyList<RuleTagItem> tags = await Tags.GetAsync(cancellationToken);
+            return tags.Single(tag => string.Equals(tag.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public Task<int> ExecuteSqlAsync(string sql, CancellationToken cancellationToken) =>
@@ -861,6 +843,16 @@ public sealed class RuleMetadataServiceTests
             return await _context.Set<RuleMetadataTagEntry>().CountAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyDictionary<Guid, long>> MetadataTagRelationIdsAsync(string ruleId, CancellationToken cancellationToken)
+        {
+            _context.ChangeTracker.Clear();
+            Dictionary<Guid, long> relations = await _context.Set<RuleMetadataTagEntry>()
+                .AsNoTracking()
+                .Where(relation => relation.RuleMetadata.RuleId == ruleId)
+                .Select(static relation => new { relation.Tag.PublicId, relation.Id })
+                .ToDictionaryAsync(static relation => relation.PublicId, static relation => relation.Id, cancellationToken);
+            return relations;
+        }
 
         public async Task<int> RuleGroupRowCountAsync(CancellationToken cancellationToken)
         {
@@ -874,15 +866,27 @@ public sealed class RuleMetadataServiceTests
             return await _context.Set<RuleTagEntry>().CountAsync(cancellationToken);
         }
 
-        private sealed class TestDaemonRuleSource : IDaemonRuleSource
+        private sealed class TestRuleDaemonGateway : IRuleDaemonGateway
         {
             public RuleListResponse Response { get; set; } = new(true, [], TestFirewallConfiguration.Enabled);
 
-            public Task<RuleListResponse> GetAsync(CancellationToken cancellationToken = default)
+            public Task<DaemonResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken = default)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                return Task.FromResult(Response);
+                return Task.FromResult(DaemonResult.Success(Response));
             }
+
+            public Task<DaemonResult<RuleMutationResponse>> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<DaemonResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<DaemonResult<RuleReplacementExecutionResult>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<DaemonResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<DaemonResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+            public Task<DaemonResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         }
 
         public async ValueTask DisposeAsync()

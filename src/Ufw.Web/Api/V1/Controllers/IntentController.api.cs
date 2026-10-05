@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
@@ -18,6 +19,7 @@ public sealed partial class IntentController
     [HttpGet("context")]
     [ProducesResponseType<IntentContextResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<IntentContextResponse>> GetContextAsync(CancellationToken cancellationToken);
 }

@@ -288,7 +288,8 @@ public sealed partial class EditRule
             return;
         }
 
-        if (await SaveEditedMetadataAsync())
+        bool saved = await SaveEditedMetadataAsync();
+        if (saved)
         {
             Snackbar.Add(RulesText["RuleReplacementApplied"], Severity.Success);
             Navigation.NavigateTo("/rules");

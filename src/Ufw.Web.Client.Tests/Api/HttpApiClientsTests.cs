@@ -2,7 +2,6 @@
 using System.Text;
 using System.Text.Json;
 using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
@@ -21,6 +20,7 @@ using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Model.V1.RuleGroups;
 using Ufw.Web.Model.V1.RuleMetadata;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Client.Tests.Api;
@@ -484,7 +484,7 @@ public sealed class HttpApiClientsTests
         Content = new StringContent(json, Encoding.UTF8, "application/json"),
     };
 
-    private static AddRuleRequest AddRequest() => new()
+    private static AddRuleIntentRequest AddRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -494,7 +494,7 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
-    private static InsertRuleRequest InsertRequest() => new()
+    private static InsertRuleIntentRequest InsertRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -510,7 +510,7 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
-    private static ReplaceRuleRequest ReplaceRequest() => new()
+    private static ReplaceRuleIntentRequest ReplaceRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -526,7 +526,7 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
-    private static ReorderRulesRequest ReorderRequest() => new()
+    private static ReorderRulesIntentRequest ReorderRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -540,7 +540,7 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
-    private static BatchDeleteRulesRequest BatchDeleteRequest() => new()
+    private static BatchDeleteRulesIntentRequest BatchDeleteRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",
@@ -554,7 +554,7 @@ public sealed class HttpApiClientsTests
         Signature = "signature",
     };
 
-    private static DeleteRuleRequest DeleteRequest() => new()
+    private static DeleteRuleIntentRequest DeleteRequest() => new()
     {
         DeploymentId = "deployment",
         KeyId = "key-id",

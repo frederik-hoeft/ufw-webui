@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
@@ -24,13 +24,14 @@ public sealed partial class ManageRuleTagsDialog
     private string _color = string.Empty;
     private bool _loading;
     private bool _saving;
-    private bool _editing;
+
+    private bool Editing { get; set; }
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private bool IsBusy => _loading || _saving;
-    private bool IsCreating => _editing && _editingTag is null;
+    private bool IsCreating => Editing && _editingTag is null;
     private RuleTag PreviewTag => new(Guid.Empty, string.IsNullOrWhiteSpace(_name) ? "\u2026" : _name.Trim(), _color);
 
     protected override Task OnInitializedAsync() => RefreshAsync();
@@ -62,7 +63,7 @@ public sealed partial class ManageRuleTagsDialog
         _editingTag = null;
         _name = string.Empty;
         _color = TagColors.Generate();
-        _editing = true;
+        Editing = true;
     }
 
     private void BeginEdit(RuleTag tag)
@@ -74,14 +75,14 @@ public sealed partial class ManageRuleTagsDialog
         _editingTag = tag;
         _name = tag.Name;
         _color = tag.Color;
-        _editing = true;
+        Editing = true;
     }
 
     private void CancelEdit()
     {
         if (!_saving)
         {
-            _editing = false;
+            Editing = false;
             _editingTag = null;
         }
     }
@@ -109,10 +110,15 @@ public sealed partial class ManageRuleTagsDialog
         _error = null;
         try
         {
-            _tags = _editingTag is null
-                ? await TagCatalog.CreateAsync(name, color)
-                : await TagCatalog.UpdateAsync(_editingTag.Id, name, color);
-            _editing = false;
+            if (_editingTag is null)
+            {
+                _tags = await TagCatalog.CreateAsync(name, color);
+            }
+            else
+            {
+                _tags = await TagCatalog.UpdateAsync(_editingTag.Id, name, color);
+            }
+            Editing = false;
             _editingTag = null;
             Snackbar.Add(RulesText["TagSaved"], Severity.Success);
         }
@@ -137,7 +143,8 @@ public sealed partial class ManageRuleTagsDialog
         DialogParameters<DeleteRuleTagDialog> parameters = [];
         parameters.Add(component => component.Tag, tag);
         IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleTagDialog>(RulesText["DeleteTag"], parameters, s_deleteDialogOptions);
-        if (await dialog.GetReturnValueAsync<bool?>() != true)
+        bool? confirmed = await dialog.GetReturnValueAsync<bool?>();
+        if (confirmed != true)
         {
             return;
         }

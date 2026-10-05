@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.UI.Components.Rules;
+﻿namespace Ufw.Web.Client.UI.Components.Rules;
 
 internal sealed record RuleMatchTextSnippet(string Prefix, string Match, string Suffix, bool HasLeadingEllipsis, bool HasTrailingEllipsis)
 {

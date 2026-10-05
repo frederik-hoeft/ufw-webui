@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -29,7 +29,8 @@ internal static class FirewallRuleSnapshotReadResultExtensions
     public static async Task<RuleListResponse?> OrDefaultAsync(this Task<FirewallRuleSnapshotReadResult> resultTask)
     {
         ArgumentNullException.ThrowIfNull(resultTask);
-        return (await resultTask).OrDefault();
+        FirewallRuleSnapshotReadResult result = await resultTask;
+        return result.OrDefault();
     }
 
     public static IResponsePayload ToResponsePayload(this FirewallRuleSnapshotReadResult result) =>
@@ -40,11 +41,11 @@ internal static class FirewallRuleSnapshotReadResultExtensions
         [NotNullWhen(true)] out RuleListResponse? snapshot,
         [NotNullWhen(false)] out IResponsePayload? error)
     {
-        (bool HasSnapshot, RuleListResponse? Snapshot, IResponsePayload? Error) projection = result.Match<(bool, RuleListResponse?, IResponsePayload?)>(
+        (bool HasSnapshot, RuleListResponse? Snapshot, IResponsePayload? Error) = result.Match<(bool, RuleListResponse?, IResponsePayload?)>(
             static snapshot => (true, snapshot, null),
             static error => (false, null, error));
-        snapshot = projection.Snapshot;
-        error = projection.Error;
-        return projection.HasSnapshot;
+        snapshot = Snapshot;
+        error = Error;
+        return HasSnapshot;
     }
 }

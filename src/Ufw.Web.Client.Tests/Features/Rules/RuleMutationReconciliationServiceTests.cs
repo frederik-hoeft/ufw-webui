@@ -1,7 +1,7 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.Features.Rules.Insertion;
 using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Insertion;
 
 namespace Ufw.Web.Client.Tests.Features.Rules;
 

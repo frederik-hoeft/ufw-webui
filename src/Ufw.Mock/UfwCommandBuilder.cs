@@ -3,14 +3,9 @@ using Ufw.Mock.Commands;
 
 namespace Ufw.Mock;
 
-internal sealed class UfwCommandBuilder
+internal sealed class UfwCommandBuilder(ConsoleApp.ConsoleAppBuilder builder)
 {
-    private readonly ConsoleApp.ConsoleAppBuilder _builder;
-
-    public UfwCommandBuilder(ConsoleApp.ConsoleAppBuilder builder)
-    {
-        _builder = builder;
-    }
+    private readonly ConsoleApp.ConsoleAppBuilder _builder = builder;
 
     public UfwCommandBuilder Add<T>()
     {

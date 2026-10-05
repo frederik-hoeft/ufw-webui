@@ -1,4 +1,4 @@
-using Ufw.Web.Model.V1.RuleTags;
+﻿using Ufw.Web.Model.V1.RuleTags;
 
 namespace Ufw.Web.Client.Api.RuleTags;
 

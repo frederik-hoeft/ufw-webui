@@ -31,7 +31,6 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         Assert.IsEmpty(preflight.ImmutableOccurrences);
     }
 
-
     [TestMethod]
     public void Evaluate_InvalidOccurrencePermutation_ReturnsExplicitPreconditionRejection()
     {
@@ -83,7 +82,6 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         Assert.IsEmpty(pending);
     }
 
-
     [TestMethod]
     public void CreateSafePendingPlan_ImmutableAnchorsChangedOrder_ReturnsEmptyPlan()
     {
@@ -114,20 +112,20 @@ public sealed class FirewallReorderPreflightEvaluatorTests
 
     private static RuleListResponse Snapshot(params string[] ports)
     {
-        string[] rows = ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere").ToArray();
+        string[] rows = [.. ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")];
         return FirewallRuleSet.ToListResponse(UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!, TestFirewallConfiguration.Enabled);
     }
 
     private static RuleListResponse SnapshotTokens(params string[] tokens)
     {
-        string[] rows = tokens.Select(static (token, index) =>
+        string[] rows = [.. tokens.Select(static (token, index) =>
         {
             bool v6 = token.EndsWith("v6", StringComparison.Ordinal);
             string port = v6 ? token[..^2] : token;
             return v6
                 ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
                 : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
-        }).ToArray();
+        })];
         return FirewallRuleSet.ToListResponse(UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!, TestFirewallConfiguration.Enabled);
     }
 }

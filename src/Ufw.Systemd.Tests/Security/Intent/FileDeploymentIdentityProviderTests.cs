@@ -43,7 +43,7 @@ public sealed class FileDeploymentIdentityProviderTests
         try
         {
             FileDeploymentIdentityProvider provider = new(configuration, new DurableFileStore());
-            Assert.ThrowsExactly<InvalidDataException>(() => provider.GetDeploymentId());
+            Assert.ThrowsExactly<InvalidDataException>(provider.GetDeploymentId);
         }
         finally
         {

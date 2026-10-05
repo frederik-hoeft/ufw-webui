@@ -1,7 +1,8 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -15,9 +16,6 @@ using Ufw.Web.Data;
 using Ufw.Web.Security;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Services.ErrorHandling;
-using Ufw.Web.Services.KnownHosts;
-using Ufw.Web.Services.NetworkInterfaces;
-using Ufw.Web.Services.Rules;
 using Wkg.AspNetCore.Configuration;
 using Wkg.AspNetCore.ErrorHandling;
 using Wkg.AspNetCore.Transactions;
@@ -71,32 +69,7 @@ internal sealed class Startup : IAsyncStartupScript
             .Validate(static options => options.IsValid(), "Authentication bootstrap user configuration is invalid or contains duplicate identities.")
             .ValidateOnStart();
 
-        services.AddSingleton<IJwtSigningKeyProvider, ECDsaJwtSigningKeyProvider>();
-        services.AddSingleton(TimeProvider.System);
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-        services.AddScoped<IAuthenticationFlowService, AuthenticationFlowService>();
-        services.AddScoped<AuthenticationBootstrapService>();
-        services.AddSingleton<IAuthenticationTimingService, PasswordHashAuthenticationTimingService>();
-        services.AddScoped<IKnownHostRepository, KnownHostRepository>();
-        services.AddSingleton<IKnownHostDnsResolver, KnownHostDnsResolver>();
-        services.AddScoped<IKnownHostService, KnownHostService>();
-        services.AddScoped<IDaemonNetworkInterfaceSource, DaemonNetworkInterfaceSource>();
-        services.AddScoped<INetworkInterfaceInventoryRepository, NetworkInterfaceInventoryRepository>();
-        services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
-        services.AddScoped<INetworkInterfaceInventoryService, NetworkInterfaceInventoryService>();
-        services.AddScoped<IDaemonRuleSource, DaemonRuleSource>();
-        services.AddScoped<IRuleMetadataRepository, RuleMetadataRepository>();
-        services.AddSingleton<IRuleMetadataValuesNormalizer, RuleMetadataValuesNormalizer>();
-        services.AddScoped<IRuleGroupRepository, RuleGroupRepository>();
-        services.AddScoped<IRuleTagRepository, RuleTagRepository>();
-        services.AddScoped<IRuleTemplateRepository, RuleTemplateRepository>();
-        services.AddScoped<IRuleInventoryService, RuleInventoryService>();
-        services.AddScoped<IRuleMetadataService, RuleMetadataService>();
-        services.AddScoped<IRuleMetadataReconciliationService, RuleMetadataReconciliationService>();
-        services.AddScoped<IRuleGroupService, RuleGroupService>();
-        services.AddScoped<IRuleTagService, RuleTagService>();
-        services.AddScoped<IRuleTemplateService, RuleTemplateService>();
+        services.AddApplicationServices();
 
         services.AddAuthentication(options =>
         {
@@ -137,7 +110,17 @@ internal sealed class Startup : IAsyncStartupScript
             options.Cookie.Path = "/";
         });
         services.AddProblemDetails();
-        services.AddControllers();
+        services.Configure<ApiBehaviorOptions>(options => options.InvalidModelStateResponseFactory = context =>
+            new BadRequestObjectResult(ApiProblemDetailsFactory.CreateValidation(context.ModelState)));
+        services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
+        services.AddSingleton<DaemonApiExceptionFilter>();
+        services.AddSingleton<SignedIntentValidationFilter>();
+        services.AddControllers(options =>
+        {
+            // Preserve structured signed-request validation details before ApiController performs its automatic ModelState short-circuit.
+            options.Filters.AddService<SignedIntentValidationFilter>(int.MinValue);
+            options.Filters.AddService<DaemonApiExceptionFilter>();
+        });
         services.AddApiVersioning(options =>
             {
                 options.ReportApiVersions = true;
@@ -166,11 +149,6 @@ internal sealed class Startup : IAsyncStartupScript
                 .AllowAnyMethod()
                 .AllowCredentials();
         }));
-
-        services.AddOptions<IpcClientOptions>()
-            .Bind(configuration.GetSection(IpcClientOptions.SECTION_NAME))
-            .Validate(static options => options.IsValid(), "IPC endpoint/TLS configuration is invalid.")
-            .ValidateOnStart();
 
         IpcClientOptions ipcOptions = configuration.GetSection(IpcClientOptions.SECTION_NAME).Get<IpcClientOptions>()
             ?? throw new InvalidOperationException("IPC endpoint configuration 'IpcOptions' was not found.");

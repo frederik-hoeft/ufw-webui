@@ -1,8 +1,9 @@
 ﻿using MudBlazor;
-using Ufw.Web.Client.UI.Components.Hosts;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.Services.Errors;
+using Ufw.Web.Client.UI.Components.Hosts;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Pages;
 
@@ -107,7 +108,8 @@ public sealed partial class KnownHostsPage
             return;
         }
 
-        if (await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken)))
+        bool saved = await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken));
+        if (saved)
         {
             Snackbar.Add(HostsText["DnsReconciled", host.Name], Severity.Success);
         }
@@ -120,8 +122,10 @@ public sealed partial class KnownHostsPage
             return;
         }
 
-        DialogParameters<DeleteKnownHostDialog> parameters = new();
-        parameters.Add(component => component.Host, host);
+        DialogParameters<DeleteKnownHostDialog> parameters = new()
+        {
+            { component => component.Host, host }
+        };
         IDialogReference dialog = await DialogService.ShowAsync<DeleteKnownHostDialog>(HostsText["DeleteDialogTitle"], parameters, s_deleteDialogOptions);
         bool? confirmed = await dialog.GetReturnValueAsync<bool>();
         if (confirmed != true)

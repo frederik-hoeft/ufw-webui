@@ -1,3 +1,4 @@
+﻿using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleGroups;
 using Ufw.Web.Model.V1.RuleGroups;
@@ -12,7 +13,8 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
 
     public async Task<IReadOnlyList<RuleGroup>> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        RuleGroupInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
@@ -42,7 +44,8 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
 
     public async Task<IReadOnlyList<RuleGroup>> DeleteAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.DeleteAsync(groupId, cancellationToken));
+        RuleGroupInventoryResponse response = await apiClient.DeleteAsync(groupId, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }

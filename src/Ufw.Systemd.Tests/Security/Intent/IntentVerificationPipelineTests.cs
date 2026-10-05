@@ -1,5 +1,5 @@
-﻿using System.Security.Cryptography;
-using Moq;
+﻿using Moq;
+using System.Security.Cryptography;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses;
@@ -56,7 +56,6 @@ public sealed class IntentVerificationPipelineTests
         binder.Verify(item => item.Bind(request), Times.Once);
         keys.VerifyNoOtherCalls();
     }
-
 
     [TestMethod]
     [DataRow((int)AuthorizedKeyVerificationResult.UnknownKey, "Intent was not signed by an authorized key.")]

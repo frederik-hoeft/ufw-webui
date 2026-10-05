@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api;
@@ -72,10 +72,9 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
             throw new InvalidOperationException("Every stored group membership must resolve against the current firewall snapshot before batch deletion.");
         }
 
-        HashSet<int> previewOccurrenceIds = projection.Members
+        HashSet<int> previewOccurrenceIds = [.. projection.Members
             .SelectMany(static member => member.Occurrences)
-            .Select(static occurrence => occurrence.OccurrenceId)
-            .ToHashSet();
+            .Select(static occurrence => occurrence.OccurrenceId)];
         if (!previewOccurrenceIds.SetEquals(occurrenceIds))
         {
             throw new InvalidOperationException("The confirmed group member preview no longer matches the current firewall snapshot.");

@@ -12,7 +12,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
 
     public bool CanHandle(IResponseMessage message) => message.StatusCode == 400;
 
-    public async ValueTask<TResult> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>
+    public async ValueTask<UfwIpcResult<TResult>> TryHandleAsync<TResult>(IResponseMessage message, CancellationToken cancellationToken) where TResult : IEquatable<TResult>
     {
         if (message.PayloadType == ApplicationPayloadTypes.VALIDATION_ERROR)
         {
@@ -22,14 +22,14 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
                 throw new InvalidDataException($"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but did not contain validation errors.");
             }
 
-            throw new UfwIpcException(message.StatusCode, validationErrorResponse.Message, validationErrorResponse.Errors);
+            return UfwIpcResult<TResult>.Failure(new UfwIpcError(message.StatusCode, validationErrorResponse.Message, validationErrorResponse.Errors));
         }
 
         if (message.PayloadType == ApplicationPayloadTypes.ERROR)
         {
             ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
             _ = errorResponse ?? throw new InvalidDataException($"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but the body was empty.");
-            throw new UfwIpcException(message.StatusCode, errorResponse.Message);
+            return UfwIpcResult<TResult>.Failure(new UfwIpcError(message.StatusCode, errorResponse.Message));
         }
 
         throw new InvalidDataException($"Response '{message.StatusCode}' has unsupported payloadType '{message.PayloadType}' for a 400 response.");

@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
@@ -162,7 +162,7 @@ public sealed class FirewallBatchDeleteExecutorTests
 
     private static UfwStatusSnapshot Snapshot(params string[] ports)
     {
-        string[] rows = ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere").ToArray();
+        string[] rows = [.. ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
@@ -214,7 +214,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         private UfwProcessResult Execute(IUfwCommand command)
         {
             ImmutableArray<string> arguments = command.BuildArguments();
-            Commands.Add(arguments.ToArray());
+            Commands.Add([.. arguments]);
             ProcessBehavior behavior = _processes.Count > 0 ? _processes.Dequeue() : new ProcessBehavior(0, string.Empty, false, null);
             if (behavior.Exception is not null)
             {

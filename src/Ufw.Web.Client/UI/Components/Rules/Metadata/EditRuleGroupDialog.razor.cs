@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
@@ -13,7 +13,6 @@ public sealed partial class EditRuleGroupDialog
     private ClientError? _error;
     private string _name = string.Empty;
     private string? _comment;
-    private bool _saving;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
@@ -21,7 +20,9 @@ public sealed partial class EditRuleGroupDialog
     [Parameter]
     public RuleGroup? Group { get; set; }
 
-    private bool CanSave => !_saving && _name.Trim().Length is > 0 and <= MAX_GROUP_NAME_LENGTH && (_comment?.Trim().Length ?? 0) <= MAX_GROUP_COMMENT_LENGTH;
+    private bool CanSave => !Saving && _name.Trim().Length is > 0 and <= MAX_GROUP_NAME_LENGTH && (_comment?.Trim().Length ?? 0) <= MAX_GROUP_COMMENT_LENGTH;
+
+    public bool Saving { get; set; }
 
     protected override void OnInitialized()
     {
@@ -39,7 +40,7 @@ public sealed partial class EditRuleGroupDialog
             return;
         }
 
-        _saving = true;
+        Saving = true;
         _error = null;
         try
         {
@@ -61,7 +62,7 @@ public sealed partial class EditRuleGroupDialog
         }
         finally
         {
-            _saving = false;
+            Saving = false;
         }
     }
 

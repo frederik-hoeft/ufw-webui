@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -10,6 +9,7 @@ using System.Security.Claims;
 using Ufw.Web.Api.V1.Controllers;
 using Ufw.Web.Configuration;
 using Ufw.Web.Model.V1.Auth;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Security;
 using Ufw.Web.Services.Auth;
 
@@ -103,7 +103,7 @@ public sealed class AuthControllerTests
         AccessToken accessToken = new("replacement-access", DateTimeOffset.UtcNow.AddMinutes(5));
         AuthenticationTokenResult tokens = new(accessToken, "replacement-refresh", DateTimeOffset.UtcNow.AddDays(1));
         authentication.Setup(service => service.ChangePasswordAsync("user-id", "current", "replacement", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PasswordChangeResult(IdentityResult.Success, tokens));
+            .ReturnsAsync(new PasswordChangeResult([], tokens));
         AuthController controller = CreateController(authentication.Object);
         controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, "user-id")], "test"));
 
@@ -113,6 +113,35 @@ public sealed class AuthControllerTests
         AuthTokenResponse response = Assert.IsInstanceOfType<AuthTokenResponse>(ok.Value);
         Assert.AreEqual("replacement-access", response.AccessToken);
         StringAssert.Contains(AssertSingleRefreshCookie(controller), "replacement-refresh", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public async Task ChangePasswordAsync_WhenValidationFails_MapsValidationFieldsAsync()
+    {
+        Mock<IAuthenticationFlowService> authentication = new();
+        PasswordChangeValidationError[] validationErrors =
+        [
+            new(PasswordChangeValidationField.CurrentPassword, "Current password is incorrect."),
+            new(PasswordChangeValidationField.NewPassword, "Replacement password is too short."),
+        ];
+        authentication.Setup(service => service.ChangePasswordAsync("user-id", "current", "replacement", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PasswordChangeResult(validationErrors, Authentication: null));
+        AuthController controller = CreateController(authentication.Object);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, "user-id")], "test"));
+
+        IActionResult result = await controller.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), TestContext.CancellationToken);
+
+        ObjectResult problemResult = Assert.IsInstanceOfType<ObjectResult>(result);
+        ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(problemResult.Value);
+        IReadOnlyList<ApiValidationError> errors = Assert.IsInstanceOfType<IReadOnlyList<ApiValidationError>>(
+            problem.Extensions[ApiProblemDetails.VALIDATION_ERRORS_PROPERTY]);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new ApiValidationError(nameof(ChangePasswordRequest.CurrentPassword), Code: null, "Current password is incorrect."),
+                new ApiValidationError(nameof(ChangePasswordRequest.NewPassword), Code: null, "Replacement password is too short."),
+            },
+            errors.ToArray());
     }
 
     [TestMethod]
@@ -142,7 +171,7 @@ public sealed class AuthControllerTests
 
     private static string AssertSingleRefreshCookie(AuthController controller)
     {
-        string?[] setCookies = controller.Response.Headers.SetCookie.ToArray();
+        string?[] setCookies = [.. controller.Response.Headers.SetCookie];
         Assert.HasCount(1, setCookies);
         string setCookie = setCookies[0] ?? throw new AssertFailedException("Refresh-token cookie header was null.");
         StringAssert.StartsWith(setCookie, $"{COOKIE_NAME}=", StringComparison.Ordinal);

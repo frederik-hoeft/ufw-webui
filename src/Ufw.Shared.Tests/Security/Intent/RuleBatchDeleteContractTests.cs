@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Security.Intent;
 
 namespace Ufw.Shared.Tests.Security.Intent;

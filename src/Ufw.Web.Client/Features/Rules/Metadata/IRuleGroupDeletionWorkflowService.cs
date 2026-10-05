@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 
 namespace Ufw.Web.Client.Features.Rules.Metadata;
 

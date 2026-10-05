@@ -1,47 +1,40 @@
-using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Model.V1.Rules;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Services.Daemon;
 
 namespace Ufw.Web.Services.Rules;
 
-internal sealed class RuleMetadataReconciliationService(IDaemonRuleSource daemonRules, IRuleMetadataRepository repository) : IRuleMetadataReconciliationService
+internal sealed class RuleMetadataReconciliationService(IRuleDaemonGateway daemonRules, IRuleMetadataDataAccess metadata) : IRuleMetadataReconciliationService
 {
     public async Task<RuleMetadataReconciliationResponse> GetAsync(CancellationToken cancellationToken = default)
     {
-        RuleListResponse snapshot = await daemonRules.GetAsync(cancellationToken);
-        IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);
-        return BuildResponse(snapshot, metadata, removedCount: 0);
+        DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = daemonResult.Result;
+        IReadOnlyList<RuleMetadataItem> items = await metadata.GetAllAsync(cancellationToken);
+        return BuildResponse(snapshot, items, removedCount: 0);
     }
 
     public async Task<RuleMetadataReconciliationResponse> CleanupAsync(CleanupRuleMetadataRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.MetadataIds is null || request.MetadataIds.Count == 0 || request.MetadataIds.Any(static id => id == Guid.Empty))
-        {
-            throw new ArgumentException("At least one valid metadata identity is required.", nameof(request));
-        }
-
         Guid[] selectedIds = [.. request.MetadataIds.Distinct().Order()];
-        RuleListResponse snapshot = await daemonRules.GetAsync(cancellationToken);
-        string[] liveRuleIds = GetLiveRuleIds(snapshot);
-        int removedCount = await repository.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
-        IReadOnlyList<RuleMetadataItem> metadata = await repository.GetAllAsync(cancellationToken);
-        return BuildResponse(snapshot, metadata, removedCount);
+        DaemonResult<RuleListResponse> daemonResult = await daemonRules.GetRulesAsync(cancellationToken);
+        RuleListResponse snapshot = daemonResult.Result;
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(snapshot);
+        int removedCount = await metadata.DeleteUnmatchedAsync(selectedIds, liveRuleIds, cancellationToken);
+        IReadOnlyList<RuleMetadataItem> items = await metadata.GetAllAsync(cancellationToken);
+        return BuildResponse(snapshot, items, removedCount);
     }
 
     private static RuleMetadataReconciliationResponse BuildResponse(RuleListResponse snapshot, IReadOnlyList<RuleMetadataItem> metadata, int removedCount)
     {
-        HashSet<string> liveRuleIds = GetLiveRuleIds(snapshot).ToHashSet(StringComparer.Ordinal);
+        LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(snapshot);
         RuleMetadataItem[] orphans = [.. metadata
             .Where(item => !liveRuleIds.Contains(item.RuleId))
             .OrderBy(static item => item.RuleId, StringComparer.Ordinal)
             .ThenBy(static item => item.Id)];
         return new RuleMetadataReconciliationResponse { Orphans = orphans, RemovedCount = removedCount };
     }
-
-    private static string[] GetLiveRuleIds(RuleListResponse snapshot) => [.. snapshot.Rules
-        .Select(static rule => rule.RuleId)
-        .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
-        .Cast<string>()
-        .Distinct(StringComparer.Ordinal)];
 }

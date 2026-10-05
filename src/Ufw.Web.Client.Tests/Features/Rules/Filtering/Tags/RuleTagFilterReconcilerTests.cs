@@ -1,7 +1,7 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Tags;
-using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Metadata;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Filtering.Tags;

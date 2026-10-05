@@ -8,6 +8,7 @@
 		<AnalyzerLanguage>cs</AnalyzerLanguage>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<BuildOutputTargetFolder>analyzers</BuildOutputTargetFolder>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
 		<!-- this is a development dependency -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>

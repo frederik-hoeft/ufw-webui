@@ -399,6 +399,8 @@ Give the error mapper a filter-friendly `CanDescribe(Exception)` if that is the 
 
 Also remove the unused parameter from `ClientErrorMapper.DescribeProtocolError` if it remains unnecessary.
 
+**W-phase compatibility note:** `HttpResponseMessageExtensions` intentionally retains the `LegacyApiErrorMessage` / `{ message }` fallback while Web and client work can be migrated independently and the W-phase acceptance gate is still pending. The finalized Web contract is ProblemDetails-based after W2.7; remove the legacy parser and its source-generation/test plumbing during the client error-handling cleanup once the client phase can rely on that finalized contract.
+
 ### KZ-12: Stop localizing validator failures by exact English error text
 
 **Where**
@@ -411,7 +413,11 @@ The localizer keys a dictionary by exact English strings emitted by the shared v
 
 **Refactor**
 
-Have shared validation return a stable validation code/enum plus field/context, and localize by code in the client. Keep the English diagnostic message only as fallback/debug text if useful.
+S1 has completed the provider-side dependency: shared firewall validation now returns a stable open string code alongside the field and human-readable diagnostic, current producers populate that code, and older application-v1 payloads without a code remain readable.
+
+C1 should switch `RuleValidationMessageLocalizer` to key resources by the stable code and keep the English diagnostic only as fallback/debug text. Do not redefine the shared code vocabulary in the client.
+
+W2.7.1 completed the browser-visible transport dependency as well: the public ProblemDetails contract carries structured validation entries with the stable code, and `ApiRequestException.ValidationErrors` preserves them instead of flattening them to message text. C1 therefore does not need another HTTP parsing change before switching localization to the shared code.
 
 ### KZ-13: Reclassify non-isolated component SCSS and extract generic menu/control styles
 
@@ -532,6 +538,36 @@ Known-host refresh failures are effectively reduced to an empty/current fallback
 
 Return explicit load results/warnings for both reference-data sources and let `RuleEditor` decide how to present degraded authoring data. This also provides a natural place to remove repeated error-classification boilerplate.
 
+### KZ-24: Integrate stale network-interface metadata into the cleanup workflow
+
+**Where**
+
+- `UI/Pages/RuleMetadataManagement.razor(.cs)`
+- `UI/Components/Rules/Metadata/ReconcileRuleMetadataDialog.razor(.cs)`
+- `Features/NetworkInterfaces/NetworkInterfaceInventoryService.cs`
+- `Api/NetworkInterfaces/*`
+- interface/rule metadata localization resources
+
+**Problem**
+
+WEB KZ-13 is complete in W2.4: a temporarily missing daemon interface retains its application-owned public identity, comment, and visibility in a non-present row, while normal interface inventory remains present-only. The server exposes retained candidates via `GET /api/v1/network-interfaces/stale` and race-safe permanent cleanup via `POST /api/v1/network-interfaces/stale/cleanup`; cleanup revalidates daemon presence before hard deletion. The client already has an analogous rule-metadata reconciliation flow with refresh, selectable orphan rows, confirmation, and bulk cleanup, but that flow is currently rule-metadata-specific.
+
+**Refactor**
+
+Extend the management cleanup experience to surface stale network-interface metadata alongside orphaned rule metadata without forcing both domains into one REST DTO. Reuse the existing cleanup interaction pattern and the dialog/operation primitives produced by KZ-10/KZ-14. Show enough retained interface context to make deletion reviewable (at minimum name, comment, and visibility), allow selected stale rows to be permanently purged, and refresh candidates after cleanup. Interfaces that have reappeared must disappear from the stale candidate set and must not be deletable through a stale cleanup race.
+
+The normal `/interfaces` inventory and rule-editor reference data should continue to contain only currently present interfaces. The cleanup UI is management of retained application state, not another way to select stale interfaces for authoring.
+
+**Acceptance criteria**
+
+- stale interface metadata can be inspected and selectively purged from the same management cleanup flow/pattern used for orphaned rule metadata;
+- rule-metadata and interface cleanup may use separate API contracts/services underneath; presentation reuse must not create a generic cross-domain repository/API abstraction;
+- reappeared interfaces preserve their identity/metadata and are no longer cleanup candidates;
+- cleanup revalidates authoritative daemon presence and cannot delete an interface that became present after the candidate list was loaded;
+- localization and confirmation/selection behavior are covered alongside the existing cleanup UI.
+
+**Sequencing:** implement after KZ-10 and KZ-14 have established the shared inventory-operation and confirmation/dialog primitives, so this feature does not create another temporary cleanup shell.
+
 ---
 
 ## P3 findings
@@ -645,6 +681,7 @@ This wave deliberately attacks logic that can diverge semantically before moving
 2. KZ-13 SCSS ownership classification and menu primitive.
 3. KZ-14 dialog options/confirmation shell.
 4. KZ-10 inventory page shell/state cleanup.
+5. KZ-24 stale interface metadata cleanup integration.
 
 ### Wave 4: low-risk consolidation
 

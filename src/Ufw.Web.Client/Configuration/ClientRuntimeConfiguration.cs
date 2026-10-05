@@ -1,4 +1,4 @@
-using Ufw.Shared.Web;
+﻿using Ufw.Shared.Web;
 
 namespace Ufw.Web.Client.Configuration;
 

@@ -4,12 +4,10 @@ namespace Ufw.Web.Client.UI.Components.Rules.Filtering;
 
 internal sealed class RuleFilterCatalog : IRuleFilterCatalog
 {
-    private readonly IReadOnlyList<RuleFilterDefinition> _definitions;
-
     public RuleFilterCatalog(IEnumerable<IRuleFilterDefinitionProvider> providers)
     {
         ArgumentNullException.ThrowIfNull(providers);
-        RuleFilterDefinition[] definitions = providers.SelectMany(static provider => provider.Definitions).ToArray();
+        RuleFilterDefinition[] definitions = [.. providers.SelectMany(static provider => provider.Definitions)];
         string? duplicateKey = definitions
             .GroupBy(static definition => definition.Key, StringComparer.Ordinal)
             .FirstOrDefault(static group => group.Count() > 1)
@@ -23,15 +21,15 @@ internal sealed class RuleFilterCatalog : IRuleFilterCatalog
             throw new InvalidOperationException("Every rule filter UI definition must reference an IRuleFilterEditor component.");
         }
 
-        _definitions = definitions;
+        Definitions = definitions;
     }
 
-    public IReadOnlyList<RuleFilterDefinition> Definitions => _definitions;
+    public IReadOnlyList<RuleFilterDefinition> Definitions { get; }
 
     public RuleFilterDefinition Resolve(RuleFilter filter)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        RuleFilterDefinition[] matches = _definitions.Where(definition => definition.Matches(filter)).ToArray();
+        RuleFilterDefinition[] matches = [.. Definitions.Where(definition => definition.Matches(filter))];
         return matches.Length switch
         {
             1 => matches[0],

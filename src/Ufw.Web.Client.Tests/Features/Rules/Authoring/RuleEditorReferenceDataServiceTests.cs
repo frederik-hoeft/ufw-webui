@@ -1,14 +1,15 @@
 ﻿using Moq;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Model.V1.KnownHosts;
-using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Features.Rules.Authoring;
 using Ufw.Web.Client.Services.Errors;
-
+using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 namespace Ufw.Web.Client.Tests.Features.Rules.Authoring;
 
 [TestClass]

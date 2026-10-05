@@ -1,13 +1,9 @@
-﻿using Ufw.Web.Model.V1.KnownHosts;
+﻿using Ufw.Shared.Management.KnownHosts;
 
 namespace Ufw.Web.Data.Model;
 
 internal sealed partial class KnownHostEntry
 {
-    public const int MAX_NAME_LENGTH = 128;
-    public const int MAX_ADDRESS_LENGTH = 64;
-    public const int MAX_COMMENT_LENGTH = 200;
-
     public long Id { get; set; }
 
     public Guid PublicId { get; set; } = Guid.CreateVersion7();

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Web;
+﻿using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api.Rules;
@@ -133,7 +133,8 @@ public sealed partial class RuleGroupsManagement
             parameters.Add(component => component.Group, group);
             string title = group is null ? RulesText["CreateGroup"] : RulesText["EditGroup"];
             IDialogReference dialog = await DialogService.ShowAsync<EditRuleGroupDialog>(title, parameters, s_editorDialogOptions);
-            if (await dialog.GetReturnValueAsync<bool?>() != true)
+            bool? confirmed = await dialog.GetReturnValueAsync<bool?>();
+            if (confirmed != true)
             {
                 return;
             }

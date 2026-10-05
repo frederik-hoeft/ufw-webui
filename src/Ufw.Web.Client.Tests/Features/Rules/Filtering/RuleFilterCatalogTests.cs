@@ -1,13 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Actions;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Directions;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Groups;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Networks;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Ports;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Protocols;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Tags;
-using Ufw.Web.Client.UI.Components.Rules.Filtering.Text;
-using Ufw.Web.Client.UI.Components.Rules.Filtering;
+using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
 using Ufw.Web.Client.Features.Rules.Filtering.Groups;
@@ -16,8 +8,16 @@ using Ufw.Web.Client.Features.Rules.Filtering.Ports;
 using Ufw.Web.Client.Features.Rules.Filtering.Protocols;
 using Ufw.Web.Client.Features.Rules.Filtering.Tags;
 using Ufw.Web.Client.Features.Rules.Filtering.Text;
-using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Metadata;
+using Ufw.Web.Client.UI.Components.Rules.Filtering;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Actions;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Directions;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Groups;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Networks;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Ports;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Protocols;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Tags;
+using Ufw.Web.Client.UI.Components.Rules.Filtering.Text;
 
 namespace Ufw.Web.Client.Tests.Features.Rules.Filtering;
 
@@ -67,7 +67,7 @@ public sealed class RuleFilterCatalogTests
             new GroupRuleFilter(new RuleGroup(Guid.CreateVersion7(), "ops", null, [])),
         ];
 
-        string[] keys = filters.Select(filter => _catalog.Resolve(filter).Key).ToArray();
+        string[] keys = [.. filters.Select(filter => _catalog.Resolve(filter).Key)];
 
         CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag", "group" }, keys);
     }

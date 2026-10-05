@@ -1,8 +1,9 @@
 ﻿using System.Net;
 using System.Text;
+using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Model.V1.Auth;
-using Ufw.Web.Client.Api;
+using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Client.Tests.Api;
 
@@ -38,7 +39,7 @@ public sealed class HttpResponseMessageExtensionsTests
         using HttpRequestMessage request = new(HttpMethod.Put, "https://localhost/api/v1/resource");
         using HttpResponseMessage response = JsonResponse(
             HttpStatusCode.UnprocessableEntity,
-            "{\"title\":\"title\",\"detail\":\"detail\",\"errors\":{\"field\":[\"first\",\"second\"]}}",
+            "{\"title\":\"title\",\"detail\":\"detail\",\"validationErrors\":[{\"propertyName\":\"field\",\"code\":\"first.code\",\"message\":\"first\"},{\"propertyName\":\"field\",\"code\":\"second.code\",\"message\":\"second\"}]}",
             request);
 
         ApiRequestException exception = await response.CreateExceptionAsync(CancellationToken.None);
@@ -47,6 +48,24 @@ public sealed class HttpResponseMessageExtensionsTests
         Assert.AreEqual("first second", exception.Message);
         Assert.AreEqual(HttpMethod.Put, exception.Method);
         Assert.AreEqual(request.RequestUri, exception.RequestUri);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new ApiValidationError("field", "first.code", "first"),
+                new ApiValidationError("field", "second.code", "second"),
+            },
+            exception.ValidationErrors.ToArray());
+    }
+
+    [TestMethod]
+    public async Task CreateExceptionAsync_LegacyMessageExtensionRemainsReadableDuringServerMigrationAsync()
+    {
+        using HttpResponseMessage response = JsonResponse(HttpStatusCode.BadRequest, "{\"message\":\"legacy detail\"}");
+
+        ApiRequestException exception = await response.CreateExceptionAsync(CancellationToken.None);
+
+        Assert.AreEqual("legacy detail", exception.Message);
+        Assert.IsEmpty(exception.ValidationErrors);
     }
 
     [TestMethod]

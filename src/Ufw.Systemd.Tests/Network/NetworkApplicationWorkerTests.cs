@@ -1,6 +1,6 @@
-﻿using System.Net.Sockets;
+﻿using Moq;
+using System.Net.Sockets;
 using System.Security.Authentication;
-using Moq;
 using Ufw.Shared.Ipc.Transport;
 using Ufw.Systemd.Network;
 using Ufw.Systemd.Services.Logging;

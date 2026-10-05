@@ -6,48 +6,38 @@ namespace Ufw.Shared.Domain;
 /// <summary>
 /// One rectangle of packet space. Null interface sets mean that axis is not part of the chain, not that every interface matches.
 /// </summary>
-public sealed class PacketRegion<TAddress> : IEquatable<PacketRegion<TAddress>>
+/// <remarks>Creates a rectangle from already canonical axis sets.</remarks>
+public sealed class PacketRegion<TAddress>(
+    IntervalSet<TAddress> source,
+    PacketPortSet sourcePorts,
+    IntervalSet<TAddress> destination,
+    PacketPortSet destinationPorts,
+    FiniteSet<ProtocolSymbol> protocols,
+    FiniteSet<NetworkInterfaceName>? ingress,
+    FiniteSet<NetworkInterfaceName>? egress) : IEquatable<PacketRegion<TAddress>>
     where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
-    /// <summary>Creates a rectangle from already canonical axis sets.</summary>
-    public PacketRegion(
-        IntervalSet<TAddress> source,
-        PacketPortSet sourcePorts,
-        IntervalSet<TAddress> destination,
-        PacketPortSet destinationPorts,
-        FiniteSet<ProtocolSymbol> protocols,
-        FiniteSet<NetworkInterfaceName>? ingress,
-        FiniteSet<NetworkInterfaceName>? egress)
-    {
-        Source = source;
-        SourcePorts = sourcePorts;
-        Destination = destination;
-        DestinationPorts = destinationPorts;
-        Protocols = protocols;
-        Ingress = ingress;
-        Egress = egress;
-    }
 
     /// <summary>Gets the source addresses.</summary>
-    public IntervalSet<TAddress> Source { get; }
+    public IntervalSet<TAddress> Source { get; } = source;
 
     /// <summary>Gets the source-port values, including not-applicable for protocols without ports.</summary>
-    public PacketPortSet SourcePorts { get; }
+    public PacketPortSet SourcePorts { get; } = sourcePorts;
 
     /// <summary>Gets the destination addresses.</summary>
-    public IntervalSet<TAddress> Destination { get; }
+    public IntervalSet<TAddress> Destination { get; } = destination;
 
     /// <summary>Gets the destination-port values, including not-applicable for protocols without ports.</summary>
-    public PacketPortSet DestinationPorts { get; }
+    public PacketPortSet DestinationPorts { get; } = destinationPorts;
 
     /// <summary>Gets the protocols.</summary>
-    public FiniteSet<ProtocolSymbol> Protocols { get; }
+    public FiniteSet<ProtocolSymbol> Protocols { get; } = protocols;
 
     /// <summary>Gets the ingress interfaces, or <see langword="null"/> when the chain has no ingress axis.</summary>
-    public FiniteSet<NetworkInterfaceName>? Ingress { get; }
+    public FiniteSet<NetworkInterfaceName>? Ingress { get; } = ingress;
 
     /// <summary>Gets the egress interfaces, or <see langword="null"/> when the chain has no egress axis.</summary>
-    public FiniteSet<NetworkInterfaceName>? Egress { get; }
+    public FiniteSet<NetworkInterfaceName>? Egress { get; } = egress;
 
     /// <summary>Gets a value indicating whether any present axis is empty.</summary>
     public bool IsEmpty => Cardinality == BigInteger.Zero;

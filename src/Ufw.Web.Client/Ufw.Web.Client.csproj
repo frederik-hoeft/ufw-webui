@@ -8,7 +8,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-all</AnalysisLevel>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+      <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <SassCompilerEnableWatcher>false</SassCompilerEnableWatcher>
     <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
   </PropertyGroup>

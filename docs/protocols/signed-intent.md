@@ -1,6 +1,6 @@
 # Signed Mutation Intent v2
 
-Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` forwards it; `Ufw.Systemd` reconstructs the canonical bytes and verifies them against daemon-owned trust state before any privileged UFW mutation can begin.
+Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` validates the exact REST envelope shape/format and state-independent canonical payload semantics as a defense-in-depth filter, then copies the signed values unchanged into the daemon IPC request; `Ufw.Systemd` reconstructs the canonical bytes and performs the authoritative verification against daemon-owned trust state before any privileged UFW mutation can begin.
 
 This document defines the project contract for `rules.add`, `rules.insert`, `rules.replace`, `rules.delete`, `rules.delete-batch`, and `rules.reorder`. The requirement words describe interoperability and security requirements for UFWeb implementations.
 
@@ -77,7 +77,9 @@ Add, ordered insertion, replacement, and delete sign a normalized structural fir
 }
 ```
 
-The signature does not cover this JSON text directly. The daemon validates and normalizes the semantic values and rebuilds the canonical signed bytes defined below.
+The signature does not cover this JSON text directly. `Ufw.Web` nevertheless requires the REST payload to already use the canonical, state-independent representation expected from the signing client and rejects malformed, unknown, duplicate, semantically invalid, or non-canonical values before privileged IPC. This validation is non-mutating: ASP may deserialize a copy for inspection, but it MUST copy the original signed envelope fields and payload into the daemon request without normalizing, rewriting, or reserializing them.
+
+The daemon remains authoritative. It independently binds the forwarded payload, validates and normalizes its semantic values, reconstructs the canonical signed bytes defined below, verifies the signature and trust state, and applies all freshness, replay, current-state, and execution preconditions. ASP-side rejection is defense in depth and MUST NOT replace or weaken daemon-side validation.
 
 A family-neutral rule is allowed for append add when the rule semantics do not force IPv4 or IPv6. UFW materializes that add as separate concrete family rows when IPv6 is enabled and as IPv4 only when IPv6 is disabled. Ordered insertion, replacement, and delete MUST carry a concrete IPv4 or IPv6 rule.
 

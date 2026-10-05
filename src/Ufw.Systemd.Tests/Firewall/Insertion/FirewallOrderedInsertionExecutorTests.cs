@@ -259,14 +259,14 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
     private static UfwStatusSnapshot Snapshot(params string[] tokens)
     {
-        string[] rows = tokens.Select(static (token, index) =>
+        string[] rows = [.. tokens.Select(static (token, index) =>
         {
             bool v6 = token.EndsWith("v6", StringComparison.Ordinal);
             string port = v6 ? token[..^2] : token;
             return v6
                 ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
                 : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
-        }).ToArray();
+        })];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
@@ -349,7 +349,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         private UfwProcessResult Execute(IUfwCommand command)
         {
             ImmutableArray<string> arguments = command.BuildArguments();
-            Commands.Add(arguments.ToArray());
+            Commands.Add([.. arguments]);
             ProcessBehavior behavior = _processes.Count > 0
                 ? _processes.Dequeue()
                 : new ProcessBehavior(0, string.Empty, false, null, null);

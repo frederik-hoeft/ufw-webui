@@ -1,9 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.ComponentModel.DataAnnotations;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
-using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.RuleMetadata;
+using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.Validation;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Api.V1;
@@ -26,15 +28,11 @@ public sealed class RuleMetadataControllerTests
     }
 
     [TestMethod]
-    public async Task CleanupAsync_InvalidSelectionReturnsBadRequestWithoutInvokingServiceAsync()
+    public void CleanupRequest_RejectsInvalidTransportShape()
     {
-        Mock<IRuleMetadataReconciliationService> service = new(MockBehavior.Strict);
-        RuleMetadataController controller = CreateController(service.Object);
-
-        ActionResult<RuleMetadataReconciliationResponse> action = await controller.CleanupAsync(new CleanupRuleMetadataRequest(), CancellationToken.None);
-
-        Assert.IsInstanceOfType<BadRequestObjectResult>(action.Result);
-        service.VerifyNoOtherCalls();
+        AssertInvalid(new CleanupRuleMetadataRequest());
+        AssertInvalid(new CleanupRuleMetadataRequest { MetadataIds = [Guid.Empty] });
+        AssertValid(new CleanupRuleMetadataRequest { MetadataIds = [Guid.CreateVersion7()] });
     }
 
     [TestMethod]
@@ -57,9 +55,21 @@ public sealed class RuleMetadataControllerTests
         Assert.AreSame(expected, ok.Value);
     }
 
-    private static RuleMetadataController CreateController(IRuleMetadataReconciliationService service)
+    private static void AssertInvalid(object request)
     {
-        Mock<IDaemonApiErrorMapper> errors = new();
-        return new RuleMetadataController(service, errors.Object);
+        List<ValidationResult> errors = [];
+        bool valid = Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true);
+        Assert.IsFalse(valid);
+        Assert.IsNotEmpty(errors);
     }
+
+    private static void AssertValid(object request)
+    {
+        List<ValidationResult> errors = [];
+        bool valid = Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true);
+        Assert.IsTrue(valid, string.Join(Environment.NewLine, errors));
+        Assert.IsEmpty(errors);
+    }
+
+    private static RuleMetadataController CreateController(IRuleMetadataReconciliationService service) => new(service);
 }

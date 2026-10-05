@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Ufw.Shared.Firewall;
 using Ufw.Web.Client.Features.Rules.Metadata;
 

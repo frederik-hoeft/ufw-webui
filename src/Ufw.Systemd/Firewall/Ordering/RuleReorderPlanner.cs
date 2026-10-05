@@ -66,7 +66,7 @@ internal sealed class RuleReorderPlanner : IRuleReorderPlanner
             }
         }
 
-        HashSet<int> untouched = new(anchors.Select(static anchor => anchor.OccurrenceId));
+        HashSet<int> untouched = [.. anchors.Select(static anchor => anchor.OccurrenceId)];
         int previousCurrentIndex = -1;
         int previousDesiredIndex = -1;
         for (int anchorIndex = 0; anchorIndex <= anchors.Count; anchorIndex++)

@@ -6,26 +6,19 @@ using Ufw.Systemd.Persistence;
 
 namespace Ufw.Systemd.Security.Intent;
 
-internal sealed class FileNonceStore : INonceStore, IDisposable
+internal sealed class FileNonceStore(IConfiguration configuration, TimeProvider timeProvider, IDurableFileStore durableFiles) : INonceStore, IDisposable
 {
     private const string HEADER = "# ufw-intent-nonces v1";
     private const int COMPACTION_STALE_RECORD_THRESHOLD = 64;
 
-    private readonly IConfiguration _configuration;
-    private readonly TimeProvider _timeProvider;
-    private readonly IDurableFileStore _durableFiles;
+    private readonly IConfiguration _configuration = configuration;
+    private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly IDurableFileStore _durableFiles = durableFiles;
     private readonly AsyncLock _lock = new();
     private readonly Dictionary<string, long> _expirations = new(StringComparer.Ordinal);
     private int _staleRecordCount;
     private bool _loaded;
     private bool _disposed;
-
-    public FileNonceStore(IConfiguration configuration, TimeProvider timeProvider, IDurableFileStore durableFiles)
-    {
-        _configuration = configuration;
-        _timeProvider = timeProvider;
-        _durableFiles = durableFiles;
-    }
 
     public async ValueTask<bool> TryConsumeAsync(string nonce, long expiresAtUnix, CancellationToken cancellationToken)
     {

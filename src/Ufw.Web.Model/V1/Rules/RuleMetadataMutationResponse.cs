@@ -1,3 +1,4 @@
+﻿using Ufw.Shared.Management.Rules;
 namespace Ufw.Web.Model.V1.Rules;
 
 public sealed class RuleMetadataMutationResponse

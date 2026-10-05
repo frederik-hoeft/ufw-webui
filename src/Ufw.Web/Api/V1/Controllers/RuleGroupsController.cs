@@ -1,59 +1,84 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules.Groups;
 using Ufw.Web.Model.V1.RuleGroups;
-using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Api.V1.Controllers;
 
-public sealed partial class RuleGroupsController(IRuleGroupService groups) : ControllerBase
+public sealed partial class RuleGroupsController(IRuleGroupDataAccess groups) : ControllerBase
 {
     public async partial Task<ActionResult<RuleGroupInventoryResponse>> GetAsync(CancellationToken cancellationToken)
     {
-        RuleGroupInventoryResponse response = await groups.GetAsync(cancellationToken);
-        return Ok(response);
+        RuleGroupInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+        return Ok(inventory);
     }
 
     public async partial Task<IActionResult> CreateAsync(CreateRuleGroupRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        RuleGroupMutationResult result = await groups.CreateAsync(request, cancellationToken);
-        return MapMutation(result);
+        DataMutationResult result = await groups.CreateAsync(request.Name.Trim(), NormalizeOptional(request.Comment), cancellationToken);
+        return await MapUpsertMutationAsync(result, cancellationToken);
     }
 
     public async partial Task<IActionResult> UpdateAsync(Guid id, UpdateRuleGroupRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        RuleGroupMutationResult result = await groups.UpdateAsync(id, request, cancellationToken);
-        return MapMutation(result);
+        DataMutationResult result = await groups.UpdateAsync(id, request.Name.Trim(), NormalizeOptional(request.Comment), cancellationToken);
+        return await MapUpsertMutationAsync(result, cancellationToken);
     }
 
     public async partial Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        RuleGroupMutationResult result = await groups.DeleteAsync(id, cancellationToken);
-        return MapMutation(result);
+        DataMutationResult result = await groups.DeleteAsync(id, cancellationToken);
+        if (result.IsSuccess)
+        {
+            RuleGroupInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
+        }
+
+        return result.Error switch
+        {
+            DataMutationNotFoundError => NotFound(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status404NotFound,
+                title: "Rule group not found",
+                detail: "The requested rule group does not exist.")),
+            DataMutationReferenceConflictError => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Rule group is still in use",
+                detail: "Remove all live rule metadata and rule-template references before deleting the group.")),
+            _ => throw new InvalidOperationException($"Unexpected rule-group deletion error '{result.Error!.GetType().Name}'."),
+        };
     }
 
-    private IActionResult MapMutation(RuleGroupMutationResult result) => result.Outcome switch
+    private async Task<IActionResult> MapUpsertMutationAsync(DataMutationResult result, CancellationToken cancellationToken)
     {
-        RuleGroupMutationOutcome.Success => Ok(result.Inventory),
-        RuleGroupMutationOutcome.NotFound => NotFound(),
-        RuleGroupMutationOutcome.NameConflict => Conflict(new ProblemDetails
+        if (result.IsSuccess)
         {
-            Status = StatusCodes.Status409Conflict,
-            Title = "Rule group name already exists",
-            Detail = "Rule group names must be unique without regard to case.",
-        }),
-        RuleGroupMutationOutcome.InUse => Conflict(new ProblemDetails
+            RuleGroupInventoryResponse inventory = await GetInventoryAsync(cancellationToken);
+            return Ok(inventory);
+        }
+
+        return result.Error switch
         {
-            Status = StatusCodes.Status409Conflict,
-            Title = "Rule group is still in use",
-            Detail = "Remove all live rule metadata and rule-template references before deleting the group.",
-        }),
-        RuleGroupMutationOutcome.InvalidGroup => BadRequest(new ProblemDetails
-        {
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Rule group is invalid",
-            Detail = "Rule group names must be non-empty and the name/comment lengths must be within the supported limits.",
-        }),
-        _ => throw new InvalidOperationException($"Unknown rule-group mutation outcome '{result.Outcome}'."),
-    };
+            DataMutationNotFoundError => NotFound(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status404NotFound,
+                title: "Rule group not found",
+                detail: "The requested rule group does not exist.")),
+            DataMutationUniqueConflictError => Conflict(ApiProblemDetailsFactory.Create(
+                StatusCodes.Status409Conflict,
+                title: "Rule group name already exists",
+                detail: "Rule group names must be unique without regard to case.")),
+            _ => throw new InvalidOperationException($"Unexpected rule-group mutation error '{result.Error!.GetType().Name}'."),
+        };
+    }
+
+    private async Task<RuleGroupInventoryResponse> GetInventoryAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<RuleGroupItem> items = await groups.GetAsync(cancellationToken);
+        return new RuleGroupInventoryResponse(items);
+    }
+
+    private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -311,6 +311,12 @@ namespace Ufw.Web.Data.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("Comment");
 
+                    b.Property<bool>("IsPresent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("IsPresent");
+
                     b.Property<bool>("IsVisible")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

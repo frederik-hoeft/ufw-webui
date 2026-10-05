@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Features.Rules;
+﻿namespace Ufw.Web.Client.Features.Rules;
 
 internal abstract record RulesPageInteractionTransition
 {

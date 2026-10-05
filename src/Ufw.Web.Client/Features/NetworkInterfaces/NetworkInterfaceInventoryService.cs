@@ -1,7 +1,7 @@
-﻿using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
+﻿using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Client.Api;
-
+using Ufw.Web.Client.Api.NetworkInterfaces;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 namespace Ufw.Web.Client.Features.NetworkInterfaces;
 
 internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClient apiClient) : INetworkInterfaceInventoryService
@@ -10,25 +10,29 @@ internal sealed class NetworkInterfaceInventoryService(INetworkInterfaceApiClien
 
     public async Task<NetworkInterfaceInventoryResponse> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<NetworkInterfaceInventoryResponse> ReconcileAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.ReconcileAsync(cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.ReconcileAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(Guid interfaceId, string? comment, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.UpdateCommentAsync(interfaceId, comment, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(Guid interfaceId, bool isVisible, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken));
+        NetworkInterfaceInventoryResponse response = await apiClient.UpdateVisibilityAsync(interfaceId, isVisible, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 

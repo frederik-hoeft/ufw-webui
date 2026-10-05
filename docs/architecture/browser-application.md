@@ -111,7 +111,7 @@ Known hosts and network interfaces both assist rule authoring, but their authori
 
 That DNS lifecycle stops at the known-host feature boundary. Rule completion, free-text alias context, and the rule editor continue to consume the same resolved `Address` field as literal aliases, without performing DNS queries or carrying DNS identity into `FirewallRuleSpecification`. A later DNS reconciliation can therefore change what the alias suggests for future authoring without changing any rule that already contains the previous literal address.
 
-Network interfaces originate from the host instead. `Ufw.Web` reconciles daemon-observed interface names with application metadata such as comments and visibility, and the browser uses that enriched inventory for suggestions. The daemon still checks the literal interface name against fresh host state immediately before add, ordered insertion, or replacement, so a stale browser cache can never authorize use of an interface that no longer exists.
+Network interfaces originate from the host instead. `Ufw.Web` reconciles daemon-observed interface names with application metadata such as comments and visibility, and the browser uses only currently present entries from that enriched inventory for suggestions. A temporarily missing interface is retained server-side as non-present metadata so reappearance restores the same public identity/comment/visibility; stale metadata is removed only by explicit cleanup after daemon revalidation. The daemon still checks the literal interface name against fresh host state immediately before add, ordered insertion, or replacement, so a stale browser cache can never authorize use of an interface that no longer exists.
 
 ## Authentication and HTTP coordination
 

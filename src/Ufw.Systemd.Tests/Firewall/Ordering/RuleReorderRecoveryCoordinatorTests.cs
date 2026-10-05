@@ -1,6 +1,6 @@
 ﻿using Moq;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.Rendering;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -100,7 +100,7 @@ public sealed class RuleReorderRecoveryCoordinatorTests
             .Setup(executor => executor.ExecuteAsync(It.IsAny<IUfwCommand>(), "recovering an interrupted reorder move", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IUfwCommand command, string _, CancellationToken _) =>
             {
-                arguments = command.BuildArguments().ToArray();
+                arguments = [.. command.BuildArguments()];
                 return new UfwProcessExecutionResult(true, false, null, false);
             });
         Mock<IReorderRecoveryJournal> journal = new(MockBehavior.Strict);
@@ -131,20 +131,20 @@ public sealed class RuleReorderRecoveryCoordinatorTests
 
     private static UfwStatusSnapshot Snapshot(params string[] ports)
     {
-        string[] rows = ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere").ToArray();
+        string[] rows = [.. ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
     private static UfwStatusSnapshot SnapshotTokens(params string[] tokens)
     {
-        string[] rows = tokens.Select(static (token, index) =>
+        string[] rows = [.. tokens.Select(static (token, index) =>
         {
             bool ipv6 = token.EndsWith("v6", StringComparison.Ordinal);
             string port = ipv6 ? token[..^2] : token;
             return ipv6
                 ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
                 : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
-        }).ToArray();
+        })];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 

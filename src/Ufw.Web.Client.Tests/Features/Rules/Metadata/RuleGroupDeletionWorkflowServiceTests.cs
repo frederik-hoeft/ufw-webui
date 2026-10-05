@@ -1,5 +1,5 @@
+﻿using Moq;
 using System.Net;
-using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api;
@@ -44,7 +44,6 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         host.Groups.VerifyNoOtherCalls();
         host.Mutations.VerifyNoOtherCalls();
     }
-
 
     [TestMethod]
     public async Task GetSingleRuleCleanupCandidateAsync_TemplateReferenceSuppressesCleanupOptionAsync()

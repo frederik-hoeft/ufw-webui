@@ -3,16 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Data;
 using Ufw.Web.Data.Model;
+using Ufw.Web.Model.V1.Auth;
 using Ufw.Web.Services.Auth;
 using Ufw.Web.Tests.Integration.Support;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class AuthControllerIntegrationTests : ControllerIntegrationTest<AuthController>
+internal sealed class AuthControllerIntegrationTests : ControllerIntegrationTest<AuthController>
 {
     private const string COOKIE_NAME = "__Host-ufw-refresh";
     private const string EMAIL = "operator@example.invalid";
@@ -117,7 +117,7 @@ public sealed class AuthControllerIntegrationTests : ControllerIntegrationTest<A
 
     private static string AssertSingleRefreshCookie(AuthController controller)
     {
-        string?[] setCookies = controller.Response.Headers.SetCookie.ToArray();
+        string?[] setCookies = [.. controller.Response.Headers.SetCookie];
         Assert.HasCount(1, setCookies);
         string setCookie = setCookies[0] ?? throw new AssertFailedException("Refresh-token cookie header was null.");
         StringAssert.StartsWith(setCookie, $"{COOKIE_NAME}=", StringComparison.Ordinal);

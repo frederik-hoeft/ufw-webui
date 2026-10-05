@@ -99,5 +99,4 @@ public sealed class UfwStatusParserTests
         Assert.IsNotNull(snapshot);
         Assert.IsEmpty(snapshot.Rules);
     }
-
 }

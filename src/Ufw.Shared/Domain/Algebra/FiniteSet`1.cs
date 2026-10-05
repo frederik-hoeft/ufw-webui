@@ -47,7 +47,7 @@ public readonly struct FiniteSet<T> : IDimensionSet, IEquatable<FiniteSet<T>>
     public static FiniteSet<T> From(IEnumerable<T> values)
     {
         ArgumentNullException.ThrowIfNull(values);
-        List<T> ordered = values.ToList();
+        List<T> ordered = [.. values];
         if (ordered.Count == 0)
         {
             return Empty;

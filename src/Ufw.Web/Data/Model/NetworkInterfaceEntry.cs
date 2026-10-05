@@ -2,9 +2,6 @@
 
 internal sealed partial class NetworkInterfaceEntry
 {
-    public const int MAX_NAME_LENGTH = 256;
-    public const int MAX_COMMENT_LENGTH = 200;
-
     public long Id { get; set; }
 
     public Guid PublicId { get; set; } = Guid.CreateVersion7();
@@ -14,4 +11,6 @@ internal sealed partial class NetworkInterfaceEntry
     public string? Comment { get; set; }
 
     public bool IsVisible { get; set; } = true;
+
+    public bool IsPresent { get; set; } = true;
 }

@@ -8,13 +8,11 @@ internal sealed partial class BrowserClientThemeService(ILocalStorage localStora
     private const string STORAGE_KEY = "ufw.theme";
     private const string LIGHT_VALUE = "light";
     private const string DARK_VALUE = "dark";
-
-    private ClientThemeMode _mode = ClientThemeMode.Light;
     private bool _initialized;
 
-    public ClientThemeMode Mode => _mode;
+    public ClientThemeMode Mode { get; private set; } = ClientThemeMode.Light;
 
-    public bool IsDarkMode => _mode is ClientThemeMode.Dark;
+    public bool IsDarkMode => Mode is ClientThemeMode.Dark;
 
     public event Action? Changed;
 
@@ -36,9 +34,9 @@ internal sealed partial class BrowserClientThemeService(ILocalStorage localStora
         }
 
         _initialized = true;
-        if (TryParse(storedValue, out ClientThemeMode storedMode) && storedMode != _mode)
+        if (TryParse(storedValue, out ClientThemeMode storedMode) && storedMode != Mode)
         {
-            _mode = storedMode;
+            Mode = storedMode;
             Changed?.Invoke();
         }
     }
@@ -50,9 +48,9 @@ internal sealed partial class BrowserClientThemeService(ILocalStorage localStora
             throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported client theme mode.");
         }
 
-        if (_mode != mode)
+        if (Mode != mode)
         {
-            _mode = mode;
+            Mode = mode;
             Changed?.Invoke();
         }
 

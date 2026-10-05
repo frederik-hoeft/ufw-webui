@@ -1,22 +1,22 @@
 ﻿using Ufw.Shared.Firewall;
-using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Features.Rules.Intent;
 
 public interface IIntentSigningService
 {
-    Task<AddRuleRequest> CreateAddRuleRequestAsync(string deploymentId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
+    Task<AddRuleIntentRequest> CreateAddRuleRequestAsync(string deploymentId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
 
-    Task<DeleteRuleRequest> CreateDeleteRuleRequestAsync(string deploymentId, string ruleId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
+    Task<DeleteRuleIntentRequest> CreateDeleteRuleRequestAsync(string deploymentId, string ruleId, FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default);
 
-    Task<BatchDeleteRulesRequest> CreateBatchDeleteRulesRequestAsync(
+    Task<BatchDeleteRulesIntentRequest> CreateBatchDeleteRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         IReadOnlyList<int> occurrenceIds,
         string privateKey,
         CancellationToken cancellationToken = default);
 
-    Task<InsertRuleRequest> CreateInsertRuleRequestAsync(
+    Task<InsertRuleIntentRequest> CreateInsertRuleRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         int anchorOccurrenceId,
@@ -25,7 +25,7 @@ public interface IIntentSigningService
         string privateKey,
         CancellationToken cancellationToken = default);
 
-    Task<ReplaceRuleRequest> CreateReplaceRuleRequestAsync(
+    Task<ReplaceRuleIntentRequest> CreateReplaceRuleRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         int targetOccurrenceId,
@@ -34,7 +34,7 @@ public interface IIntentSigningService
         string privateKey,
         CancellationToken cancellationToken = default);
 
-    Task<ReorderRulesRequest> CreateReorderRulesRequestAsync(
+    Task<ReorderRulesIntentRequest> CreateReorderRulesRequestAsync(
         string deploymentId,
         string baselineFingerprint,
         IReadOnlyList<int> desiredOrder,

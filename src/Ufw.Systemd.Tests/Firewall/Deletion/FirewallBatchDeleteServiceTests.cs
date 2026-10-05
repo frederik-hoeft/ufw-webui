@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Ufw.Shared.Firewall;

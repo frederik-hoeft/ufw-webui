@@ -2,3 +2,4 @@
 
 [assembly: InternalsVisibleTo("Ufw.Web.Tests")]
 [assembly: InternalsVisibleTo("Ufw.Web.Tests.Integration")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

@@ -41,7 +41,7 @@ The runtime components form a chain in which each layer owns a different concern
 
 ### Browser application
 
-`Ufw.Web.Client` authenticates to the REST API, loads authoritative firewall snapshots, combines those snapshots with application-owned metadata for presentation, validates rule input for usability, and creates signed mutation intents. It talks only to HTTP resources exposed by `Ufw.Web`; it does not know how the daemon transport is framed or how UFW subprocesses are constructed. Browser and ASP compile against the same versioned REST DTOs from `Ufw.Web.Model`, which keeps the transport contract shared without coupling client feature logic to server implementation code.
+`Ufw.Web.Client` authenticates to the REST API, loads authoritative firewall snapshots, combines those snapshots with application-owned metadata for presentation, validates rule input for usability, and creates signed mutation intents. It talks only to HTTP resources exposed by `Ufw.Web`; it does not know how the daemon transport is framed or how UFW subprocesses are constructed. Browser and ASP compile against the same versioned REST DTOs from `Ufw.Web.Model`, which keeps the transport contract shared without coupling client feature logic to server implementation code. Signed mutation REST DTOs are intentionally distinct from the daemon IPC request types: ASP validates signed HTTP envelope shape/format and state-independent canonical payload semantics and then maps it to IPC by copying the signed values unchanged.
 
 The browser keeps short-lived access JWTs in memory, while the refresh token is held in an `HttpOnly` cookie. Administrator mutation private keys are supplied to the signing workflow for individual operations and are not persisted by UFWeb. Browser-side validation provides immediate feedback and prevents obviously invalid requests from being composed, but it is not an authorization boundary. The daemon reconstructs and validates the signed semantics independently before any privileged execution takes place.
 
@@ -65,7 +65,7 @@ The daemon never treats a successful process exit as sufficient proof that the r
 
 ### Shared contracts
 
-Cross-process contracts are shared without merging process responsibilities. `Ufw.Shared` contains firewall semantics, normalization and rendering, the source-agnostic semantic policy domain, signed-intent primitives, IPC contracts, and lower-level protocol serialization metadata used across the browser/web/daemon boundary. The policy domain interprets an already normalized rule list; it does not observe UFW or store a second copy of it. `Ufw.Web.Model` contains pure, versioned REST request and response DTOs shared by `Ufw.Web` and `Ufw.Web.Client`; it may reuse lower-level `Ufw.Shared` contract types, but it does not depend on ASP persistence/services or client feature/UI code.
+Cross-process contracts are shared without merging process responsibilities. `Ufw.Shared` contains firewall semantics, normalization and rendering, the source-agnostic semantic policy domain, management-domain/read models, signed-intent primitives, IPC contracts, and lower-level protocol serialization metadata used across process boundaries. The policy domain interprets an already normalized rule list; it does not observe UFW or store a second copy of it. Management-domain/read models are data-only concepts that may be projected directly by ASP persistence and reused by the browser without acquiring HTTP semantics. `Ufw.Web.Model` contains pure, versioned REST request and response DTOs shared by `Ufw.Web` and `Ufw.Web.Client`; those DTOs may embed `Ufw.Shared` domain/read models but do not depend on ASP persistence/services or client feature/UI code.
 
 `Ufw.Ipc.Client` supplies the typed daemon client used by `Ufw.Web`. `Ufw.Roslyn` and `Ufw.Roslyn.SourceGen` provide the runtime contracts and compile-time routing/serialization bindings that keep daemon dispatch and JSON metadata explicit and NativeAOT-compatible. Their role is described in [Compile-time routing and serialization](source-generation.md).
 
@@ -141,7 +141,7 @@ sequenceDiagram
     W-->>B: intent context
     Note over B: Build canonical operation payload\nand sign with authorized P-256 key
     B->>W: authenticated REST mutation + signed intent
-    W->>D: forward signed mutation
+    W->>D: forward validated signed values unchanged
     Note over D: Verify signature, deployment,\nfreshness, nonce, semantics
     D->>U: read fresh authoritative state
     Note over D: Validate target / snapshot conditions\nand durably consume nonce
@@ -164,7 +164,7 @@ Compound mutations add operation-specific safety rather than pretending that seq
 
 UFWeb deliberately keeps authoring conveniences outside the firewall contract until they have resolved to concrete firewall semantics. This lets the UI be richer without creating new kinds of authority that the daemon would have to trust.
 
-Network-interface metadata starts from daemon-observed host inventory. `Ufw.Web` reconciles interface names into PostgreSQL so an administrator can attach comments and visibility preferences, and the browser uses that metadata for suggestions. Selecting an interface still writes the literal interface name into the rule. Immediately before add, ordered insertion, or replacement, the daemon checks that name against a fresh host-interface snapshot. Delete omits that existence check so a stale rule remains removable after an interface disappears.
+Network-interface metadata starts from daemon-observed host inventory. `Ufw.Web` reconciles interface names into PostgreSQL so an administrator can attach comments and visibility preferences, and the browser uses currently present entries for suggestions. When an interface disappears, ASP retains its application-owned identity/comment/visibility as non-present metadata rather than deleting it; reappearance revives the same row, while permanent stale cleanup is explicit and revalidates daemon presence first. Selecting an interface still writes the literal interface name into the rule. Immediately before add, ordered insertion, or replacement, the daemon checks that name against a fresh host-interface snapshot. Delete omits that existence check so a stale rule remains removable after an interface disappears.
 
 Known hosts are different because they are entirely ASP-owned aliases. A literal alias stores a canonical IPv4/IPv6 address or CIDR directly. A DNS-backed alias treats the alias name as a DNS name, resolves one address in a configured family when the alias is created or its DNS configuration changes, and records when that resolution succeeded. Operators can later reconcile that alias explicitly to refresh its stored address from DNS. DNS is therefore configuration input to the known-host catalog, not a live dependency of the firewall model.
 
@@ -196,7 +196,7 @@ The protocol-specific framing, version, timeout, error, and signed-intent rules 
 
 ## Source and dependency structure
 
-The source tree mirrors these process and contract boundaries. `Ufw.Web.Client`, `Ufw.Web`, and `Ufw.Systemd` are the browser, network-facing application, and privileged host processes respectively. `Ufw.Web.Model` carries pure versioned REST DTOs shared by browser and ASP, while `Ufw.Shared` contains lower-level firewall, security, and IPC contracts needed across process boundaries. `Ufw.Ipc.Client` is the typed local daemon client used by ASP. The Roslyn projects provide compile-time routing and serialization infrastructure, and `Ufw.Mock` provides a UFW-compatible command surface for development and black-box tests.
+The source tree mirrors these process and contract boundaries. `Ufw.Web.Client`, `Ufw.Web`, and `Ufw.Systemd` are the browser, network-facing application, and privileged host processes respectively. `Ufw.Web.Model` carries pure versioned REST DTOs shared by browser and ASP, while `Ufw.Shared` carries reusable domain/read models together with lower-level firewall, security, and IPC contracts needed across process boundaries. `Ufw.Ipc.Client` is the typed local daemon client used by ASP. The Roslyn projects provide compile-time routing and serialization infrastructure, and `Ufw.Mock` provides a UFW-compatible command surface for development and black-box tests.
 
 Inside the browser project, dependency direction is explicit for the same reason. `Api` contains HTTP clients and REST mechanics, `Features` contains browser-side application behavior, `Services` contains genuinely domain-agnostic browser capabilities, `UI` contains Razor presentation, and `Configuration` contains immutable public runtime settings. `Ufw.Web.Model` remains outside the client so transport DTOs are not duplicated or allowed to drift between ASP and Blazor.
 

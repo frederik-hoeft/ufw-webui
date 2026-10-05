@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using Ufw.Web.Client.Features.Authentication;
 
 namespace Ufw.Web.Client.Tests.Features.Authentication;

@@ -1,7 +1,8 @@
 ﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
+using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
-using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Features.KnownHosts;
 
@@ -11,31 +12,36 @@ internal sealed class KnownHostInventoryService(IKnownHostApiClient apiClient) :
 
     public async Task<KnownHostInventoryResponse> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        KnownHostInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<KnownHostInventoryResponse> CreateAsync(CreateKnownHostRequest request, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.CreateAsync(request, cancellationToken));
+        KnownHostInventoryResponse response = await apiClient.CreateAsync(request, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<KnownHostInventoryResponse> UpdateAsync(Guid hostId, UpdateKnownHostRequest request, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.UpdateAsync(hostId, request, cancellationToken));
+        KnownHostInventoryResponse response = await apiClient.UpdateAsync(hostId, request, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<KnownHostInventoryResponse> ReconcileDnsAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.ReconcileDnsAsync(hostId, cancellationToken));
+        KnownHostInventoryResponse response = await apiClient.ReconcileDnsAsync(hostId, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<KnownHostInventoryResponse> DeleteAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.DeleteAsync(hostId, cancellationToken));
+        KnownHostInventoryResponse response = await apiClient.DeleteAsync(hostId, cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 

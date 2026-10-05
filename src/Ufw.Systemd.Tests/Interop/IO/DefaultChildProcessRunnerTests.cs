@@ -1,5 +1,5 @@
-﻿using System.Collections.Immutable;
-using Moq;
+﻿using Moq;
+using System.Collections.Immutable;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Services.Logging;
 using Ufw.Systemd.Tests.TestSupport;
@@ -52,5 +52,5 @@ public sealed class DefaultChildProcessRunnerTests
     }
 
     private static ChildProcessRequest CreateRequest() =>
-        new("/bin/sh", ImmutableArray.Create("-c", "printf 'stdout'; printf 'stderr' >&2"), ImmutableDictionary<string, string>.Empty);
+        new("/bin/sh", ["-c", "printf 'stdout'; printf 'stderr' >&2"], []);
 }

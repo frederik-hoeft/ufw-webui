@@ -1,12 +1,11 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Model.V1.RuleGroups;
-using Ufw.Web.Model.V1.Rules;
-using Ufw.Web.Model.V1.RuleTags;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
-using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Services.Errors;
+using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.Tests.Features.Rules;
 
@@ -289,11 +288,11 @@ public sealed class RuleInventoryStateTests
     private static RuleInventoryResponse Inventory(
         RuleListResponse firewall,
         IReadOnlyList<RuleMetadataItem>? metadata = null) => new()
-    {
-        Firewall = firewall,
-        Metadata = metadata ?? [],
-        CapturedAt = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero),
-    };
+        {
+            Firewall = firewall,
+            Metadata = metadata ?? [],
+            CapturedAt = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero),
+        };
 
     private static ListedFirewallRule Rule(string id) => new()
     {

@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using Ufw.Ipc.Client;
+using System.ComponentModel.DataAnnotations;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 using Ufw.Web.Services.NetworkInterfaces;
 
@@ -17,33 +17,34 @@ public sealed class NetworkInterfacesControllerTests
     [TestMethod]
     public async Task GetAsync_ReturnsCachedInventoryWithoutReconcilingAsync()
     {
+        IReadOnlyList<NetworkInterfaceInventoryItem> interfaces = [new NetworkInterfaceInventoryItem(Guid.CreateVersion7(), "eno1", "service VLAN", isVisible: true)];
+        DateTimeOffset reconciledAt = new(2026, 9, 8, 20, 0, 0, TimeSpan.Zero);
         Mock<INetworkInterfaceInventoryService> inventory = new();
-        NetworkInterfaceInventoryResponse expected = new(
-            [new NetworkInterfaceInventoryItem(Guid.CreateVersion7(), "eno1", "service VLAN", isVisible: true)],
-            new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
-        inventory.Setup(service => service.GetCachedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
-        NetworkInterfacesController controller = CreateController(inventory.Object);
+        inventory.Setup(service => service.GetCachedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventorySnapshot(interfaces, reconciledAt));
+        NetworkInterfacesController controller = new(inventory.Object);
 
         ActionResult<NetworkInterfaceInventoryResponse> result = await controller.GetAsync(TestContext.CancellationToken);
 
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result.Result);
-        Assert.AreSame(expected, ok.Value);
+        NetworkInterfaceInventoryResponse response = Assert.IsInstanceOfType<NetworkInterfaceInventoryResponse>(ok.Value);
+        Assert.AreSame(interfaces, response.Interfaces);
+        Assert.AreEqual(reconciledAt, response.ReconciledAt);
         inventory.Verify(service => service.ReconcileAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
-    public async Task ReconcileAsync_MapsDaemonFailureToBadGatewayAsync()
+    public async Task ReconcileAsync_ReturnsInventoryResponseAsync()
     {
+        DateTimeOffset reconciledAt = DateTimeOffset.UtcNow;
         Mock<INetworkInterfaceInventoryService> inventory = new();
-        inventory
-            .Setup(service => service.ReconcileAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new UfwIpcException(StatusCodes.Status500InternalServerError, "daemon enumeration failed"));
-        NetworkInterfacesController controller = CreateController(inventory.Object);
+        inventory.Setup(service => service.ReconcileAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventorySnapshot([], reconciledAt));
+        NetworkInterfacesController controller = new(inventory.Object);
 
         IActionResult result = await controller.ReconcileAsync(TestContext.CancellationToken);
 
-        ObjectResult problem = Assert.IsInstanceOfType<ObjectResult>(result);
-        Assert.AreEqual(StatusCodes.Status502BadGateway, problem.StatusCode);
+        OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result);
+        NetworkInterfaceInventoryResponse response = Assert.IsInstanceOfType<NetworkInterfaceInventoryResponse>(ok.Value);
+        Assert.AreEqual(reconciledAt, response.ReconciledAt);
     }
 
     [TestMethod]
@@ -51,27 +52,91 @@ public sealed class NetworkInterfacesControllerTests
     {
         Mock<INetworkInterfaceInventoryService> inventory = new();
         Guid id = Guid.CreateVersion7();
-        NetworkInterfaceInventoryResponse expected = new([new NetworkInterfaceInventoryItem(id, "docker0", null, isVisible: false)], new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
-        inventory
-            .Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
-        NetworkInterfacesController controller = CreateController(inventory.Object);
+        NetworkInterfaceInventoryItem item = new(id, "docker0", null, isVisible: false);
+        inventory.Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventorySnapshot([item], null));
+        NetworkInterfacesController controller = new(inventory.Object);
 
-        IActionResult result = await controller.UpdateVisibilityAsync(
-            id,
-            new UpdateNetworkInterfaceVisibilityRequest { IsVisible = false },
-            TestContext.CancellationToken);
+        IActionResult result = await controller.UpdateVisibilityAsync(id, new UpdateNetworkInterfaceVisibilityRequest { IsVisible = false }, TestContext.CancellationToken);
 
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result);
-        Assert.AreSame(expected, ok.Value);
+        NetworkInterfaceInventoryResponse response = Assert.IsInstanceOfType<NetworkInterfaceInventoryResponse>(ok.Value);
+        Assert.AreSame(item, response.Interfaces.Single());
     }
 
-    private static NetworkInterfacesController CreateController(INetworkInterfaceInventoryService inventory) =>
-        new(inventory, new DaemonApiErrorMapper())
+    [TestMethod]
+    public async Task UpdateAsync_MissingInterfaceReturnsProblemDetailsAsync()
+    {
+        Mock<INetworkInterfaceInventoryService> inventory = new();
+        Guid id = Guid.CreateVersion7();
+        inventory.Setup(service => service.UpdateCommentAsync(id, "comment", It.IsAny<CancellationToken>())).ReturnsAsync((NetworkInterfaceInventorySnapshot?)null);
+        inventory.Setup(service => service.UpdateVisibilityAsync(id, false, It.IsAny<CancellationToken>())).ReturnsAsync((NetworkInterfaceInventorySnapshot?)null);
+        NetworkInterfacesController controller = new(inventory.Object);
+
+        IActionResult commentAction = await controller.UpdateCommentAsync(id, new UpdateNetworkInterfaceCommentRequest { Comment = "comment" }, TestContext.CancellationToken);
+        IActionResult visibilityAction = await controller.UpdateVisibilityAsync(id, new UpdateNetworkInterfaceVisibilityRequest { IsVisible = false }, TestContext.CancellationToken);
+
+        foreach (IActionResult action in new[] { commentAction, visibilityAction })
         {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext(),
-            }
-        };
+            NotFoundObjectResult notFound = Assert.IsInstanceOfType<NotFoundObjectResult>(action);
+            ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(notFound.Value);
+            Assert.AreEqual(StatusCodes.Status404NotFound, problem.Status);
+            Assert.AreEqual("The requested network interface does not exist.", problem.Detail);
+        }
+    }
+
+    [TestMethod]
+    public async Task GetStaleAsync_ReturnsRetainedMetadataAsync()
+    {
+        NetworkInterfaceInventoryItem stale = new(Guid.CreateVersion7(), "docker0", "old bridge", isVisible: false);
+        Mock<INetworkInterfaceInventoryService> inventory = new();
+        inventory.Setup(service => service.GetStaleAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceCleanupResult([stale], null));
+        NetworkInterfacesController controller = new(inventory.Object);
+
+        ActionResult<NetworkInterfaceCleanupResponse> result = await controller.GetStaleAsync(TestContext.CancellationToken);
+
+        OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result.Result);
+        NetworkInterfaceCleanupResponse response = Assert.IsInstanceOfType<NetworkInterfaceCleanupResponse>(ok.Value);
+        Assert.AreSame(stale, response.StaleInterfaces.Single());
+        Assert.AreEqual(0, response.RemovedCount);
+    }
+
+    [TestMethod]
+    public async Task CleanupStaleAsync_DelegatesSelectionAndReturnsRemovalCountAsync()
+    {
+        Guid id = Guid.CreateVersion7();
+        Mock<INetworkInterfaceInventoryService> inventory = new();
+        inventory.Setup(service => service.CleanupStaleAsync(It.Is<IReadOnlyCollection<Guid>>(ids => ids.SequenceEqual(new[] { id })), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new NetworkInterfaceCleanupResult([], null, RemovedCount: 1));
+        NetworkInterfacesController controller = new(inventory.Object);
+
+        ActionResult<NetworkInterfaceCleanupResponse> result = await controller.CleanupStaleAsync(new CleanupNetworkInterfacesRequest { InterfaceIds = [id] }, TestContext.CancellationToken);
+
+        OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result.Result);
+        NetworkInterfaceCleanupResponse response = Assert.IsInstanceOfType<NetworkInterfaceCleanupResponse>(ok.Value);
+        Assert.AreEqual(1, response.RemovedCount);
+    }
+
+    [TestMethod]
+    public void UpdateCommentRequest_UsesSharedRawLimit()
+    {
+        UpdateNetworkInterfaceCommentRequest exact = new() { Comment = new string('x', NetworkInterfaceLimits.MAX_COMMENT_LENGTH) };
+        UpdateNetworkInterfaceCommentRequest padded = new() { Comment = $" {new string('x', NetworkInterfaceLimits.MAX_COMMENT_LENGTH)} " };
+
+        Assert.IsTrue(IsValid(exact));
+        Assert.IsFalse(IsValid(padded));
+    }
+
+    [TestMethod]
+    public void CleanupRequest_RequiresAtLeastOneNonEmptyIdentity()
+    {
+        Assert.IsFalse(IsValid(new CleanupNetworkInterfacesRequest()));
+        Assert.IsFalse(IsValid(new CleanupNetworkInterfacesRequest { InterfaceIds = [Guid.Empty] }));
+        Assert.IsTrue(IsValid(new CleanupNetworkInterfacesRequest { InterfaceIds = [Guid.CreateVersion7()] }));
+    }
+
+    private static bool IsValid(object value)
+    {
+        List<ValidationResult> errors = [];
+        return Validator.TryValidateObject(value, new ValidationContext(value), errors, validateAllProperties: true);
+    }
 }

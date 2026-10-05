@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
@@ -63,7 +63,8 @@ public sealed partial class ReconcileRuleMetadataDialog
         DialogParameters<CleanupRuleMetadataDialog> parameters = [];
         parameters.Add(component => component.Count, _selected.Count);
         IDialogReference dialog = await DialogService.ShowAsync<CleanupRuleMetadataDialog>(RulesText["CleanupOrphanedMetadata"], parameters, s_cleanupDialogOptions);
-        if (await dialog.GetReturnValueAsync<bool?>() != true)
+        bool? confirmed = await dialog.GetReturnValueAsync<bool?>();
+        if (confirmed != true)
         {
             return;
         }
@@ -123,7 +124,7 @@ public sealed partial class ReconcileRuleMetadataDialog
             return;
         }
 
-        HashSet<Guid> available = _snapshot.Orphans.Select(static orphan => orphan.Metadata.Id).ToHashSet();
+        HashSet<Guid> available = [.. _snapshot.Orphans.Select(static orphan => orphan.Metadata.Id)];
         _selected.RemoveWhere(id => !available.Contains(id));
     }
 

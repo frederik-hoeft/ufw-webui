@@ -20,6 +20,7 @@ public sealed class FirewallRuleCapabilityValidatorTests
         ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
         Assert.HasCount(1, validation.Errors);
         Assert.AreEqual(nameof(FirewallRuleSpecification.AddressFamily), validation.Errors[0].PropertyName);
+        Assert.AreEqual(FirewallRuleValidationErrorCodes.IPV6_DISABLED, validation.Errors[0].Code);
     }
 
     [TestMethod]
@@ -47,6 +48,7 @@ public sealed class FirewallRuleCapabilityValidatorTests
         ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
         Assert.HasCount(1, validation.Errors);
         Assert.AreEqual(nameof(FirewallRuleSpecification.AddressFamily), validation.Errors[0].PropertyName);
+        Assert.AreEqual(FirewallRuleValidationErrorCodes.IPV6_DISABLED, validation.Errors[0].Code);
     }
 
     [TestMethod]

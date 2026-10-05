@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Wkg.EntityFrameworkCore.Configuration;
 
 namespace Ufw.Web.Data.Model;
@@ -24,15 +25,20 @@ internal sealed partial class NetworkInterfaceEntry : IDiscoverableModelConfigur
             .IsRequired();
         self.Property(static networkInterface => networkInterface.Name)
             .HasColumnName("Name")
-            .HasColumnType("character varying(256)")
-            .HasMaxLength(MAX_NAME_LENGTH)
+            .HasColumnType($"character varying({NetworkInterfaceLimits.MAX_NAME_LENGTH})")
+            .HasMaxLength(NetworkInterfaceLimits.MAX_NAME_LENGTH)
             .IsRequired();
         self.Property(static networkInterface => networkInterface.Comment)
             .HasColumnName("Comment")
-            .HasColumnType("character varying(200)")
-            .HasMaxLength(MAX_COMMENT_LENGTH);
+            .HasColumnType($"character varying({NetworkInterfaceLimits.MAX_COMMENT_LENGTH})")
+            .HasMaxLength(NetworkInterfaceLimits.MAX_COMMENT_LENGTH);
         self.Property(static networkInterface => networkInterface.IsVisible)
             .HasColumnName("IsVisible")
+            .HasColumnType("boolean")
+            .HasDefaultValue(true)
+            .IsRequired();
+        self.Property(static networkInterface => networkInterface.IsPresent)
+            .HasColumnName("IsPresent")
             .HasColumnType("boolean")
             .HasDefaultValue(true)
             .IsRequired();

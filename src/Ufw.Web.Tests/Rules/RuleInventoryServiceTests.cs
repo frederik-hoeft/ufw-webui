@@ -1,5 +1,11 @@
-﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
+﻿using Ufw.Shared.Ipc.Model.Requests.Domain;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Management.Rules;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.Rules;
 
 namespace Ufw.Web.Tests.Rules;
@@ -12,8 +18,8 @@ public sealed class RuleInventoryServiceTests
     {
         DateTimeOffset capturedAt = new(2026, 9, 25, 15, 30, 0, TimeSpan.Zero);
         RuleListResponse firewall = new(Active: true, [], TestFirewallConfiguration.Enabled);
-        TestDaemonRuleSource daemon = new(firewall);
-        TestRuleMetadataRepository metadata = new();
+        TestRuleDaemonGateway daemon = new(firewall);
+        TestRuleMetadataDataAccess metadata = new();
         RuleInventoryService service = new(daemon, metadata, new TestTimeProvider(capturedAt));
 
         RuleInventoryResponse response = await service.GetAsync();
@@ -23,16 +29,28 @@ public sealed class RuleInventoryServiceTests
         Assert.IsEmpty(metadata.LastRuleIds);
     }
 
-    private sealed class TestDaemonRuleSource(RuleListResponse response) : IDaemonRuleSource
+    private sealed class TestRuleDaemonGateway(RuleListResponse response) : IRuleDaemonGateway
     {
-        public Task<RuleListResponse> GetAsync(CancellationToken cancellationToken = default)
+        public Task<DaemonResult<RuleListResponse>> GetRulesAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(response);
+            return Task.FromResult(DaemonResult.Success(response));
         }
+
+        public Task<DaemonResult<RuleMutationResponse>> AddRuleAsync(AddRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DaemonResult<RuleInsertionResponse>> InsertRuleAsync(InsertRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DaemonResult<RuleReplacementExecutionResult>> ReplaceRuleAsync(ReplaceRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DaemonResult<RuleReorderResponse>> ReorderRulesAsync(ReorderRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DaemonResult<RuleBatchDeleteResponse>> BatchDeleteRulesAsync(BatchDeleteRulesRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DaemonResult<RuleMutationResponse>> DeleteRuleAsync(DeleteRuleRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
-    private sealed class TestRuleMetadataRepository : IRuleMetadataRepository
+    private sealed class TestRuleMetadataDataAccess : IRuleMetadataDataAccess
     {
         public IReadOnlyCollection<string> LastRuleIds { get; private set; } = [];
 
@@ -45,10 +63,13 @@ public sealed class RuleInventoryServiceTests
 
         public Task<IReadOnlyList<RuleMetadataItem>> GetAllAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleMetadataSaveResult> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<DataMutationResult<RuleMetadataItem?>> SaveAsync(string ruleId, RuleMetadataValues values, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(string originalRuleId, string replacementRuleId, bool originalRuleStillLive, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+        public Task<RuleMetadataReplacementPersistenceOutcome> ReconcileReplacementAsync(
+            string originalRuleId,
+            string replacementRuleId,
+            bool originalRuleStillLive,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<bool> DeleteAsync(string ruleId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

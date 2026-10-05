@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Ufw.Ipc.Client;
-using Ufw.Shared.Ipc.Model;
 using Ufw.Web.Api.V1.Controllers;
-using Ufw.Web.Api.V1.Errors;
+using Ufw.Web.Services.Daemon;
+using Ufw.Web.Services.Status;
 
 namespace Ufw.Web.Tests.Api.V1;
 
@@ -16,32 +16,33 @@ public sealed class StatusControllerTests
     [TestMethod]
     public async Task GetStatusAsync_ForwardsDedicatedDaemonProbeAsync()
     {
-        Mock<IUfwClient> client = new();
-        client.Setup(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        StatusController controller = CreateController(client.Object);
+        Mock<IStatusDaemonGateway> daemonStatus = new();
+        daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DaemonResult.Success());
+        StatusController controller = CreateController(daemonStatus.Object);
 
         IActionResult result = await controller.GetStatusAsync(TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<NoContentResult>(result);
-        client.Verify(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>()), Times.Once);
+        daemonStatus.Verify(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
-    public async Task GetStatusAsync_MapsDaemonFailureAsync()
+    public async Task GetStatusAsync_DaemonFailurePropagatesToExceptionBoundaryAsync()
     {
-        Mock<IUfwClient> client = new();
-        client.Setup(static c => c.SendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new UfwIpcException(StatusCodes.Status503ServiceUnavailable, "daemon unavailable"));
-        StatusController controller = CreateController(client.Object);
+        UfwIpcError expected = new(StatusCodes.Status503ServiceUnavailable, "daemon unavailable");
+        Mock<IStatusDaemonGateway> daemonStatus = new();
+        daemonStatus.Setup(static c => c.GetStatusAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DaemonResult.Failure(expected));
+        StatusController controller = CreateController(daemonStatus.Object);
 
-        IActionResult result = await controller.GetStatusAsync(TestContext.CancellationToken);
+        UfwIpcException actual = await Assert.ThrowsExactlyAsync<UfwIpcException>(
+            () => controller.GetStatusAsync(TestContext.CancellationToken));
 
-        ObjectResult problem = Assert.IsInstanceOfType<ObjectResult>(result);
-        Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, problem.StatusCode);
+        Assert.AreSame(expected, actual.Error);
     }
 
-    private static StatusController CreateController(IUfwClient client) => new(client, new DaemonApiErrorMapper())
+    private static StatusController CreateController(IStatusDaemonGateway daemonStatus) => new(daemonStatus)
     {
         ControllerContext = new ControllerContext
         {

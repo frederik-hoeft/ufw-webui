@@ -8,9 +8,8 @@ The daemon phase is complete. Web work should consume the finalized daemon contr
 - the daemon server supports startup-selected pipe/TCP with transport-neutral TLS/mTLS, while the current `Ufw.Ipc.Client`/`Ufw.Web` composition and production topology remain Unix-pipe based; Web KZ-02/KZ-04 own any client-side transport selection required for TCP deployments;
 - `RuleListResponse` is the authoritative ordered firewall snapshot; semantic `RuleId` excludes comments/transient numbering, while occurrence IDs are snapshot-local coordinates tied to the exact fingerprinted order;
 - signed-intent v2 canonicalization/verification semantics are stable, authorized mutation keys are snapshotted at daemon startup, and mutation routes return typed transaction/recovery data that must not be collapsed to process success/failure;
-- unexpected remote exception details are opt-in via `expose_remote_exception_details`; `debug_mode` controls local diagnostics only.
-
-The detailed compatibility surface is summarized in the [daemon consumer contract](../../../architecture/architecture-overview.md#daemon-consumer-contract).
+- unexpected remote exception details are opt-in via `expose_remote_exception_details`; `debug_mode` controls local diagnostics only;
+- daemon validation failures now carry stable string codes alongside property/message data; current producers populate them, while application-v1 readers tolerate older code-less payloads. The final Web error boundary must preserve those identities and repeated failures for the same property.
 
 ## Scope and method
 
@@ -43,18 +42,18 @@ ASP is an **aggregation/enrichment layer**, not the sole producer of application
 | Area | Authoritative/source state | ASP-owned/enrichment state | Current composition path | Client-visible shape |
 |---|---|---|---|---|
 | Firewall rules | daemon `RuleListResponse` / `ListedFirewallRule` | PostgreSQL rule metadata (notes, tags, group) plus capture time | `RuleInventoryService` reads daemon snapshot, extracts rule IDs, queries metadata, builds `RuleInventoryResponse` | `RuleInventoryResponse` embeds the daemon firewall snapshot and metadata sidecar directly |
-| Rule mutations | signed daemon transaction requests/responses | best-effort metadata cleanup/replacement reconciliation | `RulesController` proxies `IUfwClient` directly and invokes metadata service where required | daemon response types are returned directly, except replacement adds metadata-reconciliation sidecar |
-| Network interfaces | daemon interface-name list | PostgreSQL public identity, comment, visibility, reconciliation timestamp | `NetworkInterfaceInventoryService` coordinates daemon source + repository | `NetworkInterfaceInventoryResponse` |
-| Known hosts | PostgreSQL | DNS resolution/reconciliation state | `KnownHostService` coordinates DNS + repository | `KnownHostInventoryItem` collection |
-| Rule tags/groups/templates | PostgreSQL | none external; templates embed shared firewall specification | feature service normalizes request, repository performs EF work and builds response | `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem` collections |
+| Rule mutations | signed daemon transaction requests/responses | best-effort metadata cleanup/replacement reconciliation | `RulesController` invokes `IRuleDaemonGateway` and metadata coordination where required | daemon response types are returned directly, except replacement adds metadata-reconciliation sidecar |
+| Network interfaces | daemon interface-name list | PostgreSQL public identity, comment, visibility, presence, reconciliation timestamp | `NetworkInterfaceInventoryService` coordinates the daemon gateway + `NetworkInterfaceDataAccess`; normal reads filter to present rows and stale metadata uses a separate cleanup contract | `NetworkInterfaceInventoryResponse` |
+| Known hosts | PostgreSQL | DNS resolution/reconciliation state | `KnownHostService` coordinates DNS + `KnownHostDataAccess` | `KnownHostInventoryItem` collection |
+| Rule tags/groups/templates | PostgreSQL | none external; templates embed shared firewall specification | V1 controllers validate/map requests and call domain-sliced DAL components; DAL returns shared read models/mutation facts | `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem` collections inside V1 envelopes |
 | Rule metadata reconciliation | daemon live rule identities | PostgreSQL metadata rows | reconciliation service joins daemon identities with DB metadata in memory | orphan/reconciliation response |
 | Authentication | ASP.NET Identity + PostgreSQL refresh-token state | JWT/cookie policy | authentication flow + refresh-token service | auth token response |
-| Intent/status | daemon | none | controllers proxy daemon | daemon/shared response or no-content |
+| Intent/status | daemon | none | controllers invoke narrow intent/status daemon gateways | daemon/shared response or no-content |
 
 Two existing choices are important and should be preserved:
 
 1. `Ufw.Web.Data.Model/*Entry` types are **persistence entities only**. They are internal and are not used by the client.
-2. `Ufw.Web.Model` is already shared by server and client. Its data-bearing `*Item`/`*InventoryItem` types therefore behave much more like a shared **management-domain/read model** than like EF/DAL entities.
+2. The existing data-bearing `*Item`/`*InventoryItem` types already behave much more like shared **management-domain/read models** than like EF/DAL entities. As each slice migrates, those pure data concepts move to `Ufw.Shared.Management`; `Ufw.Web.Model` remains the versioned HTTP DTO layer.
 
 ### Target data-access and model architecture
 
@@ -73,7 +72,7 @@ RuleGroupEntry  --EF projection--> RuleGroup  -----------------------> RuleGroup
 ```
 
 - **Persistence entities** remain internal under `Ufw.Web.Data.Model`. They describe relational storage, can contain surrogate IDs/navigation properties, and never cross the DAL boundary.
-- **Shared domain/read models** are data-only management concepts usable by both server and Blazor client. The existing `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem`, `KnownHostInventoryItem`, `NetworkInterfaceInventoryItem`, and `RuleMetadataItem` are already close to this role. During the blitz they may be renamed/reorganized for clarity, for example under `Ufw.Web.Model.Domain`, but no duplicate mapping model should be created merely to satisfy layering aesthetics.
+- **Shared domain/read models** are data-only management concepts usable by both server and Blazor client. They live under `Ufw.Shared.Management`, physically separate from the HTTP contracts. The existing `RuleTagItem`, `RuleGroupItem`, `RuleTemplateItem`, `KnownHostInventoryItem`, `NetworkInterfaceInventoryItem`, and `RuleMetadataItem` migrate there slice-by-slice; no duplicate mapping model should be created merely to satisfy layering aesthetics.
 - **Request DTOs** remain versioned transport types and carry Data Annotations/nullability required for untrusted JSON input. Before persistence/domain work, controllers or small request mappers convert them to valid normalized arguments or an internal command/query type. A new internal type is justified only when semantics actually change; for simple requests, spreading validated properties into DAL arguments is preferable to creating a 95%-identical object.
 - **Response DTOs/envelopes** remain versioned HTTP contracts and may embed shared domain/read models directly, including collections. Endpoint-specific metadata, diagnostics, pagination, reconciliation state, or upstream daemon state live beside those models as sidecars. There is no per-element remapping allocation when the DAL already projected the desired shared model.
 - **Authoritative upstream shared models** may also be embedded directly when appropriate. `RuleInventoryResponse.Firewall` is the existing example: ASP enriches the daemon snapshot instead of cloning the firewall model simply because it crossed an HTTP boundary.
@@ -126,7 +125,7 @@ A concrete classification for the current components is:
 | Current component | Target role |
 |---|---|
 | `RuleGroupService`, `RuleTagService` | remove after KZ-05; controller maps validated request and calls group/tag DAL query/store |
-| `RuleTemplateService` | likely remove; extract pure request/domain mapper + rule semantic validation, then call template DAL store |
+| `RuleTemplateService` | removed in W1.1; controller request mapping normalizes the template and applies `RuleSpecificationValidator` before calling the template DAL |
 | `RuleInventoryService` | retain as cross-source inventory composer (daemon + metadata DAL), with a responsibility-specific name |
 | `RuleMetadataReconciliationService` | retain as cross-source reconciler, but keep daemon protocol parsing outside it |
 | `RuleMetadataService` | split: pure metadata command handling/reconciliation vs daemon protocol interpretation/gateway |
@@ -177,7 +176,9 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 
 **Refactor target:** Add a distinct `InvalidHost`/`InvalidMetadata` outcome, or move all metadata shape validation to a common validator that produces field-specific failures. Do not overload `InvalidAddress`.
 
-**Primary files:** `Services/KnownHosts/KnownHostService.cs`, `Services/KnownHosts/KnownHostMutationOutcome.cs`, `Api/V1/Controllers/KnownHostsController.cs`
+**Status:** Completed through the request-validation path rather than another mutation outcome. W2.3 moved known-host name/comment constraints to raw-value Data Annotations backed by shared `KnownHostLimits`; W2.6 completed the literal/DNS address-configuration audit, so invalid literal addresses and invalid source/family combinations are rejected by model validation before `KnownHostService`. The old `InvalidAddress`/`InvalidDnsConfiguration` mutation outcomes are therefore gone.
+
+**Primary files:** `Ufw.Web.Model/V1/KnownHosts/KnownHostRequest.cs`, `Services/KnownHosts/KnownHostService.cs`, `Api/V1/Controllers/KnownHostsController.cs`
 
 ### KZ-15 [P1-correctness] Preserve multiple daemon validation errors for the same property
 
@@ -185,20 +186,22 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 
 **Evidence:** `DaemonApiErrorMapper.cs:20-23` performs `problem.Errors[error.PropertyName] = [error.ErrorMessage]` for each error.
 
-**Refactor target:** Group validation errors by property and materialize every message, preserving deterministic order.
+**Refactor target:** Preserve every validation failure as an independent structured public entry rather than collapsing by property. Keep deterministic producer order and carry the stable machine-readable code when the daemon supplied one.
 
-**Primary files:** `Api/V1/Errors/DaemonApiErrorMapper.cs`
+**Status:** Completed in W2.7.1. Public validation failures now use an ordered `validationErrors` ProblemDetails extension. The daemon mapper copies every `ModelValidationError` entry independently, so repeated failures for one property no longer overwrite each other and S1 stable validation codes survive the HTTP boundary. Dedicated regression coverage locks down duplicate-property ordering and codes.
+
+**Primary files:** `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Api/V1/Errors/ApiProblemDetailsFactory.cs`, `Ufw.Web.Model/V1/Errors/*`
 
 ### KZ-01 [P1] Establish a domain-sliced DAL and distinguish persistence entities, shared domain models, and API envelopes
 
 **Problem:** The current `*Repository` classes successfully centralize most non-auth EF access, but they combine too many responsibilities: SQL construction, persistence mutation, projection, public response-envelope construction, feature-local error results, and usually a full-inventory re-query before a write transaction commits. At the same time, the shared `Ufw.Web.Model` data objects are already consumed directly by the Blazor client, so treating every repository projection as an HTTP DTO leak would drive the project toward a wasteful `EF entity -> DAL DTO -> application DTO -> response DTO` ladder.
 
-**Evidence:** `KnownHostRepository`, `NetworkInterfaceInventoryRepository`, `RuleGroupRepository`, `RuleTagRepository`, and `RuleTemplateRepository` all return `*InventoryResponse` objects directly; successful writes commonly call their full `GetCoreAsync` before commit. `RuleMetadataRepository` projects `RuleMetadataItem`/`RuleTagItem`/`RuleGroupSummary` that the client also uses directly. Conversely, all relational `*Entry` types are internal under `Data/Model`, so EF entities are already correctly hidden. `RefreshTokenService` is the notable direct-EF implementation still located under `Services/Auth` rather than an explicit data-access slice.
+**Historical evidence:** Before the vertical migrations, `KnownHostRepository`, `NetworkInterfaceInventoryRepository`, `RuleGroupRepository`, `RuleTagRepository`, and `RuleTemplateRepository` returned `*InventoryResponse` objects directly and commonly rebuilt a full inventory before commit. `RuleMetadataRepository` projected client-consumed models from the persistence layer, while `RefreshTokenService` was the notable direct-EF implementation still located under `Services/Auth`. Relational `*Entry` types themselves were already internal under `Data/Model`.
 
 **Refactor target:**
 
 1. Treat `Data/Model/*Entry` strictly as persistence entities. They never escape the DAL.
-2. Formalize the data-only objects shared by server/client as **domain/read models**, not DAL entities. Reuse them directly in API responses and EF projections. Move/brand the pure shared data concepts under a clear shared-domain namespace such as `Ufw.Web.Model.Domain` (with simple noun names where worthwhile), while keeping V1 request/response envelopes under `Ufw.Web.Model.V1`. Do not introduce structurally identical intermediate models solely to satisfy layering.
+2. Formalize the data-only objects shared by server/client as **domain/read models**, not DAL entities. Reuse them directly in API responses and EF projections. Move the pure shared data concepts under `Ufw.Shared.Management` (with domain-specific subnamespaces), while keeping V1 request/response envelopes under `Ufw.Web.Model.V1`. Do not introduce structurally identical intermediate models solely to satisfy layering.
 3. Keep versioned request/response contracts distinct from those shared models. Response envelopes may hold a domain object/list plus endpoint-specific sidecars. Existing `RuleInventoryResponse { Firewall, Metadata, CapturedAt }` is a good example of enrichment composition.
 4. Move direct EF work into `Data/Access/<domain>` slices (`Auth`, `KnownHosts`, `NetworkInterfaces`, `Rules/Metadata`, `Rules/Groups`, `Rules/Tags`, `Rules/Templates`, etc.). Split read/query and write/store responsibilities when useful, but do not create repository-per-table plumbing.
 5. Keep `IQueryable` private to the DAL. Specialized DAL queries should perform filtering, joining, ordering, aggregation, and projection in SQL before materialization. A query is allowed to span multiple tables when that best answers one request.
@@ -206,7 +209,11 @@ At the end of the blitz, direct EF access should be confined to a domain-sliced 
 7. Prefer direct EF projection into the shared domain/read model. Avoid tracked entity graphs and later in-memory projection unless persistence semantics actually require them.
 8. Add architectural/query-regression tests: direct `ApplicationDbContext`/EF usage outside the DAL should fail an architecture check, and representative list/mutation paths should have bounded SQL-command counts so N+1/materialization fan-out cannot quietly reappear.
 
-**Primary files:** `Services/KnownHosts/IKnownHostRepository.cs`, `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/INetworkInterfaceInventoryRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/IRuleGroupRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/IRuleTagRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/IRuleTemplateRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/IRuleMetadataRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`, `Services/Auth/RefreshTokenService.cs`; adjacent shared models under `Ufw.Web.Model`
+**W2.1/W2.3/W2.4/W2.5 status:** Rule metadata, known hosts, network interfaces, and refresh-token persistence now follow the final boundary. Shared management read models live under `Ufw.Shared.Management`; EF access is confined to matching `Data/Access` slices; response envelopes compose shared models without clone DTOs; and write workflows return mutation facts/domain state before post-commit inventory reads. Auth deliberately remains an application workflow coordinator, but refresh-token EF access now lives under `Data/Access/Auth` and participates in the transaction context owned by that coordinator.
+
+**W3.4 completion:** The final architecture/query-regression gate is in place. Source-boundary tests reject EF Core usage outside `Data/*` plus explicit host composition, and reject `ApplicationDbContext` references outside persistence, `Startup`, and the Auth transaction owner. SQLite command interception also bounds a representative rule-group list to at most three SQL commands and create-plus-refreshed-inventory to at most five even with multiple existing rows, guarding against N+1/materialization fan-out. KZ-01 is complete.
+
+**Primary files:** `Data/Access/Auth/*`, `Data/Access/KnownHosts/*`, `Data/Access/NetworkInterfaces/*`, `Data/Access/Rules/Groups/*`, `Data/Access/Rules/Metadata/*`, `Data/Access/Rules/Tags/*`, `Data/Access/Rules/Templates/*`; adjacent shared models under `Ufw.Shared.Management` and HTTP contracts under `Ufw.Web.Model`
 
 ### KZ-23 [P1] Remove ceremonial application-service hops; keep coordinators only for real workflows
 
@@ -224,7 +231,9 @@ Controller composition must stay shallow: it may combine independently meaningfu
 
 Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGroupService`, `IRuleTagService`/`RuleTagService`, and potentially `IRuleTemplateService`/`RuleTemplateService`. Likely retained but renamed/tightened: rule inventory composition, rule metadata reconciliation/mutation coordination, network-interface reconciliation, known-host DNS coordination, and authentication flow.
 
-**Primary files:** `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Api/V1/Controllers/RuleTemplatesController.cs`, `Services/Rules/IRuleGroupService.cs`, `Services/Rules/RuleGroupService.cs`, `Services/Rules/IRuleTagService.cs`, `Services/Rules/RuleTagService.cs`, `Services/Rules/IRuleTemplateService.cs`, `Services/Rules/RuleTemplateService.cs`, `Services/Rules/RuleInventoryService.cs`, `Services/Rules/RuleMetadataReconciliationService.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryService.cs`, `Services/KnownHosts/KnownHostService.cs`, `Services/Auth/AuthenticationFlowService.cs`
+**W3.4 completion:** Final audit confirms the ceremonial group/tag/template service hops are gone: those controllers call their domain-sliced DALs directly. The remaining services all own real orchestration or cross-source behavior: rule inventory/reconciliation, rule metadata liveness and post-firewall reconciliation, network-interface daemon/persistence reconciliation, known-host DNS coordination, and Auth transaction choreography. KZ-23 is complete.
+
+**Primary files:** `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Api/V1/Controllers/RuleTemplatesController.cs`, `Data/Access/Rules/Groups/*`, `Data/Access/Rules/Tags/*`, `Data/Access/Rules/Templates/*`, `Services/Rules/RuleInventoryService.cs`, `Services/Rules/RuleMetadataService.cs`, `Services/Rules/RuleMetadataReconciliationService.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryService.cs`, `Services/KnownHosts/KnownHostService.cs`, `Services/Auth/AuthenticationFlowService.cs`
 
 ### KZ-02 [P1] Create a consistent daemon gateway boundary and centralize IPC exception handling
 
@@ -234,7 +243,11 @@ Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGr
 
 **Refactor target:** Introduce feature-oriented daemon gateways, especially an `IRuleMutationGateway`/`IRuleDaemonGateway`, plus small status/intent gateways if needed. Move protocol route selection and IPC calls there. Handle `UfwIpcException` and invalid daemon responses once through ASP.NET exception handling/filter middleware, leaving controllers to map domain outcomes only.
 
-**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Api/V1/Controllers/NetworkInterfacesController.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Rules/DaemonRuleSource.cs`, `Services/NetworkInterfaces/DaemonNetworkInterfaceSource.cs`
+**W1.2.1 status:** Gateway ownership is established. `IRuleDaemonGateway` owns authoritative rule reads and signed mutations; network-interface response validation is behind `INetworkInterfaceDaemonGateway`; status and intent use narrow dedicated gateways. Application controllers/services no longer depend on `IUfwClient`, and the unsigned rules/status/intent/network-interface paths are private gateway constants. Signed rule mutations continue to use the method/route already encoded by their shared request messages.
+
+**W1.2.2 status:** Completed. `Ufw.Ipc.Client.TrySendAsync` now returns `UfwIpcResult`/`UfwIpcResult<T>` for daemon-declared application failures, so gateway error flow no longer depends on catching `UfwIpcException`; the existing `SendAsync` API remains as an assertive compatibility surface over the same result path. Gateways return `DaemonResult`/`DaemonResult<T>`, which preserve daemon application failure data for workflows that need `TryGetResult`, while `Result`/`EnsureSuccess()` create an exception only for the normal centralized path. `DaemonApiExceptionFilter` owns daemon exception-to-HTTP translation, so controller-local `try/catch UfwIpcException` plumbing and mapper dependencies are removed. Network-interface reconciliation uses the non-throwing result path to classify daemon failures as upstream unavailability; malformed IPC/daemon responses become `DaemonInvalidResponseException` at the gateway boundary rather than leaking generic `InvalidDataException`. The existing operation-specific cleanup/reconciliation exception handling was audited and remains local. Public ProblemDetails normalization, stable validation-code exposure, and same-property validation accumulation remain KZ-09/KZ-15 work rather than being changed here.
+
+**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Api/V1/Controllers/NetworkInterfacesController.cs`, `Api/V1/Errors/DaemonApiExceptionFilter.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Services/Daemon/DaemonResult.cs`, `Services/Rules/RuleDaemonGateway.cs`, `Services/NetworkInterfaces/NetworkInterfaceDaemonGateway.cs`
 
 ### KZ-03 [P1] Split rule metadata persistence reconciliation from signed daemon protocol parsing
 
@@ -244,13 +257,15 @@ Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGr
 
 **Refactor target:** Move signed request/response interpretation into the rule daemon gateway and emit a small domain reconciliation command such as `(originalRuleId, replacementRuleId, originalStillLive)`. Keep metadata service focused on metadata invariants and persistence reconciliation.
 
-**Primary files:** `Services/Rules/IRuleMetadataService.cs`, `Services/Rules/RuleMetadataService.cs`, `Api/V1/Controllers/RulesController.cs`
+**W1.3 status:** Completed. `RuleDaemonGateway` now interprets completed signed replacement requests together with the authoritative daemon response and emits `RuleReplacementReconciliationFacts` only when the signed replacement identity and final snapshot are coherent. Non-completed firewall outcomes explicitly require no reconciliation; completed-but-inconsistent protocol state is classified as reconciliation preparation failure without discarding the completed firewall report. `RuleMetadataService` consumes only the reconciliation facts and owns database reconciliation/failure handling, with no signed-payload deserialization or daemon response interpretation.
+
+**Primary files:** `Services/Rules/IRuleDaemonGateway.cs`, `Services/Rules/RuleDaemonGateway.cs`, `Services/Rules/IRuleMetadataService.cs`, `Services/Rules/RuleMetadataService.cs`, `Api/V1/Controllers/RulesController.cs`
 
 ### KZ-05 [P1] Move REST request-shape validation out of business services and formalize request-to-domain mapping
 
 **Problem:** Validation ownership is split across three layers. Application services depend on EF entity types purely to obtain max-length constants; similar limits exist independently in public request models; and several services manually reject basic request-shape failures inside normalization/business logic even though `[ApiController]` can reject them declaratively before the use case runs. `RuleTemplateService.TryNormalize`, for example, mixes trimming/normalization with name/description length checks, a null-rule check, metadata request checks, and semantic firewall-rule validation. Groups and tags follow the same general pattern. This obscures which failures are malformed REST input versus validly-shaped requests that fail domain semantics.
 
-**Evidence:** `RuleTemplateService.cs:32-50` manually checks name/description lengths, `request.Rule`, metadata normalization, and rule semantics in one method. `RuleGroupService.cs:34-44` and `RuleTagService.cs:35-56` similarly combine request-shape checks with normalization. By contrast, `KnownHostRequest` already uses `[Required]`/`[StringLength]`, showing the intended ASP.NET request-validation path. Services also read persistence constants in `KnownHostService`, `NetworkInterfaceInventoryService`, `DaemonNetworkInterfaceSource`, `RuleGroupService`, `RuleTagService`, `RuleTemplateService`, and `RuleMetadataValuesNormalizer`.
+**Original evidence:** Before the boundary migrations, `RuleTemplateService` manually combined name/description lengths, null-rule checks, metadata shape, normalization, and semantic rule validation; group/tag services followed the same pattern, and multiple services consumed persistence-owned constants to enforce request shape. These types/locations are historical evidence rather than current implementation.
 
 **Refactor target:** Separate transport input from trusted domain/DAL input without introducing a clone model by default:
 
@@ -258,12 +273,39 @@ Likely removals/reclassifications after KZ-05/KZ-01: `IRuleGroupService`/`RuleGr
 - After transport validation, explicitly map raw request values to normalized/trusted arguments. For small requests, spread normalized properties directly into the DAL/domain call. Introduce an internal command/query record only when it represents a real semantic transition or is reused, such as the existing `RuleTemplateValues`/`RuleMetadataValues` concepts.
 - Internal domain/query inputs should not carry REST validation attributes and should have strong nullability/invariants. They represent already-validated state.
 - Keep normalization in domain/request-mapping code where canonicalization is required (trim optional text, canonicalize colors, normalize firewall specification).
-- Keep semantic/cross-field validation, such as `RuleSpecificationValidator.Validate`, in pure domain validators rather than encoding it as superficial Data Annotations.
+- Keep semantic/cross-field validation in pure domain validators rather than reimplementing it as superficial Data Annotations. A REST contract may invoke the authoritative shared validator as a non-mutating defense-in-depth check when the exact same signed/domain semantics cross the boundary; that does not move authority out of the daemon/domain layer.
 - Move shared maximum lengths and similar invariants to a shared domain limits type, similar to `RuleTemplateLimits`, and make both REST annotations and EF mappings consume the same source of truth. EF entity classes should not define application validation policy.
 
 This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`InvalidTag` when they represent nothing more than malformed request shape. Domain-specific failure results remain appropriate where structurally valid input cannot be applied.
 
+**Status:** Completed across the W1 boundary migrations and W2.6 audit. Group/tag/template/known-host/network-interface/rule-metadata request shape is declarative on V1 DTOs, mapping performs canonicalization after validation, and semantic firewall/DNS/external-state behavior remains in domain/application code. Shared cross-layer limits live in `Ufw.Shared.Management`; REST annotations, EF mappings, and client controls consume those sources where applicable.
+
 **Primary files:** `Services/KnownHosts/KnownHostService.cs`, `Services/NetworkInterfaces/DaemonNetworkInterfaceSource.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryService.cs`, `Services/Rules/RuleGroupService.cs`, `Services/Rules/RuleTagService.cs`, `Services/Rules/RuleTemplateService.cs`, `Services/Rules/RuleMetadataValuesNormalizer.cs`, `Data/Model/KnownHostEntry.cs`, `Data/Model/NetworkInterfaceEntry.cs`, `Data/Model/RuleGroupEntry.cs`, `Data/Model/RuleTagEntry.cs`, `Data/Model/RuleMetadataEntry.cs`; adjacent request/domain contracts in `Ufw.Web.Model`
+
+### KZ-24 [P1-quality] Audit REST DTO validation and eliminate transport-shape checks from application logic
+
+**Problem:** KZ-05 establishes where request validation belongs, and the W1.1 group/tag/template migrations have applied that rule opportunistically, but there is no dedicated whole-API pass proving that every versioned request DTO declares all transport-shape constraints that ASP.NET Core can enforce before controller/application logic runs. The remaining mixed state makes it easy for manual length/null/format checks to survive indefinitely in services/normalizers or for new DTOs to regress to inline validation.
+
+**Audit-start evidence:** `UpdateRuleMetadataRequest` had no validation attributes while `RuleMetadataValuesNormalizer.TryNormalize` rejected null/oversized tag collections, empty GUIDs/group IDs, and oversized notes. Rule-metadata cleanup duplicated selection checks in both controller and service. Group/tag/template DTOs had inconsistent string-validation semantics relative to their request mapping and persistence limits. Known-host DNS/literal source configuration was still classified inside the application workflow. The retained Web-only IPv4/port attributes had no production DTO consumer.
+
+**Refactor target:** Perform a holistic request-contract audit rather than continuing to fix DTO validation only while touching adjacent features:
+
+- Inventory every public/versioned REST request DTO and every manual `BadRequest`/`TryNormalize`/length/null/simple-format guard in Web application code. Classify each guard as transport shape, normalization/canonicalization, cross-field request consistency, or true domain semantics.
+- Express transport-shape constraints through Data Annotations or another centralized ASP.NET Core model-validation mechanism on `Ufw.Web.Model` contracts. Move/rework reusable custom validation attributes into a contract-consumable layer where appropriate; do not create a Web.Model -> Web dependency.
+- Use shared limits from `Ufw.Shared` whenever the constraint is a cross-layer invariant. Keep genuinely persistence-only constraints adjacent to the ORM model.
+- Let `[ApiController]`/MVC model validation reject malformed request shape before controller/application/DAL work. Remove duplicate inline checks once equivalent declarative validation is covered by regression tests.
+- Validate raw transport strings as received; validation must not trim or otherwise normalize a value to make it acceptable. Keep normalization/canonicalization explicit only after model validation, and keep semantic/cross-field firewall behavior in pure domain validators unless a constraint is specifically a REST request-shape invariant.
+- Add focused DTO/model-validation tests plus representative controller/integration coverage so future request contracts cannot silently bypass the centralized validation path.
+
+**W2.3 progress:** Known hosts now consume shared limits and raw-value DTO validation for metadata, removing the original KZ-14 business-logic shape check. This is an incremental consumer of the target validation architecture, not the holistic KZ-24 closure; DNS/address-source combinations and the rest of the V1 request surface still need the dedicated audit.
+
+**W2.4 progress:** Network-interface name/comment limits now live in `Ufw.Shared.Management.NetworkInterfaces`; daemon response validation, EF mappings, the comment request DTO, and the current client editor consume those shared limits. The service no longer performs its former manual comment-length check.
+
+**W2.6 status:** Completed. `UpdateRuleMetadataRequest` and both cleanup requests now declare collection/null/GUID/length constraints; rule-metadata services consume already-validated input and the dedicated `RuleMetadataValuesNormalizer` is removed. String constraints are evaluated against the raw transport value before any mapping normalization; standard `StringLength`/`RegularExpression` validation therefore rejects values that only become valid after trimming, including padded exact-format tag colors. Known-host request validation now owns literal address validity and the `AddressSource`/`DnsAddressFamily` cross-field contract, eliminating the temporary address/configuration mutation outcomes. Signed firewall mutations now use dedicated REST request DTOs rather than exposing the daemon IPC request models directly. Their model validation inspects the exact raw signed envelope and an operation-specific deserialized copy of the canonical payload, rejects malformed/unknown/duplicate/non-canonical/state-independent invalid values, and then maps to the IPC contract by copying the original signed values and `JsonElement` unchanged. Daemon signature/trust/freshness/replay/current-state validation remains authoritative and unchanged. The retained Web-only `ValidIPv4AddressOrAnyAttribute`/`ValidPortRangeAttribute` were removed: the signed REST boundary reuses `RuleSpecificationValidator` plus canonicality checks instead of introducing partial Web-only firewall semantics. DNS resolution, dependency races, daemon-response integrity, and state-dependent signed-operation preconditions remain outside REST model validation.
+
+**Sequencing:** Schedule this as a dedicated W2 closure pass after the remaining request-owning vertical slices (network interfaces, auth, and any residual rule-metadata request handling) have migrated to their final boundaries, but **before KZ-09 public-error standardization**. At that point the DTO set and shared limits are stable enough for a holistic audit, and KZ-09 can standardize the final validation `ProblemDetails` behavior rather than targeting a mixture of MVC/model-state failures and hand-built bad requests. KZ-24 closes the API-wide completeness aspect of KZ-05; it does not replace KZ-05's W1 boundary rule.
+
+**Primary files:** `Ufw.Web.Model/V1/**/*Request*.cs`, `Ufw.Web.Model/Validation`, `Ufw.Web/Data/Validation`, remaining request normalizers/services/controllers in `Ufw.Web`, and adjacent validation/controller integration tests
 
 ### KZ-04 [P2] Decompose `Startup` into feature registration and startup lifecycle units
 
@@ -271,9 +313,11 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 **Evidence:** `Startup.cs:33-198` is all service configuration; `:201-251` configures middleware and performs migration/bootstrap. IPC options are registered with `AddOptions` at `:170-173`, then independently rebound and revalidated at `:175-180`.
 
-**Refactor target:** Keep `Startup` as orchestration only. Extract feature extension methods such as `AddPersistence`, `AddAuthenticationSubsystem`, `AddDaemonClient`, and `AddRuleManagement`. Move migration/bootstrap execution to an explicit startup initializer or deployment migrator. Configure the daemon client from validated options instead of binding the same section twice.
+**Refactor target:** Keep `Startup` as the visible host composition root, but separate application-specific service registration from ASP.NET/Identity/EF/HTTP boilerplate. Keep the application registration catalog together and group it by stable feature/domain boundaries rather than creating one extension method per small subsystem. Keep the current migration/bootstrap lifecycle visible in `Startup` while it remains one explicit cohesive startup sequence. Bind and validate daemon-client configuration once before constructing the IPC client.
 
-**Primary files:** `Startup.cs`, `Program.cs`, `Configuration/IpcClientOptions.cs`
+**W3.1 status:** Completed with that narrower composition-root scope. `ApplicationServiceCollectionExtensions.AddApplicationServices` owns the application-specific Auth, known-host, network-interface, rule-management, status, and intent registrations in one domain-grouped catalog. `Startup` retains framework/host configuration and the explicit migration/bootstrap startup sequence instead of scattering composition across feature-specific extension classes or startup-initializer types. IPC configuration is bound and validated once, then the same validated values configure `Ufw.Ipc.Client`; the unused duplicate `IOptions<IpcClientOptions>` binding was removed.
+
+**Primary files:** `Startup.cs`, `ApplicationServiceCollectionExtensions.cs`, `Configuration/IpcClientOptions.cs`
 
 ### KZ-06 [P2] Unify rule metadata/template tag and group dependency handling
 
@@ -283,7 +327,9 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 **Refactor target:** Extract a persistence-level metadata dependency resolver and reusable tag-relation synchronizer. Reuse one tag/group domain projection. Preserve explicit repository methods rather than introducing a deep generic repository hierarchy.
 
-**Primary files:** `Services/Rules/RuleMetadataRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`
+**W2.1 status:** Completed. `RuleManagementDependencyResolver` resolves stable tag/group identities for both live-rule metadata and templates and returns the existing payload-bearing `RuleTagsNotFoundError`/`RuleGroupNotFoundError` variants. `RuleTagRelationSynchronizer` performs one relation diff algorithm for both `RuleMetadataTagEntry` and `RuleTemplateTagEntry`; metadata no longer deletes and reinserts unchanged tag relations. Both read paths project directly into the same `Ufw.Shared.Management.Rules` tag/group models. The small inline constructors remain inside EF projections because introducing expression-splicing infrastructure solely to share those constructors would make SQL translation and review less transparent.
+
+**Primary files:** `Data/Access/Rules/RuleManagementDependencyResolver.cs`, `Data/Access/Rules/RuleTagRelationSynchronizer.cs`, `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`, `Data/Access/Rules/Templates/RuleTemplateDataAccess.cs`
 
 ### KZ-22 [P2] Standardize mutation/error propagation instead of feature-local outcome plumbing for common failures
 
@@ -295,7 +341,13 @@ This should eliminate outcomes such as `InvalidTemplate`/`InvalidGroup`/`Invalid
 
 Avoid an untyped exception-driven API or one giant catch-all enum. The goal is standard error categories plus optional typed domain details, not loss of semantic information.
 
-**Primary files:** `Data/Extensions/DbUpdateExceptionExtensions.cs`, `Services/Rules/RuleGroupMutationOutcome.cs`, `Services/Rules/RuleGroupMutationResult.cs`, `Services/Rules/RuleTagMutationOutcome.cs`, `Services/Rules/RuleTagMutationResult.cs`, `Services/Rules/RuleTemplateMutationOutcome.cs`, `Services/Rules/RuleTemplateMutationResult.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Api/V1/Controllers/RuleTemplatesController.cs`
+**W1.1 status:** The group/tag/template slices now use shared `DataMutationResult` plus typed errors. Common not-found, unique-conflict, and reference-conflict cases remain payloadless markers; template dependency lookup adds payload-bearing `RuleTagsNotFoundError`/`RuleGroupNotFoundError` variants so the error hierarchy preserves exact domain context rather than acting as an enum in disguise. PostgreSQL unique/FK exceptions are translated through `DbUpdateExceptionExtensions`; operation-specific catch filters avoid consuming unrelated storage failures. Other Web slices still carry their legacy outcome vocabularies and migrate later, so KZ-22 remains open globally.
+
+**W2.1 status:** Rule metadata persistence now uses the same error family and a payload-bearing `DataMutationResult<RuleMetadataItem?>`; successful clears deliberately carry `null`, while successful upserts carry the resulting shared domain item. Missing tag/group dependencies retain their typed payloads, and a concurrent FK/reference failure remains a generic `DataMutationReferenceConflictError`. The higher-level metadata workflow still exposes its existing endpoint-oriented outcome for now, so KZ-22 remains open until the remaining vertical slices/public error boundary are migrated.
+
+**W3.4 completion:** The last feature-local mutation vocabularies are removed. `RuleMetadataService` now returns `DataMutationResult<RuleMetadataMutationResponse>` and preserves `DataMutationNotFoundError`, payload-bearing missing-tag/group errors, and reference conflicts directly to the HTTP boundary. `KnownHostService` likewise returns `DataMutationResult<IReadOnlyList<KnownHostInventoryItem>>`, forwarding persistence errors unchanged and representing DNS-resolution failure as one typed domain error in the same hierarchy. The controllers map those errors directly to the already-final ProblemDetails contract. KZ-22 is complete.
+
+**Primary files:** `Data/Access/DataMutation*.cs`, `Data/Extensions/DbUpdateExceptionExtensions.cs`, `Data/Access/KnownHosts/*Error.cs`, `Data/Access/Rules/*Error.cs`, `Services/KnownHosts/KnownHostService.cs`, `Services/Rules/RuleMetadataService.cs`, `Api/V1/Controllers/KnownHostsController.cs`, `Api/V1/Controllers/RulesController.cs`
 
 ### KZ-07 [P2] Reduce rule-group/rule-tag catalog copy-paste without generic-controller overengineering
 
@@ -305,7 +357,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** After KZ-22 standardizes common mutation/error propagation, extract only the remaining small, named helpers for repeated catalog persistence plumbing. Keep type-specific services/controllers explicit; avoid a generic base controller or generic repository that hides domain differences. Let KZ-09 own common ProblemDetails mapping rather than adding another catalog-specific HTTP helper.
 
-**Primary files:** `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleGroupService.cs`, `Services/Rules/RuleTagService.cs`
+**W3.4 completion:** Re-audited after KZ-22/KZ-23 and the final DAL/query work. The former service/result duplication is gone, PostgreSQL constraint classification is already shared through `DbUpdateExceptionExtensions`, and the remaining group/tag similarity is the actual CRUD shape around different entity payloads, relationship/in-use queries, and read projections. Further extraction would require callback/expression-driven generic repository/controller plumbing rather than a small stable helper, so the explicit implementations are intentionally retained. KZ-07 is complete with no additional abstraction.
+
+**Primary files:** `Api/V1/Controllers/RuleGroupsController.cs`, `Api/V1/Controllers/RuleTagsController.cs`, `Data/Access/Rules/Groups/RuleGroupDataAccess.cs`, `Data/Access/Rules/Tags/RuleTagDataAccess.cs`, `Data/Extensions/DbUpdateExceptionExtensions.cs`
 
 ### KZ-08 [P2] Centralize semantic rule-ID extraction from daemon snapshots
 
@@ -315,7 +369,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Introduce a tiny domain helper/value set for live semantic identities and reuse it everywhere. It should own validity filtering, ordinal equality, set conversion, and deterministic ordering when needed.
 
-**Primary files:** `Services/Rules/RuleInventoryService.cs`, `Services/Rules/RuleMetadataReconciliationService.cs`, `Services/Rules/RuleMetadataService.cs`
+**Status:** Completed in W2.2. `LiveRuleIdentitySet` now owns extraction from authoritative daemon snapshots, filters null/whitespace identities, applies ordinal distinctness/membership, and enumerates deterministically. Inventory enrichment, metadata liveness/reconciliation, batch-delete cleanup, and replacement reconciliation all consume the same Web-domain identity semantics. The helper remains Web-local rather than forcing snapshot-consumption behavior into the shared daemon/client domain.
+
+**Primary files:** `Services/Rules/LiveRuleIdentitySet.cs`, `Services/Rules/RuleInventoryService.cs`, `Services/Rules/RuleMetadataReconciliationService.cs`, `Services/Rules/RuleMetadataService.cs`, `Services/Rules/RuleDaemonGateway.cs`
 
 ### KZ-09 [P2] Standardize HTTP error shape and declared response contracts
 
@@ -323,19 +379,27 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Evidence:** Anonymous rule errors at `RulesController.cs:41-43,58,77,96,122,141,161`; antiforgery empty 400 at `AntiforgeryValidationMiddleware.cs:19-23`; daemon error mapping can return 502 at `DaemonApiErrorMapper.cs:27-28`.
 
-**Refactor target:** Adopt one ProblemDetails-based public error policy, preferably through centralized exception/problem handling. Add response metadata/conventions so Swagger reflects gateway failures consistently.
+**Refactor target:** Adopt one ProblemDetails-based public error policy, preferably through centralized exception/problem handling. Add response metadata/conventions so Swagger reflects gateway failures consistently. Validation failures use an ordered structured collection rather than `ValidationProblemDetails.Errors`, allowing repeated property failures and stable validation identities to survive unchanged.
 
-**Primary files:** `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RulesController.api.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Security/AntiforgeryValidationMiddleware.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`
+**W2.7.1 status:** The validation half is complete. `Ufw.Web.Model` now defines the browser-visible ProblemDetails/validation DTOs; automatic MVC model-state failures, password-change validation, and daemon validation all emit the same `validationErrors` extension, and the client preserves those structured entries on `ApiRequestException`. Remaining work for W2.7.2 is to migrate anonymous `{ message }` payloads and empty application-generated errors to ProblemDetails and reconcile the endpoint/Swagger response declarations.
+
+**W2.7.2a status:** Runtime producer migration is complete. Application-owned 400/404/conflict failures now use `ApiProblemDetailsFactory`, antiforgery writes ProblemDetails through the registered ASP.NET Core problem-details service, and clear authentication/authorization 401/403 responses intentionally remain bodyless. At this review point, response metadata/Swagger reconciliation remained for W2.7.2b, including accurate representation of statuses that can carry either a typed transaction outcome or ProblemDetails.
+
+**W2.7.2b status:** Completed. Non-success application/daemon response declarations now name `ApiProblemDetails` explicitly, daemon-backed endpoints declare reachable 500/502 failures, and signed mutations declare the remaining daemon application statuses that can cross the gateway. Swagger normalizes bodyless framework failures to no content and advertises ProblemDetails as `application/problem+json`; where a status can instead be a typed transaction result, the generated response exposes both the typed `application/json` body and ProblemDetails media-type alternative. Signed-mutation 403 responses additionally document that framework authorization may be bodyless while application/intent rejection uses ProblemDetails. This closes KZ-09; the temporary legacy client `{ message }` fallback remains separately tracked under CLIENT KZ-11 for post-W acceptance cleanup.
+
+**Primary files:** `Api/V1/Controllers/*.api.cs`, `Api/V1/Controllers/RulesController.cs`, `Api/V1/Controllers/RuleMetadataController.cs`, `Security/AntiforgeryValidationMiddleware.cs`, `Api/V1/Errors/ApiProblemDetailsFactory.cs`, `Api/V1/Errors/DaemonApiErrorMapper.cs`, `Configuration/Swagger/ResponseContractOperationFilter.cs`, `Ufw.Web.Model/V1/Errors/*`
 
 ### KZ-10 [P2] Make authentication transaction ownership explicit and reduce service contracts tied to `IdentityUser`
 
-**Problem:** `AuthenticationFlowService` opens transaction scopes and calls `RefreshTokenService`, which independently opens transaction scopes. Correctness therefore depends on implicit/ambient Wkg transaction joining semantics. Several internal workflow contracts also expose `IdentityUser`/`IdentityResult`, binding orchestration to ASP.NET Identity implementation types.
+**Problem:** `AuthenticationFlowService` opened transaction scopes and called `RefreshTokenService`, which independently opened transaction scopes. Correctness therefore depended on implicit/ambient Wkg transaction joining semantics. Several workflow contracts also exposed `IdentityUser`/`IdentityResult`, binding orchestration to ASP.NET Identity implementation types.
 
-**Evidence:** Outer transaction scopes: `AuthenticationFlowService.cs:20,48,71,94`; nested refresh-token scopes: `RefreshTokenService.cs:24,49,114,136`. `RefreshTokenRotationResult` contains `IdentityUser`.
+**Historical evidence:** The pre-W2.5 `AuthenticationFlowService` owned outer transaction scopes while `RefreshTokenService` opened nested scopes for issue/rotation/revocation; `RefreshTokenRotationResult` carried an `IdentityUser` directly.
 
-**Refactor target:** Choose one transaction owner per auth use case and make nested persistence participate explicitly in that context. If Identity is intentionally permanent, keep the implementation coupling but internalize it; otherwise return a small authenticated-user projection instead of `IdentityUser`.
+**Refactor target:** Choose one transaction owner per auth use case and make nested persistence participate explicitly in that context. If Identity is intentionally permanent, keep the implementation coupling local to the auth implementation; otherwise return a small authenticated-user projection instead of `IdentityUser`.
 
-**Primary files:** `Services/Auth/AuthenticationFlowService.cs`, `Services/Auth/RefreshTokenService.cs`, `Services/Auth/IRefreshTokenService.cs`, `Services/Auth/IJwtTokenService.cs`, `Services/Auth/RefreshTokenRotationResult.cs`, `Services/Auth/PasswordChangeResult.cs`
+**Status:** Completed in W2.5. `AuthenticationFlowService` is the sole transaction owner for login, refresh, password change, and logout. `RefreshTokenDataAccess` receives that exact `ApplicationDbContext` explicitly and never opens a transaction of its own. Rotation returns only user ID plus replacement-token facts, while the workflow resolves `IdentityUser` only when Identity behavior is required. Password-change results no longer expose `IdentityResult`; Identity validation errors are translated into auth workflow validation fields before leaving the implementation boundary. Tests cover caller-owned rollback, committed failed-login state, replay-family invalidation, and rollback of an Identity password change when a later token-issuance step fails.
+
+**Primary files:** `Services/Auth/AuthenticationFlowService.cs`, `Data/Access/Auth/IRefreshTokenDataAccess.cs`, `Data/Access/Auth/RefreshTokenDataAccess.cs`, `Data/Access/Auth/RefreshTokenRotationResult.cs`, `Services/Auth/PasswordChangeResult.cs`
 
 ### KZ-11 [P2] Shrink accidental public surface area
 
@@ -345,37 +409,47 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Internalize application-only contracts/results. Keep controllers and genuinely external framework-facing types public where required. Narrow the CA1515 suppression to intentional exceptions rather than silencing the rule for the entire project.
 
-**Primary files:** `.editorconfig`, `Configuration/RefreshTokenOptions.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Auth/IAuthenticationFlowService.cs`, `Services/Auth/IAuthenticationTimingService.cs`, `Services/Auth/IJwtTokenService.cs`, `Services/Auth/IRefreshTokenService.cs`, `Services/Auth/AccessToken.cs`, `Services/Auth/AuthenticationTokenResult.cs`, `Services/Auth/PasswordChangeResult.cs`, `Services/Auth/RefreshTokenIssueResult.cs` and 11 more
+**W3.2 status:** Completed. Fifteen application-only implementation/detail types are now `internal`, including `ApplicationDbContext`, internal auth/daemon collaborators, common concrete mutation errors, and concrete replacement-reconciliation variants. The remaining public application contracts are intentionally reachable through public MVC controller constructors or through those dependencies' public signatures; controllers themselves stay public for MVC discovery and generated EF migration classes remain untouched. CA1515 is now enforced as a warning for `Ufw.Web`, with explicit suppressions only for those intentional public surfaces and generated/framework-facing namespaces. EF Core 10.0.11 design-time tooling was exercised against the internal context and successfully discovered `Ufw.Web.Data.ApplicationDbContext` through the normal hosting service provider. Test-only access remains explicit: Castle DynamicProxy is a friend assembly for internal mocks, and the integration project uses MSTest `DiscoverInternals` so its inheritance scaffolding does not force the production context back to public visibility.
 
-### KZ-13 [P2-design] Decide whether transient interface disappearance is allowed to erase user-owned metadata
+**Primary files:** `.editorconfig`, `Configuration/RefreshTokenOptions.cs`, `Api/V1/Errors/DaemonApiError.cs`, `Api/V1/Errors/IDaemonApiErrorMapper.cs`, `Services/Auth/IAuthenticationFlowService.cs`, `Services/Auth/IAuthenticationTimingService.cs`, `Services/Auth/IJwtTokenService.cs`, `Services/Auth/AccessToken.cs`, `Services/Auth/AuthenticationTokenResult.cs`, `Services/Auth/PasswordChangeResult.cs`, `Services/Auth/PasswordChangeValidationError.cs`, `Services/Auth/PasswordChangeValidationField.cs` and other application-only contracts
+
+### KZ-13 [P2] Retain user-owned interface metadata across transient disappearance
 
 **Problem:** Reconciliation deletes any cached interface not present in the latest daemon list. Because comment and visibility live on that same row, a transiently absent interface loses application-owned metadata and gets a fresh identity/default metadata if it later reappears.
 
-**Evidence:** `NetworkInterfaceInventoryRepository.cs:24-29` removes missing rows; new rows are recreated at `:32-37`.
+**Historical evidence:** the pre-W2.4 `NetworkInterfaceInventoryRepository` removed rows absent from the latest daemon list and recreated them with fresh identity/default metadata if they later returned.
 
-**Refactor target:** Confirm the intended lifecycle. If metadata should survive transient interface disappearance, retain rows with presence/last-seen state instead of deleting them. If deletion is intentional, document and test that destructive semantic explicitly.
+**Lifecycle decision:** Missing daemon interfaces are not authoritative deletion of application-owned metadata. Retain the row in a soft-deleted/non-present state. If the same interface name reappears, reactivate the existing row so its public identity, comment, and visibility survive. Normal inventory/rule-authoring responses should expose only present interfaces. Permanently deleting retained stale rows is an explicit user cleanup operation, not a reconciliation side effect. Cleanup must revalidate against the daemon-authoritative interface set and delete only rows that are still absent after that revalidation, so an interface that reappeared after the candidate list was loaded cannot be removed.
 
-**Primary files:** `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Data/Model/NetworkInterfaceEntry.cs`
+**Refactor target:** Implement the retained-presence lifecycle in the final network-interface DAL/reconciliation slice, expose stale interface metadata through a dedicated cleanup/read contract, and provide an explicit permanent-delete operation. Keep the server contract domain-specific rather than forcing stale interfaces into the rule-metadata reconciliation DTO. Client-side presentation and the combined cleanup workflow are deferred to CLIENT KZ-24.
 
-### KZ-12 [P3-quick] Delete dead validation/signing implementations and minor stale code
+**Primary files:** `Data/Access/NetworkInterfaces/NetworkInterfaceDataAccess.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryService.cs`, `Data/Model/NetworkInterfaceEntry.cs`, `Api/V1/Controllers/NetworkInterfacesController.*`, `Ufw.Shared/Management/NetworkInterfaces/*`
 
-**Problem:** Two custom validation attributes have no production references; only their tests reference them. The RSA JWT key provider is also unreferenced while DI always uses ECDSA. The dead port validator contains a commented-out implementation and a bit-mask expression that obscures simple parsing; the IPv4 validator contains a malformed validation message. Group/tag repositories contain unused `Npgsql` imports.
+**Status:** Completed in W2.4. `NetworkInterfaceEntry.IsPresent` records daemon presence without deleting application metadata; reconciliation revives the existing row on reappearance; normal inventory queries filter to present rows; stale retained metadata is exposed separately; and cleanup refreshes daemon-authoritative names in the same reconciliation/delete operation before physically deleting only selected rows that remain absent. Client presentation remains deferred to CLIENT KZ-24.
+
+### KZ-12 [P3-quick] Remove obsolete signing/stale code and preserve reusable validation primitives
+
+**Problem:** Two custom validation attributes currently have no production references, while the RSA JWT key provider is unreferenced and DI always uses ECDSA. Group/tag repositories also contain stale imports. The validation attributes are nevertheless reusable request-shape primitives needed by the upcoming KZ-05 DTO-validation migration, so deleting them now would only recreate them shortly afterward.
 
 **Evidence:** Repository-wide symbol search finds no production use of `ValidIPv4AddressOrAnyAttribute`, `ValidPortRangeAttribute`, or `RsaJwtSigningKeyProvider`.
 
-**Refactor target:** Delete the dead implementations and their dedicated tests unless algorithm/validator selection is an imminent requirement. Remove stale imports/comments rather than preserving dormant alternatives.
+**Refactor target:** Remove genuinely obsolete signing/stale code, but retain the IPv4/port validation attributes and their focused tests because request-DTO validation remains an active KZ-05/KZ-24 concern. Revisit their ownership, implementation, and messages during the dedicated DTO-validation audit rather than deleting and recreating them.
+
+**Status:** Completed in W1.1 with narrowed scope. The unused RSA JWT signing-key provider is removed and group/tag repository-specific stale imports disappeared with the DAL migration. The two legacy firewall-format validation attributes were retained until the dedicated KZ-24 audit, then removed in W2.6 after that audit established that shared firewall semantics belong exclusively to `RuleSpecificationValidator` and have no correct Web DTO attribute target.
 
 **Primary files:** `Data/Validation/ValidIPv4AddressOrAnyAttribute.cs`, `Data/Validation/ValidPortRangeAttribute.cs`, `Services/Auth/RsaJwtSigningKeyProvider.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`
 
 ### KZ-16 [P3] Extract auth cookie policy and Identity error mapping
 
-**Problem:** Refresh-cookie append/delete duplicate security options, and password-change field mapping is coupled to the literal Identity error code `"PasswordMismatch"`; every other Identity error is assumed to belong to `NewPassword`.
+**Problem:** Refresh-cookie append/delete duplicated security options, and password-change field mapping was coupled to the literal Identity error code `"PasswordMismatch"`; every other Identity error was assumed inline to belong to `NewPassword`.
 
-**Evidence:** Cookie duplication at `AuthController.cs:108-130`; string error-code mapping at `:74-81`.
+**Historical evidence:** The pre-W2.5 `AuthController` repeated `Secure`/`HttpOnly`/`SameSite`/path/essential cookie options and grouped `IdentityError` instances directly by their raw Identity error code.
 
-**Refactor target:** Use one refresh-cookie policy/factory for append/delete. Put Identity-to-API validation translation in a dedicated mapper with explicit mappings/fallback behavior.
+**Refactor target:** Use one refresh-cookie policy/factory for append/delete. Put Identity validation translation behind a dedicated mapper with explicit known mappings and fallback behavior.
 
-**Primary files:** `Api/V1/Controllers/AuthController.cs`
+**Status:** Completed in W2.5. `RefreshTokenCookiePolicy` is the single source of refresh-cookie security attributes for append/delete. `IdentityPasswordChangeErrorMapper` explicitly maps current-password and known replacement-password Identity codes and preserves the previous replacement-password fallback for provider-specific errors. `AuthController` consumes Identity-independent `PasswordChangeValidationError` values rather than inspecting `IdentityResult` or Identity error-code strings.
+
+**Primary files:** `Api/V1/Controllers/AuthController.cs`, `Services/Auth/RefreshTokenCookiePolicy.cs`, `Services/Auth/IdentityPasswordChangeErrorMapper.cs`, `Services/Auth/PasswordChangeResult.cs`
 
 ### KZ-17 [P3] Centralize daemon endpoint paths
 
@@ -385,17 +459,21 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Move routes into the daemon gateway/protocol client boundary. This naturally disappears if KZ-02 is implemented well.
 
-**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Services/Rules/DaemonRuleSource.cs`, `Services/NetworkInterfaces/DaemonNetworkInterfaceSource.cs`
+**Status:** Completed in W1.2.1. The four unsigned read/probe routes are private constants of their feature gateways. Signed rule-mutation routes are not duplicated in Web because their shared request-message types already own that protocol metadata.
+
+**Primary files:** `Api/V1/Controllers/IntentController.cs`, `Api/V1/Controllers/StatusController.cs`, `Services/Rules/RuleDaemonGateway.cs`, `Services/NetworkInterfaces/NetworkInterfaceDaemonGateway.cs`
 
 ### KZ-18 [P3] Tighten bulk persistence operations after the boundary refactor
 
 **Problem:** Bulk metadata cleanup first loads entities and then `RemoveRange`s them. This adds tracking/materialization overhead for operations whose result only needs a count.
 
-**Evidence:** `RuleMetadataRepository.cs:206-217` and `:231-247`.
+**Evidence:** `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs` still materializes rows before `RemoveRange` in `DeleteForRuleIdsAsync` and `DeleteUnmatchedAsync`.
 
 **Refactor target:** After verifying cascade semantics, use `ExecuteDeleteAsync` or an equivalent set-based delete and return the affected-row count.
 
-**Primary files:** `Services/Rules/RuleMetadataRepository.cs`
+**Status:** Completed in W2.2. `DeleteForRuleIdsAsync` and `DeleteUnmatchedAsync` now use `ExecuteDeleteAsync` against the final metadata DAL query and return the database-reported affected metadata-row count without materializing/tracking deletion worksets. Regression coverage verifies that database cascade deletion removes `RuleMetadataTagEntry` relations while preserving reusable tag rows.
+
+**Primary files:** `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`
 
 ### KZ-19 [P3-release-risk] Treat the description-length migration as explicitly destructive history
 
@@ -403,7 +481,9 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Evidence:** `RuleTemplateDescriptionLength.cs:13-17` performs `LEFT("Description", 512)`.
 
-**Refactor target:** Do not edit an already-applied migration. If this migration has not shipped, decide whether truncation is acceptable; otherwise fail/preflight instead. If it has shipped, document the irreversible behavior and keep future destructive migrations gated by explicit data-migration policy.
+**Refactor target:** Do not edit migration history merely to make development churn look reversible. Establish whether the migration ever crossed a release/data boundary before deciding whether a destructive-data policy is required.
+
+**Status:** Completed in W3.3. The 4000-to-512 description migration was a same-development-branch follow-up to the feature that introduced template descriptions, so there was no meaningful deployed description data to preserve. The truncation is therefore accepted as development migration churn and the migration is left unchanged. No additional product/runtime policy is introduced for this historical case; normal release backups and schema-compatibility rollback guidance remain the operational safety boundary for future releases.
 
 **Primary files:** `Data/Migrations/20260930110937_RuleTemplateDescriptionLength.cs`
 
@@ -415,17 +495,21 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 **Refactor target:** Prefer an MVC convention or a very small common attribute/base contract only if it remains transparent in Swagger and authorization review. This is low-value compared with the boundary work and should not drive a generic-controller hierarchy.
 
+**Status:** Reviewed and intentionally retained in W3.3. The repeated attributes are declarative controller policy rather than duplicated application logic. Moving authorization into a fallback policy, response-cache behavior into a global filter, or API-version membership into conventions would save little code while making security/version/cache behavior less obvious at the controller contract. An assembly-level `ApiController` alone is too small a win to justify splitting the policy model.
+
 **Primary files:** `Api/V1/Controllers/IntentController.api.cs`, `Api/V1/Controllers/AuthController.api.cs`, `Api/V1/Controllers/RuleTagsController.api.cs`, `Api/V1/Controllers/RuleGroupsController.api.cs`, `Api/V1/Controllers/RuleTemplatesController.api.cs`, `Api/V1/Controllers/RulesController.api.cs`, `Api/V1/Controllers/RuleMetadataController.api.cs`, `Api/V1/Controllers/StatusController.api.cs`, `Api/V1/Controllers/KnownHostsController.api.cs`, `Api/V1/Controllers/NetworkInterfacesController.api.cs`
 
 ### KZ-21 [P3-quick/perf] Prefer `ToListAsync` over `ToArrayAsync` for EF materialization when array identity is irrelevant
 
-**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. The project currently has 12 `ToArrayAsync` call sites in `Ufw.Web`.
+**Problem:** `ToArrayAsync` in EF Core materializes through an intermediate growable collection and then produces an array, so using it when downstream code only needs an enumerable/read-only collection introduces a needless final allocation and copy. After the W1.1 catalog/template migrations, W2.1 metadata read migration, W2.2 set-based metadata cleanup, and W2.4 network-interface migration, 3 `ToArrayAsync` call sites remain in `Ufw.Web`.
 
-**Evidence:** Current uses occur in `KnownHostRepository.cs:189`, `NetworkInterfaceInventoryRepository.cs:89`, `RuleTemplateRepository.cs:129,157`, `RuleMetadataRepository.cs:29,40,70,130,210,240`, `RuleGroupRepository.cs:112`, and `RuleTagRepository.cs:109`. Several feed code that only enumerates, counts, projects, or exposes an `IReadOnlyList`, so an array is not semantically required.
+**Evidence:** Current uses remain in known hosts, the rule metadata replacement workset, and rule-group inventory. The W1.1 template inventory read, W2.1 metadata read, and W2.4 network-interface read paths project their final shared read models with `ToListAsync`; W2.2 removed both bulk-cleanup materializations by moving those deletes to `ExecuteDeleteAsync`; shared tag/group dependency resolution likewise uses `ToListAsync`. The surviving array uses still need the planned audit because some are mutation/entity worksets where an array may be locally reasonable while others only enumerate/project the result.
 
-**Refactor target:** Audit the 12 sites and use `ToListAsync` wherever the exact concrete collection type is immaterial. Retain `ToArrayAsync` only where an array is deliberately part of the local/API/domain contract or array semantics materially simplify subsequent work. Where KZ-01 removes whole-inventory re-queries entirely, delete the materialization rather than mechanically changing it.
+**Refactor target:** Audit the surviving sites and use `ToListAsync` wherever the exact concrete collection type is immaterial. Retain `ToArrayAsync` only where an array is deliberately part of the local/API/domain contract or array semantics materially simplify subsequent work. Where KZ-01 removes whole-inventory re-queries entirely, delete the materialization rather than mechanically changing it.
 
-**Primary files:** `Services/KnownHosts/KnownHostRepository.cs`, `Services/NetworkInterfaces/NetworkInterfaceInventoryRepository.cs`, `Services/Rules/RuleGroupRepository.cs`, `Services/Rules/RuleTagRepository.cs`, `Services/Rules/RuleTemplateRepository.cs`, `Services/Rules/RuleMetadataRepository.cs`
+**Primary files:** `Data/Access/KnownHosts/KnownHostDataAccess.cs`, `Data/Access/Rules/Metadata/RuleMetadataDataAccess.cs`, `Data/Access/Rules/Groups/RuleGroupDataAccess.cs`
+
+**Status:** Completed in W2.8. All three surviving sites were audited after the W2 query-shape migrations. Rule-group inventory now projects its final read model in SQL rather than materializing entity graphs for a second client-side projection. Known-host inventory keeps only its address normalization/persisted-data validation as EF's final client projection while SQL selects the required columns. Rule-metadata replacement needs a tracked mutable workset but no array semantics. All three use `ToListAsync`, and no production `ToArrayAsync` remains in `Ufw.Web`.
 
 ## Recommended blitz sequence
 
@@ -433,9 +517,10 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 2. **Lock the model/DAL rules before moving code:** KZ-01, KZ-05, KZ-23. Establish persistence-entity vs shared-domain vs transport-contract roles, request mapping, the domain-sliced DAL boundary, and the rule that orchestration layers must earn their existence.
 3. **Normalize daemon/application boundaries:** KZ-02 and KZ-03. Establish the daemon gateway and move signed-protocol interpretation out of metadata persistence orchestration.
 4. **Repair mutation/error and relationship plumbing:** KZ-22, then KZ-06 and KZ-08. Standardize persistence/application failures, consolidate tag/group relationship handling, and prevent semantic-rule-ID logic from drifting.
-5. **Collapse repetitive feature/HTTP plumbing:** KZ-07 and KZ-09. Do this only after the service/DAL signatures stabilize so helpers reflect the final architecture rather than the current local outcome enums.
-6. **Composition and auth cleanup:** KZ-04, KZ-10, KZ-11, KZ-16, KZ-17. KZ-10 should move refresh-token EF work into the auth DAL slice established by KZ-01.
-7. **Behavior/performance decisions:** KZ-13, KZ-18, KZ-19, and optionally KZ-20.
+5. **Collapse repetitive feature plumbing and close request validation:** KZ-07, then KZ-24 after the request-owning vertical slices have stabilized. Run the holistic DTO-validation audit before KZ-09 so the public error contract targets one final model-validation path.
+6. **Standardize public HTTP errors:** KZ-09 after KZ-24, KZ-22, and the daemon gateway are stable.
+7. **Composition and final surface cleanup:** auth KZ-10/KZ-16 and daemon-route KZ-17 are complete. Defer KZ-04/KZ-11 until registrations and public contracts stabilize, then close migration policy KZ-19 and optional declaration cleanup KZ-20.
+8. **Behavior/performance decisions:** KZ-13, KZ-18, KZ-19, and optionally KZ-20.
 
 ## Refactoring guardrails
 
@@ -462,7 +547,7 @@ Avoid an untyped exception-driven API or one giant catch-all enum. The goal is s
 
 ## Definition of done for the blitz
 
-- No production references remain to deleted validators/RSA provider, and their obsolete tests are removed or repurposed.
+- No production references remain to the deleted RSA provider; retained validation attributes are either consumed by the KZ-05 request-validation boundary or removed if they prove unnecessary there.
 - Known-host invalid metadata and daemon multi-error validation have regression tests.
 - Controllers no longer inject `IUfwClient` directly for normal daemon workflows.
 - Daemon transport exceptions are converted to the public HTTP error contract in one place.

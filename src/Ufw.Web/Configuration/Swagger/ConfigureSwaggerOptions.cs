@@ -20,6 +20,7 @@ internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider ver
         }
 
         options.SupportNonNullableReferenceTypes();
+        options.OperationFilter<ResponseContractOperationFilter>();
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             In = ParameterLocation.Header,

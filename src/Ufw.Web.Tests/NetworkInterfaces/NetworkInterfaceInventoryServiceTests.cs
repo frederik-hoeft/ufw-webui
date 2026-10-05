@@ -6,10 +6,13 @@ using System.Data;
 using Ufw.Ipc.Client;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Data;
-using Ufw.Web.Tests.Data;
+using Ufw.Web.Data.Access.NetworkInterfaces;
+using Ufw.Web.Data.Model;
+using Ufw.Web.Services.Daemon;
 using Ufw.Web.Services.NetworkInterfaces;
+using Ufw.Web.Tests.Data;
 using Wkg.AspNetCore.Transactions;
 using Wkg.AspNetCore.Transactions.Configuration;
 using Wkg.AspNetCore.Transactions.Continuations;
@@ -25,27 +28,29 @@ public sealed class NetworkInterfaceInventoryServiceTests
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
-    public async Task ReconcileAsync_PreservesMetadataForExistingInterfacesAndRemovesMissingEntriesAsync()
+    public async Task ReconcileAsync_PreservesMetadataForPresentInterfacesAndRetainsMissingEntriesAsStaleAsync()
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetDaemonInterfaces("docker0", "eno1");
 
-        NetworkInterfaceInventoryResponse initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventoryItem docker0 = initial.Interfaces.Single(static item => item.Name == "docker0");
         NetworkInterfaceInventoryItem eno1 = initial.Interfaces.Single(static item => item.Name == "eno1");
         Assert.AreEqual('7', eno1.Id.ToString("D")[14]);
         Assert.IsTrue(eno1.IsVisible);
 
-        NetworkInterfaceInventoryResponse? commented = await host.Service.UpdateCommentAsync(eno1.Id, " service VLAN ", TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot? commented = await host.Service.UpdateCommentAsync(eno1.Id, " service VLAN ", TestContext.CancellationToken);
         Assert.IsNotNull(commented);
         Assert.AreEqual("service VLAN", commented.Interfaces.Single(static item => item.Name == "eno1").Comment);
 
-        NetworkInterfaceInventoryResponse? hidden = await host.Service.UpdateVisibilityAsync(eno1.Id, isVisible: false, TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot? hidden = await host.Service.UpdateVisibilityAsync(eno1.Id, isVisible: false, TestContext.CancellationToken);
         Assert.IsNotNull(hidden);
         Assert.IsFalse(hidden.Interfaces.Single(static item => item.Name == "eno1").IsVisible);
 
         host.Clock.Advance(TimeSpan.FromMinutes(1));
         host.SetDaemonInterfaces("eno1", "wlan0");
-        NetworkInterfaceInventoryResponse reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceCleanupResult stale = await host.Service.GetStaleAsync(TestContext.CancellationToken);
 
         Assert.HasCount(2, reconciled.Interfaces);
         NetworkInterfaceInventoryItem retained = reconciled.Interfaces.Single(static item => item.Name == "eno1");
@@ -57,6 +62,80 @@ public sealed class NetworkInterfaceInventoryServiceTests
         Assert.AreEqual('7', wlan0.Id.ToString("D")[14]);
         Assert.IsTrue(wlan0.IsVisible);
         Assert.AreEqual(host.Clock.GetUtcNow(), reconciled.ReconciledAt);
+        Assert.HasCount(1, stale.StaleInterfaces);
+        Assert.AreEqual(docker0.Id, stale.StaleInterfaces[0].Id);
+        Assert.AreEqual("docker0", stale.StaleInterfaces[0].Name);
+    }
+
+    [TestMethod]
+    public async Task ReconcileAsync_ReappearingInterfaceRestoresSameIdentityAndMetadataAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetDaemonInterfaces("eno1");
+        NetworkInterfaceInventorySnapshot initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventoryItem eno1 = initial.Interfaces.Single();
+        _ = await host.Service.UpdateCommentAsync(eno1.Id, "uplink", TestContext.CancellationToken);
+        _ = await host.Service.UpdateVisibilityAsync(eno1.Id, isVisible: false, TestContext.CancellationToken);
+
+        host.SetDaemonInterfaces();
+        NetworkInterfaceInventorySnapshot missing = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceCleanupResult stale = await host.Service.GetStaleAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(missing.Interfaces);
+        Assert.HasCount(1, stale.StaleInterfaces);
+        Assert.AreEqual(eno1.Id, stale.StaleInterfaces[0].Id);
+
+        host.SetDaemonInterfaces("eno1");
+        NetworkInterfaceInventorySnapshot restored = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceCleanupResult afterRestore = await host.Service.GetStaleAsync(TestContext.CancellationToken);
+
+        NetworkInterfaceInventoryItem restoredEno1 = restored.Interfaces.Single();
+        Assert.AreEqual(eno1.Id, restoredEno1.Id);
+        Assert.AreEqual("uplink", restoredEno1.Comment);
+        Assert.IsFalse(restoredEno1.IsVisible);
+        Assert.IsEmpty(afterRestore.StaleInterfaces);
+    }
+
+    [TestMethod]
+    public async Task CleanupStaleAsync_ReappearedSelectedInterfaceIsReconciledInsteadOfDeletedAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetDaemonInterfaces("eno1");
+        NetworkInterfaceInventorySnapshot initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventoryItem eno1 = initial.Interfaces.Single();
+        _ = await host.Service.UpdateCommentAsync(eno1.Id, "retain", TestContext.CancellationToken);
+
+        host.SetDaemonInterfaces();
+        _ = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        host.SetDaemonInterfaces("eno1");
+
+        NetworkInterfaceCleanupResult cleanup = await host.Service.CleanupStaleAsync([eno1.Id], TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot present = await host.Service.GetCachedAsync(TestContext.CancellationToken);
+
+        Assert.AreEqual(0, cleanup.RemovedCount);
+        Assert.IsEmpty(cleanup.StaleInterfaces);
+        Assert.HasCount(1, present.Interfaces);
+        Assert.AreEqual(eno1.Id, present.Interfaces[0].Id);
+        Assert.AreEqual("retain", present.Interfaces[0].Comment);
+    }
+
+    [TestMethod]
+    public async Task CleanupStaleAsync_PermanentlyDeletesSelectedInterfacesThatRemainAbsentAsync()
+    {
+        await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
+        host.SetDaemonInterfaces("eno1", "wlan0");
+        NetworkInterfaceInventorySnapshot initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        Guid eno1Id = initial.Interfaces.Single(static item => item.Name == "eno1").Id;
+        Guid wlan0Id = initial.Interfaces.Single(static item => item.Name == "wlan0").Id;
+
+        host.SetDaemonInterfaces();
+        _ = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceCleanupResult cleanup = await host.Service.CleanupStaleAsync([eno1Id], TestContext.CancellationToken);
+
+        Assert.AreEqual(1, cleanup.RemovedCount);
+        Assert.HasCount(1, cleanup.StaleInterfaces);
+        Assert.AreEqual(wlan0Id, cleanup.StaleInterfaces[0].Id);
+        Assert.AreEqual("wlan0", cleanup.StaleInterfaces[0].Name);
+        Assert.IsFalse(cleanup.StaleInterfaces.Any(item => item.Id == eno1Id));
     }
 
     [TestMethod]
@@ -76,8 +155,8 @@ public sealed class NetworkInterfaceInventoryServiceTests
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetDaemonInterfaces();
 
-        NetworkInterfaceInventoryResponse reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
-        NetworkInterfaceInventoryResponse cached = await host.Service.GetCachedAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot cached = await host.Service.GetCachedAsync(TestContext.CancellationToken);
 
         Assert.IsEmpty(reconciled.Interfaces);
         Assert.AreEqual(host.Clock.GetUtcNow(), reconciled.ReconciledAt);
@@ -89,13 +168,12 @@ public sealed class NetworkInterfaceInventoryServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetDaemonInterfaces("eno1");
-        NetworkInterfaceInventoryResponse initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot initial = await host.Service.ReconcileAsync(TestContext.CancellationToken);
 
         host.SetDaemonInterfaces("eno1", "eno1");
-        await Assert.ThrowsExactlyAsync<InvalidDataException>(
-            () => host.Service.ReconcileAsync(TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => host.Service.ReconcileAsync(TestContext.CancellationToken));
 
-        NetworkInterfaceInventoryResponse cached = await host.Service.GetCachedAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot cached = await host.Service.GetCachedAsync(TestContext.CancellationToken);
         Assert.HasCount(1, cached.Interfaces);
         Assert.AreEqual(initial.Interfaces[0].Id, cached.Interfaces[0].Id);
         Assert.AreEqual(initial.ReconciledAt, cached.ReconciledAt);
@@ -107,7 +185,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
         host.SetDaemonInterfaces("eno1", "enp4s0f2.1100");
 
-        NetworkInterfaceInventoryResponse reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
 
         CollectionAssert.AreEqual(s_vlanInterfaceNames, reconciled.Interfaces.Select(static item => item.Name).ToArray());
     }
@@ -117,7 +195,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateCommentAsync(Guid.CreateVersion7(), "missing", TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot? response = await host.Service.UpdateCommentAsync(Guid.CreateVersion7(), "missing", TestContext.CancellationToken);
 
         Assert.IsNull(response);
     }
@@ -127,7 +205,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
     {
         await using TestHost host = await TestHost.CreateAsync(TestContext.CancellationToken);
 
-        NetworkInterfaceInventoryResponse? response = await host.Service.UpdateVisibilityAsync(Guid.CreateVersion7(), isVisible: false, TestContext.CancellationToken);
+        NetworkInterfaceInventorySnapshot? response = await host.Service.UpdateVisibilityAsync(Guid.CreateVersion7(), isVisible: false, TestContext.CancellationToken);
 
         Assert.IsNull(response);
     }
@@ -172,8 +250,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
             services.AddLogging();
             services.AddSingleton<IModelLoader, SqliteApplicationModelLoader>();
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
-            services.AddTransactionManagement<ApplicationDbContext>(options =>
-                options.UseIsolationLevel(IsolationLevel.ReadCommitted));
+            services.AddTransactionManagement<ApplicationDbContext>(options => options.UseIsolationLevel(IsolationLevel.ReadCommitted));
 
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
@@ -184,15 +261,15 @@ public sealed class NetworkInterfaceInventoryServiceTests
             MutableTimeProvider clock = new(new DateTimeOffset(2026, 9, 8, 20, 0, 0, TimeSpan.Zero));
             ITransactionServiceHandle transactionHandle = scope.ServiceProvider.GetRequiredService<ITransactionServiceHandle>();
             ITransactionService<ApplicationDbContext> transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService<ApplicationDbContext>>();
-            DaemonNetworkInterfaceSource daemonSource = new(ufwClient.Object);
-            NetworkInterfaceInventoryRepository repository = new(transactionHandle);
-            NetworkInterfaceInventoryService service = new(daemonSource, repository, clock);
+            NetworkInterfaceDaemonGateway daemonGateway = new(ufwClient.Object);
+            NetworkInterfaceDataAccess dataAccess = new(transactionHandle);
+            NetworkInterfaceInventoryService service = new(daemonGateway, dataAccess, clock);
             return new TestHost(connection, serviceProvider, scope, ufwClient, clock, transactionService, service);
         }
 
         public void SetDaemonInterfaces(params string[] names) => _ufwClient
-            .Setup(client => client.SendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new NetworkInterfaceListResponse(names));
+            .Setup(client => client.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(names)));
 
         public async ValueTask DisposeAsync()
         {

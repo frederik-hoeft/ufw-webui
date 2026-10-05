@@ -1,12 +1,13 @@
 ﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
+using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Model.V1.KnownHosts;
-using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
-
+using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Model.V1.NetworkInterfaces;
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 
 internal sealed class RuleEditorReferenceDataService(
@@ -20,8 +21,9 @@ internal sealed class RuleEditorReferenceDataService(
         Task<InterfaceInventoryResult> interfacesTask = LoadInterfacesAsync(cancellationToken);
         await Task.WhenAll(hostsTask, interfacesTask);
 
+        IReadOnlyList<KnownHostInventoryItem> hosts = await hostsTask;
         InterfaceInventoryResult interfaces = await interfacesTask;
-        return new RuleEditorReferenceData(await hostsTask, interfaces.All, interfaces.Visible, interfaces.Error);
+        return new RuleEditorReferenceData(hosts, interfaces.All, interfaces.Visible, interfaces.Error);
     }
 
     public IReadOnlyList<KnownHostInventoryItem> GetVisibleKnownHosts(RuleEditorReferenceData data, bool ipv6Enabled)

@@ -6,16 +6,21 @@ using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
+using Ufw.Shared.Management.Rules;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Api.V1.Controllers;
+using Ufw.Web.Data.Access;
+using Ufw.Web.Data.Access.Rules;
+using Ufw.Web.Data.Access.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
+using Ufw.Web.Model.V1.Rules.Intent;
 using Ufw.Web.Services.Rules;
 using Ufw.Web.Tests.Integration.Support;
 
 namespace Ufw.Web.Tests.Integration.Api.V1;
 
 [TestClass]
-public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<RulesController>
+internal sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<RulesController>
 {
     public required TestContext TestContext { get; set; }
 
@@ -33,7 +38,11 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, response.StatusCode);
             RuleInsertionResponse report = Assert.IsInstanceOfType<RuleInsertionResponse>(response.Value);
             Assert.AreSame(daemon.InsertResponse, report);
-            Assert.AreSame(request, daemon.LastInsertRequest);
+            Assert.IsNotNull(daemon.LastInsertRequest);
+            Assert.AreEqual(request.DeploymentId, daemon.LastInsertRequest.DeploymentId);
+            Assert.AreEqual(request.Nonce, daemon.LastInsertRequest.Nonce);
+            Assert.AreEqual(request.Payload.GetRawText(), daemon.LastInsertRequest.Payload.GetRawText());
+            Assert.AreEqual(request.Signature, daemon.LastInsertRequest.Signature);
             Assert.AreSame(finalSnapshot, report.FinalSnapshot);
             Assert.IsNull(report.InsertedRule);
         }, TestContext.CancellationToken);
@@ -45,14 +54,14 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         FirewallRuleSpecification replacementRule = Rule("443");
         string originalRuleId = RuleIdentity.Compute(originalRule);
         string replacementRuleId = RuleIdentity.Compute(replacementRule);
-        ReplaceRuleRequest replacementRequest = CreateReplaceRequest(originalRuleId, replacementRule);
+        ReplaceRuleIntentRequest replacementRequest = CreateReplaceRequest(originalRuleId, replacementRule);
 
         await UsingComponentAsync(replacementRequest, async (controller, request, serviceProvider, cancellationToken) =>
         {
-            IRuleMetadataRepository metadata = serviceProvider.GetRequiredService<IRuleMetadataRepository>();
-            RuleMetadataSaveResult saved = await metadata.SaveAsync(originalRuleId, new RuleMetadataValues("source", [], GroupId: null), cancellationToken);
-            Assert.AreEqual(RuleMetadataSaveOutcome.Success, saved.Outcome);
-            Assert.IsNotNull(saved.Metadata);
+            IRuleMetadataDataAccess metadata = serviceProvider.GetRequiredService<IRuleMetadataDataAccess>();
+            DataMutationResult<RuleMetadataItem?> saved = await metadata.SaveAsync(originalRuleId, new RuleMetadataValues("source", [], GroupId: null), cancellationToken);
+            Assert.IsTrue(saved.IsSuccess);
+            Assert.IsNotNull(saved.Value);
 
             IntegrationUfwClient daemon = serviceProvider.GetRequiredService<IntegrationUfwClient>();
             ListedFirewallRule replacement = new()
@@ -77,11 +86,15 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             RuleReplacementMutationResponse report = Assert.IsInstanceOfType<RuleReplacementMutationResponse>(response.Value);
             Assert.AreSame(daemon.ReplaceResponse, report.Firewall);
             Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Completed, report.MetadataReconciliation);
-            Assert.AreSame(request, daemon.LastReplaceRequest);
+            Assert.IsNotNull(daemon.LastReplaceRequest);
+            Assert.AreEqual(request.DeploymentId, daemon.LastReplaceRequest.DeploymentId);
+            Assert.AreEqual(request.Nonce, daemon.LastReplaceRequest.Nonce);
+            Assert.AreEqual(request.Payload.GetRawText(), daemon.LastReplaceRequest.Payload.GetRawText());
+            Assert.AreEqual(request.Signature, daemon.LastReplaceRequest.Signature);
             IReadOnlyList<RuleMetadataItem> reconciled = await metadata.GetForRuleIdsAsync([originalRuleId, replacementRuleId], cancellationToken);
             Assert.HasCount(1, reconciled);
             Assert.AreEqual(replacementRuleId, reconciled[0].RuleId);
-            Assert.AreEqual(saved.Metadata.Id, reconciled[0].Id);
+            Assert.AreEqual(saved.Value.Id, reconciled[0].Id);
             Assert.AreEqual("source", reconciled[0].Notes);
         }, TestContext.CancellationToken);
     }
@@ -106,7 +119,11 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             Assert.AreEqual(StatusCodes.Status409Conflict, response.StatusCode);
             RuleReorderResponse report = Assert.IsInstanceOfType<RuleReorderResponse>(response.Value);
             Assert.AreSame(daemon.ReorderResponse, report);
-            Assert.AreSame(request, daemon.LastReorderRequest);
+            Assert.IsNotNull(daemon.LastReorderRequest);
+            Assert.AreEqual(request.DeploymentId, daemon.LastReorderRequest.DeploymentId);
+            Assert.AreEqual(request.Nonce, daemon.LastReorderRequest.Nonce);
+            Assert.AreEqual(request.Payload.GetRawText(), daemon.LastReorderRequest.Payload.GetRawText());
+            Assert.AreEqual(request.Signature, daemon.LastReorderRequest.Signature);
             Assert.AreSame(finalSnapshot, report.FinalSnapshot);
             Assert.HasCount(1, report.Operations);
             Assert.HasCount(1, report.BlockedOperations);
@@ -121,7 +138,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         DestinationPorts = destinationPort,
     };
 
-    private static ReplaceRuleRequest CreateReplaceRequest(string originalRuleId, FirewallRuleSpecification replacementRule)
+    private static ReplaceRuleIntentRequest CreateReplaceRequest(string originalRuleId, FirewallRuleSpecification replacementRule)
     {
         ReplaceRulePayload payload = new()
         {
@@ -130,7 +147,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
             OriginalRuleId = originalRuleId,
             ReplacementRule = replacementRule,
         };
-        return new ReplaceRuleRequest
+        return new ReplaceRuleIntentRequest
         {
             Version = IntentProtocol.VERSION,
             DeploymentId = "deployment",
@@ -143,7 +160,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         };
     }
 
-    private static InsertRuleRequest CreateInsertRequest()
+    private static InsertRuleIntentRequest CreateInsertRequest()
     {
         InsertRulePayload payload = new()
         {
@@ -159,7 +176,7 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
                 DestinationPorts = "22",
             },
         };
-        return new InsertRuleRequest
+        return new InsertRuleIntentRequest
         {
             Version = IntentProtocol.VERSION,
             DeploymentId = "deployment",
@@ -188,14 +205,14 @@ public sealed class RulesControllerIntegrationTests : ControllerIntegrationTest<
         },
     };
 
-    private static ReorderRulesRequest CreateRequest()
+    private static ReorderRulesIntentRequest CreateRequest()
     {
         ReorderRulesPayload payload = new()
         {
             BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
             DesiredOrder = [],
         };
-        return new ReorderRulesRequest
+        return new ReorderRulesIntentRequest
         {
             Version = IntentProtocol.VERSION,
             DeploymentId = "deployment",

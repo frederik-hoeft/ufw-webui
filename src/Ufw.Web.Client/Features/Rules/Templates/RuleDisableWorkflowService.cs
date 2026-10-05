@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model.Responses.Domain;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Client.Services.Errors;
 

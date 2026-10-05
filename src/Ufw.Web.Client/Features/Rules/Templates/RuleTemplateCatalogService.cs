@@ -1,9 +1,8 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.RuleTemplates;
 using Ufw.Web.Client.Features.Rules.Metadata;
-using Ufw.Web.Model.V1.RuleGroups;
-using Ufw.Web.Model.V1.RuleTags;
 using Ufw.Web.Model.V1.RuleTemplates;
 
 namespace Ufw.Web.Client.Features.Rules.Templates;
@@ -16,14 +15,17 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
 
     public async Task<IReadOnlyList<RuleTemplate>> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        Current = Normalize(await apiClient.GetAsync(cancellationToken));
+        RuleTemplateInventoryResponse response = await apiClient.GetAsync(cancellationToken);
+        Current = Normalize(response);
         return Current;
     }
 
     public async Task<IReadOnlyList<RuleTemplate>> CreateAsync(RuleTemplateDefinition definition, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        Current = Normalize(await apiClient.CreateAsync(CreateRequest(definition), cancellationToken));
+        CreateRuleTemplateRequest request = CreateRequest(definition);
+        RuleTemplateInventoryResponse response = await apiClient.CreateAsync(request, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }
@@ -35,7 +37,9 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
             throw new ArgumentException("Rule template ID must not be empty.", nameof(templateId));
         }
         ArgumentNullException.ThrowIfNull(definition);
-        Current = Normalize(await apiClient.UpdateAsync(templateId, UpdateRequest(definition), cancellationToken));
+        UpdateRuleTemplateRequest request = UpdateRequest(definition);
+        RuleTemplateInventoryResponse response = await apiClient.UpdateAsync(templateId, request, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }
@@ -46,7 +50,8 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         {
             throw new ArgumentException("Rule template ID must not be empty.", nameof(templateId));
         }
-        Current = Normalize(await apiClient.DeleteAsync(templateId, cancellationToken));
+        RuleTemplateInventoryResponse response = await apiClient.DeleteAsync(templateId, cancellationToken);
+        Current = Normalize(response);
         Version++;
         return Current;
     }
@@ -109,7 +114,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         string? notes = string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim();
         if (name.Length > RuleTemplateLimits.MAX_NAME_LENGTH
             || description?.Length > RuleTemplateLimits.MAX_DESCRIPTION_LENGTH
-            || notes?.Length > RuleTemplateLimits.MAX_NOTES_LENGTH)
+            || notes?.Length > RuleMetadataLimits.MAX_NOTES_LENGTH)
         {
             throw new ApiProtocolException("Rule-template inventory response contains invalid text values.");
         }

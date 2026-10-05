@@ -1,5 +1,5 @@
-﻿using System.Net.Http.Headers;
-using System.Net;
+﻿using System.Net;
+using System.Net.Http.Headers;
 
 namespace Ufw.Web.Client.Features.Authentication;
 
@@ -8,9 +8,11 @@ internal sealed class BearerTokenHandler(IAuthenticationService authenticationSe
     protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         string? accessToken = await authenticationService.GetAccessTokenAsync(cancellationToken);
-        HttpRequestReplaySnapshot? replay = accessToken is null
-            ? null
-            : await HttpRequestReplaySnapshot.CaptureAsync(request, cancellationToken);
+        HttpRequestReplaySnapshot? replay = null;
+        if (accessToken is not null)
+        {
+            replay = await HttpRequestReplaySnapshot.CaptureAsync(request, cancellationToken);
+        }
 
         if (accessToken is not null)
         {

@@ -1,3 +1,4 @@
+﻿using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.Features.Rules.Presentation;

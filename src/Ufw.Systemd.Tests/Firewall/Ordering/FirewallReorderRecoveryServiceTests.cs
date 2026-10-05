@@ -53,7 +53,7 @@ public sealed class FirewallReorderRecoveryServiceTests
                 .ReturnsAsync((IUfwCommand command, CancellationToken _) =>
                 {
                     ImmutableArray<string> arguments = command.BuildArguments();
-                    commands.Add(arguments.ToArray());
+                    commands.Add([.. arguments]);
                     return new UfwProcessResult(0, string.Empty, string.Empty, arguments, false);
                 });
 
@@ -106,7 +106,7 @@ public sealed class FirewallReorderRecoveryServiceTests
                 .ReturnsAsync((IUfwCommand command, CancellationToken _) =>
                 {
                     ImmutableArray<string> arguments = command.BuildArguments();
-                    commands.Add(arguments.ToArray());
+                    commands.Add([.. arguments]);
                     return new UfwProcessResult(0, string.Empty, string.Empty, arguments, false);
                 });
             RuleReorderRecoveryCoordinator coordinator = new(
@@ -173,22 +173,20 @@ public sealed class FirewallReorderRecoveryServiceTests
 
     private static UfwStatusSnapshot Snapshot(params string[] ports)
     {
-        string[] rows = ports
-            .Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")
-            .ToArray();
+        string[] rows = [.. ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
     private static UfwStatusSnapshot SnapshotTokens(params string[] tokens)
     {
-        string[] rows = tokens.Select(static (token, index) =>
+        string[] rows = [.. tokens.Select(static (token, index) =>
         {
             bool v6 = token.EndsWith("v6", StringComparison.Ordinal);
             string port = v6 ? token[..^2] : token;
             return v6
                 ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
                 : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
-        }).ToArray();
+        })];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 

@@ -1,6 +1,7 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ufw.Web.Model.V1.Errors;
 using Ufw.Web.Model.V1.RuleMetadata;
 
 namespace Ufw.Web.Api.V1.Controllers;
@@ -18,7 +19,8 @@ public sealed partial class RuleMetadataController
     [HttpGet("reconciliation")]
     [ProducesResponseType<RuleMetadataReconciliationResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<RuleMetadataReconciliationResponse>> GetReconciliationAsync(CancellationToken cancellationToken);
 
     /// <summary>
@@ -26,8 +28,9 @@ public sealed partial class RuleMetadataController
     /// </summary>
     [HttpPost("reconciliation/cleanup")]
     [ProducesResponseType<RuleMetadataReconciliationResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType<ApiProblemDetails>(StatusCodes.Status502BadGateway)]
     public partial Task<ActionResult<RuleMetadataReconciliationResponse>> CleanupAsync([FromBody] CleanupRuleMetadataRequest request, CancellationToken cancellationToken);
 }

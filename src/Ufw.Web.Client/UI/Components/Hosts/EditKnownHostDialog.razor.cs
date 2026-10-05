@@ -1,15 +1,13 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Components.Hosts;
 
 public sealed partial class EditKnownHostDialog
 {
-    private const int MAX_NAME_LENGTH = 128;
-    private const int MAX_ADDRESS_LENGTH = 64;
-    private const int MAX_COMMENT_LENGTH = 200;
 
     private MudForm? _form;
     private Guid? _initializedHostId;

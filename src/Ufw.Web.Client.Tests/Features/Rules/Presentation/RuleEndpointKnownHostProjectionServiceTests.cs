@@ -1,4 +1,5 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Presentation;
 using Ufw.Web.Model.V1.KnownHosts;
 

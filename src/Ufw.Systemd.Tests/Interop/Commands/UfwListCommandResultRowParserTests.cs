@@ -101,5 +101,4 @@ public sealed class UfwListCommandResultRowParserTests
         Assert.AreEqual("8765", result.SourcePorts);
         Assert.AreEqual("br2000", result.SourceInterface);
     }
-
 }

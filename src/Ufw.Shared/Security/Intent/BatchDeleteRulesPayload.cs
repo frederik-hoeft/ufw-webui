@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Security.Intent;
+﻿namespace Ufw.Shared.Security.Intent;
 
 public sealed class BatchDeleteRulesPayload
 {
