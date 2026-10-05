@@ -1,6 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Model.V1.NetworkInterfaces;
+using Ufw.Web.Model.V1.RuleTemplates;
 using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Tests.Api.V1;
@@ -8,6 +12,8 @@ namespace Ufw.Web.Tests.Api.V1;
 [TestClass]
 public sealed class RequestValidationTests
 {
+    private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web);
+
     [TestMethod]
     public void RuleMetadataUpdate_RejectsTransportShapeAndValidatesRawStringLength()
     {
@@ -32,12 +38,49 @@ public sealed class RequestValidationTests
     }
 
     [TestMethod]
+    public void TagIds_RequiresTransportPresenceButAllowsExplicitEmptyCollection()
+    {
+        AssertTagIdsContract(new UpdateRuleMetadataRequest { TagIds = [] });
+        AssertTagIdsContract(new CreateRuleTemplateRequest
+        {
+            Name = "Template",
+            Rule = new FirewallRuleSpecification
+            {
+                Action = FirewallAction.Allow,
+                AddressFamily = FirewallAddressFamily.IPv4,
+                Direction = FirewallDirection.In,
+                Protocol = FirewallProtocol.Tcp,
+                Source = RuleSpecificationNormalizer.ANY,
+                Destination = RuleSpecificationNormalizer.ANY,
+            },
+            TagIds = [],
+        });
+    }
+
+    [TestMethod]
     public void NetworkInterfaceCleanup_RejectsMissingOrEmptyIdentities()
     {
         AssertInvalid(new CleanupNetworkInterfacesRequest { InterfaceIds = null! });
         AssertInvalid(new CleanupNetworkInterfacesRequest());
         AssertInvalid(new CleanupNetworkInterfacesRequest { InterfaceIds = [Guid.Empty] });
         AssertValid(new CleanupNetworkInterfacesRequest { InterfaceIds = [Guid.CreateVersion7()] });
+    }
+
+    private static void AssertTagIdsContract<TRequest>(TRequest validRequest) where TRequest : class
+    {
+        JsonObject json = Assert.IsInstanceOfType<JsonObject>(JsonSerializer.SerializeToNode(validRequest, s_jsonOptions));
+        Assert.IsTrue(json.Remove("tagIds"));
+        Assert.ThrowsExactly<JsonException>(() => JsonSerializer.Deserialize<TRequest>(json.ToJsonString(), s_jsonOptions));
+
+        json["tagIds"] = null;
+        TRequest? nullTags = JsonSerializer.Deserialize<TRequest>(json.ToJsonString(), s_jsonOptions);
+        Assert.IsNotNull(nullTags);
+        AssertInvalid(nullTags);
+
+        json["tagIds"] = new JsonArray();
+        TRequest? emptyTags = JsonSerializer.Deserialize<TRequest>(json.ToJsonString(), s_jsonOptions);
+        Assert.IsNotNull(emptyTags);
+        AssertValid(emptyTags);
     }
 
     private static void AssertInvalid(object request)

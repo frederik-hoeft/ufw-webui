@@ -1,10 +1,12 @@
 ﻿using System.Collections.Immutable;
+using System.Runtime.Serialization;
 using Ufw.Ipc.Client.Configuration;
 using Ufw.Ipc.Client.Handlers;
 using Ufw.Ipc.Client.Transport;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Pipelines;
+using Ufw.Shared.Ipc.Protocol;
 using Ufw.Shared.Ipc.Serialization;
 
 namespace Ufw.Ipc.Client;
@@ -134,7 +136,16 @@ internal sealed class UfwClient
                 }
             }
 
-            throw new InvalidDataException($"Unable to handle response status '{response.StatusCode}' with payloadType '{response.PayloadType}'. No handler has been configured for this response.");
+            throw new UfwIpcInvalidResponseException(
+                $"Unable to handle response status '{response.StatusCode}' with payloadType '{response.PayloadType}'. No handler has been configured for this response.");
+        }
+        catch (UfwIpcInvalidResponseException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is InvalidDataException or SerializationException or ApplicationProtocolException)
+        {
+            throw new UfwIpcInvalidResponseException(exception.Message, exception);
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && requestTimeoutSource?.IsCancellationRequested == true)
         {

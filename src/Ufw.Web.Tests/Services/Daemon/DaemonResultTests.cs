@@ -49,4 +49,16 @@ public sealed class DaemonResultTests
         UfwIpcException exception = Assert.ThrowsExactly<UfwIpcException>(() => result.EnsureSuccess());
         Assert.AreSame(expected, exception.Error);
     }
+
+    [TestMethod]
+    public async Task FromIpcAsync_InvalidIpcResponseBecomesDaemonInvalidResponseAsync()
+    {
+        UfwIpcInvalidResponseException source = new("Malformed daemon response.");
+
+        DaemonInvalidResponseException exception = await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(
+            () => DaemonResult.FromIpcAsync<string>(() => Task.FromException<UfwIpcResult<string>>(source)));
+
+        Assert.AreSame(source, exception.InnerException);
+        Assert.AreEqual(source.Message, exception.Message);
+    }
 }

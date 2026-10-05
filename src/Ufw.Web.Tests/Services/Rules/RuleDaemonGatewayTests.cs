@@ -48,7 +48,7 @@ public sealed class RuleDaemonGatewayTests
     [TestMethod]
     public async Task GetRulesAsync_InvalidIpcResponseIsClassifiedAtGatewayBoundaryAsync()
     {
-        InvalidDataException expected = new("unsupported daemon payload");
+        UfwIpcInvalidResponseException expected = new("unsupported daemon payload");
         Mock<IUfwClient> client = new(MockBehavior.Strict);
         client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
         RuleDaemonGateway gateway = CreateGateway(client.Object);

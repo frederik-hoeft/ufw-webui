@@ -55,7 +55,7 @@ public sealed class DaemonResult
             UfwIpcResult result = await operation();
             return result.IsSuccess ? Success() : Failure(result.Error);
         }
-        catch (InvalidDataException exception)
+        catch (UfwIpcInvalidResponseException exception)
         {
             throw new DaemonInvalidResponseException(exception.Message, exception);
         }
@@ -73,7 +73,7 @@ public sealed class DaemonResult
             }
             return Failure<T>(error);
         }
-        catch (InvalidDataException exception)
+        catch (UfwIpcInvalidResponseException exception)
         {
             throw new DaemonInvalidResponseException(exception.Message, exception);
         }

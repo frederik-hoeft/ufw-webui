@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -7,6 +6,7 @@ using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Serialization.Json;
 using Ufw.Shared.Security.Intent;
+using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Model.V1.Rules.Intent;
 
@@ -27,7 +27,7 @@ internal static class SignedRuleIntentRequestValidator
     ];
     private static readonly string[] s_requiredRuleProperties = ["action", "addressFamily", "direction", "protocol", "source", "destination"];
 
-    public static IEnumerable<ValidationResult> ValidateEnvelope(SignedRuleIntentRequest request)
+    public static IEnumerable<ApiValidationError> ValidateEnvelope(SignedRuleIntentRequest request)
     {
         if (!string.IsNullOrWhiteSpace(request.DeploymentId)
             && (!IntentSigner.TryDecodeBase64Url(request.DeploymentId, out byte[] deploymentId) || deploymentId.Length != IntentProtocol.DEPLOYMENT_ID_SIZE_BYTES))
@@ -53,9 +53,9 @@ internal static class SignedRuleIntentRequestValidator
         }
     }
 
-    public static IEnumerable<ValidationResult> ValidateAdd(JsonElement element)
+    public static IEnumerable<ApiValidationError> ValidateAdd(JsonElement element)
     {
-        if (!TryBind(element, MessageJsonSerializerContext.Default.AddRulePayload, s_addPayloadProperties, out AddRulePayload? payload, out ValidationResult? error))
+        if (!TryBind(element, MessageJsonSerializerContext.Default.AddRulePayload, s_addPayloadProperties, out AddRulePayload? payload, out ApiValidationError? error))
         {
             yield return error!;
             yield break;
@@ -66,15 +66,15 @@ internal static class SignedRuleIntentRequestValidator
             yield break;
         }
 
-        foreach (ValidationResult result in ValidateRule(payload.Rule, "Payload.Rule"))
+        foreach (ApiValidationError result in ValidateRule(payload.Rule, "Payload.Rule"))
         {
             yield return result;
         }
     }
 
-    public static IEnumerable<ValidationResult> ValidateDelete(JsonElement element)
+    public static IEnumerable<ApiValidationError> ValidateDelete(JsonElement element)
     {
-        if (!TryBind(element, MessageJsonSerializerContext.Default.DeleteRulePayload, s_deletePayloadProperties, out DeleteRulePayload? payload, out ValidationResult? error))
+        if (!TryBind(element, MessageJsonSerializerContext.Default.DeleteRulePayload, s_deletePayloadProperties, out DeleteRulePayload? payload, out ApiValidationError? error))
         {
             yield return error!;
             yield break;
@@ -86,7 +86,7 @@ internal static class SignedRuleIntentRequestValidator
         }
 
         bool validRule = true;
-        foreach (ValidationResult result in ValidateRule(payload.Rule, "Payload.Rule"))
+        foreach (ApiValidationError result in ValidateRule(payload.Rule, "Payload.Rule"))
         {
             validRule = false;
             yield return result;
@@ -111,9 +111,9 @@ internal static class SignedRuleIntentRequestValidator
         }
     }
 
-    public static IEnumerable<ValidationResult> ValidateBatchDelete(JsonElement element)
+    public static IEnumerable<ApiValidationError> ValidateBatchDelete(JsonElement element)
     {
-        if (!TryBind(element, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload, s_batchDeletePayloadProperties, out BatchDeleteRulesPayload? payload, out ValidationResult? error))
+        if (!TryBind(element, MessageJsonSerializerContext.Default.BatchDeleteRulesPayload, s_batchDeletePayloadProperties, out BatchDeleteRulesPayload? payload, out ApiValidationError? error))
         {
             yield return error!;
             yield break;
@@ -124,17 +124,17 @@ internal static class SignedRuleIntentRequestValidator
             yield break;
         }
 
-        ValidationResult? contractError = ValidateContract(static candidate => RuleBatchDeleteContract.ValidatePayload(candidate), payload);
+        ApiValidationError? contractError = ValidateContract(static candidate => RuleBatchDeleteContract.ValidatePayload(candidate), payload);
         if (contractError is not null)
         {
             yield return contractError;
         }
     }
 
-    public static IEnumerable<ValidationResult> ValidateInsert(JsonElement element)
+    public static IEnumerable<ApiValidationError> ValidateInsert(JsonElement element)
     {
         if (!TryBind(element, MessageJsonSerializerContext.Default.InsertRulePayload,
-                s_insertPayloadProperties, out InsertRulePayload? payload, out ValidationResult? error))
+                s_insertPayloadProperties, out InsertRulePayload? payload, out ApiValidationError? error))
         {
             yield return error!;
             yield break;
@@ -146,7 +146,7 @@ internal static class SignedRuleIntentRequestValidator
         }
 
         bool validRule = true;
-        foreach (ValidationResult result in ValidateRule(payload.Rule, "Payload.Rule"))
+        foreach (ApiValidationError result in ValidateRule(payload.Rule, "Payload.Rule"))
         {
             validRule = false;
             yield return result;
@@ -156,17 +156,17 @@ internal static class SignedRuleIntentRequestValidator
             yield break;
         }
 
-        ValidationResult? contractError = ValidateContract(static candidate => RuleInsertionContract.ValidatePayload(candidate), payload);
+        ApiValidationError? contractError = ValidateContract(static candidate => RuleInsertionContract.ValidatePayload(candidate), payload);
         if (contractError is not null)
         {
             yield return contractError;
         }
     }
 
-    public static IEnumerable<ValidationResult> ValidateReplace(JsonElement element)
+    public static IEnumerable<ApiValidationError> ValidateReplace(JsonElement element)
     {
         if (!TryBind(element, MessageJsonSerializerContext.Default.ReplaceRulePayload,
-                s_replacePayloadProperties, out ReplaceRulePayload? payload, out ValidationResult? error))
+                s_replacePayloadProperties, out ReplaceRulePayload? payload, out ApiValidationError? error))
         {
             yield return error!;
             yield break;
@@ -178,7 +178,7 @@ internal static class SignedRuleIntentRequestValidator
         }
 
         bool validRule = true;
-        foreach (ValidationResult result in ValidateRule(payload.ReplacementRule, "Payload.ReplacementRule"))
+        foreach (ApiValidationError result in ValidateRule(payload.ReplacementRule, "Payload.ReplacementRule"))
         {
             validRule = false;
             yield return result;
@@ -188,16 +188,16 @@ internal static class SignedRuleIntentRequestValidator
             yield break;
         }
 
-        ValidationResult? contractError = ValidateContract(static candidate => RuleReplacementContract.ValidatePayload(candidate), payload);
+        ApiValidationError? contractError = ValidateContract(static candidate => RuleReplacementContract.ValidatePayload(candidate), payload);
         if (contractError is not null)
         {
             yield return contractError;
         }
     }
 
-    public static IEnumerable<ValidationResult> ValidateReorder(JsonElement element)
+    public static IEnumerable<ApiValidationError> ValidateReorder(JsonElement element)
     {
-        if (!TryBind(element, MessageJsonSerializerContext.Default.ReorderRulesPayload, s_reorderPayloadProperties, out ReorderRulesPayload? payload, out ValidationResult? error))
+        if (!TryBind(element, MessageJsonSerializerContext.Default.ReorderRulesPayload, s_reorderPayloadProperties, out ReorderRulesPayload? payload, out ApiValidationError? error))
         {
             yield return error!;
             yield break;
@@ -229,12 +229,12 @@ internal static class SignedRuleIntentRequestValidator
         }
     }
 
-    private static IEnumerable<ValidationResult> ValidateRule(FirewallRuleSpecification rule, string memberPrefix)
+    private static IEnumerable<ApiValidationError> ValidateRule(FirewallRuleSpecification rule, string memberPrefix)
     {
         ModelValidationError[] errors = RuleSpecificationValidator.Validate(rule);
         foreach (ModelValidationError error in errors)
         {
-            yield return Invalid($"{memberPrefix}.{error.PropertyName}", error.ErrorMessage);
+            yield return Invalid($"{memberPrefix}.{error.PropertyName}", error.ErrorMessage, error.Code);
         }
         if (errors.Length != 0)
         {
@@ -242,13 +242,13 @@ internal static class SignedRuleIntentRequestValidator
         }
 
         FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(rule);
-        foreach (ValidationResult result in ValidateCanonicalRule(rule, normalized, memberPrefix))
+        foreach (ApiValidationError result in ValidateCanonicalRule(rule, normalized, memberPrefix))
         {
             yield return result;
         }
     }
 
-    private static IEnumerable<ValidationResult> ValidateCanonicalRule(FirewallRuleSpecification original, FirewallRuleSpecification normalized, string prefix)
+    private static IEnumerable<ApiValidationError> ValidateCanonicalRule(FirewallRuleSpecification original, FirewallRuleSpecification normalized, string prefix)
     {
         if (original.Action != normalized.Action)
         {
@@ -296,10 +296,10 @@ internal static class SignedRuleIntentRequestValidator
         }
     }
 
-    private static ValidationResult NonCanonical(string prefix, string propertyName) =>
+    private static ApiValidationError NonCanonical(string prefix, string propertyName) =>
         Invalid($"{prefix}.{propertyName}", "Signed rule payload values must already use their canonical representation.");
 
-    private static ValidationResult? ValidateContract<TPayload>(Action<TPayload> validate, TPayload payload)
+    private static ApiValidationError? ValidateContract<TPayload>(Action<TPayload> validate, TPayload payload)
     {
         try
         {
@@ -317,7 +317,7 @@ internal static class SignedRuleIntentRequestValidator
         JsonTypeInfo<TPayload> typeInfo,
         IReadOnlyCollection<string> topLevelProperties,
         [NotNullWhen(true)] out TPayload? payload,
-        out ValidationResult? error)
+        out ApiValidationError? error)
         where TPayload : class
     {
         payload = null;
@@ -430,5 +430,5 @@ internal static class SignedRuleIntentRequestValidator
         return digest.Length == SHA256.HashSizeInBytes;
     }
 
-    private static ValidationResult Invalid(string memberName, string message) => new(message, [memberName]);
+    private static ApiValidationError Invalid(string memberName, string message, string? code = null) => new(memberName, code, message);
 }

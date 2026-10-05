@@ -23,40 +23,40 @@ public interface IUfwClient
     /// <summary>
     /// Sends a typed request without throwing when the daemon returns a non-success application response.
     /// </summary>
-    /// <remarks>Transport, cancellation, timeout, and malformed-response failures remain exceptional.</remarks>
+    /// <remarks>Transport, cancellation, and timeout failures remain exceptional. Malformed responses raise <see cref="UfwIpcInvalidResponseException"/>.</remarks>
     Task<UfwIpcResult<TResponse>> TrySendAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IMessagePayload where TResponse : IEquatable<TResponse>;
 
     /// <summary>
     /// Sends a typed request without throwing when the daemon returns a non-success application response.
     /// </summary>
-    /// <remarks>Transport, cancellation, timeout, and malformed-response failures remain exceptional.</remarks>
+    /// <remarks>Transport, cancellation, and timeout failures remain exceptional. Malformed responses raise <see cref="UfwIpcInvalidResponseException"/>.</remarks>
     Task<UfwIpcResult<TResponse>> TrySendAsync<TRequest, TResponse>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default)
         where TResponse : IEquatable<TResponse>;
 
     /// <summary>
     /// Sends a request without throwing when the daemon returns a non-success application response.
     /// </summary>
-    /// <remarks>Transport, cancellation, timeout, and malformed-response failures remain exceptional.</remarks>
+    /// <remarks>Transport, cancellation, and timeout failures remain exceptional. Malformed responses raise <see cref="UfwIpcInvalidResponseException"/>.</remarks>
     Task<UfwIpcResult<TResponse>> TrySendAsync<TResponse>(RequestMethod method, string route, CancellationToken cancellationToken = default)
         where TResponse : IEquatable<TResponse>;
 
     /// <summary>
     /// Sends a typed request without throwing when the daemon returns a non-success application response.
     /// </summary>
-    /// <remarks>Transport, cancellation, timeout, and malformed-response failures remain exceptional.</remarks>
+    /// <remarks>Transport, cancellation, and timeout failures remain exceptional. Malformed responses raise <see cref="UfwIpcInvalidResponseException"/>.</remarks>
     Task<UfwIpcResult> TrySendAsync<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IMessagePayload;
 
     /// <summary>
     /// Sends a typed request without throwing when the daemon returns a non-success application response.
     /// </summary>
-    /// <remarks>Transport, cancellation, timeout, and malformed-response failures remain exceptional.</remarks>
+    /// <remarks>Transport, cancellation, and timeout failures remain exceptional. Malformed responses raise <see cref="UfwIpcInvalidResponseException"/>.</remarks>
     Task<UfwIpcResult> TrySendAsync<TRequest>(RequestMethod method, string route, TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IMessagePayload;
 
     /// <summary>
     /// Sends a request without throwing when the daemon returns a non-success application response.
     /// </summary>
-    /// <remarks>Transport, cancellation, timeout, and malformed-response failures remain exceptional.</remarks>
+    /// <remarks>Transport, cancellation, and timeout failures remain exceptional. Malformed responses raise <see cref="UfwIpcInvalidResponseException"/>.</remarks>
     Task<UfwIpcResult> TrySendAsync(RequestMethod method, string route, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Model.Validation;
 
@@ -9,6 +10,7 @@ public sealed class UpdateRuleMetadataRequest
     [StringLength(RuleMetadataLimits.MAX_NOTES_LENGTH)]
     public string? Notes { get; init; }
 
+    [JsonRequired]
     [Required]
     [MaxLength(RuleMetadataLimits.MAX_TAG_COUNT)]
     [NoEmptyGuids]

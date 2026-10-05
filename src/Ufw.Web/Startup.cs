@@ -114,7 +114,13 @@ internal sealed class Startup : IAsyncStartupScript
             new BadRequestObjectResult(ApiProblemDetailsFactory.CreateValidation(context.ModelState)));
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddSingleton<DaemonApiExceptionFilter>();
-        services.AddControllers(options => options.Filters.AddService<DaemonApiExceptionFilter>());
+        services.AddSingleton<SignedIntentValidationFilter>();
+        services.AddControllers(options =>
+        {
+            // Preserve structured signed-request validation details before ApiController performs its automatic ModelState short-circuit.
+            options.Filters.AddService<SignedIntentValidationFilter>(int.MinValue);
+            options.Filters.AddService<DaemonApiExceptionFilter>();
+        });
         services.AddApiVersioning(options =>
             {
                 options.ReportApiVersions = true;

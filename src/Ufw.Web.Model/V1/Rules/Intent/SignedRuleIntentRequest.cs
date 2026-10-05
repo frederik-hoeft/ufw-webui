@@ -1,7 +1,8 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ufw.Shared.Security.Intent;
+using Ufw.Web.Model.V1.Errors;
 
 namespace Ufw.Web.Model.V1.Rules.Intent;
 
@@ -38,21 +39,29 @@ public abstract record SignedRuleIntentRequest : ISignedIntent, IValidatableObje
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (!string.Equals(Operation, ExpectedOperation, StringComparison.Ordinal))
+        foreach (ApiValidationError error in GetApiValidationErrors())
         {
-            yield return new ValidationResult($"Operation must be '{ExpectedOperation}'.", [nameof(Operation)]);
-        }
-
-        foreach (ValidationResult result in SignedRuleIntentRequestValidator.ValidateEnvelope(this))
-        {
-            yield return result;
-        }
-
-        foreach (ValidationResult result in ValidatePayload())
-        {
-            yield return result;
+            yield return new ValidationResult(error.Message, [error.PropertyName]);
         }
     }
 
-    protected abstract IEnumerable<ValidationResult> ValidatePayload();
+    internal IEnumerable<ApiValidationError> GetApiValidationErrors()
+    {
+        if (!string.Equals(Operation, ExpectedOperation, StringComparison.Ordinal))
+        {
+            yield return new ApiValidationError(nameof(Operation), Code: null, $"Operation must be '{ExpectedOperation}'.");
+        }
+
+        foreach (ApiValidationError error in SignedRuleIntentRequestValidator.ValidateEnvelope(this))
+        {
+            yield return error;
+        }
+
+        foreach (ApiValidationError error in ValidatePayload())
+        {
+            yield return error;
+        }
+    }
+
+    protected abstract IEnumerable<ApiValidationError> ValidatePayload();
 }

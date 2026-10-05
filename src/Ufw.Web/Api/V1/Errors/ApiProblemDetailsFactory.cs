@@ -24,17 +24,24 @@ internal static class ApiProblemDetailsFactory
         return problem;
     }
 
-    public static ProblemDetails CreateValidation(ModelStateDictionary modelState, string? title = null)
+    public static ProblemDetails CreateValidation(ModelStateDictionary modelState, string? title = null) =>
+        CreateValidation(modelState, structuredErrors: null, title);
+
+    public static ProblemDetails CreateValidation(ModelStateDictionary modelState, IReadOnlyList<ApiValidationError>? structuredErrors, string? title = null)
     {
         ArgumentNullException.ThrowIfNull(modelState);
 
         ApiValidationError[] errors = modelState
             .Where(static entry => entry.Value is { Errors.Count: > 0 })
             .OrderBy(static entry => entry.Key, StringComparer.Ordinal)
-            .SelectMany(static entry => entry.Value!.Errors.Select(error => new ApiValidationError(
-                entry.Key,
-                Code: null,
-                string.IsNullOrWhiteSpace(error.ErrorMessage) ? "The value is invalid." : error.ErrorMessage)))
+            .SelectMany(entry => entry.Value!.Errors.Select(error =>
+            {
+                string message = string.IsNullOrWhiteSpace(error.ErrorMessage) ? "The value is invalid." : error.ErrorMessage;
+                string? code = structuredErrors?.FirstOrDefault(candidate =>
+                    string.Equals(candidate.PropertyName, entry.Key, StringComparison.Ordinal)
+                    && string.Equals(candidate.Message, message, StringComparison.Ordinal))?.Code;
+                return new ApiValidationError(entry.Key, code, message);
+            }))
             .ToArray();
         return CreateValidation(errors, title);
     }
