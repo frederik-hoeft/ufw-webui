@@ -17,7 +17,7 @@ internal static class UfwProcessDiagnostics
 
     public static string? Combine(params string?[] diagnostics)
     {
-        string[] nonEmpty = diagnostics.Where(static diagnostic => !string.IsNullOrWhiteSpace(diagnostic)).Select(static diagnostic => diagnostic!).ToArray();
+        string[] nonEmpty = [.. diagnostics.Where(static diagnostic => !string.IsNullOrWhiteSpace(diagnostic)).Select(static diagnostic => diagnostic!)];
         return nonEmpty.Length == 0 ? null : string.Join(' ', nonEmpty);
     }
 }

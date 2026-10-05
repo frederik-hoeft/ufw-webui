@@ -34,9 +34,9 @@ internal sealed class FirewallReorderService(
     private static RuleReorderResponse ToResponse(RuleReorderExecutionResult result) => new(
         MapOutcome(result.Outcome),
         result.FinalSnapshot,
-        result.Operations.Select(MapOperation).ToArray(),
-        result.BlockedOperations.Select(MapMove).ToArray(),
-        result.PendingOperations.Select(MapMove).ToArray(),
+        [.. result.Operations.Select(MapOperation)],
+        [.. result.BlockedOperations.Select(MapMove)],
+        [.. result.PendingOperations.Select(MapMove)],
         result.Diagnostic);
 
     private static RuleReorderOperationResponse MapOperation(RuleReorderOperationReport report) => new(

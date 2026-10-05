@@ -52,5 +52,5 @@ public sealed class DefaultChildProcessRunnerTests
     }
 
     private static ChildProcessRequest CreateRequest() =>
-        new("/bin/sh", ImmutableArray.Create("-c", "printf 'stdout'; printf 'stderr' >&2"), ImmutableDictionary<string, string>.Empty);
+        new("/bin/sh", ["-c", "printf 'stdout'; printf 'stderr' >&2"], []);
 }

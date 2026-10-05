@@ -167,7 +167,7 @@ public sealed class PolicyPartition<TAddress>
 
     private static List<PolicyCell<TAddress>> Coalesce(PacketLayout<TAddress> layout, List<PolicyCell<TAddress>> cells)
     {
-        Dictionary<CellKey, List<ProductRegion>> groups = new();
+        Dictionary<CellKey, List<ProductRegion>> groups = [];
         foreach (PolicyCell<TAddress> cell in cells)
         {
             CellKey key = new(cell.Decision, cell.Provenance);

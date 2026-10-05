@@ -24,13 +24,14 @@ public sealed partial class ManageRuleTagsDialog
     private string _color = string.Empty;
     private bool _loading;
     private bool _saving;
-    private bool _editing;
+
+    private bool Editing { get; set; }
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private bool IsBusy => _loading || _saving;
-    private bool IsCreating => _editing && _editingTag is null;
+    private bool IsCreating => Editing && _editingTag is null;
     private RuleTag PreviewTag => new(Guid.Empty, string.IsNullOrWhiteSpace(_name) ? "\u2026" : _name.Trim(), _color);
 
     protected override Task OnInitializedAsync() => RefreshAsync();
@@ -62,7 +63,7 @@ public sealed partial class ManageRuleTagsDialog
         _editingTag = null;
         _name = string.Empty;
         _color = TagColors.Generate();
-        _editing = true;
+        Editing = true;
     }
 
     private void BeginEdit(RuleTag tag)
@@ -74,14 +75,14 @@ public sealed partial class ManageRuleTagsDialog
         _editingTag = tag;
         _name = tag.Name;
         _color = tag.Color;
-        _editing = true;
+        Editing = true;
     }
 
     private void CancelEdit()
     {
         if (!_saving)
         {
-            _editing = false;
+            Editing = false;
             _editingTag = null;
         }
     }
@@ -117,7 +118,7 @@ public sealed partial class ManageRuleTagsDialog
             {
                 _tags = await TagCatalog.UpdateAsync(_editingTag.Id, name, color);
             }
-            _editing = false;
+            Editing = false;
             _editingTag = null;
             Snackbar.Add(RulesText["TagSaved"], Severity.Success);
         }

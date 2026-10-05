@@ -33,7 +33,7 @@ internal sealed class FirewallReorderPreflightEvaluator(IRuleReorderPlanner plan
             }
         }
 
-        int[] currentOrder = Enumerable.Range(0, baseline.Rules.Count).ToArray();
+        int[] currentOrder = [.. Enumerable.Range(0, baseline.Rules.Count)];
         int[] desiredOrderSnapshot = [.. desiredOrder];
         if (!ImmutableOrderIsFeasible(currentOrder, desiredOrderSnapshot, immutableOccurrences))
         {

@@ -185,9 +185,7 @@ public sealed class ProductSpace
             added = added.Except(region);
         }
 
-        List<ProductRegion> combined = new(_regions.Length + added._regions.Length);
-        combined.AddRange(_regions);
-        combined.AddRange(added._regions);
+        List<ProductRegion> combined = [.. _regions, .. added._regions];
         return FromRegions(combined);
     }
 
@@ -243,7 +241,7 @@ public sealed class ProductSpace
     /// </summary>
     private static bool MergeAxis(List<ProductRegion> regions, int axis)
     {
-        Dictionary<FixedAxesKey, int> groups = new();
+        Dictionary<FixedAxesKey, int> groups = [];
         List<ProductRegion> next = new(regions.Count);
         bool merged = false;
         foreach (ProductRegion region in regions)

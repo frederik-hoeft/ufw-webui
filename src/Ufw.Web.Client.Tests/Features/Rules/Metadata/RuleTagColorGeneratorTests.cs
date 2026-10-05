@@ -27,7 +27,7 @@ public sealed class RuleTagColorGeneratorTests
     public void FromHue_ProducesDistinctHighSaturationPaletteAcrossPrimaryHueSectors()
     {
         double[] hues = [0d, 60d, 120d, 180d, 240d, 300d];
-        string[] colors = hues.Select(RuleTagColorGenerator.FromHue).ToArray();
+        string[] colors = [.. hues.Select(RuleTagColorGenerator.FromHue)];
 
         Assert.AreEqual(colors.Length, colors.Distinct(StringComparer.Ordinal).Count());
     }

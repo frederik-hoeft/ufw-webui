@@ -73,7 +73,7 @@ internal sealed class RulePortSet
         string canonical = string.Join(',', merged.Select(static range => range.Start == range.End
             ? range.Start.ToString(CultureInfo.InvariantCulture)
             : $"{range.Start.ToString(CultureInfo.InvariantCulture)}:{range.End.ToString(CultureInfo.InvariantCulture)}"));
-        ports = new RulePortSet(merged.ToArray(), canonical);
+        ports = new RulePortSet([.. merged], canonical);
         return true;
     }
 

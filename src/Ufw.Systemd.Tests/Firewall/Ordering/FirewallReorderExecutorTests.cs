@@ -345,30 +345,26 @@ public sealed class FirewallReorderExecutorTests
 
     private static UfwStatusSnapshot Snapshot(params string[] ports)
     {
-        string[] rows = ports
-            .Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")
-            .ToArray();
+        string[] rows = [.. ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
     private static UfwStatusSnapshot SnapshotTokens(params string[] tokens)
     {
-        string[] rows = tokens.Select(static (token, index) =>
+        string[] rows = [.. tokens.Select(static (token, index) =>
         {
             bool v6 = token.EndsWith("v6", StringComparison.Ordinal);
             string port = v6 ? token[..^2] : token;
             return v6
                 ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
                 : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
-        }).ToArray();
+        })];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
     private static UfwStatusSnapshot SnapshotNoPort(params string[] actions)
     {
-        string[] rows = actions
-            .Select(static (action, index) => $"[ {index + 1}] Anywhere                   {action} IN    Anywhere")
-            .ToArray();
+        string[] rows = [.. actions.Select(static (action, index) => $"[ {index + 1}] Anywhere                   {action} IN    Anywhere")];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
@@ -444,7 +440,7 @@ public sealed class FirewallReorderExecutorTests
         private UfwProcessResult Execute(IUfwCommand command)
         {
             ImmutableArray<string> arguments = command.BuildArguments();
-            Commands.Add(arguments.ToArray());
+            Commands.Add([.. arguments]);
             ProcessBehavior behavior = _processes.Count > 0
                 ? _processes.Dequeue()
                 : new ProcessBehavior(0, string.Empty, false, null, null);

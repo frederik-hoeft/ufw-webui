@@ -41,10 +41,9 @@ internal sealed class ResponseContractOperationFilter : IOperationFilter
 
             response.Content ??= new Dictionary<string, OpenApiMediaType>(StringComparer.OrdinalIgnoreCase);
 
-            Type[] responseTypes = responseGroup
+            Type[] responseTypes = [.. responseGroup
                 .Select(static declaration => declaration.Type)
-                .Distinct()
-                .ToArray();
+                .Distinct()];
             bool declaresProblemDetails = responseTypes.Contains(typeof(ApiProblemDetails));
             bool declaresBodylessResponse = responseTypes.Contains(typeof(void));
             if (!declaresProblemDetails)
@@ -56,9 +55,7 @@ internal sealed class ResponseContractOperationFilter : IOperationFilter
                 continue;
             }
 
-            Type[] typedResponses = responseTypes
-                .Where(static responseType => responseType != typeof(void) && responseType != typeof(ApiProblemDetails))
-                .ToArray();
+            Type[] typedResponses = [.. responseTypes.Where(static responseType => responseType != typeof(void) && responseType != typeof(ApiProblemDetails))];
 
             response.Content.Clear();
             if (declaresBodylessResponse)
@@ -89,9 +86,7 @@ internal sealed class ResponseContractOperationFilter : IOperationFilter
             return context.SchemaGenerator.GenerateSchema(responseTypes[0], context.SchemaRepository);
         }
 
-        IOpenApiSchema[] schemas = responseTypes
-            .Select(responseType => context.SchemaGenerator.GenerateSchema(responseType, context.SchemaRepository))
-            .ToArray();
+        IOpenApiSchema[] schemas = [.. responseTypes.Select(responseType => context.SchemaGenerator.GenerateSchema(responseType, context.SchemaRepository))];
         return new OpenApiSchema { OneOf = schemas };
     }
 }

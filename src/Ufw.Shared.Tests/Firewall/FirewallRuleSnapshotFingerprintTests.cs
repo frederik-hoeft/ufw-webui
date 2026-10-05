@@ -154,7 +154,7 @@ public sealed class FirewallRuleSnapshotFingerprintTests
 
     private static RuleListResponse ReplaceFirst(RuleListResponse source, ListedFirewallRule replacement)
     {
-        ListedFirewallRule[] rules = source.Rules.ToArray();
+        ListedFirewallRule[] rules = [.. source.Rules];
         rules[0] = replacement;
         return new RuleListResponse(source.Active, rules, source.Configuration);
     }

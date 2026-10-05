@@ -8,7 +8,7 @@ public sealed record RuleFamilyProjection
     {
         ArgumentNullException.ThrowIfNull(rows);
 
-        RuleRowProjection[] familyRows = rows.ToArray();
+        RuleRowProjection[] familyRows = [.. rows];
         if (familyRows.Any(row => row.AddressFamily != addressFamily))
         {
             throw new ArgumentException("Every projected rule must belong to the projected address family.", nameof(rows));

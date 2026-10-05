@@ -73,5 +73,5 @@ public sealed class FirewallRuleSnapshotReaderTests
     }
 
     private static UfwProcessResult ProcessResult(string standardOutput) =>
-        new(0, standardOutput, string.Empty, ImmutableArray.Create("status", "numbered"), CancellationRequested: false);
+        new(0, standardOutput, string.Empty, ["status", "numbered"], CancellationRequested: false);
 }

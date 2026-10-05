@@ -38,7 +38,7 @@ internal sealed class NetworkInterfaceDaemonGateway(IUfwClient ufwClient) : INet
             throw new DaemonInvalidResponseException("Daemon returned a network-interface name that exceeds the supported length.");
         }
 
-        string[] ordered = names.OrderBy(static name => name, StringComparer.Ordinal).ToArray();
+        string[] ordered = [.. names.OrderBy(static name => name, StringComparer.Ordinal)];
         if (ordered.Distinct(StringComparer.Ordinal).Count() != ordered.Length)
         {
             throw new DaemonInvalidResponseException("Daemon network-interface response contains duplicate interface names.");

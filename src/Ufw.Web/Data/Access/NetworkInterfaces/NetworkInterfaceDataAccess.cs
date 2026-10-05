@@ -32,7 +32,7 @@ internal sealed class NetworkInterfaceDataAccess(ITransactionServiceHandle trans
         {
             ArgumentNullException.ThrowIfNull(selectedIds);
             IReadOnlyList<NetworkInterfaceEntry> cached = await ReconcileCoreAsync(context, currentNames, reconciledAt, cancellationToken);
-            HashSet<Guid> selected = new(selectedIds);
+            HashSet<Guid> selected = [.. selectedIds];
             NetworkInterfaceEntry[] deleted = [.. cached.Where(entry => !entry.IsPresent && selected.Contains(entry.PublicId))];
             context.RemoveRange(deleted);
             await context.SaveChangesAsync(cancellationToken);

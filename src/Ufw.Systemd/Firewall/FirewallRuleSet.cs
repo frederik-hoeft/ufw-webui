@@ -27,8 +27,6 @@ internal static class FirewallRuleSet
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(identities);
         HashSet<string> identitySet = new(identities, StringComparer.Ordinal);
-        return snapshot.Rules
-            .Where(rule => rule.Parsed && rule.RuleId is not null && identitySet.Contains(rule.RuleId))
-            .ToList();
+        return [.. snapshot.Rules.Where(rule => rule.Parsed && rule.RuleId is not null && identitySet.Contains(rule.RuleId))];
     }
 }

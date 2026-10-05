@@ -8,12 +8,11 @@ public sealed class PersistenceBoundaryTests
     [TestMethod]
     public void EntityFrameworkCoreUsage_IsConfinedToPersistenceAndHostComposition()
     {
-        string[] violations = EnumerateProductionSourceFiles()
+        string[] violations = [.. EnumerateProductionSourceFiles()
             .Where(static path => !IsUnderData(path) && !IsRelativePath(path, "Startup.cs"))
             .Where(static path => File.ReadAllText(path).Contains("Microsoft.EntityFrameworkCore", StringComparison.Ordinal))
             .Select(RelativeToWebProject)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
+            .Order(StringComparer.Ordinal)];
 
         Assert.IsEmpty(violations, $"EF Core usage escaped the persistence/host boundary: {string.Join(", ", violations)}");
     }
@@ -21,14 +20,13 @@ public sealed class PersistenceBoundaryTests
     [TestMethod]
     public void ApplicationDbContextUsage_IsConfinedToPersistenceCompositionAndAuthTransactionOwnership()
     {
-        string[] violations = EnumerateProductionSourceFiles()
+        string[] violations = [.. EnumerateProductionSourceFiles()
             .Where(static path => !IsUnderData(path)
                 && !IsRelativePath(path, "Startup.cs")
                 && !IsRelativePath(path, Path.Combine("Services", "Auth", "AuthenticationFlowService.cs")))
             .Where(static path => File.ReadAllText(path).Contains("ApplicationDbContext", StringComparison.Ordinal))
             .Select(RelativeToWebProject)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
+            .Order(StringComparer.Ordinal)];
 
         Assert.IsEmpty(violations, $"ApplicationDbContext escaped the persistence/composition boundary: {string.Join(", ", violations)}");
     }

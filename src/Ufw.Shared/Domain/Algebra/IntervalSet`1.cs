@@ -59,7 +59,7 @@ public readonly struct IntervalSet<T> : IDimensionSet, IEquatable<IntervalSet<T>
     public static IntervalSet<T> Of(IEnumerable<Interval<T>> intervals)
     {
         ArgumentNullException.ThrowIfNull(intervals);
-        List<Interval<T>> ordered = intervals.ToList();
+        List<Interval<T>> ordered = [.. intervals];
         if (ordered.Count == 0)
         {
             return Empty;

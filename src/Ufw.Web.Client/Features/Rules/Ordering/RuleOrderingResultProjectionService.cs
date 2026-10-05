@@ -14,7 +14,7 @@ internal sealed class RuleOrderingResultProjectionService : IRuleOrderingResultP
 
         FirewallAddressFamily[] families = new FirewallAddressFamily[baselineRules.Count];
         int[] baselineFamilyPositions = new int[baselineRules.Count];
-        Dictionary<FirewallAddressFamily, int> familyCounts = new();
+        Dictionary<FirewallAddressFamily, int> familyCounts = [];
         for (int occurrenceId = 0; occurrenceId < baselineRules.Count; occurrenceId++)
         {
             FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(baselineRules[occurrenceId]);

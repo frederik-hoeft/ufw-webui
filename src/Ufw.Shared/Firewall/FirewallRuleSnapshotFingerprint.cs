@@ -126,8 +126,7 @@ public static class FirewallRuleSnapshotFingerprint
 
         private void WriteByte(byte value)
         {
-            Span<byte> bytes = stackalloc byte[1];
-            bytes[0] = value;
+            Span<byte> bytes = [value];
             _hash.AppendData(bytes);
         }
     }

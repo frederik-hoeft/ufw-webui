@@ -124,7 +124,7 @@ public sealed partial class ReconcileRuleMetadataDialog
             return;
         }
 
-        HashSet<Guid> available = _snapshot.Orphans.Select(static orphan => orphan.Metadata.Id).ToHashSet();
+        HashSet<Guid> available = [.. _snapshot.Orphans.Select(static orphan => orphan.Metadata.Id)];
         _selected.RemoveWhere(id => !available.Contains(id));
     }
 

@@ -14,9 +14,7 @@ internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
 
         if (daemonError.ValidationErrors is { Length: > 0 })
         {
-            ApiValidationError[] validationErrors = daemonError.ValidationErrors
-                .Select(static error => new ApiValidationError(error.PropertyName, error.Code, error.ErrorMessage))
-                .ToArray();
+            ApiValidationError[] validationErrors = [.. daemonError.ValidationErrors.Select(static error => new ApiValidationError(error.PropertyName, error.Code, error.ErrorMessage))];
             ProblemDetails problem = ApiProblemDetailsFactory.CreateValidation(validationErrors, daemonError.ResponseMessage);
             return new DaemonApiError(StatusCodes.Status400BadRequest, problem);
         }

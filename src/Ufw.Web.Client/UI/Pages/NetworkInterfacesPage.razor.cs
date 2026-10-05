@@ -99,9 +99,11 @@ public sealed partial class NetworkInterfacesPage
             return;
         }
 
-        DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new();
-        parameters.Add(component => component.InterfaceName, item.Name);
-        parameters.Add(component => component.Comment, item.Comment);
+        DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new()
+        {
+            { component => component.InterfaceName, item.Name },
+            { component => component.Comment, item.Comment }
+        };
         IDialogReference dialog = await DialogService.ShowAsync<EditNetworkInterfaceCommentDialog>(InterfacesText["EditCommentTitle"], parameters, s_commentDialogOptions);
         string? comment = await dialog.GetReturnValueAsync<string>();
         if (comment is null)

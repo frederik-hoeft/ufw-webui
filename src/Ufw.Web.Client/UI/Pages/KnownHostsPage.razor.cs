@@ -122,8 +122,10 @@ public sealed partial class KnownHostsPage
             return;
         }
 
-        DialogParameters<DeleteKnownHostDialog> parameters = new();
-        parameters.Add(component => component.Host, host);
+        DialogParameters<DeleteKnownHostDialog> parameters = new()
+        {
+            { component => component.Host, host }
+        };
         IDialogReference dialog = await DialogService.ShowAsync<DeleteKnownHostDialog>(HostsText["DeleteDialogTitle"], parameters, s_deleteDialogOptions);
         bool? confirmed = await dialog.GetReturnValueAsync<bool>();
         if (confirmed != true)

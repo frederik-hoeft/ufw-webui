@@ -90,7 +90,7 @@ public sealed class RuleReorderPlannerTests
     {
         for (int count = 0; count <= 7; count++)
         {
-            int[] current = Enumerable.Range(0, count).ToArray();
+            int[] current = [.. Enumerable.Range(0, count)];
             foreach (int[] desired in EnumeratePermutations(current))
             {
                 RuleReorderPlan first = _planner.Plan(current, desired, new HashSet<int>());
@@ -108,7 +108,7 @@ public sealed class RuleReorderPlannerTests
     {
         for (int count = 0; count <= 5; count++)
         {
-            int[] current = Enumerable.Range(0, count).ToArray();
+            int[] current = [.. Enumerable.Range(0, count)];
             foreach (int[] desired in EnumeratePermutations(current))
             {
                 for (int mask = 0; mask < (1 << count); mask++)
@@ -188,7 +188,7 @@ public sealed class RuleReorderPlannerTests
 
     private static IEnumerable<int[]> EnumeratePermutations(IReadOnlyList<int> values)
     {
-        int[] buffer = values.ToArray();
+        int[] buffer = [.. values];
         return EnumeratePermutations(buffer, 0);
     }
 

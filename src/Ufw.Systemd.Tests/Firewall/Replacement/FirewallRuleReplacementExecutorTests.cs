@@ -405,9 +405,9 @@ public sealed class FirewallRuleReplacementExecutorTests
 
     private static UfwStatusSnapshot Snapshot(params RuleToken[] tokens)
     {
-        string[] rows = tokens.Select(static (token, index) => token.Family == FirewallAddressFamily.IPv6
+        string[] rows = [.. tokens.Select(static (token, index) => token.Family == FirewallAddressFamily.IPv6
             ? $"[{index + 1,2}] {token.Port}/tcp (v6)                ALLOW IN    Anywhere (v6){FormatComment(token.Comment)}"
-            : $"[{index + 1,2}] {token.Port}/tcp                     ALLOW IN    Anywhere{FormatComment(token.Comment)}").ToArray();
+            : $"[{index + 1,2}] {token.Port}/tcp                     ALLOW IN    Anywhere{FormatComment(token.Comment)}")];
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
@@ -483,7 +483,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         private UfwProcessResult Execute(IUfwCommand command)
         {
             ImmutableArray<string> arguments = command.BuildArguments();
-            Commands.Add(arguments.ToArray());
+            Commands.Add([.. arguments]);
             ProcessBehavior behavior = _processes.Count > 0 ? _processes.Dequeue() : new ProcessBehavior(0, string.Empty, false, null, null);
             behavior.OnExecute?.Invoke();
             if (behavior.Exception is not null)

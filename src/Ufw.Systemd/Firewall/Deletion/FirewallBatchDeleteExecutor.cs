@@ -30,7 +30,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
         }
 
         int[] targets = [.. payload.OccurrenceIds.OrderDescending()];
-        List<int> currentOrder = Enumerable.Range(0, baseline.Rules.Count).ToList();
+        List<int> currentOrder = [.. Enumerable.Range(0, baseline.Rules.Count)];
         List<RuleBatchDeleteOperationReport> operations = [];
         RuleListResponse currentSnapshot = baseline;
 

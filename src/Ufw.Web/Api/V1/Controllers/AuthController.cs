@@ -73,7 +73,7 @@ public sealed partial class AuthController(IAntiforgery antiforgery, IAuthentica
 
         if (!result.Succeeded)
         {
-            ApiValidationError[] validationErrors = result.ValidationErrors
+            ApiValidationError[] validationErrors = [.. result.ValidationErrors
                 .Select(static error => new ApiValidationError(
                     error.Field switch
                     {
@@ -82,8 +82,7 @@ public sealed partial class AuthController(IAntiforgery antiforgery, IAuthentica
                         _ => throw new InvalidOperationException($"Unsupported password-change validation field '{error.Field}'."),
                     },
                     Code: null,
-                    error.ErrorMessage))
-                .ToArray();
+                    error.ErrorMessage))];
             return BadRequest(ApiProblemDetailsFactory.CreateValidation(validationErrors, "Password change rejected."));
         }
 

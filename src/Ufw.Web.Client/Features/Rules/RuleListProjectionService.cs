@@ -15,8 +15,8 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
         ArgumentNullException.ThrowIfNull(rules);
 
         Dictionary<string, int> ruleIdCounts = new(StringComparer.Ordinal);
-        Dictionary<FirewallAddressFamily, int> familyCounts = new();
-        Dictionary<int, int> originalFamilyPositions = new();
+        Dictionary<FirewallAddressFamily, int> familyCounts = [];
+        Dictionary<int, int> originalFamilyPositions = [];
         for (int occurrenceId = 0; occurrenceId < rules.Count; occurrenceId++)
         {
             ListedFirewallRule rule = rules[occurrenceId];
@@ -32,7 +32,7 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
         }
 
         IReadOnlyList<int> projectedOrder = GetProjectedOrder(rules.Count, orderingPreview);
-        Dictionary<FirewallAddressFamily, int> familyPositions = new();
+        Dictionary<FirewallAddressFamily, int> familyPositions = [];
         List<RuleRowProjection> ipv4Rows = [];
         List<RuleRowProjection> ipv6Rows = [];
         for (int projectedIndex = 0; projectedIndex < projectedOrder.Count; projectedIndex++)

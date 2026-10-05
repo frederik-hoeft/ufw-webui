@@ -85,5 +85,5 @@ public sealed class UfwProcessExecutorTests
     }
 
     private static UfwProcessResult ProcessResult(int exitCode, string standardError = "", bool cancellationRequested = false) =>
-        new(exitCode, string.Empty, standardError, ImmutableArray.Create("delete", "1"), cancellationRequested);
+        new(exitCode, string.Empty, standardError, ["delete", "1"], cancellationRequested);
 }

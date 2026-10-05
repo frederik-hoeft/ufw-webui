@@ -5,7 +5,7 @@ namespace Ufw.Web.Tests.Integration.Support;
 
 internal sealed class IntegrationKnownHostDnsResolver : IKnownHostDnsResolver
 {
-    private readonly Dictionary<(string Name, FirewallAddressFamily Family), string?> _results = new();
+    private readonly Dictionary<(string Name, FirewallAddressFamily Family), string?> _results = [];
 
     public Task<string?> ResolveAsync(string dnsName, FirewallAddressFamily addressFamily, string? currentAddress = null, CancellationToken cancellationToken = default)
     {

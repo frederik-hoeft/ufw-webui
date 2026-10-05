@@ -31,7 +31,7 @@ internal static class ApiProblemDetailsFactory
     {
         ArgumentNullException.ThrowIfNull(modelState);
 
-        ApiValidationError[] errors = modelState
+        ApiValidationError[] errors = [.. modelState
             .Where(static entry => entry.Value is { Errors.Count: > 0 })
             .OrderBy(static entry => entry.Key, StringComparer.Ordinal)
             .SelectMany(entry => entry.Value!.Errors.Select(error =>
@@ -41,8 +41,7 @@ internal static class ApiProblemDetailsFactory
                     string.Equals(candidate.PropertyName, entry.Key, StringComparison.Ordinal)
                     && string.Equals(candidate.Message, message, StringComparison.Ordinal))?.Code;
                 return new ApiValidationError(entry.Key, code, message);
-            }))
-            .ToArray();
+            }))];
         return CreateValidation(errors, title);
     }
 }

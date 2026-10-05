@@ -23,10 +23,9 @@ internal sealed class RuleGroupManagementProjectionService(IRuleListProjectionSe
             .GroupBy(static row => row.Rule.RuleId!, StringComparer.Ordinal)
             .ToDictionary(
                 static group => group.Key,
-                static group => (IReadOnlyList<RuleRowProjection>)group
+                static group => (IReadOnlyList<RuleRowProjection>)[.. group
                     .OrderBy(static row => row.AddressFamily)
-                    .ThenBy(static row => row.FamilyPosition)
-                    .ToArray(),
+                    .ThenBy(static row => row.FamilyPosition)],
                 StringComparer.Ordinal);
 
         return groups.Select(group => new RuleGroupManagementProjection(

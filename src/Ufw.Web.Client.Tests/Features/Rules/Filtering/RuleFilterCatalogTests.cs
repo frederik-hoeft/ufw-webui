@@ -67,7 +67,7 @@ public sealed class RuleFilterCatalogTests
             new GroupRuleFilter(new RuleGroup(Guid.CreateVersion7(), "ops", null, [])),
         ];
 
-        string[] keys = filters.Select(filter => _catalog.Resolve(filter).Key).ToArray();
+        string[] keys = [.. filters.Select(filter => _catalog.Resolve(filter).Key)];
 
         CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag", "group" }, keys);
     }

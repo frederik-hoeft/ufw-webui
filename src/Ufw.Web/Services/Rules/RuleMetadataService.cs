@@ -88,14 +88,13 @@ internal sealed partial class RuleMetadataService(
         }
 
         LiveRuleIdentitySet liveRuleIds = LiveRuleIdentitySet.FromSnapshot(response.FinalSnapshot);
-        string[] confirmedDeletedRuleIds = response.Operations
+        string[] confirmedDeletedRuleIds = [.. response.Operations
             .Where(static operation => operation.Outcome is RuleBatchDeleteOperationOutcome.Deleted or RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure)
             .Select(static operation => operation.RuleId)
             .Where(static ruleId => !string.IsNullOrWhiteSpace(ruleId))
             .Select(static ruleId => ruleId!)
             .Distinct(StringComparer.Ordinal)
-            .Where(ruleId => !liveRuleIds.Contains(ruleId))
-            .ToArray();
+            .Where(ruleId => !liveRuleIds.Contains(ruleId))];
         if (confirmedDeletedRuleIds.Length == 0)
         {
             return;

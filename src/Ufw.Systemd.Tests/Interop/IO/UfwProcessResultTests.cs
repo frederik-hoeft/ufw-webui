@@ -13,7 +13,7 @@ public sealed class UfwProcessResultTests
     [DataRow(1, true, false)]
     public void Succeeded_RequiresZeroExitCodeAndCompletedExecution(int exitCode, bool cancellationRequested, bool expected)
     {
-        UfwProcessResult result = new(exitCode, string.Empty, string.Empty, ImmutableArray<string>.Empty, cancellationRequested);
+        UfwProcessResult result = new(exitCode, string.Empty, string.Empty, [], cancellationRequested);
 
         Assert.AreEqual(expected, result.Succeeded);
     }

@@ -43,7 +43,7 @@ public sealed partial class RuleListToolbar
     {
         _searchText = value;
 
-        List<RuleFilter> filters = Query.Filters.ToList();
+        List<RuleFilter> filters = [.. Query.Filters];
         int existingIndex = filters.FindIndex(static filter => filter is TextRuleFilter);
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -90,7 +90,7 @@ public sealed partial class RuleListToolbar
             return;
         }
 
-        List<RuleFilter> filters = Query.Filters.ToList();
+        List<RuleFilter> filters = [.. Query.Filters];
         filters[index] = replacement;
         await PublishQueryAsync(filters);
     }
@@ -102,7 +102,7 @@ public sealed partial class RuleListToolbar
             return Task.CompletedTask;
         }
 
-        List<RuleFilter> filters = Query.Filters.ToList();
+        List<RuleFilter> filters = [.. Query.Filters];
         filters.RemoveAt(index);
         return PublishQueryAsync(filters);
     }

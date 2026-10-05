@@ -23,7 +23,7 @@
                           Required="true"
                           Counter="@MAX_GROUP_NAME_LENGTH"
                           MaxLength="@MAX_GROUP_NAME_LENGTH"
-                          Disabled="@_saving"
+                          Disabled="@Saving"
                           autofocus="true" />
             <MudTextField T="string"
                           Label="@(RulesText["GroupComment"])"
@@ -32,13 +32,13 @@
                           Lines="4"
                           Counter="@MAX_GROUP_COMMENT_LENGTH"
                           MaxLength="@MAX_GROUP_COMMENT_LENGTH"
-                          Disabled="@_saving" />
+                          Disabled="@Saving" />
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" Disabled="@_saving" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Text" Disabled="@Saving" OnClick="Cancel">@CommonText["Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanSave)" OnClick="SaveAsync">
-            @(_saving ? RulesText["SavingGroup"] : RulesText["SaveGroup"])
+            @(Saving ? RulesText["SavingGroup"] : RulesText["SaveGroup"])
         </MudButton>
     </DialogActions>
 </MudDialog>

@@ -171,7 +171,7 @@ public sealed class AuthControllerTests
 
     private static string AssertSingleRefreshCookie(AuthController controller)
     {
-        string?[] setCookies = controller.Response.Headers.SetCookie.ToArray();
+        string?[] setCookies = [.. controller.Response.Headers.SetCookie];
         Assert.HasCount(1, setCookies);
         string setCookie = setCookies[0] ?? throw new AssertFailedException("Refresh-token cookie header was null.");
         StringAssert.StartsWith(setCookie, $"{COOKIE_NAME}=", StringComparison.Ordinal);
