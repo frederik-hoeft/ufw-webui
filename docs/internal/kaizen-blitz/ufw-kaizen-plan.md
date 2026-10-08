@@ -179,6 +179,33 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 4. **Controller policy declarations:** reviewed in W3.3 and intentionally left explicit. WEB KZ-20 would save little code while hiding authorization, versioning, or no-store policy behind broader conventions.
 5. **Boundary closure:** completed in W3.4. WEB KZ-22 removes the final feature-local mutation outcome/result vocabularies, WEB KZ-01 gains source-boundary and bounded-SQL regression guards, WEB KZ-23 is verified complete, and WEB KZ-07 is closed after confirming the remaining group/tag similarity does not yield a small stable abstraction.
 
+### Post-W acceptance remediation (October 2026)
+
+**Status: open; S2 acceptance is blocked.** Wave D and Wave W completed their original refactoring inventories, but manual acceptance found defects and uncovered untested cross-boundary contracts. These are **new findings**, not retroactive reopenings of the original 29 SYS / 24 WEB / 24 CLIENT source-audit items. Track them separately below and keep the original historical checkmarks/counts intact. Do not treat the source-refactor checklist or a green unit-test suite as proof that the manual Web integration gate passed.
+
+#### Authentication investigation: independent handler scopes and bounded JWT revocation
+
+The named browser routes and their `api/v1/known-hosts`, `status`, `rules`, and `rule-templates` controllers already declare `[Authorize]`. The relevant typed clients register `BearerTokenHandler`. ASP validates access JWT signatures, issuer/audience and lifetime without consulting current Identity security stamps; changing a password revokes existing **refresh-token families**, not already-issued access JWTs. The current `JwtOptions` default is a 5-minute access lifetime plus 30 seconds of validation skew, while `AuthenticationService` refreshes when fewer than 30 seconds remain. A bounded access-token revocation delay is intentional when using stateless JWTs.
+
+**Additional client-side defect (ACC-02):** `IHttpClientFactory` creates its `DelegatingHandler` pipelines in independent DI scopes (see [Microsoft's handler-scope documentation](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory#message-handler-scopes-in-ihttpclientfactory)). `Program.cs` registers `BearerTokenHandler`, `IAuthenticationService`, `AuthenticationSession`, and `AuthenticationStateProvider` as scoped. Each named API client's handler can consequently use a **different session/token store** from the application's route authorization and from other API clients. An untouched handler may attempt its very first cookie refresh only after a password change and immediately receive 401, while another handler still holds an unexpired access JWT and successfully reads/writes templates. Previously used handlers can also hold JWTs with different expiration times. This is a well-supported source-level root cause for the observed cross-endpoint inconsistency; verify it with a real `IHttpClientFactory`/DI wiring regression rather than claiming browser-runtime proof from source alone. It is **not** missing controller `[Authorize]`.
+
+**Target policy:** accept a short, bounded validity window for issued access JWTs; do **not** add per-request database/security-stamp lookups or a revocation cache to emulate immediate token revocation. Consider reducing the configurable default access-token lifetime to approximately **120 seconds**, retaining the explicit 30-second clock skew unless separately reviewed (the maximum validity of a newly issued token can therefore extend to approximately 150 seconds). The client's 30-second early-refresh threshold means legitimate sessions may refresh approximately every 90 seconds. First fix the independent handler-scope session state: use one app-instance-wide `AuthenticationSession`/`AuthenticationStateProvider` registration within Blazor WASM, accessible to every handler scope, and retain the existing browser-wide refresh lock. Review handler/coordinator lifetimes and verify that login, refresh, invalidation, and `AuthorizeRouteView` observe **the same token store**. A singleton in WASM is per loaded application/tab, not a server-global credential store; separately test cross-tab cookie coordination.
+
+**Required ACC-02 evidence:** instrument the actual typed-client DI pipelines, asserting that rule-metadata, rule-template, rules, status and known-host clients use the same in-tab session; no independent initial refresh should occur after a successful login. Test two independent browser sessions: after a password change elsewhere, a still-unexpired bearer token remains accepted uniformly across protected endpoints, an old refresh cookie is rejected, and requests with an expired bearer token are rejected. Check that a failed refresh in one handler clears the shared in-tab auth state for all clients and navigation. If one endpoint returns 200 and another 401 **with the exact same JWT at the same time**, investigate the response producer (including any downstream daemon response) and request headers before attributing it to expiration. Never capture or log bearer/refresh secrets in regression output. Anonymous protected reads and template creates/deletes must return 401 with no state changes.
+
+#### Ordered follow-up register
+
+| ID | Owner / gate | Finding and intended work | Acceptance evidence |
+|---|---|---|---|
+| **ACC-01 (P0)** | Daemon + shared snapshot contract; **before further unsafe reorder tests, before S2** | Duplicate semantic rules can pass reorder preflight even though UFW suppresses reinsertion, causing rule loss and an unresolved recovery journal that prevents daemon startup. Introduce an authoritative structured mutation-safety assessment on the firewall snapshot, using semantic identity (comments excluded), and a common fail-closed write guard under `IUfwExecutionGate`. **Every firewall mutation** (including batch delete) is rejected if the model is ambiguous; there is no Web-based repair exception. Read-only inventory exposes reasons/affected occurrences; administrator repairs via external UFW and refreshes. Keep per-operation target/fingerprint checks. Audit whether ASP-owned edits must also be blocked by a separately enforced Web policy to meet the desired globally read-only UI. | Identical/comment-different/nonadjacent duplicate fixtures; every signed mutation rejected before UFW writes or recovery-journal creation; snapshot retains structured issue diagnostics; browser disables write actions; daemon restarts cleanly after rejection. Test genuine unresolved recovery startup separately; never silently clear its journal. |
+| **ACC-02 (P1 auth-state correctness)** | Client auth/HTTP DI + Web JWT configuration; **before S2** | Correct `IHttpClientFactory` handler-scope isolation: separate scoped `AuthenticationSession` instances currently yield per-API JWT timing and refresh behavior, independent of route auth state. Unify the in-tab session and auth-state provider across handlers; preserve stateless JWT validation and bounded post-password-change validity, with ~120-second lifetime considered. No per-request DB/cache revocation lookup. | Real typed-client DI/factory test shows one shared session; no initial per-client refresh after login; all handlers clear auth coherently after exhausted refresh. Cross-session HTTP test proves valid old JWT accepted only until expiry/skew, revoked refresh rejected, anonymous write unauthorized and no template mutation. |
+| **ACC-03 (P1 test gap)** | Web + IPC/daemon; **before S2** | Promote manual API-contract/PR #43 checks to real HTTP pipeline and transport-level integration tests. Existing direct-controller tests do not exercise JSON binding, `[Authorize]`, automatic 400, antiforgery or ProblemDetails media types. | Omitted/null/`[]` tagIds for metadata/template writes; structured `firewall.rule.*` errors; typed transaction-vs-ProblemDetails collisions and OpenAPI; anonymous/bodyless 401/403; invalid/replayed signing keys and nonce; malformed IPC success payload maps to 502, not 500. Use real daemon verifier with controlled state for replay, and malformed fake IPC transport for 502, not only mocked controllers. |
+| **ACC-04 (P2 UX)** | Client C1 / CLIENT KZ-11 | One app-wide session-expired/unauthorized navigation policy rather than independent page/dialog alerts; coordinate multiple 401s, exhausted refresh and auth state across tabs. Separate 401 from authenticated 403; do not redirect normal login credential failures. | Component/browser tests for redirected deep link, token expiry, concurrent requests, tabs, password-change revocation and logout. No repeated local `SessionInvalid` panels. |
+| **ACC-05 (P2 workflow)** | Client C2 / CLIENT KZ-18, server contract audit | Currently a template reference blocks the entire group-delete workflow **before** live rules are deleted. Distinguish deleting active group-member rules from deleting the persistent group. Preserve templates and group while referenced; display template references on group management/confirmation. Do not silently cascade-delete templates. | Group with live rules + templates: confirmed batch deletion removes only active members, leaves group/templates; group without refs is cleaned up; stale/partial batch keeps group. Race/referential integrity still fail closed. Confirm whether UI needs a separate "delete active members" action. |
+| **ACC-06 (P3 presentation)** | Client C3 | Metadata reconciliation renders `DescribeRuleId`'s hardcoded 20-character prefix plus Unicode ellipsis, including the checkbox's accessible name. Preserve complete `sha256:` identity in markup/accessibility/copy; ellipsis belongs only to responsive CSS. | Full ID available in DOM, tooltip/copy and screen-reader label; mobile layout truncates visually without changing value. |
+
+**Suggested sequence:** first ACC-01 on a daemon safety branch; in parallel/next repair ACC-02 handler-scope session sharing, decide the exact short JWT lifetime, and deliver ACC-03's HTTP/IPC regression suite. Rerun focused end-to-end manual acceptance only after those blocking changes. Then S2 may freeze the Web/daemon contract; schedule ACC-04/05/06 in their listed client waves unless they directly block acceptance. The group/template choice should be confirmed before implementing CLIENT KZ-18. Each fix gets its own small reviewable branch/patch and independent approval before promotion. Update this register with results; do not mark acceptance passed merely because a fix is coded.
+
 ### Bridge checkpoint S2 - Web -> client
 
 The client phase starts only after these are stable:
@@ -190,7 +217,7 @@ The client phase starts only after these are stable:
 - network-interface retention semantics;
 - rule metadata/tag/group/template response semantics.
 
-Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is the point after which client workflows can be extracted without immediately chasing server contract churn.
+Generate/inspect OpenAPI and run Web integration tests here. **The post-W acceptance remediation gate above must pass for ACC-01/02/03 before marking S2 ready.** This checkpoint is the point after which client workflows can be extracted without immediately chasing server contract churn.
 
 ### Phase C - `Ufw.Web.Client`
 
@@ -200,7 +227,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 2. CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
 3. CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
 4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
-5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors.
+5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
 6. CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
 7. CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
 8. CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
@@ -208,7 +235,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 #### C2 - Feature/workflow extraction
 
 1. CLIENT KZ-01 move rule-page workflows into focused Features services using the C1 snapshot/protocol/error primitives.
-2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner.
+2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner, incorporating ACC-05 template-reference semantics.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
 4. CLIENT KZ-09 introduce explicit create-rule workflow state after the workflow has moved out of Razor.
 5. CLIENT KZ-19 make rule-editor reference-data failures symmetric against the final server error behavior.
@@ -218,7 +245,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 
 1. CLIENT KZ-07 converge desktop/mobile rule behavior and fragments after application workflows have left the components/pages.
 2. CLIENT KZ-13 classify/extract styles against the final component structure.
-3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs.
+3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 
 #### C4 - Transport/public-surface/opportunistic cleanup
 
@@ -239,6 +266,8 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 - Web-facing shared protocol changes are documented before Web refactoring begins.
 
 ### Checkpoint W - Web complete
+
+**Refactor inventory complete; manual acceptance not yet signed off.** The post-W register (ACC-01 through ACC-06) tracks newly found gaps and their independent owners.
 
 - No direct EF access outside the DAL except composition/migrations.
 - Shared domain/read models are stable and separate from persistence entities/request DTOs.

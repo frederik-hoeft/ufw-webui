@@ -1,5 +1,9 @@
 # Ufw.Web Kaizen Blitz Review Inventory
 
+## Post-W acceptance findings (October 2026)
+
+W1-W3 closed the original Web refactoring inventory, but acceptance exposed **ACC-02** (inconsistent browser sessions from scoped `IHttpClientFactory` handler pipelines, plus intentionally bounded access-JWT validity after password change) and **ACC-03** (insufficient HTTP-pipeline/IPC transport integration assertions). These are tracked in the [overall post-W register](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026), without reopening completed historical WEB KZ entries. The affected `known-hosts`, `status`, `rules`, and `rule-templates` controllers already have `[Authorize]`; old but unexpired JWTs are still valid, while revoked refresh cookies fail. Prefer fixing client token-store sharing and considering a ~120-second access lifetime, **not** adding per-request user-database/security-stamp checks. S2 is blocked until the client session boundary and cross-session HTTP regression gate are verified.
+
 ## Wave D daemon handoff
 
 The daemon phase is complete. Web work should consume the finalized daemon contract rather than reopening daemon implementation structure:

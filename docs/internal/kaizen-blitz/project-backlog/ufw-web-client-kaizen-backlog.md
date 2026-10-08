@@ -1,5 +1,16 @@
 # Ufw.Web.Client Kaizen Audit
 
+## Post-Web manual acceptance follow-ups (October 2026)
+
+See [post-W acceptance register](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026). These are additive findings, not changes to the historical client audit baseline:
+
+- **ACC-02 (pre-S2):** `IHttpClientFactory` builds named-client handlers in separate DI scopes; scoped `AuthenticationSession` and `AuthenticationStateProvider` therefore differ across API clients and `AuthorizeRouteView`. Make the token store/provider app-instance-wide within WASM and share it with every `BearerTokenHandler`, retaining cross-tab refresh locking and stateless server JWT validation. Test the real DI/factory composition and exhausted refresh across multiple typed clients before addressing UI presentation. Consider a ~120-second access JWT lifetime separately.
+- **ACC-04 / KZ-11 (C1):** centralize terminal 401/session-expired handling at the auth/navigation boundary. `ClientErrorMapper` currently labels 401 as `SessionInvalid`, while pages each render their own alert. Clear session and navigate once when refresh is exhausted; preserve deep links appropriately, treat 403 separately, do not redirect failed login. Handle concurrent requests/tabs; add browser/component regressions. This does not itself revoke JWTs server-side (ACC-02).
+- **ACC-05 / KZ-18 (C2):** `RuleGroupDeletionWorkflowService.DeleteAsync` refuses *all* actions when `TemplateIds.Count != 0`. Separate signed deletion of live occurrence members from deletion of the ASP-owned group; after a completed batch attempt group cleanup only if no live members or template references remain. Display referenced templates in group management and confirmation; retain template artifacts by default, and report retained groups clearly. Confirm the destructive action wording before implementation.
+- **ACC-06 (C3; KZ-14/KZ-22 presentation):** render full orphan `RuleId` in `ReconcileRuleMetadataDialog` and apply ellipsis only through CSS, keeping full accessible name/title/copy target. Remove the `DescribeRuleId` truncation helper.
+
+The API/authorization gate (ACC-01 through ACC-03) precedes client workflow cleanup; app-wide unauthorized UX is not a substitute for protected server endpoints.
+
 ## Overall assessment
 
 The client is generally disciplined. The main technical debt is concentrated rather than pervasive. The largest opportunities are:

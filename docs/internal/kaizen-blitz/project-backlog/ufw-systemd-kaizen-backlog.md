@@ -1,5 +1,9 @@
 # Ufw.Systemd Kaizen Blitz Review
 
+## Post-D acceptance safety finding (October 2026)
+
+**ACC-01 (open, P0):** Manual acceptance of duplicate-semantic-rule reordering reported a failed recovery, a lost rule, and an unresolved recovery journal that prevents daemon startup. `FirewallReorderPreflightEvaluator` currently accepts ambiguous duplicate identities before delete/reinsert moves; UFW duplicate suppression defeats recovery. Add an authoritative structured mutation-safety assessment to `RuleListResponse`, computed from the observed firewall model, and enforce a **global fail-closed guard for all firewall mutations**, including occurrence-based batch deletion, before any UFW write or recovery journal is created. No Web-based repair exception: use external UFW to resolve ambiguity and then refresh. Keep operation-specific preconditions and preserve the existing conservative response to genuinely unresolved recovery journals. The UI should expose the issue and become read-only. Track details/tests under [ACC-01](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026). The original 29 daemon refactoring items remain historically completed; this is a newly found correctness defect.
+
 ## Wave D completion status
 
 **Status: complete.** All 29 findings in this inventory were resolved during Wave D. The problem/evidence sections below intentionally remain as the historical audit baseline; references to removed types or pre-refactor behavior describe the state that motivated the work, not the current implementation. The dependency-driven execution order and cross-project handoff are tracked in the [overall kaizen plan](../ufw-kaizen-plan.md).
