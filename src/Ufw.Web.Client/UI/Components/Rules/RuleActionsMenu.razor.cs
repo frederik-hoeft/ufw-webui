@@ -9,6 +9,9 @@ public sealed partial class RuleActionsMenu
     public ListedFirewallRule Rule { get; set; } = null!;
 
     [Parameter, EditorRequired]
+    public int OccurrenceId { get; set; }
+
+    [Parameter, EditorRequired]
     public int FamilyPosition { get; set; }
 
     [Parameter]
@@ -63,5 +66,5 @@ public sealed partial class RuleActionsMenu
         RulesText["ActionsForRulePosition", FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)];
 
     private Task RequestInsertionAsync(RuleInsertionPlacement placement)
-        => InsertionRequested.InvokeAsync(new RuleInsertionActionRequest(Rule, placement));
+        => InsertionRequested.InvokeAsync(new RuleInsertionActionRequest(OccurrenceId, placement));
 }

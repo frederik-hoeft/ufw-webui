@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
@@ -23,7 +23,7 @@ internal static class RuleFilterSemantics
         }
 
         string text = value.Trim();
-        int slash = text.IndexOf('/');
+        int slash = text.IndexOf('/', StringComparison.Ordinal);
         ReadOnlySpan<char> address = slash < 0 ? text.AsSpan() : text.AsSpan(0, slash);
         if (!IPAddress.TryParse(address, out IPAddress? parsedAddress))
         {
@@ -112,7 +112,7 @@ internal static class RuleFilterSemantics
 
     private static string FormatNetwork(string address, string input, int hostPrefix)
     {
-        int separator = input.IndexOf('/');
+        int separator = input.IndexOf('/', StringComparison.Ordinal);
         if (separator < 0)
         {
             return address;

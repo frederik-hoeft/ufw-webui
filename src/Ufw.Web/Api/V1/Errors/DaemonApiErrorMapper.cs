@@ -15,8 +15,8 @@ internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
         if (daemonError.ValidationErrors is { Length: > 0 })
         {
             ApiValidationError[] validationErrors = [.. daemonError.ValidationErrors.Select(static error => new ApiValidationError(error.PropertyName, error.Code, error.ErrorMessage))];
-            ProblemDetails problem = ApiProblemDetailsFactory.CreateValidation(validationErrors, daemonError.ResponseMessage);
-            return new DaemonApiError(StatusCodes.Status400BadRequest, problem);
+            ProblemDetails validationProblem = ApiProblemDetailsFactory.CreateValidation(validationErrors, daemonError.ResponseMessage);
+            return new DaemonApiError(StatusCodes.Status400BadRequest, validationProblem);
         }
 
         int statusCode = daemonError.StatusCode is >= 400 and <= 599 ? daemonError.StatusCode : StatusCodes.Status502BadGateway;

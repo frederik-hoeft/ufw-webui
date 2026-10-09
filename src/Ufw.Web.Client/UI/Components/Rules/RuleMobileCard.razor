@@ -1,4 +1,4 @@
-@using Ufw.Web.Client.UI.Components.Rules.Metadata
+﻿@using Ufw.Web.Client.UI.Components.Rules.Metadata
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -58,6 +58,7 @@
             </div>
             <div class="trailing" @onclick:stopPropagation="true">
                 <RuleActionsMenu Rule="@rule"
+                                 OccurrenceId="@Row.OccurrenceId"
                                  FamilyPosition="@Row.FamilyPosition"
                                  MetadataEditDisabled="@MetadataEditDisabled"
                                  TemplateSaveDisabled="@TemplateSaveDisabled"

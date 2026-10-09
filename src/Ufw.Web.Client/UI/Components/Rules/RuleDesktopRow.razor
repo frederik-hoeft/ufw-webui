@@ -1,4 +1,4 @@
-@using Ufw.Web.Client.UI.Components.Rules.Metadata
+﻿@using Ufw.Web.Client.UI.Components.Rules.Metadata
 @inject IStringLocalizer<RulesStrings> RulesText
 
 @{
@@ -54,6 +54,7 @@
         <RuleDesktopContent Rule="@rule.Rule" Tags="@(Row.Metadata?.Tags ?? [])" />
         <td class="actions" @onclick:stopPropagation="true">
             <RuleActionsMenu Rule="@rule"
+                             OccurrenceId="@Row.OccurrenceId"
                              FamilyPosition="@Row.FamilyPosition"
                              MetadataEditDisabled="@MetadataEditDisabled"
                              TemplateSaveDisabled="@TemplateSaveDisabled"

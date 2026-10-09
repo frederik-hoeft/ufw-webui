@@ -506,7 +506,7 @@ public sealed partial class RulesPage
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
-            string uri = ReplacementNavigation.BuildUri(baseline, row.Rule);
+            string uri = ReplacementNavigation.BuildUri(baseline, row.OccurrenceId);
             Navigation.NavigateTo(uri);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
@@ -525,12 +525,13 @@ public sealed partial class RulesPage
             return Task.CompletedTask;
         }
 
-        if (!snapshot.Rules.Any(rule => ReferenceEquals(rule, request.Rule)))
+        RuleSnapshotIndex index = new(snapshot.Rules);
+        if (!index.TryGet(request.OccurrenceId, out ListedFirewallRule? anchor))
         {
             Snackbar.Add(RulesText["InsertionTargetUnavailable"], Severity.Warning);
             return Task.CompletedTask;
         }
-        if (request.Rule.Rule?.AddressFamily == FirewallAddressFamily.IPv6 && !snapshot.Configuration.IPv6Enabled)
+        if (anchor.Rule?.AddressFamily == FirewallAddressFamily.IPv6 && !snapshot.Configuration.IPv6Enabled)
         {
             Snackbar.Add(RulesText["InsertionIPv6Unavailable"], Severity.Warning);
             return Task.CompletedTask;
@@ -539,7 +540,7 @@ public sealed partial class RulesPage
         try
         {
             RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
-            string uri = InsertionNavigation.BuildUri(baseline, request.Rule, request.Placement);
+            string uri = InsertionNavigation.BuildUri(baseline, request.OccurrenceId, request.Placement);
             Navigation.NavigateTo(uri);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)

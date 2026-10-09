@@ -5,7 +5,7 @@ namespace Ufw.Web.Client.Features.Rules.Insertion;
 
 internal interface IRuleInsertionNavigationService
 {
-    string BuildUri(RuleListResponse baseline, ListedFirewallRule anchor, RuleInsertionPlacement placement);
+    string BuildUri(RuleListResponse baseline, int anchorOccurrenceId, RuleInsertionPlacement placement);
 
     RuleInsertionNavigationResolution Resolve(RuleListResponse snapshot, RuleInsertionNavigationQuery query);
 }

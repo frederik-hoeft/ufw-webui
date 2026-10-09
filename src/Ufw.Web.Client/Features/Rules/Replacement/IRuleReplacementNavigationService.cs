@@ -5,7 +5,7 @@ namespace Ufw.Web.Client.Features.Rules.Replacement;
 
 internal interface IRuleReplacementNavigationService
 {
-    string BuildUri(RuleListResponse baseline, ListedFirewallRule target);
+    string BuildUri(RuleListResponse baseline, int targetOccurrenceId);
 
     RuleReplacementNavigationResolution Resolve(RuleListResponse snapshot, RuleReplacementNavigationQuery query);
 }

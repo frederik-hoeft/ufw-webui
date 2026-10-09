@@ -178,6 +178,8 @@ After this client cleanup, reassess the residual parsing overlap among `RuleSpec
 
 ### KZ-03: Centralize snapshot occurrence indexing and remove object-identity lookup
 
+- [x] Use snapshot-local occurrence IDs, shared family positions, and semantic identity multiplicity in navigation and projections.
+
 **Where**
 
 - `Features/Rules/Insertion/RuleInsertionNavigationService.cs:21-40`, `96-121`
@@ -236,6 +238,8 @@ Keep operation-specific validation explicit. The common helper should not erase 
 - operation-specific tests still verify the exact canonical bytes and serialized payload for each mutation type.
 
 ### KZ-05: Define the rule-order permutation invariant once
+
+- [x] Use one validated, immutable permutation across preview, signed execution, and result projection.
 
 **Where**
 
