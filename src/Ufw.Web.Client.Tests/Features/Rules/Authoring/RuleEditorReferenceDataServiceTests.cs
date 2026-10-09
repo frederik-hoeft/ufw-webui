@@ -51,11 +51,7 @@ public sealed class RuleEditorReferenceDataServiceTests
         knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventoryResponse { Interfaces = [networkInterface] });
         ClientError clientError = new(ClientErrorKind.Unavailable, "known hosts unavailable", true);
-        errors.Setup(mapper => mapper.TryDescribe(failure, out It.Ref<ClientError>.IsAny)).Returns((Exception _, out ClientError error) =>
-        {
-            error = clientError;
-            return true;
-        });
+        errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(true);
         errors.Setup(mapper => mapper.Describe(failure)).Returns(clientError);
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
@@ -75,6 +71,7 @@ public sealed class RuleEditorReferenceDataServiceTests
         Mock<IClientErrorMapper> errors = new();
         knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new KnownHostInventoryResponse());
         networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
+        errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(true);
         errors.Setup(mapper => mapper.Describe(failure)).Returns(new ClientError(ClientErrorKind.Unavailable, "interface lookup failed", true));
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 

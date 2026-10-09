@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -22,6 +22,7 @@ public sealed class AuthenticationHandlerScopeTests
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(Mock.Of<IJSRuntime>());
         services.AddSingleton(Mock.Of<IAuthApiClient>());
+        services.AddSingleton<Microsoft.AspNetCore.Components.NavigationManager>(new Ufw.Web.Client.Tests.Support.TestNavigationManager());
         Mock<IAccessTokenPrincipalFactory> principalFactory = new();
         principalFactory.Setup(factory => factory.CreatePrincipal("test-access-token"))
             .Returns(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "administrator")], "jwt")));

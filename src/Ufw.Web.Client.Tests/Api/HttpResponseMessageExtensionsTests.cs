@@ -58,13 +58,13 @@ public sealed class HttpResponseMessageExtensionsTests
     }
 
     [TestMethod]
-    public async Task CreateExceptionAsync_LegacyMessageExtensionRemainsReadableDuringServerMigrationAsync()
+    public async Task CreateExceptionAsync_LegacyShapeFallsBackToStatusAsync()
     {
         using HttpResponseMessage response = JsonResponse(HttpStatusCode.BadRequest, "{\"message\":\"legacy detail\"}");
 
         ApiRequestException exception = await response.CreateExceptionAsync(CancellationToken.None);
 
-        Assert.AreEqual("legacy detail", exception.Message);
+        Assert.AreEqual("The API request failed with status 400.", exception.Message);
         Assert.IsEmpty(exception.ValidationErrors);
     }
 

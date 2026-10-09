@@ -158,7 +158,7 @@ public sealed partial class RulesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
         }
@@ -175,7 +175,7 @@ public sealed partial class RulesPage
         {
             throw;
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _knownHosts = KnownHosts.Current?.Hosts.Where(static host => host.IsVisible).ToArray() ?? [];
         }
@@ -210,7 +210,7 @@ public sealed partial class RulesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
         }
@@ -251,7 +251,7 @@ public sealed partial class RulesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
         }
@@ -368,7 +368,7 @@ public sealed partial class RulesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
         }
@@ -394,7 +394,7 @@ public sealed partial class RulesPage
         {
             return;
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             Snackbar.Add(RulesText["DeleteGroupCleanupOptionUnavailable"], Severity.Warning);
         }
@@ -459,7 +459,7 @@ public sealed partial class RulesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             HandleMutationFailure(ClientErrors.Describe(exception));
         }
@@ -483,7 +483,7 @@ public sealed partial class RulesPage
         {
             throw;
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             Snackbar.Add(RulesText["RuleDeletedGroupCleanupFailed", group.Name, ClientErrors.Describe(exception).Message], Severity.Warning);
         }
@@ -607,7 +607,7 @@ public sealed partial class RulesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             ClientError error = ClientErrors.Describe(exception);
             HandleMutationFailure(error);

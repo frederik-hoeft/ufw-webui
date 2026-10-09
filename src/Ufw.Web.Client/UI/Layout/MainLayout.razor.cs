@@ -40,7 +40,7 @@ public sealed partial class MainLayout
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             ClientError error = ClientErrors.Describe(exception);
             Snackbar.Add(CommonText["CouldNotSignOut", error.Message], Severity.Error);

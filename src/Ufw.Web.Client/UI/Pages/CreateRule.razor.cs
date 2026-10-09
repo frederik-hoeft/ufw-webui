@@ -153,7 +153,7 @@ public sealed partial class CreateRule
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
         }
@@ -179,7 +179,7 @@ public sealed partial class CreateRule
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _templateCatalogError = ClientErrors.Describe(exception);
             if (!string.IsNullOrWhiteSpace(InitialTemplateValue))
@@ -352,7 +352,7 @@ public sealed partial class CreateRule
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             ClientError error = ClientErrors.Describe(exception);
             _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
@@ -411,7 +411,7 @@ public sealed partial class CreateRule
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             ClientError error = ClientErrors.Describe(exception);
             _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
@@ -456,8 +456,8 @@ public sealed partial class CreateRule
         }
         catch (Exception exception)
         {
-            string diagnostic = ClientErrors.TryDescribe(exception, out ClientError error)
-                ? error.Message
+            string diagnostic = ClientErrors.CanDescribe(exception)
+                ? ClientErrors.Describe(exception).Message
                 : RulesText["MetadataSaveAfterCreateFailed"];
             Snackbar.Add(RulesText["MetadataSaveAfterCreateFailedWithReason", diagnostic], Severity.Warning);
         }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 
 namespace Ufw.Web.Client.Features.Authentication;
 
@@ -9,6 +9,7 @@ internal static class AuthenticationServiceCollectionExtensions
         services.AddSingleton<IAccessTokenPrincipalFactory, AccessTokenPrincipalFactory>();
         // HttpClientFactory creates its own handler DI scopes. The token and principal must be shared across those scopes within this WASM app.
         services.AddSingleton<AuthenticationSession>();
+        services.AddSingleton<IAuthenticationNavigation, AuthenticationNavigation>();
         services.AddSingleton<IAuthenticationSession>(static provider => provider.GetRequiredService<AuthenticationSession>());
         services.AddSingleton<AuthenticationStateProvider>(static provider => provider.GetRequiredService<AuthenticationSession>());
         services.AddScoped<IAuthenticationOperationCoordinator, BrowserAuthenticationOperationCoordinator>();

@@ -207,7 +207,7 @@ public sealed partial class RuleGroupsManagement
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             ClientError error = ClientErrors.Describe(exception);
             Snackbar.Add(error.Message, Severity.Error);
@@ -235,7 +235,7 @@ public sealed partial class RuleGroupsManagement
         {
             _catalogGroups = await groupsTask;
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _groupError = ClientErrors.Describe(exception);
             _catalogGroups = GroupCatalog.Current;
@@ -246,7 +246,7 @@ public sealed partial class RuleGroupsManagement
             RuleInventoryResponse response = await rulesTask;
             _ruleSnapshot = RuleSnapshotFactory.FromInventoryResponse(response);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _ruleInventoryError = ClientErrors.Describe(exception);
             _ruleSnapshot = null;
@@ -257,7 +257,7 @@ public sealed partial class RuleGroupsManagement
             IReadOnlyList<RuleTemplate> templates = await templatesTask;
             _templateNames = templates.ToDictionary(static template => template.Id, static template => template.Name);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             // Template IDs remain visible if their names could not be loaded.
             _templateNames = new Dictionary<Guid, string>();

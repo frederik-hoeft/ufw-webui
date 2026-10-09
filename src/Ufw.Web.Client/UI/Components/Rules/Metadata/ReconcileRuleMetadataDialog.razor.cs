@@ -43,7 +43,7 @@ public sealed partial class ReconcileRuleMetadataDialog
             _snapshot = await Reconciliation.RefreshAsync();
             ReconcileSelection();
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -78,7 +78,7 @@ public sealed partial class ReconcileRuleMetadataDialog
             ReconcileSelection();
             Snackbar.Add(RulesText["MetadataCleanupCompleted", removedCount], Severity.Success);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);

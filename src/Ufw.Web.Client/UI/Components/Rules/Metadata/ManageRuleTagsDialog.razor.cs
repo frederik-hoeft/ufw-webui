@@ -44,7 +44,7 @@ public sealed partial class ManageRuleTagsDialog
         {
             _tags = await TagCatalog.RefreshAsync();
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -122,7 +122,7 @@ public sealed partial class ManageRuleTagsDialog
             _editingTag = null;
             Snackbar.Add(RulesText["TagSaved"], Severity.Success);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
@@ -156,7 +156,7 @@ public sealed partial class ManageRuleTagsDialog
             _tags = await TagCatalog.DeleteAsync(tag.Id);
             Snackbar.Add(RulesText["TagDeleted"], Severity.Success);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);

@@ -53,7 +53,7 @@ internal sealed class RuleEditorReferenceDataService(
         {
             throw;
         }
-        catch (Exception exception) when (errors.TryDescribe(exception, out _))
+        catch (Exception exception) when (errors.CanDescribe(exception))
         {
             _ = errors.Describe(exception);
             return [];
@@ -74,7 +74,7 @@ internal sealed class RuleEditorReferenceDataService(
         {
             throw;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (errors.CanDescribe(exception))
         {
             return new InterfaceInventoryResult([], [], errors.Describe(exception).Message);
         }

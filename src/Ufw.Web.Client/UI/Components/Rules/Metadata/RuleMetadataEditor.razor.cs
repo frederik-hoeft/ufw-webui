@@ -38,7 +38,7 @@ public sealed partial class RuleMetadataEditor
             await Task.WhenAll(TagCatalog.RefreshAsync(), GroupCatalog.RefreshAsync());
             SynchronizeGroupSelection(force: true);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -114,7 +114,7 @@ public sealed partial class RuleMetadataEditor
             IReadOnlyList<RuleGroup> groups = await GroupCatalog.CreateAsync(normalizedName);
             return groups.Single(group => string.Equals(group.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             return null;
@@ -180,7 +180,7 @@ public sealed partial class RuleMetadataEditor
             IReadOnlyList<RuleTag> tags = await TagCatalog.CreateAsync(normalizedName, TagColors.Generate());
             return tags.Single(tag => string.Equals(tag.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             return null;

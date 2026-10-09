@@ -55,7 +55,7 @@ public sealed partial class NetworkInterfacesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -81,7 +81,7 @@ public sealed partial class NetworkInterfacesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
@@ -119,7 +119,7 @@ public sealed partial class NetworkInterfacesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
@@ -146,7 +146,7 @@ public sealed partial class NetworkInterfacesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);

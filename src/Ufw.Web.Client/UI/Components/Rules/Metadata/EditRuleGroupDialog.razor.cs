@@ -56,7 +56,7 @@ public sealed partial class EditRuleGroupDialog
             }
             MudDialog.Close(DialogResult.Ok(true));
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
