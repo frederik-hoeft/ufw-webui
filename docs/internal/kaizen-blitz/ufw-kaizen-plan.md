@@ -222,7 +222,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 1. [x] CLIENT KZ-02: use `Ufw.Shared.Domain` network/port semantics across filter editors, evaluators, and known-host matching (PR #40 foundation).
 2. [x] CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
 3. [x] CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
-4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
+4. [x] CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
 5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
 6. CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
 7. CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
@@ -373,10 +373,10 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 |---|---|---|---|---|
 | [ ] | CLIENT KZ-01 | C2 | Move rule-page application workflows out of Razor | Do after C1 and after the Web API/shared-model checkpoint so workflows are extracted around stable contracts rather than current DTO/error quirks. |
 | [x] | CLIENT KZ-02 | C1 | Make client rule filtering consume the shared semantic-domain primitives | Requires PR #40. Do before KZ-16 so filter micro-clone cleanup is performed against the final semantic adapter. |
-| [ ] | CLIENT KZ-03 | C1 | Centralize snapshot occurrence indexing and remove object-identity lookup | Do early; later rule workflows/navigation should consume the stable occurrence index instead of preserving ReferenceEquals paths. |
-| [ ] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |
-| [ ] | CLIENT KZ-05 | C1 | Define the rule-order permutation invariant once | Do before ordering workflows are moved/refined; subsequent code should traffic in one validated permutation representation. |
-| [ ] | CLIENT KZ-06 | C1 | Centralize metadata DTO-to-domain normalization | Do after Web shared-domain/metadata contracts stabilize; KZ-17 and later workflows should consume this one mapper. |
+| [x] | CLIENT KZ-03 | C1 | Centralize snapshot occurrence indexing and remove object-identity lookup | Do early; later rule workflows/navigation should consume the stable occurrence index instead of preserving ReferenceEquals paths. |
+| [x] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |
+| [x] | CLIENT KZ-05 | C1 | Define the rule-order permutation invariant once | Do before ordering workflows are moved/refined; subsequent code should traffic in one validated permutation representation. |
+| [x] | CLIENT KZ-06 | C1 | Centralize metadata DTO-to-domain normalization | Do after Web shared-domain/metadata contracts stabilize; KZ-17 and later workflows should consume this one mapper. |
 | [ ] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | Do after KZ-01 removes workflow behavior from page/component surfaces; then converge only presentation/interaction behavior. |
 | [ ] | CLIENT KZ-08 | C2 | Move metadata-authoring CRUD out of `RuleMetadataEditor` and centralize metadata limits | Do after Web KZ-05 exposes shared limits and after Client KZ-15 settles catalog state semantics. |
 | [ ] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
@@ -387,7 +387,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | CLIENT KZ-14 | C3 | Consolidate dialog options and confirmation-dialog presentation shells | Do after workflow extraction so confirmation shells contain presentation only, not temporary workflow responsibilities. |
 | [ ] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Do in C1 before KZ-08; metadata-authoring should be built on final catalog-state semantics. |
 | [ ] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
-| [ ] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
+| [x] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
 | [ ] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
 | [ ] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Do with feature workflow extraction, using the final server error contract and explicit reference-data results. |
 | [ ] | CLIENT KZ-20 | C4 | Factor repeated HttpClient registration and resource-client mechanics | Do after server endpoints/contracts are stable and feature workflow extraction has stopped changing API-client call patterns. |

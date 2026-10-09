@@ -63,7 +63,7 @@ internal sealed record RuleInventoryState
             throw new InvalidOperationException("A rule inventory refresh cannot complete when no refresh is in progress.");
         }
 
-        return new RuleInventoryState(RuleInventoryStatus.Current, RuleSnapshot.FromResponse(response), error: null, refreshReason: null, staleReason: null);
+        return new RuleInventoryState(RuleInventoryStatus.Current, RuleSnapshotFactory.FromInventoryResponse(response), error: null, refreshReason: null, staleReason: null);
     }
 
     private RuleInventoryState FailRefresh(ClientError error)
@@ -91,7 +91,7 @@ internal sealed record RuleInventoryState
             throw new InvalidOperationException("Rule metadata cannot be updated against an unloaded rule snapshot.");
         }
 
-        return new RuleInventoryState(Status, Snapshot.ApplyMetadataMutation(ruleId, response), Error, RefreshReason, StaleReason);
+        return new RuleInventoryState(Status, RuleSnapshotFactory.ApplyMetadataMutation(Snapshot, ruleId, response), Error, RefreshReason, StaleReason);
     }
 
     private RuleInventoryState ReconcileTagCatalog(IReadOnlyList<RuleTag> tags)
@@ -128,7 +128,7 @@ internal sealed record RuleInventoryState
     {
         if (finalSnapshot is not null)
         {
-            RuleSnapshot snapshot = RuleSnapshot.FromFirewallResponse(finalSnapshot, Snapshot?.Metadata, capturedAt == default ? Snapshot?.CapturedAt ?? default : capturedAt);
+            RuleSnapshot snapshot = RuleSnapshotFactory.FromFirewallResponse(finalSnapshot, Snapshot?.Metadata, capturedAt == default ? Snapshot?.CapturedAt ?? default : capturedAt);
             return new RuleInventoryState(RuleInventoryStatus.Current, snapshot, error: null, refreshReason: null, staleReason: null);
         }
         if (Snapshot is null)

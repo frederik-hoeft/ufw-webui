@@ -244,7 +244,7 @@ public sealed partial class RuleGroupsManagement
         try
         {
             RuleInventoryResponse response = await rulesTask;
-            _ruleSnapshot = RuleSnapshot.FromResponse(response);
+            _ruleSnapshot = RuleSnapshotFactory.FromInventoryResponse(response);
         }
         catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
         {

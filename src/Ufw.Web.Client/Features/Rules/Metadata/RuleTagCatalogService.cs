@@ -61,15 +61,7 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
         List<RuleTag> tags = new(response.Tags.Count);
         foreach (RuleTagItem item in response.Tags)
         {
-            if (item is null
-                || item.Id == Guid.Empty
-                || string.IsNullOrWhiteSpace(item.Name)
-                || !RuleTagColor.TryNormalize(item.Color, out string color))
-            {
-                throw new ApiProtocolException("Rule-tag inventory response contains an invalid tag entry.");
-            }
-
-            tags.Add(new RuleTag(item.Id, item.Name.Trim(), color));
+            tags.Add(RuleMetadataProtocolMapper.MapTag(item, "Rule-tag inventory response contains an invalid tag entry."));
         }
 
         if (tags.Select(static tag => tag.Id).Distinct().Count() != tags.Count
