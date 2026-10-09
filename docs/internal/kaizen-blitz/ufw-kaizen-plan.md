@@ -224,7 +224,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 3. [x] CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
 4. [x] CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
 5. [x] CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
-6. CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
+6. [x] CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
 7. CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
 8. CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
 
@@ -382,7 +382,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
 | [ ] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | Do after Web KZ-13 fixes interface lifecycle semantics and after feature-level inventory operations are stable. |
 | [x] | CLIENT KZ-11 | C1 | Remove repeated `TryDescribe(... out _)` + `Describe(...)` error classification | Do immediately after Web KZ-09 stabilizes ProblemDetails/error semantics, before moving more workflow code into Features. |
-| [ ] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
+| [x] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
 | [ ] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | Do after KZ-07 so style ownership follows the final component decomposition. |
 | [ ] | CLIENT KZ-14 | C3 | Consolidate dialog options and confirmation-dialog presentation shells | Do after workflow extraction so confirmation shells contain presentation only, not temporary workflow responsibilities. |
 | [ ] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Do in C1 before KZ-08; metadata-authoring should be built on final catalog-state semantics. |

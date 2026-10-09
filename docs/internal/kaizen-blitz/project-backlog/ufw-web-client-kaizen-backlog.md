@@ -420,7 +420,7 @@ Also remove the unused parameter from `ClientErrorMapper.DescribeProtocolError` 
 
 **Contract decision:** The Web error contract is ProblemDetails-based. Client fallback uses HTTP status for empty or incompatible bodies; no legacy `{ message }` parser is retained. API 401s use one authentication navigation policy; 403 and login credential failures remain distinct.
 
-### KZ-12: Stop localizing validator failures by exact English error text
+### KZ-12: Stop localizing validator failures by exact English error text (complete)
 
 **Where**
 
