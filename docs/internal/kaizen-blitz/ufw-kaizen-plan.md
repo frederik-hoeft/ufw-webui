@@ -181,7 +181,7 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 
 ### Post-W acceptance remediation (October 2026)
 
-**Gate:** S2 is blocked until ACC-01 through ACC-03 pass their remaining integration/manual acceptance checks. These findings are separate from the completed original source-audit items.
+**Gate:** ACC-01 through ACC-03 still require integration/manual acceptance. Manual acceptance is deferred until the test environment is available; proceed with the independent client kaizen waves meanwhile. Do not mark S2 or final release acceptance complete until the outstanding checks pass.
 
 **Decisions for follow-up work:**
 
@@ -204,7 +204,7 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 
 ### Bridge checkpoint S2 - Web -> client
 
-The client phase starts only after these are stable:
+The client phase can proceed against these stabilized contracts while final S2 acceptance is deferred:
 
 - shared management-domain model names/shapes used by both server and client;
 - shared limits and stable validation identities;
@@ -213,13 +213,13 @@ The client phase starts only after these are stable:
 - network-interface retention semantics;
 - rule metadata/tag/group/template response semantics.
 
-Generate/inspect OpenAPI and run Web integration tests here. **The post-W acceptance remediation gate above must pass for ACC-01/02/03 before marking S2 ready.** This checkpoint is the point after which client workflows can be extracted without immediately chasing server contract churn.
+Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03 acceptance open until verified; this deferred checkpoint does not block independent C-wave implementation work.** The server contracts are stable enough to proceed with client refactoring.
 
 ### Phase C - `Ufw.Web.Client`
 
 #### C1 - Semantic and protocol foundations
 
-1. PR #40 is merged; CLIENT KZ-02 adopts the resulting `Ufw.Shared.Domain` network/port semantics.
+1. [x] CLIENT KZ-02: use `Ufw.Shared.Domain` network/port semantics across filter editors, evaluators, and known-host matching (PR #40 foundation).
 2. CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
 3. CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
 4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
@@ -372,7 +372,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | Done | Source item | Planned wave | Finding | Sequencing note |
 |---|---|---|---|---|
 | [ ] | CLIENT KZ-01 | C2 | Move rule-page application workflows out of Razor | Do after C1 and after the Web API/shared-model checkpoint so workflows are extracted around stable contracts rather than current DTO/error quirks. |
-| [ ] | CLIENT KZ-02 | C1 | Make client rule filtering consume the shared semantic-domain primitives | Requires PR #40. Do before KZ-16 so filter micro-clone cleanup is performed against the final semantic adapter. |
+| [x] | CLIENT KZ-02 | C1 | Make client rule filtering consume the shared semantic-domain primitives | Requires PR #40. Do before KZ-16 so filter micro-clone cleanup is performed against the final semantic adapter. |
 | [ ] | CLIENT KZ-03 | C1 | Centralize snapshot occurrence indexing and remove object-identity lookup | Do early; later rule workflows/navigation should consume the stable occurrence index instead of preserving ReferenceEquals paths. |
 | [ ] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |
 | [ ] | CLIENT KZ-05 | C1 | Define the rule-order permutation invariant once | Do before ordering workflows are moved/refined; subsequent code should traffic in one validated permutation representation. |

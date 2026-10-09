@@ -86,6 +86,9 @@ Keep dialog creation, navigation, snackbars, and lifecycle cancellation in Razor
 
 ### KZ-02: Make client rule filtering consume the shared semantic-domain primitives
 
+- [x] Use the shared network and port interval model through a filter-local adapter in editors, evaluators, and known-host projection.
+- [ ] Complete the deferred full client-suite/release acceptance gate.
+
 **Where**
 
 Current client duplicates:
