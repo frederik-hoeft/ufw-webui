@@ -1,5 +1,7 @@
-﻿using Ufw.Shared.Ipc.Model;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Security.Intent;
 
 namespace Ufw.Systemd.Firewall;
@@ -7,7 +9,8 @@ namespace Ufw.Systemd.Firewall;
 internal sealed class SignedMutationOrchestrator(
     INonceStore nonceStore,
     IUfwExecutionGate executionGate,
-    IFirewallMutationSafetyGuard mutationSafetyGuard) : ISignedMutationOrchestrator
+    IFirewallMutationSafetyGuard mutationSafetyGuard,
+    IFirewallRuleSnapshotReader snapshotReader) : ISignedMutationOrchestrator
 {
     public Task<IResponsePayload> ExecuteAsync(
         IntentVerificationResult.Accepted accepted,
@@ -24,6 +27,19 @@ internal sealed class SignedMutationOrchestrator(
         Func<CancellationToken, Task<IResponsePayload>> operation,
         CancellationToken cancellationToken)
     {
+        FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
+        if (!read.TryGetSnapshot(out RuleListResponse? snapshot, out IResponsePayload? readError))
+        {
+            return readError!;
+        }
+
+        // Reassess the freshly observed state inside the execution gate; never trust client-provided assessments.
+        FirewallStateAssessment assessment = FirewallStateAssessmentEvaluator.Evaluate(snapshot.Rules);
+        if (!assessment.IsClean)
+        {
+            return new UnprocessableContentResponse("The authoritative firewall has duplicate semantic rule identities. Repair the ambiguous state directly with UFW before making further changes.");
+        }
+
         await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {

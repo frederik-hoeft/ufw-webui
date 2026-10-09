@@ -86,6 +86,12 @@ Starting a UFW process transfers responsibility to the daemon until that process
 
 Cancellation, an ambiguous post-mutation listing, or a successful exit code without the expected state transition therefore cannot be promoted into a confirmed result. Replacement recovery is synchronous and best-effort, batch deletion deliberately reports partial completion instead of attempting to recreate already confirmed deletions, and reorder recovery protects a row that has been removed as part of an unfinished move with durable recovery state. None of these compound operations claims packet-level atomicity: traffic can observe intermediate policy states between sequential UFW commands.
 
+## Ambiguous firewall snapshot write protection
+
+The authoritative daemon rule list carries a derived `assessment` of model ambiguities, initially duplicate semantic rule identities. Duplicate detection uses the semantic rule identity (excluding comments), not observed-state equality. When issues are present, the daemon refuses **all signed firewall mutations** under its serialized UFW execution gate before consuming the signed nonce or running the mutation operation. No in-band deletion or batch cleanup is permitted; an administrator repairs the state directly with UFW, then obtains a fresh snapshot. An unresolved reorder recovery journal retains its separate conservative startup safety handling and is never silently discarded.
+
+The ASP application additionally checks a current daemon snapshot before any management write, including its own metadata, template, group, tag, host and interface changes. Authentication/session operations are exempt so the administrator can sign in and recover. Unavailable authoritative state fails closed; reads remain available with diagnostic context. The browser warning/disabled controls are advisory and **not** the write-enforcement boundary. The assessment is derived from existing snapshot fields and is intentionally excluded from the signed version-1 fingerprint. Out-of-band concurrent UFW writes remain outside the daemon's process-local serialization boundary.
+
 ## IPC transport security
 
 The daemon transport is selected at startup. The standard production deployment uses a group-restricted Unix-domain socket exposed only to the ASP container, so operating-system socket permissions provide the first peer-admission boundary. The daemon can also listen on an explicitly configured TCP address and port when the process boundary must be separated from that deployment topology.

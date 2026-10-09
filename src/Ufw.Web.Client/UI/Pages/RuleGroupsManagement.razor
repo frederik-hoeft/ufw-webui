@@ -2,10 +2,12 @@
 @attribute [Authorize]
 @implements IDisposable
 @using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.Features.Rules.Templates
 @using Ufw.Web.Client.UI.Components.Rules.Metadata
 @inject IRuleGroupCatalogService GroupCatalog
 @inject IRuleGroupManagementProjectionService GroupProjection
 @inject IRuleGroupDeletionWorkflowService GroupDeletion
+@inject IRuleTemplateCatalogService TemplateCatalog
 @inject IRuleApiClient RuleApiClient
 @inject IClientErrorMapper ClientErrors
 @inject IDialogService DialogService
@@ -163,7 +165,7 @@
                         {
                             <tr class="rule-group-details-row">
                                 <td colspan="4">
-                                    <RuleGroupMembers Projection="@group"
+                                    <RuleGroupMembers Projection="@group" TemplateNames="@_templateNames"
                                                       Disabled="@IsBusy"
                                                       ShowActions="false">
                                         <HeaderActions>
@@ -208,7 +210,7 @@
                     }
                     @if (expanded)
                     {
-                        <RuleGroupMembers Projection="@group"
+                        <RuleGroupMembers Projection="@group" TemplateNames="@_templateNames"
                                           Disabled="@IsBusy"
                                           ShowActions="false">
                             <HeaderActions>

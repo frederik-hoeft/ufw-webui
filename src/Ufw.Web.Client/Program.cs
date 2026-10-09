@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Web;
+﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Ufw.Web.Client.Api;
@@ -52,14 +51,7 @@ public static class Program
         builder.Services.AddRuleManagementServices();
         builder.Services.AddRuleFilterUiServices();
 
-        builder.Services.AddSingleton<IAccessTokenPrincipalFactory, AccessTokenPrincipalFactory>();
-        builder.Services.AddScoped<AuthenticationSession>();
-        builder.Services.AddScoped<IAuthenticationSession>(static services => services.GetRequiredService<AuthenticationSession>());
-        builder.Services.AddScoped<AuthenticationStateProvider>(static services => services.GetRequiredService<AuthenticationSession>());
-        builder.Services.AddScoped<IAuthenticationOperationCoordinator, BrowserAuthenticationOperationCoordinator>();
-        builder.Services.AddScoped<BrowserCredentialsHandler>();
-        builder.Services.AddScoped<BearerTokenHandler>();
-        builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+        builder.Services.AddBrowserAuthentication();
         builder.Services.AddScoped<IClientErrorMapper, ClientErrorMapper>();
         builder.Services.AddScoped<IBrowserIntentCryptoService, BrowserIntentCryptoService>();
         builder.Services.AddScoped<IIntentSigningService, BrowserIntentSigningService>();

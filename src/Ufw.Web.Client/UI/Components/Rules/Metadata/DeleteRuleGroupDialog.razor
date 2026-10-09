@@ -4,11 +4,31 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body1">@RulesText["DeleteGroupConfirmation", Projection.Group.Name]</MudText>
+        <MudText Typo="Typo.body1">@(!RequiresSignedMutation && HasTemplateReferences
+            ? RulesText["GroupTemplateReferencesBlockDeletion", Projection.Group.Name]
+            : RequiresSignedMutation && HasTemplateReferences
+                ? RulesText["DeleteActiveGroupRulesConfirmation", Projection.Group.Name]
+                : RulesText["DeleteGroupConfirmation", Projection.Group.Name])</MudText>
+
+        @if (HasTemplateReferences)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                @(RequiresSignedMutation
+                    ? RulesText["GroupTemplateReferencesRetained", Projection.Group.TemplateIds.Count]
+                    : RulesText["GroupTemplateReferencesPreventDeletion", Projection.Group.TemplateIds.Count])
+            </MudAlert>
+        }
 
         @if (!RequiresSignedMutation)
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@RulesText["DeleteEmptyGroupDescription"]</MudText>
+            @if (HasTemplateReferences)
+            {
+                <RuleGroupMembers Projection="@Projection" TemplateNames="@TemplateNames" Disabled="true" ShowActions="false" />
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@RulesText["DeleteEmptyGroupDescription"]</MudText>
+            }
         }
         else
         {
@@ -16,7 +36,7 @@
                 @RulesText["DeleteGroupWithRulesWarning", Projection.LiveOccurrenceCount]
             </MudAlert>
 
-            <RuleGroupMembers Projection="@Projection" Disabled="true" ShowActions="false" />
+            <RuleGroupMembers Projection="@Projection" TemplateNames="@TemplateNames" Disabled="true" ShowActions="false" />
 
             @if (!Projection.MemberResolutionAvailable)
             {
@@ -48,9 +68,9 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Error"
                    StartIcon="@(RequiresSignedMutation ? Icons.Material.Filled.DeleteForever : Icons.Material.Filled.Delete)"
-                   Disabled="@(_busy || RequiresSignedMutation && (!CanDeleteRules || !_isValid || string.IsNullOrWhiteSpace(_privateKey)))"
+                   Disabled="@(_busy || !RequiresSignedMutation && HasTemplateReferences || RequiresSignedMutation && (!CanDeleteRules || !_isValid || string.IsNullOrWhiteSpace(_privateKey)))"
                    OnClick="ConfirmAsync">
-            @(RequiresSignedMutation ? RulesText["DeleteGroupWithRules"] : RulesText["DeleteGroup"])
+            @(RequiresSignedMutation && HasTemplateReferences ? RulesText["DeleteActiveGroupRules"] : RequiresSignedMutation ? RulesText["DeleteGroupWithRules"] : RulesText["DeleteGroup"])
         </MudButton>
     </DialogActions>
 </MudDialog>

@@ -132,7 +132,5 @@ public sealed partial class ReconcileRuleMetadataDialog
         ? RulesText["OrphanedMetadataCountOne"]
         : RulesText["OrphanedMetadataCountMany", count];
 
-    private static string DescribeRuleId(string ruleId) => ruleId.Length <= 20 ? ruleId : $"{ruleId[..20]}\u2026";
-
     private void Close() => MudDialog.Close();
 }

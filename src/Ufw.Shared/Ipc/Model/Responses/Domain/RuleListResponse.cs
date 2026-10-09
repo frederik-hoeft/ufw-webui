@@ -2,4 +2,7 @@
 
 namespace Ufw.Shared.Ipc.Model.Responses.Domain;
 
-public sealed record RuleListResponse(bool Active, IReadOnlyList<ListedFirewallRule> Rules, FirewallConfigurationSnapshot Configuration) : OkResponseBase;
+public sealed record RuleListResponse(bool Active, IReadOnlyList<ListedFirewallRule> Rules, FirewallConfigurationSnapshot Configuration) : OkResponseBase
+{
+    public FirewallStateAssessment Assessment { get; init; } = FirewallStateAssessment.Clean;
+}

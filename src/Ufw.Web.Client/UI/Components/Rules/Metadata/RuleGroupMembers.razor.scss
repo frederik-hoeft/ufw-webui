@@ -41,6 +41,19 @@
         gap: 0.5rem;
     }
 
+    > .template-references {
+        min-width: 0;
+
+        > ul {
+            margin: 0.5rem 0 0;
+            padding-inline-start: 1.25rem;
+
+            > li {
+                overflow-wrap: anywhere;
+            }
+        }
+    }
+
     .member {
         display: grid;
         min-width: 0;

@@ -115,10 +115,12 @@ internal sealed class Startup : IAsyncStartupScript
         services.AddSingleton<IDaemonApiErrorMapper, DaemonApiErrorMapper>();
         services.AddSingleton<DaemonApiExceptionFilter>();
         services.AddSingleton<SignedIntentValidationFilter>();
+        services.AddScoped<FirewallStateWriteGuardFilter>();
         services.AddControllers(options =>
         {
             // Preserve structured signed-request validation details before ApiController performs its automatic ModelState short-circuit.
             options.Filters.AddService<SignedIntentValidationFilter>(int.MinValue);
+            options.Filters.AddService<FirewallStateWriteGuardFilter>(int.MinValue + 1);
             options.Filters.AddService<DaemonApiExceptionFilter>();
         });
         services.AddApiVersioning(options =>

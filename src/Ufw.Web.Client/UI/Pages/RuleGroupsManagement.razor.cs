@@ -4,6 +4,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
+using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
@@ -33,6 +34,7 @@ public sealed partial class RuleGroupsManagement
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HashSet<Guid> _expandedGroups = [];
     private IReadOnlyList<RuleGroup> _catalogGroups = [];
+    private IReadOnlyDictionary<Guid, string> _templateNames = new Dictionary<Guid, string>();
     private IReadOnlyList<RuleGroupManagementProjection> _groups = [];
     private RuleSnapshot? _ruleSnapshot;
     private ClientError? _groupError;
@@ -176,6 +178,7 @@ public sealed partial class RuleGroupsManagement
 
         DialogParameters<DeleteRuleGroupDialog> parameters = [];
         parameters.Add(component => component.Projection, projection);
+        parameters.Add(component => component.TemplateNames, _templateNames);
         IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleGroupDialog>(RulesText["DeleteGroup"], parameters, s_deleteDialogOptions);
         RuleGroupDeleteDialogResult? confirmation = await dialog.GetReturnValueAsync<RuleGroupDeleteDialogResult>();
         if (confirmation is null)
@@ -226,6 +229,7 @@ public sealed partial class RuleGroupsManagement
         _ruleInventoryError = null;
         Task<IReadOnlyList<RuleGroup>> groupsTask = GroupCatalog.RefreshAsync(_lifetime.Token);
         Task<RuleInventoryResponse> rulesTask = RuleApiClient.GetInventoryAsync(_lifetime.Token);
+        Task<IReadOnlyList<RuleTemplate>> templatesTask = TemplateCatalog.RefreshAsync(_lifetime.Token);
 
         try
         {
@@ -246,6 +250,17 @@ public sealed partial class RuleGroupsManagement
         {
             _ruleInventoryError = ClientErrors.Describe(exception);
             _ruleSnapshot = null;
+        }
+
+        try
+        {
+            IReadOnlyList<RuleTemplate> templates = await templatesTask;
+            _templateNames = templates.ToDictionary(static template => template.Id, static template => template.Name);
+        }
+        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        {
+            // Template IDs remain visible if their names could not be loaded.
+            _templateNames = new Dictionary<Guid, string>();
         }
 
         RebuildProjection();

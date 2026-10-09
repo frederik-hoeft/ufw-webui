@@ -952,4 +952,13 @@
   <data name="SavingMetadata" xml:space="preserve"><value>Saving metadata...</value></data>
   <data name="SaveAsTemplate" xml:space="preserve"><value>Save as template</value></data>
   <data name="DisableRule" xml:space="preserve"><value>Disable rule</value></data>
+  <data name="DeleteActiveGroupRulesConfirmation" xml:space="preserve"><value>Delete active firewall rules in group “{0}”?</value></data>
+  <data name="DeleteActiveGroupRules" xml:space="preserve"><value>Delete active rules</value></data>
+  <data name="GroupTemplateReferencesRetained" xml:space="preserve"><value>{0} rule template(s) reference this group. The templates and group will be retained; only active firewall rules will be deleted. To remove the group later, first remove its template references.</value></data>
+  <data name="GroupReferencedTemplates" xml:space="preserve"><value>Rule templates referring to this group</value></data>
+  <data name="FirewallAmbiguousTitle" xml:space="preserve"><value>Firewall rules require manual repair</value></data>
+  <data name="FirewallAmbiguousDescription" xml:space="preserve"><value>Duplicate semantic firewall rules were detected. All management edits are blocked until the ambiguous firewall state is repaired directly with UFW and the inventory is refreshed.</value></data>
+  <data name="FirewallAmbiguousDuplicateRule" xml:space="preserve"><value>Rule {0} occurs at positions {1}.</value></data>
+  <data name="GroupTemplateReferencesBlockDeletion" xml:space="preserve"><value>The group “{0}” cannot be deleted while rule templates reference it.</value></data>
+  <data name="GroupTemplateReferencesPreventDeletion" xml:space="preserve"><value>{0} rule template(s) still reference this group. Remove those references before deleting it.</value></data>
 </root>

@@ -9,6 +9,8 @@ See [post-W acceptance register](../ufw-kaizen-plan.md#post-w-acceptance-remedia
 - **ACC-05 / KZ-18 (C2):** `RuleGroupDeletionWorkflowService.DeleteAsync` refuses *all* actions when `TemplateIds.Count != 0`. Separate signed deletion of live occurrence members from deletion of the ASP-owned group; after a completed batch attempt group cleanup only if no live members or template references remain. Display referenced templates in group management and confirmation; retain template artifacts by default, and report retained groups clearly. Confirm the destructive action wording before implementation.
 - **ACC-06 (C3; KZ-14/KZ-22 presentation):** render full orphan `RuleId` in `ReconcileRuleMetadataDialog` and apply ellipsis only through CSS, keeping full accessible name/title/copy target. Remove the `DescribeRuleId` truncation helper.
 
+**October 8 implementation candidate:** ACC-02 moves the browser auth token/principal into one WASM app-instance singleton and tests two `IHttpClientFactory` handler scopes. ACC-05 separates active-rule deletion from group cleanup and renders template references in group management; ACC-06 now preserves full orphan IDs with CSS ellipsis. ACC-04 is **still open**: page/dialog 401 panels have not yet been replaced with a unified navigation handler. See the overall register for outstanding integration gates.
+
 The API/authorization gate (ACC-01 through ACC-03) precedes client workflow cleanup; app-wide unauthorized UX is not a substitute for protected server endpoints.
 
 ## Overall assessment
