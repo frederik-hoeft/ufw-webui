@@ -1,17 +1,14 @@
-# Ufw.Web.Client Kaizen Audit
+﻿# Ufw.Web.Client Kaizen Audit
 
-## Post-Web manual acceptance follow-ups (October 2026)
+## Post-W acceptance follow-ups
 
-See [post-W acceptance register](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026). These are additive findings, not changes to the historical client audit baseline:
+See [ACC-02/04/05/06](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026).
 
-- **ACC-02 (pre-S2):** `IHttpClientFactory` builds named-client handlers in separate DI scopes; scoped `AuthenticationSession` and `AuthenticationStateProvider` therefore differ across API clients and `AuthorizeRouteView`. Make the token store/provider app-instance-wide within WASM and share it with every `BearerTokenHandler`, retaining cross-tab refresh locking and stateless server JWT validation. Test the real DI/factory composition and exhausted refresh across multiple typed clients before addressing UI presentation. Consider a ~120-second access JWT lifetime separately.
-- **ACC-04 / KZ-11 (C1):** centralize terminal 401/session-expired handling at the auth/navigation boundary. `ClientErrorMapper` currently labels 401 as `SessionInvalid`, while pages each render their own alert. Clear session and navigate once when refresh is exhausted; preserve deep links appropriately, treat 403 separately, do not redirect failed login. Handle concurrent requests/tabs; add browser/component regressions. This does not itself revoke JWTs server-side (ACC-02).
-- **ACC-05 / KZ-18 (C2):** `RuleGroupDeletionWorkflowService.DeleteAsync` refuses *all* actions when `TemplateIds.Count != 0`. Separate signed deletion of live occurrence members from deletion of the ASP-owned group; after a completed batch attempt group cleanup only if no live members or template references remain. Display referenced templates in group management and confirmation; retain template artifacts by default, and report retained groups clearly. Confirm the destructive action wording before implementation.
-- **ACC-06 (C3; KZ-14/KZ-22 presentation):** render full orphan `RuleId` in `ReconcileRuleMetadataDialog` and apply ellipsis only through CSS, keeping full accessible name/title/copy target. Remove the `DescribeRuleId` truncation helper.
-
-**October 8 implementation candidate:** ACC-02 moves the browser auth token/principal into one WASM app-instance singleton and tests two `IHttpClientFactory` handler scopes. ACC-05 separates active-rule deletion from group cleanup and renders template references in group management; ACC-06 now preserves full orphan IDs with CSS ellipsis. ACC-04 is **still open**: page/dialog 401 panels have not yet been replaced with a unified navigation handler. See the overall register for outstanding integration gates.
-
-The API/authorization gate (ACC-01 through ACC-03) precedes client workflow cleanup; app-wide unauthorized UX is not a substitute for protected server endpoints.
+- [x] **ACC-02:** share one WASM auth session across route authorization and `IHttpClientFactory` handler scopes.
+- [ ] **ACC-02 acceptance:** cross-browser password-change/refresh-expiry and cross-tab coordination regression tests.
+- [ ] **ACC-04 / KZ-11 (C1):** centralize 401/session-expired navigation, handling multiple concurrent failures once; keep 403 separate and do not redirect failed login. Test deep links and tabs.
+- [x] **ACC-05 / KZ-18 (C2):** delete active group rules while retaining template-referenced group and templates; show references and precise confirmation wording. Preserve concurrent-membership safety checks.
+- [x] **ACC-06 (C3):** full unmatched rule IDs in markup, accessibility and copy; presentation-only CSS truncation.
 
 ## Overall assessment
 

@@ -77,6 +77,7 @@ public sealed class SignedMutationOrchestratorTests
 
         UnprocessableContentResponse error = Assert.IsInstanceOfType<UnprocessableContentResponse>(response);
         StringAssert.Contains(error.Message, "duplicate semantic rule identities");
+        Assert.AreEqual(FirewallStateErrorCodes.AMBIGUOUS_STATE, error.Code);
         Assert.IsFalse(operationRan);
         nonceStore.VerifyNoOtherCalls();
     }

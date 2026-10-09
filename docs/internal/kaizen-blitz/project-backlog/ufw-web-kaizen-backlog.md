@@ -1,10 +1,12 @@
-# Ufw.Web Kaizen Blitz Review Inventory
+﻿# Ufw.Web Kaizen Blitz Review Inventory
 
-## Post-W acceptance findings (October 2026)
+## Post-W acceptance follow-ups
 
-W1-W3 closed the original Web refactoring inventory, but acceptance exposed **ACC-02** (inconsistent browser sessions from scoped `IHttpClientFactory` handler pipelines, plus intentionally bounded access-JWT validity after password change) and **ACC-03** (insufficient HTTP-pipeline/IPC transport integration assertions). These are tracked in the [overall post-W register](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026), without reopening completed historical WEB KZ entries. The affected `known-hosts`, `status`, `rules`, and `rule-templates` controllers already have `[Authorize]`; old but unexpired JWTs are still valid, while revoked refresh cookies fail. Prefer fixing client token-store sharing and considering a ~120-second access lifetime, **not** adding per-request user-database/security-stamp checks. S2 is blocked until the client session boundary and cross-session HTTP regression gate are verified.
+See [ACC-02/03](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026). Existing protected API controllers have `[Authorize]`; bearer JWT validity is intentionally bounded, not checked against Identity on every request.
 
-**October 8 implementation candidate:** Web now applies `FirewallStateWriteGuardFilter` to management writes: a current ambiguous firewall snapshot blocks even ASP-owned metadata/template/known-host edits with ProblemDetails (409), and an unavailable daemon prevents writes (503 or mapped upstream failure). Authentication endpoints are exempt. Reads remain available, and signed UFW writes are independently checked by the daemon. The client handler-scope auth fix and 120-second access-token default are included; full HTTP-pipeline contract tests (ACC-03) and cross-browser acceptance remain open.
+- [x] Keep application-owned template, metadata, catalog and known-host writes independent of the daemon's firewall-state assessment. Do not add a global MVC write filter or force daemon availability for unrelated ASP-only writes.
+- [x] Pass through the daemon's `firewall.state.ambiguous` IPC error code as HTTP ProblemDetails for rejected signed mutations.
+- [ ] Implement real HTTP-pipeline, IPC response/error, and cross-browser revocation tests required by ACC-02/03 before S2.
 
 ## Wave D daemon handoff
 

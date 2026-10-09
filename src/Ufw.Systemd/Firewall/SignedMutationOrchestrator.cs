@@ -37,7 +37,10 @@ internal sealed class SignedMutationOrchestrator(
         FirewallStateAssessment assessment = FirewallStateAssessmentEvaluator.Evaluate(snapshot.Rules);
         if (!assessment.IsClean)
         {
-            return new UnprocessableContentResponse("The authoritative firewall has duplicate semantic rule identities. Repair the ambiguous state directly with UFW before making further changes.");
+            return new UnprocessableContentResponse("The authoritative firewall has duplicate semantic rule identities. Repair the ambiguous state directly with UFW before making further changes.")
+            {
+                Code = FirewallStateErrorCodes.AMBIGUOUS_STATE,
+            };
         }
 
         await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);

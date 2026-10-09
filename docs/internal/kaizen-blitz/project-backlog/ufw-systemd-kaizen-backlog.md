@@ -1,10 +1,12 @@
-# Ufw.Systemd Kaizen Blitz Review
+﻿# Ufw.Systemd Kaizen Blitz Review
 
-## Post-D acceptance safety finding (October 2026)
+## Post-D acceptance safety follow-up
 
-**ACC-01 (open, P0):** Manual acceptance of duplicate-semantic-rule reordering reported a failed recovery, a lost rule, and an unresolved recovery journal that prevents daemon startup. `FirewallReorderPreflightEvaluator` currently accepts ambiguous duplicate identities before delete/reinsert moves; UFW duplicate suppression defeats recovery. Add an authoritative structured mutation-safety assessment to `RuleListResponse`, computed from the observed firewall model, and enforce a **global fail-closed guard for all firewall mutations**, including occurrence-based batch deletion, before any UFW write or recovery journal is created. No Web-based repair exception: use external UFW to resolve ambiguity and then refresh. Keep operation-specific preconditions and preserve the existing conservative response to genuinely unresolved recovery journals. The UI should expose the issue and become read-only. Track details/tests under [ACC-01](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026). The original 29 daemon refactoring items remain historically completed; this is a newly found correctness defect.
+See [ACC-01](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026).
 
-**ACC-01 implementation candidate (October 8):** `FirewallStateAssessmentEvaluator` identifies duplicate semantic rule IDs (including comment-different entries), `FirewallRuleSet.ToListResponse` exposes structured offending occurrences, and `SignedMutationOrchestrator` rejects any signed mutation under the gate before nonce consumption or invoking an executor. The initial assessment happens before journal recovery requested by a new mutation. Reads remain available; resolving duplicates is external UFW maintenance. Integration/black-box reorder and restart acceptance are still required before marking P0 resolved.
+- [x] Assess authoritative snapshots for duplicate semantic identities (comments do not distinguish identities); expose affected occurrences on reads.
+- [x] Reject **all** signed firewall mutations at the daemon gate before nonce consumption/UFW writes when the snapshot is ambiguous. Return the stable `firewall.state.ambiguous` IPC error code; do not add an ASP-wide management-write guard or permit Web-based repair operations.
+- [ ] Run signed IPC/Ufw.Mock duplicate-reorder and daemon-restart acceptance, including distinct-comment duplicates and zero-write/zero-journal assertions. Keep unresolved recovery fail-closed.
 
 ## Wave D completion status
 

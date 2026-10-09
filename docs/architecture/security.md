@@ -1,4 +1,4 @@
-# Security Architecture
+﻿# Security Architecture
 
 This document narrows the [system architecture](architecture-overview.md) to its trust and authorization boundaries. UFWeb assumes that the network-facing web tier is a larger and less trusted attack surface than the privileged firewall daemon, so ordinary web authentication is deliberately separate from authorization to execute a firewall mutation.
 
@@ -90,7 +90,7 @@ Cancellation, an ambiguous post-mutation listing, or a successful exit code with
 
 The authoritative daemon rule list carries a derived `assessment` of model ambiguities, initially duplicate semantic rule identities. Duplicate detection uses the semantic rule identity (excluding comments), not observed-state equality. When issues are present, the daemon refuses **all signed firewall mutations** under its serialized UFW execution gate before consuming the signed nonce or running the mutation operation. No in-band deletion or batch cleanup is permitted; an administrator repairs the state directly with UFW, then obtains a fresh snapshot. An unresolved reorder recovery journal retains its separate conservative startup safety handling and is never silently discarded.
 
-The ASP application additionally checks a current daemon snapshot before any management write, including its own metadata, template, group, tag, host and interface changes. Authentication/session operations are exempt so the administrator can sign in and recover. Unavailable authoritative state fails closed; reads remain available with diagnostic context. The browser warning/disabled controls are advisory and **not** the write-enforcement boundary. The assessment is derived from existing snapshot fields and is intentionally excluded from the signed version-1 fingerprint. Out-of-band concurrent UFW writes remain outside the daemon's process-local serialization boundary.
+The browser uses the assessment to warn and disable firewall mutation controls, but the daemon remains the sole safety-enforcement boundary. A rejected signed mutation returns an IPC error carrying code `firewall.state.ambiguous`; `Ufw.Web` maps that error to HTTP ProblemDetails without independently reading the firewall state. ASP-owned operations (templates, tags, groups, known hosts, and metadata-only edits) are not globally blocked by firewall ambiguity or daemon unavailability. A composed workflow may persist dependent metadata only when justified by confirmed firewall effects, not merely a successful IPC exchange; the firewall and database are still distinct transaction domains. The assessment is derived from existing snapshot fields and is intentionally excluded from the signed version-1 fingerprint. Out-of-band concurrent UFW writes remain outside the daemon's process-local serialization boundary.
 
 ## IPC transport security
 

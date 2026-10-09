@@ -1,4 +1,4 @@
-# Signed Mutation Intent v2
+﻿# Signed Mutation Intent v2
 
 Signed-intent v2 authorizes privileged firewall mutations independently of HTTP JWT state and IPC peer identity. A signing client creates the envelope; `Ufw.Web` validates the exact REST envelope shape/format and state-independent canonical payload semantics as a defense-in-depth filter, then copies the signed values unchanged into the daemon IPC request; `Ufw.Systemd` reconstructs the canonical bytes and performs the authoritative verification against daemon-owned trust state before any privileged UFW mutation can begin.
 
@@ -329,13 +329,13 @@ The fingerprint commits to the exact authoritative ordered-list representation d
 
 Strings are encoded as a four-byte big-endian byte length followed by UTF-8 bytes. Integers are four-byte big-endian values. Booleans are one byte (`0` or `1`). Nullable fields are preceded by a boolean presence marker. The SHA-256 digest of this binary representation is base64url encoded and exposed as `sha256:<digest>`.
 
-Because occurrence numbers are meaningful only inside this fingerprinted snapshot, semantically identical duplicate rows remain independently addressable where an operation can safely use occurrence identity, including insertion anchors, batch deletion, and reorder. Replacement also signs one exact occurrence, but its execution preconditions deliberately reject duplicate cases that UFW cannot update safely. A signer MUST compute the fingerprint from the exact authoritative ordered-list snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible rule order.
+Because occurrence numbers are meaningful only inside this fingerprinted snapshot, the format can distinguish semantically identical rows as separate occurrences. Nevertheless, the daemon forbids **all** signed firewall modifications whenever semantic duplicates exist, including occurrence-addressed batch deletion, since the overall baseline does not satisfy mutation-safety requirements. Replacement also signs one exact occurrence and retains its own target-specific preconditions. A signer MUST compute the fingerprint from the exact authoritative ordered-list snapshot being presented for review; a fingerprint supplied independently by `Ufw.Web` would not bind the browser-visible rule order.
 
 ### Ambiguous authoritative firewall state
 
 `RuleListResponse` additionally exposes a derived `assessment` containing an `isClean` flag and structured `issues` (`code`, semantic `ruleId`, zero-based `occurrenceIds`). Initially, issue code `firewall.state.duplicate-rule-identity` identifies semantic duplicates even when comments differ. The assessment is read-only diagnostic output; it is **not** added to the `ufw-webui/firewall-rule-snapshot/1` fingerprint, because its facts are already committed by the ordered rule data. A client must never use its cached `isClean` property as mutation authority.
 
-Inside the execution gate the daemon independently re-reads/reassesses state and rejects **every** signed mutation if the authoritative snapshot contains ambiguities. There is no repair-operation exception, including for batch deletion; repair is performed directly through UFW. ASP separately blocks other management writes on ambiguous/unavailable state. Operation-specific freshness, signing, and target checks remain in force for clean baselines.
+Inside the execution gate the daemon independently re-reads/reassesses state and rejects **every** signed firewall mutation if the authoritative snapshot contains ambiguities, returning application error code `firewall.state.ambiguous` (HTTP/IPC 422). There is no repair-operation exception, including for batch deletion; repair is performed directly through UFW. ASP forwards the daemon failure and does not impose firewall-state checks on unrelated ASP-owned management writes. Operation-specific freshness, signing, and target checks remain in force for clean baselines.
 
 ## Verification requirements
 
