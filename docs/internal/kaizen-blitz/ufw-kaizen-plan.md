@@ -221,7 +221,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 
 1. [x] CLIENT KZ-02: use `Ufw.Shared.Domain` network/port semantics across filter editors, evaluators, and known-host matching (PR #40 foundation).
 2. [x] CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
-3. CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
+3. [x] CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
 4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
 5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
 6. CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.

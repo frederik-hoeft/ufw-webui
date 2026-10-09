@@ -212,6 +212,8 @@ Introduce one snapshot-local index/locator, for example `RuleSnapshotIndex`, bui
 
 ### KZ-04: Collapse the repeated intent-signing pipeline and compatible-context lookup
 
+- [x] Centralize typed signing/envelope construction and compatible intent-context validation.
+
 **Where**
 
 - `Features/Rules/Intent/BrowserIntentSigningService.cs:17-32`, `48-67`, `89-103`, `129-143`, `169-183`, `203-222`

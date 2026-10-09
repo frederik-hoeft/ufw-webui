@@ -29,7 +29,7 @@ public sealed class RuleOrderingServiceTests
         signer.Setup(candidate => candidate.CreateReorderRulesRequestAsync("deployment", It.IsAny<string>(), It.IsAny<IReadOnlyList<int>>(), "private-key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(signed);
         api.Setup(candidate => candidate.ReorderRulesAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
-        RuleOrderingService service = new(api.Object, context.Object, signer.Object);
+        RuleOrderingService service = new(api.Object, new CompatibleIntentContextProvider(context.Object), signer.Object);
 
         RuleReorderResponse actual = await service.ApplyAsync(baseline, desiredOrder, "private-key");
 
@@ -53,7 +53,7 @@ public sealed class RuleOrderingServiceTests
         Mock<IIntentSigningService> signer = new();
         context.Setup(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION + 1, "deployment"));
-        RuleOrderingService service = new(api.Object, context.Object, signer.Object);
+        RuleOrderingService service = new(api.Object, new CompatibleIntentContextProvider(context.Object), signer.Object);
 
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() =>
             service.ApplyAsync(new RuleListResponse(true, [Rule("a", 1)], TestFirewallConfiguration.Enabled), [0], "private-key"));
@@ -68,7 +68,7 @@ public sealed class RuleOrderingServiceTests
         Mock<IRuleApiClient> api = new();
         Mock<IIntentContextApiClient> context = new();
         Mock<IIntentSigningService> signer = new();
-        RuleOrderingService service = new(api.Object, context.Object, signer.Object);
+        RuleOrderingService service = new(api.Object, new CompatibleIntentContextProvider(context.Object), signer.Object);
         RuleListResponse baseline = new(true, [Rule("a", 1), Rule("b", 2)], TestFirewallConfiguration.Enabled);
 
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0], "private-key"));
