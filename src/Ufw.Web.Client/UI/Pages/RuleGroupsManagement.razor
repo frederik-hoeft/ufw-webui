@@ -1,4 +1,4 @@
-@page "/metadata/groups"
+﻿@page "/metadata/groups"
 @attribute [Authorize]
 @implements IDisposable
 @using Ufw.Web.Client.Features.Rules.Metadata
@@ -8,7 +8,7 @@
 @inject IRuleGroupManagementProjectionService GroupProjection
 @inject IRuleGroupDeletionWorkflowService GroupDeletion
 @inject IRuleTemplateCatalogService TemplateCatalog
-@inject IRuleApiClient RuleApiClient
+@inject IRuleInventoryService RuleInventory
 @inject IClientErrorMapper ClientErrors
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar

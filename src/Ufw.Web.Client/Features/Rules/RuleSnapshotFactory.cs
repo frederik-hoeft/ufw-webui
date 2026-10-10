@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model.Responses.Domain;
+﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Features.Rules.Metadata;
@@ -52,6 +52,12 @@ internal static class RuleSnapshotFactory
         {
             Assessment = response.Assessment,
         };
+    }
+
+    public static RuleListResponse ToFirewallResponse(RuleSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return new RuleListResponse(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration) { Assessment = snapshot.Assessment };
     }
 
     public static RuleSnapshot ApplyMetadataMutation(RuleSnapshot snapshot, string ruleId, RuleMetadataMutationResponse response)

@@ -150,8 +150,8 @@ public sealed partial class RulesPage
         _state = _state.MoveNext(new RuleInventoryTransition.RefreshStarted(reason));
         try
         {
-            RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
-            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
+            RuleSnapshot snapshot = await RuleInventory.GetAsync(_lifetime.Token);
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(snapshot));
             await RefreshKnownHostsAsync();
             RefreshRuleListProjection();
         }
@@ -355,12 +355,8 @@ public sealed partial class RulesPage
         _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.MetadataSaveStarted());
         try
         {
-            RuleMetadataMutationResponse response = await RuleApiClient.UpdateMetadataAsync(ruleId, new UpdateRuleMetadataRequest
-            {
-                Notes = result.Notes,
-                TagIds = result.TagIds,
-                GroupId = result.GroupId,
-            }, _lifetime.Token);
+            RuleMetadataChange change = new(result.Notes, result.TagIds, result.GroupId);
+            RuleMetadataMutationResponse response = await MetadataMutations.UpdateAsync(ruleId, change, _lifetime.Token);
             _state = _state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted(ruleId, response));
             RefreshRuleListProjection();
             Snackbar.Add(RulesText["MetadataSaved"], Severity.Success);
@@ -505,7 +501,7 @@ public sealed partial class RulesPage
 
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+            RuleListResponse baseline = RuleSnapshotFactory.ToFirewallResponse(snapshot);
             string uri = ReplacementNavigation.BuildUri(baseline, row.OccurrenceId);
             Navigation.NavigateTo(uri);
         }
@@ -539,7 +535,7 @@ public sealed partial class RulesPage
 
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+            RuleListResponse baseline = RuleSnapshotFactory.ToFirewallResponse(snapshot);
             string uri = InsertionNavigation.BuildUri(baseline, request.OccurrenceId, request.Placement);
             Navigation.NavigateTo(uri);
         }
@@ -591,7 +587,7 @@ public sealed partial class RulesPage
         _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.ReorderStarted());
         try
         {
-            RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+            RuleListResponse baseline = RuleSnapshotFactory.ToFirewallResponse(snapshot);
             int[] desiredOrder = [.. _orderingPreview.DesiredOrder];
             RuleReorderResponse response = await RuleOrdering.ApplyAsync(baseline, desiredOrder, _orderingPrivateKey, _lifetime.Token);
 

@@ -32,7 +32,7 @@ internal sealed record RuleInventoryState
         return transition switch
         {
             RuleInventoryTransition.RefreshStarted started => BeginRefresh(started.Reason),
-            RuleInventoryTransition.RefreshCompleted completed => CompleteRefresh(completed.Response),
+            RuleInventoryTransition.RefreshCompleted completed => CompleteRefresh(completed.Snapshot),
             RuleInventoryTransition.RefreshFailed failed => FailRefresh(failed.Error),
             RuleInventoryTransition.MetadataMutationCompleted completed => CompleteMetadataMutation(completed.RuleId, completed.Response),
             RuleInventoryTransition.TagCatalogReconciled reconciled => ReconcileTagCatalog(reconciled.Tags),
@@ -55,15 +55,15 @@ internal sealed record RuleInventoryState
         return new RuleInventoryState(Snapshot is null ? RuleInventoryStatus.Loading : RuleInventoryStatus.Refreshing, Snapshot, error: null, refreshReason: reason, staleReason: StaleReason);
     }
 
-    private RuleInventoryState CompleteRefresh(RuleInventoryResponse response)
+    private RuleInventoryState CompleteRefresh(RuleSnapshot snapshot)
     {
-        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(snapshot);
         if (!IsLoading)
         {
             throw new InvalidOperationException("A rule inventory refresh cannot complete when no refresh is in progress.");
         }
 
-        return new RuleInventoryState(RuleInventoryStatus.Current, RuleSnapshotFactory.FromInventoryResponse(response), error: null, refreshReason: null, staleReason: null);
+        return new RuleInventoryState(RuleInventoryStatus.Current, snapshot, error: null, refreshReason: null, staleReason: null);
     }
 
     private RuleInventoryState FailRefresh(ClientError error)

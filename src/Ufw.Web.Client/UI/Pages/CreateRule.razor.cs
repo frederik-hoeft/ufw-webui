@@ -6,6 +6,7 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Insertion;
+using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
@@ -131,10 +132,10 @@ public sealed partial class CreateRule
         _state = _state.MoveNext(new RuleInventoryTransition.RefreshStarted(reason));
         try
         {
-            RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
-            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
-            ApplyInitialAddressFamily(response.Firewall.Configuration);
-            ResolveOrderedInsertionContext(response.Firewall);
+            RuleSnapshot snapshot = await RuleInventory.GetAsync(_lifetime.Token);
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(snapshot));
+            ApplyInitialAddressFamily(snapshot.Configuration);
+            ResolveOrderedInsertionContext(RuleSnapshotFactory.ToFirewallResponse(snapshot));
             TryApplyInitialTemplate();
 
             if (_mutationMayHaveCompleted)
@@ -443,12 +444,8 @@ public sealed partial class CreateRule
 
         try
         {
-            await RuleApiClient.UpdateMetadataAsync(ruleId, new UpdateRuleMetadataRequest
-            {
-                Notes = _metadataDraft.Notes,
-                TagIds = _metadataDraft.TagIds,
-                GroupId = _metadataDraft.GroupId,
-            }, _lifetime.Token);
+            RuleMetadataChange change = new(_metadataDraft.Notes, _metadataDraft.TagIds, _metadataDraft.GroupId);
+            _ = await MetadataMutations.UpdateAsync(ruleId, change, _lifetime.Token);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {

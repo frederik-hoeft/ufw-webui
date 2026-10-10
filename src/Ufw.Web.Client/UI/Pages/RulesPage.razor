@@ -3,7 +3,8 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
 @using Ufw.Web.Client.Features.Rules.Services
 @implements IDisposable
-@inject IRuleApiClient RuleApiClient
+@inject IRuleInventoryService RuleInventory
+@inject IRuleMetadataMutationService MetadataMutations
 @inject IRuleMutationService RuleMutations
 @inject IRuleGroupDeletionWorkflowService GroupDeletion
 @inject IDialogService DialogService

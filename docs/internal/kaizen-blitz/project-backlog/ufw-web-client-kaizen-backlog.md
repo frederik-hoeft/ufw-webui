@@ -52,6 +52,10 @@ The architectural direction established by PR #40 should remain intact: normaliz
 
 ### KZ-01: Move rule-page application workflows out of Razor
 
+- [x] Centralize rule inventory loading/response mapping and rule metadata updates in `Features`; remove direct rule REST client injection from the four pages.
+- [ ] Extract create/edit signed-mutation sequencing, post-mutation reconciliation, and list mutation workflows; keep UI lifecycle and presentation in Razor.
+- [ ] Complete acceptance criteria below before checking off KZ-01.
+
 **Where**
 
 - `UI/Pages/RulesPage.razor:6-26`, `RulesPage.razor.cs:136-620`
@@ -61,7 +65,7 @@ The architectural direction established by PR #40 should remain intact: normaliz
 
 **Problem**
 
-`RulesPage` injects 21 collaborators, `CreateRule` 15, `EditRule` 10, and `RuleGroupsManagement` 9. The pages still call `IRuleApiClient` directly for inventory and/or metadata. They also coordinate mutation reconciliation, template persistence, orphan-group cleanup, navigation-context construction, known-host refresh, stale/fresh inventory transitions, and result interpretation.
+The rule pages still coordinate mutation reconciliation, template persistence, orphan-group cleanup, navigation-context construction, known-host refresh, stale/fresh inventory transitions, and result interpretation. These concerns need focused workflow boundaries rather than page-owned application orchestration.
 
 The repository explicitly says behavior that is testable without a renderer belongs in `Features`. These pages have become application-service composition roots rather than thin presentation coordinators.
 

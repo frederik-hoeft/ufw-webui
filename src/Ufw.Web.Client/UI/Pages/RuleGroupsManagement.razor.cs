@@ -228,7 +228,7 @@ public sealed partial class RuleGroupsManagement
         _groupError = null;
         _ruleInventoryError = null;
         Task<IReadOnlyList<RuleGroup>> groupsTask = GroupCatalog.RefreshAsync(_lifetime.Token);
-        Task<RuleInventoryResponse> rulesTask = RuleApiClient.GetInventoryAsync(_lifetime.Token);
+        Task<RuleSnapshot> rulesTask = RuleInventory.GetAsync(_lifetime.Token);
         Task<IReadOnlyList<RuleTemplate>> templatesTask = TemplateCatalog.RefreshAsync(_lifetime.Token);
 
         try
@@ -243,8 +243,7 @@ public sealed partial class RuleGroupsManagement
 
         try
         {
-            RuleInventoryResponse response = await rulesTask;
-            _ruleSnapshot = RuleSnapshotFactory.FromInventoryResponse(response);
+            _ruleSnapshot = await rulesTask;
         }
         catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {

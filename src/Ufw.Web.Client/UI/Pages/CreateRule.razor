@@ -1,9 +1,11 @@
-@using Ufw.Shared.Ipc.Model.Responses.Domain
+@using Ufw.Web.Client.Features.Rules.Metadata
+﻿@using Ufw.Shared.Ipc.Model.Responses.Domain
 @using Ufw.Web.Client.UI.Components.Rules.Metadata
 @page "/rules/create"
 @attribute [Authorize]
 @implements IDisposable
-@inject IRuleApiClient RuleApiClient
+@inject IRuleInventoryService RuleInventory
+@inject IRuleMetadataMutationService MetadataMutations
 @inject IRuleMutationService RuleMutations
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IRuleMutationReconciliationService MutationReconciliation

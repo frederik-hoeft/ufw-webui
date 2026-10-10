@@ -33,6 +33,8 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddScoped<IRuleEditorReferenceDataService, RuleEditorReferenceDataService>();
         services.AddSingleton<IRuleDraftFactory, RuleDraftFactory>();
         services.AddScoped<ICompatibleIntentContextProvider, CompatibleIntentContextProvider>();
+        services.AddScoped<IRuleInventoryService, RuleInventoryService>();
+        services.AddScoped<IRuleMetadataMutationService, RuleMetadataMutationService>();
         services.AddScoped<IRuleMutationService, RuleMutationService>();
         services.AddScoped<IRuleOrderingService, RuleOrderingService>();
         services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();

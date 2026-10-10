@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 ﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
@@ -26,6 +26,22 @@ public sealed class RuleSnapshotFactoryTests
         Assert.IsTrue(snapshot.FirewallActive);
         Assert.HasCount(1, snapshot.Metadata);
         Assert.AreEqual(liveMetadataId, snapshot.Metadata["live"].Id);
+    }
+
+    [TestMethod]
+    public void ToFirewallResponse_PreservesSignedBaselineInputsAndAssessment()
+    {
+        ListedFirewallRule rule = new() { RuleId = "live" };
+        FirewallStateAssessment assessment = new([new FirewallStateIssue(FirewallStateAssessmentEvaluator.DUPLICATE_RULE_IDENTITY, "live", [0, 1])]);
+        RuleListResponse original = new(true, [rule], TestFirewallConfiguration.Enabled) { Assessment = assessment };
+        RuleSnapshot snapshot = RuleSnapshotFactory.FromFirewallResponse(original);
+
+        RuleListResponse projected = RuleSnapshotFactory.ToFirewallResponse(snapshot);
+
+        Assert.IsTrue(projected.Active);
+        Assert.AreSame(snapshot.Rules, projected.Rules);
+        Assert.AreSame(snapshot.Configuration, projected.Configuration);
+        Assert.AreSame(assessment, projected.Assessment);
     }
 
     [TestMethod]

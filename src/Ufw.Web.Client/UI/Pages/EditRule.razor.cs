@@ -110,9 +110,9 @@ public sealed partial class EditRule
         _state = _state.MoveNext(new RuleInventoryTransition.RefreshStarted(reason));
         try
         {
-            RuleInventoryResponse response = await RuleApiClient.GetInventoryAsync(_lifetime.Token);
-            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
-            ResolveReplacementContext(response.Firewall);
+            RuleSnapshot snapshot = await RuleInventory.GetAsync(_lifetime.Token);
+            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(snapshot));
+            ResolveReplacementContext(RuleSnapshotFactory.ToFirewallResponse(snapshot));
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -255,12 +255,8 @@ public sealed partial class EditRule
         _metadataSaving = true;
         try
         {
-            await RuleApiClient.UpdateMetadataAsync(_workflow.ConfirmedRuleId, new UpdateRuleMetadataRequest
-            {
-                Notes = _metadataDraft.Notes,
-                TagIds = _metadataDraft.TagIds,
-                GroupId = _metadataDraft.GroupId,
-            }, _lifetime.Token);
+            RuleMetadataChange change = new(_metadataDraft.Notes, _metadataDraft.TagIds, _metadataDraft.GroupId);
+            _ = await MetadataMutations.UpdateAsync(_workflow.ConfirmedRuleId, change, _lifetime.Token);
             _workflow = _workflow.MetadataSaveCompleted();
             return true;
         }
