@@ -1,9 +1,9 @@
-.rule-actions-menu .mud-button-root {
+:is(.rule-actions-menu, .known-host-actions-menu) .mud-button-root {
     min-width: 2rem;
 }
 
-// MudMenu renders the popover outside the owning component subtree, so this class is an intentional global integration hook.
-.rule-actions-menu-popover {
+// MudMenu popovers render outside component subtrees; the owner-specific classes are intentional global integration hooks.
+:is(.rule-actions-menu-popover, .known-host-actions-menu-popover) {
     .mud-list {
         min-width: 13rem;
         max-width: min(22rem, calc(100vw - 2rem));

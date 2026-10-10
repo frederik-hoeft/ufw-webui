@@ -10,7 +10,7 @@ This document combines the three project backlogs into one dependency-driven exe
 
 The goal is not to execute each backlog in its original priority order. All tracked debt is intended to be resolved, so the plan optimizes for **dependency order and minimal temporary work**: establish broad primitives and contracts first, then perform narrower cleanup against the final architecture. The preferred project order remains **daemon -> Ufw.Web -> client**, with narrowly scoped cross-project bridge commits where a shared contract must continue to compile.
 
-The three source backlogs remain the authority for detailed evidence, affected files, and item-specific acceptance criteria. This plan owns sequencing, overlap, cross-project dependencies, and final traceability.
+The three original source backlogs remain the authority for detailed evidence, affected files, and item-specific acceptance criteria. Additional cross-project follow-ups are tracked in [`ufw-crosscutting-kaizen-backlog.md`](project-backlog/ufw-crosscutting-kaizen-backlog.md). This plan owns sequencing, overlap, cross-project dependencies, and final traceability.
 
 ## Planning principles
 
@@ -245,7 +245,9 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 1. CLIENT KZ-07 converge desktop/mobile rule behavior and fragments after application workflows have left the components/pages.
    - [x] C3.1: share per-row expansion/keyboard state, native drag-handle presentation, position-change markup, action styling, and workspace-to-menu callback wiring without merging table/card layouts.
    - [x] C3.2: share the identical rule metadata panel/collapse action and read-only fragments between layouts. Preserve distinct desktop table cells, mobile labeled sections, and their CSS selectors; defer style consolidation to KZ-13. Browser-level responsive verification remains an integration acceptance task.
-2. CLIENT KZ-13 classify/extract styles against the final component structure.
+2. CLIENT KZ-13 classify/extract styles against the final component structure:
+   - [x] C3.3: document global-style ownership and consolidate shared rule-row and action-menu primitives.
+   - [ ] C3.4: selectively migrate owner-local styles to isolation with scoped-CSS publish verification; keep necessary portal/overlay hooks global. Do not mechanically convert all styles.
 3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 
 #### C4 - Transport/public-surface/opportunistic cleanup
@@ -253,6 +255,11 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 1. CLIENT KZ-20 + KZ-23 together: HTTP registration/resource mechanics and consistent URI building on the final API surface.
 2. CLIENT KZ-21 public-surface audit after final Features/Api interfaces are known.
 3. CLIENT KZ-22 last-mile presentational clones after all structural UI changes.
+
+### Cross-project follow-up phase - after the structural waves
+
+1. **CROSS KZ-01:** audit namespace cohesion/fanout across all projects and implement targeted subdomain moves only after the C4 public-surface review and contracts have settled. Be mindful of localization resource namespaces, DTO compatibility, DI, NativeAOT and source generators.
+2. **CROSS KZ-02:** triage the supplied clone-analysis report. Review production signed-intent/validation overlap for correctness first, then integration-test fixture reuse, and align client/UI overlaps with existing KZ-14/KZ-20/KZ-22 to avoid double work. Preserve independent safety tests and operation-specific semantics. See the [cross-project backlog](project-backlog/ufw-crosscutting-kaizen-backlog.md) for evidence and acceptance.
 
 ## Integration checkpoints
 
@@ -400,8 +407,15 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | CLIENT KZ-22 | C4 | Consolidate small presentational clones opportunistically | Last-mile cleanup after component/workflow/style structure is final. |
 | [ ] | CLIENT KZ-23 | C4 | Ensure consistent use of SimpleUriBuilder | Pair with KZ-20 while API/navigation URI construction is already being touched. |
 
+### Cross-project follow-up traceability (new items)
+
+| Done | Source item | Planned phase | Finding | Sequencing note |
+|---|---|---|---|---|
+| [ ] | CROSS KZ-01 | After C4 | Improve namespace cohesion/navigation and limit accidental broad namespaces | Audit by responsibility and fanout, then do scoped moves after the public-surface and structural cleanup; protect wire/resource/AOT assumptions. |
+| [ ] | CROSS KZ-02 | After overlapping local waves | Triage attached clone-detection report; remove only harmful duplication | Prioritize correctness-sensitive production clones and high-cost fixture duplication; classify remaining test/symmetric matches deliberately. |
+
 ## Completion rule
 
 A wave is complete only when its source items' original acceptance criteria/definition-of-done requirements are satisfied, not merely when the broader refactor that contains them has landed. In particular, subsumed correctness items such as WEB KZ-14 and KZ-15 still require dedicated regression coverage, and contained cleanup items remain checklist entries even when their code naturally disappears during a larger change.
 
-The kaizen blitz is complete when all 75 source items are checked, the three project-level definitions of done are satisfied, and the final repository integration gate is green.
+The original kaizen inventory is complete when all 75 source items are checked, the three project-level definitions of done are satisfied, and the final repository integration gate is green. Full **extended** Kaizen closure additionally requires a recorded disposition for CROSS KZ-01 and KZ-02.
