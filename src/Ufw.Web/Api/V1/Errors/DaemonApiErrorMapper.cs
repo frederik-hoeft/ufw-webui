@@ -15,12 +15,17 @@ internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
         if (daemonError.ValidationErrors is { Length: > 0 })
         {
             ApiValidationError[] validationErrors = [.. daemonError.ValidationErrors.Select(static error => new ApiValidationError(error.PropertyName, error.Code, error.ErrorMessage))];
-            ProblemDetails problem = ApiProblemDetailsFactory.CreateValidation(validationErrors, daemonError.ResponseMessage);
-            return new DaemonApiError(StatusCodes.Status400BadRequest, problem);
+            ProblemDetails validationProblem = ApiProblemDetailsFactory.CreateValidation(validationErrors, daemonError.ResponseMessage);
+            return new DaemonApiError(StatusCodes.Status400BadRequest, validationProblem);
         }
 
         int statusCode = daemonError.StatusCode is >= 400 and <= 599 ? daemonError.StatusCode : StatusCodes.Status502BadGateway;
-        return new DaemonApiError(statusCode, ApiProblemDetailsFactory.Create(statusCode, detail: daemonError.ResponseMessage));
+        ProblemDetails problem = ApiProblemDetailsFactory.Create(statusCode, detail: daemonError.ResponseMessage);
+        if (!string.IsNullOrWhiteSpace(daemonError.Code))
+        {
+            problem.Extensions["code"] = daemonError.Code;
+        }
+        return new DaemonApiError(statusCode, problem);
     }
 
     public DaemonApiError MapUnavailable(UfwIpcError daemonError)

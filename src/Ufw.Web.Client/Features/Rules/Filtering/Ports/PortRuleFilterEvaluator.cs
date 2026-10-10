@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Web.Client.Features.Rules.Filtering.Ports;
 
@@ -25,14 +26,14 @@ internal sealed class PortRuleFilterEvaluator : RuleFilterEvaluator<PortRuleFilt
         return evidence.Count == 0 ? RuleMatchEvaluation.NoMatch : new RuleMatchEvaluation(true, evidence);
     }
 
-    private static void AddEndpointMatch(RuleEndpointField endpoint, string? value, RulePortSet query, List<RuleMatchEvidence> evidence)
+    private static void AddEndpointMatch(RuleEndpointField endpoint, string? value, PortFilterOperand query, List<RuleMatchEvidence> evidence)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             evidence.Add(new PortRuleMatchEvidence(endpoint, "any", query.CanonicalValue));
             return;
         }
-        if (RulePortSet.TryParse(value, out RulePortSet? rulePorts) && rulePorts is not null && rulePorts.Overlaps(query))
+        if (RuleFilterSemantics.TryParsePorts(value, out PortFilterOperand? rulePorts) && rulePorts is not null && rulePorts.Overlaps(query))
         {
             evidence.Add(new PortRuleMatchEvidence(endpoint, rulePorts.CanonicalValue, query.CanonicalValue));
         }

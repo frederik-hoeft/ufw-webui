@@ -13,9 +13,10 @@ public sealed class BearerTokenHandlerTests
     public async Task SendAsync_AttachesCurrentAccessTokenAsync()
     {
         Mock<IAuthenticationService> authentication = new();
+        Mock<IAuthenticationNavigation> navigation = new();
         authentication.Setup(service => service.GetAccessTokenAsync(It.IsAny<CancellationToken>())).ReturnsAsync("token");
         RecordingHttpMessageHandler inner = new((_, _) => new HttpResponseMessage(HttpStatusCode.OK));
-        using BearerTokenHandler handler = new(authentication.Object) { InnerHandler = inner };
+        using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
         using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
@@ -29,10 +30,11 @@ public sealed class BearerTokenHandlerTests
     public async Task SendAsync_UnauthorizedRefreshesOnceAndReplaysEquivalentRequestAsync()
     {
         Mock<IAuthenticationService> authentication = new();
+        Mock<IAuthenticationNavigation> navigation = new();
         authentication.Setup(service => service.GetAccessTokenAsync(It.IsAny<CancellationToken>())).ReturnsAsync("old");
         authentication.Setup(service => service.RefreshAfterUnauthorizedAsync("old", It.IsAny<CancellationToken>())).ReturnsAsync("new");
         RecordingHttpMessageHandler inner = new((_, call) => new HttpResponseMessage(call == 1 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK));
-        using BearerTokenHandler handler = new(authentication.Object) { InnerHandler = inner };
+        using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
         using HttpRequestMessage request = new(HttpMethod.Post, "https://localhost/api/v1/rules");
         request.Headers.Add("X-Test", "value");
@@ -55,10 +57,11 @@ public sealed class BearerTokenHandlerTests
     public async Task SendAsync_SecondUnauthorizedInvalidatesReplacementTokenWithoutThirdAttemptAsync()
     {
         Mock<IAuthenticationService> authentication = new();
+        Mock<IAuthenticationNavigation> navigation = new();
         authentication.Setup(service => service.GetAccessTokenAsync(It.IsAny<CancellationToken>())).ReturnsAsync("old");
         authentication.Setup(service => service.RefreshAfterUnauthorizedAsync("old", It.IsAny<CancellationToken>())).ReturnsAsync("new");
         RecordingHttpMessageHandler inner = new((_, _) => new HttpResponseMessage(HttpStatusCode.Unauthorized));
-        using BearerTokenHandler handler = new(authentication.Object) { InnerHandler = inner };
+        using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
         using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
@@ -66,15 +69,51 @@ public sealed class BearerTokenHandlerTests
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.HasCount(2, inner.Requests);
         authentication.Verify(service => service.InvalidateAccessToken("new"), Times.Once);
+        navigation.Verify(service => service.RedirectToLogin(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task SendAsync_FailedRefreshRedirectsWithoutReplayingAsync()
+    {
+        Mock<IAuthenticationService> authentication = new();
+        Mock<IAuthenticationNavigation> navigation = new();
+        authentication.Setup(service => service.GetAccessTokenAsync(It.IsAny<CancellationToken>())).ReturnsAsync("old");
+        authentication.Setup(service => service.RefreshAfterUnauthorizedAsync("old", It.IsAny<CancellationToken>())).ReturnsAsync((string?)null);
+        RecordingHttpMessageHandler inner = new((_, _) => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
+        using HttpClient client = new(handler);
+
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.HasCount(1, inner.Requests);
+        navigation.Verify(service => service.RedirectToLogin(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task SendAsync_ForbiddenDoesNotRefreshOrRedirectAsync()
+    {
+        Mock<IAuthenticationService> authentication = new();
+        Mock<IAuthenticationNavigation> navigation = new(MockBehavior.Strict);
+        authentication.Setup(service => service.GetAccessTokenAsync(It.IsAny<CancellationToken>())).ReturnsAsync("valid");
+        RecordingHttpMessageHandler inner = new((_, _) => new HttpResponseMessage(HttpStatusCode.Forbidden));
+        using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
+        using HttpClient client = new(handler);
+
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+
+        Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode);
+        authentication.Verify(service => service.RefreshAfterUnauthorizedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
     public async Task SendAsync_NoAccessTokenReturnsUnauthorizedWithoutRefreshAsync()
     {
         Mock<IAuthenticationService> authentication = new();
+        Mock<IAuthenticationNavigation> navigation = new();
         authentication.Setup(service => service.GetAccessTokenAsync(It.IsAny<CancellationToken>())).ReturnsAsync((string?)null);
         RecordingHttpMessageHandler inner = new((_, _) => new HttpResponseMessage(HttpStatusCode.Unauthorized));
-        using BearerTokenHandler handler = new(authentication.Object) { InnerHandler = inner };
+        using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
         using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
@@ -82,5 +121,6 @@ public sealed class BearerTokenHandlerTests
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.HasCount(1, inner.Requests);
         authentication.Verify(service => service.RefreshAfterUnauthorizedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        navigation.Verify(service => service.RedirectToLogin(), Times.Once);
     }
 }

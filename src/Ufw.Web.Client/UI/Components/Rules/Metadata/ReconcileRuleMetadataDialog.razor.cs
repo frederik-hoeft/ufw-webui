@@ -7,14 +7,7 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class ReconcileRuleMetadataDialog
 {
-    private static readonly DialogOptions s_cleanupDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_cleanupDialogOptions = ClientDialogOptions.Compact;
 
     private readonly HashSet<Guid> _selected = [];
     private RuleMetadataReconciliationSnapshot? _snapshot;
@@ -43,7 +36,7 @@ public sealed partial class ReconcileRuleMetadataDialog
             _snapshot = await Reconciliation.RefreshAsync();
             ReconcileSelection();
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -78,7 +71,7 @@ public sealed partial class ReconcileRuleMetadataDialog
             ReconcileSelection();
             Snackbar.Add(RulesText["MetadataCleanupCompleted", removedCount], Severity.Success);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
@@ -131,8 +124,6 @@ public sealed partial class ReconcileRuleMetadataDialog
     private string DescribeOrphanCount(int count) => count == 1
         ? RulesText["OrphanedMetadataCountOne"]
         : RulesText["OrphanedMetadataCountMany", count];
-
-    private static string DescribeRuleId(string ruleId) => ruleId.Length <= 20 ? ruleId : $"{ruleId[..20]}\u2026";
 
     private void Close() => MudDialog.Close();
 }

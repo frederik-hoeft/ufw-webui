@@ -7,23 +7,14 @@ namespace Ufw.Web.Client.UI.Components.Rules.Filtering.Protocols;
 
 public sealed partial class ProtocolRuleFilterEditor : RuleFilterEditorBase
 {
-    private RuleFilter? _loadedFilter;
-    private FirewallProtocol _protocol = FirewallProtocol.Any;
+    private readonly EnumRuleFilterEditorState<ProtocolRuleFilter, FirewallProtocol> _selection = new(
+        FirewallProtocol.Any, static filter => filter.Protocol, static value => new ProtocolRuleFilter(value));
 
-    protected override void OnParametersSet()
-    {
-        if (ReferenceEquals(_loadedFilter, Filter))
-        {
-            return;
-        }
-
-        _loadedFilter = Filter;
-        _protocol = Filter is ProtocolRuleFilter protocol ? protocol.Protocol : FirewallProtocol.Any;
-    }
+    protected override void OnParametersSet() => _selection.Synchronize(Filter);
 
     public override bool TryBuildFilter([NotNullWhen(true)] out RuleFilter? filter)
     {
-        filter = new ProtocolRuleFilter(_protocol);
+        filter = _selection.Build();
         return true;
     }
 }

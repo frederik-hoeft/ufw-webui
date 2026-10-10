@@ -1,4 +1,4 @@
-# UFW Management Interface - Overall Kaizen Blitz Plan
+﻿# UFW Management Interface - Overall Kaizen Blitz Plan
 
 ## Purpose
 
@@ -10,7 +10,7 @@ This document combines the three project backlogs into one dependency-driven exe
 
 The goal is not to execute each backlog in its original priority order. All tracked debt is intended to be resolved, so the plan optimizes for **dependency order and minimal temporary work**: establish broad primitives and contracts first, then perform narrower cleanup against the final architecture. The preferred project order remains **daemon -> Ufw.Web -> client**, with narrowly scoped cross-project bridge commits where a shared contract must continue to compile.
 
-The three source backlogs remain the authority for detailed evidence, affected files, and item-specific acceptance criteria. This plan owns sequencing, overlap, cross-project dependencies, and final traceability.
+The three original source backlogs remain the authority for detailed evidence, affected files, and item-specific acceptance criteria. Additional cross-project follow-ups are tracked in [`ufw-crosscutting-kaizen-backlog.md`](project-backlog/ufw-crosscutting-kaizen-backlog.md). This plan owns sequencing, overlap, cross-project dependencies, and final traceability.
 
 ## Planning principles
 
@@ -179,9 +179,32 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 4. **Controller policy declarations:** reviewed in W3.3 and intentionally left explicit. WEB KZ-20 would save little code while hiding authorization, versioning, or no-store policy behind broader conventions.
 5. **Boundary closure:** completed in W3.4. WEB KZ-22 removes the final feature-local mutation outcome/result vocabularies, WEB KZ-01 gains source-boundary and bounded-SQL regression guards, WEB KZ-23 is verified complete, and WEB KZ-07 is closed after confirming the remaining group/tag similarity does not yield a small stable abstraction.
 
+### Post-W acceptance remediation (October 2026)
+
+**Gate:** ACC-01 through ACC-03 still require integration/manual acceptance. Manual acceptance is deferred until the test environment is available; proceed with the independent client kaizen waves meanwhile. Do not mark S2 or final release acceptance complete until the outstanding checks pass.
+
+**Decisions for follow-up work:**
+
+- Firewall ambiguity is assessed by the daemon from the authoritative snapshot. All signed **firewall mutations**, including batch deletion, must be refused under `IUfwExecutionGate` before nonce consumption or UFW modification. Repair is external to the Web UI; no in-band cleanup exception. Preserve recovery-journal fail-closed behavior and operation-specific preconditions.
+- `RuleListResponse.Assessment` informs the browser's firewall warning/disabled mutation controls; it does not change the signed v1 snapshot fingerprint. The daemon returns a stable `firewall.state.ambiguous` IPC error code on rejection. Web maps the failure; it must **not** independently gate unrelated ASP-owned metadata, template, group, tag, known-host, or interface edits based on firewall state.
+- A composed workflow must not persist metadata changes that depend on a failed firewall mutation. Unrelated ASP-owned transactions remain independent; do not imply atomicity across UFW and PostgreSQL.
+- Access JWTs remain self-contained and expire after the configured lifetime (default 120 seconds plus 30 seconds of validation skew). Password changes revoke refresh families, not already-issued access JWTs. Avoid per-request DB/cache revocation checks. All in-tab HTTP handlers and route authorization share the same auth session; retain cross-tab refresh coordination.
+- Group deletion may delete confirmed live rules while retaining groups referenced by templates. Never implicitly delete templates. The UI must show template references and clearly distinguish deletion of active rules from deletion of the group.
+
+**Acceptance checklist:**
+
+- [x] **ACC-01 (P0, daemon):** expose duplicate-semantic-identity diagnostics on authoritative reads; block every signed firewall mutation at the daemon gate with a stable IPC error code; keep reads available. Remove the ASP-wide management-write guard.
+- [ ] **ACC-01 gate:** mock-driven signed reorder/restart with duplicate identities (including different comments and nonadjacent matches); assert no UFW writes, nonce consumption, or recovery journal on rejection. Test genuinely unresolved recovery independently.
+- [x] **ACC-02 (P1, client/Web):** share `AuthenticationSession` across `IHttpClientFactory` handler scopes and route authorization; set the default JWT lifetime to 120 seconds.
+- [ ] **ACC-02 gate:** independent-browser password change/expiry, shared-token consistency across affected APIs, exhausted-refresh session clearing, and cross-tab coordination tests. If the exact same valid JWT yields different statuses, trace the source of each 401.
+- [ ] **ACC-03 (P1, Web/IPC):** HTTP-pipeline tests for anonymous protected GET/write and bodyless 401/403, omitted/null/empty `tagIds`, structured signed-validation codes, ProblemDetails/OpenAPI, invalid/replayed signed intents, plus malformed IPC responses (502 rather than 500). Exercise firewall-state rejection-code propagation through real IPC/Web transport, not only mocks.
+- [x] **ACC-04 (P2, CLIENT KZ-11):** one unauthorized/session-expired navigation policy; distinguish 401 from 403 and login credential failure; test concurrent requests, deep links, and browser tabs.
+- [x] **ACC-05 (P2, CLIENT KZ-18):** preserve template references while deleting active group rules; list referencing templates and distinguish active-rule-only confirmation from group cleanup.
+- [x] **ACC-06 (P3, client presentation):** show complete unmatched metadata identities; truncate only visually in CSS and preserve accessible/copyable values.
+
 ### Bridge checkpoint S2 - Web -> client
 
-The client phase starts only after these are stable:
+The client phase can proceed against these stabilized contracts while final S2 acceptance is deferred:
 
 - shared management-domain model names/shapes used by both server and client;
 - shared limits and stable validation identities;
@@ -190,41 +213,60 @@ The client phase starts only after these are stable:
 - network-interface retention semantics;
 - rule metadata/tag/group/template response semantics.
 
-Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is the point after which client workflows can be extracted without immediately chasing server contract churn.
+Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03 acceptance open until verified; this deferred checkpoint does not block independent C-wave implementation work.** The server contracts are stable enough to proceed with client refactoring.
 
 ### Phase C - `Ufw.Web.Client`
 
 #### C1 - Semantic and protocol foundations
 
-1. PR #40 is merged; CLIENT KZ-02 adopts the resulting `Ufw.Shared.Domain` network/port semantics.
-2. CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
-3. CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
-4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
-5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors.
-6. CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
-7. CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
-8. CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
+1. [x] CLIENT KZ-02: use `Ufw.Shared.Domain` network/port semantics across filter editors, evaluators, and known-host matching (PR #40 foundation).
+2. [x] CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
+3. [x] CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
+4. [x] CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
+5. [x] CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
+6. [x] CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
+7. [x] CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
+8. [x] CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
 
 #### C2 - Feature/workflow extraction
 
-1. CLIENT KZ-01 move rule-page workflows into focused Features services using the C1 snapshot/protocol/error primitives.
-2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner.
+1. CLIENT KZ-01 move rule-page workflows into focused Features services using the C1 snapshot/protocol/error primitives:
+   - [x] C2.1: centralize authoritative inventory loading and rule-metadata request/response handling; remove direct `IRuleApiClient` use from rule pages.
+   - [x] C2.2: extract create/edit mutation sequencing and post-firewall metadata persistence/retry; retain dialogs, navigation, and notifications in Razor.
+   - [x] C2.3: extract rule-list refresh, metadata, deletion/group-cleanup and ordering coordination; retain dialogs, navigation, notifications and lifecycle in Razor.
+2. [x] CLIENT KZ-18: keep group-deletion membership planning, confirmation checks and catalog consistency checks pure; retain mutation, revalidation and cleanup I/O in the workflow executor.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
-4. CLIENT KZ-09 introduce explicit create-rule workflow state after the workflow has moved out of Razor.
-5. CLIENT KZ-19 make rule-editor reference-data failures symmetric against the final server error behavior.
-6. CLIENT KZ-10 factor known-host/interface inventory mechanics after Web's interface-retention semantics are final.
+4. [x] CLIENT KZ-09: explicit create-rule interaction phases cover validation, submission, add confirmation, and insertion-context invalidation. Inventory authority and mutation sequencing remain in their existing Features services.
+5. [x] CLIENT KZ-19: known-host and network-interface loads independently retain typed failure diagnostics; the editor distinguishes unavailable suggestions from empty results without blocking literal authoring.
+6. [x] CLIENT KZ-10: shared inventory-page operation lifetime/busy/error handling and common loading/error presentation; visibility request construction stays in feature services. Domain-specific reconciliation and dialogs remain distinct.
 
 #### C3 - UI/component/style convergence
 
 1. CLIENT KZ-07 converge desktop/mobile rule behavior and fragments after application workflows have left the components/pages.
-2. CLIENT KZ-13 classify/extract styles against the final component structure.
-3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs.
+   - [x] C3.1: share per-row expansion/keyboard state, native drag-handle presentation, position-change markup, action styling, and workspace-to-menu callback wiring without merging table/card layouts.
+   - [x] C3.2: share the identical rule metadata panel/collapse action and read-only fragments between layouts. Preserve distinct desktop table cells, mobile labeled sections, and their CSS selectors; defer style consolidation to KZ-13. Browser-level responsive verification remains an integration acceptance task.
+2. CLIENT KZ-13 classify/extract styles against the final component structure:
+   - [x] C3.3: document global-style ownership and consolidate shared rule-row and action-menu primitives.
+   - [x] C3.4: migrate six owner-local leaf styles to `.razor.scss` with narrow Mud-child `::deep` selectors and scoped-CSS verification; retain shared, portal, and cross-component styling globally.
+   - [x] C3.5: isolate the remaining self-owned dialog, known-host endpoint and option markup (six components); document why row/table parent, layout, Mud roots and shared details styles must retain global ownership. KZ-13 source-ownership audit is complete; browser-level responsive/overlay acceptance remains open.
+3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
+   - [x] C3.6: centralize modal sizing, backdrop, Escape, and focus policies; share simple destructive-confirmation content/actions without moving domain-specific decisions. ACC-06 cleanup remains unchanged; browser dialog acceptance is still outstanding.
 
 #### C4 - Transport/public-surface/opportunistic cleanup
 
-1. CLIENT KZ-20 + KZ-23 together: HTTP registration/resource mechanics and consistent URI building on the final API surface.
-2. CLIENT KZ-21 public-surface audit after final Features/Api interfaces are known.
-3. CLIENT KZ-22 last-mile presentational clones after all structural UI changes.
+1. [x] CLIENT KZ-20 + KZ-23 (C4.1): consolidate typed API client base-address/auth-handler registration and GUID-resource URI validation/construction; use `SimpleUriBuilder` for navigation queries and remove the redundant global URI helper. Typed client payload/response handling remains explicit, preserving independent API contracts and existing shared `ReadRequiredAsync` behavior.
+2. [x] CLIENT KZ-21 (C4.2): allow public client contracts and Razor constructor dependencies while keeping concrete service implementations internal. Disable client CA1515 and test service implementation visibility rather than internalizing the contract graph.
+3. [x] CLIENT KZ-22 (C4.3): centralize the local, culture-aware timestamp display used by five status/inventory/rule views and the shared diagnostic-reference fragment in both standalone error states. Retain distinct startup retry and unexpected-error reload actions; prior C3 work already unified row/action/menu fragments.
+
+### Immediate shared-parser corrections (C3.4.1, C4.1.1)
+
+- [x] CROSS KZ-03 (C3.4.1): bring the unordered `Set` parser fixes identified on cyborg PR #91 back into `Ufw.Shared`, including `SetSyntaxNode`, top-level `Grammar.Set` factories, and permutation/duplicate/visitor regression coverage.
+- [x] CROSS KZ-03 follow-up (C4.1.1): a zero-width `Set` child must not claim a member position; retry it after another member advances input, and require at least one consuming match. Preserve greedy, non-backtracking semantics and cover optional/repeat zero-width cases.
+
+### Cross-project follow-up phase - after the structural waves
+
+1. **CROSS KZ-01:** audit namespace cohesion/fanout across all projects and implement targeted subdomain moves only after the C4 public-surface review and contracts have settled. Be mindful of localization resource namespaces, DTO compatibility, DI, NativeAOT and source generators.
+2. **CROSS KZ-02:** triage the supplied clone-analysis report. Review production signed-intent/validation overlap for correctness first, then integration-test fixture reuse, and align client/UI overlaps with existing KZ-14/KZ-20/KZ-22 to avoid double work. Preserve independent safety tests and operation-specific semantics. See the [cross-project backlog](project-backlog/ufw-crosscutting-kaizen-backlog.md) for evidence and acceptance.
 
 ## Integration checkpoints
 
@@ -239,6 +281,8 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 - Web-facing shared protocol changes are documented before Web refactoring begins.
 
 ### Checkpoint W - Web complete
+
+**Refactor inventory complete; manual acceptance not yet signed off.** The post-W register (ACC-01 through ACC-06) tracks newly found gaps and their independent owners.
 
 - No direct EF access outside the DAL except composition/migrations.
 - Shared domain/read models are stable and separate from persistence entities/request DTOs.
@@ -346,32 +390,40 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 
 | Done | Source item | Planned wave | Finding | Sequencing note |
 |---|---|---|---|---|
-| [ ] | CLIENT KZ-01 | C2 | Move rule-page application workflows out of Razor | Do after C1 and after the Web API/shared-model checkpoint so workflows are extracted around stable contracts rather than current DTO/error quirks. |
-| [ ] | CLIENT KZ-02 | C1 | Make client rule filtering consume the shared semantic-domain primitives | Requires PR #40. Do before KZ-16 so filter micro-clone cleanup is performed against the final semantic adapter. |
-| [ ] | CLIENT KZ-03 | C1 | Centralize snapshot occurrence indexing and remove object-identity lookup | Do early; later rule workflows/navigation should consume the stable occurrence index instead of preserving ReferenceEquals paths. |
-| [ ] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |
-| [ ] | CLIENT KZ-05 | C1 | Define the rule-order permutation invariant once | Do before ordering workflows are moved/refined; subsequent code should traffic in one validated permutation representation. |
-| [ ] | CLIENT KZ-06 | C1 | Centralize metadata DTO-to-domain normalization | Do after Web shared-domain/metadata contracts stabilize; KZ-17 and later workflows should consume this one mapper. |
-| [ ] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | Do after KZ-01 removes workflow behavior from page/component surfaces; then converge only presentation/interaction behavior. |
-| [ ] | CLIENT KZ-08 | C2 | Move metadata-authoring CRUD out of `RuleMetadataEditor` and centralize metadata limits | Do after Web KZ-05 exposes shared limits and after Client KZ-15 settles catalog state semantics. |
-| [ ] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
-| [ ] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | Do after Web KZ-13 fixes interface lifecycle semantics and after feature-level inventory operations are stable. |
-| [ ] | CLIENT KZ-11 | C1 | Remove repeated `TryDescribe(... out _)` + `Describe(...)` error classification | Do immediately after Web KZ-09 stabilizes ProblemDetails/error semantics, before moving more workflow code into Features. |
-| [ ] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
-| [ ] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | Do after KZ-07 so style ownership follows the final component decomposition. |
-| [ ] | CLIENT KZ-14 | C3 | Consolidate dialog options and confirmation-dialog presentation shells | Do after workflow extraction so confirmation shells contain presentation only, not temporary workflow responsibilities. |
-| [ ] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Do in C1 before KZ-08; metadata-authoring should be built on final catalog-state semantics. |
-| [ ] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
-| [ ] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
-| [ ] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
-| [ ] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Do with feature workflow extraction, using the final server error contract and explicit reference-data results. |
-| [ ] | CLIENT KZ-20 | C4 | Factor repeated HttpClient registration and resource-client mechanics | Do after server endpoints/contracts are stable and feature workflow extraction has stopped changing API-client call patterns. |
-| [ ] | CLIENT KZ-21 | C4 | Audit and minimize the client's public surface | Late cleanup after final interfaces/callers are known. |
-| [ ] | CLIENT KZ-22 | C4 | Consolidate small presentational clones opportunistically | Last-mile cleanup after component/workflow/style structure is final. |
-| [ ] | CLIENT KZ-23 | C4 | Ensure consistent use of SimpleUriBuilder | Pair with KZ-20 while API/navigation URI construction is already being touched. |
+| [x] | CLIENT KZ-01 | C2 | Move rule-page application workflows out of Razor | Do after C1 and after the Web API/shared-model checkpoint so workflows are extracted around stable contracts rather than current DTO/error quirks. |
+| [x] | CLIENT KZ-02 | C1 | Make client rule filtering consume the shared semantic-domain primitives | Requires PR #40. Do before KZ-16 so filter micro-clone cleanup is performed against the final semantic adapter. |
+| [x] | CLIENT KZ-03 | C1 | Centralize snapshot occurrence indexing and remove object-identity lookup | Do early; later rule workflows/navigation should consume the stable occurrence index instead of preserving ReferenceEquals paths. |
+| [x] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |
+| [x] | CLIENT KZ-05 | C1 | Define the rule-order permutation invariant once | Do before ordering workflows are moved/refined; subsequent code should traffic in one validated permutation representation. |
+| [x] | CLIENT KZ-06 | C1 | Centralize metadata DTO-to-domain normalization | Do after Web shared-domain/metadata contracts stabilize; KZ-17 and later workflows should consume this one mapper. |
+| [x] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | C3.1 shares interaction, position, actions, drag; C3.2 shares metadata expansion content and read-only fragments. Desktop/mobile content layout intentionally stays separate; shared SCSS belongs to KZ-13. |
+| [x] | CLIENT KZ-08 | C2 | Move metadata-authoring CRUD out of `RuleMetadataEditor` and centralize metadata limits | Do after Web KZ-05 exposes shared limits and after Client KZ-15 settles catalog state semantics. |
+| [x] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
+| [x] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | C2.8: one page-level async operation helper and common loading/error fragments, with known-host visibility request construction in Features; domain-specific dialogs/reconciliation remain separate. |
+| [x] | CLIENT KZ-11 | C1 | Remove repeated `TryDescribe(... out _)` + `Describe(...)` error classification | Do immediately after Web KZ-09 stabilizes ProblemDetails/error semantics, before moving more workflow code into Features. |
+| [x] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
+| [x] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | C3.3 consolidated shared row/menu primitives; C3.4/C3.5 isolated twelve owner-local styles and documented each deliberate global cross-boundary dependency. Browser-level visual acceptance remains outstanding. |
+| [x] | CLIENT KZ-14 | C3 | Consolidate dialog options and confirmation-dialog presentation shells | C3.6: named per-use dialog presets preserve sizing/focus/backdrop policies; simple tag and orphan-metadata confirmations share a presentation shell. Specialized signed and domain confirmations remain independent; ACC-06 full-ID cleanup semantics are unchanged. |
+| [x] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Decision: no revision counter; replace cached inventories only after successful normalization of authoritative server responses. KZ-08 consumes these semantics. |
+| [x] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
+| [x] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
+| [x] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
+| [x] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Both reference catalogs retain independently classified failures, and localized editor warnings distinguish unavailable suggestions from an empty catalog. |
+| [x] | CLIENT KZ-20 | C4.1 | Factor repeated HttpClient registration and resource-client mechanics | Typed-client registration policies and GUID-resource URI mechanics are shared; endpoint-specific JSON contracts remain explicit. Handler ordering and request destinations are regression-tested. |
+| [x] | CLIENT KZ-21 | C4.2 | Establish client contract/implementation accessibility | Public interfaces and models remain permitted; concrete client service implementations stay internal. Client CA1515 is disabled, constructor injection is preserved, and a regression test guards implementation visibility. |
+| [x] | CLIENT KZ-22 | C4.3 | Consolidate small presentational clones opportunistically | C4.3: shared timestamp formatting and standalone diagnostic-reference rendering; intentional action/menu and standalone error differences remain separate. |
+| [x] | CLIENT KZ-23 | C4.1 | Ensure consistent use of SimpleUriBuilder | GUID resource paths and navigation queries use SimpleUriBuilder; one-off global UriOf helper removed. Literal fixed routes and intentional URI validation/parsing remain unchanged. |
+
+### Cross-project follow-up traceability (new items)
+
+| Done | Source item | Planned phase | Finding | Sequencing note |
+|---|---|---|---|---|
+| [ ] | CROSS KZ-01 | After C4 | Improve namespace cohesion/navigation and limit accidental broad namespaces | Audit by responsibility and fanout, then do scoped moves after the public-surface and structural cleanup; protect wire/resource/AOT assumptions. |
+| [ ] | CROSS KZ-02 | After overlapping local waves | Triage attached clone-detection report; remove only harmful duplication | Prioritize correctness-sensitive production clones and high-cost fixture duplication; classify remaining test/symmetric matches deliberately. |
+| [x] | CROSS KZ-03 | C3.4.1 + C4.1.1 | Correct unordered parser `Set` matching, zero-width semantics, syntax tree, and factory overloads | Backport targeted cyborg PR #91 review fixes with regression tests for permutations, zero-width members, and greedy non-backtracking behavior; do not conflate this with general parser architecture or C3 styling. |
 
 ## Completion rule
 
 A wave is complete only when its source items' original acceptance criteria/definition-of-done requirements are satisfied, not merely when the broader refactor that contains them has landed. In particular, subsumed correctness items such as WEB KZ-14 and KZ-15 still require dedicated regression coverage, and contained cleanup items remain checklist entries even when their code naturally disappears during a larger change.
 
-The kaizen blitz is complete when all 75 source items are checked, the three project-level definitions of done are satisfied, and the final repository integration gate is green.
+The original kaizen inventory is complete when all 75 source items are checked, the three project-level definitions of done are satisfied, and the final repository integration gate is green. Full **extended** Kaizen closure additionally requires a recorded disposition for every CROSS KZ item (including the completed KZ-03 parser fix).

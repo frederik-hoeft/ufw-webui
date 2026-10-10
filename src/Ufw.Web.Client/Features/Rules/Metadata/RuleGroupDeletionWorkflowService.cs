@@ -10,21 +10,14 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
 {
     public async Task<RuleGroup?> GetSingleRuleCleanupCandidateAsync(ListedFirewallRule rule, RuleSnapshot snapshot, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(rule);
-        ArgumentNullException.ThrowIfNull(snapshot);
-        if (string.IsNullOrWhiteSpace(rule.RuleId)
-            || !snapshot.Metadata.TryGetValue(rule.RuleId, out RuleMetadata? metadata)
-            || metadata.Group is null
-            || snapshot.Rules.Count(candidate => string.Equals(candidate.RuleId, rule.RuleId, StringComparison.Ordinal)) != 1)
+        RuleGroupCleanupCandidate? candidate = RuleGroupDeletionPlanner.PlanSingleRuleCleanup(rule, snapshot);
+        if (candidate is null)
         {
             return null;
         }
 
         IReadOnlyList<RuleGroup> groups = await groupCatalog.RefreshAsync(cancellationToken);
-        return groups.SingleOrDefault(group => group.Id == metadata.Group.Id
-            && group.TemplateIds.Count == 0
-            && group.RuleIds.Count == 1
-            && string.Equals(group.RuleIds[0], rule.RuleId, StringComparison.Ordinal));
+        return RuleGroupDeletionPlanner.FindSingleRuleCleanupGroup(candidate, groups);
     }
 
     public async Task<RuleGroupDeletionWorkflowResult> DeleteAsync(
@@ -34,10 +27,6 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(projection);
-        if (projection.Group.TemplateIds.Count != 0)
-        {
-            throw new InvalidOperationException("Rule groups referenced by templates must be reconciled before the group can be deleted.");
-        }
         if (projection.StoredMemberCount == 0)
         {
             RuleGroupCleanupResult emptyCleanup = await DeleteIfEmptyAsync(projection.Group.Id, cancellationToken);
@@ -46,51 +35,20 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
                 emptyCleanup.Groups);
         }
 
-        if (snapshot is null || !projection.MemberResolutionAvailable || projection.StaleMembershipCount != 0)
-        {
-            throw new InvalidOperationException("All group memberships must resolve against the current firewall snapshot before deleting the group and its rules.");
-        }
+        RuleGroupDeletionPlan plan = RuleGroupDeletionPlanner.Create(projection, snapshot);
         if (string.IsNullOrWhiteSpace(privateKey))
         {
             throw new ArgumentException("A private key is required to delete firewall rules.", nameof(privateKey));
         }
 
-        HashSet<string> memberRuleIds = projection.Group.RuleIds.ToHashSet(StringComparer.Ordinal);
-        List<int> occurrenceIds = [];
-        HashSet<string> resolvedRuleIds = new(StringComparer.Ordinal);
-        for (int occurrenceId = 0; occurrenceId < snapshot.Rules.Count; occurrenceId++)
-        {
-            string? ruleId = snapshot.Rules[occurrenceId].RuleId;
-            if (!string.IsNullOrWhiteSpace(ruleId) && memberRuleIds.Contains(ruleId))
-            {
-                occurrenceIds.Add(occurrenceId);
-                resolvedRuleIds.Add(ruleId);
-            }
-        }
-        if (occurrenceIds.Count == 0 || !resolvedRuleIds.SetEquals(memberRuleIds))
-        {
-            throw new InvalidOperationException("Every stored group membership must resolve against the current firewall snapshot before batch deletion.");
-        }
-
-        HashSet<int> previewOccurrenceIds = [.. projection.Members
-            .SelectMany(static member => member.Occurrences)
-            .Select(static occurrence => occurrence.OccurrenceId)];
-        if (!previewOccurrenceIds.SetEquals(occurrenceIds))
-        {
-            throw new InvalidOperationException("The confirmed group member preview no longer matches the current firewall snapshot.");
-        }
-
         IReadOnlyList<RuleGroup> groupsBeforeMutation = await groupCatalog.RefreshAsync(cancellationToken);
-        RuleGroup? currentGroup = groupsBeforeMutation.SingleOrDefault(group => group.Id == projection.Group.Id);
-        if (currentGroup is null
-            || currentGroup.TemplateIds.Count != 0
-            || !currentGroup.RuleIds.ToHashSet(StringComparer.Ordinal).SetEquals(memberRuleIds))
+        RuleGroup? currentGroup = groupsBeforeMutation.SingleOrDefault(group => group.Id == plan.GroupId);
+        if (!RuleGroupDeletionPlanner.MatchesConfirmedMembership(plan, currentGroup))
         {
             return new RuleGroupDeletionWorkflowResult(RuleGroupDeletionWorkflowOutcome.GroupChanged, groupsBeforeMutation);
         }
 
-        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
-        RuleBatchDeleteResponse response = await ruleMutations.BatchDeleteRulesAsync(baseline, occurrenceIds, privateKey, cancellationToken);
+        RuleBatchDeleteResponse response = await ruleMutations.BatchDeleteRulesAsync(plan.Baseline, plan.OccurrenceIds, privateKey, cancellationToken);
         try
         {
             IReadOnlyList<RuleGroup> groupsAfterBatch = await groupCatalog.RefreshAsync(cancellationToken);
@@ -127,7 +85,7 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
         {
             return new RuleGroupCleanupResult(Deleted: true, groups);
         }
-        if (current.RuleIds.Count != 0)
+        if (!RuleGroupDeletionPlanner.CanDeleteEmptyGroup(current))
         {
             return new RuleGroupCleanupResult(Deleted: false, groups);
         }

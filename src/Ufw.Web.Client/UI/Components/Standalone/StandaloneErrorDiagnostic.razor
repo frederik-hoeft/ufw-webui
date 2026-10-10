@@ -1,0 +1,13 @@
+@inject IStringLocalizer<ErrorsStrings> ErrorsText
+
+@if (!string.IsNullOrWhiteSpace(DiagnosticReference))
+{
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="error-diagnostic-reference">
+        @ErrorsText["DiagnosticReference", DiagnosticReference]
+    </MudText>
+}
+
+@code {
+    [Parameter]
+    public string? DiagnosticReference { get; set; }
+}

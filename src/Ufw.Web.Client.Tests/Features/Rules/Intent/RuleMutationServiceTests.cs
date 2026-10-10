@@ -284,6 +284,6 @@ public sealed class RuleMutationServiceTests
 
         public Mock<IIntentSigningService> Signer { get; } = new(MockBehavior.Strict);
 
-        public RuleMutationService Service => new(Rules.Object, Context.Object, Signer.Object);
+        public RuleMutationService Service => new(Rules.Object, new CompatibleIntentContextProvider(Context.Object), Signer.Object);
     }
 }

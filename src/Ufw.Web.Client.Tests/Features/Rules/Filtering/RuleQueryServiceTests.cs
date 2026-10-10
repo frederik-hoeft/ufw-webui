@@ -1,4 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
+using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Features.Rules;
@@ -38,8 +39,8 @@ public sealed class RuleQueryServiceTests
         RuleRowProjection first = Row(0, 1, source: "10.0.0.0/8", destinationPorts: "443", protocol: FirewallProtocol.Tcp, action: FirewallAction.Allow);
         RuleRowProjection second = Row(1, 2, source: "10.0.0.0/8", destinationPorts: "53", protocol: FirewallProtocol.Udp, action: FirewallAction.Allow);
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [first, second]);
-        Assert.IsTrue(RuleNetwork.TryParse("10.20.30.40", out RuleNetwork? network));
-        Assert.IsTrue(RulePortSet.TryParse("443", out RulePortSet? ports));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("10.20.30.40", out NetworkFilterOperand? network));
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("443", out PortFilterOperand? ports));
         RuleQuery query = new([
             new NetworkRuleFilter(RuleEndpointField.Source, network!),
             new PortRuleFilter(RuleEndpointField.Destination, ports!),
@@ -66,7 +67,7 @@ public sealed class RuleQueryServiceTests
             Row(2, 3, source: "any"),
             Row(3, 4, source: "10.100.21.0/24"),
         ]);
-        Assert.IsTrue(RuleNetwork.TryParse("10.100.20.0/28", out RuleNetwork? queryNetwork));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("10.100.20.0/28", out NetworkFilterOperand? queryNetwork));
         RuleQuery query = new([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]);
 
         RuleFamilyQueryResult result = _service.Evaluate(family, query);
@@ -82,7 +83,7 @@ public sealed class RuleQueryServiceTests
     public void Evaluate_NetworkFilterCanMatchRuleContainedByQuery()
     {
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, destination: "192.0.2.40")]);
-        Assert.IsTrue(RuleNetwork.TryParse("192.0.2.0/24", out RuleNetwork? queryNetwork));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("192.0.2.0/24", out NetworkFilterOperand? queryNetwork));
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Destination, queryNetwork!)]));
 
@@ -95,7 +96,7 @@ public sealed class RuleQueryServiceTests
     public void Evaluate_NetworkFilterRejectsOtherAddressFamily()
     {
         RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [Row(0, 1, source: "any")]);
-        Assert.IsTrue(RuleNetwork.TryParse("2001:db8::1", out RuleNetwork? queryNetwork));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("2001:db8::1", out NetworkFilterOperand? queryNetwork));
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
 
@@ -111,7 +112,7 @@ public sealed class RuleQueryServiceTests
             Row(1, 2, addressFamily: FirewallAddressFamily.IPv6, source: "any"),
             Row(2, 3, addressFamily: FirewallAddressFamily.IPv6, source: "2001:db8:20::/48"),
         ]);
-        Assert.IsTrue(RuleNetwork.TryParse("2001:db8:10::1234", out RuleNetwork? queryNetwork));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("2001:db8:10::1234", out NetworkFilterOperand? queryNetwork));
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
 
@@ -120,20 +121,72 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
-    public void RuleNetwork_ParsesIPv4HostWithoutAccessingIPv6Scope()
+    public void RuleFilterSemantics_ParsesIPv4HostWithoutAccessingIPv6Scope()
     {
-        Assert.IsTrue(RuleNetwork.TryParse("192.0.2.17", out RuleNetwork? network));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("192.0.2.17", out NetworkFilterOperand? network));
         Assert.IsNotNull(network);
         Assert.AreEqual(FirewallAddressFamily.IPv4, network.AddressFamily);
         Assert.AreEqual("192.0.2.17", network.CanonicalValue);
     }
 
     [TestMethod]
-    public void RulePortSet_RejectsEmptyListSegments()
+    public void RuleFilterSemantics_RejectsEmptyPortListSegments()
     {
-        Assert.IsFalse(RulePortSet.TryParse("443,,8443", out _));
-        Assert.IsFalse(RulePortSet.TryParse("443,", out _));
-        Assert.IsFalse(RulePortSet.TryParse(",443", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("443,,8443", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("443,", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts(",443", out _));
+    }
+
+    [TestMethod]
+    public void RuleFilterSemantics_UsesSharedNetworkSetsForCanonicalRangesAndContainment()
+    {
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("10.20.30.40/24", out NetworkFilterOperand? ipv4));
+        Assert.IsNotNull(ipv4);
+        Assert.AreEqual("10.20.30.0/24", ipv4.CanonicalValue);
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("10.20.30.17", out NetworkFilterOperand? ipv4Host));
+        Assert.IsNotNull(ipv4Host);
+        Assert.IsTrue(ipv4.Contains(ipv4Host));
+        Assert.IsTrue(RuleFilterSemantics.AnyNetwork(FirewallAddressFamily.IPv4).Contains(ipv4));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("0.0.0.0/0", out NetworkFilterOperand? ipv4Universe));
+        Assert.IsNotNull(ipv4Universe);
+        Assert.IsTrue(ipv4Universe.SetEquals(RuleFilterSemantics.AnyNetwork(FirewallAddressFamily.IPv4)));
+
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("2001:db8:1::1234/48", out NetworkFilterOperand? ipv6));
+        Assert.IsNotNull(ipv6);
+        Assert.AreEqual("2001:db8:1::/48", ipv6.CanonicalValue);
+        Assert.IsTrue(RuleFilterSemantics.AnyNetwork(FirewallAddressFamily.IPv6).Contains(ipv6));
+        Assert.IsFalse(ipv4.Overlaps(ipv6));
+    }
+
+    [TestMethod]
+    public void RuleFilterSemantics_RejectsMalformedAndWrongFamilyNetworks()
+    {
+        Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("fe80::1%3", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("192.0.2.1/033", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("192.0.2.1/024", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("2001:db8::/129", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("any", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("2001:db8::1", FirewallAddressFamily.IPv4, out _));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("2001:db8::1", FirewallAddressFamily.IPv6, out _));
+    }
+
+    [TestMethod]
+    public void RuleFilterSemantics_UsesSharedPortParserAndIntervalCoalescing()
+    {
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("84,80:82,83,80", out PortFilterOperand? ports));
+        Assert.IsNotNull(ports);
+        Assert.AreEqual("80:84", ports.CanonicalValue);
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("84:90", out PortFilterOperand? overlapping));
+        Assert.IsNotNull(overlapping);
+        Assert.IsTrue(ports.Overlaps(overlapping));
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("91", out PortFilterOperand? disjoint));
+        Assert.IsNotNull(disjoint);
+        Assert.IsFalse(ports.Overlaps(disjoint));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("08", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("80:079", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("443:80", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("0", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("65536", out _));
     }
 
     [TestMethod]
@@ -145,7 +198,7 @@ public sealed class RuleQueryServiceTests
             Row(1, 2, destinationPorts: "443"),
             Row(2, 3, destinationPorts: null),
         ]);
-        Assert.IsTrue(RulePortSet.TryParse("1500,8443", out RulePortSet? ports));
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("1500,8443", out PortFilterOperand? ports));
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new PortRuleFilter(RuleEndpointField.Destination, ports!)]));
 
@@ -357,6 +410,27 @@ public sealed class RuleQueryServiceTests
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("nas1")]), [host]);
 
         Assert.IsEmpty(result.Rows);
+    }
+
+    [TestMethod]
+    public void Evaluate_EnumFilters_MatchExactValuesAndPreserveTypedEvidence()
+    {
+        RuleRowProjection expected = Row(0, 1, action: FirewallAction.Reject, direction: FirewallDirection.Forward, protocol: FirewallProtocol.Tcp);
+        RuleRowProjection wrongAction = Row(1, 2, action: FirewallAction.Allow, direction: FirewallDirection.Forward, protocol: FirewallProtocol.Tcp);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [expected, wrongAction]);
+        RuleQuery query = new([
+            new ActionRuleFilter(FirewallAction.Reject),
+            new DirectionRuleFilter(FirewallDirection.Forward),
+            new ProtocolRuleFilter(FirewallProtocol.Tcp),
+        ]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, query);
+
+        Assert.HasCount(1, result.Rows);
+        Assert.AreSame(expected, result.Rows[0].Row);
+        Assert.AreEqual("reject", Assert.IsInstanceOfType<ActionRuleMatchEvidence>(result.Rows[0].Evidence[0]).Value);
+        Assert.AreEqual("forward", Assert.IsInstanceOfType<DirectionRuleMatchEvidence>(result.Rows[0].Evidence[1]).Value);
+        Assert.AreEqual("tcp", Assert.IsInstanceOfType<ProtocolRuleMatchEvidence>(result.Rows[0].Evidence[2]).Value);
     }
 
     [TestMethod]

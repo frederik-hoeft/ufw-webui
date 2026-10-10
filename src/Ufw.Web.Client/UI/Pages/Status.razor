@@ -30,7 +30,7 @@
                 @DaemonStatusLabel
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @StatusText["CheckedAt", FormatLocalDateTime(checkedAt)]
+                @StatusText["CheckedAt", LocalDateTimeText.Format(checkedAt)]
             </MudChip>
         }
     </Status>

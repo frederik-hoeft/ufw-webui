@@ -7,7 +7,6 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class RuleMetadataEditor
 {
-    private const int MAX_METADATA_NAME_LENGTH = 64;
     private MudForm? _form;
     private MudAutocomplete<TagOption>? _tagAutocomplete;
     private RuleMetadataEditorResult? _loadedValue;
@@ -26,19 +25,16 @@ public sealed partial class RuleMetadataEditor
     [Parameter]
     public bool Disabled { get; set; }
 
-    private IReadOnlyList<RuleTag> SelectedTags => TagCatalog.Current
-        .Where(tag => Value.TagIds.Contains(tag.Id))
-        .OrderBy(static tag => tag.Name, StringComparer.CurrentCultureIgnoreCase)
-        .ToArray();
+    private IReadOnlyList<RuleTag> SelectedTags => Authoring.SelectTags(Value.TagIds);
 
     protected async override Task OnInitializedAsync()
     {
         try
         {
-            await Task.WhenAll(TagCatalog.RefreshAsync(), GroupCatalog.RefreshAsync());
+            await Authoring.RefreshAsync();
             SynchronizeGroupSelection(force: true);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -59,19 +55,11 @@ public sealed partial class RuleMetadataEditor
 
     private Task<IEnumerable<GroupOption>> SearchGroupsAsync(string? value, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        string term = value?.Trim() ?? string.Empty;
-        IEnumerable<RuleGroup> available = GroupCatalog.Current;
-        if (term.Length > 0)
+        MetadataCatalogSearchResult<RuleGroup> result = Authoring.SearchGroups(value, cancellationToken);
+        List<GroupOption> options = [.. result.Matches.Select(static group => new GroupOption(group, null))];
+        if (result.CreateName is { } name)
         {
-            available = available.Where(group => group.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase));
-        }
-
-        List<GroupOption> options = [.. available.Select(static group => new GroupOption(group, null))];
-        bool exactMatch = GroupCatalog.Current.Any(group => string.Equals(group.Name, term, StringComparison.OrdinalIgnoreCase));
-        if (term.Length is > 0 and <= MAX_METADATA_NAME_LENGTH && !exactMatch)
-        {
-            options.Add(new GroupOption(null, term));
+            options.Add(new GroupOption(null, name));
         }
         return Task.FromResult<IEnumerable<GroupOption>>(options);
     }
@@ -110,11 +98,9 @@ public sealed partial class RuleMetadataEditor
         _error = null;
         try
         {
-            string normalizedName = name.Trim();
-            IReadOnlyList<RuleGroup> groups = await GroupCatalog.CreateAsync(normalizedName);
-            return groups.Single(group => string.Equals(group.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
+            return await Authoring.CreateGroupAsync(name);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             return null;
@@ -127,19 +113,11 @@ public sealed partial class RuleMetadataEditor
 
     private Task<IEnumerable<TagOption>> SearchTagsAsync(string? value, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        string term = value?.Trim() ?? string.Empty;
-        IEnumerable<RuleTag> available = TagCatalog.Current.Where(tag => !Value.TagIds.Contains(tag.Id));
-        if (term.Length > 0)
+        MetadataCatalogSearchResult<RuleTag> result = Authoring.SearchTags(value, Value.TagIds, cancellationToken);
+        List<TagOption> options = [.. result.Matches.Select(static tag => new TagOption(tag, null))];
+        if (result.CreateName is { } name)
         {
-            available = available.Where(tag => tag.Name.Contains(term, StringComparison.CurrentCultureIgnoreCase));
-        }
-
-        List<TagOption> options = [.. available.Select(static tag => new TagOption(tag, null))];
-        bool exactMatch = TagCatalog.Current.Any(tag => string.Equals(tag.Name, term, StringComparison.OrdinalIgnoreCase));
-        if (term.Length is > 0 and <= MAX_METADATA_NAME_LENGTH && !exactMatch)
-        {
-            options.Add(new TagOption(null, term));
+            options.Add(new TagOption(null, name));
         }
         return Task.FromResult<IEnumerable<TagOption>>(options);
     }
@@ -176,11 +154,9 @@ public sealed partial class RuleMetadataEditor
         _error = null;
         try
         {
-            string normalizedName = name.Trim();
-            IReadOnlyList<RuleTag> tags = await TagCatalog.CreateAsync(normalizedName, TagColors.Generate());
-            return tags.Single(tag => string.Equals(tag.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
+            return await Authoring.CreateTagAsync(name);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             return null;
@@ -210,9 +186,8 @@ public sealed partial class RuleMetadataEditor
         }
 
         _loadedValue = Value;
-        _groupSelection = Value.GroupId is { } groupId
-            ? GroupCatalog.Current.Where(group => group.Id == groupId).Select(static group => new GroupOption(group, null)).FirstOrDefault()
-            : null;
+        RuleGroup? group = Value.GroupId is { } groupId ? Authoring.FindGroup(groupId) : null;
+        _groupSelection = group is null ? null : new GroupOption(group, null);
     }
 
     private static string FormatGroupOption(GroupOption? option) => option?.Group?.Name ?? option?.CreateName ?? string.Empty;

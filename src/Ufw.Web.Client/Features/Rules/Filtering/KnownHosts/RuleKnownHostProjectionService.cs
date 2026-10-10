@@ -2,6 +2,7 @@
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Filtering.Networks;
+using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.Features.Rules.Filtering.KnownHosts;
@@ -19,8 +20,8 @@ internal sealed class RuleKnownHostProjectionService : IRuleKnownHostProjectionS
             return [];
         }
 
-        RuleNetwork? source = ParseEndpoint(rule.Source, context.AddressFamily);
-        RuleNetwork? destination = ParseEndpoint(rule.Destination, context.AddressFamily);
+        NetworkFilterOperand? source = ParseEndpoint(rule.Source, context.AddressFamily);
+        NetworkFilterOperand? destination = ParseEndpoint(rule.Destination, context.AddressFamily);
         if (source is null && destination is null)
         {
             return [];
@@ -31,7 +32,7 @@ internal sealed class RuleKnownHostProjectionService : IRuleKnownHostProjectionS
         {
             if (!host.IsVisible
                 || host.AddressFamily != context.AddressFamily
-                || !RuleNetwork.TryParse(host.Address, out RuleNetwork? hostNetwork)
+                || !RuleFilterSemantics.TryParseNetwork(host.Address, out NetworkFilterOperand? hostNetwork)
                 || hostNetwork is null)
             {
                 continue;
@@ -50,18 +51,18 @@ internal sealed class RuleKnownHostProjectionService : IRuleKnownHostProjectionS
         return projections;
     }
 
-    private static bool Overlaps(RuleNetwork? ruleNetwork, RuleNetwork hostNetwork) =>
-        ruleNetwork is not null && (ruleNetwork.Contains(hostNetwork) || hostNetwork.Contains(ruleNetwork));
+    private static bool Overlaps(NetworkFilterOperand? ruleNetwork, NetworkFilterOperand hostNetwork) =>
+        ruleNetwork is not null && ruleNetwork.Overlaps(hostNetwork);
 
-    private static RuleNetwork? ParseEndpoint(string? value, FirewallAddressFamily addressFamily)
+    private static NetworkFilterOperand? ParseEndpoint(string? value, FirewallAddressFamily addressFamily)
     {
         if (string.IsNullOrWhiteSpace(value)
             || string.Equals(value, RuleSpecificationNormalizer.ANY, StringComparison.OrdinalIgnoreCase))
         {
-            return RuleNetwork.Any(addressFamily);
+            return RuleFilterSemantics.AnyNetwork(addressFamily);
         }
 
-        return RuleNetwork.TryParse(value, out RuleNetwork? network)
+        return RuleFilterSemantics.TryParseNetwork(value, out NetworkFilterOperand? network)
             && network is not null
             && network.AddressFamily == addressFamily
             ? network

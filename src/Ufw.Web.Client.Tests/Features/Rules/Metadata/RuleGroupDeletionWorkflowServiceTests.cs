@@ -63,18 +63,42 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
     }
 
     [TestMethod]
-    public async Task DeleteAsync_TemplateReferenceRejectsBeforeAnyFirewallOrCatalogMutationAsync()
+    public async Task DeleteAsync_TemplateReferencesAllowDeletingLiveRulesButRetainGroupAsync()
     {
         TestHost host = new();
         RuleGroup group = Group(["one"]) with { TemplateIds = [Guid.CreateVersion7()] };
         RuleSnapshot snapshot = Snapshot([Rule("one")]);
         RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
+        RuleGroup stillReferenced = group with { RuleIds = [] };
+        RuleBatchDeleteResponse batch = new(RuleBatchDeleteOutcome.Completed, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], Diagnostic: null);
+        host.Groups.SetupSequence(service => service.RefreshAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([group])
+            .ReturnsAsync([stillReferenced]);
+        host.Mutations.Setup(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(),
+            It.Is<IReadOnlyList<int>>(occurrences => occurrences.SequenceEqual(new[] { 0 })), "key", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(batch);
 
-        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteAsync(projection, snapshot, "key"));
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
 
-        StringAssert.Contains(exception.Message, "templates");
+        Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupRetained, result.Outcome);
+        Assert.AreSame(batch, result.BatchResponse);
+        CollectionAssert.AreEqual(new[] { stillReferenced }, result.Groups.ToArray());
+        host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_TemplateOnlyGroupIsRetainedWithoutMutationAsync()
+    {
+        TestHost host = new();
+        RuleGroup group = Group([]) with { TemplateIds = [Guid.CreateVersion7()] };
+        RuleGroupManagementProjection projection = Projection(group);
+        host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([group]);
+
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot: null, privateKey: null);
+
+        Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupRetained, result.Outcome);
+        host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         host.Mutations.VerifyNoOtherCalls();
-        host.Groups.VerifyNoOtherCalls();
     }
 
     [TestMethod]

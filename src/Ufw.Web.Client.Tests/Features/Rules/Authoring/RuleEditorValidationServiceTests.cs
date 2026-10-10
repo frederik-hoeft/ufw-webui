@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Web.Client.Features.Rules.Authoring;
@@ -11,8 +11,7 @@ namespace Ufw.Web.Client.Tests.Features.Rules.Authoring;
 public sealed class RuleEditorValidationServiceTests
 {
     private readonly RuleEditorValidationService _service = new(
-        new RuleValidationMessageLocalizer(new PassthroughStringLocalizer<ValidationStrings>()),
-        new PassthroughStringLocalizer<ValidationStrings>());
+        new RuleValidationMessageLocalizer(new PassthroughStringLocalizer<ValidationStrings>()));
 
     [TestMethod]
     public void Validate_LocalizesDomainValidationForRequestedProperty()
@@ -53,13 +52,14 @@ public sealed class RuleEditorValidationServiceTests
             .Setup(candidate => candidate.Localize(It.IsAny<ModelValidationError>()))
             .Callback<ModelValidationError>(candidate => captured = candidate)
             .Returns("localized");
-        RuleEditorValidationService service = new(localizer.Object, new PassthroughStringLocalizer<ValidationStrings>());
+        RuleEditorValidationService service = new(localizer.Object);
 
         IReadOnlyList<string> result = service.Validate(rule, nameof(FirewallRuleSpecification.AddressFamily), ipv6Enabled: false);
 
         CollectionAssert.AreEqual(new[] { "localized" }, result.ToArray());
         Assert.IsNotNull(captured);
         Assert.AreEqual(FirewallRuleValidationErrorCodes.IPV6_DISABLED, captured.Code);
+        Assert.AreEqual("IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration.", captured.ErrorMessage);
     }
 
     [TestMethod]

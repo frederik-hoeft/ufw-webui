@@ -1,4 +1,4 @@
-@inject IDialogService DialogService
+﻿@inject IDialogService DialogService
 @inject IFirewallRuleText RuleText
 @inject IStringLocalizer<RulesStrings> RulesText
 
@@ -63,15 +63,9 @@
                                         DragEntered="@SetDragTarget"
                                         DragEnded="@EndDrag"
                                         DropRequested="@DropAsync"
-                                        MoveToPositionRequested="@RequestMoveToPositionAsync"
-                                        InsertionRequested="@InsertionRequested"
-                                        DeleteRequested="@DeleteRequested"
+                                        Actions="@_rowActions"
                                         MetadataEditDisabled="@MetadataEditDisabled"
                                         TemplateSaveDisabled="@TemplateSaveDisabled"
-                                        EditRequested="@EditRequested"
-                                        MetadataEditRequested="@MetadataEditRequested"
-                                        SaveAsTemplateRequested="@SaveAsTemplateRequested"
-                                        DisableRequested="@DisableRequested"
                                         KnownHostsChanged="@KnownHostsChanged" />
                     }
             </RuleDesktopTable>
@@ -91,15 +85,9 @@
                                     DragEntered="@SetDragTarget"
                                     DragEnded="@EndDrag"
                                     DropRequested="@DropAsync"
-                                    MoveToPositionRequested="@RequestMoveToPositionAsync"
-                                    InsertionRequested="@InsertionRequested"
-                                    DeleteRequested="@DeleteRequested"
+                                    Actions="@_rowActions"
                                     MetadataEditDisabled="@MetadataEditDisabled"
                                     TemplateSaveDisabled="@TemplateSaveDisabled"
-                                    EditRequested="@EditRequested"
-                                    MetadataEditRequested="@MetadataEditRequested"
-                                    SaveAsTemplateRequested="@SaveAsTemplateRequested"
-                                    DisableRequested="@DisableRequested"
                                     KnownHostsChanged="@KnownHostsChanged" />
                 }
             </div>

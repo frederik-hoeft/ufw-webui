@@ -1,21 +1,16 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
+using Ufw.Shared.Web;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Templates;
+using Ufw.Web.Client.UI.Components;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class RuleTemplatesPage
 {
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Compact;
 
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HashSet<Guid> _expandedTemplateIds = [];
@@ -57,7 +52,7 @@ public sealed partial class RuleTemplatesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -69,9 +64,9 @@ public sealed partial class RuleTemplatesPage
 
     private void Create() => Navigation.NavigateTo("/templates/create");
 
-    private void Use(RuleTemplate template) => Navigation.NavigateTo(UriOf("/rules/create").AppendQuery("template", template.Id.ToString("D")).Build());
+    private void Use(RuleTemplate template) => Navigation.NavigateTo(SimpleUriBuilder.Create("/rules/create").AppendQuery("template", template.Id.ToString("D")).Build());
 
-    private void Edit(RuleTemplate template) => Navigation.NavigateTo(UriOf("/templates/edit").AppendPath(template.Id.ToString("D")).Build());
+    private void Edit(RuleTemplate template) => Navigation.NavigateTo(SimpleUriBuilder.Create("/templates/edit").AppendPath(template.Id.ToString("D")).Build());
 
     private async Task DeleteAsync(RuleTemplate template)
     {
@@ -102,7 +97,7 @@ public sealed partial class RuleTemplatesPage
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             _mutationError = true;

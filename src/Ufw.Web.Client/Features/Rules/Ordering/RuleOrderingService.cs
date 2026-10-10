@@ -1,55 +1,22 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Security.Intent;
-using Ufw.Web.Client.Api;
-using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules.Intent;
 using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Features.Rules.Ordering;
 
-internal sealed class RuleOrderingService(IRuleApiClient ruleApiClient, IIntentContextApiClient intentContextApiClient, IIntentSigningService intentSigningService) : IRuleOrderingService
+internal sealed class RuleOrderingService(IRuleApiClient ruleApiClient, ICompatibleIntentContextProvider intentContextProvider, IIntentSigningService intentSigningService) : IRuleOrderingService
 {
     public async Task<RuleReorderResponse> ApplyAsync(RuleListResponse baseline, IReadOnlyList<int> desiredOrder, string privateKey, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(desiredOrder);
-        ValidatePermutation(desiredOrder, baseline.Rules.Count);
+        RuleOrderPermutation permutation = RuleOrderPermutation.Create(desiredOrder, baseline.Rules.Count);
 
-        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
+        string deploymentId = await intentContextProvider.GetDeploymentIdAsync(cancellationToken);
         string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
-        ReorderRulesIntentRequest request = await intentSigningService.CreateReorderRulesRequestAsync(context.DeploymentId, baselineFingerprint, desiredOrder, privateKey, cancellationToken);
+        ReorderRulesIntentRequest request = await intentSigningService.CreateReorderRulesRequestAsync(deploymentId, baselineFingerprint, permutation.Occurrences, privateKey, cancellationToken);
         return await ruleApiClient.ReorderRulesAsync(request, cancellationToken);
-    }
-
-    private async Task<IntentContextResponse> GetCompatibleIntentContextAsync(CancellationToken cancellationToken)
-    {
-        IntentContextResponse context = await intentContextApiClient.GetAsync(cancellationToken);
-        if (context.ProtocolVersion != IntentProtocol.VERSION)
-        {
-            throw new ApiProtocolException($"Intent protocol mismatch. Client supports version {IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
-        }
-
-        return context;
-    }
-
-    private static void ValidatePermutation(IReadOnlyList<int> desiredOrder, int ruleCount)
-    {
-        if (desiredOrder.Count != ruleCount)
-        {
-            throw new ArgumentException("The desired ordering must contain every baseline occurrence exactly once.", nameof(desiredOrder));
-        }
-
-        bool[] seen = new bool[ruleCount];
-        foreach (int occurrenceId in desiredOrder)
-        {
-            if (occurrenceId < 0 || occurrenceId >= ruleCount || seen[occurrenceId])
-            {
-                throw new ArgumentException("The desired ordering must be a permutation of the baseline occurrences.", nameof(desiredOrder));
-            }
-
-            seen[occurrenceId] = true;
-        }
     }
 }

@@ -4,7 +4,7 @@
 
 <MudSelect T="FirewallDirection"
            Label="@(RulesText["DirectionFilter"])"
-           @bind-Value="_direction">
+           @bind-Value="_selection.Value">
     @foreach (FirewallDirection value in Enum.GetValues<FirewallDirection>())
     {
         <MudSelectItem T="FirewallDirection" Value="@value">@RuleText.FormatDirection(value)</MudSelectItem>

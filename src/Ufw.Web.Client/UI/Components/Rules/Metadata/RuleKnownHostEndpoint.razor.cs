@@ -43,7 +43,7 @@ public sealed partial class RuleKnownHostEndpoint
                 await KnownHostsChanged.InvokeAsync(response);
             }
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             Snackbar.Add(ClientErrors.Describe(exception).Message, Severity.Error);
         }

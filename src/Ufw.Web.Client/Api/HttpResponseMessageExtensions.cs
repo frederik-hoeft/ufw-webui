@@ -84,17 +84,9 @@ internal static class HttpResponseMessageExtensions
                 {
                     message = problem.Detail;
                 }
-                else
+                else if (!string.IsNullOrWhiteSpace(problem.Title))
                 {
-                    LegacyApiErrorMessage? legacy = JsonSerializer.Deserialize(content, ClientJsonSerializerContext.Default.LegacyApiErrorMessage);
-                    if (!string.IsNullOrWhiteSpace(legacy?.Message))
-                    {
-                        message = legacy.Message;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(problem.Title))
-                    {
-                        message = problem.Title;
-                    }
+                    message = problem.Title;
                 }
             }
         }

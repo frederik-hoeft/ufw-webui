@@ -4,8 +4,6 @@ public interface IRuleTagCatalogService
 {
     IReadOnlyList<RuleTag> Current { get; }
 
-    long Version { get; }
-
     Task<IReadOnlyList<RuleTag>> RefreshAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<RuleTag>> CreateAsync(string name, string color, CancellationToken cancellationToken = default);

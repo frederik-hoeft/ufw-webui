@@ -151,6 +151,58 @@ public sealed class KnownHostInventoryServiceTests
         Assert.IsEmpty(service.Current.Hosts);
     }
 
+    [TestMethod]
+    public async Task UpdateVisibilityAsync_LiteralHostPreservesMetadataWithoutDnsConfigurationAsync()
+    {
+        Mock<IKnownHostApiClient> api = new();
+        KnownHostInventoryItem host = new()
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "nas",
+            Address = "192.0.2.1",
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Comment = "Home NAS",
+            IsVisible = true,
+        };
+        KnownHostInventoryResponse response = new() { Hosts = [host] };
+        api.Setup(client => client.UpdateAsync(host.Id, It.Is<UpdateKnownHostRequest>(request =>
+            request.Name == host.Name && request.Address == host.Address && request.AddressSource == KnownHostAddressSource.Literal
+            && request.DnsAddressFamily == null && request.Comment == host.Comment && !request.IsVisible), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+        KnownHostInventoryService service = new(api.Object);
+
+        KnownHostInventoryResponse updated = await service.UpdateVisibilityAsync(host, isVisible: false);
+
+        Assert.AreSame(updated, service.Current);
+        api.VerifyAll();
+    }
+
+    [TestMethod]
+    public async Task UpdateVisibilityAsync_DnsHostPreservesDnsFamilyWithoutSendingResolvedAddressAsync()
+    {
+        Mock<IKnownHostApiClient> api = new();
+        KnownHostInventoryItem host = new()
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "nas.example.test",
+            Address = "2001:db8::1",
+            AddressFamily = FirewallAddressFamily.IPv6,
+            AddressSource = KnownHostAddressSource.Dns,
+            DnsResolvedAt = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero),
+            Comment = "DNS alias",
+            IsVisible = true,
+        };
+        api.Setup(client => client.UpdateAsync(host.Id, It.Is<UpdateKnownHostRequest>(request =>
+            request.Name == host.Name && request.Address == null && request.AddressSource == KnownHostAddressSource.Dns
+            && request.DnsAddressFamily == FirewallAddressFamily.IPv6 && request.Comment == host.Comment && !request.IsVisible), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KnownHostInventoryResponse { Hosts = [host] });
+        KnownHostInventoryService service = new(api.Object);
+
+        _ = await service.UpdateVisibilityAsync(host, isVisible: false);
+
+        api.VerifyAll();
+    }
+
     private static KnownHostInventoryItem Host(string name, string address, Guid? id = null) => new()
     {
         Id = id ?? Guid.CreateVersion7(),

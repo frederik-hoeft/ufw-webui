@@ -12,7 +12,7 @@ internal abstract record RuleInventoryTransition
     }
 
     public sealed record RefreshStarted(RuleInventoryRefreshReason Reason) : RuleInventoryTransition;
-    public sealed record RefreshCompleted(RuleInventoryResponse Response) : RuleInventoryTransition;
+    public sealed record RefreshCompleted(RuleSnapshot Snapshot) : RuleInventoryTransition;
     public sealed record RefreshFailed(ClientError Error) : RuleInventoryTransition;
     public sealed record MetadataMutationCompleted(string RuleId, RuleMetadataMutationResponse Response) : RuleInventoryTransition;
     public sealed record TagCatalogReconciled(IReadOnlyList<RuleTag> Tags) : RuleInventoryTransition;

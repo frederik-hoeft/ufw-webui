@@ -1,4 +1,12 @@
-# Ufw.Systemd Kaizen Blitz Review
+﻿# Ufw.Systemd Kaizen Blitz Review
+
+## Post-D acceptance safety follow-up
+
+See [ACC-01](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026).
+
+- [x] Assess authoritative snapshots for duplicate semantic identities (comments do not distinguish identities); expose affected occurrences on reads.
+- [x] Reject **all** signed firewall mutations at the daemon gate before nonce consumption/UFW writes when the snapshot is ambiguous. Return the stable `firewall.state.ambiguous` IPC error code; do not add an ASP-wide management-write guard or permit Web-based repair operations.
+- [ ] Run signed IPC/Ufw.Mock duplicate-reorder and daemon-restart acceptance, including distinct-comment duplicates and zero-write/zero-journal assertions. Keep unresolved recovery fail-closed.
 
 ## Wave D completion status
 

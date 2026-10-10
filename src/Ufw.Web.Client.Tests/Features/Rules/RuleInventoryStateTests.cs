@@ -264,7 +264,7 @@ public sealed class RuleInventoryStateTests
 
         Assert.ThrowsExactly<InvalidOperationException>(() => refreshing.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual)));
         Assert.ThrowsExactly<InvalidOperationException>(() => RuleInventoryState.Initial.MoveNext(
-            new RuleInventoryTransition.RefreshCompleted(Inventory(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled)))));
+            new RuleInventoryTransition.RefreshCompleted(RuleSnapshotFactory.FromInventoryResponse(Inventory(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled))))));
     }
 
     [TestMethod]
@@ -283,7 +283,7 @@ public sealed class RuleInventoryStateTests
 
     private static RuleInventoryState Loaded(RuleInventoryResponse response) => RuleInventoryState.Initial
         .MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual))
-        .MoveNext(new RuleInventoryTransition.RefreshCompleted(response));
+        .MoveNext(new RuleInventoryTransition.RefreshCompleted(RuleSnapshotFactory.FromInventoryResponse(response)));
 
     private static RuleInventoryResponse Inventory(
         RuleListResponse firewall,

@@ -38,12 +38,11 @@ public sealed class ClientErrorMapperTests
     }
 
     [TestMethod]
-    public void TryDescribe_UnknownExceptionReturnsFalseWithoutManufacturingError()
+    public void CanDescribe_OnlyKnownFailuresAreHandled()
     {
-        bool known = _mapper.TryDescribe(new InvalidOperationException("unexpected"), out ClientError error);
-
-        Assert.IsFalse(known);
-        Assert.IsNull(error);
+        Assert.IsFalse(_mapper.CanDescribe(new InvalidOperationException("unexpected")));
+        Assert.IsTrue(_mapper.CanDescribe(new ApiRequestException(HttpStatusCode.Unauthorized, "unauthorized")));
+        Assert.IsTrue(_mapper.CanDescribe(new HttpRequestException("offline")));
     }
 
     [TestMethod]

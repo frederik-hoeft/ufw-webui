@@ -1,6 +1,5 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
-@inject IRuleTagCatalogService TagCatalog
-@inject IRuleTagColorGenerator TagColors
+@inject IRuleMetadataAuthoringService Authoring
 @inject IClientErrorMapper ClientErrors
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -34,8 +33,8 @@
                                   @bind-Value="_name"
                                   Immediate="true"
                                   Required="true"
-                                  Counter="@MAX_TAG_NAME_LENGTH"
-                                  MaxLength="@MAX_TAG_NAME_LENGTH"
+                                  Counter="@RuleTagLimits.MAX_NAME_LENGTH"
+                                  MaxLength="@RuleTagLimits.MAX_NAME_LENGTH"
                                   Disabled="@_saving"
                                   autofocus="true" />
                     <div class="color-editor">

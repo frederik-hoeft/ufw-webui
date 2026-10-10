@@ -12,14 +12,7 @@ internal sealed class KnownHostEditorDialogService(
     IKnownHostInventoryService inventory,
     IStringLocalizer<KnownHostsStrings> text) : IKnownHostEditorDialogService
 {
-    private static readonly DialogOptions s_dialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_dialogOptions = ClientDialogOptions.Standard;
 
     public async Task<KnownHostInventoryResponse?> CreateAsync(string? initialAddress = null, CancellationToken cancellationToken = default)
     {

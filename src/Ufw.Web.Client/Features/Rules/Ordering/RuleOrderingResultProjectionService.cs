@@ -1,5 +1,6 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Web.Client.Features.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Ordering;
 
@@ -10,35 +11,26 @@ internal sealed class RuleOrderingResultProjectionService : IRuleOrderingResultP
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(baselineRules);
         ArgumentNullException.ThrowIfNull(desiredOrder);
-        ValidateDesiredOrder(desiredOrder, baselineRules.Count);
+        RuleOrderPermutation permutation = RuleOrderPermutation.Create(desiredOrder, baselineRules.Count);
+        IReadOnlyList<int> validatedOrder = permutation.Occurrences;
 
-        FirewallAddressFamily[] families = new FirewallAddressFamily[baselineRules.Count];
-        int[] baselineFamilyPositions = new int[baselineRules.Count];
+        RuleSnapshotIndex index = new(baselineRules);
+        int[] baselineFamilyPositions = [.. Enumerable.Range(0, index.Count).Select(index.GetFamilyPosition)];
         Dictionary<FirewallAddressFamily, int> familyCounts = [];
-        for (int occurrenceId = 0; occurrenceId < baselineRules.Count; occurrenceId++)
-        {
-            FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(baselineRules[occurrenceId]);
-            families[occurrenceId] = family;
-            int familyPosition = familyCounts.GetValueOrDefault(family) + 1;
-            familyCounts[family] = familyPosition;
-            baselineFamilyPositions[occurrenceId] = familyPosition;
-        }
-
         int[] targetFamilyPositions = new int[baselineRules.Count];
-        familyCounts.Clear();
-        for (int targetIndex = 0; targetIndex < desiredOrder.Count; targetIndex++)
+        for (int targetIndex = 0; targetIndex < validatedOrder.Count; targetIndex++)
         {
-            int occurrenceId = desiredOrder[targetIndex];
-            FirewallAddressFamily family = families[occurrenceId];
+            int occurrenceId = validatedOrder[targetIndex];
+            FirewallAddressFamily family = index.GetFamily(occurrenceId);
             int familyPosition = familyCounts.GetValueOrDefault(family) + 1;
             familyCounts[family] = familyPosition;
             targetFamilyPositions[occurrenceId] = familyPosition;
         }
 
         return new RuleOrderingResultProjection(
-            result.Operations.Select(operation => Project(operation, baselineFamilyPositions, targetFamilyPositions, desiredOrder)).ToArray(),
-            result.PendingOperations.Select(move => Project(move, baselineFamilyPositions, targetFamilyPositions, desiredOrder)).ToArray(),
-            result.BlockedOperations.Select(move => Project(move, baselineFamilyPositions, targetFamilyPositions, desiredOrder)).ToArray());
+            result.Operations.Select(operation => Project(operation, baselineFamilyPositions, targetFamilyPositions, validatedOrder)).ToArray(),
+            result.PendingOperations.Select(move => Project(move, baselineFamilyPositions, targetFamilyPositions, validatedOrder)).ToArray(),
+            result.BlockedOperations.Select(move => Project(move, baselineFamilyPositions, targetFamilyPositions, validatedOrder)).ToArray());
     }
 
     private static RuleOrderingOperationProjection Project(
@@ -67,25 +59,5 @@ internal sealed class RuleOrderingResultProjectionService : IRuleOrderingResultP
         }
 
         return new RuleOrderingMoveProjection(move, baselineFamilyPositions[move.OccurrenceId], targetFamilyPositions[move.OccurrenceId]);
-    }
-
-    private static void ValidateDesiredOrder(IReadOnlyList<int> desiredOrder, int occurrenceCount)
-    {
-        if (desiredOrder.Count != occurrenceCount)
-        {
-            throw new ArgumentException("The desired ordering must contain every baseline occurrence exactly once.", nameof(desiredOrder));
-        }
-
-        bool[] seen = new bool[occurrenceCount];
-        for (int index = 0; index < desiredOrder.Count; index++)
-        {
-            int occurrenceId = desiredOrder[index];
-            if (occurrenceId < 0 || occurrenceId >= occurrenceCount || seen[occurrenceId])
-            {
-                throw new ArgumentException("The desired ordering must be a permutation of the baseline occurrences.", nameof(desiredOrder));
-            }
-
-            seen[occurrenceId] = true;
-        }
     }
 }

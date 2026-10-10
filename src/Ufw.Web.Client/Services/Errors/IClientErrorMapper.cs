@@ -2,7 +2,7 @@
 
 public interface IClientErrorMapper
 {
-    bool TryDescribe(Exception exception, out ClientError clientError);
+    bool CanDescribe(Exception exception);
 
     ClientError Describe(Exception exception);
 }

@@ -1,27 +1,14 @@
 ﻿using MudBlazor;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
+using Ufw.Web.Client.UI.Components;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class RuleMetadataManagement
 {
-    private static readonly DialogOptions s_tagManagerDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_tagManagerDialogOptions = ClientDialogOptions.Standard;
 
-    private static readonly DialogOptions s_reconciliationDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Medium,
-    };
+    private static readonly DialogOptions s_reconciliationDialogOptions = ClientDialogOptions.Wide;
 
     private bool _dialogOpen;
 

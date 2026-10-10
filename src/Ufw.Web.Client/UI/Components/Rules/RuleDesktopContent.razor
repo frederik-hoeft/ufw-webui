@@ -3,7 +3,7 @@
 @inject IStringLocalizer<RulesStrings> RulesText
 
 <td class="rule-desktop-content action">
-    <span class="@ActionClass(Rule.Action)">@RuleText.FormatAction(Rule.Action)</span>
+    <span class="@RuleActionAppearance.CssClass(Rule.Action, EmphasizeAction)">@RuleText.FormatAction(Rule.Action)</span>
 </td>
 <td class="rule-desktop-content direction">
     <span class="rule-direction">@RuleText.FormatDirection(Rule.Direction)</span>

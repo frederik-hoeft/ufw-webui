@@ -17,7 +17,12 @@ public sealed partial class DeleteRuleGroupDialog : IDisposable
     [Parameter, EditorRequired]
     public RuleGroupManagementProjection Projection { get; set; } = null!;
 
+    [Parameter]
+    public IReadOnlyDictionary<Guid, string> TemplateNames { get; set; } = new Dictionary<Guid, string>();
+
     private bool RequiresSignedMutation => Projection.StoredMemberCount != 0;
+
+    private bool HasTemplateReferences => Projection.Group.TemplateIds.Count > 0;
 
     private bool CanDeleteRules => Projection.MemberResolutionAvailable && Projection.StaleMembershipCount == 0 && Projection.LiveOccurrenceCount > 0;
 
@@ -31,7 +36,7 @@ public sealed partial class DeleteRuleGroupDialog : IDisposable
 
     private async Task ConfirmAsync()
     {
-        if (_busy || RequiresSignedMutation && !CanDeleteRules)
+        if (_busy || RequiresSignedMutation && !CanDeleteRules || !RequiresSignedMutation && HasTemplateReferences)
         {
             return;
         }

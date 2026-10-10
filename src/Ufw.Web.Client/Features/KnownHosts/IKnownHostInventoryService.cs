@@ -1,4 +1,5 @@
-﻿using Ufw.Web.Client.Api.KnownHosts;
+﻿using Ufw.Shared.Management.KnownHosts;
+using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.Features.KnownHosts;
@@ -12,6 +13,8 @@ public interface IKnownHostInventoryService
     Task<KnownHostInventoryResponse> CreateAsync(CreateKnownHostRequest request, CancellationToken cancellationToken = default);
 
     Task<KnownHostInventoryResponse> UpdateAsync(Guid hostId, UpdateKnownHostRequest request, CancellationToken cancellationToken = default);
+
+    Task<KnownHostInventoryResponse> UpdateVisibilityAsync(KnownHostInventoryItem host, bool isVisible, CancellationToken cancellationToken = default);
 
     Task<KnownHostInventoryResponse> ReconcileDnsAsync(Guid hostId, CancellationToken cancellationToken = default);
 

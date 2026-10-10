@@ -1,0 +1,19 @@
+<MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+    <MudText Typo="Typo.subtitle1" GutterBottom="true">@Title</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3">@Message</MudText>
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Error"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               Disabled="@Disabled"
+               OnClick="OnRetry">
+        @RetryText
+    </MudButton>
+</MudAlert>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Message { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string RetryText { get; set; } = string.Empty;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback OnRetry { get; set; }
+}

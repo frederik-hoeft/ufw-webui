@@ -1,5 +1,5 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
-@inject IRuleGroupCatalogService GroupCatalog
+@inject IRuleMetadataAuthoringService Authoring
 @inject IClientErrorMapper ClientErrors
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
@@ -21,8 +21,8 @@
                           @bind-Value="_name"
                           Immediate="true"
                           Required="true"
-                          Counter="@MAX_GROUP_NAME_LENGTH"
-                          MaxLength="@MAX_GROUP_NAME_LENGTH"
+                          Counter="@RuleGroupLimits.MAX_NAME_LENGTH"
+                          MaxLength="@RuleGroupLimits.MAX_NAME_LENGTH"
                           Disabled="@Saving"
                           autofocus="true" />
             <MudTextField T="string"
@@ -30,8 +30,8 @@
                           @bind-Value="_comment"
                           Immediate="true"
                           Lines="4"
-                          Counter="@MAX_GROUP_COMMENT_LENGTH"
-                          MaxLength="@MAX_GROUP_COMMENT_LENGTH"
+                          Counter="@RuleGroupLimits.MAX_COMMENT_LENGTH"
+                          MaxLength="@RuleGroupLimits.MAX_COMMENT_LENGTH"
                           Disabled="@Saving" />
         </div>
     </DialogContent>

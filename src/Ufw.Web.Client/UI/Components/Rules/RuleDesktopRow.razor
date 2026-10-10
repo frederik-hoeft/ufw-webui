@@ -1,6 +1,4 @@
-@using Ufw.Web.Client.UI.Components.Rules.Metadata
-@inject IStringLocalizer<RulesStrings> RulesText
-
+﻿
 @{
     ListedFirewallRule rule = Row.Rule;
 }
@@ -16,61 +14,23 @@
         @ondragover:preventDefault
         @ondrop="DropAsync">
         <td class="drag" @onclick:stopPropagation="true">
-            <button type="button"
-                    class="@DragHandleClass"
-                    draggable="@DragEnabled"
-                    disabled="@(OrderingDisabled || !Row.CanOrder)"
-                    title="@DragHandleTitle"
-                    aria-label="@DragHandleLabel"
-                    @ondragstart="@BeginDragHandler"
-                    @ondragend="@EndDragHandler">
-                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
-            </button>
+            <RuleRowDragHandle Row="@Row"
+                               OrderingDisabled="@OrderingDisabled"
+                               DragStarted="@DragStarted"
+                               DragEnded="@DragEnded" />
         </td>
         <td class="position">
-            @if (Row.PositionChange is { } positionChange)
-            {
-                <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
-                      aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
-                    <span aria-hidden="true" class="rule-position-change-values">
-                        @if (positionChange.DirectlyMoved)
-                        {
-                            <s>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
-                        }
-                        else
-                        {
-                            <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                        }
-                        <span class="rule-position-arrow">&rarr;</span>
-                        <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                    </span>
-                </span>
-            }
-            else
-            {
-                <span class="rule-number">@Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-            }
+            <RuleRowPosition FamilyPosition="@Row.FamilyPosition" Change="@Row.PositionChange" />
         </td>
         <RuleDesktopContent Rule="@rule.Rule" Tags="@(Row.Metadata?.Tags ?? [])" />
         <td class="actions" @onclick:stopPropagation="true">
-            <RuleActionsMenu Rule="@rule"
-                             FamilyPosition="@Row.FamilyPosition"
-                             MetadataEditDisabled="@MetadataEditDisabled"
-                             TemplateSaveDisabled="@TemplateSaveDisabled"
-                             EditRequested="@(() => EditRequested.InvokeAsync(Row))"
-                             MetadataEditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))"
-                             SaveAsTemplateRequested="@(() => SaveAsTemplateRequested.InvokeAsync(Row))"
-                             DisableRequested="@(() => DisableRequested.InvokeAsync(Row))"
-                             OrderingDisabled="@OrderingDisabled"
-                             InsertionDisabled="@InsertionDisabled"
-                             MutationDisabled="@MutationDisabled"
-                             CanOrder="@Row.CanOrder"
-                             CanMutate="@Row.CanMutate"
-                             CanEdit="@Row.CanEdit"
-                             CanSaveAsTemplate="@Row.CanSaveAsTemplate"
-                             MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                             InsertionRequested="@InsertionRequested"
-                             DeleteRequested="@DeleteRequested" />
+            <RuleRowActions Row="@Row"
+                            Handlers="@Actions"
+                            MetadataEditDisabled="@MetadataEditDisabled"
+                            TemplateSaveDisabled="@TemplateSaveDisabled"
+                            OrderingDisabled="@OrderingDisabled"
+                            InsertionDisabled="@InsertionDisabled"
+                            MutationDisabled="@MutationDisabled" />
         </td>
     </tr>
 }
@@ -86,34 +46,15 @@ else
             </span>
         </td>
         <td class="position">
-            @if (Row.PositionChange is { } positionChange)
-            {
-                <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
-                      aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
-                    <span aria-hidden="true" class="rule-position-change-values">
-                        <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                        <span class="rule-position-arrow">&rarr;</span>
-                        <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                    </span>
-                </span>
-            }
-            else
-            {
-                <span class="rule-number">@Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-            }
+            <RuleRowPosition FamilyPosition="@Row.FamilyPosition" Change="@Row.PositionChange" ReadOnly="true" />
         </td>
         <td colspan="7">
             <div class="unsupported">
-                <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
-                <span class="rule-raw-line">@rule.RawLine</span>
+                <RuleRowReadOnlyContent RawLine="@rule.RawLine" />
             </div>
         </td>
         <td class="actions">
-            <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
-                <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
-                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
-                </span>
-            </MudTooltip>
+            <RuleRowReadOnlyIndicator />
         </td>
     </tr>
 }
@@ -125,24 +66,13 @@ else
         </td>
     </tr>
 }
-@if (_metadataExpanded && DetailsAvailable)
+@if (_interaction.MetadataExpanded && DetailsAvailable)
 {
     <tr class="rule-metadata-details-row">
         <td colspan="10">
-            <RuleMetadataDetails Metadata="@Row.Metadata"
-                                 CanonicalCommand="@Row.CanonicalCommand"
-                                 Source="@rule.Rule?.Source"
-                                 Destination="@rule.Rule?.Destination"
-                                 KnownHostsChanged="@KnownHostsChanged">
-                <Actions>
-                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
-                                   Size="Size.Small"
-                                   Class="rule-metadata-collapse-button"
-                                   OnClick="ToggleMetadata"
-                                   aria-label="@CollapseMetadataLabel"
-                                   aria-expanded="true" />
-                </Actions>
-            </RuleMetadataDetails>
+            <RuleRowMetadataDetails Row="@Row"
+                                    KnownHostsChanged="@KnownHostsChanged"
+                                    CollapseRequested="@ToggleMetadata" />
         </td>
     </tr>
 }

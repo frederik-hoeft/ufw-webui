@@ -3,16 +3,13 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
 @using Ufw.Web.Client.Features.Rules.Services
 @implements IDisposable
-@inject IRuleApiClient RuleApiClient
-@inject IRuleMutationService RuleMutations
-@inject IRuleGroupDeletionWorkflowService GroupDeletion
+@inject IRuleListRefreshWorkflowService ListRefresh
+@inject IRuleListMutationWorkflowService ListMutations
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
-@inject IRuleOrderingService RuleOrdering
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IRulesPageProjectionService RulesPageProjectionService
-@inject IKnownHostInventoryService KnownHosts
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IRuleReplacementNavigationService ReplacementNavigation
 @inject IRuleTemplateCatalogService TemplateCatalog
@@ -20,7 +17,6 @@
 @inject IRuleDisableWorkflowService RuleDisable
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
-@inject TimeProvider TimeProvider
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 @inject IStringLocalizer<TemplatesStrings> TemplatesText
@@ -74,8 +70,19 @@ else if (_state.Snapshot is null)
         </MudText>
     </MudPaper>
 }
-else if (_state.Snapshot is { })
+else if (_state.Snapshot is { } authoritativeSnapshot)
 {
+    @if (!authoritativeSnapshot.Assessment.IsClean)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+            <MudText Typo="Typo.subtitle1">@RulesText["FirewallAmbiguousTitle"]</MudText>
+            <MudText Typo="Typo.body2">@RulesText["FirewallAmbiguousDescription"]</MudText>
+            @foreach (FirewallStateIssue issue in authoritativeSnapshot.Assessment.Issues)
+            {
+                <MudText Typo="Typo.caption">@RulesText["FirewallAmbiguousDuplicateRule", issue.RuleId, string.Join(", ", issue.OccurrenceIds.Select(static id => id + 1))]</MudText>
+            }
+        </MudAlert>
+    }
     @if (_state.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">

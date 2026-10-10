@@ -40,7 +40,7 @@ public sealed class FirewallBatchDeleteServiceTests
             await releaseExecutor.Task;
             return CompletedResult();
         });
-        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object), executor.Object);
+        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
 
         Task<IResponsePayload> deletion = service.DeleteAsync(CreateRequest(), TestContext.CancellationToken).AsTask();
         await executorEntered.Task.WaitAsync(TestContext.CancellationToken);
@@ -69,7 +69,7 @@ public sealed class FirewallBatchDeleteServiceTests
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallBatchDeleteExecutor> executor = new(MockBehavior.Strict);
         executor.Setup(candidate => candidate.ExecuteAsync(It.IsAny<BatchDeleteRulesPayload>(), It.IsAny<CancellationToken>())).ReturnsAsync(CompletedResult());
-        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object), executor.Object);
+        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
         BatchDeleteRulesRequest request = CreateRequest();
 
         Assert.IsInstanceOfType<RuleBatchDeleteResponse>(await service.DeleteAsync(request, TestContext.CancellationToken));
@@ -88,7 +88,7 @@ public sealed class FirewallBatchDeleteServiceTests
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallBatchDeleteExecutor> executor = new(MockBehavior.Strict);
         executor.Setup(candidate => candidate.ExecuteAsync(It.IsAny<BatchDeleteRulesPayload>(), It.IsAny<CancellationToken>())).ReturnsAsync(CompletedResult());
-        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object), executor.Object);
+        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
         BatchDeleteRulesRequest request = CreateRequest();
 
         IResponsePayload[] results = await Task.WhenAll(
@@ -109,7 +109,7 @@ public sealed class FirewallBatchDeleteServiceTests
         Mock<INonceStore> nonceStore = new(MockBehavior.Strict);
         Mock<IFirewallMutationSafetyGuard> safetyGuard = new(MockBehavior.Strict);
         Mock<IFirewallBatchDeleteExecutor> executor = new(MockBehavior.Strict);
-        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object), executor.Object);
+        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
 
         IResponsePayload response = await service.DeleteAsync(CreateRequest(), TestContext.CancellationToken);
 
@@ -135,7 +135,7 @@ public sealed class FirewallBatchDeleteServiceTests
                 [new RuleBatchDeleteOperationReport(3, "sha256:rule", RuleBatchDeleteOperationStatus.DeletedAfterProcessFailure, "process failed")],
                 [1],
                 "stopped"));
-        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object), executor.Object);
+        FirewallBatchDeleteService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
 
         RuleBatchDeleteResponse response = Assert.IsInstanceOfType<RuleBatchDeleteResponse>(await service.DeleteAsync(CreateRequest(), TestContext.CancellationToken));
 
@@ -193,4 +193,13 @@ public sealed class FirewallBatchDeleteServiceTests
         BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []),
         OccurrenceIds = [1, 3],
     };
+
+    private static IFirewallRuleSnapshotReader CreateCleanSnapshotReader()
+    {
+        Mock<IFirewallRuleSnapshotReader> reader = new();
+        reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(
+                true, [], Ufw.Systemd.Tests.TestFirewallConfiguration.Enabled)));
+        return reader.Object;
+    }
 }

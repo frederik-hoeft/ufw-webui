@@ -729,7 +729,7 @@ public sealed class FirewallMutationServiceTests
             NetworkInterfaceSnapshotService networkInterfaceSnapshots = new(NetworkInterfaces.Object, logger);
             FirewallRuleInterfaceValidator interfaceValidator = new(networkInterfaceSnapshots);
             FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, new FirewallRuleCapabilityValidator(), runner, new UfwRuleCommandRenderer(), logger);
-            return new FirewallMutationService(verifier, new SignedMutationOrchestrator(_nonces, _gate, MutationSafetyGuard.Object), mutationExecutor);
+            return new FirewallMutationService(verifier, new SignedMutationOrchestrator(_nonces, _gate, MutationSafetyGuard.Object, CreateCleanSnapshotReader()), mutationExecutor);
         }
 
         public ValueTask DisposeAsync()
@@ -744,5 +744,14 @@ public sealed class FirewallMutationServiceTests
 
             return ValueTask.CompletedTask;
         }
+    }
+
+    private static IFirewallRuleSnapshotReader CreateCleanSnapshotReader()
+    {
+        Mock<IFirewallRuleSnapshotReader> reader = new();
+        reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(
+                true, [], Ufw.Systemd.Tests.TestFirewallConfiguration.Enabled)));
+        return reader.Object;
     }
 }

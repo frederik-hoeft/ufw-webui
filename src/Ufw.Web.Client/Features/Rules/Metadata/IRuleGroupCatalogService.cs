@@ -4,8 +4,6 @@ public interface IRuleGroupCatalogService
 {
     IReadOnlyList<RuleGroup> Current { get; }
 
-    long Version { get; }
-
     Task<IReadOnlyList<RuleGroup>> RefreshAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<RuleGroup>> CreateAsync(string name, string? comment = null, CancellationToken cancellationToken = default);

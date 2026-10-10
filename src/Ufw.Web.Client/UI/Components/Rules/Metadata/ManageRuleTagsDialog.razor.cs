@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
 
@@ -7,15 +8,7 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class ManageRuleTagsDialog
 {
-    private const int MAX_TAG_NAME_LENGTH = 64;
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Compact;
 
     private IReadOnlyList<RuleTag> _tags = [];
     private ClientError? _error;
@@ -42,9 +35,9 @@ public sealed partial class ManageRuleTagsDialog
         _error = null;
         try
         {
-            _tags = await TagCatalog.RefreshAsync();
+            _tags = await Authoring.RefreshTagsAsync();
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
         }
@@ -62,7 +55,7 @@ public sealed partial class ManageRuleTagsDialog
         }
         _editingTag = null;
         _name = string.Empty;
-        _color = TagColors.Generate();
+        _color = Authoring.GenerateTagColor();
         Editing = true;
     }
 
@@ -87,7 +80,7 @@ public sealed partial class ManageRuleTagsDialog
         }
     }
 
-    private void ReshuffleColor() => _color = TagColors.Generate();
+    private void ReshuffleColor() => _color = Authoring.GenerateTagColor();
 
     private async Task SaveTagAsync()
     {
@@ -97,7 +90,7 @@ public sealed partial class ManageRuleTagsDialog
         }
 
         string name = _name.Trim();
-        if (name.Length is 0 or > MAX_TAG_NAME_LENGTH)
+        if (name.Length is 0 or > RuleTagLimits.MAX_NAME_LENGTH)
         {
             return;
         }
@@ -112,17 +105,18 @@ public sealed partial class ManageRuleTagsDialog
         {
             if (_editingTag is null)
             {
-                _tags = await TagCatalog.CreateAsync(name, color);
+                _ = await Authoring.CreateTagAsync(name, color);
+                _tags = Authoring.Tags;
             }
             else
             {
-                _tags = await TagCatalog.UpdateAsync(_editingTag.Id, name, color);
+                _tags = await Authoring.UpdateTagAsync(_editingTag.Id, name, color);
             }
             Editing = false;
             _editingTag = null;
             Snackbar.Add(RulesText["TagSaved"], Severity.Success);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);
@@ -153,10 +147,10 @@ public sealed partial class ManageRuleTagsDialog
         _error = null;
         try
         {
-            _tags = await TagCatalog.DeleteAsync(tag.Id);
+            _tags = await Authoring.DeleteTagAsync(tag.Id);
             Snackbar.Add(RulesText["TagDeleted"], Severity.Success);
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _error = ClientErrors.Describe(exception);
             Snackbar.Add(_error.Message, Severity.Error);

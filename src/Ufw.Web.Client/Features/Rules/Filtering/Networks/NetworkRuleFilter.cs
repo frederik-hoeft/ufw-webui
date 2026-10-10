@@ -1,3 +1,5 @@
-﻿namespace Ufw.Web.Client.Features.Rules.Filtering.Networks;
+﻿using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 
-internal sealed record NetworkRuleFilter(RuleEndpointField Endpoint, RuleNetwork Network) : RuleFilter;
+namespace Ufw.Web.Client.Features.Rules.Filtering.Networks;
+
+internal sealed record NetworkRuleFilter(RuleEndpointField Endpoint, NetworkFilterOperand Network) : RuleFilter;

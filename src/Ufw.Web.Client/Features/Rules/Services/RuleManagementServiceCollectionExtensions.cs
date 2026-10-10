@@ -1,6 +1,7 @@
 ﻿using Ufw.Shared.Firewall.Rendering;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Authoring;
+using Ufw.Web.Client.Features.Rules.Authoring.Workflows;
 using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
@@ -32,7 +33,14 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddScoped<IRuleEditorValidationService, RuleEditorValidationService>();
         services.AddScoped<IRuleEditorReferenceDataService, RuleEditorReferenceDataService>();
         services.AddSingleton<IRuleDraftFactory, RuleDraftFactory>();
+        services.AddScoped<ICompatibleIntentContextProvider, CompatibleIntentContextProvider>();
+        services.AddScoped<IRuleInventoryService, RuleInventoryService>();
+        services.AddScoped<IRuleListRefreshWorkflowService, RuleListRefreshWorkflowService>();
+        services.AddScoped<IRuleListMutationWorkflowService, RuleListMutationWorkflowService>();
+        services.AddScoped<IRuleMetadataMutationService, RuleMetadataMutationService>();
         services.AddScoped<IRuleMutationService, RuleMutationService>();
+        services.AddScoped<IRuleCreationWorkflowService, RuleCreationWorkflowService>();
+        services.AddScoped<IRuleReplacementWorkflowService, RuleReplacementWorkflowService>();
         services.AddScoped<IRuleOrderingService, RuleOrderingService>();
         services.AddScoped<IRuleOrderingProjectionService, RuleOrderingProjectionService>();
         services.AddSingleton<IRuleOrderingResultProjectionService, RuleOrderingResultProjectionService>();
@@ -40,6 +48,7 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddSingleton<IRulesPageProjectionService, RulesPageProjectionService>();
         services.AddScoped<IRuleTagCatalogService, RuleTagCatalogService>();
         services.AddScoped<IRuleGroupCatalogService, RuleGroupCatalogService>();
+        services.AddScoped<IRuleMetadataAuthoringService, RuleMetadataAuthoringService>();
         services.AddScoped<IRuleGroupDeletionWorkflowService, RuleGroupDeletionWorkflowService>();
         services.AddSingleton<IRuleGroupManagementProjectionService, RuleGroupManagementProjectionService>();
         services.AddSingleton<IRuleTagColorGenerator, RuleTagColorGenerator>();
