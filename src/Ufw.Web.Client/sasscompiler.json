@@ -16,8 +16,32 @@
       "Target": "UI/Components/Rules/Metadata/RuleGroupMembers.razor.css"
     },
     {
+      "Source": "UI/Components/Rules/Metadata/RuleMetadataEditor.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleMetadataEditor.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/RuleTagChip.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleTagChip.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/RuleTagList.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleTagList.razor.css"
+    },
+    {
       "Source": "UI/Components/Rules/RuleDesktopContent.razor.scss",
       "Target": "UI/Components/Rules/RuleDesktopContent.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/RuleListToolbar.razor.scss",
+      "Target": "UI/Components/Rules/RuleListToolbar.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/RuleMatchContext.razor.scss",
+      "Target": "UI/Components/Rules/RuleMatchContext.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/RuleMobileContent.razor.scss",
+      "Target": "UI/Components/Rules/RuleMobileContent.razor.css"
     },
     {
       "Source": "UI/Components/Rules/Templates/RuleTemplateDetails.razor.scss",

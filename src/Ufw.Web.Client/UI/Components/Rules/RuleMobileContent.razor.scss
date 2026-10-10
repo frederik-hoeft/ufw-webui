@@ -37,7 +37,7 @@
             min-width: 0;
         }
 
-        > .mud-icon-root {
+        ::deep > .mud-icon-root {
             color: var(--mud-palette-text-secondary);
         }
     }

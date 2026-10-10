@@ -15,7 +15,7 @@
         align-items: center;
         gap: 0.5rem;
 
-        > .mud-input-control {
+        ::deep > .mud-input-control {
             min-width: 0;
         }
     }
@@ -34,11 +34,11 @@
         > .search-row {
             grid-template-columns: 1fr 1fr;
 
-            > .mud-input-control {
+            ::deep > .mud-input-control {
                 grid-column: 1 / -1;
             }
 
-            > .mud-button-root {
+            ::deep > .mud-button-root {
                 width: 100%;
             }
         }

@@ -247,7 +247,8 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
    - [x] C3.2: share the identical rule metadata panel/collapse action and read-only fragments between layouts. Preserve distinct desktop table cells, mobile labeled sections, and their CSS selectors; defer style consolidation to KZ-13. Browser-level responsive verification remains an integration acceptance task.
 2. CLIENT KZ-13 classify/extract styles against the final component structure:
    - [x] C3.3: document global-style ownership and consolidate shared rule-row and action-menu primitives.
-   - [ ] C3.4: selectively migrate owner-local styles to isolation with scoped-CSS publish verification; keep necessary portal/overlay hooks global. Do not mechanically convert all styles.
+   - [x] C3.4: migrate six owner-local leaf styles to `.razor.scss` with narrow Mud-child `::deep` selectors and scoped-CSS verification; retain shared, portal, and cross-component styling globally.
+   - [ ] C3.5: resolve remaining owner-local candidates (especially dialogs, row parents, layout overrides), coordinating dialog markup with KZ-14; close KZ-13 when their ownership is established. Browser-level responsive acceptance remains open.
 3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 
 #### C4 - Transport/public-surface/opportunistic cleanup
