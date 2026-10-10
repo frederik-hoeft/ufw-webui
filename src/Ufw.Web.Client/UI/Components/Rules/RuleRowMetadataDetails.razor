@@ -1,0 +1,28 @@
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<RuleMetadataDetails Metadata="@Row.Metadata"
+                     CanonicalCommand="@Row.CanonicalCommand"
+                     Source="@Row.Rule.Rule?.Source"
+                     Destination="@Row.Rule.Rule?.Destination"
+                     KnownHostsChanged="@KnownHostsChanged">
+    <Actions>
+        <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
+                       Size="Size.Small"
+                       Class="rule-metadata-collapse-button"
+                       OnClick="@CollapseRequested"
+                       aria-label="@RulesText["HideRuleMetadata", Row.FamilyPosition]"
+                       aria-expanded="true" />
+    </Actions>
+</RuleMetadataDetails>
+
+@code {
+    [Parameter, EditorRequired]
+    public RuleRowProjection Row { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<KnownHostInventoryResponse> KnownHostsChanged { get; set; }
+
+    [Parameter]
+    public EventCallback CollapseRequested { get; set; }
+}

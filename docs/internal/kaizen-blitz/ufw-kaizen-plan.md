@@ -244,7 +244,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 
 1. CLIENT KZ-07 converge desktop/mobile rule behavior and fragments after application workflows have left the components/pages.
    - [x] C3.1: share per-row expansion/keyboard state, native drag-handle presentation, position-change markup, action styling, and workspace-to-menu callback wiring without merging table/card layouts.
-   - [ ] C3.2: inspect remaining content/metadata presentation clones and verify responsive behavior; leave style consolidation to KZ-13 where appropriate.
+   - [x] C3.2: share the identical rule metadata panel/collapse action and read-only fragments between layouts. Preserve distinct desktop table cells, mobile labeled sections, and their CSS selectors; defer style consolidation to KZ-13. Browser-level responsive verification remains an integration acceptance task.
 2. CLIENT KZ-13 classify/extract styles against the final component structure.
 3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 
@@ -382,7 +382,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |
 | [x] | CLIENT KZ-05 | C1 | Define the rule-order permutation invariant once | Do before ordering workflows are moved/refined; subsequent code should traffic in one validated permutation representation. |
 | [x] | CLIENT KZ-06 | C1 | Centralize metadata DTO-to-domain normalization | Do after Web shared-domain/metadata contracts stabilize; KZ-17 and later workflows should consume this one mapper. |
-| [ ] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | Do after KZ-01 removes workflow behavior from page/component surfaces; then converge only presentation/interaction behavior. |
+| [x] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | C3.1 shares interaction, position, actions, drag; C3.2 shares metadata expansion content and read-only fragments. Desktop/mobile content layout intentionally stays separate; shared SCSS belongs to KZ-13. |
 | [x] | CLIENT KZ-08 | C2 | Move metadata-authoring CRUD out of `RuleMetadataEditor` and centralize metadata limits | Do after Web KZ-05 exposes shared limits and after Client KZ-15 settles catalog state semantics. |
 | [x] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
 | [x] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | C2.8: one page-level async operation helper and common loading/error fragments, with known-host visibility request construction in Features; domain-specific dialogs/reconciliation remain separate. |

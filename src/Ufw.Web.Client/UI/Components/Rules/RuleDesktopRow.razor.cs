@@ -103,8 +103,6 @@ public sealed partial class RuleDesktopRow
 
     private bool DetailsAvailable => RuleRowInteractionState.DetailsAvailable(Row);
 
-    private string CollapseMetadataLabel => RulesText["HideRuleMetadata", Row.FamilyPosition];
-
     private void ToggleMetadata() => _interaction.ToggleMetadata(Row);
 
     private void HandleKeyDown(KeyboardEventArgs args) => _interaction.HandleKeyDown(Row, args.Key);

@@ -1,6 +1,4 @@
-﻿@using Ufw.Web.Client.UI.Components.Rules.Metadata
-@inject IStringLocalizer<RulesStrings> RulesText
-
+﻿
 @{
     ListedFirewallRule rule = Row.Rule;
 }
@@ -52,16 +50,11 @@ else
         </td>
         <td colspan="7">
             <div class="unsupported">
-                <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
-                <span class="rule-raw-line">@rule.RawLine</span>
+                <RuleRowReadOnlyContent RawLine="@rule.RawLine" />
             </div>
         </td>
         <td class="actions">
-            <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
-                <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
-                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
-                </span>
-            </MudTooltip>
+            <RuleRowReadOnlyIndicator />
         </td>
     </tr>
 }
@@ -77,20 +70,9 @@ else
 {
     <tr class="rule-metadata-details-row">
         <td colspan="10">
-            <RuleMetadataDetails Metadata="@Row.Metadata"
-                                 CanonicalCommand="@Row.CanonicalCommand"
-                                 Source="@rule.Rule?.Source"
-                                 Destination="@rule.Rule?.Destination"
-                                 KnownHostsChanged="@KnownHostsChanged">
-                <Actions>
-                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
-                                   Size="Size.Small"
-                                   Class="rule-metadata-collapse-button"
-                                   OnClick="ToggleMetadata"
-                                   aria-label="@CollapseMetadataLabel"
-                                   aria-expanded="true" />
-                </Actions>
-            </RuleMetadataDetails>
+            <RuleRowMetadataDetails Row="@Row"
+                                    KnownHostsChanged="@KnownHostsChanged"
+                                    CollapseRequested="@ToggleMetadata" />
         </td>
     </tr>
 }

@@ -1,6 +1,4 @@
-﻿@using Ufw.Web.Client.UI.Components.Rules.Metadata
-@inject IFirewallRuleText RuleText
-@inject IStringLocalizer<RulesStrings> RulesText
+﻿@inject IFirewallRuleText RuleText
 
 @{
     ListedFirewallRule rule = Row.Rule;
@@ -46,20 +44,9 @@
         }
         @if (_interaction.MetadataExpanded && DetailsAvailable)
         {
-            <RuleMetadataDetails Metadata="@Row.Metadata"
-                                 CanonicalCommand="@Row.CanonicalCommand"
-                                 Source="@rule.Rule?.Source"
-                                 Destination="@rule.Rule?.Destination"
-                                 KnownHostsChanged="@KnownHostsChanged">
-                <Actions>
-                    <MudIconButton Icon="@Icons.Material.Filled.ExpandLess"
-                                   Size="Size.Small"
-                                   Class="rule-metadata-collapse-button"
-                                   OnClick="ToggleMetadata"
-                                   aria-label="@CollapseMetadataLabel"
-                                   aria-expanded="true" />
-                </Actions>
-            </RuleMetadataDetails>
+            <RuleRowMetadataDetails Row="@Row"
+                                    KnownHostsChanged="@KnownHostsChanged"
+                                    CollapseRequested="@ToggleMetadata" />
         }
     </article>
 }
@@ -71,14 +58,9 @@ else
              @ondrop="DropAsync">
         <header>
             <RuleRowPosition FamilyPosition="@Row.FamilyPosition" Change="@Row.PositionChange" PrefixNumber="true" ReadOnly="true" />
-            <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
-                <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
-                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
-                </span>
-            </MudTooltip>
+            <RuleRowReadOnlyIndicator />
         </header>
-        <span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
-        <span class="rule-raw-line">@rule.RawLine</span>
+        <RuleRowReadOnlyContent RawLine="@rule.RawLine" />
         @if (MatchEvidence.Count > 0)
         {
             <RuleMatchContext Evidence="@MatchEvidence" />
