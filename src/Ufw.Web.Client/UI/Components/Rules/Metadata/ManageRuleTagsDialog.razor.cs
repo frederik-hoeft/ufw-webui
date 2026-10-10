@@ -8,14 +8,7 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class ManageRuleTagsDialog
 {
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Compact;
 
     private IReadOnlyList<RuleTag> _tags = [];
     private ClientError? _error;

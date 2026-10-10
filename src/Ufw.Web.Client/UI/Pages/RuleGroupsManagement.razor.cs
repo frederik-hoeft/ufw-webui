@@ -7,29 +7,16 @@ using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
+using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class RuleGroupsManagement
 {
-    private static readonly DialogOptions s_editorDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_editorDialogOptions = ClientDialogOptions.Standard;
 
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Standard;
 
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HashSet<Guid> _expandedGroups = [];

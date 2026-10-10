@@ -4,20 +4,14 @@ using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Hosts;
 using Ufw.Web.Client.UI.Pages.Inventory;
+using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class KnownHostsPage
 {
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Compact;
 
     private readonly CancellationTokenSource _lifetime = new();
     private InventoryPageOperations<KnownHostInventoryResponse> _operations = null!;

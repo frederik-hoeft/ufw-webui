@@ -3,19 +3,13 @@ using MudBlazor;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Templates;
+using Ufw.Web.Client.UI.Components;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class RuleTemplatesPage
 {
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Compact;
 
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HashSet<Guid> _expandedTemplateIds = [];

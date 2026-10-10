@@ -7,14 +7,7 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class ReconcileRuleMetadataDialog
 {
-    private static readonly DialogOptions s_cleanupDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_cleanupDialogOptions = ClientDialogOptions.Compact;
 
     private readonly HashSet<Guid> _selected = [];
     private RuleMetadataReconciliationSnapshot? _snapshot;

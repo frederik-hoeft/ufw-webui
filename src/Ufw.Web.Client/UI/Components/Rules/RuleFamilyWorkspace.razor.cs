@@ -10,15 +10,7 @@ namespace Ufw.Web.Client.UI.Components.Rules;
 
 public sealed partial class RuleFamilyWorkspace
 {
-    private static readonly DialogOptions s_moveDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        DefaultFocus = DefaultFocus.FirstChild,
-        FullWidth = true,
-        MaxWidth = MaxWidth.ExtraSmall,
-    };
+    private static readonly DialogOptions s_moveDialogOptions = ClientDialogOptions.FocusedCompact;
 
     private RuleRowActionHandlers _rowActions = null!;
     private RuleRowProjection? _draggedRow;

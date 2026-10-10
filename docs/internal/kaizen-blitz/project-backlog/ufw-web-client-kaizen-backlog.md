@@ -486,6 +486,8 @@ Modal sizing/close behavior and common confirmation markup are copied repeatedly
 - extract a reusable confirmation/impact shell component with slots/parameters for title/body/warnings/actions;
 - keep domain validation and destructive-operation semantics in the concrete dialog.
 
+**C3.6:** Shared `ClientDialogOptions` factory presets now own modal width, backdrop, Escape and first-child focus configuration, including the intentionally different filter-editor policy. `ConfirmationDialog` owns the identical simple destructive-confirmation body and action presentation for orphaned-metadata cleanup and tag deletion. Their callbacks remain in the concrete dialogs; richer signed, catalog and host confirmations retain their distinct domain-specific content and controls. The reconciliation dialog still passes the complete unmatched metadata identifiers; no truncation or mutation code is changed.
+
 ### KZ-15: Simplify catalog state and define/remove `Version`
 
 **Where**
