@@ -243,6 +243,8 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 #### C3 - UI/component/style convergence
 
 1. CLIENT KZ-07 converge desktop/mobile rule behavior and fragments after application workflows have left the components/pages.
+   - [x] C3.1: share per-row expansion/keyboard state, native drag-handle presentation, position-change markup, action styling, and workspace-to-menu callback wiring without merging table/card layouts.
+   - [ ] C3.2: inspect remaining content/metadata presentation clones and verify responsive behavior; leave style consolidation to KZ-13 where appropriate.
 2. CLIENT KZ-13 classify/extract styles against the final component structure.
 3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 

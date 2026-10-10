@@ -17,65 +17,25 @@
              @ondrop="DropAsync">
         <header>
             <div class="leading">
-                <button type="button"
-                        class="@DragHandleClass"
-                        draggable="@DragEnabled"
-                        disabled="@(OrderingDisabled || !Row.CanOrder)"
-                        title="@DragHandleTitle"
-                        aria-label="@DragHandleLabel"
-                        @onclick:stopPropagation="true"
-                        @ondragstart="@BeginDragHandler"
-                        @ondragend="@EndDragHandler">
-                    <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
-                </button>
+                <RuleRowDragHandle Row="@Row"
+                                   OrderingDisabled="@OrderingDisabled"
+                                   DragStarted="@DragStarted"
+                                   DragEnded="@DragEnded" />
                 <div class="identity">
-                    @if (Row.PositionChange is { } positionChange)
-                    {
-                        <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
-                              aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
-                            <span aria-hidden="true" class="rule-position-change-values">
-                                @if (positionChange.DirectlyMoved)
-                                {
-                                    <s>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
-                                }
-                                else
-                                {
-                                    <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                                }
-                                <span class="rule-position-arrow">&rarr;</span>
-                                <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                            </span>
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="rule-number">#@Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                    }
-                    <span class="@ActionClass(rule.Rule.Action)">
+                    <RuleRowPosition FamilyPosition="@Row.FamilyPosition" Change="@Row.PositionChange" PrefixNumber="true" />
+                    <span class="@RuleActionAppearance.CssClass(rule.Rule.Action)">
                         @RuleText.FormatAction(rule.Rule.Action)
                     </span>
                 </div>
             </div>
             <div class="trailing" @onclick:stopPropagation="true">
-                <RuleActionsMenu Rule="@rule"
-                                 OccurrenceId="@Row.OccurrenceId"
-                                 FamilyPosition="@Row.FamilyPosition"
-                                 MetadataEditDisabled="@MetadataEditDisabled"
-                                 TemplateSaveDisabled="@TemplateSaveDisabled"
-                                 EditRequested="@(() => EditRequested.InvokeAsync(Row))"
-                                 MetadataEditRequested="@(() => MetadataEditRequested.InvokeAsync(Row))"
-                                 SaveAsTemplateRequested="@(() => SaveAsTemplateRequested.InvokeAsync(Row))"
-                                 DisableRequested="@(() => DisableRequested.InvokeAsync(Row))"
-                                 OrderingDisabled="@OrderingDisabled"
-                                 InsertionDisabled="@InsertionDisabled"
-                                 MutationDisabled="@MutationDisabled"
-                                 CanOrder="@Row.CanOrder"
-                                 CanMutate="@Row.CanMutate"
-                                 CanEdit="@Row.CanEdit"
-                                 CanSaveAsTemplate="@Row.CanSaveAsTemplate"
-                                 MoveToPositionRequested="@(() => MoveToPositionRequested.InvokeAsync(Row))"
-                                 InsertionRequested="@InsertionRequested"
-                                 DeleteRequested="@DeleteRequested" />
+                <RuleRowActions Row="@Row"
+                                Handlers="@Actions"
+                                MetadataEditDisabled="@MetadataEditDisabled"
+                                TemplateSaveDisabled="@TemplateSaveDisabled"
+                                OrderingDisabled="@OrderingDisabled"
+                                InsertionDisabled="@InsertionDisabled"
+                                MutationDisabled="@MutationDisabled" />
             </div>
         </header>
 
@@ -84,7 +44,7 @@
         {
             <RuleMatchContext Evidence="@MatchEvidence" />
         }
-        @if (_metadataExpanded && DetailsAvailable)
+        @if (_interaction.MetadataExpanded && DetailsAvailable)
         {
             <RuleMetadataDetails Metadata="@Row.Metadata"
                                  CanonicalCommand="@Row.CanonicalCommand"
@@ -110,21 +70,7 @@ else
              @ondragover:preventDefault
              @ondrop="DropAsync">
         <header>
-            @if (Row.PositionChange is { } positionChange)
-            {
-                <span class="@PositionChangeClass(positionChange.DirectlyMoved)"
-                      aria-label="@PositionChangeLabel(positionChange.OriginalPosition, positionChange.CurrentPosition, positionChange.DirectlyMoved)">
-                    <span aria-hidden="true" class="rule-position-change-values">
-                        <span>@positionChange.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                        <span class="rule-position-arrow">&rarr;</span>
-                        <span>@positionChange.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-                    </span>
-                </span>
-            }
-            else
-            {
-                <span class="rule-number">#@Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
-            }
+            <RuleRowPosition FamilyPosition="@Row.FamilyPosition" Change="@Row.PositionChange" PrefixNumber="true" ReadOnly="true" />
             <MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
                 <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
                     <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />

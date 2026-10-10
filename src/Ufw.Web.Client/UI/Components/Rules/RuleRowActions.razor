@@ -1,0 +1,42 @@
+<RuleActionsMenu Rule="@Row.Rule"
+                 OccurrenceId="@Row.OccurrenceId"
+                 FamilyPosition="@Row.FamilyPosition"
+                 MetadataEditDisabled="@MetadataEditDisabled"
+                 TemplateSaveDisabled="@TemplateSaveDisabled"
+                 EditRequested="@(() => Handlers.EditRequested.InvokeAsync(Row))"
+                 MetadataEditRequested="@(() => Handlers.MetadataEditRequested.InvokeAsync(Row))"
+                 SaveAsTemplateRequested="@(() => Handlers.SaveAsTemplateRequested.InvokeAsync(Row))"
+                 DisableRequested="@(() => Handlers.DisableRequested.InvokeAsync(Row))"
+                 OrderingDisabled="@OrderingDisabled"
+                 InsertionDisabled="@InsertionDisabled"
+                 MutationDisabled="@MutationDisabled"
+                 CanOrder="@Row.CanOrder"
+                 CanMutate="@Row.CanMutate"
+                 CanEdit="@Row.CanEdit"
+                 CanSaveAsTemplate="@Row.CanSaveAsTemplate"
+                 MoveToPositionRequested="@(() => Handlers.MoveToPositionRequested.InvokeAsync(Row))"
+                 InsertionRequested="@Handlers.InsertionRequested"
+                 DeleteRequested="@Handlers.DeleteRequested" />
+
+@code {
+    [Parameter, EditorRequired]
+    public RuleRowProjection Row { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public RuleRowActionHandlers Handlers { get; set; } = null!;
+
+    [Parameter]
+    public bool OrderingDisabled { get; set; }
+
+    [Parameter]
+    public bool InsertionDisabled { get; set; }
+
+    [Parameter]
+    public bool MutationDisabled { get; set; }
+
+    [Parameter]
+    public bool MetadataEditDisabled { get; set; }
+
+    [Parameter]
+    public bool TemplateSaveDisabled { get; set; }
+}
