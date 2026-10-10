@@ -31,6 +31,21 @@ internal sealed class KnownHostInventoryService(IKnownHostApiClient apiClient) :
         return Current;
     }
 
+    public Task<KnownHostInventoryResponse> UpdateVisibilityAsync(KnownHostInventoryItem host, bool isVisible, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        UpdateKnownHostRequest request = new()
+        {
+            Name = host.Name,
+            Address = host.AddressSource == KnownHostAddressSource.Literal ? host.Address : null,
+            AddressSource = host.AddressSource,
+            DnsAddressFamily = host.AddressSource == KnownHostAddressSource.Dns ? host.AddressFamily : null,
+            Comment = host.Comment,
+            IsVisible = isVisible,
+        };
+        return UpdateAsync(host.Id, request, cancellationToken);
+    }
+
     public async Task<KnownHostInventoryResponse> ReconcileDnsAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
         KnownHostInventoryResponse response = await apiClient.ReconcileDnsAsync(hostId, cancellationToken);

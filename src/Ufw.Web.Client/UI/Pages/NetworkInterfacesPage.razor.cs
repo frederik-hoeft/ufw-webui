@@ -3,7 +3,9 @@ using Ufw.Shared.Management.NetworkInterfaces;
 using Ufw.Web.Client.Api.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Interfaces;
+using Ufw.Web.Client.UI.Pages.Inventory;
 using Ufw.Web.Model.V1.NetworkInterfaces;
+
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class NetworkInterfacesPage
@@ -18,10 +20,10 @@ public sealed partial class NetworkInterfacesPage
     };
 
     private readonly CancellationTokenSource _lifetime = new();
-    private NetworkInterfaceInventoryResponse? _inventory;
-    private ClientError? _error;
-    private bool _loading;
-    private bool _savingMetadata;
+    private InventoryPageOperations<NetworkInterfaceInventoryResponse> _operations = null!;
+    private NetworkInterfaceInventoryResponse? _inventory => _operations.Current;
+    private ClientError? _error => _operations.Error;
+    private bool _loading => _operations.IsLoading;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -29,9 +31,13 @@ public sealed partial class NetworkInterfacesPage
         new BreadcrumbItem(InterfacesText["InterfacesBreadcrumb"], null, disabled: true),
     ];
 
-    private bool IsBusy => _loading || _savingMetadata;
+    private bool IsBusy => _operations.IsBusy;
 
-    protected override Task OnInitializedAsync() => RefreshAsync();
+    protected override Task OnInitializedAsync()
+    {
+        _operations = new InventoryPageOperations<NetworkInterfaceInventoryResponse>(ClientErrors);
+        return RefreshAsync();
+    }
 
     public void Dispose()
     {
@@ -39,66 +45,13 @@ public sealed partial class NetworkInterfacesPage
         _lifetime.Dispose();
     }
 
-    private async Task RefreshAsync()
+    private Task RefreshAsync() => _operations.RefreshAsync(InterfaceInventory.RefreshAsync, _lifetime.Token);
+
+    private Task ReconcileAsync() => _operations.RefreshAsync(
+        InterfaceInventory.ReconcileAsync, _lifetime.Token, error => Snackbar.Add(error.Message, Severity.Error));
+
+    private Task EditCommentAsync(NetworkInterfaceInventoryItem item) => SaveAsync(async cancellationToken =>
     {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        _loading = true;
-        _error = null;
-        try
-        {
-            _inventory = await InterfaceInventory.RefreshAsync(_lifetime.Token);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private async Task ReconcileAsync()
-    {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        _loading = true;
-        _error = null;
-        try
-        {
-            _inventory = await InterfaceInventory.ReconcileAsync(_lifetime.Token);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-            Snackbar.Add(_error.Message, Severity.Error);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private async Task EditCommentAsync(NetworkInterfaceInventoryItem item)
-    {
-        if (IsBusy)
-        {
-            return;
-        }
-
         DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new()
         {
             { component => component.InterfaceName, item.Name },
@@ -108,54 +61,24 @@ public sealed partial class NetworkInterfacesPage
         string? comment = await dialog.GetReturnValueAsync<string>();
         if (comment is null)
         {
-            return;
+            return null;
         }
 
-        _savingMetadata = true;
-        try
-        {
-            _inventory = await InterfaceInventory.UpdateCommentAsync(item.Id, comment, _lifetime.Token);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-            Snackbar.Add(_error.Message, Severity.Error);
-        }
-        finally
-        {
-            _savingMetadata = false;
-        }
-    }
+        return await InterfaceInventory.UpdateCommentAsync(item.Id, comment, cancellationToken);
+    });
 
-    private async Task UpdateVisibilityAsync(NetworkInterfaceInventoryItem item, bool isVisible)
+    private Task UpdateVisibilityAsync(NetworkInterfaceInventoryItem item, bool isVisible)
     {
         if (IsBusy || item.IsVisible == isVisible)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        _savingMetadata = true;
-        _error = null;
-        try
-        {
-            _inventory = await InterfaceInventory.UpdateVisibilityAsync(item.Id, isVisible, _lifetime.Token);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-            Snackbar.Add(_error.Message, Severity.Error);
-        }
-        finally
-        {
-            _savingMetadata = false;
-        }
+        return SaveAsync(async cancellationToken => await InterfaceInventory.UpdateVisibilityAsync(item.Id, isVisible, cancellationToken));
     }
+
+    private Task<bool> SaveAsync(Func<CancellationToken, Task<NetworkInterfaceInventoryResponse?>> operation)
+        => _operations.UpdateAsync(operation, _lifetime.Token, error => Snackbar.Add(error.Message, Severity.Error));
 
     private string VisibilityActionText(NetworkInterfaceInventoryItem item) => item.IsVisible
         ? InterfacesText["HideFromRuleEditor", item.Name]

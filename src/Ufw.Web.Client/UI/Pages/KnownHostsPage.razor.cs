@@ -3,6 +3,7 @@ using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Hosts;
+using Ufw.Web.Client.UI.Pages.Inventory;
 using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Pages;
@@ -19,10 +20,10 @@ public sealed partial class KnownHostsPage
     };
 
     private readonly CancellationTokenSource _lifetime = new();
-    private KnownHostInventoryResponse? _inventory;
-    private ClientError? _error;
-    private bool _loading;
-    private bool _saving;
+    private InventoryPageOperations<KnownHostInventoryResponse> _operations = null!;
+    private KnownHostInventoryResponse? _inventory => _operations.Current;
+    private ClientError? _error => _operations.Error;
+    private bool _loading => _operations.IsLoading;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -30,9 +31,13 @@ public sealed partial class KnownHostsPage
         new BreadcrumbItem(HostsText["HostsBreadcrumb"], null, disabled: true),
     ];
 
-    private bool IsBusy => _loading || _saving;
+    private bool IsBusy => _operations.IsBusy;
 
-    protected override Task OnInitializedAsync() => RefreshAsync();
+    protected override Task OnInitializedAsync()
+    {
+        _operations = new InventoryPageOperations<KnownHostInventoryResponse>(ClientErrors);
+        return RefreshAsync();
+    }
 
     public void Dispose()
     {
@@ -40,66 +45,11 @@ public sealed partial class KnownHostsPage
         _lifetime.Dispose();
     }
 
-    private async Task RefreshAsync()
-    {
-        if (IsBusy)
-        {
-            return;
-        }
+    private Task RefreshAsync() => _operations.RefreshAsync(HostInventory.RefreshAsync, _lifetime.Token);
 
-        _loading = true;
-        _error = null;
-        try
-        {
-            _inventory = await HostInventory.RefreshAsync(_lifetime.Token);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
+    private Task CreateAsync() => SaveAsync(cancellationToken => HostEditor.CreateAsync(cancellationToken: cancellationToken));
 
-    private Task CreateAsync() => RunEditorAsync(cancellationToken => HostEditor.CreateAsync(cancellationToken: cancellationToken));
-
-    private Task EditAsync(KnownHostInventoryItem host) => RunEditorAsync(cancellationToken => HostEditor.EditAsync(host, cancellationToken));
-
-    private async Task RunEditorAsync(Func<CancellationToken, Task<KnownHostInventoryResponse?>> operation)
-    {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        _saving = true;
-        _error = null;
-        try
-        {
-            KnownHostInventoryResponse? response = await operation(_lifetime.Token);
-            if (response is not null)
-            {
-                _inventory = response;
-            }
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-            Snackbar.Add(_error.Message, Severity.Error);
-        }
-        finally
-        {
-            _saving = false;
-        }
-    }
+    private Task EditAsync(KnownHostInventoryItem host) => SaveAsync(cancellationToken => HostEditor.EditAsync(host, cancellationToken));
 
     private async Task ReconcileDnsAsync(KnownHostInventoryItem host)
     {
@@ -108,20 +58,15 @@ public sealed partial class KnownHostsPage
             return;
         }
 
-        bool saved = await SaveAsync(cancellationToken => HostInventory.ReconcileDnsAsync(host.Id, cancellationToken));
+        bool saved = await SaveAsync(async cancellationToken => await HostInventory.ReconcileDnsAsync(host.Id, cancellationToken));
         if (saved)
         {
             Snackbar.Add(HostsText["DnsReconciled", host.Name], Severity.Success);
         }
     }
 
-    private async Task DeleteAsync(KnownHostInventoryItem host)
+    private Task DeleteAsync(KnownHostInventoryItem host) => SaveAsync(async cancellationToken =>
     {
-        if (IsBusy)
-        {
-            return;
-        }
-
         DialogParameters<DeleteKnownHostDialog> parameters = new()
         {
             { component => component.Host, host }
@@ -130,55 +75,24 @@ public sealed partial class KnownHostsPage
         bool? confirmed = await dialog.GetReturnValueAsync<bool>();
         if (confirmed != true)
         {
-            return;
+            return null;
         }
 
-        await SaveAsync(cancellationToken => HostInventory.DeleteAsync(host.Id, cancellationToken));
-    }
+        return await HostInventory.DeleteAsync(host.Id, cancellationToken);
+    });
 
-    private async Task UpdateVisibilityAsync(KnownHostInventoryItem host, bool isVisible)
+    private Task UpdateVisibilityAsync(KnownHostInventoryItem host, bool isVisible)
     {
         if (IsBusy || host.IsVisible == isVisible)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        UpdateKnownHostRequest request = new()
-        {
-            Name = host.Name,
-            Address = host.AddressSource == KnownHostAddressSource.Literal ? host.Address : null,
-            AddressSource = host.AddressSource,
-            DnsAddressFamily = host.AddressSource == KnownHostAddressSource.Dns ? host.AddressFamily : null,
-            Comment = host.Comment,
-            IsVisible = isVisible,
-        };
-        await SaveAsync(cancellationToken => HostInventory.UpdateAsync(host.Id, request, cancellationToken));
+        return SaveAsync(async cancellationToken => await HostInventory.UpdateVisibilityAsync(host, isVisible, cancellationToken));
     }
 
-    private async Task<bool> SaveAsync(Func<CancellationToken, Task<KnownHostInventoryResponse>> operation)
-    {
-        _saving = true;
-        _error = null;
-        try
-        {
-            _inventory = await operation(_lifetime.Token);
-            return true;
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-            return false;
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _error = ClientErrors.Describe(exception);
-            Snackbar.Add(_error.Message, Severity.Error);
-            return false;
-        }
-        finally
-        {
-            _saving = false;
-        }
-    }
+    private Task<bool> SaveAsync(Func<CancellationToken, Task<KnownHostInventoryResponse?>> operation)
+        => _operations.UpdateAsync(operation, _lifetime.Token, error => Snackbar.Add(error.Message, Severity.Error));
 
     private string VisibilityActionText(KnownHostInventoryItem host) => host.IsVisible
         ? HostsText["HideFromRuleEditor", host.Name]

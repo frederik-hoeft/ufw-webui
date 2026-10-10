@@ -238,7 +238,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
 4. [x] CLIENT KZ-09: explicit create-rule interaction phases cover validation, submission, add confirmation, and insertion-context invalidation. Inventory authority and mutation sequencing remain in their existing Features services.
 5. [x] CLIENT KZ-19: known-host and network-interface loads independently retain typed failure diagnostics; the editor distinguishes unavailable suggestions from empty results without blocking literal authoring.
-6. CLIENT KZ-10 factor known-host/interface inventory mechanics after Web's interface-retention semantics are final.
+6. [x] CLIENT KZ-10: shared inventory-page operation lifetime/busy/error handling and common loading/error presentation; visibility request construction stays in feature services. Domain-specific reconciliation and dialogs remain distinct.
 
 #### C3 - UI/component/style convergence
 
@@ -383,7 +383,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | Do after KZ-01 removes workflow behavior from page/component surfaces; then converge only presentation/interaction behavior. |
 | [x] | CLIENT KZ-08 | C2 | Move metadata-authoring CRUD out of `RuleMetadataEditor` and centralize metadata limits | Do after Web KZ-05 exposes shared limits and after Client KZ-15 settles catalog state semantics. |
 | [x] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
-| [ ] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | Do after Web KZ-13 fixes interface lifecycle semantics and after feature-level inventory operations are stable. |
+| [x] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | C2.8: one page-level async operation helper and common loading/error fragments, with known-host visibility request construction in Features; domain-specific dialogs/reconciliation remain separate. |
 | [x] | CLIENT KZ-11 | C1 | Remove repeated `TryDescribe(... out _)` + `Describe(...)` error classification | Do immediately after Web KZ-09 stabilizes ProblemDetails/error semantics, before moving more workflow code into Features. |
 | [x] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
 | [ ] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | Do after KZ-07 so style ownership follows the final component decomposition. |
