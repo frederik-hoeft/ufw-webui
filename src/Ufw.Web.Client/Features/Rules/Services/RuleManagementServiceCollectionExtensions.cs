@@ -35,6 +35,8 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddSingleton<IRuleDraftFactory, RuleDraftFactory>();
         services.AddScoped<ICompatibleIntentContextProvider, CompatibleIntentContextProvider>();
         services.AddScoped<IRuleInventoryService, RuleInventoryService>();
+        services.AddScoped<IRuleListRefreshWorkflowService, RuleListRefreshWorkflowService>();
+        services.AddScoped<IRuleListMutationWorkflowService, RuleListMutationWorkflowService>();
         services.AddScoped<IRuleMetadataMutationService, RuleMetadataMutationService>();
         services.AddScoped<IRuleMutationService, RuleMutationService>();
         services.AddScoped<IRuleCreationWorkflowService, RuleCreationWorkflowService>();

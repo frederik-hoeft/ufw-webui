@@ -2,7 +2,6 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Management.KnownHosts;
-using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Filtering;
@@ -15,7 +14,6 @@ using Ufw.Web.Client.UI.Components.Rules;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Client.UI.Components.Rules.Templates;
 using Ufw.Web.Model.V1.KnownHosts;
-using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.UI.Pages;
 
@@ -54,7 +52,7 @@ public sealed partial class RulesPage
     private RulesPageInteractionState _pageInteraction = RulesPageInteractionState.Initial;
     private string _orderingPrivateKey = string.Empty;
     private RuleOrderingPreview? _orderingPreview;
-    private RuleOrderingResultContext? _orderingResult;
+    private RuleListOrderingResult? _orderingResult;
     private RulesPageProjection _projection = RulesPageProjection.Empty;
     private RuleFamilySelectionState _familySelection = RuleFamilySelectionState.Initial;
     private RuleQuery _ruleQuery = RuleQuery.Empty;
@@ -150,9 +148,9 @@ public sealed partial class RulesPage
         _state = _state.MoveNext(new RuleInventoryTransition.RefreshStarted(reason));
         try
         {
-            RuleSnapshot snapshot = await RuleInventory.GetAsync(_lifetime.Token);
-            _state = _state.MoveNext(new RuleInventoryTransition.RefreshCompleted(snapshot));
-            await RefreshKnownHostsAsync();
+            RuleListRefreshResult refreshed = await ListRefresh.RefreshAsync(_state, _knownHosts, _lifetime.Token);
+            _state = refreshed.State;
+            _knownHosts = refreshed.KnownHosts;
             RefreshRuleListProjection();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -161,23 +159,6 @@ public sealed partial class RulesPage
         catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _state = _state.MoveNext(new RuleInventoryTransition.RefreshFailed(ClientErrors.Describe(exception)));
-        }
-    }
-
-    private async Task RefreshKnownHostsAsync()
-    {
-        try
-        {
-            KnownHostInventoryResponse response = await KnownHosts.RefreshAsync(_lifetime.Token);
-            _knownHosts = response.Hosts.Where(static host => host.IsVisible).ToArray();
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            _knownHosts = KnownHosts.Current?.Hosts.Where(static host => host.IsVisible).ToArray() ?? [];
         }
     }
 
@@ -356,8 +337,7 @@ public sealed partial class RulesPage
         try
         {
             RuleMetadataChange change = new(result.Notes, result.TagIds, result.GroupId);
-            RuleMetadataMutationResponse response = await MetadataMutations.UpdateAsync(ruleId, change, _lifetime.Token);
-            _state = _state.MoveNext(new RuleInventoryTransition.MetadataMutationCompleted(ruleId, response));
+            _state = await ListMutations.UpdateMetadataAsync(_state, ruleId, change, _lifetime.Token);
             RefreshRuleListProjection();
             Snackbar.Add(RulesText["MetadataSaved"], Severity.Success);
         }
@@ -384,7 +364,7 @@ public sealed partial class RulesPage
         RuleGroup? orphanGroupCandidate = null;
         try
         {
-            orphanGroupCandidate = await GroupDeletion.GetSingleRuleCleanupCandidateAsync(rule, snapshot, _lifetime.Token);
+            orphanGroupCandidate = await ListMutations.GetSingleRuleCleanupCandidateAsync(rule, snapshot, _lifetime.Token);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -443,10 +423,18 @@ public sealed partial class RulesPage
     {
         try
         {
-            await RuleMutations.DeleteRuleAsync(rule, privateKey, _lifetime.Token);
+            RuleListDeletionResult result = await ListMutations.DeleteAsync(rule, privateKey, groupToDelete, _lifetime.Token);
             if (groupToDelete is not null)
             {
-                await TryDeleteOrphanedGroupAsync(groupToDelete);
+                if (result.GroupCleanup is { } cleanup)
+                {
+                    Snackbar.Add(cleanup.Deleted ? RulesText["RuleAndGroupDeleted", groupToDelete.Name] : RulesText["RuleDeletedGroupRetained", groupToDelete.Name],
+                        cleanup.Deleted ? Severity.Success : Severity.Warning);
+                }
+                else if (result.GroupCleanupError is { } error)
+                {
+                    Snackbar.Add(RulesText["RuleDeletedGroupCleanupFailed", groupToDelete.Name, error.Message], Severity.Warning);
+                }
             }
 
             _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteCompleted());
@@ -465,23 +453,6 @@ public sealed partial class RulesPage
             {
                 _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.DeleteCompleted());
             }
-        }
-    }
-
-    private async Task TryDeleteOrphanedGroupAsync(RuleGroup group)
-    {
-        try
-        {
-            RuleGroupCleanupResult cleanup = await GroupDeletion.DeleteIfEmptyAsync(group.Id, _lifetime.Token);
-            Snackbar.Add(cleanup.Deleted ? RulesText["RuleAndGroupDeleted", group.Name] : RulesText["RuleDeletedGroupRetained", group.Name], cleanup.Deleted ? Severity.Success : Severity.Warning);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            Snackbar.Add(RulesText["RuleDeletedGroupCleanupFailed", group.Name, ClientErrors.Describe(exception).Message], Severity.Warning);
         }
     }
 
@@ -587,15 +558,13 @@ public sealed partial class RulesPage
         _pageInteraction = _pageInteraction.MoveNext(new RulesPageInteractionTransition.ReorderStarted());
         try
         {
-            RuleListResponse baseline = RuleSnapshotFactory.ToFirewallResponse(snapshot);
-            int[] desiredOrder = [.. _orderingPreview.DesiredOrder];
-            RuleReorderResponse response = await RuleOrdering.ApplyAsync(baseline, desiredOrder, _orderingPrivateKey, _lifetime.Token);
+            RuleListOrderingResult result = await ListMutations.ApplyOrderingAsync(_state, _orderingPreview, _orderingPrivateKey, _lifetime.Token);
 
             _orderingPreview = null;
-            _orderingResult = new RuleOrderingResultContext(response, baseline.Rules.ToArray(), desiredOrder);
-            _state = _state.MoveNext(new RuleInventoryTransition.ReorderCompleted(response, TimeProvider.GetUtcNow()));
+            _orderingResult = result;
+            _state = result.State;
             RefreshRuleListProjection();
-            if (response.Outcome == RuleReorderOutcome.Completed)
+            if (result.Response.Outcome == RuleReorderOutcome.Completed)
             {
                 Snackbar.Add(RulesText["OrderingApplied"], Severity.Success);
             }
@@ -662,8 +631,6 @@ public sealed partial class RulesPage
         _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
         Snackbar.Add(error.Message, Severity.Error);
     }
-
-    private sealed record RuleOrderingResultContext(RuleReorderResponse Response, IReadOnlyList<ListedFirewallRule> BaselineRules, IReadOnlyList<int> DesiredOrder);
 
     private string DescribeStaleState() => _state.StaleReason switch
     {

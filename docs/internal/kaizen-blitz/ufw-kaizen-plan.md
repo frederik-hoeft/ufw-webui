@@ -233,7 +233,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 1. CLIENT KZ-01 move rule-page workflows into focused Features services using the C1 snapshot/protocol/error primitives:
    - [x] C2.1: centralize authoritative inventory loading and rule-metadata request/response handling; remove direct `IRuleApiClient` use from rule pages.
    - [x] C2.2: extract create/edit mutation sequencing and post-firewall metadata persistence/retry; retain dialogs, navigation, and notifications in Razor.
-   - [ ] Extract rule-list mutation/refresh coordination and finish the KZ-01 acceptance criteria.
+   - [x] C2.3: extract rule-list refresh, metadata, deletion/group-cleanup and ordering coordination; retain dialogs, navigation, notifications and lifecycle in Razor.
 2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner, incorporating ACC-05 template-reference semantics.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
 4. CLIENT KZ-09 introduce explicit create-rule workflow state after the workflow has moved out of Razor.
@@ -374,7 +374,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 
 | Done | Source item | Planned wave | Finding | Sequencing note |
 |---|---|---|---|---|
-| [ ] | CLIENT KZ-01 | C2 | Move rule-page application workflows out of Razor | Do after C1 and after the Web API/shared-model checkpoint so workflows are extracted around stable contracts rather than current DTO/error quirks. |
+| [x] | CLIENT KZ-01 | C2 | Move rule-page application workflows out of Razor | Do after C1 and after the Web API/shared-model checkpoint so workflows are extracted around stable contracts rather than current DTO/error quirks. |
 | [x] | CLIENT KZ-02 | C1 | Make client rule filtering consume the shared semantic-domain primitives | Requires PR #40. Do before KZ-16 so filter micro-clone cleanup is performed against the final semantic adapter. |
 | [x] | CLIENT KZ-03 | C1 | Centralize snapshot occurrence indexing and remove object-identity lookup | Do early; later rule workflows/navigation should consume the stable occurrence index instead of preserving ReferenceEquals paths. |
 | [x] | CLIENT KZ-04 | C1 | Collapse the repeated intent-signing pipeline and compatible-context lookup | Do only after daemon KZ-014/KZ-008 and Web KZ-02/KZ-03 stabilize intent and gateway behavior. |

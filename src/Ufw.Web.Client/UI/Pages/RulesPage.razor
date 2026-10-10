@@ -3,17 +3,13 @@
 @using Ufw.Web.Client.Features.Rules.Metadata
 @using Ufw.Web.Client.Features.Rules.Services
 @implements IDisposable
-@inject IRuleInventoryService RuleInventory
-@inject IRuleMetadataMutationService MetadataMutations
-@inject IRuleMutationService RuleMutations
-@inject IRuleGroupDeletionWorkflowService GroupDeletion
+@inject IRuleListRefreshWorkflowService ListRefresh
+@inject IRuleListMutationWorkflowService ListMutations
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IClientErrorMapper ClientErrors
-@inject IRuleOrderingService RuleOrdering
 @inject IRuleOrderingProjectionService RuleOrderingProjection
 @inject IRulesPageProjectionService RulesPageProjectionService
-@inject IKnownHostInventoryService KnownHosts
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IRuleReplacementNavigationService ReplacementNavigation
 @inject IRuleTemplateCatalogService TemplateCatalog
@@ -21,7 +17,6 @@
 @inject IRuleDisableWorkflowService RuleDisable
 @inject IFirewallRuleText RuleText
 @inject NavigationManager Navigation
-@inject TimeProvider TimeProvider
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<RulesStrings> RulesText
 @inject IStringLocalizer<TemplatesStrings> TemplatesText

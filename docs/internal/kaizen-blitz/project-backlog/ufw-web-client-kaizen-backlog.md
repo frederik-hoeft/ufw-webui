@@ -53,8 +53,8 @@ The architectural direction established by PR #40 should remain intact: normaliz
 ### KZ-01: Move rule-page application workflows out of Razor
 
 - [x] Centralize rule inventory loading/response mapping and rule metadata updates in `Features`; remove direct rule REST client injection from the four pages.
-- [ ] Extract create/edit signed-mutation sequencing, post-mutation reconciliation, and list mutation workflows; keep UI lifecycle and presentation in Razor.
-- [ ] Complete acceptance criteria below before checking off KZ-01.
+- [x] Extract create/edit signed-mutation sequencing, post-mutation reconciliation, and list mutation workflows; keep UI lifecycle and presentation in Razor.
+- [x] Complete the code-level acceptance criteria below before checking off KZ-01; retain deferred end-to-end/manual acceptance in the cross-project plan.
 
 **Where**
 
