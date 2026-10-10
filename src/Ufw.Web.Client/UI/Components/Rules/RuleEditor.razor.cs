@@ -14,7 +14,7 @@ public sealed partial class RuleEditor
 {
     private readonly CancellationTokenSource _lifetime = new();
     private MudForm? _form;
-    private RuleEditorReferenceData _referenceData = new([], [], [], null);
+    private RuleEditorReferenceData _referenceData = RuleEditorReferenceData.Empty;
     private IReadOnlyList<KnownHostInventoryItem> _visibleKnownHosts = [];
     private bool _isValid;
 
@@ -135,7 +135,7 @@ public sealed partial class RuleEditor
 
     private string DescribeInterfaceHelp(string directionHelp)
     {
-        if (_referenceData.InterfaceInventoryError is not null)
+        if (_referenceData.Interfaces.Error is not null)
         {
             return RulesText["InterfaceSuggestionsUnavailable", directionHelp];
         }

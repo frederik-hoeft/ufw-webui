@@ -1,13 +1,12 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Shared.Management.NetworkInterfaces;
-using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Client.Api.NetworkInterfaces;
 using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Features.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Model.V1.NetworkInterfaces;
+
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 
 internal sealed class RuleEditorReferenceDataService(
@@ -17,19 +16,19 @@ internal sealed class RuleEditorReferenceDataService(
 {
     public async Task<RuleEditorReferenceData> LoadAsync(CancellationToken cancellationToken = default)
     {
-        Task<IReadOnlyList<KnownHostInventoryItem>> hostsTask = LoadKnownHostsAsync(cancellationToken);
-        Task<InterfaceInventoryResult> interfacesTask = LoadInterfacesAsync(cancellationToken);
+        Task<RuleEditorCatalogResult<KnownHostInventoryItem>> hostsTask = LoadKnownHostsAsync(cancellationToken);
+        Task<RuleEditorCatalogResult<NetworkInterfaceInventoryItem>> interfacesTask = LoadInterfacesAsync(cancellationToken);
         await Task.WhenAll(hostsTask, interfacesTask);
 
-        IReadOnlyList<KnownHostInventoryItem> hosts = await hostsTask;
-        InterfaceInventoryResult interfaces = await interfacesTask;
-        return new RuleEditorReferenceData(hosts, interfaces.All, interfaces.Visible, interfaces.Error);
+        RuleEditorCatalogResult<KnownHostInventoryItem> hosts = await hostsTask;
+        RuleEditorCatalogResult<NetworkInterfaceInventoryItem> interfaces = await interfacesTask;
+        return new RuleEditorReferenceData(hosts, interfaces);
     }
 
     public IReadOnlyList<KnownHostInventoryItem> GetVisibleKnownHosts(RuleEditorReferenceData data, bool ipv6Enabled)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return data.KnownHosts
+        return data.KnownHosts.Items
             .Where(host => host.IsVisible && (ipv6Enabled || host.AddressFamily != FirewallAddressFamily.IPv6))
             .ToArray();
     }
@@ -37,17 +36,17 @@ internal sealed class RuleEditorReferenceDataService(
     public bool IsUnknownInterface(RuleEditorReferenceData data, string? interfaceName)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return data.InterfaceInventoryError is null
+        return data.Interfaces.Error is null
             && !string.IsNullOrWhiteSpace(interfaceName)
-            && !data.KnownInterfaces.Any(candidate => string.Equals(candidate.Name, interfaceName, StringComparison.Ordinal));
+            && !data.Interfaces.Items.Any(candidate => string.Equals(candidate.Name, interfaceName, StringComparison.Ordinal));
     }
 
-    private async Task<IReadOnlyList<KnownHostInventoryItem>> LoadKnownHostsAsync(CancellationToken cancellationToken)
+    private async Task<RuleEditorCatalogResult<KnownHostInventoryItem>> LoadKnownHostsAsync(CancellationToken cancellationToken)
     {
         try
         {
             KnownHostInventoryResponse inventory = await knownHosts.RefreshAsync(cancellationToken);
-            return inventory.Hosts;
+            return RuleEditorCatalogResult<KnownHostInventoryItem>.Loaded(inventory.Hosts);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -55,20 +54,17 @@ internal sealed class RuleEditorReferenceDataService(
         }
         catch (Exception exception) when (errors.CanDescribe(exception))
         {
-            _ = errors.Describe(exception);
-            return [];
+            ClientError error = errors.Describe(exception);
+            return RuleEditorCatalogResult<KnownHostInventoryItem>.Failed(error);
         }
     }
 
-    private async Task<InterfaceInventoryResult> LoadInterfacesAsync(CancellationToken cancellationToken)
+    private async Task<RuleEditorCatalogResult<NetworkInterfaceInventoryItem>> LoadInterfacesAsync(CancellationToken cancellationToken)
     {
         try
         {
             NetworkInterfaceInventoryResponse inventory = await networkInterfaces.RefreshAsync(cancellationToken);
-            return new InterfaceInventoryResult(
-                inventory.Interfaces,
-                inventory.Interfaces.Where(static networkInterface => networkInterface.IsVisible).ToArray(),
-                null);
+            return RuleEditorCatalogResult<NetworkInterfaceInventoryItem>.Loaded(inventory.Interfaces);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -76,9 +72,8 @@ internal sealed class RuleEditorReferenceDataService(
         }
         catch (Exception exception) when (errors.CanDescribe(exception))
         {
-            return new InterfaceInventoryResult([], [], errors.Describe(exception).Message);
+            ClientError error = errors.Describe(exception);
+            return RuleEditorCatalogResult<NetworkInterfaceInventoryItem>.Failed(error);
         }
     }
-
-    private sealed record InterfaceInventoryResult(IReadOnlyList<NetworkInterfaceInventoryItem> All, IReadOnlyList<NetworkInterfaceInventoryItem> Visible, string? Error);
 }

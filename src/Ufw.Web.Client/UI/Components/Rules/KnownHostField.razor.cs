@@ -31,6 +31,9 @@ public sealed partial class KnownHostField
     public IReadOnlyList<KnownHostInventoryItem> Suggestions { get; set; } = [];
 
     [Parameter]
+    public bool SuggestionsUnavailable { get; set; }
+
+    [Parameter]
     public FirewallAddressFamily AddressFamily { get; set; }
 
     [Parameter]

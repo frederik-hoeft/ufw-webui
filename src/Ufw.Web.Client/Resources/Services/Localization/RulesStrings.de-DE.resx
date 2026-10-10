@@ -710,6 +710,8 @@
   <data name="OrderedInsertionResultUncertain" xml:space="preserve">
     <value>Ergebnis des Einfügens ist ungewiss</value>
   </data>
+  <data name="KnownHostSuggestionsUnavailable" xml:space="preserve"><value>Vorschläge für bekannte Hosts konnten nicht geladen werden. Sie können weiterhin eine IP-Adresse oder ein CIDR direkt eingeben.</value></data>
+  <data name="NetworkInterfaceSuggestionsUnavailable" xml:space="preserve"><value>Vorschläge für Netzwerkschnittstellen konnten nicht geladen werden. Sie können weiterhin einen Schnittstellennamen eingeben.</value></data>
   <data name="NoKnownHostMatches" xml:space="preserve"><value>Kein bekannter Host passt zu Name, Adresse oder Kommentar. Eine konkrete Adresse oder ein CIDR kann weiterhin direkt eingegeben werden.</value></data>
   <data name="FirewallDefaults" xml:space="preserve"><value>Standardrichtlinien</value></data>
   <data name="DefaultIncoming" xml:space="preserve"><value>Eingehend</value></data>

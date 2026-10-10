@@ -39,7 +39,7 @@
     </ItemTemplate>
     <NoItemsTemplate>
         <div class="known-host-no-items">
-            @RulesText["NoKnownHostMatches"]
+            @(SuggestionsUnavailable ? RulesText["KnownHostSuggestionsUnavailable"] : RulesText["NoKnownHostMatches"])
         </div>
     </NoItemsTemplate>
 </MudAutocomplete>

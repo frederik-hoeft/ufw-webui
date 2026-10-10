@@ -237,7 +237,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 2. [x] CLIENT KZ-18: keep group-deletion membership planning, confirmation checks and catalog consistency checks pure; retain mutation, revalidation and cleanup I/O in the workflow executor.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
 4. [x] CLIENT KZ-09: explicit create-rule interaction phases cover validation, submission, add confirmation, and insertion-context invalidation. Inventory authority and mutation sequencing remain in their existing Features services.
-5. CLIENT KZ-19 make rule-editor reference-data failures symmetric against the final server error behavior.
+5. [x] CLIENT KZ-19: known-host and network-interface loads independently retain typed failure diagnostics; the editor distinguishes unavailable suggestions from empty results without blocking literal authoring.
 6. CLIENT KZ-10 factor known-host/interface inventory mechanics after Web's interface-retention semantics are final.
 
 #### C3 - UI/component/style convergence
@@ -392,7 +392,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
 | [x] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
 | [x] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
-| [ ] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Do with feature workflow extraction, using the final server error contract and explicit reference-data results. |
+| [x] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Both reference catalogs retain independently classified failures, and localized editor warnings distinguish unavailable suggestions from an empty catalog. |
 | [ ] | CLIENT KZ-20 | C4 | Factor repeated HttpClient registration and resource-client mechanics | Do after server endpoints/contracts are stable and feature workflow extraction has stopped changing API-client call patterns. |
 | [ ] | CLIENT KZ-21 | C4 | Audit and minimize the client's public surface | Late cleanup after final interfaces/callers are known. |
 | [ ] | CLIENT KZ-22 | C4 | Consolidate small presentational clones opportunistically | Last-mile cleanup after component/workflow/style structure is final. |

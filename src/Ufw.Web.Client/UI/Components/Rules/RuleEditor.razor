@@ -14,6 +14,21 @@
         </MudText>
     </header>
 
+    @if (_referenceData.KnownHosts.Error is { } knownHostsError)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3" role="status">
+            <strong>@RulesText["KnownHostSuggestionsUnavailable"]</strong>
+            <MudText Typo="Typo.body2">@knownHostsError.Message</MudText>
+        </MudAlert>
+    }
+    @if (_referenceData.Interfaces.Error is { } interfacesError)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3" role="status">
+            <strong>@RulesText["NetworkInterfaceSuggestionsUnavailable"]</strong>
+            <MudText Typo="Typo.body2">@interfacesError.Message</MudText>
+        </MudAlert>
+    }
+
     <MudForm @ref="_form"
              Model="@Rule"
              Validation="@RuleValidation"
@@ -77,6 +92,7 @@
                                 @bind-Value="Rule.Source"
                                 For="@(() => Rule.Source)"
                                 Suggestions="@_visibleKnownHosts"
+                                SuggestionsUnavailable="@(_referenceData.KnownHosts.Error is not null)"
                                 AddressFamily="@SourceKnownHostAddressFamily"
                                 Disabled="@Disabled" />
             </MudItem>
@@ -86,6 +102,7 @@
                                 @bind-Value="Rule.Destination"
                                 For="@(() => Rule.Destination)"
                                 Suggestions="@_visibleKnownHosts"
+                                SuggestionsUnavailable="@(_referenceData.KnownHosts.Error is not null)"
                                 AddressFamily="@DestinationKnownHostAddressFamily"
                                 Disabled="@Disabled" />
             </MudItem>
@@ -117,6 +134,7 @@
                                        @bind-Value="Rule.SourceInterface"
                                        For="@(() => Rule.SourceInterface)"
                                        Suggestions="@VisibleInterfaces"
+                                       SuggestionsUnavailable="@(_referenceData.Interfaces.Error is not null)"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
@@ -125,6 +143,7 @@
                                        @bind-Value="Rule.DestinationInterface"
                                        For="@(() => Rule.DestinationInterface)"
                                        Suggestions="@VisibleInterfaces"
+                                       SuggestionsUnavailable="@(_referenceData.Interfaces.Error is not null)"
                                        Disabled="@Disabled" />
             </MudItem>
             <MudItem xs="12">
