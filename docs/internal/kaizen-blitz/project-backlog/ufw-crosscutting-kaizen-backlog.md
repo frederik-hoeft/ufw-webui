@@ -1,4 +1,4 @@
-# Cross-project Kaizen Follow-ups (October 2026)
+﻿# Cross-project Kaizen Follow-ups (October 2026)
 
 These are new, **open** findings raised during the C3 client phase. They are separate from the 75-item original daemon/Web/client inventory; the [overall plan](../ufw-kaizen-plan.md) owns their sequencing and closure. They must not be silently treated as complete when the original three project waves finish.
 
@@ -60,5 +60,6 @@ The number alone is not evidence of poor design (for example, generated migratio
 - [x] Return `SetSyntaxNode` (named parent with children in match order), not a chain of `SequentialSyntaxNode`s.
 - [x] Expose consistent `Grammar.Set(Action<GrammarSetBuilder>)` and `Grammar.Set(params ReadOnlySpan<IParser>)` overloads.
 - [x] Cover all permutations, partial/no-match input, duplicate instances, offsets, fluent creation, traversal/parent links, and zero-width children with dedicated tests.
+- [x] C4.1.1 follow-up: ignore zero-width child successes without consuming their member slot, so optional and zero-minimum repeat members can be retried after another child advances the input. Require at least one consuming member, with no backtracking over greedy consuming matches.
 
-**Disposition:** Fixed in C3.4.1, ahead of the rest of C3 because this affects shared parsing correctness beyond the client. `Set` intentionally does not search all possible ambiguous parses or require every member to match; callers requiring complete input must verify that the returned consumption covers the entire input.
+**Disposition:** Original correctness/factory fixes landed in C3.4.1; zero-width membership semantics were corrected in C4.1.1 following another [cyborg PR #91 review](https://github.com/frederik-hoeft/cyborg/pull/91#discussion_r4238365567). `Set` greedily matches a nonempty subset of child positions in arbitrary input order, retrying unused positions after each consuming match. Zero-width successes do not count as a match or claim a position. The parser does not backtrack over ambiguous consuming matches or require every member to match; callers requiring complete input must verify full consumption.

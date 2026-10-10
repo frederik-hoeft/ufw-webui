@@ -136,6 +136,79 @@ public sealed class ParserCombinatorTests
     }
 
     [TestMethod]
+    [DataRow("ab", true)]
+    [DataRow("ba", true)]
+    [DataRow("b", true)]
+    [DataRow("", false)]
+    public void Set_OptionalZeroWidthMemberRemainsAvailableForLaterInput(string input, bool expected)
+    {
+        IParser grammar = Grammar.Set(Grammar.Optional(new CharacterParser('a')), new CharacterParser('b'));
+
+        bool parsed = TryParseComplete(grammar, input, out ISyntaxNode? node);
+        Assert.AreEqual(expected, parsed);
+        if (expected)
+        {
+            Assert.IsInstanceOfType<SetSyntaxNode>(node);
+            CountingVisitor visitor = new();
+            node.Accept(visitor);
+            Assert.AreEqual(input, new string([.. visitor.Values]));
+            Assert.AreEqual(input.Length, visitor.Count);
+        }
+        else
+        {
+            Assert.IsNull(node);
+        }
+    }
+
+    [TestMethod]
+    [DataRow("ab", true)]
+    [DataRow("ba", true)]
+    [DataRow("b", true)]
+    [DataRow("aaab", true)]
+    [DataRow("baaa", true)]
+    [DataRow("", false)]
+    public void Set_RepeatZeroWidthMemberRemainsAvailableForLaterInput(string input, bool expected)
+    {
+        IParser grammar = Grammar.Set(Grammar.Repeat(new CharacterParser('a')), new CharacterParser('b'));
+
+        bool parsed = TryParseComplete(grammar, input, out ISyntaxNode? node);
+        Assert.AreEqual(expected, parsed);
+        if (expected)
+        {
+            Assert.IsInstanceOfType<SetSyntaxNode>(node);
+            CountingVisitor visitor = new();
+            node.Accept(visitor);
+            Assert.AreEqual(input, new string([.. visitor.Values]));
+            Assert.AreEqual(input.Length, visitor.Count);
+        }
+        else
+        {
+            Assert.IsNull(node);
+        }
+    }
+
+    [TestMethod]
+    public void Set_OnlyZeroWidthMembersDoNotMatchEmptyInput()
+    {
+        IParser grammar = Grammar.Set(Grammar.Optional(new CharacterParser('a')));
+
+        Assert.IsFalse(grammar.TryParse(string.Empty, 0, out ISyntaxNode? node, out int consumed));
+        Assert.IsNull(node);
+        Assert.AreEqual(0, consumed);
+        Assert.IsTrue(TryParseComplete(grammar, "a", out _));
+    }
+
+    [TestMethod]
+    public void Set_DoesNotBacktrackOverConsumingOptionalMatch()
+    {
+        IParser grammar = Grammar.Set(Grammar.Optional(new CharacterParser('a')), Grammar.Sequence(new CharacterParser('a'), new CharacterParser('b')));
+
+        Assert.IsTrue(grammar.TryParse("ab", 0, out _, out int consumed));
+        Assert.AreEqual(1, consumed);
+        Assert.IsFalse(TryParseComplete(grammar, "ab", out _));
+    }
+
+    [TestMethod]
     public void ResultSyntaxNode_WithoutVisitorBinding_AcceptsAnyVisitorAsNoOp()
     {
         ResultNode node = new(42);

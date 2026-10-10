@@ -258,9 +258,10 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 2. CLIENT KZ-21 public-surface audit after final Features/Api interfaces are known.
 3. CLIENT KZ-22 last-mile presentational clones after all structural UI changes.
 
-### Immediate shared-parser correction (C3.4.1)
+### Immediate shared-parser corrections (C3.4.1, C4.1.1)
 
-- [x] CROSS KZ-03: bring the unordered `Set` parser fixes identified on cyborg PR #91 back into `Ufw.Shared`, including `SetSyntaxNode`, top-level `Grammar.Set` factories, and permutation/duplicate/visitor regression coverage. This correctness fix is independent of the remaining client styling work.
+- [x] CROSS KZ-03 (C3.4.1): bring the unordered `Set` parser fixes identified on cyborg PR #91 back into `Ufw.Shared`, including `SetSyntaxNode`, top-level `Grammar.Set` factories, and permutation/duplicate/visitor regression coverage.
+- [x] CROSS KZ-03 follow-up (C4.1.1): a zero-width `Set` child must not claim a member position; retry it after another member advances input, and require at least one consuming match. Preserve greedy, non-backtracking semantics and cover optional/repeat zero-width cases.
 
 ### Cross-project follow-up phase - after the structural waves
 
@@ -419,7 +420,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 |---|---|---|---|---|
 | [ ] | CROSS KZ-01 | After C4 | Improve namespace cohesion/navigation and limit accidental broad namespaces | Audit by responsibility and fanout, then do scoped moves after the public-surface and structural cleanup; protect wire/resource/AOT assumptions. |
 | [ ] | CROSS KZ-02 | After overlapping local waves | Triage attached clone-detection report; remove only harmful duplication | Prioritize correctness-sensitive production clones and high-cost fixture duplication; classify remaining test/symmetric matches deliberately. |
-| [x] | CROSS KZ-03 | C3.4.1 | Correct unordered parser `Set` matching, syntax tree, and factory overloads | Backport targeted cyborg PR #91 review fixes with regression tests; do not conflate this with general parser architecture or C3 styling. |
+| [x] | CROSS KZ-03 | C3.4.1 + C4.1.1 | Correct unordered parser `Set` matching, zero-width semantics, syntax tree, and factory overloads | Backport targeted cyborg PR #91 review fixes with regression tests for permutations, zero-width members, and greedy non-backtracking behavior; do not conflate this with general parser architecture or C3 styling. |
 
 ## Completion rule
 

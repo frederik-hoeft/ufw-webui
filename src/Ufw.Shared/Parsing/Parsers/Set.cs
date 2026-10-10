@@ -6,7 +6,8 @@ namespace Ufw.Shared.Parsing.Parsers;
 
 /// <summary>
 /// Matches a nonempty subset of child parsers in any order. Each child position can match at most once;
-/// successful matches are chosen greedily in declaration order, without backtracking.
+/// zero-width matches are ignored without claiming a member position, allowing that member to match later.
+/// At least one member must consume input. Consuming matches are greedy in declaration order, without backtracking.
 /// </summary>
 public class Set(ImmutableArray<IParser> parsers, string? name = null) : ParserBase
 {
@@ -48,6 +49,12 @@ public class Set(ImmutableArray<IParser> parsers, string? name = null) : ParserB
             for (int i = 0; i < parsers.Length; i++)
             {
                 if (usedParsers[i] || !parsers[i].TryParse(input, currentOffset, out ISyntaxNode? node, out int consumed))
+                {
+                    continue;
+                }
+
+                // A zero-width success leaves this member available at later offsets.
+                if (consumed == 0)
                 {
                     continue;
                 }

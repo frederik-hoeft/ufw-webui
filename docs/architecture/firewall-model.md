@@ -23,6 +23,8 @@ The daemon parses UFW output and the required settings from its configured UFW d
 
 The rule-status and defaults grammars share reusable parsing infrastructure, but they produce independent domain models. The defaults reader interprets only the settings needed by the management contract (`IPV6` and the three default policies); unrelated assignments are ignored, while a missing, malformed, or unsupported required value fails the snapshot read.
 
+The shared `Grammar.Set` combinator matches a nonempty subset of its declared child positions in any order. It retries unused children after each consuming match, ignores zero-width successes without claiming their positions, and requires at least one consuming match. Consuming matches remain greedy in declaration order, without backtracking; callers requiring the entire input must additionally check the total number of characters consumed.
+
 ## Structural rule semantics
 
 Supported rules are represented by normalized firewall semantics rather than by the exact text UFW happened to print. The model contains:
