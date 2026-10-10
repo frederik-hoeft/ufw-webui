@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Services.Errors;
 
@@ -7,9 +8,6 @@ namespace Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 public sealed partial class EditRuleGroupDialog
 {
-    private const int MAX_GROUP_NAME_LENGTH = 64;
-    private const int MAX_GROUP_COMMENT_LENGTH = 4000;
-
     private ClientError? _error;
     private string _name = string.Empty;
     private string? _comment;
@@ -20,7 +18,7 @@ public sealed partial class EditRuleGroupDialog
     [Parameter]
     public RuleGroup? Group { get; set; }
 
-    private bool CanSave => !Saving && _name.Trim().Length is > 0 and <= MAX_GROUP_NAME_LENGTH && (_comment?.Trim().Length ?? 0) <= MAX_GROUP_COMMENT_LENGTH;
+    private bool CanSave => !Saving && _name.Trim().Length is > 0 and <= RuleGroupLimits.MAX_NAME_LENGTH && (_comment?.Trim().Length ?? 0) <= RuleGroupLimits.MAX_COMMENT_LENGTH;
 
     public bool Saving { get; set; }
 
@@ -48,11 +46,11 @@ public sealed partial class EditRuleGroupDialog
             string? comment = string.IsNullOrWhiteSpace(_comment) ? null : _comment.Trim();
             if (Group is null)
             {
-                await GroupCatalog.CreateAsync(name, comment);
+                _ = await Authoring.CreateGroupAsync(name, comment);
             }
             else
             {
-                await GroupCatalog.UpdateAsync(Group.Id, name, comment);
+                _ = await Authoring.UpdateGroupAsync(Group.Id, name, comment);
             }
             MudDialog.Close(DialogResult.Ok(true));
         }

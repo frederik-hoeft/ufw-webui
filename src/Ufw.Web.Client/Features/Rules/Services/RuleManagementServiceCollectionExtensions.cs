@@ -48,6 +48,7 @@ internal static class RuleManagementServiceCollectionExtensions
         services.AddSingleton<IRulesPageProjectionService, RulesPageProjectionService>();
         services.AddScoped<IRuleTagCatalogService, RuleTagCatalogService>();
         services.AddScoped<IRuleGroupCatalogService, RuleGroupCatalogService>();
+        services.AddScoped<IRuleMetadataAuthoringService, RuleMetadataAuthoringService>();
         services.AddScoped<IRuleGroupDeletionWorkflowService, RuleGroupDeletionWorkflowService>();
         services.AddSingleton<IRuleGroupManagementProjectionService, RuleGroupManagementProjectionService>();
         services.AddSingleton<IRuleTagColorGenerator, RuleTagColorGenerator>();
