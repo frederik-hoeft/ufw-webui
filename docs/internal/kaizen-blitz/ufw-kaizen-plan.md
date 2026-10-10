@@ -234,7 +234,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
    - [x] C2.1: centralize authoritative inventory loading and rule-metadata request/response handling; remove direct `IRuleApiClient` use from rule pages.
    - [x] C2.2: extract create/edit mutation sequencing and post-firewall metadata persistence/retry; retain dialogs, navigation, and notifications in Razor.
    - [x] C2.3: extract rule-list refresh, metadata, deletion/group-cleanup and ordering coordination; retain dialogs, navigation, notifications and lifecycle in Razor.
-2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner, incorporating ACC-05 template-reference semantics.
+2. [x] CLIENT KZ-18: keep group-deletion membership planning, confirmation checks and catalog consistency checks pure; retain mutation, revalidation and cleanup I/O in the workflow executor.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
 4. CLIENT KZ-09 introduce explicit create-rule workflow state after the workflow has moved out of Razor.
 5. CLIENT KZ-19 make rule-editor reference-data failures symmetric against the final server error behavior.
@@ -391,7 +391,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Decision: no revision counter; replace cached inventories only after successful normalization of authoritative server responses. KZ-08 consumes these semantics. |
 | [x] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
 | [x] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
-| [ ] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
+| [x] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
 | [ ] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Do with feature workflow extraction, using the final server error contract and explicit reference-data results. |
 | [ ] | CLIENT KZ-20 | C4 | Factor repeated HttpClient registration and resource-client mechanics | Do after server endpoints/contracts are stable and feature workflow extraction has stopped changing API-client call patterns. |
 | [ ] | CLIENT KZ-21 | C4 | Audit and minimize the client's public surface | Late cleanup after final interfaces/callers are known. |
