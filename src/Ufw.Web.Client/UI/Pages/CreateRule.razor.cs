@@ -4,6 +4,7 @@ using System.Globalization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api.Rules;
+using Ufw.Web.Client.Features.Rules.Authoring.Workflows;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Insertion;
 using Ufw.Web.Client.Features.Rules.Metadata;
@@ -334,18 +335,14 @@ public sealed partial class CreateRule
             return;
         }
 
-        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
-        // Keep the requested identity as the fallback for an uncertain outcome where no
-        // mutation response is available. A successful family-neutral add returns a
-        // concrete family-specific rule, so prefer that identity for the subsequent
-        // authoritative refresh.
-        _reconciliationRuleIdentity = MutationReconciliation.GetRequestedIdentity(normalized);
+        // Preserve the requested identity even when no mutation response can be obtained.
+        _reconciliationRuleIdentity = MutationReconciliation.GetRequestedIdentity(_draft);
         _submitting = true;
         try
         {
-            RuleMutationResponse mutation = await RuleMutations.AddRuleAsync(normalized, _privateKey, _lifetime.Token);
-            _reconciliationRuleIdentity = MutationReconciliation.GetMutationIdentity(mutation, _reconciliationRuleIdentity);
-            await SaveCreatedRuleMetadataAsync(mutation.Rule.RuleId);
+            RuleCreationAddResult result = await CreationWorkflow.AddAsync(_draft, CurrentMetadataChange(), _privateKey, _lifetime.Token);
+            _reconciliationRuleIdentity = result.ConfirmedRuleId;
+            NotifyMetadataSaveFailure(result.MetadataError);
             _mutationMayHaveCompleted = true;
             _submitting = false;
             await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
@@ -381,19 +378,18 @@ public sealed partial class CreateRule
             return;
         }
 
-        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
-        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
         _insertionResult = null;
         _submitting = true;
         try
         {
-            RuleInsertionResponse response = await RuleMutations.InsertRuleAsync(baseline, context.AnchorOccurrenceId, context.Placement, normalized, _privateKey, _lifetime.Token);
+            RuleCreationInsertionResult result = await CreationWorkflow.InsertAsync(snapshot, context, _draft, CurrentMetadataChange(), _privateKey, _lifetime.Token);
+            RuleInsertionResponse response = result.Firewall;
             _insertionResult = response;
             _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response, TimeProvider.GetUtcNow()));
 
             if (response.Outcome == RuleInsertionOutcome.Completed)
             {
-                await SaveCreatedRuleMetadataAsync(response.InsertedRule?.RuleId);
+                NotifyMetadataSaveFailure(result.MetadataError);
                 Snackbar.Add(RulesText["OrderedInsertionApplied"], Severity.Success);
                 Navigation.NavigateTo("/rules");
                 return;
@@ -435,28 +431,13 @@ public sealed partial class CreateRule
         return Task.CompletedTask;
     }
 
-    private async Task SaveCreatedRuleMetadataAsync(string? ruleId)
-    {
-        if (_metadataDraft.IsEmpty || string.IsNullOrWhiteSpace(ruleId))
-        {
-            return;
-        }
+    private RuleMetadataChange CurrentMetadataChange() => new(_metadataDraft.Notes, _metadataDraft.TagIds, _metadataDraft.GroupId);
 
-        try
+    private void NotifyMetadataSaveFailure(ClientError? error)
+    {
+        if (error is not null)
         {
-            RuleMetadataChange change = new(_metadataDraft.Notes, _metadataDraft.TagIds, _metadataDraft.GroupId);
-            _ = await MetadataMutations.UpdateAsync(ruleId, change, _lifetime.Token);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            string diagnostic = ClientErrors.CanDescribe(exception)
-                ? ClientErrors.Describe(exception).Message
-                : RulesText["MetadataSaveAfterCreateFailed"];
-            Snackbar.Add(RulesText["MetadataSaveAfterCreateFailedWithReason", diagnostic], Severity.Warning);
+            Snackbar.Add(RulesText["MetadataSaveAfterCreateFailedWithReason", error.Message], Severity.Warning);
         }
     }
 

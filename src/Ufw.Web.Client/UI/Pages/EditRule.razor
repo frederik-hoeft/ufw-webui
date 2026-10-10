@@ -1,11 +1,10 @@
-@using Ufw.Web.Client.Features.Rules.Metadata
-﻿@using Ufw.Web.Client.UI.Components.Rules.Metadata
+﻿@using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.UI.Components.Rules.Metadata
 @page "/rules/edit"
 @attribute [Authorize]
 @implements IDisposable
 @inject IRuleInventoryService RuleInventory
-@inject IRuleMetadataMutationService MetadataMutations
-@inject IRuleMutationService RuleMutations
+@inject IRuleReplacementWorkflowService ReplacementWorkflow
 @inject IRuleReplacementNavigationService ReplacementNavigation
 @inject IRuleDraftFactory RuleDraftFactory
 @inject NavigationManager Navigation

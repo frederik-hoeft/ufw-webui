@@ -184,20 +184,13 @@ public sealed partial class EditRule
             return;
         }
 
-        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
-        FirewallRuleSpecification normalized = RuleSpecificationNormalizer.Normalize(_draft);
         _workflow = RuleEditWorkflowState.Initial;
         _submitting = true;
         try
         {
-            RuleReplacementMutationResponse response = await RuleMutations.ReplaceRuleAsync(
-                baseline,
-                context.TargetOccurrenceId,
-                context.OriginalRuleId,
-                normalized,
-                _privateKey,
-                _lifetime.Token);
-            _workflow = _workflow.ApplyReplacement(response);
+            _workflow = await ReplacementWorkflow.ReplaceAsync(
+                snapshot, context, _draft, OriginalMetadataChange(), CurrentMetadataChange(), _privateKey, _lifetime.Token);
+            RuleReplacementMutationResponse response = _workflow.Replacement!;
             _state = _state.MoveNext(new RuleInventoryTransition.ReplacementCompleted(response.Firewall, TimeProvider.GetUtcNow()));
 
             if (response.Firewall.Outcome != RuleReplacementOutcome.Completed)
@@ -212,8 +205,9 @@ public sealed partial class EditRule
                 return;
             }
 
-            if (!await SaveEditedMetadataAsync())
+            if (_workflow.MetadataSaveDiagnostic is { } diagnostic)
             {
+                Snackbar.Add(RulesText["MetadataSaveAfterReplacementFailedWithReason", diagnostic], Severity.Warning);
                 return;
             }
 
@@ -242,40 +236,26 @@ public sealed partial class EditRule
 
     private async Task<bool> SaveEditedMetadataAsync()
     {
-        if (_originalMetadataDraft.HasSameValueAs(_metadataDraft))
-        {
-            _workflow = _workflow.MetadataSaveCompleted();
-            return true;
-        }
-        if (string.IsNullOrWhiteSpace(_workflow.ConfirmedRuleId))
-        {
-            throw new InvalidOperationException("A completed rule replacement must provide the confirmed replacement identity before metadata can be updated.");
-        }
-
         _metadataSaving = true;
         try
         {
-            RuleMetadataChange change = new(_metadataDraft.Notes, _metadataDraft.TagIds, _metadataDraft.GroupId);
-            _ = await MetadataMutations.UpdateAsync(_workflow.ConfirmedRuleId, change, _lifetime.Token);
-            _workflow = _workflow.MetadataSaveCompleted();
+            _workflow = await ReplacementWorkflow.RetryMetadataAsync(_workflow, OriginalMetadataChange(), CurrentMetadataChange(), _lifetime.Token);
+            if (_workflow.MetadataSaveDiagnostic is { } diagnostic)
+            {
+                Snackbar.Add(RulesText["MetadataSaveAfterReplacementFailedWithReason", diagnostic], Severity.Warning);
+                return false;
+            }
             return true;
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            string diagnostic = ClientErrors.Describe(exception).Message;
-            _workflow = _workflow.MetadataSaveFailed(diagnostic);
-            Snackbar.Add(RulesText["MetadataSaveAfterReplacementFailedWithReason", diagnostic], Severity.Warning);
-            return false;
         }
         finally
         {
             _metadataSaving = false;
         }
     }
+
+    private RuleMetadataChange OriginalMetadataChange() => new(_originalMetadataDraft.Notes, _originalMetadataDraft.TagIds, _originalMetadataDraft.GroupId);
+
+    private RuleMetadataChange CurrentMetadataChange() => new(_metadataDraft.Notes, _metadataDraft.TagIds, _metadataDraft.GroupId);
 
     private async Task RetryMetadataSaveAsync()
     {

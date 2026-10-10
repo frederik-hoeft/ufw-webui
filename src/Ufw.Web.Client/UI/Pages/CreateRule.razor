@@ -1,12 +1,12 @@
+﻿@using Ufw.Web.Client.Features.Rules.Authoring.Workflows
 @using Ufw.Web.Client.Features.Rules.Metadata
-﻿@using Ufw.Shared.Ipc.Model.Responses.Domain
+@using Ufw.Shared.Ipc.Model.Responses.Domain
 @using Ufw.Web.Client.UI.Components.Rules.Metadata
 @page "/rules/create"
 @attribute [Authorize]
 @implements IDisposable
 @inject IRuleInventoryService RuleInventory
-@inject IRuleMetadataMutationService MetadataMutations
-@inject IRuleMutationService RuleMutations
+@inject IRuleCreationWorkflowService CreationWorkflow
 @inject IRuleInsertionNavigationService InsertionNavigation
 @inject IRuleMutationReconciliationService MutationReconciliation
 @inject IRuleDraftFactory RuleDraftFactory

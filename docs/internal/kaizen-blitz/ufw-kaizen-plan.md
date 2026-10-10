@@ -232,7 +232,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 
 1. CLIENT KZ-01 move rule-page workflows into focused Features services using the C1 snapshot/protocol/error primitives:
    - [x] C2.1: centralize authoritative inventory loading and rule-metadata request/response handling; remove direct `IRuleApiClient` use from rule pages.
-   - [ ] Extract create/edit mutation sequencing and reconciliation; retain dialogs, navigation, and notifications in Razor.
+   - [x] C2.2: extract create/edit mutation sequencing and post-firewall metadata persistence/retry; retain dialogs, navigation, and notifications in Razor.
    - [ ] Extract rule-list mutation/refresh coordination and finish the KZ-01 acceptance criteria.
 2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner, incorporating ACC-05 template-reference semantics.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
