@@ -20,7 +20,12 @@ internal sealed class DaemonApiErrorMapper : IDaemonApiErrorMapper
         }
 
         int statusCode = daemonError.StatusCode is >= 400 and <= 599 ? daemonError.StatusCode : StatusCodes.Status502BadGateway;
-        return new DaemonApiError(statusCode, ApiProblemDetailsFactory.Create(statusCode, detail: daemonError.ResponseMessage));
+        ProblemDetails problem = ApiProblemDetailsFactory.Create(statusCode, detail: daemonError.ResponseMessage);
+        if (!string.IsNullOrWhiteSpace(daemonError.Code))
+        {
+            problem.Extensions["code"] = daemonError.Code;
+        }
+        return new DaemonApiError(statusCode, problem);
     }
 
     public DaemonApiError MapUnavailable(UfwIpcError daemonError)

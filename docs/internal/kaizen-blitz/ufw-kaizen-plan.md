@@ -1,4 +1,4 @@
-# UFW Management Interface - Overall Kaizen Blitz Plan
+﻿# UFW Management Interface - Overall Kaizen Blitz Plan
 
 ## Purpose
 
@@ -179,6 +179,29 @@ Migrate slices against the W1 rules instead of doing horizontal repository rewri
 4. **Controller policy declarations:** reviewed in W3.3 and intentionally left explicit. WEB KZ-20 would save little code while hiding authorization, versioning, or no-store policy behind broader conventions.
 5. **Boundary closure:** completed in W3.4. WEB KZ-22 removes the final feature-local mutation outcome/result vocabularies, WEB KZ-01 gains source-boundary and bounded-SQL regression guards, WEB KZ-23 is verified complete, and WEB KZ-07 is closed after confirming the remaining group/tag similarity does not yield a small stable abstraction.
 
+### Post-W acceptance remediation (October 2026)
+
+**Gate:** S2 is blocked until ACC-01 through ACC-03 pass their remaining integration/manual acceptance checks. These findings are separate from the completed original source-audit items.
+
+**Decisions for follow-up work:**
+
+- Firewall ambiguity is assessed by the daemon from the authoritative snapshot. All signed **firewall mutations**, including batch deletion, must be refused under `IUfwExecutionGate` before nonce consumption or UFW modification. Repair is external to the Web UI; no in-band cleanup exception. Preserve recovery-journal fail-closed behavior and operation-specific preconditions.
+- `RuleListResponse.Assessment` informs the browser's firewall warning/disabled mutation controls; it does not change the signed v1 snapshot fingerprint. The daemon returns a stable `firewall.state.ambiguous` IPC error code on rejection. Web maps the failure; it must **not** independently gate unrelated ASP-owned metadata, template, group, tag, known-host, or interface edits based on firewall state.
+- A composed workflow must not persist metadata changes that depend on a failed firewall mutation. Unrelated ASP-owned transactions remain independent; do not imply atomicity across UFW and PostgreSQL.
+- Access JWTs remain self-contained and expire after the configured lifetime (default 120 seconds plus 30 seconds of validation skew). Password changes revoke refresh families, not already-issued access JWTs. Avoid per-request DB/cache revocation checks. All in-tab HTTP handlers and route authorization share the same auth session; retain cross-tab refresh coordination.
+- Group deletion may delete confirmed live rules while retaining groups referenced by templates. Never implicitly delete templates. The UI must show template references and clearly distinguish deletion of active rules from deletion of the group.
+
+**Acceptance checklist:**
+
+- [x] **ACC-01 (P0, daemon):** expose duplicate-semantic-identity diagnostics on authoritative reads; block every signed firewall mutation at the daemon gate with a stable IPC error code; keep reads available. Remove the ASP-wide management-write guard.
+- [ ] **ACC-01 gate:** mock-driven signed reorder/restart with duplicate identities (including different comments and nonadjacent matches); assert no UFW writes, nonce consumption, or recovery journal on rejection. Test genuinely unresolved recovery independently.
+- [x] **ACC-02 (P1, client/Web):** share `AuthenticationSession` across `IHttpClientFactory` handler scopes and route authorization; set the default JWT lifetime to 120 seconds.
+- [ ] **ACC-02 gate:** independent-browser password change/expiry, shared-token consistency across affected APIs, exhausted-refresh session clearing, and cross-tab coordination tests. If the exact same valid JWT yields different statuses, trace the source of each 401.
+- [ ] **ACC-03 (P1, Web/IPC):** HTTP-pipeline tests for anonymous protected GET/write and bodyless 401/403, omitted/null/empty `tagIds`, structured signed-validation codes, ProblemDetails/OpenAPI, invalid/replayed signed intents, plus malformed IPC responses (502 rather than 500). Exercise firewall-state rejection-code propagation through real IPC/Web transport, not only mocks.
+- [ ] **ACC-04 (P2, CLIENT KZ-11):** one unauthorized/session-expired navigation policy; distinguish 401 from 403 and login credential failure; test concurrent requests, deep links, and browser tabs.
+- [x] **ACC-05 (P2, CLIENT KZ-18):** preserve template references while deleting active group rules; list referencing templates and distinguish active-rule-only confirmation from group cleanup.
+- [x] **ACC-06 (P3, client presentation):** show complete unmatched metadata identities; truncate only visually in CSS and preserve accessible/copyable values.
+
 ### Bridge checkpoint S2 - Web -> client
 
 The client phase starts only after these are stable:
@@ -190,7 +213,7 @@ The client phase starts only after these are stable:
 - network-interface retention semantics;
 - rule metadata/tag/group/template response semantics.
 
-Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is the point after which client workflows can be extracted without immediately chasing server contract churn.
+Generate/inspect OpenAPI and run Web integration tests here. **The post-W acceptance remediation gate above must pass for ACC-01/02/03 before marking S2 ready.** This checkpoint is the point after which client workflows can be extracted without immediately chasing server contract churn.
 
 ### Phase C - `Ufw.Web.Client`
 
@@ -200,7 +223,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 2. CLIENT KZ-03 snapshot occurrence index and CLIENT KZ-05 validated permutation invariant.
 3. CLIENT KZ-04 signing/context consolidation, now consuming the stabilized daemon/Web intent contract.
 4. CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
-5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors.
+5. CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
 6. CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
 7. CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
 8. CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
@@ -208,7 +231,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 #### C2 - Feature/workflow extraction
 
 1. CLIENT KZ-01 move rule-page workflows into focused Features services using the C1 snapshot/protocol/error primitives.
-2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner.
+2. CLIENT KZ-18 split group-deletion planning from execution and have workflow code consume the planner, incorporating ACC-05 template-reference semantics.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
 4. CLIENT KZ-09 introduce explicit create-rule workflow state after the workflow has moved out of Razor.
 5. CLIENT KZ-19 make rule-editor reference-data failures symmetric against the final server error behavior.
@@ -218,7 +241,7 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 
 1. CLIENT KZ-07 converge desktop/mobile rule behavior and fragments after application workflows have left the components/pages.
 2. CLIENT KZ-13 classify/extract styles against the final component structure.
-3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs.
+3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 
 #### C4 - Transport/public-surface/opportunistic cleanup
 
@@ -239,6 +262,8 @@ Generate/inspect OpenAPI and run Web integration tests here. This checkpoint is 
 - Web-facing shared protocol changes are documented before Web refactoring begins.
 
 ### Checkpoint W - Web complete
+
+**Refactor inventory complete; manual acceptance not yet signed off.** The post-W register (ACC-01 through ACC-06) tracks newly found gaps and their independent owners.
 
 - No direct EF access outside the DAL except composition/migrations.
 - Shared domain/read models are stable and separate from persistence entities/request DTOs.

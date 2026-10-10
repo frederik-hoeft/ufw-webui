@@ -74,8 +74,19 @@ else if (_state.Snapshot is null)
         </MudText>
     </MudPaper>
 }
-else if (_state.Snapshot is { })
+else if (_state.Snapshot is { } authoritativeSnapshot)
 {
+    @if (!authoritativeSnapshot.Assessment.IsClean)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
+            <MudText Typo="Typo.subtitle1">@RulesText["FirewallAmbiguousTitle"]</MudText>
+            <MudText Typo="Typo.body2">@RulesText["FirewallAmbiguousDescription"]</MudText>
+            @foreach (FirewallStateIssue issue in authoritativeSnapshot.Assessment.Issues)
+            {
+                <MudText Typo="Typo.caption">@RulesText["FirewallAmbiguousDuplicateRule", issue.RuleId, string.Join(", ", issue.OccurrenceIds.Select(static id => id + 1))]</MudText>
+            }
+        </MudAlert>
+    }
     @if (_state.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">

@@ -10,7 +10,7 @@ internal sealed class JwtOptions
 
     public string SigningKeyPath { get; set; } = string.Empty;
 
-    public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromMinutes(2);
 
     public TimeSpan ClockSkew { get; set; } = TimeSpan.FromSeconds(30);
 }

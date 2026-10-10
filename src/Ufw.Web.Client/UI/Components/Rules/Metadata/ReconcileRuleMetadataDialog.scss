@@ -57,6 +57,9 @@
                 }
 
                 code {
+                    display: block;
+                    max-width: 100%;
+                    min-width: 0;
                     overflow: hidden;
                     color: var(--mud-palette-text-secondary);
                     font-size: 0.75rem;

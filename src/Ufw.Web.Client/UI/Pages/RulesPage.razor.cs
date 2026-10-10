@@ -89,13 +89,15 @@ public sealed partial class RulesPage
 
     private bool IsBusy => _state.IsLoading || _pageInteraction.IsBusy;
 
-    private bool CanMutateFirewall => _state.IsCurrent && _pageInteraction.CanMutateFirewall && !HasOrderingPreview;
+    private bool FirewallModelClean => _state.Snapshot?.Assessment.IsClean == true;
+
+    private bool CanMutateFirewall => _state.IsCurrent && FirewallModelClean && _pageInteraction.CanMutateFirewall && !HasOrderingPreview;
 
     private bool CanEditMetadata => _state.IsCurrent && _pageInteraction.CanEditMetadata;
 
     private bool CanSaveTemplate => _state.Snapshot is not null && !_state.IsLoading && _pageInteraction.CanSaveTemplate && !HasOrderingPreview;
 
-    private bool CanPreviewOrdering => _state.IsCurrent && _pageInteraction.CanPreviewOrdering && InteractionState.CanOrder;
+    private bool CanPreviewOrdering => _state.IsCurrent && FirewallModelClean && _pageInteraction.CanPreviewOrdering && InteractionState.CanOrder;
 
     private string RefreshButtonLabel => _state.Status switch
     {

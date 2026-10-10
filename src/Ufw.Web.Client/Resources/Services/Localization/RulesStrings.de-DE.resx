@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -954,4 +954,13 @@
   <data name="SavingMetadata" xml:space="preserve"><value>Metadaten werden gespeichert...</value></data>
   <data name="SaveAsTemplate" xml:space="preserve"><value>Als Vorlage speichern</value></data>
   <data name="DisableRule" xml:space="preserve"><value>Regel deaktivieren</value></data>
+  <data name="DeleteActiveGroupRulesConfirmation" xml:space="preserve"><value>Aktive Firewall-Regeln der Gruppe „{0}“ löschen?</value></data>
+  <data name="DeleteActiveGroupRules" xml:space="preserve"><value>Aktive Regeln löschen</value></data>
+  <data name="GroupTemplateReferencesRetained" xml:space="preserve"><value>{0} Regelvorlage(n) verweisen auf diese Gruppe. Vorlagen und Gruppe bleiben erhalten; nur aktive Firewall-Regeln werden gelöscht. Zum späteren Löschen der Gruppe müssen zuerst die Vorlagenzuordnungen entfernt werden.</value></data>
+  <data name="GroupReferencedTemplates" xml:space="preserve"><value>Regelvorlagen mit Bezug zu dieser Gruppe</value></data>
+  <data name="FirewallAmbiguousTitle" xml:space="preserve"><value>Firewall-Regeln erfordern eine manuelle Korrektur</value></data>
+  <data name="FirewallAmbiguousDescription" xml:space="preserve"><value>Doppelte semantische Firewall-Regeln wurden erkannt. Änderungen an Firewall-Regeln bleiben gesperrt, bis die Mehrdeutigkeit direkt mit UFW behoben und die Liste aktualisiert wurde. Andere Verwaltungsaktionen bleiben verfügbar.</value></data>
+  <data name="FirewallAmbiguousDuplicateRule" xml:space="preserve"><value>Regel {0} kommt an den Positionen {1} vor.</value></data>
+  <data name="GroupTemplateReferencesBlockDeletion" xml:space="preserve"><value>Die Gruppe „{0}“ kann nicht gelöscht werden, solange Regelvorlagen darauf verweisen.</value></data>
+  <data name="GroupTemplateReferencesPreventDeletion" xml:space="preserve"><value>{0} Regelvorlage(n) verweisen noch auf diese Gruppe. Entfernen Sie diese Zuordnungen, bevor Sie die Gruppe löschen.</value></data>
 </root>

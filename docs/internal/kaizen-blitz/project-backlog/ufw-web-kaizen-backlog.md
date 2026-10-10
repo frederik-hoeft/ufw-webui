@@ -1,4 +1,12 @@
-# Ufw.Web Kaizen Blitz Review Inventory
+﻿# Ufw.Web Kaizen Blitz Review Inventory
+
+## Post-W acceptance follow-ups
+
+See [ACC-02/03](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026). Existing protected API controllers have `[Authorize]`; bearer JWT validity is intentionally bounded, not checked against Identity on every request.
+
+- [x] Keep application-owned template, metadata, catalog and known-host writes independent of the daemon's firewall-state assessment. Do not add a global MVC write filter or force daemon availability for unrelated ASP-only writes.
+- [x] Pass through the daemon's `firewall.state.ambiguous` IPC error code as HTTP ProblemDetails for rejected signed mutations.
+- [ ] Implement real HTTP-pipeline, IPC response/error, and cross-browser revocation tests required by ACC-02/03 before S2.
 
 ## Wave D daemon handoff
 

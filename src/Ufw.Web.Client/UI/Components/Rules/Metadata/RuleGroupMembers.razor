@@ -74,4 +74,18 @@
             }
         </div>
     }
+    @if (Projection.Group.TemplateIds.Count > 0)
+    {
+        <div class="template-references">
+            <MudText Typo="Typo.subtitle2" HtmlTag="h4">@RulesText["GroupReferencedTemplates"]</MudText>
+            <ul>
+                @foreach (Guid templateId in Projection.Group.TemplateIds)
+                {
+                    <li>
+                        <MudLink Href="@($"/templates/edit/{templateId:D}")">@(TemplateNames.TryGetValue(templateId, out string? name) ? name : templateId.ToString("D"))</MudLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
 </section>

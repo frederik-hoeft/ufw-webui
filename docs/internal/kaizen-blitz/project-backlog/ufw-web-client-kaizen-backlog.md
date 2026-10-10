@@ -1,4 +1,14 @@
-# Ufw.Web.Client Kaizen Audit
+﻿# Ufw.Web.Client Kaizen Audit
+
+## Post-W acceptance follow-ups
+
+See [ACC-02/04/05/06](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026).
+
+- [x] **ACC-02:** share one WASM auth session across route authorization and `IHttpClientFactory` handler scopes.
+- [ ] **ACC-02 acceptance:** cross-browser password-change/refresh-expiry and cross-tab coordination regression tests.
+- [ ] **ACC-04 / KZ-11 (C1):** centralize 401/session-expired navigation, handling multiple concurrent failures once; keep 403 separate and do not redirect failed login. Test deep links and tabs.
+- [x] **ACC-05 / KZ-18 (C2):** delete active group rules while retaining template-referenced group and templates; show references and precise confirmation wording. Preserve concurrent-membership safety checks.
+- [x] **ACC-06 (C3):** full unmatched rule IDs in markup, accessibility and copy; presentation-only CSS truncation.
 
 ## Overall assessment
 

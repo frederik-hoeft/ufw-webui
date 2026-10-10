@@ -34,10 +34,6 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(projection);
-        if (projection.Group.TemplateIds.Count != 0)
-        {
-            throw new InvalidOperationException("Rule groups referenced by templates must be reconciled before the group can be deleted.");
-        }
         if (projection.StoredMemberCount == 0)
         {
             RuleGroupCleanupResult emptyCleanup = await DeleteIfEmptyAsync(projection.Group.Id, cancellationToken);
@@ -83,7 +79,7 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
         IReadOnlyList<RuleGroup> groupsBeforeMutation = await groupCatalog.RefreshAsync(cancellationToken);
         RuleGroup? currentGroup = groupsBeforeMutation.SingleOrDefault(group => group.Id == projection.Group.Id);
         if (currentGroup is null
-            || currentGroup.TemplateIds.Count != 0
+            || !currentGroup.TemplateIds.ToHashSet().SetEquals(projection.Group.TemplateIds)
             || !currentGroup.RuleIds.ToHashSet(StringComparer.Ordinal).SetEquals(memberRuleIds))
         {
             return new RuleGroupDeletionWorkflowResult(RuleGroupDeletionWorkflowOutcome.GroupChanged, groupsBeforeMutation);
@@ -127,7 +123,7 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
         {
             return new RuleGroupCleanupResult(Deleted: true, groups);
         }
-        if (current.RuleIds.Count != 0)
+        if (current.RuleIds.Count != 0 || current.TemplateIds.Count != 0)
         {
             return new RuleGroupCleanupResult(Deleted: false, groups);
         }

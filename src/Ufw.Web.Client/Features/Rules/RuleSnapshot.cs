@@ -14,6 +14,8 @@ internal sealed record RuleSnapshot(
     IReadOnlyDictionary<string, RuleMetadata> Metadata,
     DateTimeOffset CapturedAt)
 {
+    public FirewallStateAssessment Assessment { get; init; } = FirewallStateAssessment.Clean;
+
     public RuleSnapshot(bool firewallActive, IReadOnlyList<ListedFirewallRule> rules, FirewallConfigurationSnapshot configuration)
         : this(firewallActive, rules, configuration, new Dictionary<string, RuleMetadata>(StringComparer.Ordinal), default)
     {
@@ -160,6 +162,9 @@ internal sealed record RuleSnapshot(
             }
         }
 
-        return new(response.Active, response.Rules.ToArray(), response.Configuration, liveMetadata, capturedAt);
+        return new RuleSnapshot(response.Active, response.Rules.ToArray(), response.Configuration, liveMetadata, capturedAt)
+        {
+            Assessment = response.Assessment,
+        };
     }
 }

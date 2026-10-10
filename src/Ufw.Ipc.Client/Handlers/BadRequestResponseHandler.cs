@@ -29,7 +29,7 @@ internal sealed class BadRequestResponseHandler : IResponseMessageHandler, IMess
         {
             ErrorResponse? errorResponse = await message.Payload.ReadAsync<ErrorResponse>(cancellationToken);
             _ = errorResponse ?? throw new InvalidDataException($"Response '{message.StatusCode}' declared payloadType '{message.PayloadType}' but the body was empty.");
-            return UfwIpcResult<TResult>.Failure(new UfwIpcError(message.StatusCode, errorResponse.Message));
+            return UfwIpcResult<TResult>.Failure(new UfwIpcError(message.StatusCode, errorResponse.Message, code: errorResponse.Code));
         }
 
         throw new InvalidDataException($"Response '{message.StatusCode}' has unsupported payloadType '{message.PayloadType}' for a 400 response.");

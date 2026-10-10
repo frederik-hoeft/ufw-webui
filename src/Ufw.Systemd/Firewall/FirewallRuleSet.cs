@@ -16,7 +16,10 @@ internal static class FirewallRuleSet
             rules.Add(UfwRuleMapper.ToListedRule(observed));
         }
 
-        return new RuleListResponse(snapshot.Active, rules, configuration);
+        return new RuleListResponse(snapshot.Active, rules, configuration)
+        {
+            Assessment = FirewallStateAssessmentEvaluator.Evaluate(rules),
+        };
     }
 
     public static List<ListedFirewallRule> FindMatches(RuleListResponse snapshot, string identity) =>

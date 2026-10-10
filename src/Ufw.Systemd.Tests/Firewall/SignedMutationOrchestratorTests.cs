@@ -38,7 +38,7 @@ public sealed class SignedMutationOrchestratorTests
             calls.Add("nonce");
             return ValueTask.FromResult(true);
         });
-        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate.Object, guard.Object);
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate.Object, guard.Object, CreateCleanSnapshotReader());
         OkResponse expected = new();
 
         IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), cancellationToken =>
@@ -53,13 +53,43 @@ public sealed class SignedMutationOrchestratorTests
     }
 
     [TestMethod]
+    public async Task ExecuteAsync_DuplicateBaselineRejectsBeforeNonceAndOperationAsync()
+    {
+        using UfwExecutionGate gate = new();
+        Mock<INonceStore> nonceStore = new(MockBehavior.Strict);
+        Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
+        guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        Mock<IFirewallRuleSnapshotReader> reader = new(MockBehavior.Strict);
+        reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(true,
+            [
+                new Ufw.Shared.Firewall.ListedFirewallRule { RuleId = "sha256:same" },
+                new Ufw.Shared.Firewall.ListedFirewallRule { RuleId = "sha256:same" },
+            ], TestFirewallConfiguration.Enabled)));
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, reader.Object);
+        bool operationRan = false;
+
+        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), _ =>
+        {
+            operationRan = true;
+            return Task.FromResult<IResponsePayload>(new OkResponse());
+        }, TestContext.CancellationToken);
+
+        UnprocessableContentResponse error = Assert.IsInstanceOfType<UnprocessableContentResponse>(response);
+        StringAssert.Contains(error.Message, "duplicate semantic rule identities");
+        Assert.AreEqual(FirewallStateErrorCodes.AMBIGUOUS_STATE, error.Code);
+        Assert.IsFalse(operationRan);
+        nonceStore.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
     public async Task ExecuteAsync_SafetyFailureDoesNotConsumeNonceOrRunOperationAsync()
     {
         using UfwExecutionGate gate = new();
         Mock<INonceStore> nonceStore = new(MockBehavior.Strict);
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
         guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("recovery blocked"));
-        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object);
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, CreateCleanSnapshotReader());
         bool operationRan = false;
 
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
@@ -82,7 +112,7 @@ public sealed class SignedMutationOrchestratorTests
         nonceStore.Setup(value => value.TryConsumeAsync(NONCE, EXPIRES_AT_UNIX, It.IsAny<CancellationToken>())).ReturnsAsync(false);
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
         guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object);
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, CreateCleanSnapshotReader());
         bool operationRan = false;
 
         IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), _ =>
@@ -104,7 +134,7 @@ public sealed class SignedMutationOrchestratorTests
         nonceStore.Setup(value => value.TryConsumeAsync(NONCE, EXPIRES_AT_UNIX, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
         guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object);
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, CreateCleanSnapshotReader());
         TaskCompletionSource operationEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseOperation = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -137,7 +167,7 @@ public sealed class SignedMutationOrchestratorTests
         using UfwExecutionGate gate = new();
         Mock<INonceStore> nonceStore = new(MockBehavior.Strict);
         Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
-        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object);
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, CreateCleanSnapshotReader());
         TaskCompletionSource blockerEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseBlocker = new(TaskCreationOptions.RunContinuationsAsynchronously);
         Task blocker = gate.RunAsync(async _ =>
@@ -166,4 +196,13 @@ public sealed class SignedMutationOrchestratorTests
 
     private static IntentVerificationResult.AcceptedRuleMutation Accepted() =>
         new("key", NONCE, EXPIRES_AT_UNIX, new FirewallRuleSpecification(), null);
+
+    private static IFirewallRuleSnapshotReader CreateCleanSnapshotReader()
+    {
+        Mock<IFirewallRuleSnapshotReader> reader = new();
+        reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(
+                true, [], Ufw.Systemd.Tests.TestFirewallConfiguration.Enabled)));
+        return reader.Object;
+    }
 }
