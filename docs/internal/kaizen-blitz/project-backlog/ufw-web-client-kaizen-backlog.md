@@ -644,6 +644,8 @@ Allow public interfaces, DTOs, and feature/component models when they describe i
 
 Use existing standalone/inventory primitives where they genuinely reduce duplication, introduce a shared formatting helper only for stable application-wide formatting rules, and remove one-off global indirection that does not buy readability. Do this only after the higher-leverage items; these are not architectural blockers.
 
+**C4.3 completion:** Five status/inventory/rule views now consume one local, current-culture timestamp formatter. Both standalone failure states share the diagnostic-reference rendering while retaining different user actions (retry vs full reload), icons and titles. The row/menu/dialog fragments already consolidated in C3 remain unchanged. The clone pass revealed no further small, stable presentational abstraction that merits added indirection.
+
 ### KZ-23: Ensure consistent use of SimpleUriBuilder
 
 **Implemented in C4.1.** API resource identifiers and rule/template navigation queries consistently use SimpleUriBuilder. Constant endpoints and explicit URI validation/parsing are left as-is; the one-off globally imported UriOf alias is removed.

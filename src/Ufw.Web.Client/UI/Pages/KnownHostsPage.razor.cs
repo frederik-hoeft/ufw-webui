@@ -6,6 +6,7 @@ using Ufw.Web.Client.UI.Components.Hosts;
 using Ufw.Web.Client.UI.Pages.Inventory;
 using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Client.UI.Formatting;
 
 namespace Ufw.Web.Client.UI.Pages;
 
@@ -100,8 +101,5 @@ public sealed partial class KnownHostsPage
         ? HostsText["VisibleHostCountOne"]
         : HostsText["VisibleHostCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
-    private string DescribeDnsResolvedAt(DateTimeOffset resolvedAt) => HostsText["DnsResolvedAt", FormatLocalDateTime(resolvedAt)];
-
-    private static string FormatLocalDateTime(DateTimeOffset value) =>
-        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
+    private string DescribeDnsResolvedAt(DateTimeOffset resolvedAt) => HostsText["DnsResolvedAt", LocalDateTimeText.Format(resolvedAt)];
 }

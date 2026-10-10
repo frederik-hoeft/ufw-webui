@@ -1,4 +1,5 @@
 ﻿using Ufw.Web.Client.Features.Status;
+using Ufw.Web.Client.UI.Formatting;
 
 namespace Ufw.Web.Client.UI.Components.Layout;
 
@@ -51,7 +52,7 @@ public sealed partial class OperationalStatusIndicator
             DateTimeOffset? checkedAt = OperationalStatus.Current.CheckedAt;
             return checkedAt is null
                 ? NavigationText["NoStatusCheck"]
-                : NavigationText["LastChecked", checkedAt.Value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)];
+                : NavigationText["LastChecked", LocalDateTimeText.Format(checkedAt.Value)];
         }
     }
 }

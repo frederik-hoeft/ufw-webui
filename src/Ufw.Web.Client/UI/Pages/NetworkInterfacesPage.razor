@@ -42,7 +42,7 @@
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
                 @(_inventory.ReconciledAt is { } reconciledAt
-                    ? InterfacesText["ReconciledAt", FormatLocalDateTime(reconciledAt)]
+                    ? InterfacesText["ReconciledAt", LocalDateTimeText.Format(reconciledAt)]
                     : InterfacesText["NotReconciledYet"])
             </MudChip>
         }

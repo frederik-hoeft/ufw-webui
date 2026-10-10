@@ -85,7 +85,4 @@ public sealed partial class NetworkInterfacesPage
     private string DescribeVisibleCount(int count) => count == 1
         ? InterfacesText["VisibleInterfaceCountOne"]
         : InterfacesText["VisibleInterfaceCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
-
-    private static string FormatLocalDateTime(DateTimeOffset value) =>
-        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 }

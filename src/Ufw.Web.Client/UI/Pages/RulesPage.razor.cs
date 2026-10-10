@@ -16,6 +16,7 @@ using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Client.UI.Components.Rules.Templates;
 using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Model.V1.KnownHosts;
+using Ufw.Web.Client.UI.Formatting;
 
 namespace Ufw.Web.Client.UI.Pages;
 
@@ -89,11 +90,8 @@ public sealed partial class RulesPage
         : RulesText["RuleCountMany", count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)];
 
     private string DescribeSnapshotCapturedAt() => _state.Snapshot is RuleSnapshot snapshot
-        ? RulesText["SnapshotCapturedAt", FormatLocalDateTime(snapshot.CapturedAt)]
+        ? RulesText["SnapshotCapturedAt", LocalDateTimeText.Format(snapshot.CapturedAt)]
         : string.Empty;
-
-    private static string FormatLocalDateTime(DateTimeOffset value) =>
-        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 
     protected async override Task OnInitializedAsync() => await LoadRulesAsync(RuleInventoryRefreshReason.Manual);
 
