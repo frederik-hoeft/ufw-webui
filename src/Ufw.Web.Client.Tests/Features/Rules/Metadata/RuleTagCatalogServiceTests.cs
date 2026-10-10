@@ -36,7 +36,6 @@ public sealed class RuleTagCatalogServiceTests
         Assert.AreEqual("zeta", tags[1].Name);
         Assert.AreEqual("#AABBCC", tags[1].Color);
         Assert.AreSame(tags, service.Current);
-        Assert.AreEqual(0L, service.Version);
     }
 
     [TestMethod]
@@ -64,7 +63,26 @@ public sealed class RuleTagCatalogServiceTests
     }
 
     [TestMethod]
-    public async Task MutationMethods_ReplaceCurrentAndAdvanceVersionAsync()
+    public async Task InvalidResponse_DoesNotReplacePreviouslyLoadedCatalogAsync()
+    {
+        Mock<IRuleTagApiClient> api = new();
+        api.SetupSequence(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleTagInventoryResponse { Tags = [Tag("valid", "#112233")] })
+            .ReturnsAsync(new RuleTagInventoryResponse { Tags = [Tag("invalid", "not-a-color")] });
+        api.Setup(client => client.CreateAsync(It.IsAny<CreateRuleTagRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleTagInventoryResponse { Tags = [Tag("invalid", "not-a-color")] });
+        RuleTagCatalogService service = new(api.Object);
+        IReadOnlyList<RuleTag> current = await service.RefreshAsync();
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        Assert.AreSame(current, service.Current);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync("invalid", "#112233"));
+        Assert.AreSame(current, service.Current);
+    }
+
+    [TestMethod]
+    public async Task MutationMethods_ReplaceCurrentFromServerResponsesAsync()
     {
         Mock<IRuleTagApiClient> api = new();
         Guid tagId = Guid.CreateVersion7();
@@ -76,15 +94,12 @@ public sealed class RuleTagCatalogServiceTests
         RuleTagCatalogService service = new(api.Object);
 
         _ = await service.CreateAsync("prod", "#112233");
-        Assert.AreEqual(1L, service.Version);
         Assert.AreEqual("prod", service.Current.Single().Name);
 
         _ = await service.UpdateAsync(tagId, "production", "#AABBCC");
-        Assert.AreEqual(2L, service.Version);
         Assert.AreEqual("production", service.Current.Single().Name);
 
         _ = await service.DeleteAsync(tagId);
-        Assert.AreEqual(3L, service.Version);
         Assert.IsEmpty(service.Current);
     }
 

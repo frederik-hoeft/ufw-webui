@@ -11,13 +11,10 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
 {
     public IReadOnlyList<RuleTemplate> Current { get; private set; } = [];
 
-    public long Version { get; private set; }
-
     public async Task<IReadOnlyList<RuleTemplate>> RefreshAsync(CancellationToken cancellationToken = default)
     {
         RuleTemplateInventoryResponse response = await apiClient.GetAsync(cancellationToken);
-        Current = Normalize(response);
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleTemplate>> CreateAsync(RuleTemplateDefinition definition, CancellationToken cancellationToken = default)
@@ -25,9 +22,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         ArgumentNullException.ThrowIfNull(definition);
         CreateRuleTemplateRequest request = CreateRequest(definition);
         RuleTemplateInventoryResponse response = await apiClient.CreateAsync(request, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleTemplate>> UpdateAsync(Guid templateId, RuleTemplateDefinition definition, CancellationToken cancellationToken = default)
@@ -39,9 +34,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         ArgumentNullException.ThrowIfNull(definition);
         UpdateRuleTemplateRequest request = UpdateRequest(definition);
         RuleTemplateInventoryResponse response = await apiClient.UpdateAsync(templateId, request, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleTemplate>> DeleteAsync(Guid templateId, CancellationToken cancellationToken = default)
@@ -51,9 +44,7 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
             throw new ArgumentException("Rule template ID must not be empty.", nameof(templateId));
         }
         RuleTemplateInventoryResponse response = await apiClient.DeleteAsync(templateId, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     private static CreateRuleTemplateRequest CreateRequest(RuleTemplateDefinition definition) => new()
@@ -75,6 +66,13 @@ internal sealed class RuleTemplateCatalogService(IRuleTemplateApiClient apiClien
         TagIds = definition.TagIds,
         GroupId = definition.GroupId,
     };
+
+    private IReadOnlyList<RuleTemplate> ApplyResponse(RuleTemplateInventoryResponse response)
+    {
+        IReadOnlyList<RuleTemplate> current = Normalize(response);
+        Current = current;
+        return current;
+    }
 
     private static IReadOnlyList<RuleTemplate> Normalize(RuleTemplateInventoryResponse response)
     {
