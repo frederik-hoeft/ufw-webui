@@ -1,6 +1,7 @@
 ﻿using MudBlazor;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Web;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
@@ -57,9 +58,9 @@ public sealed partial class RulesPage
 
     private bool IPv6FamilyAvailable => _projection.IPv6Available;
 
-    private string CreateRuleHref => _familySelection.SelectedFamily == FirewallAddressFamily.IPv6
-        ? "/rules/create?family=ipv6"
-        : "/rules/create?family=ipv4";
+    private string CreateRuleHref => SimpleUriBuilder.Create("/rules/create")
+        .AppendQuery("family", _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 ? "ipv6" : "ipv4")
+        .Build();
 
     private int SelectedFamilyTabIndex =>
         _familySelection.SelectedFamily == FirewallAddressFamily.IPv6 && IPv6FamilyAvailable ? 1 : 0;

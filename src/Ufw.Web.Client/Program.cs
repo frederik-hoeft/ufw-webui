@@ -2,16 +2,6 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Ufw.Web.Client.Api;
-using Ufw.Web.Client.Api.Auth;
-using Ufw.Web.Client.Api.Intent;
-using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Client.Api.RuleGroups;
-using Ufw.Web.Client.Api.RuleMetadata;
-using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Client.Api.RuleTags;
-using Ufw.Web.Client.Api.RuleTemplates;
-using Ufw.Web.Client.Api.Status;
 using Ufw.Web.Client.Configuration;
 using Ufw.Web.Client.Features.Authentication;
 using Ufw.Web.Client.Features.KnownHosts;
@@ -65,48 +55,7 @@ public static class Program
         builder.Services.AddSingleton<IRuleTemplateDraftFactory, RuleTemplateDraftFactory>();
         builder.Services.AddSingleton<IRuleTemplateAuthoringService, RuleTemplateAuthoringService>();
 
-        builder.Services.AddHttpClient<IManagementApiHealthClient, ManagementApiHealthClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress);
-        builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IDaemonStatusApiClient, DaemonStatusApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        // Keep browser credentials inside the bearer handler so a one-time 401 replay reapplies cookie credentials.
-        builder.Services.AddHttpClient<IIntentContextApiClient, IntentContextApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IRuleApiClient, RuleApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IRuleMetadataReconciliationApiClient, RuleMetadataReconciliationApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IRuleTagApiClient, RuleTagApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IRuleGroupApiClient, RuleGroupApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IRuleTemplateApiClient, RuleTemplateApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<IKnownHostApiClient, KnownHostApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
-        builder.Services.AddHttpClient<INetworkInterfaceApiClient, NetworkInterfaceApiClient>(
-            static (services, client) => client.BaseAddress = services.GetRequiredService<ClientRuntimeConfiguration>().ApiBaseAddress)
-            .AddHttpMessageHandler<BearerTokenHandler>()
-            .AddHttpMessageHandler<BrowserCredentialsHandler>();
+        builder.Services.AddClientApiServices();
 
         await builder.Build().RunAsync();
     }

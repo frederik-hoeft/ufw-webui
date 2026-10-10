@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Json;
-using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Model.V1.KnownHosts;
 
@@ -26,9 +25,8 @@ internal sealed class KnownHostApiClient(HttpClient httpClient) : IKnownHostApiC
 
     public async Task<KnownHostInventoryResponse> UpdateAsync(Guid hostId, UpdateKnownHostRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateHostId(hostId);
+        Uri uri = ApiResourceUri.ForId(HOSTS_PATH, hostId, nameof(hostId), "Known host");
         ArgumentNullException.ThrowIfNull(request);
-        Uri uri = BuildHostUri(hostId);
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.UpdateKnownHostRequest);
         using HttpResponseMessage response = await httpClient.PutAsync(uri, content, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
@@ -36,33 +34,15 @@ internal sealed class KnownHostApiClient(HttpClient httpClient) : IKnownHostApiC
 
     public async Task<KnownHostInventoryResponse> ReconcileDnsAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
-        ValidateHostId(hostId);
-        Uri uri = SimpleUriBuilder.Create(HOSTS_PATH)
-            .AppendPath(hostId.ToString("D"))
-            .AppendPath("dns")
-            .AppendPath("reconcile")
-            .BuildUri(UriKind.Relative);
+        Uri uri = ApiResourceUri.ForId(HOSTS_PATH, hostId, nameof(hostId), "Known host", "dns", "reconcile");
         using HttpResponseMessage response = await httpClient.PostAsync(uri, content: null, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
     }
 
     public async Task<KnownHostInventoryResponse> DeleteAsync(Guid hostId, CancellationToken cancellationToken = default)
     {
-        ValidateHostId(hostId);
-        Uri uri = BuildHostUri(hostId);
+        Uri uri = ApiResourceUri.ForId(HOSTS_PATH, hostId, nameof(hostId), "Known host");
         using HttpResponseMessage response = await httpClient.DeleteAsync(uri, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.KnownHostInventoryResponse, cancellationToken);
-    }
-
-    private static Uri BuildHostUri(Guid hostId) => SimpleUriBuilder.Create(HOSTS_PATH)
-        .AppendPath(hostId.ToString("D"))
-        .BuildUri(UriKind.Relative);
-
-    private static void ValidateHostId(Guid hostId)
-    {
-        if (hostId == Guid.Empty)
-        {
-            throw new ArgumentException("Known host ID must not be empty.", nameof(hostId));
-        }
     }
 }

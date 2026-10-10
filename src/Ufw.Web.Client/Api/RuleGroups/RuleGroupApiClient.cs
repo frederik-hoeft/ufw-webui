@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Json;
-using Ufw.Shared.Web;
 using Ufw.Web.Model.V1.RuleGroups;
 
 namespace Ufw.Web.Client.Api.RuleGroups;
@@ -25,9 +24,8 @@ internal sealed class RuleGroupApiClient(HttpClient httpClient) : IRuleGroupApiC
 
     public async Task<RuleGroupInventoryResponse> UpdateAsync(Guid groupId, UpdateRuleGroupRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateGroupId(groupId);
+        Uri uri = ApiResourceUri.ForId(GROUPS_PATH, groupId, nameof(groupId), "Rule group");
         ArgumentNullException.ThrowIfNull(request);
-        Uri uri = BuildGroupUri(groupId);
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.UpdateRuleGroupRequest);
         using HttpResponseMessage response = await httpClient.PutAsync(uri, content, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.RuleGroupInventoryResponse, cancellationToken);
@@ -35,21 +33,8 @@ internal sealed class RuleGroupApiClient(HttpClient httpClient) : IRuleGroupApiC
 
     public async Task<RuleGroupInventoryResponse> DeleteAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
-        ValidateGroupId(groupId);
-        Uri uri = BuildGroupUri(groupId);
+        Uri uri = ApiResourceUri.ForId(GROUPS_PATH, groupId, nameof(groupId), "Rule group");
         using HttpResponseMessage response = await httpClient.DeleteAsync(uri, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.RuleGroupInventoryResponse, cancellationToken);
-    }
-
-    private static Uri BuildGroupUri(Guid groupId) => SimpleUriBuilder.Create(GROUPS_PATH)
-        .AppendPath(groupId.ToString("D"))
-        .BuildUri(UriKind.Relative);
-
-    private static void ValidateGroupId(Guid groupId)
-    {
-        if (groupId == Guid.Empty)
-        {
-            throw new ArgumentException("Rule group ID must not be empty.", nameof(groupId));
-        }
     }
 }

@@ -254,7 +254,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 
 #### C4 - Transport/public-surface/opportunistic cleanup
 
-1. CLIENT KZ-20 + KZ-23 together: HTTP registration/resource mechanics and consistent URI building on the final API surface.
+1. [x] CLIENT KZ-20 + KZ-23 (C4.1): consolidate typed API client base-address/auth-handler registration and GUID-resource URI validation/construction; use `SimpleUriBuilder` for navigation queries and remove the redundant global URI helper. Typed client payload/response handling remains explicit, preserving independent API contracts and existing shared `ReadRequiredAsync` behavior.
 2. CLIENT KZ-21 public-surface audit after final Features/Api interfaces are known.
 3. CLIENT KZ-22 last-mile presentational clones after all structural UI changes.
 
@@ -408,10 +408,10 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
 | [x] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
 | [x] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Both reference catalogs retain independently classified failures, and localized editor warnings distinguish unavailable suggestions from an empty catalog. |
-| [ ] | CLIENT KZ-20 | C4 | Factor repeated HttpClient registration and resource-client mechanics | Do after server endpoints/contracts are stable and feature workflow extraction has stopped changing API-client call patterns. |
+| [x] | CLIENT KZ-20 | C4.1 | Factor repeated HttpClient registration and resource-client mechanics | Typed-client registration policies and GUID-resource URI mechanics are shared; endpoint-specific JSON contracts remain explicit. Handler ordering and request destinations are regression-tested. |
 | [ ] | CLIENT KZ-21 | C4 | Audit and minimize the client's public surface | Late cleanup after final interfaces/callers are known. |
 | [ ] | CLIENT KZ-22 | C4 | Consolidate small presentational clones opportunistically | Last-mile cleanup after component/workflow/style structure is final. |
-| [ ] | CLIENT KZ-23 | C4 | Ensure consistent use of SimpleUriBuilder | Pair with KZ-20 while API/navigation URI construction is already being touched. |
+| [x] | CLIENT KZ-23 | C4.1 | Ensure consistent use of SimpleUriBuilder | GUID resource paths and navigation queries use SimpleUriBuilder; one-off global UriOf helper removed. Literal fixed routes and intentional URI validation/parsing remain unchanged. |
 
 ### Cross-project follow-up traceability (new items)
 

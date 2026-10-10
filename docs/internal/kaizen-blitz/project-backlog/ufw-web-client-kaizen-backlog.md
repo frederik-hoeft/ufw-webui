@@ -599,6 +599,8 @@ The normal `/interfaces` inventory and rule-editor reference data should continu
 
 ### KZ-20: Factor repeated HttpClient registration and resource-client mechanics
 
+**Implemented in C4.1.** Shared typed-client registration preserves anonymous health, cookie-only auth, and bearer-then-cookie chains. The GUID resource path helper centralizes validation and SimpleUriBuilder usage without moving JSON contracts out of typed clients.
+
 **Where**
 
 - `Program.cs:76-117`
@@ -641,6 +643,8 @@ Make implementation-detail interfaces internal unless there is an intentional ex
 Use existing standalone/inventory primitives where they genuinely reduce duplication, introduce a shared formatting helper only for stable application-wide formatting rules, and remove one-off global indirection that does not buy readability. Do this only after the higher-leverage items; these are not architectural blockers.
 
 ### KZ-23: Ensure consistent use of SimpleUriBuilder
+
+**Implemented in C4.1.** API resource identifiers and rule/template navigation queries consistently use SimpleUriBuilder. Constant endpoints and explicit URI validation/parsing are left as-is; the one-off globally imported UriOf alias is removed.
 
 Route construction and URI manipulation should consistently use `SimpleUriBuilder` and `SimpleUriParser` to avoid ad-hoc string concatenation and parsing, ensuring correctness and maintainability across the client codebase.
 

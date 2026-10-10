@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
+using Ufw.Shared.Web;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Templates;
@@ -63,9 +64,9 @@ public sealed partial class RuleTemplatesPage
 
     private void Create() => Navigation.NavigateTo("/templates/create");
 
-    private void Use(RuleTemplate template) => Navigation.NavigateTo(UriOf("/rules/create").AppendQuery("template", template.Id.ToString("D")).Build());
+    private void Use(RuleTemplate template) => Navigation.NavigateTo(SimpleUriBuilder.Create("/rules/create").AppendQuery("template", template.Id.ToString("D")).Build());
 
-    private void Edit(RuleTemplate template) => Navigation.NavigateTo(UriOf("/templates/edit").AppendPath(template.Id.ToString("D")).Build());
+    private void Edit(RuleTemplate template) => Navigation.NavigateTo(SimpleUriBuilder.Create("/templates/edit").AppendPath(template.Id.ToString("D")).Build());
 
     private async Task DeleteAsync(RuleTemplate template)
     {
