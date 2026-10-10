@@ -5,57 +5,22 @@ using Ufw.Web.Client.Features.Rules.Metadata;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Filtering.Tags;
 
-public sealed partial class TagRuleFilterEditor(IRuleTagCatalogService tagCatalog) : RuleFilterEditorBase
+public sealed partial class TagRuleFilterEditor(IRuleTagCatalogService catalog) : RuleFilterEditorBase
 {
-    private RuleFilter? _loadedFilter;
-    private IReadOnlyList<RuleTag> _tags = [];
-    private RuleTag? _tag;
+    private readonly CatalogRuleFilterEditorState<TagRuleFilter, RuleTag> _selection = new(
+        static filter => filter.Tag, static item => item.Id, static item => item.Name);
 
-    protected async override Task OnInitializedAsync()
-    {
-        _tags = await tagCatalog.RefreshAsync();
-        SynchronizeFilter(force: true);
-    }
+    protected async override Task OnInitializedAsync() => _selection.SetItems(await catalog.RefreshAsync(), Filter);
 
-    protected override void OnParametersSet() => SynchronizeFilter(force: false);
+    protected override void OnParametersSet() => _selection.Synchronize(Filter);
 
     public override bool TryBuildFilter([NotNullWhen(true)] out RuleFilter? filter)
     {
-        if (_tag is null)
-        {
-            filter = null;
-            return false;
-        }
-
-        filter = new TagRuleFilter(_tag);
-        return true;
+        filter = _selection.Selected is RuleTag item ? new TagRuleFilter(item) : null;
+        return filter is not null;
     }
 
-    private Task<IEnumerable<RuleTag>> SearchAsync(string? value, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        IEnumerable<RuleTag> matches = string.IsNullOrWhiteSpace(value)
-            ? _tags
-            : _tags.Where(tag => tag.Name.Contains(value.Trim(), StringComparison.CurrentCultureIgnoreCase));
-        return Task.FromResult(matches);
-    }
+    private Task<IEnumerable<RuleTag>> SearchAsync(string? value, CancellationToken cancellationToken) => _selection.SearchAsync(value, cancellationToken);
 
-    private void SynchronizeFilter(bool force)
-    {
-        if (!force && ReferenceEquals(_loadedFilter, Filter))
-        {
-            return;
-        }
-
-        _loadedFilter = Filter;
-        if (Filter is not TagRuleFilter tagFilter)
-        {
-            _tag = null;
-            return;
-        }
-
-        _tag = _tags.FirstOrDefault(tag => tag.Id == tagFilter.Tag.Id) ?? tagFilter.Tag;
-    }
-
-    private static string FormatTag(RuleTag? tag) => tag?.Name ?? string.Empty;
+    private static string FormatTag(RuleTag? item) => item?.Name ?? string.Empty;
 }

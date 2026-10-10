@@ -413,6 +413,27 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void Evaluate_EnumFilters_MatchExactValuesAndPreserveTypedEvidence()
+    {
+        RuleRowProjection expected = Row(0, 1, action: FirewallAction.Reject, direction: FirewallDirection.Forward, protocol: FirewallProtocol.Tcp);
+        RuleRowProjection wrongAction = Row(1, 2, action: FirewallAction.Allow, direction: FirewallDirection.Forward, protocol: FirewallProtocol.Tcp);
+        RuleFamilyProjection family = new(FirewallAddressFamily.IPv4, [expected, wrongAction]);
+        RuleQuery query = new([
+            new ActionRuleFilter(FirewallAction.Reject),
+            new DirectionRuleFilter(FirewallDirection.Forward),
+            new ProtocolRuleFilter(FirewallProtocol.Tcp),
+        ]);
+
+        RuleFamilyQueryResult result = _service.Evaluate(family, query);
+
+        Assert.HasCount(1, result.Rows);
+        Assert.AreSame(expected, result.Rows[0].Row);
+        Assert.AreEqual("reject", Assert.IsInstanceOfType<ActionRuleMatchEvidence>(result.Rows[0].Evidence[0]).Value);
+        Assert.AreEqual("forward", Assert.IsInstanceOfType<DirectionRuleMatchEvidence>(result.Rows[0].Evidence[1]).Value);
+        Assert.AreEqual("tcp", Assert.IsInstanceOfType<ProtocolRuleMatchEvidence>(result.Rows[0].Evidence[2]).Value);
+    }
+
+    [TestMethod]
     public void Evaluate_TextSearchCanMatchOpaqueRawRuleButStructuredFilterCannot()
     {
         ListedFirewallRule opaque = new() { Parsed = false, RawLine = "custom opaque rule for monitoring" };

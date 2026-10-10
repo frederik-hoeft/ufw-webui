@@ -5,7 +5,7 @@
 
 <MudAutocomplete T="RuleTag"
                  Label="@(RulesText["TagFilter"])"
-                 @bind-Value="_tag"
+                 @bind-Value="_selection.Selected"
                  SearchFunc="SearchAsync"
                  ToStringFunc="FormatTag"
                  CoerceValue="false"

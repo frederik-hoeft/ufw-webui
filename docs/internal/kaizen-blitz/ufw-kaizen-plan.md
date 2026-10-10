@@ -225,8 +225,8 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 4. [x] CLIENT KZ-06 metadata protocol mapper + KZ-17 response-to-snapshot factory against the stabilized shared domain models.
 5. [x] CLIENT KZ-11 client error-mapping ergonomics against final WEB KZ-09 errors, including ACC-04 centralized unauthorized/session-expired navigation.
 6. [x] CLIENT KZ-12 switch localization to the stable shared validation identities established at S1/S2.
-7. CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
-8. CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
+7. [x] CLIENT KZ-15 settle catalog-state/`Version` semantics before metadata authoring is extracted.
+8. [x] CLIENT KZ-16 filter micro-clone cleanup only after KZ-02 has deleted the duplicated semantic algorithms.
 
 #### C2 - Feature/workflow extraction
 
@@ -386,7 +386,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [ ] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | Do after KZ-07 so style ownership follows the final component decomposition. |
 | [ ] | CLIENT KZ-14 | C3 | Consolidate dialog options and confirmation-dialog presentation shells | Do after workflow extraction so confirmation shells contain presentation only, not temporary workflow responsibilities. |
 | [x] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Decision: no revision counter; replace cached inventories only after successful normalization of authoritative server responses. KZ-08 consumes these semantics. |
-| [ ] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
+| [x] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |
 | [x] | CLIENT KZ-17 | C1 | Separate protocol response mapping from `RuleSnapshot` | Do in C1 with KZ-06, before KZ-01; workflows should consume a transport-free RuleSnapshot. |
 | [ ] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
 | [ ] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Do with feature workflow extraction, using the final server error contract and explicit reference-data results. |

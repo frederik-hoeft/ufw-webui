@@ -4,7 +4,7 @@
 
 <MudSelect T="FirewallAction"
            Label="@(RulesText["ActionFilter"])"
-           @bind-Value="_action">
+           @bind-Value="_selection.Value">
     @foreach (FirewallAction value in Enum.GetValues<FirewallAction>())
     {
         <MudSelectItem T="FirewallAction" Value="@value">@RuleText.FormatAction(value)</MudSelectItem>

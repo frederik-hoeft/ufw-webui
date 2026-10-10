@@ -7,23 +7,14 @@ namespace Ufw.Web.Client.UI.Components.Rules.Filtering.Directions;
 
 public sealed partial class DirectionRuleFilterEditor : RuleFilterEditorBase
 {
-    private RuleFilter? _loadedFilter;
-    private FirewallDirection _direction = FirewallDirection.In;
+    private readonly EnumRuleFilterEditorState<DirectionRuleFilter, FirewallDirection> _selection = new(
+        FirewallDirection.In, static filter => filter.Direction, static value => new DirectionRuleFilter(value));
 
-    protected override void OnParametersSet()
-    {
-        if (ReferenceEquals(_loadedFilter, Filter))
-        {
-            return;
-        }
-
-        _loadedFilter = Filter;
-        _direction = Filter is DirectionRuleFilter direction ? direction.Direction : FirewallDirection.In;
-    }
+    protected override void OnParametersSet() => _selection.Synchronize(Filter);
 
     public override bool TryBuildFilter([NotNullWhen(true)] out RuleFilter? filter)
     {
-        filter = new DirectionRuleFilter(_direction);
+        filter = _selection.Build();
         return true;
     }
 }

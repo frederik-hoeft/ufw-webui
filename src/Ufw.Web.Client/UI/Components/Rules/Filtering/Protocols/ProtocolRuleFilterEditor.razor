@@ -4,7 +4,7 @@
 
 <MudSelect T="FirewallProtocol"
            Label="@(RulesText["ProtocolFilter"])"
-           @bind-Value="_protocol">
+           @bind-Value="_selection.Value">
     @foreach (FirewallProtocol value in Enum.GetValues<FirewallProtocol>())
     {
         <MudSelectItem T="FirewallProtocol" Value="@value">@RuleText.FormatProtocol(value)</MudSelectItem>
