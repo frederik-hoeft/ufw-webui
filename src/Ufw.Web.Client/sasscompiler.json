@@ -8,12 +8,32 @@
   ],
   "Compilations": [
     {
+      "Source": "UI/Components/Rules/Filtering/RuleFilterEditorDialog.razor.scss",
+      "Target": "UI/Components/Rules/Filtering/RuleFilterEditorDialog.razor.css"
+    },
+    {
       "Source": "UI/Components/Rules/Metadata/EditRuleGroupDialog.razor.scss",
       "Target": "UI/Components/Rules/Metadata/EditRuleGroupDialog.razor.css"
     },
     {
+      "Source": "UI/Components/Rules/Metadata/ManageRuleTagsDialog.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/ManageRuleTagsDialog.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/ReconcileRuleMetadataDialog.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/ReconcileRuleMetadataDialog.razor.css"
+    },
+    {
       "Source": "UI/Components/Rules/Metadata/RuleGroupMembers.razor.scss",
       "Target": "UI/Components/Rules/Metadata/RuleGroupMembers.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/RuleGroupOption.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleGroupOption.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/RuleKnownHostEndpoint.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleKnownHostEndpoint.razor.css"
     },
     {
       "Source": "UI/Components/Rules/Metadata/RuleMetadataEditor.razor.scss",
@@ -26,6 +46,10 @@
     {
       "Source": "UI/Components/Rules/Metadata/RuleTagList.razor.scss",
       "Target": "UI/Components/Rules/Metadata/RuleTagList.razor.css"
+    },
+    {
+      "Source": "UI/Components/Rules/Metadata/RuleTagOption.razor.scss",
+      "Target": "UI/Components/Rules/Metadata/RuleTagOption.razor.css"
     },
     {
       "Source": "UI/Components/Rules/RuleDesktopContent.razor.scss",

@@ -248,7 +248,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 2. CLIENT KZ-13 classify/extract styles against the final component structure:
    - [x] C3.3: document global-style ownership and consolidate shared rule-row and action-menu primitives.
    - [x] C3.4: migrate six owner-local leaf styles to `.razor.scss` with narrow Mud-child `::deep` selectors and scoped-CSS verification; retain shared, portal, and cross-component styling globally.
-   - [ ] C3.5: resolve remaining owner-local candidates (especially dialogs, row parents, layout overrides), coordinating dialog markup with KZ-14; close KZ-13 when their ownership is established. Browser-level responsive acceptance remains open.
+   - [x] C3.5: isolate the remaining self-owned dialog, known-host endpoint and option markup (six components); document why row/table parent, layout, Mud roots and shared details styles must retain global ownership. KZ-13 source-ownership audit is complete; browser-level responsive/overlay acceptance remains open.
 3. CLIENT KZ-14 consolidate dialog options/confirmation presentation after workflow responsibility has been removed from dialogs; include ACC-06 full unmatched metadata IDs with presentation-only truncation.
 
 #### C4 - Transport/public-surface/opportunistic cleanup
@@ -400,7 +400,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | C2.8: one page-level async operation helper and common loading/error fragments, with known-host visibility request construction in Features; domain-specific dialogs/reconciliation remain separate. |
 | [x] | CLIENT KZ-11 | C1 | Remove repeated `TryDescribe(... out _)` + `Describe(...)` error classification | Do immediately after Web KZ-09 stabilizes ProblemDetails/error semantics, before moving more workflow code into Features. |
 | [x] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
-| [ ] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | Do after KZ-07 so style ownership follows the final component decomposition. |
+| [x] | CLIENT KZ-13 | C3 | Reclassify non-isolated component SCSS and extract generic menu/control styles | C3.3 consolidated shared row/menu primitives; C3.4/C3.5 isolated twelve owner-local styles and documented each deliberate global cross-boundary dependency. Browser-level visual acceptance remains outstanding. |
 | [ ] | CLIENT KZ-14 | C3 | Consolidate dialog options and confirmation-dialog presentation shells | Do after workflow extraction so confirmation shells contain presentation only, not temporary workflow responsibilities. |
 | [x] | CLIENT KZ-15 | C1 | Simplify catalog state and define/remove `Version` | Decision: no revision counter; replace cached inventories only after successful normalization of authoritative server responses. KZ-08 consumes these semantics. |
 | [x] | CLIENT KZ-16 | C1 | Reduce filter editor/evaluator/reconciler micro-clones without over-generalizing Razor | Do after KZ-02 removes the duplicated semantic algorithms; otherwise helpers would abstract code that is about to disappear. |

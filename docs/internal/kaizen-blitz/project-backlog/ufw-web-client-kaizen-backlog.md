@@ -466,7 +466,7 @@ Classify every non-isolated file:
 2. intentional portal/overlay hook -> keep a small global owner-specific hook;
 3. generic Mud/application behavior -> move to `UI/Styles/controls`.
 
-Start with the action-menu clone by extracting one shared menu primitive. Do not mechanically convert portal/autocomplete styles to isolation. C3.3 has a per-import [ownership inventory](../client-style-ownership.md), and moves the exact menu clone and shared desktop/mobile row fragments without changing owner layout. C3.4 migrates six owner-local leaf styles with scoped-CSS verification. The remaining owner-local candidates need focused follow-up coordinated with KZ-14 (C3.5), while known portal and cross-component hooks stay global.
+Start with the action-menu clone by extracting one shared menu primitive. Do not mechanically convert portal/autocomplete styles to isolation. C3.3 has a per-import [ownership inventory](../client-style-ownership.md), and moves the exact menu clone and shared desktop/mobile row fragments without changing owner layout. C3.4 migrates six owner-local leaf styles with scoped-CSS verification. C3.5 isolates the remaining safe dialog, endpoint and option components, including narrowly scoped descendant selectors for Mud-rendered buttons/icons. The completed ownership inventory documents why the remaining row/table, layout, portal, and mixed details styles are intentionally global. KZ-14 may revisit shared confirmation presentation, but the KZ-13 source-level audit is complete; visual integration acceptance is still outstanding.
 
 ### KZ-14: Consolidate dialog options and confirmation-dialog presentation shells
 

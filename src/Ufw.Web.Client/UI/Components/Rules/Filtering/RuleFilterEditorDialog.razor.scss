@@ -13,7 +13,7 @@
             display: grid;
             margin-top: 0.125rem;
 
-            .mud-button-root {
+            ::deep > .mud-button-root {
                 justify-content: flex-start;
             }
         }
@@ -24,7 +24,7 @@
     display: grid;
     gap: 0.5rem;
 
-    > .mud-button-root {
+    ::deep > .mud-button-root {
         justify-self: start;
         margin-left: -0.75rem;
     }
