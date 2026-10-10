@@ -32,7 +32,7 @@
         <MudButton Href="/rules"
                    Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.ArrowBack"
-                   Disabled="@_submitting"
+                   Disabled="@_interaction.IsSubmitting"
                    Class="page-header-button">
             @RulesText["BackToRules"]
         </MudButton>
@@ -47,7 +47,7 @@
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Refresh"
-                   Disabled="@_submitting"
+                   Disabled="@_interaction.IsSubmitting"
                    OnClick="RefreshAsync">
             @CommonText["Retry"]
         </MudButton>
@@ -76,7 +76,7 @@ else
             <MudButton Variant="Variant.Outlined"
                        Color="Color.Warning"
                        StartIcon="@Icons.Material.Filled.Refresh"
-                       Disabled="@_submitting"
+                       Disabled="@_interaction.IsSubmitting"
                        OnClick="RefreshAsync">
                 @RulesText["RefreshAuthoritative"]
             </MudButton>
@@ -86,7 +86,7 @@ else
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.body2">
-                @(_mutationMayHaveCompleted
+                @(_interaction.IsAwaitingConfirmation
                     ? RulesText["RuleSubmissionConfirming"]
                     : RulesText["RefreshingAuthoritative"])
             </MudText>
@@ -95,13 +95,13 @@ else
 
     @if (IsOrderedInsertionRequested)
     {
-        <MudAlert Severity="@(_orderedInsertionContext is null ? Severity.Warning : Severity.Info)"
+        <MudAlert Severity="@(_interaction.InsertionContext is null ? Severity.Warning : Severity.Info)"
                   Variant="Variant.Outlined"
                   Class="mb-5"
                   role="note">
             <MudText Typo="Typo.subtitle1" GutterBottom="true">@RulesText["OrderedInsertionTitle"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">@DescribeInsertionTarget()</MudText>
-            @if (_orderedInsertionContext is not null)
+            @if (_interaction.InsertionContext is not null)
             {
                 <MudText Typo="Typo.body2" Class="mb-2">@DescribeInsertionFamily()</MudText>
                 <MudText Typo="Typo.body2" Class="mb-3">@RulesText["OrderedInsertionDescription"]</MudText>
@@ -119,7 +119,7 @@ else
         </MudAlert>
     }
 
-    @if (_insertionResult is { } insertionResult && insertionResult.Outcome != RuleInsertionOutcome.Completed)
+    @if (_interaction.InsertionResult is { } insertionResult && insertionResult.Outcome != RuleInsertionOutcome.Completed)
     {
         <MudAlert Severity="@InsertionResultSeverity" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">
             <MudText Typo="Typo.subtitle1" GutterBottom="true">@DescribeInsertionResultTitle()</MudText>
@@ -127,7 +127,7 @@ else
             {
                 <MudText Typo="Typo.body2" Class="mb-2">@insertionResult.Diagnostic</MudText>
             }
-            @if (_orderedInsertionInvalidated)
+            @if (_interaction.InsertionInvalidated)
             {
                 <MudText Typo="Typo.body2">@RulesText["OrderedInsertionReselect"]</MudText>
             }
@@ -143,7 +143,7 @@ else
             <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4" role="status">
                 <MudText Typo="Typo.body2" Class="mb-2">@TemplatesText["TemplateLoadFailed"]</MudText>
                 <MudText Typo="Typo.body2" Class="mb-3">@_templateCatalogError.Message</MudText>
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" Disabled="@(_loadingTemplates || _submitting)" OnClick="ReloadTemplatesAsync">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" Disabled="@(_loadingTemplates || _interaction.IsSubmitting)" OnClick="ReloadTemplatesAsync">
                     @TemplatesText["ReloadTemplates"]
                 </MudButton>
             </MudAlert>
@@ -198,7 +198,7 @@ else
                 SubmitDisabled="@(!CanSubmit)"
                 SubmitLabel="@(IsOrderedInsertionRequested ? RulesText["InsertSignedRule"] : RulesText["AddSignedRule"])"
                 SubmittingLabel="@(IsOrderedInsertionRequested ? RulesText["InsertingRule"] : RulesText["AddingRule"])"
-                Submitting="@_submitting"
+                Submitting="@_interaction.IsSubmitting"
                 @bind-PrivateKey="_privateKey"
                 OnSubmit="SubmitRuleAsync"
                 OnCancel="Cancel" />

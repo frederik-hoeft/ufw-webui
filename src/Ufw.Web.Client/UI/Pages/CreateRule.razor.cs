@@ -3,9 +3,9 @@ using MudBlazor;
 using System.Globalization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Web.Client.Api.Rules;
-using Ufw.Web.Client.Features.Rules.Authoring.Workflows;
 using Ufw.Web.Client.Features.Rules;
+using Ufw.Web.Client.Features.Rules.Authoring;
+using Ufw.Web.Client.Features.Rules.Authoring.Workflows;
 using Ufw.Web.Client.Features.Rules.Insertion;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Templates;
@@ -19,10 +19,8 @@ public sealed partial class CreateRule
 {
     private readonly CancellationTokenSource _lifetime = new();
     private RuleInventoryState _state = RuleInventoryState.Initial;
+    private RuleCreationInteractionState _interaction = RuleCreationInteractionState.Initial;
     private FirewallRuleSpecification _draft = null!;
-    private OrderedRuleInsertionNavigationContext? _orderedInsertionContext;
-    private OrderedRuleInsertionContextError _orderedInsertionContextError;
-    private RuleInsertionResponse? _insertionResult;
     private RuleMetadataEditor? _metadataEditor;
     private RuleMetadataEditorResult _metadataDraft = RuleMetadataEditorResult.Empty;
     private IReadOnlyList<RuleTemplate> _templates = [];
@@ -31,15 +29,10 @@ public sealed partial class CreateRule
     private ClientError? _templateCatalogError;
     private string? _templateContextWarning;
     private string _privateKey = string.Empty;
-    private string? _reconciliationRuleIdentity;
-    private bool _mutationMayHaveCompleted;
-    private bool _orderedInsertionInvalidated;
-    private bool _submitting;
     private bool _initialAddressFamilyApplied;
     private bool _initialTemplateHandled;
     private bool _templatesLoaded;
     private bool _loadingTemplates;
-    private bool _initializing = true;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -54,10 +47,7 @@ public sealed partial class CreateRule
 
     private bool IsOrderedInsertionRequested => InsertionQuery.IsRequested;
 
-    private bool CanUseOrderedInsertionContext
-        => !IsOrderedInsertionRequested || !_orderedInsertionInvalidated && _orderedInsertionContext is not null;
-
-    private bool CanEdit => _state.IsCurrent && !_initializing && !_submitting && !_mutationMayHaveCompleted && CanUseOrderedInsertionContext;
+    private bool CanEdit => _state.IsCurrent && _interaction.CanEdit(IsOrderedInsertionRequested);
 
     private bool CanSubmit => CanEdit;
 
@@ -102,7 +92,7 @@ public sealed partial class CreateRule
         }
         finally
         {
-            _initializing = false;
+            _interaction = _interaction.InitializationCompleted();
         }
     }
 
@@ -115,7 +105,7 @@ public sealed partial class CreateRule
 
     private Task RefreshAsync()
     {
-        if (_submitting || _state.IsLoading)
+        if (!_interaction.CanRefresh || _state.IsLoading)
         {
             return Task.CompletedTask;
         }
@@ -139,16 +129,17 @@ public sealed partial class CreateRule
             ResolveOrderedInsertionContext(RuleSnapshotFactory.ToFirewallResponse(snapshot));
             TryApplyInitialTemplate();
 
-            if (_mutationMayHaveCompleted)
+            if (_interaction.IsAwaitingConfirmation)
             {
-                if (_reconciliationRuleIdentity is not null && MutationReconciliation.IsPresent(_state.Snapshot!, _reconciliationRuleIdentity))
+                string pendingRuleId = _interaction.PendingRuleId!;
+                bool isPresent = MutationReconciliation.IsPresent(snapshot, pendingRuleId);
+                _interaction = _interaction.AddPresenceChecked(isPresent);
+                if (isPresent)
                 {
                     Navigation.NavigateTo("/rules");
                     return;
                 }
 
-                _mutationMayHaveCompleted = false;
-                _reconciliationRuleIdentity = null;
                 Snackbar.Add(RulesText["SubmittedRuleMissing"], Severity.Warning);
             }
         }
@@ -207,7 +198,7 @@ public sealed partial class CreateRule
             _templateContextWarning = TemplatesText["TemplateContextInvalid"];
             return;
         }
-        if (!_templatesLoaded || IsOrderedInsertionRequested && _orderedInsertionContext is null)
+        if (!_templatesLoaded || IsOrderedInsertionRequested && _interaction.InsertionContext is null)
         {
             return;
         }
@@ -235,7 +226,7 @@ public sealed partial class CreateRule
 
     private void ApplyTemplate(RuleTemplate template)
     {
-        FirewallAddressFamily? requiredFamily = IsOrderedInsertionRequested ? _orderedInsertionContext?.AddressFamily : null;
+        FirewallAddressFamily? requiredFamily = IsOrderedInsertionRequested ? _interaction.InsertionContext?.AddressFamily : null;
         RuleTemplateInstantiationResult result = TemplateAuthoring.Initialize(template, requiredFamily);
         if (!result.Succeeded)
         {
@@ -292,100 +283,109 @@ public sealed partial class CreateRule
 
     private void ResolveOrderedInsertionContext(RuleListResponse snapshot)
     {
-        _orderedInsertionContext = null;
-        _orderedInsertionContextError = OrderedRuleInsertionContextError.None;
-        if (!IsOrderedInsertionRequested || _orderedInsertionInvalidated)
+        if (!IsOrderedInsertionRequested || _interaction.InsertionInvalidated)
         {
             return;
         }
 
         RuleInsertionNavigationResolution resolution = InsertionNavigation.Resolve(snapshot, InsertionQuery);
-        if (!resolution.Succeeded)
+        _interaction = _interaction.InsertionResolved(resolution);
+        if (_interaction.InsertionContext is { } context)
         {
-            _orderedInsertionContextError = resolution.Error;
-            _orderedInsertionInvalidated = true;
-            return;
+            _draft.AddressFamily = context.AddressFamily;
         }
-
-        _orderedInsertionContext = resolution.Context;
-        _draft.AddressFamily = resolution.Context!.AddressFamily;
     }
 
     private async Task SubmitRuleAsync()
-    {
-        if (_metadataEditor is not null && !await _metadataEditor.ValidateAsync())
-        {
-            return;
-        }
-
-        _metadataDraft = _metadataDraft.Normalize();
-        if (IsOrderedInsertionRequested)
-        {
-            await InsertRuleAsync();
-            return;
-        }
-
-        await AddRuleAsync();
-    }
-
-    private async Task AddRuleAsync()
     {
         if (!CanSubmit || string.IsNullOrWhiteSpace(_privateKey))
         {
             return;
         }
 
-        // Preserve the requested identity even when no mutation response can be obtained.
-        _reconciliationRuleIdentity = MutationReconciliation.GetRequestedIdentity(_draft);
-        _submitting = true;
+        // Claim the submission before awaiting metadata validation: another UI event cannot submit the same draft concurrently.
+        _interaction = _interaction.ValidationStarted();
         try
         {
-            RuleCreationAddResult result = await CreationWorkflow.AddAsync(_draft, CurrentMetadataChange(), _privateKey, _lifetime.Token);
-            _reconciliationRuleIdentity = result.ConfirmedRuleId;
-            NotifyMetadataSaveFailure(result.MetadataError);
-            _mutationMayHaveCompleted = true;
-            _submitting = false;
-            await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
-        }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
-        {
-            ClientError error = ClientErrors.Describe(exception);
-            _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
-            _mutationMayHaveCompleted = _state.StaleReason == RuleSnapshotStaleReason.MutationOutcomeUnknown;
-            if (!_mutationMayHaveCompleted)
+            if (_metadataEditor is not null)
             {
-                _reconciliationRuleIdentity = null;
+                bool metadataValid = await _metadataEditor.ValidateAsync();
+                if (!metadataValid)
+                {
+                    return;
+                }
             }
-            Snackbar.Add(error.Message, Severity.Error);
+
+            _metadataDraft = _metadataDraft.Normalize();
+            if (IsOrderedInsertionRequested)
+            {
+                _interaction = _interaction.SubmissionStarted();
+                await InsertRuleAsync();
+            }
+            else
+            {
+                // Resolve identity before the mutation starts; a local validation failure cannot leave an uncertain write behind.
+                string requestedRuleId = MutationReconciliation.GetRequestedIdentity(_draft);
+                _interaction = _interaction.SubmissionStarted();
+                await AddRuleAsync(requestedRuleId);
+            }
+        }
+        finally
+        {
+            if (_interaction.Phase == RuleCreationPhase.Validating)
+            {
+                _interaction = _interaction.ValidationStopped();
+            }
+        }
+    }
+
+    private async Task AddRuleAsync(string requestedRuleId)
+    {
+        try
+        {
+            RuleCreationAddResult result;
+            try
+            {
+                result = await CreationWorkflow.AddAsync(_draft, CurrentMetadataChange(), _privateKey, _lifetime.Token);
+            }
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception exception) when (ClientErrors.CanDescribe(exception))
+            {
+                ClientError error = ClientErrors.Describe(exception);
+                _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
+                _interaction = _state.StaleReason == RuleSnapshotStaleReason.MutationOutcomeUnknown
+                    ? _interaction.AddAwaitingConfirmation(requestedRuleId)
+                    : _interaction.AddRejected();
+                Snackbar.Add(error.Message, Severity.Error);
+                return;
+            }
+
+            _interaction = _interaction.AddAwaitingConfirmation(result.ConfirmedRuleId);
+            NotifyMetadataSaveFailure(result.MetadataError);
+            await LoadRulesAsync(RuleInventoryRefreshReason.AfterMutation);
         }
         finally
         {
             _privateKey = string.Empty;
-            _submitting = false;
         }
     }
 
     private async Task InsertRuleAsync()
     {
-        if (!CanSubmit
-            || string.IsNullOrWhiteSpace(_privateKey)
-            || _orderedInsertionContext is not { } context
-            || _state.Snapshot is not { } snapshot)
+        if (_interaction.InsertionContext is not { } context || _state.Snapshot is not { } snapshot)
         {
-            return;
+            throw new InvalidOperationException("Ordered insertion requires a resolved context and a current rule snapshot.");
         }
 
-        _insertionResult = null;
-        _submitting = true;
         try
         {
             RuleCreationInsertionResult result = await CreationWorkflow.InsertAsync(snapshot, context, _draft, CurrentMetadataChange(), _privateKey, _lifetime.Token);
             RuleInsertionResponse response = result.Firewall;
-            _insertionResult = response;
             _state = _state.MoveNext(new RuleInventoryTransition.InsertionCompleted(response, TimeProvider.GetUtcNow()));
+            _interaction = _interaction.InsertionCompleted(response);
 
             if (response.Outcome == RuleInsertionOutcome.Completed)
             {
@@ -397,7 +397,7 @@ public sealed partial class CreateRule
 
             if (MutationReconciliation.MustReselectInsertionAnchor(response, context))
             {
-                InvalidateOrderedInsertionContext();
+                _interaction = _interaction.InvalidateInsertion();
             }
 
             Severity severity = response.Outcome == RuleInsertionOutcome.StateUncertain
@@ -412,16 +412,16 @@ public sealed partial class CreateRule
         {
             ClientError error = ClientErrors.Describe(exception);
             _state = _state.MoveNext(new RuleInventoryTransition.MutationFailed(error));
+            _interaction = _interaction.InsertionFailed();
             if (_state.IsStale)
             {
-                InvalidateOrderedInsertionContext();
+                _interaction = _interaction.InvalidateInsertion();
             }
             Snackbar.Add(error.Message, Severity.Error);
         }
         finally
         {
             _privateKey = string.Empty;
-            _submitting = false;
         }
     }
 
@@ -443,7 +443,7 @@ public sealed partial class CreateRule
 
     private void Cancel()
     {
-        if (!_submitting)
+        if (!_interaction.IsSubmitting)
         {
             _privateKey = string.Empty;
             Navigation.NavigateTo("/rules");
@@ -452,7 +452,7 @@ public sealed partial class CreateRule
 
     private string DescribeInsertionTarget()
     {
-        if (_orderedInsertionContext is not { } context)
+        if (_interaction.InsertionContext is not { } context)
         {
             return DescribeInsertionContextError();
         }
@@ -471,7 +471,7 @@ public sealed partial class CreateRule
             return RulesText["OrderedInsertionLegacyContext"];
         }
 
-        return _orderedInsertionContextError switch
+        return _interaction.InsertionError switch
         {
             OrderedRuleInsertionContextError.StaleBaseline => RulesText["InsertionBaselineStale"],
             OrderedRuleInsertionContextError.AnchorUnavailable => RulesText["InsertionTargetMissing"],
@@ -483,18 +483,18 @@ public sealed partial class CreateRule
         };
     }
 
-    private string DescribeInsertionFamily() => _orderedInsertionContext is { } context
+    private string DescribeInsertionFamily() => _interaction.InsertionContext is { } context
         ? RulesText["InsertionFamilyLocked", context.AddressFamily.ToString()]
         : string.Empty;
 
-    private Severity InsertionResultSeverity => _insertionResult?.Outcome switch
+    private Severity InsertionResultSeverity => _interaction.InsertionResult?.Outcome switch
     {
         RuleInsertionOutcome.StaleBaseline or RuleInsertionOutcome.PreconditionFailed => Severity.Warning,
         RuleInsertionOutcome.StateUncertain => Severity.Error,
         _ => Severity.Info,
     };
 
-    private string DescribeInsertionResultTitle() => _insertionResult is { } result
+    private string DescribeInsertionResultTitle() => _interaction.InsertionResult is { } result
         ? DescribeInsertionResultTitle(result.Outcome)
         : RulesText["OrderedInsertionResult"];
 
@@ -506,12 +506,6 @@ public sealed partial class CreateRule
         RuleInsertionOutcome.StateUncertain => RulesText["OrderedInsertionResultUncertain"],
         _ => RulesText["OrderedInsertionResult"],
     };
-
-    private void InvalidateOrderedInsertionContext()
-    {
-        _orderedInsertionContext = null;
-        _orderedInsertionInvalidated = true;
-    }
 
     private string DescribeStaleState() => _state.StaleReason switch
     {

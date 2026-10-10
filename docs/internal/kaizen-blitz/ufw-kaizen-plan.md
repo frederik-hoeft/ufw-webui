@@ -236,7 +236,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
    - [x] C2.3: extract rule-list refresh, metadata, deletion/group-cleanup and ordering coordination; retain dialogs, navigation, notifications and lifecycle in Razor.
 2. [x] CLIENT KZ-18: keep group-deletion membership planning, confirmation checks and catalog consistency checks pure; retain mutation, revalidation and cleanup I/O in the workflow executor.
 3. CLIENT KZ-08 move metadata-authoring behavior out of UI, consuming server-provided/shared limits and final catalog semantics.
-4. CLIENT KZ-09 introduce explicit create-rule workflow state after the workflow has moved out of Razor.
+4. [x] CLIENT KZ-09: explicit create-rule interaction phases cover validation, submission, add confirmation, and insertion-context invalidation. Inventory authority and mutation sequencing remain in their existing Features services.
 5. CLIENT KZ-19 make rule-editor reference-data failures symmetric against the final server error behavior.
 6. CLIENT KZ-10 factor known-host/interface inventory mechanics after Web's interface-retention semantics are final.
 
@@ -382,7 +382,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-06 | C1 | Centralize metadata DTO-to-domain normalization | Do after Web shared-domain/metadata contracts stabilize; KZ-17 and later workflows should consume this one mapper. |
 | [ ] | CLIENT KZ-07 | C3 | Converge desktop/mobile rule rendering onto shared behavior and fragments | Do after KZ-01 removes workflow behavior from page/component surfaces; then converge only presentation/interaction behavior. |
 | [x] | CLIENT KZ-08 | C2 | Move metadata-authoring CRUD out of `RuleMetadataEditor` and centralize metadata limits | Do after Web KZ-05 exposes shared limits and after Client KZ-15 settles catalog state semantics. |
-| [ ] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
+| [x] | CLIENT KZ-09 | C2 | Replace fragmented multi-boolean workflow state with explicit feature state | Do after KZ-01 extracts the create workflow; model the final workflow, not the current page flags. |
 | [ ] | CLIENT KZ-10 | C2 | Factor the shared known-host/network-interface inventory page mechanics | Do after Web KZ-13 fixes interface lifecycle semantics and after feature-level inventory operations are stable. |
 | [x] | CLIENT KZ-11 | C1 | Remove repeated `TryDescribe(... out _)` + `Describe(...)` error classification | Do immediately after Web KZ-09 stabilizes ProblemDetails/error semantics, before moving more workflow code into Features. |
 | [x] | CLIENT KZ-12 | C1 | Stop localizing validator failures by exact English error text | Provider-side stable validation identities should be introduced at the shared-contract checkpoint; C1 then switches localization to those identities. |
