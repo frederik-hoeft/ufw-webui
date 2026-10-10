@@ -257,6 +257,10 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 2. CLIENT KZ-21 public-surface audit after final Features/Api interfaces are known.
 3. CLIENT KZ-22 last-mile presentational clones after all structural UI changes.
 
+### Immediate shared-parser correction (C3.4.1)
+
+- [x] CROSS KZ-03: bring the unordered `Set` parser fixes identified on cyborg PR #91 back into `Ufw.Shared`, including `SetSyntaxNode`, top-level `Grammar.Set` factories, and permutation/duplicate/visitor regression coverage. This correctness fix is independent of the remaining client styling work.
+
 ### Cross-project follow-up phase - after the structural waves
 
 1. **CROSS KZ-01:** audit namespace cohesion/fanout across all projects and implement targeted subdomain moves only after the C4 public-surface review and contracts have settled. Be mindful of localization resource namespaces, DTO compatibility, DI, NativeAOT and source generators.
@@ -414,9 +418,10 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 |---|---|---|---|---|
 | [ ] | CROSS KZ-01 | After C4 | Improve namespace cohesion/navigation and limit accidental broad namespaces | Audit by responsibility and fanout, then do scoped moves after the public-surface and structural cleanup; protect wire/resource/AOT assumptions. |
 | [ ] | CROSS KZ-02 | After overlapping local waves | Triage attached clone-detection report; remove only harmful duplication | Prioritize correctness-sensitive production clones and high-cost fixture duplication; classify remaining test/symmetric matches deliberately. |
+| [x] | CROSS KZ-03 | C3.4.1 | Correct unordered parser `Set` matching, syntax tree, and factory overloads | Backport targeted cyborg PR #91 review fixes with regression tests; do not conflate this with general parser architecture or C3 styling. |
 
 ## Completion rule
 
 A wave is complete only when its source items' original acceptance criteria/definition-of-done requirements are satisfied, not merely when the broader refactor that contains them has landed. In particular, subsumed correctness items such as WEB KZ-14 and KZ-15 still require dedicated regression coverage, and contained cleanup items remain checklist entries even when their code naturally disappears during a larger change.
 
-The original kaizen inventory is complete when all 75 source items are checked, the three project-level definitions of done are satisfied, and the final repository integration gate is green. Full **extended** Kaizen closure additionally requires a recorded disposition for CROSS KZ-01 and KZ-02.
+The original kaizen inventory is complete when all 75 source items are checked, the three project-level definitions of done are satisfied, and the final repository integration gate is green. Full **extended** Kaizen closure additionally requires a recorded disposition for every CROSS KZ item (including the completed KZ-03 parser fix).

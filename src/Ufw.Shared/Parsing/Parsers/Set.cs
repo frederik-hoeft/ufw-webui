@@ -4,6 +4,10 @@ using Ufw.Shared.Parsing.SyntaxNodes;
 
 namespace Ufw.Shared.Parsing.Parsers;
 
+/// <summary>
+/// Matches a nonempty subset of child parsers in any order. Each child position can match at most once;
+/// successful matches are chosen greedily in declaration order, without backtracking.
+/// </summary>
 public class Set(ImmutableArray<IParser> parsers, string? name = null) : ParserBase
 {
     public override string? Name => name;
@@ -31,30 +35,40 @@ public class Set(ImmutableArray<IParser> parsers, string? name = null) : ParserB
             throw new ArgumentOutOfRangeException(nameof(offset));
         }
 
-        HashSet<IParser> usedParsers = [];
+        bool[] usedParsers = new bool[parsers.Length];
+        List<ISyntaxNode> nodes = [];
         int currentOffset = offset;
-        ISyntaxNode? tail = null;
-        foreach (IParser parser in parsers)
+
+        // Restart after every match so earlier members can match after a later member advances the offset.
+        // Track positions rather than parser instances so repeated instances remain distinct grammar members.
+        bool matched;
+        do
         {
-            if (usedParsers.Contains(parser))
+            matched = false;
+            for (int i = 0; i < parsers.Length; i++)
             {
-                continue;
-            }
-            if (parser.TryParse(input, currentOffset, out ISyntaxNode? node, out int consumed))
-            {
-                usedParsers.Add(parser);
+                if (usedParsers[i] || !parsers[i].TryParse(input, currentOffset, out ISyntaxNode? node, out int consumed))
+                {
+                    continue;
+                }
+
+                usedParsers[i] = true;
+                nodes.Add(node);
                 currentOffset += consumed;
-                tail = tail is null ? node : new SequentialSyntaxNode(tail, node, Name);
+                matched = true;
+                break;
             }
-        }
-        if (tail is null)
+        } while (matched);
+
+        if (nodes.Count == 0)
         {
             charsConsumed = 0;
             syntaxNode = null;
             return false;
         }
+
         charsConsumed = currentOffset - offset;
-        syntaxNode = tail;
+        syntaxNode = new SetSyntaxNode(name, nodes);
         return true;
     }
 }

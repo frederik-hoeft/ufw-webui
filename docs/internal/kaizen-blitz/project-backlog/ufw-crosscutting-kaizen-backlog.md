@@ -51,3 +51,14 @@ The number alone is not evidence of poor design (for example, generated migratio
 4. Close only after documenting an explicit disposition for each **material** cluster. Test-only repeated assertion bodies need not be extracted if they aid scenario independence.
 
 **Sequencing:** after the scheduled local cleanup that overlaps each cluster (C3/C4 for client UI, final contract freeze for signed intent); independently review IPC test host setup when touching those integration suites. This is a cross-project follow-up, not an interruption to C3.3 styling work.
+
+## CROSS KZ-03 (P1): Unordered parser `Set` correctness and factory completeness (C3.4.1)
+
+**Source:** [cyborg PR #91 review](https://github.com/frederik-hoeft/cyborg/pull/91) and the accompanying parser follow-up patch, ported from `Ufw.Shared`. The same defects existed in our shared implementation.
+
+- [x] Retry unmatched earlier child positions after each successful member, without backtracking, while retaining nonempty-subset semantics and greedy declaration-order precedence. Track positions instead of parser identity so repeated child instances remain distinct.
+- [x] Return `SetSyntaxNode` (named parent with children in match order), not a chain of `SequentialSyntaxNode`s.
+- [x] Expose consistent `Grammar.Set(Action<GrammarSetBuilder>)` and `Grammar.Set(params ReadOnlySpan<IParser>)` overloads.
+- [x] Cover all permutations, partial/no-match input, duplicate instances, offsets, fluent creation, traversal/parent links, and zero-width children with dedicated tests.
+
+**Disposition:** Fixed in C3.4.1, ahead of the rest of C3 because this affects shared parsing correctness beyond the client. `Set` intentionally does not search all possible ambiguous parses or require every member to match; callers requiring complete input must verify that the returned consumption covers the entire input.
