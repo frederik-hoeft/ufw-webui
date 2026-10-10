@@ -615,19 +615,21 @@ The DI block repeats base-address configuration and the same bearer/browser-cred
 
 Add small registration helpers for the established HTTP policies and a few request/URI helpers. Avoid a generic repository/base-client hierarchy; typed clients are otherwise clear and appropriately small.
 
-### KZ-21: Audit and minimize the client's public surface
+### KZ-21: Establish intentional client contract and implementation visibility
 
 **Where**
 
-Public interfaces are inconsistent across `Api`, `Features`, and `Services` even though implementations are internal and `_friends.cs` already grants test access.
+Client contracts and DI implementations under `Api`, `Features`, and `Services`, plus Razor component constructors and component-facing types.
 
 **Problem**
 
-Examples such as `IAuthApiClient`, `IKnownHostApiClient`, `INetworkInterfaceApiClient`, `IRuleTagApiClient`, and `IRuleGroupApiClient` are public while several adjacent API abstractions are internal. There is no production consumer outside the client project in this repository.
+A library-oriented public-surface rule such as CA1515 encourages internalizing public service interfaces and the types in their signatures. For Blazor, public Razor-generated components can legitimately need public constructor dependencies; changing those components to property injection solely to suppress CA1515 would make the DI model less consistent without improving architecture.
 
 **Refactor**
 
-Make implementation-detail interfaces internal unless there is an intentional external assembly contract. Keep only genuinely cross-assembly API public. This is low-risk cleanup and clarifies architectural boundaries.
+Allow public interfaces, DTOs, and feature/component models when they describe intentional contracts. Keep **concrete service implementations internal**, independently of interface accessibility, and document exceptions for framework-required types. Disable CA1515 for the client application rather than force the entire constructor dependency graph internal. Preserve Razor constructor injection and cover concrete client-owned interface implementations with a visibility regression test.
+
+**C4.2 status:** Complete. Reviewed existing client implementations and retained the public contract types and constructor-injected filter editors. Documented the policy in the client development guide, disabled CA1515 in the client's `.editorconfig`, and added a regression guard for exported concrete service implementations. No bulk contract internalization or injection migration was performed.
 
 ### KZ-22: Consolidate small presentational clones opportunistically
 

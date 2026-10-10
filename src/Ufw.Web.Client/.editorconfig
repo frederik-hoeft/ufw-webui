@@ -7,3 +7,8 @@ dotnet_diagnostic.CA2007.severity = none
 # implementation types are registered explicitly in Program.cs and should not be made public just
 # to satisfy the analyzer.
 dotnet_diagnostic.CA1812.severity = none
+
+# CA1515 treats application-local public contracts like unused library exports. Razor-generated
+# components and constructor-injected services require accessible contract types; prefer public
+# interfaces/models with internal concrete implementations rather than reshaping DI to satisfy it.
+dotnet_diagnostic.CA1515.severity = none

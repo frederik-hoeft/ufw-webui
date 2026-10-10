@@ -255,7 +255,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 #### C4 - Transport/public-surface/opportunistic cleanup
 
 1. [x] CLIENT KZ-20 + KZ-23 (C4.1): consolidate typed API client base-address/auth-handler registration and GUID-resource URI validation/construction; use `SimpleUriBuilder` for navigation queries and remove the redundant global URI helper. Typed client payload/response handling remains explicit, preserving independent API contracts and existing shared `ReadRequiredAsync` behavior.
-2. CLIENT KZ-21 public-surface audit after final Features/Api interfaces are known.
+2. [x] CLIENT KZ-21 (C4.2): allow public client contracts and Razor constructor dependencies while keeping concrete service implementations internal. Disable client CA1515 and test service implementation visibility rather than internalizing the contract graph.
 3. CLIENT KZ-22 last-mile presentational clones after all structural UI changes.
 
 ### Immediate shared-parser corrections (C3.4.1, C4.1.1)
@@ -410,7 +410,7 @@ The source IDs are prefixed here with `SYS`, `WEB`, and `CLIENT` because the Web
 | [x] | CLIENT KZ-18 | C2 | Split group-deletion planning from side-effect execution | Do after snapshot/index foundations, then let KZ-01 consume the planner/executor split rather than extracting it later. |
 | [x] | CLIENT KZ-19 | C2 | Make rule-editor reference-data failures explicit and symmetric | Both reference catalogs retain independently classified failures, and localized editor warnings distinguish unavailable suggestions from an empty catalog. |
 | [x] | CLIENT KZ-20 | C4.1 | Factor repeated HttpClient registration and resource-client mechanics | Typed-client registration policies and GUID-resource URI mechanics are shared; endpoint-specific JSON contracts remain explicit. Handler ordering and request destinations are regression-tested. |
-| [ ] | CLIENT KZ-21 | C4 | Audit and minimize the client's public surface | Late cleanup after final interfaces/callers are known. |
+| [x] | CLIENT KZ-21 | C4.2 | Establish client contract/implementation accessibility | Public interfaces and models remain permitted; concrete client service implementations stay internal. Client CA1515 is disabled, constructor injection is preserved, and a regression test guards implementation visibility. |
 | [ ] | CLIENT KZ-22 | C4 | Consolidate small presentational clones opportunistically | Last-mile cleanup after component/workflow/style structure is final. |
 | [x] | CLIENT KZ-23 | C4.1 | Ensure consistent use of SimpleUriBuilder | GUID resource paths and navigation queries use SimpleUriBuilder; one-off global UriOf helper removed. Literal fixed routes and intentional URI validation/parsing remain unchanged. |
 
