@@ -10,6 +10,7 @@ namespace Ufw.Systemd.Tests.Interop.IO;
 public sealed class DefaultChildProcessRunnerTests
 {
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public async Task RunAsync_DebugModeEnabled_LogsCommandAndCapturedStreams()
     {
         (DefaultChildProcessRunner runner, Mock<ILogger<DefaultChildProcessRunner>> logger) = CreateRunner(debugMode: true);
@@ -29,6 +30,7 @@ public sealed class DefaultChildProcessRunnerTests
     }
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public async Task RunAsync_DebugModeDisabled_CapturesStreamsWithoutLoggingDiagnostics()
     {
         (DefaultChildProcessRunner runner, Mock<ILogger<DefaultChildProcessRunner>> logger) = CreateRunner(debugMode: false);

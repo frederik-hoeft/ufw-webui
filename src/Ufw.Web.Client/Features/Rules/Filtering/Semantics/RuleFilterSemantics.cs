@@ -84,23 +84,16 @@ internal static class RuleFilterSemantics
             return false;
         }
 
-        // UI input historically tolerates spaces around comma-separated entries; keep the shared domain parser strict.
-        string normalized = string.Join(',', value.Split(',', StringSplitOptions.TrimEntries));
-        if (string.Equals(normalized, "any", StringComparison.OrdinalIgnoreCase))
+        // The shared parser tolerates whitespace; the UI reserves "any" for an actual port restriction.
+        ReadOnlySpan<char> trimmed = value.AsSpan().Trim();
+        if (trimmed.Equals("any", StringComparison.OrdinalIgnoreCase)
+            || !PacketPorts.TryParse(trimmed, out IntervalSet<ushort> ports))
         {
             return false;
         }
 
-        try
-        {
-            IntervalSet<ushort> ports = PacketPorts.Parse(normalized);
-            operand = new PortFilterOperand(ports, FormatPorts(ports));
-            return true;
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
+        operand = new PortFilterOperand(ports, FormatPorts(ports));
+        return true;
     }
 
     private static string FormatIPv4(uint start, string input)

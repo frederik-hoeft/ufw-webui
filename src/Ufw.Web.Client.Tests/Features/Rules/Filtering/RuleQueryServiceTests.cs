@@ -130,6 +130,21 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void RuleFilterSemantics_PortInputUsesSharedWhitespaceTolerance()
+    {
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("80, 443", out PortFilterOperand? ports));
+        Assert.IsNotNull(ports);
+        Assert.AreEqual("80,443", ports.CanonicalValue);
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("80 : 82, 443 ", out PortFilterOperand? ranges));
+        Assert.IsNotNull(ranges);
+        Assert.AreEqual("80:82,443", ranges.CanonicalValue);
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("any", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts(" ANY ", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("   ", out _));
+    }
+
+    [TestMethod]
     public void RuleFilterSemantics_RejectsEmptyPortListSegments()
     {
         Assert.IsFalse(RuleFilterSemantics.TryParsePorts("443,,8443", out _));
@@ -138,12 +153,14 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
-    public void RuleFilterSemantics_AcceptsWhitespaceBetweenPortEntriesButPreservesStrictTokens()
+    public void RuleFilterSemantics_AcceptsWhitespaceAroundPortAndRangeDelimiters()
     {
         Assert.IsTrue(RuleFilterSemantics.TryParsePorts(" 80, 443, 1000:1002 ", out PortFilterOperand? ports));
         Assert.IsNotNull(ports);
         Assert.AreEqual("80,443,1000:1002", ports.CanonicalValue);
-        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("80 :443", out _));
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("80 :443", out PortFilterOperand? range));
+        Assert.IsNotNull(range);
+        Assert.AreEqual("80:443", range.CanonicalValue);
         Assert.IsFalse(RuleFilterSemantics.TryParsePorts("80, ,443", out _));
         Assert.IsFalse(RuleFilterSemantics.TryParsePorts("any", out _));
     }

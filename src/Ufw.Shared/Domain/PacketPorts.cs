@@ -1,5 +1,7 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Ufw.Shared.Domain.Algebra;
+using Ufw.Shared.Extensions;
 
 namespace Ufw.Shared.Domain;
 
@@ -20,80 +22,162 @@ public static class PacketPorts
 
     /// <summary>
     /// Parses a comma-separated list of ports and inclusive <c>start:end</c> ranges.
+    /// Whitespace around entries and range delimiters is ignored.
     /// </summary>
-    public static IntervalSet<ushort> Parse(string? text)
+    public static IntervalSet<ushort> Parse(ReadOnlySpan<char> text) => TryParseCore(text, out IntervalSet<ushort> ports, out ReadOnlySpan<char> errorSegment, out ParseError error)
+        ? ports
+        : ThrowParseError(errorSegment, error);
+
+    [DoesNotReturn]
+    private static IntervalSet<ushort> ThrowParseError(ReadOnlySpan<char> errorSegment, ParseError error) => error switch
     {
-        if (string.IsNullOrWhiteSpace(text) || text.Trim().Equals("any", StringComparison.OrdinalIgnoreCase))
-        {
-            return Universe;
-        }
+        ParseError.None => throw new FormatException($"'{errorSegment}' is not a valid port segment."),
+        ParseError.EmptySegment => throw new FormatException($"'{errorSegment}' is an empty port segment."),
+        ParseError.InvalidPort => throw new FormatException($"'{errorSegment}' is not a valid port."),
+        ParseError.InvalidRange => throw new FormatException($"'{errorSegment}' is not a valid port range."),
+        ParseError.DescendingRange => throw new FormatException($"'{errorSegment}' has a descending port range."),
+        _ => throw new FormatException($"'{errorSegment}' is not a valid port segment: {error}.")
+    };
 
-        List<Interval<ushort>> ranges = [];
-        string trimmed = text.Trim();
-        int start = 0;
-        for (int index = 0; index <= trimmed.Length; index++)
+    /// <summary>
+    /// Parses a comma-separated list of ports and inclusive <c>start:end</c> ranges.
+    /// Whitespace around entries and range delimiters is ignored.
+    /// </summary>
+    public static IntervalSet<ushort> Parse(string? text) => text is null ? Parse([]) : Parse(text.AsSpan());
+
+    /// <summary>
+    /// Tries to parse comma-separated ports and inclusive <c>start:end</c> ranges, allowing whitespace around entries and delimiters.
+    /// Returns <c>false</c> for invalid entries without throwing a format exception.
+    /// </summary>
+    /// <param name="text">The text to parse.</param>
+    /// <param name="ports">The parsed ports, if parsing succeeded.</param>
+    /// <returns><see langword="true"/> if parsing succeeded; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParse(ReadOnlySpan<char> text, out IntervalSet<ushort> ports) =>
+        TryParseCore(text, out ports, out _, out _);
+
+    /// <summary>
+    /// Tries to parse comma-separated ports and inclusive <c>start:end</c> ranges, allowing whitespace around entries and delimiters.
+    /// Returns <c>false</c> for invalid entries without throwing a format exception.
+    /// </summary>
+    /// <param name="text">The text to parse.</param>
+    /// <param name="ports">The parsed ports, if parsing succeeded.</param>
+    /// <returns><see langword="true"/> if parsing succeeded; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParse(string? text, out IntervalSet<ushort> ports) => text is null
+        ? TryParse([], out ports)
+        : TryParse(text.AsSpan(), out ports);
+
+    private static bool TryParseCore(ReadOnlySpan<char> text, out IntervalSet<ushort> ports, out ReadOnlySpan<char> errorSegment, out ParseError error)
+    {
+        ReadOnlySpan<char> trimmed = text.Trim();
+        if (text.IsWhiteSpace() || trimmed.Equals("any", StringComparison.OrdinalIgnoreCase))
         {
-            if (index != trimmed.Length && trimmed[index] != ',')
+            ports = Universe;
+            return true.WithDefaults(out errorSegment, out error);
+        }
+        int separators = trimmed.Count(',');
+        if (separators == 0)
+        {
+            // single segment
+            if (TryParseSegment(trimmed, out Interval<ushort> range, out errorSegment, out error))
             {
-                continue;
+                ports = IntervalSet<ushort>.Of(range);
+                return true.WithDefaults(out errorSegment, out error);
+            }
+            return false.WithDefaults(out ports);
+        }
+        List<Interval<ushort>> ranges = new(capacity: separators + 1);
+        ReadOnlySpan<char> remaining = trimmed;
+        while (true)
+        {
+            int segmentEnd = remaining.IndexOf(',');
+            ReadOnlySpan<char> segment = segmentEnd < 0 ? remaining : remaining[..segmentEnd].TrimEnd();
+            if (segment.IsEmpty)
+            {
+                errorSegment = segment;
+                error = ParseError.EmptySegment;
+                return false.WithDefaults(out ports);
+            }
+            if (!TryParseSegment(segment, out Interval<ushort> range, out errorSegment, out error))
+            {
+                return false.WithDefaults(out ports);
             }
 
-            if (index == start)
+            ranges.Add(range);
+            if (segmentEnd < 0)
             {
-                throw new FormatException($"'{text}' contains an empty port entry.");
+                break;
             }
-
-            ranges.Add(ParsePart(trimmed[start..index]));
-            start = index + 1;
+            remaining = remaining[(segmentEnd + 1)..].TrimStart();
         }
 
-        return IntervalSet<ushort>.Of(ranges);
+        ports = IntervalSet<ushort>.Of(ranges);
+        return true.WithDefaults(out errorSegment, out error);
     }
 
-    private static Interval<ushort> ParsePart(string part)
+    private static bool TryParseSegment(ReadOnlySpan<char> segment, out Interval<ushort> range, out ReadOnlySpan<char> errorSegment, out ParseError error)
     {
-        int colon = part.IndexOf(':');
-        if (colon < 0)
+        int colon = segment.IndexOf(':');
+        if (colon == -1)
         {
-            ushort port = ParsePort(part);
-            return new Interval<ushort>(port, port);
+            if (TryParsePort(segment, out ushort port))
+            {
+                range = new Interval<ushort>(port, port);
+                return true.WithDefaults(out errorSegment, out error);
+            }
+            errorSegment = segment;
+            error = ParseError.InvalidPort;
+            return false.WithDefaults(out range);
         }
-
-        if (colon != part.LastIndexOf(':') || colon == 0 || colon == part.Length - 1)
+        if (colon is 0 || colon == segment.Length - 1 || colon != segment.LastIndexOf(':'))
         {
-            throw new FormatException($"'{part}' is not a port range.");
+            errorSegment = segment;
+            error = ParseError.InvalidRange;
+            return false.WithDefaults(out range);
         }
-
-        ushort rangeStart = ParsePort(part[..colon]);
-        ushort rangeEnd = ParsePort(part[(colon + 1)..]);
-        if (rangeStart > rangeEnd)
+        ReadOnlySpan<char> startSegment = segment[..colon].TrimEnd();
+        if (!TryParsePort(startSegment, out ushort startPort))
         {
-            throw new FormatException($"'{part}' has a descending port range.");
+            errorSegment = startSegment;
+            error = ParseError.InvalidPort;
+            return false.WithDefaults(out range);
         }
-
-        return new Interval<ushort>(rangeStart, rangeEnd);
+        ReadOnlySpan<char> endSegment = segment[(colon + 1)..].TrimStart();
+        if (!TryParsePort(endSegment, out ushort endPort))
+        {
+            errorSegment = endSegment;
+            error = ParseError.InvalidPort;
+            return false.WithDefaults(out range);
+        }
+        if (startPort > endPort)
+        {
+            errorSegment = segment;
+            error = ParseError.DescendingRange;
+            return false.WithDefaults(out range);
+        }
+        range = new Interval<ushort>(startPort, endPort);
+        return true.WithDefaults(out errorSegment, out error);
     }
 
-    private static ushort ParsePort(string token)
+    private static bool TryParsePort(ReadOnlySpan<char> token, out ushort port)
     {
-        if (token.Length == 0 || token.Length > 5 || (token.Length > 1 && token[0] == '0'))
+        if (token.Length is < 1 or > 5 || token[0] == '0')
         {
-            throw new FormatException($"'{token}' is not a port between 1 and 65535.");
+            return false.WithDefaults(out port);
         }
-
-        foreach (char character in token)
+        if (!ushort.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out ushort result) || result < MINIMUM)
         {
-            if (!char.IsAsciiDigit(character))
-            {
-                throw new FormatException($"'{token}' is not a port between 1 and 65535.");
-            }
+            return false.WithDefaults(out port);
         }
+        port = result;
+        return true;
+    }
 
-        if (!ushort.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out ushort port) || port < MINIMUM)
-        {
-            throw new FormatException($"'{token}' is not a port between 1 and 65535.");
-        }
-
-        return port;
+    private enum ParseError
+    {
+        None,
+        EmptySegment,
+        InvalidPort,
+        InvalidRange,
+        DescendingRange
     }
 }
