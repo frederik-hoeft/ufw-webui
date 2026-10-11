@@ -65,8 +65,9 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
                 cleanup.Groups,
                 response);
         }
-        catch (Exception exception) when (exception is ApiRequestException or ApiProtocolException or HttpRequestException
-            or BrowserOperationException or JSException or JSDisconnectedException)
+        catch (Exception exception) when (
+            exception is ApiRequestException or ApiProtocolException or HttpRequestException or BrowserOperationException or JSException or JSDisconnectedException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
         {
             RuleGroupDeletionWorkflowOutcome outcome = response.Outcome == RuleBatchDeleteOutcome.Completed
                 ? RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed
