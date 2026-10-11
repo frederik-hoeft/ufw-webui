@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Systemd.Firewall;
@@ -20,7 +20,7 @@ public sealed class FirewallStateAssessmentIntegrationTests
             "[ 2] 80/tcp                     ALLOW IN    Anywhere",
             "[ 3] 22/tcp                     ALLOW IN    Anywhere # second",
         ]);
-        RuleListResponse snapshot = FirewallRuleSet.ToListResponse(UfwStatusParser.Parse(status)!, TestFirewallConfiguration.Enabled);
+        FirewallSnapshot snapshot = FirewallRuleSet.FromStatus(UfwStatusParser.Parse(status)!, TestFirewallConfiguration.Enabled);
 
         Assert.IsFalse(snapshot.Assessment.IsClean);
         Assert.HasCount(1, snapshot.Assessment.Issues);

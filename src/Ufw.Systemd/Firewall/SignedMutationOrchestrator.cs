@@ -14,7 +14,7 @@ internal sealed class SignedMutationOrchestrator(
 {
     public Task<IResponsePayload> ExecuteAsync(
         IntentVerificationResult.Accepted accepted,
-        Func<CancellationToken, Task<IResponsePayload>> operation,
+        Func<FirewallSnapshot, CancellationToken, Task<IResponsePayload>> operation,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(accepted);
@@ -24,11 +24,13 @@ internal sealed class SignedMutationOrchestrator(
 
     private async Task<IResponsePayload> ExecuteWithinGateAsync(
         IntentVerificationResult.Accepted accepted,
-        Func<CancellationToken, Task<IResponsePayload>> operation,
+        Func<FirewallSnapshot, CancellationToken, Task<IResponsePayload>> operation,
         CancellationToken cancellationToken)
     {
+        // Recovery can mutate the firewall; observe its state only after recovery completes.
+        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
         FirewallRuleSnapshotReadResult read = await snapshotReader.ReadAsync(cancellationToken);
-        if (!read.TryGetSnapshot(out RuleListResponse? snapshot, out IResponsePayload? readError))
+        if (!read.TryGetSnapshot(out FirewallSnapshot? snapshot, out IResponsePayload? readError))
         {
             return readError!;
         }
@@ -43,12 +45,11 @@ internal sealed class SignedMutationOrchestrator(
             };
         }
 
-        await mutationSafetyGuard.EnsureSafeAsync(cancellationToken);
         if (!await nonceStore.TryConsumeAsync(accepted.Nonce, accepted.ExpiresAtUnix, cancellationToken))
         {
             return new ConflictResponse("Intent nonce has already been used.");
         }
 
-        return await operation(cancellationToken);
+        return await operation(snapshot, cancellationToken);
     }
 }

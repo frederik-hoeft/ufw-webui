@@ -27,7 +27,7 @@ public sealed class FirewallReorderExecutorTests
         using ReorderHarness harness = new(Snapshot("22", "80", "443"), Snapshot("80", "443"), Snapshot("80", "22", "443"));
         RuleReorderExecutionRequest request = harness.Request([1, 0, 2]);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(request, TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(request, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(1, result.Operations);
@@ -55,7 +55,7 @@ public sealed class FirewallReorderExecutorTests
             Snapshot("8080", "80", "22"),
             Snapshot("8080", "443", "80", "22"));
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([3, 2, 1, 0]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([3, 2, 1, 0]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(3, result.Operations);
@@ -76,7 +76,7 @@ public sealed class FirewallReorderExecutorTests
     {
         using ReorderHarness harness = new(SnapshotTokens("22", "80", "22v6"), SnapshotTokens("80", "22v6"), SnapshotTokens("80", "22", "22v6"));
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(2, harness.Commands);
@@ -94,7 +94,7 @@ public sealed class FirewallReorderExecutorTests
             SnapshotTokens("80", "443", "80v6", "443v6"),
             SnapshotTokens("80", "443", "80v6", "22v6", "443v6"));
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([0, 1, 3, 2, 4]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([0, 1, 3, 2, 4]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(2, harness.Commands);
@@ -108,9 +108,9 @@ public sealed class FirewallReorderExecutorTests
     public async Task ExecuteAsync_StaleBaseline_PerformsNoMutationAsync()
     {
         using ReorderHarness harness = new(Snapshot("22", "80"));
-        RuleReorderExecutionRequest request = new(FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot("22"))), [1, 0]);
+        RuleReorderExecutionRequest request = new(FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot("22")).ToResponse()), [1, 0]);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(request, TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(request, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -123,7 +123,7 @@ public sealed class FirewallReorderExecutorTests
         using ReorderHarness harness = new(SnapshotNoPort("ALLOW", "DENY"), SnapshotNoPort("DENY"), SnapshotNoPort("DENY", "ALLOW"));
         RuleReorderExecutionRequest request = harness.Request([1, 0]);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(request, TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(request, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(1, result.Operations);
@@ -140,7 +140,7 @@ public sealed class FirewallReorderExecutorTests
     {
         using ReorderHarness harness = new(duplicateBaselineBeforeFirstMove: false, Snapshot("22", "80", "443"), Snapshot("443", "80", "22"));
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(result.Operations);
@@ -157,7 +157,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "delete reported failure");
         harness.EnqueueProcess(exitCode: 0);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual(RuleReorderOperationStatus.AppliedAfterProcessFailure, result.Operations[0].Status);
@@ -171,7 +171,7 @@ public sealed class FirewallReorderExecutorTests
         using ReorderHarness harness = new(Snapshot("22", "80", "443"), Snapshot("22", "80", "443"));
         harness.EnqueueProcess(exitCode: 1, standardError: "delete failed");
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.HasCount(1, result.Operations);
@@ -188,7 +188,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 0);
         harness.EnqueueProcess(exitCode: 1, standardError: "insert reported failure");
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual(RuleReorderOperationStatus.AppliedAfterProcessFailure, result.Operations[0].Status);
@@ -204,7 +204,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "insert rejected");
         harness.EnqueueProcess(exitCode: 0);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.AreEqual(RuleReorderOperationStatus.FailedAndRestored, result.Operations[0].Status);
@@ -226,7 +226,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "insert rejected");
         harness.EnqueueProcess(exitCode: 0);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([2, 0, 1]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([2, 0, 1]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.AreEqual(RuleReorderOperationStatus.FailedAndRestored, result.Operations[0].Status);
@@ -243,7 +243,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 0);
         harness.EnqueueProcess(exitCode: 0);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.AreEqual(RuleReorderOperationStatus.FailedAndRestored, result.Operations[0].Status);
@@ -259,7 +259,7 @@ public sealed class FirewallReorderExecutorTests
         using ReorderHarness harness = new(Snapshot("22", "80", "443"), null, null);
         harness.EnqueueProcess(exitCode: 0);
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.RecoveryFailed, result.Outcome);
         Assert.HasCount(1, harness.Commands);
@@ -273,7 +273,7 @@ public sealed class FirewallReorderExecutorTests
     {
         using ReorderHarness harness = new(Snapshot("22", "80", "443", "8080"), Snapshot("80", "443", "8080"), Snapshot("80", "443", "8080", "22"), Snapshot("80", "8080", "443", "22"));
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([3, 2, 1, 0]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([3, 2, 1, 0]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.HasCount(1, result.Operations);
@@ -293,7 +293,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "planned insert failed");
         harness.EnqueueProcess(exitCode: 1, standardError: "recovery failed");
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.RecoveryFailed, result.Outcome);
         Assert.AreEqual(RuleReorderOperationStatus.RecoveryFailed, result.Operations[0].Status);
@@ -311,7 +311,7 @@ public sealed class FirewallReorderExecutorTests
             exception: new OperationCanceledException(cancellation.Token));
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            _ = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), cancellation.Token));
+            _ = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, cancellation.Token));
 
         Assert.HasCount(1, harness.Commands);
         Assert.IsNull(harness.Journal.Entry);
@@ -326,7 +326,7 @@ public sealed class FirewallReorderExecutorTests
         harness.EnqueueProcess(exitCode: 0);
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            _ = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), cancellation.Token));
+            _ = await harness.Executor.ExecuteAsync(harness.Request([1, 0, 2]), harness.Baseline, cancellation.Token));
 
         Assert.HasCount(2, harness.Commands);
         Assert.IsNull(harness.Journal.Entry);
@@ -337,7 +337,7 @@ public sealed class FirewallReorderExecutorTests
     {
         using ReorderHarness harness = new(SnapshotMixedFamilies());
 
-        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0]), TestContext.CancellationToken);
+        RuleReorderExecutionResult result = await harness.Executor.ExecuteAsync(harness.Request([1, 0]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReorderExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -372,7 +372,7 @@ public sealed class FirewallReorderExecutorTests
         "[ 1] 22/tcp                     ALLOW IN    Anywhere",
         "[ 2] 22/tcp (v6)                ALLOW IN    Anywhere (v6)"))!;
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
+    private static FirewallSnapshot ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled);
 
     private sealed class ReorderHarness : IDisposable
     {
@@ -393,13 +393,12 @@ public sealed class FirewallReorderExecutorTests
                 throw new ArgumentException("At least one baseline snapshot is required.", nameof(snapshots));
             }
 
-            UfwStatusSnapshot?[] reads = duplicateBaselineBeforeFirstMove
-                ? [snapshots[0], snapshots[0], .. snapshots[1..]]
-                : snapshots;
+            Baseline = FirewallRuleSet.FromStatus(snapshots[0]!, TestFirewallConfiguration.Enabled);
+            UfwStatusSnapshot?[] reads = duplicateBaselineBeforeFirstMove ? snapshots : snapshots[1..];
             _snapshots = new Queue<FirewallRuleSnapshotReadResult>(reads.Select(static snapshot =>
                 snapshot is null
-                    ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test read failure"))
-                    : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled))));
+                    ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure("test read failure")
+                    : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled))));
             _snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshots.Dequeue());
@@ -415,8 +414,10 @@ public sealed class FirewallReorderExecutorTests
                 new RuleReorderPlanner(),
                 new RuleReinsertabilityClassifier(renderer, new UfwArgumentCountReinsertionCostProvider()));
             FirewallReorderMoveExecutor moveExecutor = new(_snapshotReader.Object, recovery, Journal, processExecutor, renderer, new ConsoleLogger());
-            Executor = new FirewallReorderExecutor(_snapshotReader.Object, preflight, moveExecutor);
+            Executor = new FirewallReorderExecutor(preflight, moveExecutor);
         }
+
+        public FirewallSnapshot Baseline { get; }
 
         public FirewallReorderExecutor Executor { get; }
 
@@ -426,8 +427,8 @@ public sealed class FirewallReorderExecutorTests
 
         public RuleReorderExecutionRequest Request(IReadOnlyList<int> desiredOrder)
         {
-            FirewallRuleSnapshotReadResult baseline = _snapshots.Peek();
-            return new RuleReorderExecutionRequest(baseline.ComputeSnapshotFingerprint(), desiredOrder);
+            FirewallSnapshot baseline = Baseline;
+            return new RuleReorderExecutionRequest(FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules), desiredOrder);
         }
 
         public void EnqueueProcess(int exitCode, string standardError = "", bool cancellationRequested = false, Action? onExecute = null, Exception? exception = null) =>

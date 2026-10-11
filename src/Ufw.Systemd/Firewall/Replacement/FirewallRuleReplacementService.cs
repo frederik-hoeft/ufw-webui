@@ -20,12 +20,12 @@ internal sealed class FirewallRuleReplacementService(
         }
 
         IntentVerificationResult.AcceptedReplacement accepted = (IntentVerificationResult.AcceptedReplacement)verification;
-        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, (snapshot, ct) => ExecuteOperationAsync(accepted, snapshot, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedReplacement accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedReplacement accepted, FirewallSnapshot snapshot, CancellationToken cancellationToken)
     {
-        RuleReplacementExecutionResult result = await executor.ExecuteAsync(accepted.Payload, cancellationToken);
+        RuleReplacementExecutionResult result = await executor.ExecuteAsync(accepted.Payload, snapshot, cancellationToken);
         return new RuleReplacementResponse(
             result.Outcome switch
             {
@@ -36,7 +36,7 @@ internal sealed class FirewallRuleReplacementService(
                 RuleReplacementExecutionOutcome.StateUncertain => RuleReplacementOutcome.StateUncertain,
                 _ => throw new ArgumentOutOfRangeException(nameof(result), result.Outcome, "Unknown rule-replacement execution outcome."),
             },
-            result.FinalSnapshot,
+            result.FinalSnapshot?.ToResponse(),
             result.ReplacementRule,
             result.RecoveryStatus switch
             {

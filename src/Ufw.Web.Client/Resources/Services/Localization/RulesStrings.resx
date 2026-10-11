@@ -963,4 +963,7 @@
   <data name="FirewallAmbiguousDuplicateRule" xml:space="preserve"><value>Rule {0} occurs at positions {1}.</value></data>
   <data name="GroupTemplateReferencesBlockDeletion" xml:space="preserve"><value>The group “{0}” cannot be deleted while rule templates reference it.</value></data>
   <data name="GroupTemplateReferencesPreventDeletion" xml:space="preserve"><value>{0} rule template(s) still reference this group. Remove those references before deleting it.</value></data>
+  <data name="Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
 </root>

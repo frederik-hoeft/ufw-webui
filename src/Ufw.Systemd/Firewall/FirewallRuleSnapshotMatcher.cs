@@ -6,7 +6,7 @@ namespace Ufw.Systemd.Firewall;
 
 internal static class FirewallRuleSnapshotMatcher
 {
-    public static bool Equivalent(RuleListResponse left, RuleListResponse right)
+    public static bool Equivalent(FirewallSnapshot left, FirewallSnapshot right)
     {
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
@@ -25,7 +25,7 @@ internal static class FirewallRuleSnapshotMatcher
         return true;
     }
 
-    public static bool MatchesOrder(RuleListResponse snapshot, RuleListResponse baseline, IReadOnlyList<int> expectedOrder)
+    public static bool MatchesOrder(FirewallSnapshot snapshot, FirewallSnapshot baseline, IReadOnlyList<int> expectedOrder)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(baseline);
@@ -56,8 +56,8 @@ internal static class FirewallRuleSnapshotMatcher
     }
 
     public static bool TryMatchSingleInsertion(
-        RuleListResponse baseline,
-        RuleListResponse current,
+        FirewallSnapshot baseline,
+        FirewallSnapshot current,
         FirewallRuleSpecification inserted,
         int insertionIndex,
         out ListedFirewallRule? insertedRule)
@@ -95,8 +95,8 @@ internal static class FirewallRuleSnapshotMatcher
     }
 
     public static bool TryMatchSingleReplacement(
-        RuleListResponse baseline,
-        RuleListResponse current,
+        FirewallSnapshot baseline,
+        FirewallSnapshot current,
         FirewallRuleSpecification replacement,
         int targetIndex,
         out ListedFirewallRule? replacementRule)

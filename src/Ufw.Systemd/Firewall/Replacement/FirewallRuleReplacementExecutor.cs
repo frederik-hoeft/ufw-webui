@@ -5,21 +5,15 @@ using Ufw.Shared.Security.Intent;
 namespace Ufw.Systemd.Firewall.Replacement;
 
 internal sealed class FirewallRuleReplacementExecutor(
-    IFirewallRuleSnapshotReader snapshotReader,
     IFirewallRuleReplacementPreflightEvaluator preflightEvaluator,
     IFirewallRuleReplacementTransactionExecutor transactionExecutor) : IFirewallRuleReplacementExecutor
 {
-    public async Task<RuleReplacementExecutionResult> ExecuteAsync(ReplaceRulePayload payload, CancellationToken cancellationToken)
+    public async Task<RuleReplacementExecutionResult> ExecuteAsync(ReplaceRulePayload payload, FirewallSnapshot baseline, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
         RuleReplacementContract.ValidatePayload(payload);
 
-        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
-        if (baseline is null)
-        {
-            return Result(RuleReplacementExecutionOutcome.StateUncertain, null, diagnostic: "The authoritative firewall state could not be read before rule replacement.");
-        }
-        if (!string.Equals(FirewallRuleSnapshotFingerprint.Compute(baseline), payload.BaselineFingerprint, StringComparison.Ordinal))
+        if (!string.Equals(FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules), payload.BaselineFingerprint, StringComparison.Ordinal))
         {
             return Result(RuleReplacementExecutionOutcome.StaleBaseline, baseline, diagnostic: "The authoritative firewall state no longer matches the signed replacement baseline.");
         }
@@ -33,6 +27,6 @@ internal sealed class FirewallRuleReplacementExecutor(
         };
     }
 
-    private static RuleReplacementExecutionResult Result(RuleReplacementExecutionOutcome outcome, RuleListResponse? finalSnapshot, string? diagnostic = null) =>
+    private static RuleReplacementExecutionResult Result(RuleReplacementExecutionOutcome outcome, FirewallSnapshot? finalSnapshot, string? diagnostic = null) =>
         new(outcome, finalSnapshot, null, null, diagnostic);
 }

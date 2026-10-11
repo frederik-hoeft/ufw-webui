@@ -342,6 +342,7 @@ public static class FirewallPolicyProjector
         FirewallDefaultPolicy.Allow => PolicyDecision.Allow,
         FirewallDefaultPolicy.Deny => PolicyDecision.Deny,
         FirewallDefaultPolicy.Reject => PolicyDecision.Reject,
+        FirewallDefaultPolicy.Disabled => PolicyDecision.Deny,
         _ => throw new FirewallProjectionException("Unsupported firewall default policy."),
     };
 

@@ -11,6 +11,19 @@ public sealed class FirewallStateAssessmentSerializationTests
     private static readonly int[] s_duplicateOccurrences = [0, 1];
 
     [TestMethod]
+    public void SnapshotRoundtrip_PreservesEffectiveDisabledRoutedPolicy()
+    {
+        FirewallConfigurationSnapshot configuration = new(true, FirewallDefaultPolicy.Reject, FirewallDefaultPolicy.Allow, FirewallDefaultPolicy.Disabled);
+        RuleListResponse snapshot = new(true, [], configuration);
+
+        string json = JsonSerializer.Serialize(snapshot, MessageJsonSerializerContext.Default.RuleListResponse);
+        RuleListResponse roundtrip = JsonSerializer.Deserialize(json, MessageJsonSerializerContext.Default.RuleListResponse)!;
+
+        Assert.AreEqual(configuration, roundtrip.Configuration);
+        Assert.IsTrue(roundtrip.Assessment.IsClean);
+    }
+
+    [TestMethod]
     public void SnapshotRoundtrip_PreservesAmbiguityWithoutChangingSignedFingerprint()
     {
         ListedFirewallRule[] rules =

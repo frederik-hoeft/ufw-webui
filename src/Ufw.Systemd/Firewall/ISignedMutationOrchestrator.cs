@@ -10,6 +10,6 @@ internal interface ISignedMutationOrchestrator
 {
     Task<IResponsePayload> ExecuteAsync(
         IntentVerificationResult.Accepted accepted,
-        Func<CancellationToken, Task<IResponsePayload>> operation,
+        Func<FirewallSnapshot, CancellationToken, Task<IResponsePayload>> operation,
         CancellationToken cancellationToken);
 }

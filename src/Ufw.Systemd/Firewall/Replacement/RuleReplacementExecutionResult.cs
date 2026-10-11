@@ -5,7 +5,7 @@ namespace Ufw.Systemd.Firewall.Replacement;
 
 internal sealed record RuleReplacementExecutionResult(
     RuleReplacementExecutionOutcome Outcome,
-    RuleListResponse? FinalSnapshot,
+    FirewallSnapshot? FinalSnapshot,
     ListedFirewallRule? ReplacementRule,
     RuleReplacementRecoveryStatus? RecoveryStatus,
     string? Diagnostic);

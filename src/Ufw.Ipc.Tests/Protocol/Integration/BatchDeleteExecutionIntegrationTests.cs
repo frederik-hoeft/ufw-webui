@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -220,6 +220,8 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
         await SeedIpv4RulesAsync();
         bool firstDeleteSeen = false;
         bool injected = false;
+        // Inject after the post-delete numbered/verbose observation has completed, rather than between
+        // its two UFW reads. That tests inter-operation drift, not a torn snapshot (which fails closed).
         _runner.AfterCommandAsync = async (arguments, cancellationToken) =>
         {
             if (arguments.Contains("delete", StringComparer.Ordinal))
@@ -302,7 +304,7 @@ public sealed class BatchDeleteExecutionIntegrationTests : IpcProtocolTestBase
     }
 
     private static bool IsStatusCommand(ImmutableArray<string> arguments) =>
-        arguments.Contains("status", StringComparer.Ordinal) && arguments.Contains("numbered", StringComparer.Ordinal);
+        arguments.Contains("status", StringComparer.Ordinal) && arguments.Contains("verbose", StringComparer.Ordinal);
 
     private static Task<RuleListResponse> GetRulesAsync(IIpcTestContext context, CancellationToken cancellationToken) =>
         context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);

@@ -32,7 +32,7 @@ public sealed class FirewallReorderServiceTests
         TaskCompletionSource executorEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseExecutor = new(TaskCreationOptions.RunContinuationsAsynchronously);
         executor
-            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()))
             .Returns(async () =>
             {
                 executorEntered.TrySetResult();
@@ -71,7 +71,7 @@ public sealed class FirewallReorderServiceTests
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
         executor
-            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CompletedResult());
         FirewallReorderService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
         ReorderRulesRequest request = CreateRequest();
@@ -79,7 +79,7 @@ public sealed class FirewallReorderServiceTests
         Assert.IsInstanceOfType<RuleReorderResponse>(await service.ReorderAsync(request, TestContext.CancellationToken));
         Assert.IsInstanceOfType<ConflictResponse>(await service.ReorderAsync(request, TestContext.CancellationToken));
         executor.Verify(
-            candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()),
+            candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -96,7 +96,7 @@ public sealed class FirewallReorderServiceTests
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
         executor
-            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CompletedResult());
         FirewallReorderService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
         ReorderRulesRequest request = CreateRequest();
@@ -108,7 +108,7 @@ public sealed class FirewallReorderServiceTests
         Assert.AreEqual(1, results.Count(static result => result is RuleReorderResponse));
         Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
         executor.Verify(
-            candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()),
+            candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -127,7 +127,7 @@ public sealed class FirewallReorderServiceTests
             Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
             Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
             executor
-                .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()))
+                .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CompletedResult());
             ReorderRulesRequest request = CreateRequest();
 
@@ -141,7 +141,7 @@ public sealed class FirewallReorderServiceTests
             FirewallReorderService restartedService = new(verifier.Object, new SignedMutationOrchestrator(restartedStore, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
             Assert.IsInstanceOfType<ConflictResponse>(await restartedService.ReorderAsync(request, TestContext.CancellationToken));
             executor.Verify(
-                candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()),
+                candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
         finally
@@ -158,13 +158,13 @@ public sealed class FirewallReorderServiceTests
         Mock<INonceStore> nonceStore = CreateNonceStore(consume: true);
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
-        RuleListResponse authoritativeSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot authoritativeSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         executor
             .Setup(candidate => candidate.ExecuteAsync(
                 It.Is<RuleReorderExecutionRequest>(request =>
                     request.BaselineFingerprint == CreatePayload().BaselineFingerprint
                     && request.DesiredOrder.SequenceEqual(CreatePayload().DesiredOrder)),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleReorderExecutionResult(RuleReorderExecutionOutcome.StaleBaseline, authoritativeSnapshot, [], [], [], "stale"));
         FirewallReorderService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
 
@@ -172,7 +172,7 @@ public sealed class FirewallReorderServiceTests
 
         RuleReorderResponse response = Assert.IsInstanceOfType<RuleReorderResponse>(payload);
         Assert.AreEqual(RuleReorderOutcome.StaleBaseline, response.Outcome);
-        Assert.AreSame(authoritativeSnapshot, response.FinalSnapshot);
+        Assert.AreEqual(authoritativeSnapshot.ToResponse(), response.FinalSnapshot);
         Assert.IsEmpty(response.Operations);
         Assert.IsEmpty(response.BlockedOperations);
         Assert.IsEmpty(response.PendingOperations);
@@ -208,7 +208,7 @@ public sealed class FirewallReorderServiceTests
         Mock<INonceStore> nonceStore = CreateNonceStore(consume: true);
         Mock<IFirewallMutationSafetyGuard> safetyGuard = CreateSafetyGuard();
         Mock<IFirewallReorderExecutor> executor = new(MockBehavior.Strict);
-        RuleListResponse finalSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot finalSnapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         RuleReorderMove appliedMove = new(2, 0, 0);
         RuleReorderMove blockedMove = new(1, 2, null);
         RuleReorderExecutionResult executionResult = new(
@@ -219,7 +219,7 @@ public sealed class FirewallReorderServiceTests
             [blockedMove],
             "state diverged");
         executor
-            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(executionResult);
         FirewallReorderService service = new(verifier.Object, new SignedMutationOrchestrator(nonceStore.Object, gate, safetyGuard.Object, CreateCleanSnapshotReader()), executor.Object);
 
@@ -227,7 +227,7 @@ public sealed class FirewallReorderServiceTests
 
         RuleReorderResponse response = Assert.IsInstanceOfType<RuleReorderResponse>(payload);
         Assert.AreEqual(RuleReorderOutcome.PartiallyCompleted, response.Outcome);
-        Assert.AreSame(finalSnapshot, response.FinalSnapshot);
+        Assert.AreEqual(finalSnapshot.ToResponse(), response.FinalSnapshot);
         Assert.AreEqual(1, response.Operations.Length);
         Assert.AreEqual(ResponseOperationOutcome.FailedAndRestored, response.Operations[0].Outcome);
         Assert.AreEqual("restored", response.Operations[0].Diagnostic);
@@ -269,7 +269,7 @@ public sealed class FirewallReorderServiceTests
 
     private static RuleReorderExecutionResult CompletedResult() => new(
         RuleReorderExecutionOutcome.Completed,
-        new RuleListResponse(Active: true, [], TestFirewallConfiguration.Enabled),
+        new FirewallSnapshot(Active: true, [], TestFirewallConfiguration.Enabled),
         [],
         [],
         [],
@@ -297,7 +297,7 @@ public sealed class FirewallReorderServiceTests
     {
         Mock<IFirewallRuleSnapshotReader> reader = new();
         reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Systemd.Firewall.FirewallSnapshot(
                 true, [], Ufw.Systemd.Tests.TestFirewallConfiguration.Enabled)));
         return reader.Object;
     }

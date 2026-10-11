@@ -31,7 +31,7 @@ public sealed class FirewallBatchDeleteExecutorTests
             Snapshot("22", "80", "443"),
             Snapshot("22", "443"));
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1, 3]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1, 3]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(2, result.Operations);
@@ -50,11 +50,11 @@ public sealed class FirewallBatchDeleteExecutorTests
         using BatchDeleteHarness harness = new(Snapshot("22", "80"));
         BatchDeleteRulesPayload payload = new()
         {
-            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot("22"))),
+            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot("22")).ToResponse()),
             OccurrenceIds = [0],
         };
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(payload, TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(payload, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(result.Operations);
@@ -68,7 +68,7 @@ public sealed class FirewallBatchDeleteExecutorTests
     {
         using BatchDeleteHarness harness = new(Snapshot("22", "80"));
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([2]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -80,7 +80,7 @@ public sealed class FirewallBatchDeleteExecutorTests
     {
         using BatchDeleteHarness harness = new(Snapshot("22", "80", "443"), Snapshot("443", "80", "22"));
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(result.Operations);
@@ -94,7 +94,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         using BatchDeleteHarness harness = new(Snapshot("22", "80", "443"), Snapshot("22", "80", "443"), Snapshot("22", "80"));
         harness.EnqueueProcess(exitCode: 1, standardError: "delete reported failure");
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([2]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual(RuleBatchDeleteOperationStatus.DeletedAfterProcessFailure, result.Operations[0].Status);
@@ -107,7 +107,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         using BatchDeleteHarness harness = new(Snapshot("22", "80", "443"), Snapshot("22", "80", "443"), Snapshot("22", "80", "443"));
         harness.EnqueueProcess(exitCode: 1, standardError: "delete rejected");
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([0, 2]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([0, 2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.HasCount(1, result.Operations);
@@ -125,7 +125,7 @@ public sealed class FirewallBatchDeleteExecutorTests
             Snapshot("22", "80", "443"),
             Snapshot("443", "80", "22"));
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1, 3]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1, 3]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.HasCount(1, result.Operations);
@@ -140,7 +140,7 @@ public sealed class FirewallBatchDeleteExecutorTests
     {
         using BatchDeleteHarness harness = new(Snapshot("22", "80"), Snapshot("22", "80"), null);
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.StateUncertain, result.Outcome);
         Assert.IsNull(result.FinalSnapshot);
@@ -154,7 +154,7 @@ public sealed class FirewallBatchDeleteExecutorTests
     {
         using BatchDeleteHarness harness = new(Snapshot("22", "80"));
 
-        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1, 1]), TestContext.CancellationToken);
+        RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([1, 1]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -166,7 +166,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
+    private static FirewallSnapshot ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled);
 
     private sealed class BatchDeleteHarness : IDisposable
     {
@@ -182,13 +182,16 @@ public sealed class FirewallBatchDeleteExecutorTests
                 throw new ArgumentException("A baseline snapshot is required.", nameof(snapshots));
             }
 
-            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Select(static snapshot => snapshot is null
-                ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test read failure"))
-                : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled))));
+            Baseline = FirewallRuleSet.FromStatus(snapshots[0]!, TestFirewallConfiguration.Enabled);
+            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Skip(1).Select(static snapshot => snapshot is null
+                ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure("test read failure")
+                : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled))));
             _snapshotReader.Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(() => _snapshots.Dequeue());
             _ufwRunner.Setup(runner => runner.ExecuteAsync(It.IsAny<IUfwCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync((IUfwCommand command, CancellationToken _) => Execute(command));
             Executor = new FirewallBatchDeleteExecutor(_snapshotReader.Object, new UfwProcessExecutor(_ufwRunner.Object, new ConsoleLogger()));
         }
+
+        public FirewallSnapshot Baseline { get; }
 
         public FirewallBatchDeleteExecutor Executor { get; }
 
@@ -196,10 +199,10 @@ public sealed class FirewallBatchDeleteExecutorTests
 
         public BatchDeleteRulesPayload Payload(IReadOnlyList<int> occurrenceIds)
         {
-            FirewallRuleSnapshotReadResult baseline = _snapshots.Peek();
+            FirewallSnapshot baseline = Baseline;
             return new BatchDeleteRulesPayload
             {
-                BaselineFingerprint = baseline.ComputeSnapshotFingerprint(),
+                BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules),
                 OccurrenceIds = [.. occurrenceIds],
             };
         }

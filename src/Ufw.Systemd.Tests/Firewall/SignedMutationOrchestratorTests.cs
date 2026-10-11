@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
@@ -41,7 +41,7 @@ public sealed class SignedMutationOrchestratorTests
         SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate.Object, guard.Object, CreateCleanSnapshotReader());
         OkResponse expected = new();
 
-        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), cancellationToken =>
+        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), (snapshot, cancellationToken) =>
         {
             Assert.AreEqual(TestContext.CancellationToken, cancellationToken);
             calls.Add("operation");
@@ -53,6 +53,42 @@ public sealed class SignedMutationOrchestratorTests
     }
 
     [TestMethod]
+    public async Task ExecuteAsync_UsesExactlyOnePostRecoverySnapshotForCallbackAsync()
+    {
+        using UfwExecutionGate gate = new();
+        Mock<INonceStore> nonceStore = new(MockBehavior.Strict);
+        nonceStore.Setup(value => value.TryConsumeAsync(NONCE, EXPIRES_AT_UNIX, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        Mock<IFirewallMutationSafetyGuard> guard = new(MockBehavior.Strict);
+        Mock<IFirewallRuleSnapshotReader> reader = new(MockBehavior.Strict);
+        FirewallSnapshot recovered = new(true, [new ListedFirewallRule { RuleId = "sha256:recovered" }], TestFirewallConfiguration.Enabled);
+        bool recoveryCompleted = false;
+        int reads = 0;
+        guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).Returns(() =>
+        {
+            recoveryCompleted = true;
+            return Task.CompletedTask;
+        });
+        reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>())).Returns(() =>
+        {
+            Assert.IsTrue(recoveryCompleted, "The daemon must recover an interrupted mutation before reading its baseline.");
+            reads++;
+            return Task.FromResult<FirewallRuleSnapshotReadResult>(new FirewallRuleSnapshotReadResult.Success(recovered));
+        });
+        SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, reader.Object);
+        OkResponse expected = new();
+
+        IResponsePayload result = await orchestrator.ExecuteAsync(Accepted(), (snapshot, _) =>
+        {
+            Assert.AreSame(recovered, snapshot);
+            return Task.FromResult<IResponsePayload>(expected);
+        }, TestContext.CancellationToken);
+
+        Assert.AreSame(expected, result);
+        Assert.AreEqual(1, reads);
+        reader.Verify(value => value.ReadAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
     public async Task ExecuteAsync_DuplicateBaselineRejectsBeforeNonceAndOperationAsync()
     {
         using UfwExecutionGate gate = new();
@@ -61,7 +97,7 @@ public sealed class SignedMutationOrchestratorTests
         guard.Setup(value => value.EnsureSafeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         Mock<IFirewallRuleSnapshotReader> reader = new(MockBehavior.Strict);
         reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(true,
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Systemd.Firewall.FirewallSnapshot(true,
             [
                 new Ufw.Shared.Firewall.ListedFirewallRule { RuleId = "sha256:same" },
                 new Ufw.Shared.Firewall.ListedFirewallRule { RuleId = "sha256:same" },
@@ -69,7 +105,7 @@ public sealed class SignedMutationOrchestratorTests
         SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, reader.Object);
         bool operationRan = false;
 
-        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), _ =>
+        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), (_, _) =>
         {
             operationRan = true;
             return Task.FromResult<IResponsePayload>(new OkResponse());
@@ -93,7 +129,7 @@ public sealed class SignedMutationOrchestratorTests
         bool operationRan = false;
 
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
-            _ = await orchestrator.ExecuteAsync(Accepted(), _ =>
+            _ = await orchestrator.ExecuteAsync(Accepted(), (_, _) =>
             {
                 operationRan = true;
                 return Task.FromResult<IResponsePayload>(new OkResponse());
@@ -115,7 +151,7 @@ public sealed class SignedMutationOrchestratorTests
         SignedMutationOrchestrator orchestrator = new(nonceStore.Object, gate, guard.Object, CreateCleanSnapshotReader());
         bool operationRan = false;
 
-        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), _ =>
+        IResponsePayload response = await orchestrator.ExecuteAsync(Accepted(), (_, _) =>
         {
             operationRan = true;
             return Task.FromResult<IResponsePayload>(new OkResponse());
@@ -138,7 +174,7 @@ public sealed class SignedMutationOrchestratorTests
         TaskCompletionSource operationEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseOperation = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        Task<IResponsePayload> mutation = orchestrator.ExecuteAsync(Accepted(), async _ =>
+        Task<IResponsePayload> mutation = orchestrator.ExecuteAsync(Accepted(), async (_, _) =>
         {
             operationEntered.TrySetResult();
             await releaseOperation.Task;
@@ -179,7 +215,7 @@ public sealed class SignedMutationOrchestratorTests
         using CancellationTokenSource cancellation = new();
         bool operationRan = false;
 
-        Task<IResponsePayload> mutation = orchestrator.ExecuteAsync(Accepted(), _ =>
+        Task<IResponsePayload> mutation = orchestrator.ExecuteAsync(Accepted(), (_, _) =>
         {
             operationRan = true;
             return Task.FromResult<IResponsePayload>(new OkResponse());
@@ -201,7 +237,7 @@ public sealed class SignedMutationOrchestratorTests
     {
         Mock<IFirewallRuleSnapshotReader> reader = new();
         reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse(
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Systemd.Firewall.FirewallSnapshot(
                 true, [], Ufw.Systemd.Tests.TestFirewallConfiguration.Enabled)));
         return reader.Object;
     }

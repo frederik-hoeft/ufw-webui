@@ -6,7 +6,7 @@ UFW itself remains the authoritative firewall database. UFWeb does not mirror ev
 
 ## Authoritative snapshots
 
-Rule listing reads `ufw status numbered` through the privileged daemon. The daemon runs UFW under a deterministic locale, keeps parseable stdout separate from stderr diagnostics, and parses the complete numbered listing into a snapshot. It also reads the configured UFW defaults file and attaches the effective IPv6 capability plus incoming, outgoing, and routed default policies to that same authoritative response. Failure to read or understand either source fails the snapshot read rather than publishing a partially authoritative configuration.
+Rule listing reads `ufw status numbered` and `ufw status verbose` through the privileged daemon. The daemon runs UFW under a deterministic locale and keeps parseable stdout separate from stderr diagnostics. Numbered status supplies the mutation coordinates; verbose status supplies **effective incoming, outgoing, and routed default policies**, including a disabled routed policy. The reader compares both outputs' active state and ordered rule text before publishing a snapshot. Disagreement, malformed policy output, or either failed invocation fails the read instead of mixing incompatible observations. UFW provides no combined numbered/verbose command, so these are two separate observations, not an atomic host-wide snapshot.
 
 A snapshot can contain two kinds of rows:
 
@@ -19,9 +19,11 @@ All UFW reads and writes pass through one daemon execution gate. A read therefor
 
 ### Parsing boundary
 
-The daemon parses UFW output and the required settings from its configured UFW defaults file into explicit structural models before any state becomes authoritative. Parsing and semantic validation are separate: a row can be preserved for display even when its structure is not understood well enough to authorize mutation, while required firewall configuration must be understood completely before the daemon publishes a rules snapshot.
+The daemon parses UFW status views into explicit structural models before any state becomes authoritative. Parsing and semantic validation are separate: a row can be preserved for display even when its structure is not understood well enough to authorize mutation, while required effective policies must be understood completely before the daemon publishes an active rules snapshot.
 
-The rule-status and defaults grammars share reusable parsing infrastructure, but they produce independent domain models. The defaults reader interprets only the settings needed by the management contract (`IPV6` and the three default policies); unrelated assignments are ignored, while a missing, malformed, or unsupported required value fails the snapshot read.
+The configured UFW defaults file remains the source for `IPV6`, because neither status command exposes the IPv6 management capability. When UFW is inactive, verbose status omits default policies, so the response explicitly falls back to the configured defaults. For active status, configured policies are **never** substituted for effective policies. The defaults reader still validates its required fields, and missing, malformed, or unsupported configuration prevents publishing a partial snapshot.
+
+Internally the daemon uses `FirewallSnapshot`; the IPC `RuleListResponse` is created only when preparing a response. Similarly, `FirewallSnapshotReadResult` carries an internal snapshot or diagnostic, not a transport DTO. Under the daemon execution gate, signed mutations perform any required reorder recovery first, then read and validate one authoritative baseline and pass that exact snapshot to their operation callback. Executors reuse it for fingerprint/precondition checks; before destructive numbered mutations and after each mutation they still re-read UFW to detect external drift. The execution gate serializes daemon-owned operations but cannot serialize other UFW callers.
 
 The shared `Grammar.Set` combinator matches a nonempty subset of its declared child positions in any order. It retries unused children after each consuming match, ignores zero-width successes without claiming their positions, and requires at least one consuming match. Consuming matches remain greedy in declaration order, without backtracking; callers requiring the entire input must additionally check the total number of characters consumed.
 
@@ -95,9 +97,9 @@ Listed rules and delete requests are always family-specific. UFW only loads and 
 An accepted add operation follows a conservative sequence:
 
 1. verify the signed intent and enter the daemon execution gate;
-2. durably consume the nonce;
-3. verify that referenced host interfaces currently exist;
-4. read current UFW state and configuration, reject unsupported IPv6 creation, and reject a semantically identical existing rule;
+2. complete any required reorder recovery and read the authoritative firewall snapshot;
+3. reject ambiguous semantic identities, then durably consume the nonce;
+4. verify that referenced host interfaces currently exist, and use the validated baseline to reject unsupported IPv6 creation or a semantically identical existing rule;
 5. render validated argv and start UFW directly, without a shell;
 6. retain ownership of the child process through normal exit or cancellation cleanup;
 7. read UFW again and require the expected semantic rule to be observable uniquely;
@@ -111,7 +113,7 @@ Ordered insertion changes membership and placement together, so it is authorized
 
 The inserted rule must have the same concrete IPv4 or IPv6 family as the parsed anchor. Because UFW does not expose IPv6 rows while IPv6 support is disabled, a valid disabled-IPv6 snapshot cannot provide an IPv6 insertion anchor; client and daemon validation additionally reject such an inconsistent context defensively. Family-neutral ordered creation is intentionally rejected because one UFW command could materialize into multiple concrete rows while one signed anchor identifies only one concrete ordered position. Ordinary append-style add retains family-neutral UFW behavior.
 
-Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, consumes the nonce, re-reads UFW plus its configuration, and requires the current snapshot fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces, current IPv6 capability, and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
+Under the execution gate, the daemon resolves any outstanding reorder recovery obligation, reads and validates UFW state, consumes the nonce, and requires that supplied snapshot's fingerprint to equal the signed baseline before interpreting the anchor. Referenced interfaces, current IPv6 capability, and duplicate rule semantics are validated using the same authority as append add. `before` targets the anchor position. `after` targets the next occurrence in the same address-family partition, or appends within that concrete family when the anchor is the last occurrence in its partition.
 
 Snapshot occurrences use the combined UFW listing for authorization, and UFW's public `insert N` command also consumes that combined numbered coordinate. The daemon reasons about before/after placement within the anchor's concrete family, then translates the resulting family-local slot back into UFW's combined CLI number immediately before command construction. For IPv6 this adds the current IPv4 rule count because UFW subtracts that prefix internally before mutating its IPv6 rule set. It then executes one insertion and reconciles the complete post-state. Success requires every baseline occurrence to remain in relative order, exactly one requested rule materialization to have been added, and that row to occupy the signed slot. No recovery journal is needed because ordered insertion never removes an existing row.
 
@@ -154,7 +156,7 @@ Interface existence is intentionally not revalidated for delete. A rule referenc
 
 Batch deletion is a state-conditioned mutation over one exact authoritative snapshot. The signed payload contains the snapshot fingerprint and a non-empty set of unique zero-based occurrence IDs from that snapshot. Occurrence IDs, rather than semantic `RuleId`s, are used because duplicate semantic rows can exist in observed UFW state and must remain independently selectable. The operation is generic firewall authority: an ASP-owned rule-group ID is never part of the signed payload or daemon protocol.
 
-Under the execution gate, the daemon consumes the nonce, reads a fresh snapshot, and requires its fingerprint to match the signed baseline before interpreting any occurrence. Every selected occurrence must fall inside the baseline and have a usable UFW display number. Targets are processed from the highest baseline occurrence downward so deleting one row cannot invalidate the remaining baseline-to-current coordinate mapping by ordinary renumbering.
+Under the execution gate, the daemon finishes recovery, reads a fresh authoritative snapshot, and consumes the nonce before requiring its fingerprint to match the signed baseline and interpreting occurrences. Every selected occurrence must fall inside the baseline and have a usable UFW display number. Targets are processed from the highest baseline occurrence downward so deleting one row cannot invalidate the remaining baseline-to-current coordinate mapping by ordinary renumbering.
 
 Before each individual delete the daemon re-reads UFW and requires the complete current rule order to equal the expected surviving subsequence of the signed baseline. It then resolves the selected baseline occurrence to its current row, executes one numbered UFW delete, and reads authoritative state again. A deletion is confirmed only when that post-state equals the expected baseline with exactly that occurrence removed. A non-zero/canceled process can still be classified as a confirmed deletion when the authoritative post-state proves the removal occurred; conversely, a successful process exit is not enough when state does not reconcile.
 

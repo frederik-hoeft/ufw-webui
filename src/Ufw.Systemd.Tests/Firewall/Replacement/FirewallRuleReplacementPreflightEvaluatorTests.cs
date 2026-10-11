@@ -17,7 +17,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     public void Evaluate_SameIdentityStateChange_SelectsExistingRuleUpdate()
     {
         FirewallRuleSpecification original = Rule("80", "old");
-        RuleListResponse baseline = Baseline(original);
+        FirewallSnapshot baseline = Baseline(original);
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("80", "new"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
 
@@ -31,7 +31,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_IdentityChange_SelectsInsertThenDelete()
     {
-        RuleListResponse baseline = Baseline(Rule("80"), Rule("443"));
+        FirewallSnapshot baseline = Baseline(Rule("80"), Rule("443"));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("22"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
 
@@ -46,7 +46,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     public void Evaluate_UnchangedRule_ReturnsNoChange()
     {
         FirewallRuleSpecification rule = Rule("80", "same");
-        RuleListResponse baseline = Baseline(rule);
+        FirewallSnapshot baseline = Baseline(rule);
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("80", "same"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
 
@@ -59,7 +59,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_TargetIdentityMismatch_ReturnsPreconditionFailure()
     {
-        RuleListResponse baseline = Baseline(Rule("80"));
+        FirewallSnapshot baseline = Baseline(Rule("80"));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("22"));
         payload.OriginalRuleId = RuleIdentity.Compute(Rule("9999"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
@@ -73,7 +73,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_DuplicateSameIdentity_ReturnsPreconditionFailure()
     {
-        RuleListResponse baseline = Baseline(Rule("80", "first"), Rule("80", "second"));
+        FirewallSnapshot baseline = Baseline(Rule("80", "first"), Rule("80", "second"));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("80", "updated"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
 
@@ -86,7 +86,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_DuplicateReplacementIdentity_ReturnsPreconditionFailure()
     {
-        RuleListResponse baseline = Baseline(Rule("80"), Rule("22"));
+        FirewallSnapshot baseline = Baseline(Rule("80"), Rule("22"));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("22"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
 
@@ -99,7 +99,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_DisabledIpv6Capability_ReturnsPreconditionFailure()
     {
-        RuleListResponse baseline = Baseline(TestFirewallConfiguration.Disabled, Rule("80", family: FirewallAddressFamily.IPv6));
+        FirewallSnapshot baseline = Baseline(TestFirewallConfiguration.Disabled, Rule("80", family: FirewallAddressFamily.IPv6));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("22", family: FirewallAddressFamily.IPv6));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator();
 
@@ -112,7 +112,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     public void Evaluate_InterfaceModelValidationFailure_ReturnsPreconditionFailure()
     {
         ModelValidationErrorResponse error = new([new ModelValidationError(nameof(FirewallRuleSpecification.SourceInterface), "missing")]);
-        RuleListResponse baseline = Baseline(Rule("80"));
+        FirewallSnapshot baseline = Baseline(Rule("80"));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("22"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator(error);
 
@@ -125,7 +125,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
     public void Evaluate_InterfaceInspectionFailure_ReturnsStateUncertain()
     {
         InternalServerErrorResponse error = new("interface inspection failed");
-        RuleListResponse baseline = Baseline(Rule("80"));
+        FirewallSnapshot baseline = Baseline(Rule("80"));
         ReplaceRulePayload payload = Payload(baseline, 0, Rule("22"));
         FirewallRuleReplacementPreflightEvaluator evaluator = CreateEvaluator(error);
 
@@ -142,17 +142,17 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
         return new FirewallRuleReplacementPreflightEvaluator(interfaceValidator.Object, new FirewallRuleCapabilityValidator());
     }
 
-    private static ReplaceRulePayload Payload(RuleListResponse baseline, int targetOccurrenceId, FirewallRuleSpecification replacement) => new()
+    private static ReplaceRulePayload Payload(FirewallSnapshot baseline, int targetOccurrenceId, FirewallRuleSpecification replacement) => new()
     {
-        BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),
+        BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules),
         TargetOccurrenceId = targetOccurrenceId,
         OriginalRuleId = baseline.Rules[targetOccurrenceId].RuleId!,
         ReplacementRule = replacement,
     };
 
-    private static RuleListResponse Baseline(params FirewallRuleSpecification[] rules) => Baseline(TestFirewallConfiguration.Enabled, rules);
+    private static FirewallSnapshot Baseline(params FirewallRuleSpecification[] rules) => Baseline(TestFirewallConfiguration.Enabled, rules);
 
-    private static RuleListResponse Baseline(FirewallConfigurationSnapshot configuration, params FirewallRuleSpecification[] rules) =>
+    private static FirewallSnapshot Baseline(FirewallConfigurationSnapshot configuration, params FirewallRuleSpecification[] rules) =>
         new(true, rules.Select(ListedRule).ToArray(), configuration);
 
     private static ListedFirewallRule ListedRule(FirewallRuleSpecification rule) => new()

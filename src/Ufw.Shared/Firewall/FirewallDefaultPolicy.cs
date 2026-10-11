@@ -5,4 +5,5 @@ public enum FirewallDefaultPolicy
     Allow,
     Deny,
     Reject,
+    Disabled,
 }

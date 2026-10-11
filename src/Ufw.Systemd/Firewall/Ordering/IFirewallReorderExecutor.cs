@@ -2,5 +2,5 @@
 
 internal interface IFirewallReorderExecutor
 {
-    Task<RuleReorderExecutionResult> ExecuteAsync(RuleReorderExecutionRequest request, CancellationToken cancellationToken);
+    Task<RuleReorderExecutionResult> ExecuteAsync(RuleReorderExecutionRequest request, FirewallSnapshot baseline, CancellationToken cancellationToken);
 }

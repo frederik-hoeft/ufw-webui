@@ -10,7 +10,7 @@ internal abstract record RuleReorderMoveExecutionResult
 
     internal sealed record Completed : RuleReorderMoveExecutionResult
     {
-        public Completed(RuleListResponse snapshot, IReadOnlyList<int> resultingOrder, RuleReorderOperationReport operationReport)
+        public Completed(FirewallSnapshot snapshot, IReadOnlyList<int> resultingOrder, RuleReorderOperationReport operationReport)
         {
             ArgumentNullException.ThrowIfNull(snapshot);
             ArgumentNullException.ThrowIfNull(resultingOrder);
@@ -20,7 +20,7 @@ internal abstract record RuleReorderMoveExecutionResult
             OperationReport = operationReport;
         }
 
-        public RuleListResponse Snapshot { get; }
+        public FirewallSnapshot Snapshot { get; }
 
         public IReadOnlyList<int> ResultingOrder { get; }
 
@@ -28,7 +28,7 @@ internal abstract record RuleReorderMoveExecutionResult
     }
 
     internal sealed record Interrupted(
-        RuleListResponse? Snapshot,
+        FirewallSnapshot? Snapshot,
         RuleReorderOperationReport? OperationReport,
         string? Diagnostic,
         bool RecoveryFailed) : RuleReorderMoveExecutionResult;

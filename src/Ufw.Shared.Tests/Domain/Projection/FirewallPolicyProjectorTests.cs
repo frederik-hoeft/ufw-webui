@@ -1,4 +1,4 @@
-﻿using Ufw.Shared.Domain;
+using Ufw.Shared.Domain;
 using Ufw.Shared.Domain.Algebra;
 using Ufw.Shared.Domain.Projection;
 using Ufw.Shared.Firewall;
@@ -8,6 +8,14 @@ namespace Ufw.Shared.Tests.Domain.Projection;
 [TestClass]
 public sealed class FirewallPolicyProjectorTests
 {
+    [TestMethod]
+    public void ProjectIPv4_DisabledRoutedDefaultDeniesForwarding()
+    {
+        PolicyWorld<uint> world = FirewallPolicyProjector.ProjectIPv4([], FirewallDefaultPolicy.Allow, FirewallDefaultPolicy.Allow, FirewallDefaultPolicy.Disabled, ["eth0"]);
+
+        Assert.AreEqual(PolicyDecision.Deny, world.RoutedDefault);
+    }
+
     [TestMethod]
     public void ProjectIPv4_PreservesFamilyOrderAndInterfaceAxes()
     {

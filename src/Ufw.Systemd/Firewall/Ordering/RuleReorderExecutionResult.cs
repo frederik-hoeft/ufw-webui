@@ -4,7 +4,7 @@ namespace Ufw.Systemd.Firewall.Ordering;
 
 internal sealed record RuleReorderExecutionResult(
     RuleReorderExecutionOutcome Outcome,
-    RuleListResponse? FinalSnapshot,
+    FirewallSnapshot? FinalSnapshot,
     IReadOnlyList<RuleReorderOperationReport> Operations,
     IReadOnlyList<RuleReorderMove> BlockedOperations,
     IReadOnlyList<RuleReorderMove> PendingOperations,

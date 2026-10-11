@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Ipc.Model;
-using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Model.Responses;
 
 namespace Ufw.Systemd.Firewall;
 
@@ -8,8 +8,8 @@ internal static class FirewallRuleSnapshotReadResultExtensions
 {
     public static TResult Match<TResult>(
         this FirewallRuleSnapshotReadResult result,
-        Func<RuleListResponse, TResult> onSuccess,
-        Func<IResponsePayload, TResult> onFailure)
+        Func<FirewallSnapshot, TResult> onSuccess,
+        Func<string, TResult> onFailure)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(onSuccess);
@@ -18,15 +18,15 @@ internal static class FirewallRuleSnapshotReadResultExtensions
         return result switch
         {
             FirewallRuleSnapshotReadResult.Success success => onSuccess(success.Snapshot),
-            FirewallRuleSnapshotReadResult.Failure failure => onFailure(failure.Error),
+            FirewallRuleSnapshotReadResult.Failure failure => onFailure(failure.Diagnostic),
             _ => throw new InvalidOperationException($"Unsupported firewall snapshot read result '{result.GetType().Name}'."),
         };
     }
 
-    public static RuleListResponse? OrDefault(this FirewallRuleSnapshotReadResult result) =>
-        result.Match<RuleListResponse?>(static snapshot => snapshot, static _ => null);
+    public static FirewallSnapshot? OrDefault(this FirewallRuleSnapshotReadResult result) =>
+        result.Match<FirewallSnapshot?>(static snapshot => snapshot, static _ => null);
 
-    public static async Task<RuleListResponse?> OrDefaultAsync(this Task<FirewallRuleSnapshotReadResult> resultTask)
+    public static async Task<FirewallSnapshot?> OrDefaultAsync(this Task<FirewallRuleSnapshotReadResult> resultTask)
     {
         ArgumentNullException.ThrowIfNull(resultTask);
         FirewallRuleSnapshotReadResult result = await resultTask;
@@ -34,16 +34,16 @@ internal static class FirewallRuleSnapshotReadResultExtensions
     }
 
     public static IResponsePayload ToResponsePayload(this FirewallRuleSnapshotReadResult result) =>
-        result.Match<IResponsePayload>(static snapshot => snapshot, static error => error);
+        result.Match<IResponsePayload>(static snapshot => snapshot.ToResponse(), static message => new InternalServerErrorResponse(message));
 
     public static bool TryGetSnapshot(
         this FirewallRuleSnapshotReadResult result,
-        [NotNullWhen(true)] out RuleListResponse? snapshot,
+        [NotNullWhen(true)] out FirewallSnapshot? snapshot,
         [NotNullWhen(false)] out IResponsePayload? error)
     {
-        (bool HasSnapshot, RuleListResponse? Snapshot, IResponsePayload? Error) = result.Match<(bool, RuleListResponse?, IResponsePayload?)>(
+        (bool HasSnapshot, FirewallSnapshot? Snapshot, IResponsePayload? Error) = result.Match<(bool, FirewallSnapshot?, IResponsePayload?)>(
             static snapshot => (true, snapshot, null),
-            static error => (false, null, error));
+            static diagnostic => (false, null, new InternalServerErrorResponse(diagnostic)));
         snapshot = Snapshot;
         error = Error;
         return HasSnapshot;

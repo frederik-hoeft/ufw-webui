@@ -29,7 +29,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot baseline = Snapshot(RuleToken.V4("80", "same"));
         using ReplacementHarness harness = new(baseline);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80", "same")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80", "same")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         Assert.AreSame(result.FinalSnapshot!.Rules[0], result.ReplacementRule);
@@ -43,7 +43,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot updated = Snapshot(RuleToken.V4("80", "new"), RuleToken.V4("443"));
         using ReplacementHarness harness = new(baseline, updated);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80", "new")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80", "new")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual("new", result.ReplacementRule!.Rule!.Comment);
@@ -59,7 +59,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot updated = Snapshot(RuleToken.V4("80"));
         using ReplacementHarness harness = new(baseline, updated);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         CollectionAssert.AreEqual(
@@ -73,7 +73,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot baseline = Snapshot(RuleToken.V4("80", "same"), RuleToken.V4("80", "same"));
         using ReplacementHarness harness = new(baseline);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80", "same")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80", "same")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -85,7 +85,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot baseline = Snapshot(RuleToken.V4("80", "first"), RuleToken.V4("80", "second"));
         using ReplacementHarness harness = new(baseline);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "80", "updated")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "80", "updated")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         StringAssert.Contains(result.Diagnostic, "occurs more than once");
@@ -100,7 +100,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot final = Snapshot(RuleToken.V4("80", "first"), RuleToken.V4("22"), RuleToken.V4("443"));
         using ReplacementHarness harness = new(baseline, intermediate, final);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual(2, harness.Commands.Count);
@@ -114,7 +114,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot baseline = Snapshot(RuleToken.V4("80"), RuleToken.V4("22"));
         using ReplacementHarness harness = new(baseline);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         StringAssert.Contains(result.Diagnostic, "duplicate");
@@ -129,7 +129,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot final = Snapshot(RuleToken.V4("22"), RuleToken.V4("443"));
         using ReplacementHarness harness = new(baseline, intermediate, final);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual("1", harness.Commands[0][1]);
@@ -144,7 +144,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot final = Snapshot(RuleToken.V4("80"), RuleToken.V4("22"));
         using ReplacementHarness harness = new(baseline, intermediate, final);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual("2", harness.Commands[0][1]);
@@ -159,7 +159,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot final = Snapshot(RuleToken.V4("80"), RuleToken.V4("22"), RuleToken.V4("8080"), RuleToken.V6("80"));
         using ReplacementHarness harness = new(baseline, intermediate, final);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         CollectionAssert.AreEqual(
@@ -176,7 +176,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot final = Snapshot(RuleToken.V4("80"), RuleToken.V4("443"), RuleToken.V6("80"), RuleToken.V6("22"));
         using ReplacementHarness harness = new(baseline, intermediate, final);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(3, Rule(FirewallAddressFamily.IPv6, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(3, Rule(FirewallAddressFamily.IPv6, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         CollectionAssert.AreEqual(
@@ -191,9 +191,9 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot actual = Snapshot(RuleToken.V4("80"), RuleToken.V4("443"));
         using ReplacementHarness harness = new(actual);
         ReplaceRulePayload payload = harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22"));
-        payload.BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot(RuleToken.V4("80"))));
+        payload.BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot(RuleToken.V4("80"))).ToResponse());
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(payload, TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(payload, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -206,7 +206,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         ReplaceRulePayload payload = harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22"));
         payload.OriginalRuleId = RuleIdentity.Compute(Rule(FirewallAddressFamily.IPv4, "9999"));
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(payload, TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(payload, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -220,7 +220,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         FirewallRuleSpecification replacement = Rule(FirewallAddressFamily.IPv4, "22");
         replacement.SourceInterface = "missing0";
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, replacement), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, replacement), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -231,7 +231,7 @@ public sealed class FirewallRuleReplacementExecutorTests
     {
         using ReplacementHarness harness = new(TestFirewallConfiguration.Disabled, Snapshot(RuleToken.V6("80")));
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv6, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv6, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -244,7 +244,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         using ReplacementHarness harness = new(baseline, baseline);
         harness.EnqueueProcess(exitCode: 1, standardError: "rejected");
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsNull(result.RecoveryStatus);
@@ -259,7 +259,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         using ReplacementHarness harness = new(baseline, intermediate, final);
         harness.EnqueueProcess(exitCode: 1, standardError: "insert reported failure");
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         StringAssert.Contains(result.Diagnostic, "insert reported failure");
@@ -276,7 +276,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         harness.EnqueueProcess();
         harness.EnqueueProcess(exitCode: 1, standardError: "delete reported failure");
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         StringAssert.Contains(result.Diagnostic, "delete reported failure");
@@ -292,7 +292,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "delete failed");
         harness.EnqueueProcess();
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.AreEqual(RuleReplacementRecoveryStatus.RestoredBaseline, result.RecoveryStatus);
@@ -312,7 +312,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         harness.EnqueueProcess();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            _ = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), cancellation.Token));
+            _ = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, cancellation.Token));
 
         Assert.AreEqual(3, harness.Commands.Count);
         CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[2]);
@@ -328,7 +328,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "delete failed");
         harness.EnqueueProcess(exitCode: 1, standardError: "rollback failed");
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.AreEqual(RuleReplacementRecoveryStatus.Failed, result.RecoveryStatus);
@@ -343,7 +343,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot divergent = Snapshot(RuleToken.V4("22"), RuleToken.V4("8080"));
         using ReplacementHarness harness = new(baseline, intermediate, divergent);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.StateUncertain, result.Outcome);
         Assert.IsNull(result.RecoveryStatus);
@@ -357,7 +357,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         UfwStatusSnapshot divergent = Snapshot(RuleToken.V4("22"), RuleToken.V4("8080"), RuleToken.V4("443"));
         using ReplacementHarness harness = new(baseline, divergent);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.StateUncertain, result.Outcome);
         Assert.HasCount(1, harness.Commands);
@@ -368,7 +368,7 @@ public sealed class FirewallRuleReplacementExecutorTests
     {
         using ReplacementHarness harness = new(Snapshot(RuleToken.V4("80")), null);
 
-        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), TestContext.CancellationToken);
+        RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.StateUncertain, result.Outcome);
         Assert.IsNull(result.FinalSnapshot);
@@ -385,7 +385,7 @@ public sealed class FirewallRuleReplacementExecutorTests
         harness.EnqueueProcess();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            _ = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), cancellation.Token));
+            _ = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, cancellation.Token));
 
         Assert.AreEqual(2, harness.Commands.Count);
         CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[1]);
@@ -413,7 +413,7 @@ public sealed class FirewallRuleReplacementExecutorTests
 
     private static string FormatComment(string? comment) => comment is null ? string.Empty : $"                   # {comment}";
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
+    private static FirewallSnapshot ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled);
 
     private sealed record RuleToken(FirewallAddressFamily Family, string Port, string? Comment)
     {
@@ -438,9 +438,10 @@ public sealed class FirewallRuleReplacementExecutorTests
 
         public ReplacementHarness(FirewallConfigurationSnapshot configuration, params UfwStatusSnapshot?[] snapshots)
         {
-            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Select(snapshot => snapshot is null
-                ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test read failure"))
-                : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, configuration))));
+            Baseline = FirewallRuleSet.FromStatus(snapshots[0]!, configuration);
+            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Skip(1).Select(snapshot => snapshot is null
+                ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure("test read failure")
+                : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.FromStatus(snapshot, configuration))));
             _snapshotReader.Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(() => _snapshots.Dequeue());
             _interfaceValidator.Setup(validator => validator.Validate(It.IsAny<FirewallRuleSpecification>())).Returns(() => _interfaceValidationResponse);
             _ufwRunner.Setup(runner => runner.ExecuteAsync(It.IsAny<IUfwCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync((IUfwCommand command, CancellationToken _) => Execute(command));
@@ -449,8 +450,10 @@ public sealed class FirewallRuleReplacementExecutorTests
             UfwProcessExecutor processExecutor = new(_ufwRunner.Object, logger);
             FirewallRuleReplacementPreflightEvaluator preflightEvaluator = new(_interfaceValidator.Object, new FirewallRuleCapabilityValidator());
             FirewallRuleReplacementTransactionExecutor transactionExecutor = new(_snapshotReader.Object, processExecutor, new UfwRuleCommandRenderer(), logger);
-            Executor = new FirewallRuleReplacementExecutor(_snapshotReader.Object, preflightEvaluator, transactionExecutor);
+            Executor = new FirewallRuleReplacementExecutor(preflightEvaluator, transactionExecutor);
         }
+
+        public FirewallSnapshot Baseline { get; }
 
         public FirewallRuleReplacementExecutor Executor { get; }
 
@@ -463,10 +466,10 @@ public sealed class FirewallRuleReplacementExecutorTests
 
         public ReplaceRulePayload Payload(int targetOccurrenceId, FirewallRuleSpecification replacement)
         {
-            RuleListResponse baseline = _snapshots.Peek().GetRequiredSnapshot();
+            FirewallSnapshot baseline = Baseline;
             return new ReplaceRulePayload
             {
-                BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),
+                BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules),
                 TargetOccurrenceId = targetOccurrenceId,
                 OriginalRuleId = baseline.Rules[targetOccurrenceId].RuleId!,
                 ReplacementRule = replacement,

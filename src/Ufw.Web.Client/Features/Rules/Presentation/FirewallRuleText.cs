@@ -43,6 +43,7 @@ internal sealed class FirewallRuleText(IStringLocalizer<RulesStrings> rulesText)
         FirewallDefaultPolicy.Allow => rulesText["Allow"],
         FirewallDefaultPolicy.Deny => rulesText["Deny"],
         FirewallDefaultPolicy.Reject => rulesText["Reject"],
+        FirewallDefaultPolicy.Disabled => rulesText["Disabled"],
         _ => policy.ToString(),
     };
 

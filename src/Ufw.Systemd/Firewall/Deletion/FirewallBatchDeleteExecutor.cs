@@ -8,16 +8,11 @@ namespace Ufw.Systemd.Firewall.Deletion;
 
 internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader snapshotReader, IUfwProcessExecutor processExecutor) : IFirewallBatchDeleteExecutor
 {
-    public async Task<RuleBatchDeleteExecutionResult> ExecuteAsync(BatchDeleteRulesPayload payload, CancellationToken cancellationToken)
+    public async Task<RuleBatchDeleteExecutionResult> ExecuteAsync(BatchDeleteRulesPayload payload, FirewallSnapshot baseline, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
-        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
-        if (baseline is null)
-        {
-            return Result(RuleBatchDeleteExecutionOutcome.StateUncertain, null, payload.OccurrenceIds, "The current authoritative firewall state could not be read before batch deletion.");
-        }
 
-        string actualFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
+        string actualFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules);
         if (!string.Equals(actualFingerprint, payload.BaselineFingerprint, StringComparison.Ordinal))
         {
             return Result(RuleBatchDeleteExecutionOutcome.StaleBaseline, baseline, payload.OccurrenceIds, "The authoritative firewall state no longer matches the signed batch-delete baseline.");
@@ -32,14 +27,14 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
         int[] targets = [.. payload.OccurrenceIds.OrderDescending()];
         List<int> currentOrder = [.. Enumerable.Range(0, baseline.Rules.Count)];
         List<RuleBatchDeleteOperationReport> operations = [];
-        RuleListResponse currentSnapshot = baseline;
+        FirewallSnapshot currentSnapshot = baseline;
 
         for (int targetIndex = 0; targetIndex < targets.Length; targetIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             int occurrenceId = targets[targetIndex];
             int[] pending = targets[targetIndex..];
-            RuleListResponse? beforeDelete = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
+            FirewallSnapshot? beforeDelete = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
             if (beforeDelete is null)
             {
                 return new RuleBatchDeleteExecutionResult(
@@ -74,7 +69,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
             }
 
             UfwProcessExecutionResult process = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(displayNumber), "deleting a firewall rule during batch deletion", cancellationToken);
-            RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+            FirewallSnapshot? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
             List<int> expectedOrder = [.. currentOrder];
             expectedOrder.RemoveAt(currentIndex);
 
@@ -121,7 +116,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
         return new RuleBatchDeleteExecutionResult(RuleBatchDeleteExecutionOutcome.Completed, currentSnapshot, operations, [], null);
     }
 
-    private static string? ValidatePreconditions(RuleListResponse baseline, IReadOnlyList<int> occurrenceIds)
+    private static string? ValidatePreconditions(FirewallSnapshot baseline, IReadOnlyList<int> occurrenceIds)
     {
         if (occurrenceIds.Count == 0)
         {
@@ -149,7 +144,7 @@ internal sealed class FirewallBatchDeleteExecutor(IFirewallRuleSnapshotReader sn
 
     private static RuleBatchDeleteExecutionResult Result(
         RuleBatchDeleteExecutionOutcome outcome,
-        RuleListResponse? finalSnapshot,
+        FirewallSnapshot? finalSnapshot,
         IReadOnlyList<int> pendingOccurrenceIds,
         string? diagnostic = null) =>
         new(outcome, finalSnapshot, [], [.. pendingOccurrenceIds], diagnostic);

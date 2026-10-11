@@ -15,7 +15,7 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
 {
     private readonly ILogger<FirewallRuleReplacementTransactionExecutor> _logger = logger.Scoped<FirewallRuleReplacementTransactionExecutor>();
 
-    public Task<RuleReplacementExecutionResult> ExecuteAsync(RuleListResponse baseline, RuleReplacementPreflight preflight, CancellationToken cancellationToken)
+    public Task<RuleReplacementExecutionResult> ExecuteAsync(FirewallSnapshot baseline, RuleReplacementPreflight preflight, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(preflight);
@@ -29,13 +29,13 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
     }
 
     private async Task<RuleReplacementExecutionResult> UpdateExistingRuleAsync(
-        RuleListResponse baseline,
+        FirewallSnapshot baseline,
         int targetOccurrenceId,
         FirewallRuleSpecification replacement,
         CancellationToken cancellationToken)
     {
         UfwProcessExecutionResult update = await processExecutor.ExecuteAsync(new UfwUpdateExistingRuleCommand(replacement, renderer), "updating the existing rule", cancellationToken);
-        RuleListResponse? finalSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? finalSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (finalSnapshot is null)
         {
             return Result(
@@ -63,7 +63,7 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
     }
 
     private async Task<RuleReplacementExecutionResult> ReplaceIdentityAsync(
-        RuleListResponse baseline,
+        FirewallSnapshot baseline,
         int targetOccurrenceId,
         FirewallRuleSpecification replacement,
         string replacementId,
@@ -71,7 +71,7 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
     {
         UfwInsertionPlacement placement = UfwInsertionPlacementResolver.Resolve(baseline.Rules, replacement.AddressFamily, targetOccurrenceId);
         UfwProcessExecutionResult insert = await processExecutor.ExecuteAsync(placement.CreateCommand(replacement, renderer), "inserting the replacement rule", cancellationToken);
-        RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (afterInsert is null)
         {
             return Result(
@@ -123,7 +123,7 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
         }
 
         UfwProcessExecutionResult delete = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(oldDisplayNumber), "deleting the original rule", cancellationToken);
-        RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         string? mutationDiagnostic = UfwProcessDiagnostics.Combine(insert.Succeeded ? null : insert.Diagnostic, delete.Diagnostic);
         if (afterDelete is null)
         {
@@ -166,8 +166,8 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
     }
 
     private async Task<RuleReplacementExecutionResult> RollBackInsertionAsync(
-        RuleListResponse baseline,
-        RuleListResponse exactIntermediate,
+        FirewallSnapshot baseline,
+        FirewallSnapshot exactIntermediate,
         int targetOccurrenceId,
         FirewallRuleSpecification replacement,
         string? operationDiagnostic)
@@ -183,7 +183,7 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
         }
 
         UfwProcessExecutionResult rollback = await processExecutor.ExecuteAsync(new UfwDeleteRuleCommand(displayNumber), "rolling back the inserted replacement", CancellationToken.None);
-        RuleListResponse? afterRollback = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? afterRollback = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         string? diagnostic = UfwProcessDiagnostics.Combine(operationDiagnostic, rollback.Diagnostic);
         if (afterRollback is null)
         {
@@ -240,7 +240,7 @@ internal sealed class FirewallRuleReplacementTransactionExecutor(
 
     private static RuleReplacementExecutionResult Result(
         RuleReplacementExecutionOutcome outcome,
-        RuleListResponse? finalSnapshot,
+        FirewallSnapshot? finalSnapshot,
         ListedFirewallRule? replacementRule = null,
         RuleReplacementRecoveryStatus? recoveryStatus = null,
         string? diagnostic = null) =>

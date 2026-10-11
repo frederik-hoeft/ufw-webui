@@ -965,4 +965,7 @@
   <data name="FirewallAmbiguousDuplicateRule" xml:space="preserve"><value>Regel {0} kommt an den Positionen {1} vor.</value></data>
   <data name="GroupTemplateReferencesBlockDeletion" xml:space="preserve"><value>Die Gruppe „{0}“ kann nicht gelöscht werden, solange Regelvorlagen darauf verweisen.</value></data>
   <data name="GroupTemplateReferencesPreventDeletion" xml:space="preserve"><value>{0} Regelvorlage(n) verweisen noch auf diese Gruppe. Entfernen Sie diese Zuordnungen, bevor Sie die Gruppe löschen.</value></data>
+  <data name="Disabled" xml:space="preserve">
+    <value>Deaktiviert</value>
+  </data>
 </root>

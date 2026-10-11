@@ -4,7 +4,7 @@ namespace Ufw.Systemd.Firewall.Deletion;
 
 internal sealed record RuleBatchDeleteExecutionResult(
     RuleBatchDeleteExecutionOutcome Outcome,
-    RuleListResponse? FinalSnapshot,
+    FirewallSnapshot? FinalSnapshot,
     IReadOnlyList<RuleBatchDeleteOperationReport> Operations,
     IReadOnlyList<int> PendingOccurrenceIds,
     string? Diagnostic);

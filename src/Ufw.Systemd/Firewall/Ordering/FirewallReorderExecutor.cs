@@ -4,23 +4,16 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 namespace Ufw.Systemd.Firewall.Ordering;
 
 internal sealed class FirewallReorderExecutor(
-    IFirewallRuleSnapshotReader snapshotReader,
     IFirewallReorderPreflightEvaluator preflightEvaluator,
     IFirewallReorderMoveExecutor moveExecutor) : IFirewallReorderExecutor
 {
-    public async Task<RuleReorderExecutionResult> ExecuteAsync(RuleReorderExecutionRequest request, CancellationToken cancellationToken)
+    public async Task<RuleReorderExecutionResult> ExecuteAsync(RuleReorderExecutionRequest request, FirewallSnapshot baseline, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.BaselineFingerprint);
         ArgumentNullException.ThrowIfNull(request.DesiredOrder);
 
-        RuleListResponse? baseline = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
-        if (baseline is null)
-        {
-            return Result(RuleReorderExecutionOutcome.StateUncertain, null, diagnostic: "The current authoritative firewall state could not be read before reordering.");
-        }
-
-        string actualFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
+        string actualFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules);
         if (!string.Equals(actualFingerprint, request.BaselineFingerprint, StringComparison.Ordinal))
         {
             return Result(RuleReorderExecutionOutcome.StaleBaseline, baseline, diagnostic: "The authoritative firewall state no longer matches the signed reorder baseline.");
@@ -45,7 +38,7 @@ internal sealed class FirewallReorderExecutor(
 
         List<RuleReorderOperationReport> operationReports = [];
         IReadOnlyList<int> currentOrder = Enumerable.Range(0, baseline.Rules.Count).ToArray();
-        RuleListResponse currentSnapshot = baseline;
+        FirewallSnapshot currentSnapshot = baseline;
 
         for (int moveIndex = 0; moveIndex < preflight.Plan.Moves.Count; moveIndex++)
         {
@@ -87,6 +80,6 @@ internal sealed class FirewallReorderExecutor(
         return new RuleReorderExecutionResult(RuleReorderExecutionOutcome.Completed, currentSnapshot, operationReports, [], [], null);
     }
 
-    private static RuleReorderExecutionResult Result(RuleReorderExecutionOutcome outcome, RuleListResponse? finalSnapshot, string? diagnostic = null) =>
+    private static RuleReorderExecutionResult Result(RuleReorderExecutionOutcome outcome, FirewallSnapshot? finalSnapshot, string? diagnostic = null) =>
         new(outcome, finalSnapshot, [], [], [], diagnostic);
 }

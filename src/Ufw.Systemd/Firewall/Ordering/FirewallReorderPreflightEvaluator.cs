@@ -6,7 +6,7 @@ namespace Ufw.Systemd.Firewall.Ordering;
 
 internal sealed class FirewallReorderPreflightEvaluator(IRuleReorderPlanner planner, IRuleReinsertabilityClassifier reinsertabilityClassifier) : IFirewallReorderPreflightEvaluator
 {
-    public RuleReorderPreflightResult Evaluate(RuleListResponse baseline, IReadOnlyList<int> desiredOrder)
+    public RuleReorderPreflightResult Evaluate(FirewallSnapshot baseline, IReadOnlyList<int> desiredOrder)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(desiredOrder);
@@ -56,7 +56,7 @@ internal sealed class FirewallReorderPreflightEvaluator(IRuleReorderPlanner plan
         return new RuleReorderPreflightResult.Accepted(new RuleReorderPreflight(desiredOrderSnapshot, plan, moveSpecifications, immutableOccurrences, reinsertionCosts));
     }
 
-    public IReadOnlyList<RuleReorderMove> CreateSafePendingPlan(RuleListResponse baseline, RuleListResponse? currentSnapshot, RuleReorderPreflight preflight)
+    public IReadOnlyList<RuleReorderMove> CreateSafePendingPlan(FirewallSnapshot baseline, FirewallSnapshot? currentSnapshot, RuleReorderPreflight preflight)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(preflight);
@@ -141,7 +141,7 @@ internal sealed class FirewallReorderPreflightEvaluator(IRuleReorderPlanner plan
         return true;
     }
 
-    private static bool TryMapOccurrences(RuleListResponse baseline, RuleListResponse current, [NotNullWhen(true)] out int[]? order)
+    private static bool TryMapOccurrences(FirewallSnapshot baseline, FirewallSnapshot current, [NotNullWhen(true)] out int[]? order)
     {
         if (baseline.Rules.Count != current.Rules.Count || baseline.Active != current.Active)
         {

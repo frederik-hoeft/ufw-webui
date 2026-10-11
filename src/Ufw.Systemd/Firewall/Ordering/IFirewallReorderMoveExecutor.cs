@@ -13,7 +13,7 @@ internal interface IFirewallReorderMoveExecutor
     /// </summary>
     Task<RuleReorderMoveExecutionResult> ExecuteAsync(
         RuleReorderMove move,
-        RuleListResponse baseline,
+        FirewallSnapshot baseline,
         IReadOnlyList<int> preMoveOrder,
         FirewallRuleSpecification specification,
         CancellationToken cancellationToken);

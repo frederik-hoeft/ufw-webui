@@ -22,8 +22,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
     [TestMethod]
     public async Task EnsurePresentAsync_UniqueNextAnchorTakesPrecedenceOverPreviousAnchorAsync()
     {
-        RuleListResponse snapshot = ToResponse(Snapshot("80", "8080", "443"));
-        RuleListResponse confirmed = ToResponse(Snapshot("80", "8080", "22", "443"));
+        FirewallSnapshot snapshot = ToResponse(Snapshot("80", "8080", "443"));
+        FirewallSnapshot confirmed = ToResponse(Snapshot("80", "8080", "22", "443"));
         ReorderRecoveryJournalEntry entry = Entry(
             Rule(FirewallAddressFamily.IPv4, "22"),
             originalFamilyPosition: 2,
@@ -40,8 +40,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
     [TestMethod]
     public async Task EnsurePresentAsync_AmbiguousNextAnchorFallsBackToUniquePreviousAnchorAsync()
     {
-        RuleListResponse snapshot = ToResponse(Snapshot("80", "443", "443"));
-        RuleListResponse confirmed = ToResponse(Snapshot("80", "22", "443", "443"));
+        FirewallSnapshot snapshot = ToResponse(Snapshot("80", "443", "443"));
+        FirewallSnapshot confirmed = ToResponse(Snapshot("80", "22", "443", "443"));
         ReorderRecoveryJournalEntry entry = Entry(
             Rule(FirewallAddressFamily.IPv4, "22"),
             originalFamilyPosition: 3,
@@ -58,8 +58,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
     [TestMethod]
     public async Task EnsurePresentAsync_CrossFamilyOrOpaqueNextAnchorIsNotTrustedAndHistoricalPositionCanAppendAsync()
     {
-        RuleListResponse crossFamilySnapshot = ToResponse(SnapshotTokens("80", "443v6"));
-        RuleListResponse crossFamilyConfirmed = ToResponse(SnapshotTokens("80", "22", "443v6"));
+        FirewallSnapshot crossFamilySnapshot = ToResponse(SnapshotTokens("80", "443v6"));
+        FirewallSnapshot crossFamilyConfirmed = ToResponse(SnapshotTokens("80", "22", "443v6"));
         ReorderRecoveryJournalEntry crossFamilyEntry = Entry(
             Rule(FirewallAddressFamily.IPv4, "22"),
             originalFamilyPosition: 2,
@@ -73,8 +73,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
             crossFamilyCommand);
 
         ListedFirewallRule opaque = new() { Parsed = false, RawLine = "[ 2] unsupported ipv4 syntax" };
-        RuleListResponse opaqueSnapshot = new(crossFamilySnapshot.Active, [crossFamilySnapshot.Rules[0], opaque], crossFamilySnapshot.Configuration);
-        RuleListResponse opaqueConfirmed = ToResponse(Snapshot("22", "80"));
+        FirewallSnapshot opaqueSnapshot = new(crossFamilySnapshot.Active, [crossFamilySnapshot.Rules[0], opaque], crossFamilySnapshot.Configuration);
+        FirewallSnapshot opaqueConfirmed = ToResponse(Snapshot("22", "80"));
         ReorderRecoveryJournalEntry opaqueEntry = new(
             ReorderRecoveryJournalEntry.CURRENT_FORMAT_VERSION,
             Rule(FirewallAddressFamily.IPv4, "22"),
@@ -90,7 +90,7 @@ public sealed class RuleReorderRecoveryCoordinatorTests
             opaqueCommand);
     }
 
-    private async Task<string[]> ExecuteRecoveryAsync(ReorderRecoveryJournalEntry entry, RuleListResponse snapshot, RuleListResponse confirmed)
+    private async Task<string[]> ExecuteRecoveryAsync(ReorderRecoveryJournalEntry entry, FirewallSnapshot snapshot, FirewallSnapshot confirmed)
     {
         Mock<IFirewallRuleSnapshotReader> snapshotReader = new(MockBehavior.Strict);
         snapshotReader.Setup(reader => reader.ReadAsync(CancellationToken.None)).ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(confirmed));
@@ -148,7 +148,7 @@ public sealed class RuleReorderRecoveryCoordinatorTests
         return UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!;
     }
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
+    private static FirewallSnapshot ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled);
 
     private static FirewallRuleSpecification Rule(FirewallAddressFamily family, string port) => new()
     {
