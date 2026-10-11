@@ -1,12 +1,14 @@
-@page "/metadata/groups"
+﻿@page "/metadata/groups"
 @attribute [Authorize]
 @implements IDisposable
 @using Ufw.Web.Client.Features.Rules.Metadata
+@using Ufw.Web.Client.Features.Rules.Templates
 @using Ufw.Web.Client.UI.Components.Rules.Metadata
 @inject IRuleGroupCatalogService GroupCatalog
 @inject IRuleGroupManagementProjectionService GroupProjection
 @inject IRuleGroupDeletionWorkflowService GroupDeletion
-@inject IRuleApiClient RuleApiClient
+@inject IRuleTemplateCatalogService TemplateCatalog
+@inject IRuleInventoryService RuleInventory
 @inject IClientErrorMapper ClientErrors
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -62,6 +64,11 @@
             @CommonText["Retry"]
         </MudButton>
     </MudAlert>
+}
+
+@if (_ruleSnapshot is { } ruleSnapshot)
+{
+    <FirewallAmbiguityAlert Assessment="@ruleSnapshot.Assessment" />
 }
 
 @if (_ruleInventoryError is not null && _groups.Count > 0)
@@ -155,6 +162,7 @@
                             <td class="actions" @onclick:stopPropagation="true">
                                 <RuleGroupActionsMenu Group="@group.Group"
                                                       Disabled="@IsBusy"
+                                                      DeleteDisabled="@(group.StoredMemberCount != 0 && !CanDeleteSignedGroups)"
                                                       EditRequested="@EditAsync"
                                                       DeleteRequested="@DeleteAsync" />
                             </td>
@@ -163,7 +171,7 @@
                         {
                             <tr class="rule-group-details-row">
                                 <td colspan="4">
-                                    <RuleGroupMembers Projection="@group"
+                                    <RuleGroupMembers Projection="@group" TemplateNames="@_templateNames"
                                                       Disabled="@IsBusy"
                                                       ShowActions="false">
                                         <HeaderActions>
@@ -198,6 +206,7 @@
                         <div @onclick:stopPropagation="true">
                             <RuleGroupActionsMenu Group="@group.Group"
                                                   Disabled="@IsBusy"
+                                                  DeleteDisabled="@(group.StoredMemberCount != 0 && !CanDeleteSignedGroups)"
                                                   EditRequested="@EditAsync"
                                                   DeleteRequested="@DeleteAsync" />
                         </div>
@@ -208,7 +217,7 @@
                     }
                     @if (expanded)
                     {
-                        <RuleGroupMembers Projection="@group"
+                        <RuleGroupMembers Projection="@group" TemplateNames="@_templateNames"
                                           Disabled="@IsBusy"
                                           ShowActions="false">
                             <HeaderActions>

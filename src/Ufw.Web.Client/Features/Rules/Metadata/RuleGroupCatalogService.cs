@@ -9,13 +9,10 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
 {
     public IReadOnlyList<RuleGroup> Current { get; private set; } = [];
 
-    public long Version { get; private set; }
-
     public async Task<IReadOnlyList<RuleGroup>> RefreshAsync(CancellationToken cancellationToken = default)
     {
         RuleGroupInventoryResponse response = await apiClient.GetAsync(cancellationToken);
-        Current = Normalize(response);
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleGroup>> CreateAsync(string name, string? comment = null, CancellationToken cancellationToken = default)
@@ -25,9 +22,7 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
             Name = name,
             Comment = comment,
         }, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleGroup>> UpdateAsync(Guid groupId, string name, string? comment, CancellationToken cancellationToken = default)
@@ -37,17 +32,20 @@ internal sealed class RuleGroupCatalogService(IRuleGroupApiClient apiClient) : I
             Name = name,
             Comment = comment,
         }, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleGroup>> DeleteAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         RuleGroupInventoryResponse response = await apiClient.DeleteAsync(groupId, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
+    }
+
+    private IReadOnlyList<RuleGroup> ApplyResponse(RuleGroupInventoryResponse response)
+    {
+        IReadOnlyList<RuleGroup> current = Normalize(response);
+        Current = current;
+        return current;
     }
 
     private static IReadOnlyList<RuleGroup> Normalize(RuleGroupInventoryResponse response)

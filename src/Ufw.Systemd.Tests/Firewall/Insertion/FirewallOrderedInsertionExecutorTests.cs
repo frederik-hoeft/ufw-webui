@@ -29,8 +29,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("80", "443", "80v6"), Snapshot("22", "80", "443", "80v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(anchorOccurrenceId: 0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(anchorOccurrenceId: 0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         Assert.IsNotNull(result.InsertedRule);
@@ -45,8 +44,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("80", "443", "8080", "80v6"), Snapshot("80", "443", "22", "8080", "80v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         CollectionAssert.AreEqual(new[] { "insert", "3", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" }, harness.Commands.Single());
@@ -58,8 +56,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("80", "443", "80v6", "443v6"), Snapshot("80", "443", "22", "80v6", "443v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual("allow", harness.Commands.Single()[0]);
@@ -71,8 +68,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(SnapshotWithOpaqueIpv6(inserted: false), SnapshotWithOpaqueIpv6(inserted: true));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(anchorOccurrenceId: 0, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(anchorOccurrenceId: 0, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual("allow", harness.Commands.Single()[0]);
@@ -84,8 +80,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("80", "443", "80v6", "443v6"), Snapshot("80", "443", "80v6", "22v6", "443v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(anchorOccurrenceId: 3, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(anchorOccurrenceId: 3, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         CollectionAssert.AreEqual(
@@ -99,8 +94,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(TestFirewallConfiguration.Disabled, Snapshot("80v6"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -113,13 +107,13 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(actual);
         InsertRulePayload payload = new()
         {
-            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot("80"))),
+            BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(ToResponse(Snapshot("80")).ToResponse()),
             AnchorOccurrenceId = 0,
             Placement = RuleInsertionPlacement.Before,
             Rule = Rule(FirewallAddressFamily.IPv4, "22"),
         };
 
-        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(payload, TestContext.CancellationToken);
+        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(payload, harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -131,8 +125,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("22", "80"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(1, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(1, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -146,7 +139,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         FirewallRuleSpecification rule = Rule(FirewallAddressFamily.IPv4, "22");
         rule.SourceInterface = "missing0";
 
-        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, RuleInsertionPlacement.Before, rule), TestContext.CancellationToken);
+        RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, RuleInsertionPlacement.Before, rule), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.IsEmpty(harness.Commands);
@@ -159,8 +152,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "reported failure");
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         StringAssert.Contains(result.Diagnostic, "reported failure");
@@ -173,8 +165,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         harness.EnqueueProcess(exception: new ChildProcessException("wait failed", new IOException("inner")));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         StringAssert.Contains(result.Diagnostic, "wait failed");
@@ -187,8 +178,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         harness.EnqueueProcess(exitCode: 1, standardError: "rejected");
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.PreconditionFailed, result.Outcome);
     }
@@ -199,8 +189,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("80", "443"), Snapshot("22", "443"));
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.StateUncertain, result.Outcome);
         Assert.IsNotNull(result.FinalSnapshot);
@@ -214,8 +203,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         harness.EnqueueProcess(cancellationRequested: true, onExecute: cancellation.Cancel);
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            cancellation.Token);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, cancellation.Token);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
     }
@@ -229,8 +217,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             _ = await harness.Executor.ExecuteAsync(
-                harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-                cancellation.Token));
+                harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, cancellation.Token));
     }
 
     [TestMethod]
@@ -239,8 +226,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
         using InsertionHarness harness = new(Snapshot("80"), null);
 
         RuleInsertionExecutionResult result = await harness.Executor.ExecuteAsync(
-            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")),
-            TestContext.CancellationToken);
+            harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.StateUncertain, result.Outcome);
         Assert.IsNull(result.FinalSnapshot);
@@ -277,7 +263,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             "[ 3] unsupported opaque rule (v6)"))!
         : UfwStatusParser.Parse(UfwStatusFixtures.WithRules("[1] 80/tcp                     ALLOW IN    Anywhere", "[2] unsupported opaque rule (v6)"))!;
 
-    private static RuleListResponse ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.ToListResponse(snapshot, TestFirewallConfiguration.Enabled);
+    private static FirewallSnapshot ToResponse(UfwStatusSnapshot snapshot) => FirewallRuleSet.FromStatus(snapshot, TestFirewallConfiguration.Enabled);
 
     private sealed class InsertionHarness : IDisposable
     {
@@ -295,10 +281,11 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         public InsertionHarness(FirewallConfigurationSnapshot configuration, params UfwStatusSnapshot?[] snapshots)
         {
-            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Select(snapshot =>
+            Baseline = FirewallRuleSet.FromStatus(snapshots[0]!, configuration);
+            _snapshots = new Queue<FirewallRuleSnapshotReadResult>(snapshots.Skip(1).Select(snapshot =>
                 snapshot is null
-                    ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test read failure"))
-                    : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, configuration))));
+                    ? (FirewallRuleSnapshotReadResult)new FirewallRuleSnapshotReadResult.Failure("test read failure")
+                    : new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.FromStatus(snapshot, configuration))));
             _snapshotReader
                 .Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshots.Dequeue());
@@ -318,6 +305,8 @@ public sealed class FirewallOrderedInsertionExecutorTests
                 new ConsoleLogger());
         }
 
+        public FirewallSnapshot Baseline { get; }
+
         public FirewallOrderedInsertionExecutor Executor { get; }
 
         public List<string[]> Commands { get; } = [];
@@ -329,10 +318,10 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         public InsertRulePayload Payload(int anchorOccurrenceId, RuleInsertionPlacement placement, FirewallRuleSpecification rule)
         {
-            RuleListResponse baseline = _snapshots.Peek().GetRequiredSnapshot();
+            FirewallSnapshot baseline = Baseline;
             return new InsertRulePayload
             {
-                BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline),
+                BaselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline.Active, baseline.Rules),
                 AnchorOccurrenceId = anchorOccurrenceId,
                 Placement = placement,
                 Rule = rule,

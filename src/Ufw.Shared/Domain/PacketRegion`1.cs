@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using Ufw.Shared.Domain.Algebra;
+﻿using Ufw.Shared.Domain.Algebra;
 
 namespace Ufw.Shared.Domain;
 
@@ -7,15 +6,16 @@ namespace Ufw.Shared.Domain;
 /// One rectangle of packet space. Null interface sets mean that axis is not part of the chain, not that every interface matches.
 /// </summary>
 /// <remarks>Creates a rectangle from already canonical axis sets.</remarks>
-public sealed class PacketRegion<TAddress>(
+public sealed class PacketRegion<TAddress>
+(
     IntervalSet<TAddress> source,
     PacketPortSet sourcePorts,
     IntervalSet<TAddress> destination,
     PacketPortSet destinationPorts,
     FiniteSet<ProtocolSymbol> protocols,
     FiniteSet<NetworkInterfaceName>? ingress,
-    FiniteSet<NetworkInterfaceName>? egress) : IEquatable<PacketRegion<TAddress>>
-    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
+    FiniteSet<NetworkInterfaceName>? egress
+) : IEquatable<PacketRegion<TAddress>> where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
 
     /// <summary>Gets the source addresses.</summary>

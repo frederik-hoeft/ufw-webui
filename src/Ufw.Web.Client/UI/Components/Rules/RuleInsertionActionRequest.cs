@@ -2,4 +2,4 @@
 
 namespace Ufw.Web.Client.UI.Components.Rules;
 
-public sealed record RuleInsertionActionRequest(ListedFirewallRule Rule, RuleInsertionPlacement Placement);
+public sealed record RuleInsertionActionRequest(int OccurrenceId, RuleInsertionPlacement Placement);

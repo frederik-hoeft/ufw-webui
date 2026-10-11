@@ -3,32 +3,38 @@ using Ufw.Shared.Parsing.Visitors;
 
 namespace Ufw.Shared.Parsing.SyntaxNodes;
 
+/// <summary>
+/// Contains the successfully matched members of a set in input order.
+/// </summary>
 public sealed class SetSyntaxNode : SyntaxNodeBase
 {
-    private readonly ISyntaxNode _node1;
-    private readonly ISyntaxNode _node2;
+    private readonly ISyntaxNode[] _nodes;
 
-    public SetSyntaxNode(ISyntaxNode node1, ISyntaxNode node2, string? name) : base(name)
+    public SetSyntaxNode(string? name, IReadOnlyList<ISyntaxNode> nodes) : base(name)
     {
-        ArgumentNullException.ThrowIfNull(node1);
-        ArgumentNullException.ThrowIfNull(node2);
-        node1.Parent = this;
-        node2.Parent = this;
-        _node1 = node1;
-        _node2 = node2;
+        ArgumentNullException.ThrowIfNull(nodes);
+        _nodes = [.. nodes];
+        foreach (ISyntaxNode node in _nodes)
+        {
+            node.Parent = this;
+        }
     }
 
     public override void Accept(INodeVisitor visitor)
     {
         ArgumentNullException.ThrowIfNull(visitor);
-        _node1.Accept(visitor);
-        _node2.Accept(visitor);
+        foreach (ISyntaxNode node in _nodes)
+        {
+            node.Accept(visitor);
+        }
     }
 
     public override void ToString(StringBuilder builder, int indentLevel)
     {
         base.ToString(builder, indentLevel);
-        _node1.ToString(builder, indentLevel + 1);
-        _node2.ToString(builder, indentLevel + 1);
+        foreach (ISyntaxNode node in _nodes)
+        {
+            node.ToString(builder, indentLevel + 1);
+        }
     }
 }

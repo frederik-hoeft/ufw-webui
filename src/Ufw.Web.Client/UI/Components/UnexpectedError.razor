@@ -2,7 +2,6 @@
 @inject NavigationManager Navigation
 @inject IStringLocalizer<CommonStrings> CommonText
 @inject IStringLocalizer<StandaloneStrings> StandaloneText
-@inject IStringLocalizer<ErrorsStrings> ErrorsText
 
 <main class="standalone-shell">
     <ThemeToggle Class="standalone-theme-toggle" />
@@ -13,12 +12,7 @@
                      Class="standalone-state-card"
                      Role="alert">
         <ChildContent>
-            @if (!string.IsNullOrWhiteSpace(Error.DiagnosticReference))
-            {
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="error-diagnostic-reference">
-                    @ErrorsText["DiagnosticReference", Error.DiagnosticReference]
-                </MudText>
-            }
+            <StandaloneErrorDiagnostic DiagnosticReference="@Error.DiagnosticReference" />
         </ChildContent>
         <Actions>
             <MudButton Variant="Variant.Filled"

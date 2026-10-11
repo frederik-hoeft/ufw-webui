@@ -1,0 +1,46 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+@if (Change is { } change)
+{
+    <span class="@PositionChangeClass(change)"
+          aria-label="@PositionChangeLabel(change)">
+        <span aria-hidden="true" class="rule-position-change-values">
+            @if (change.DirectlyMoved && !ReadOnly)
+            {
+                <s>@change.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</s>
+            }
+            else
+            {
+                <span>@change.OriginalPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+            }
+            <span class="rule-position-arrow">&rarr;</span>
+            <span>@change.CurrentPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+        </span>
+    </span>
+}
+else
+{
+    <span class="rule-number">@(PrefixNumber ? "#" : string.Empty)@FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)</span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int FamilyPosition { get; set; }
+
+    [Parameter]
+    public RulePositionChange? Change { get; set; }
+
+    [Parameter]
+    public bool PrefixNumber { get; set; }
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    private static string PositionChangeClass(RulePositionChange change) => change.DirectlyMoved
+        ? "rule-position-change rule-position-change-direct"
+        : "rule-position-change rule-position-change-indirect";
+
+    private string PositionChangeLabel(RulePositionChange change) => change.DirectlyMoved
+        ? RulesText["DirectMovePositionAria", change.OriginalPosition, change.CurrentPosition]
+        : RulesText["IndirectShiftPositionAria", change.OriginalPosition, change.CurrentPosition];
+}

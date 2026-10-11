@@ -14,6 +14,8 @@ public sealed class ApiProblemDetails
 
     public string? Detail { get; init; }
 
+    public string? Code { get; init; }
+
     public string? Instance { get; init; }
 
     [JsonPropertyName(VALIDATION_ERRORS_PROPERTY)]

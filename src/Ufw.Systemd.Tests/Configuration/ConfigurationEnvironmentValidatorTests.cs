@@ -69,13 +69,9 @@ public sealed class ConfigurationEnvironmentValidatorTests
     }
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public void ThrowIfInvalid_RejectsRelativeSelectedPipePathOnUnix()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            Assert.Inconclusive("Windows named pipes use logical pipe names rather than Unix socket paths.");
-        }
-
         string ufwPath = Path.GetTempFileName();
         try
         {
@@ -91,13 +87,9 @@ public sealed class ConfigurationEnvironmentValidatorTests
     }
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public void ThrowIfInvalid_DoesNotApplyPipePathRulesWhenTcpIsSelectedOnUnix()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string ufwPath = Path.GetTempFileName();
         try
         {
@@ -120,18 +112,16 @@ public sealed class ConfigurationEnvironmentValidatorTests
         }
     }
 
-    private static AppSettings CreateSettings(string ufwPath) =>
-        CopyWithUfwPath(TestAppSettingsFactory.Create(), ufwPath);
+    private static AppSettings CreateSettings(string ufwPath) => CopyWithUfwPath(TestAppSettingsFactory.Create(), ufwPath);
 
-    private static AppSettings CopyWithUfwPath(AppSettings baseline, string ufwPath, TransportOptions? transport = null) =>
-        new()
-        {
-            DebugMode = baseline.DebugMode,
-            ExposeRemoteExceptionDetails = baseline.ExposeRemoteExceptionDetails,
-            UfwPath = ufwPath,
-            UfwDefaultsPath = baseline.UfwDefaultsPath,
-            Transport = transport ?? baseline.Transport,
-            Network = baseline.Network,
-            Security = baseline.Security,
-        };
+    private static AppSettings CopyWithUfwPath(AppSettings baseline, string ufwPath, TransportOptions? transport = null) => new()
+    {
+        DebugMode = baseline.DebugMode,
+        ExposeRemoteExceptionDetails = baseline.ExposeRemoteExceptionDetails,
+        UfwPath = ufwPath,
+        UfwDefaultsPath = baseline.UfwDefaultsPath,
+        Transport = transport ?? baseline.Transport,
+        Network = baseline.Network,
+        Security = baseline.Security,
+    };
 }

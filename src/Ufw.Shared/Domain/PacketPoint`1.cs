@@ -4,8 +4,7 @@
 /// One fully specified packet inside a family's address space. Ports are absent for protocols without port semantics.
 /// Ingress and egress are present only for the chain that is about to be asked.
 /// </summary>
-public readonly record struct PacketPoint<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
+public readonly record struct PacketPoint<TAddress> where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     /// <summary>Creates a packet. Interface arguments that do not apply to the chain must stay null.</summary>
     public PacketPoint(

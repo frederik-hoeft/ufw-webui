@@ -14,7 +14,7 @@ public sealed class FirewallRuleSnapshotReadResultTests
     {
         Assert.ThrowsExactly<ArgumentNullException>(() => new FirewallRuleSnapshotReadResult.Success(null!));
 
-        RuleListResponse snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         FirewallRuleSnapshotReadResult.Success success = new(snapshot);
         Assert.AreSame(snapshot, success.Snapshot);
     }
@@ -25,19 +25,19 @@ public sealed class FirewallRuleSnapshotReadResultTests
         Assert.ThrowsExactly<ArgumentNullException>(() => new FirewallRuleSnapshotReadResult.Failure(null!));
 
         InternalServerErrorResponse error = new("test failure");
-        FirewallRuleSnapshotReadResult.Failure failure = new(error);
-        Assert.AreSame(error, failure.Error);
+        FirewallRuleSnapshotReadResult.Failure failure = new(error.Message!);
+        Assert.AreEqual(error.Message, failure.Diagnostic);
     }
 
     [TestMethod]
     public void Success_ProjectsAuthoritativeSnapshotWithoutBranchingAtCallSites()
     {
-        RuleListResponse snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         FirewallRuleSnapshotReadResult result = new FirewallRuleSnapshotReadResult.Success(snapshot);
 
         Assert.AreSame(snapshot, result.OrDefault());
-        Assert.AreSame(snapshot, result.ToResponsePayload());
-        Assert.IsTrue(result.TryGetSnapshot(out RuleListResponse? projected, out IResponsePayload? error));
+        Assert.AreEqual(snapshot.ToResponse(), result.ToResponsePayload());
+        Assert.IsTrue(result.TryGetSnapshot(out FirewallSnapshot? projected, out IResponsePayload? error));
         Assert.AreSame(snapshot, projected);
         Assert.IsNull(error);
         Assert.AreEqual("success", result.Match(static _ => "success", static _ => "failure"));
@@ -46,9 +46,9 @@ public sealed class FirewallRuleSnapshotReadResultTests
     [TestMethod]
     public async Task TaskProjection_ProjectsAuthoritativeSnapshotWithoutAwaitParenthesesAsync()
     {
-        RuleListResponse snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot snapshot = new(Active: true, [], TestFirewallConfiguration.Enabled);
         Task<FirewallRuleSnapshotReadResult> success = Task.FromResult<FirewallRuleSnapshotReadResult>(new FirewallRuleSnapshotReadResult.Success(snapshot));
-        Task<FirewallRuleSnapshotReadResult> failure = Task.FromResult<FirewallRuleSnapshotReadResult>(new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse("test failure")));
+        Task<FirewallRuleSnapshotReadResult> failure = Task.FromResult<FirewallRuleSnapshotReadResult>(new FirewallRuleSnapshotReadResult.Failure("test failure"));
 
         Assert.AreSame(snapshot, await success.OrDefaultAsync());
         Assert.IsNull(await failure.OrDefaultAsync());
@@ -58,13 +58,13 @@ public sealed class FirewallRuleSnapshotReadResultTests
     public void Failure_ProjectsErrorWithoutBranchingAtCallSites()
     {
         InternalServerErrorResponse error = new("test failure");
-        FirewallRuleSnapshotReadResult result = new FirewallRuleSnapshotReadResult.Failure(error);
+        FirewallRuleSnapshotReadResult result = new FirewallRuleSnapshotReadResult.Failure(error.Message!);
 
         Assert.IsNull(result.OrDefault());
-        Assert.AreSame(error, result.ToResponsePayload());
-        Assert.IsFalse(result.TryGetSnapshot(out RuleListResponse? snapshot, out IResponsePayload? projectedError));
+        Assert.AreEqual(error.Message, Assert.IsInstanceOfType<InternalServerErrorResponse>(result.ToResponsePayload()).Message);
+        Assert.IsFalse(result.TryGetSnapshot(out FirewallSnapshot? snapshot, out IResponsePayload? projectedError));
         Assert.IsNull(snapshot);
-        Assert.AreSame(error, projectedError);
+        Assert.AreEqual(error.Message, Assert.IsInstanceOfType<InternalServerErrorResponse>(projectedError).Message);
         Assert.AreEqual("failure", result.Match(static _ => "success", static _ => "failure"));
     }
 }

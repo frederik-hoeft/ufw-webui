@@ -125,6 +125,29 @@ public sealed class ApplicationProtocolIntegrationTests : IpcProtocolTestBase
     }, cancellationToken: TestContext.CancellationToken).AsTask();
 
     [TestMethod]
+    public Task TestTypedFirewallStateError_PreservesCodeThroughIpcClientAsync() => RunAsync(
+        configureEndpoints: static endpoints => endpoints
+            .MapPost<EchoRequest, UnprocessableContentResponse>("/api/v1/reject-ambiguous-state", static (_, _) =>
+                ValueTask.FromResult(new UnprocessableContentResponse("Firewall requires repair.")
+                {
+                    Code = FirewallStateErrorCodes.AMBIGUOUS_STATE,
+                })),
+        actAsync: async (context, cancellationToken) =>
+        {
+            UfwIpcResult<OkResponse> result = await context.Client.TrySendAsync<EchoRequest, OkResponse>(
+                RequestMethod.Post,
+                "/api/v1/reject-ambiguous-state",
+                new EchoRequest("x"),
+                cancellationToken);
+
+            Assert.IsFalse(result.IsSuccess);
+            Assert.IsNotNull(result.Error);
+            Assert.AreEqual(422, result.Error.StatusCode);
+            Assert.AreEqual(FirewallStateErrorCodes.AMBIGUOUS_STATE, result.Error.Code);
+            Assert.AreEqual("Firewall requires repair.", result.Error.ResponseMessage);
+        }, cancellationToken: TestContext.CancellationToken).AsTask();
+
+    [TestMethod]
     public Task TestValidationErrorResponse_TrySendPreservesStableIdentityWithoutThrowingAsync() => RunAsync(
         configureEndpoints: static endpoints => endpoints
             .MapPost<EchoRequest, ModelValidationErrorResponse>("/api/v1/reject-safe", static (_, _) =>

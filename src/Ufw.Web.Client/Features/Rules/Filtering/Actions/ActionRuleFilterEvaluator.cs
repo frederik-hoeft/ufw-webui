@@ -2,14 +2,12 @@
 
 namespace Ufw.Web.Client.Features.Rules.Filtering.Actions;
 
-internal sealed class ActionRuleFilterEvaluator : RuleFilterEvaluator<ActionRuleFilter>
+internal sealed class ActionRuleFilterEvaluator : EnumRuleFilterEvaluator<ActionRuleFilter, FirewallAction>
 {
-    protected override RuleMatchEvaluation Evaluate(RuleRowProjection row, ActionRuleFilter filter, RuleFilterContext context)
+    public ActionRuleFilterEvaluator() : base(
+        static rule => rule.Action,
+        static filter => filter.Action,
+        static value => new ActionRuleMatchEvidence(RuleSpecificationNormalizer.FormatAction(value)))
     {
-        _ = context;
-        FirewallRuleSpecification? rule = row.Rule.Rule;
-        return row.Rule.Parsed && rule is not null && rule.Action == filter.Action
-            ? RuleMatchEvaluation.Match(new ActionRuleMatchEvidence(RuleSpecificationNormalizer.FormatAction(rule.Action)))
-            : RuleMatchEvaluation.NoMatch;
     }
 }

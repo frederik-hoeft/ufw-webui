@@ -25,6 +25,16 @@ public static class Grammar
 
     public static IParser Alternative(params ReadOnlySpan<IParser> parsers) => new Alternative([.. parsers]);
 
+    public static IParser Set(Action<GrammarSetBuilder> buildSet)
+    {
+        ArgumentNullException.ThrowIfNull(buildSet);
+        GrammarSetBuilder builder = new();
+        buildSet(builder);
+        return builder.Build();
+    }
+
+    public static IParser Set(params ReadOnlySpan<IParser> parsers) => new Set([.. parsers]);
+
     public static IParser Optional(Action<GrammarOptionalBuilder> buildOptional)
     {
         ArgumentNullException.ThrowIfNull(buildOptional);

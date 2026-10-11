@@ -5,7 +5,7 @@
 
 <MudAutocomplete T="RuleGroup"
                  Label="@(RulesText["GroupFilter"])"
-                 @bind-Value="_group"
+                 @bind-Value="_selection.Selected"
                  SearchFunc="SearchAsync"
                  ToStringFunc="FormatGroup"
                  CoerceValue="false"

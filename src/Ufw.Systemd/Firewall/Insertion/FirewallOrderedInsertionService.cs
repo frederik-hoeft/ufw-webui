@@ -20,12 +20,12 @@ internal sealed class FirewallOrderedInsertionService(
         }
 
         IntentVerificationResult.AcceptedInsertion accepted = (IntentVerificationResult.AcceptedInsertion)verification;
-        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, (snapshot, ct) => ExecuteOperationAsync(accepted, snapshot, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedInsertion accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedInsertion accepted, FirewallSnapshot snapshot, CancellationToken cancellationToken)
     {
-        RuleInsertionExecutionResult result = await executor.ExecuteAsync(accepted.Payload, cancellationToken);
+        RuleInsertionExecutionResult result = await executor.ExecuteAsync(accepted.Payload, snapshot, cancellationToken);
         return new RuleInsertionResponse(
             result.Outcome switch
             {
@@ -35,7 +35,7 @@ internal sealed class FirewallOrderedInsertionService(
                 RuleInsertionExecutionOutcome.StateUncertain => RuleInsertionOutcome.StateUncertain,
                 _ => throw new ArgumentOutOfRangeException(nameof(result), result.Outcome, "Unknown insertion execution outcome."),
             },
-            result.FinalSnapshot,
+            result.FinalSnapshot?.ToResponse(),
             result.InsertedRule,
             result.Diagnostic);
     }

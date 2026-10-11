@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Json;
-using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 
@@ -25,11 +24,6 @@ internal sealed class NetworkInterfaceApiClient(HttpClient httpClient) : INetwor
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateCommentAsync(Guid interfaceId, string? comment, CancellationToken cancellationToken = default)
     {
-        if (interfaceId == Guid.Empty)
-        {
-            throw new ArgumentException("Interface ID must not be empty.", nameof(interfaceId));
-        }
-
         Uri uri = BuildInterfaceUri(interfaceId, "comment");
         UpdateNetworkInterfaceCommentRequest request = new() { Comment = comment };
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.UpdateNetworkInterfaceCommentRequest);
@@ -39,11 +33,6 @@ internal sealed class NetworkInterfaceApiClient(HttpClient httpClient) : INetwor
 
     public async Task<NetworkInterfaceInventoryResponse> UpdateVisibilityAsync(Guid interfaceId, bool isVisible, CancellationToken cancellationToken = default)
     {
-        if (interfaceId == Guid.Empty)
-        {
-            throw new ArgumentException("Interface ID must not be empty.", nameof(interfaceId));
-        }
-
         Uri uri = BuildInterfaceUri(interfaceId, "visibility");
         UpdateNetworkInterfaceVisibilityRequest request = new() { IsVisible = isVisible };
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.UpdateNetworkInterfaceVisibilityRequest);
@@ -51,8 +40,5 @@ internal sealed class NetworkInterfaceApiClient(HttpClient httpClient) : INetwor
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.NetworkInterfaceInventoryResponse, cancellationToken);
     }
 
-    private static Uri BuildInterfaceUri(Guid interfaceId, ReadOnlySpan<char> resource) => SimpleUriBuilder.Create(INTERFACES_PATH)
-        .AppendPath(interfaceId.ToString("D"))
-        .AppendPath(resource)
-        .BuildUri(UriKind.Relative);
+    private static Uri BuildInterfaceUri(Guid interfaceId, string resource) => ApiResourceUri.ForId(INTERFACES_PATH, interfaceId, nameof(interfaceId), "Interface", resource);
 }

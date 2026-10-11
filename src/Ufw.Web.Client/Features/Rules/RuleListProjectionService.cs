@@ -14,22 +14,7 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
     {
         ArgumentNullException.ThrowIfNull(rules);
 
-        Dictionary<string, int> ruleIdCounts = new(StringComparer.Ordinal);
-        Dictionary<FirewallAddressFamily, int> familyCounts = [];
-        Dictionary<int, int> originalFamilyPositions = [];
-        for (int occurrenceId = 0; occurrenceId < rules.Count; occurrenceId++)
-        {
-            ListedFirewallRule rule = rules[occurrenceId];
-            if (!string.IsNullOrWhiteSpace(rule.RuleId))
-            {
-                ruleIdCounts[rule.RuleId] = ruleIdCounts.GetValueOrDefault(rule.RuleId) + 1;
-            }
-
-            FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rule);
-            int familyPosition = familyCounts.GetValueOrDefault(family) + 1;
-            familyCounts[family] = familyPosition;
-            originalFamilyPositions[occurrenceId] = familyPosition;
-        }
+        RuleSnapshotIndex index = new(rules);
 
         IReadOnlyList<int> projectedOrder = GetProjectedOrder(rules.Count, orderingPreview);
         Dictionary<FirewallAddressFamily, int> familyPositions = [];
@@ -39,15 +24,15 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
         {
             int occurrenceId = projectedOrder[projectedIndex];
             ListedFirewallRule rule = rules[occurrenceId];
-            FirewallAddressFamily family = ListedFirewallRuleFamily.GetObservedFamily(rule);
+            FirewallAddressFamily family = index.GetFamily(occurrenceId);
             int familyPosition = familyPositions.GetValueOrDefault(family) + 1;
             familyPositions[family] = familyPosition;
 
-            RulePositionChange? positionChange = CreatePositionChange(occurrenceId, originalFamilyPositions[occurrenceId], familyPosition, orderingPreview);
+            RulePositionChange? positionChange = CreatePositionChange(occurrenceId, index.GetFamilyPosition(occurrenceId), familyPosition, orderingPreview);
             bool canOrder = rule.Parsed && rule.Rule is not null;
             bool hasUniqueSemanticIdentity = canOrder
                 && rule.RuleId is { } ruleId
-                && ruleIdCounts.GetValueOrDefault(ruleId) == 1;
+                && index.GetIdentityMultiplicity(ruleId) == 1;
             bool canMutate = hasUniqueSemanticIdentity;
             bool canEdit = hasUniqueSemanticIdentity && rule.Rule!.AddressFamily is FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6;
 
@@ -56,7 +41,7 @@ internal sealed class RuleListProjectionService(IUfwRuleCommandRenderer commandR
                 && metadataByRuleId.TryGetValue(ruleIdentity, out RuleMetadata? matchedMetadata)
                     ? matchedMetadata
                     : null;
-            RuleRowProjection row = new(rule, family, occurrenceId, familyPosition, familyCounts[family], canOrder, canMutate, positionChange, metadata, CreateCanonicalCommand(rule))
+            RuleRowProjection row = new(rule, family, occurrenceId, familyPosition, index.GetFamilyCount(family), canOrder, canMutate, positionChange, metadata, CreateCanonicalCommand(rule))
             {
                 CanEdit = canEdit,
                 CanSaveAsTemplate = canOrder,

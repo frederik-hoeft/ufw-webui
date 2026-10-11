@@ -1,0 +1,32 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<button type="button"
+        class="@RuleRowInteractionState.DragHandleClass(Row, OrderingDisabled)"
+        draggable="@(RuleRowInteractionState.CanDrag(Row, OrderingDisabled) ? "true" : "false")"
+        disabled="@(OrderingDisabled || !Row.CanOrder)"
+        title="@(!Row.CanOrder ? RulesText["CannotOrderReadOnly"] : RulesText["DragRealTitle"])"
+        aria-label="@(RulesText["DragRulePosition", Row.FamilyPosition.ToString(System.Globalization.CultureInfo.CurrentCulture)])"
+        @onclick:stopPropagation="true"
+        @ondragstart="@BeginDragHandler"
+        @ondragend="@EndDragHandler">
+    <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public RuleRowProjection Row { get; set; } = null!;
+
+    [Parameter]
+    public bool OrderingDisabled { get; set; }
+
+    [Parameter, EditorRequired]
+    public Action<RuleRowProjection> DragStarted { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Action DragEnded { get; set; } = null!;
+
+    // A native drag event does not directly change the rendered handle. Workspace rerenders only for a new drop target.
+    private Action BeginDragHandler => EventUtil.AsNonRenderingEventHandler(this, () => DragStarted(Row));
+
+    private Action EndDragHandler => EventUtil.AsNonRenderingEventHandler(this, DragEnded);
+}

@@ -1,13 +1,14 @@
 ﻿using Ufw.Shared.Management.KnownHosts;
 using Ufw.Shared.Management.NetworkInterfaces;
-using Ufw.Web.Client.Api.KnownHosts;
-using Ufw.Web.Client.Api.NetworkInterfaces;
-using Ufw.Web.Model.V1.KnownHosts;
-using Ufw.Web.Model.V1.NetworkInterfaces;
+
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 
 internal sealed record RuleEditorReferenceData(
-    IReadOnlyList<KnownHostInventoryItem> KnownHosts,
-    IReadOnlyList<NetworkInterfaceInventoryItem> KnownInterfaces,
-    IReadOnlyList<NetworkInterfaceInventoryItem> VisibleInterfaces,
-    string? InterfaceInventoryError);
+    RuleEditorCatalogResult<KnownHostInventoryItem> KnownHosts,
+    RuleEditorCatalogResult<NetworkInterfaceInventoryItem> Interfaces)
+{
+    public static RuleEditorReferenceData Empty { get; } = new(RuleEditorCatalogResult<KnownHostInventoryItem>.Loaded([]), RuleEditorCatalogResult<NetworkInterfaceInventoryItem>.Loaded([]));
+
+    public IReadOnlyList<NetworkInterfaceInventoryItem> VisibleInterfaces { get; } =
+        Interfaces.Items.Where(static networkInterface => networkInterface.IsVisible).ToArray();
+}

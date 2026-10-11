@@ -5,57 +5,22 @@ using Ufw.Web.Client.Features.Rules.Metadata;
 
 namespace Ufw.Web.Client.UI.Components.Rules.Filtering.Groups;
 
-public sealed partial class GroupRuleFilterEditor(IRuleGroupCatalogService groupCatalog) : RuleFilterEditorBase
+public sealed partial class GroupRuleFilterEditor(IRuleGroupCatalogService catalog) : RuleFilterEditorBase
 {
-    private RuleFilter? _loadedFilter;
-    private IReadOnlyList<RuleGroup> _groups = [];
-    private RuleGroup? _group;
+    private readonly CatalogRuleFilterEditorState<GroupRuleFilter, RuleGroup> _selection = new(
+        static filter => filter.Group, static item => item.Id, static item => item.Name);
 
-    protected async override Task OnInitializedAsync()
-    {
-        _groups = await groupCatalog.RefreshAsync();
-        SynchronizeFilter(force: true);
-    }
+    protected async override Task OnInitializedAsync() => _selection.SetItems(await catalog.RefreshAsync(), Filter);
 
-    protected override void OnParametersSet() => SynchronizeFilter(force: false);
+    protected override void OnParametersSet() => _selection.Synchronize(Filter);
 
     public override bool TryBuildFilter([NotNullWhen(true)] out RuleFilter? filter)
     {
-        if (_group is null)
-        {
-            filter = null;
-            return false;
-        }
-
-        filter = new GroupRuleFilter(_group);
-        return true;
+        filter = _selection.Selected is RuleGroup item ? new GroupRuleFilter(item) : null;
+        return filter is not null;
     }
 
-    private Task<IEnumerable<RuleGroup>> SearchAsync(string? value, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        IEnumerable<RuleGroup> matches = string.IsNullOrWhiteSpace(value)
-            ? _groups
-            : _groups.Where(group => group.Name.Contains(value.Trim(), StringComparison.CurrentCultureIgnoreCase));
-        return Task.FromResult(matches);
-    }
+    private Task<IEnumerable<RuleGroup>> SearchAsync(string? value, CancellationToken cancellationToken) => _selection.SearchAsync(value, cancellationToken);
 
-    private void SynchronizeFilter(bool force)
-    {
-        if (!force && ReferenceEquals(_loadedFilter, Filter))
-        {
-            return;
-        }
-
-        _loadedFilter = Filter;
-        if (Filter is not GroupRuleFilter groupFilter)
-        {
-            _group = null;
-            return;
-        }
-
-        _group = _groups.FirstOrDefault(group => group.Id == groupFilter.Group.Id) ?? groupFilter.Group;
-    }
-
-    private static string FormatGroup(RuleGroup? group) => group?.Name ?? string.Empty;
+    private static string FormatGroup(RuleGroup? item) => item?.Name ?? string.Empty;
 }

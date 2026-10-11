@@ -15,10 +15,10 @@ internal sealed class RuleReorderRecoveryCoordinator(
 {
     private readonly ILogger<RuleReorderRecoveryCoordinator> _logger = logger.Scoped<RuleReorderRecoveryCoordinator>();
 
-    public async Task<RuleRecoveryResult> EnsurePresentAsync(ReorderRecoveryJournalEntry entry, RuleListResponse? observedSnapshot, CancellationToken cancellationToken)
+    public async Task<RuleRecoveryResult> EnsurePresentAsync(ReorderRecoveryJournalEntry entry, FirewallSnapshot? observedSnapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        RuleListResponse? snapshot = observedSnapshot ?? await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
+        FirewallSnapshot? snapshot = observedSnapshot ?? await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (snapshot is null)
         {
             return new RuleRecoveryResult(false, false, null, "The authoritative firewall state could not be read, so recovery cannot safely determine whether reinsertion is required.");
@@ -36,7 +36,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
             _logger.LogWarning($"Reorder recovery insertion did not report success: {process.Diagnostic}");
         }
 
-        RuleListResponse? confirmed = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? confirmed = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (confirmed is not null && FirewallRuleSnapshotMatcher.CountMatches(confirmed.Rules, entry.Rule) >= entry.ExpectedMultiplicity)
         {
             await journal.ClearAsync(CancellationToken.None);
@@ -47,7 +47,7 @@ internal sealed class RuleReorderRecoveryCoordinator(
         return new RuleRecoveryResult(false, true, confirmed, diagnostic);
     }
 
-    private IUfwCommand CreateRecoveryCommand(ReorderRecoveryJournalEntry entry, RuleListResponse snapshot)
+    private IUfwCommand CreateRecoveryCommand(ReorderRecoveryJournalEntry entry, FirewallSnapshot snapshot)
     {
         int? nextIndex = FindUniqueAnchorIndex(snapshot.Rules, entry.NextAnchor);
         if (nextIndex.HasValue && snapshot.Rules[nextIndex.Value].Rule?.AddressFamily == entry.Rule.AddressFamily)

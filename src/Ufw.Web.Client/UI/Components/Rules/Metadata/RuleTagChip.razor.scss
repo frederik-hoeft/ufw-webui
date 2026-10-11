@@ -1,0 +1,66 @@
+.rule-tag-chip {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.125rem 0.45rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 999px;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    font-size: 0.6875rem;
+    line-height: 1.35;
+
+    > span:first-child {
+        width: 0.55rem;
+        height: 0.55rem;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--rule-tag-color);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--mud-palette-text-primary) 16%, transparent);
+    }
+
+    > span:nth-child(2) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    > button {
+        display: inline-flex;
+        width: 1rem;
+        height: 1rem;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        margin: -0.0625rem -0.2rem -0.0625rem 0;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--mud-palette-text-secondary);
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            background: var(--mud-palette-action-default-hover);
+            color: var(--mud-palette-text-primary);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--mud-palette-primary);
+            outline-offset: 1px;
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.5;
+        }
+
+        ::deep .mud-icon-root {
+            font-size: 0.875rem;
+        }
+    }
+}

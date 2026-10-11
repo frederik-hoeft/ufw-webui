@@ -11,8 +11,8 @@ public sealed class FirewallRuleSnapshotMatcherTests
     [TestMethod]
     public void MatchesOrder_UsesBaselineOccurrencesInRequestedOrder()
     {
-        RuleListResponse baseline = Response(Rule("22"), Rule("80"), Rule("443"));
-        RuleListResponse reordered = Response(Rule("443"), Rule("22"));
+        FirewallSnapshot baseline = Response(Rule("22"), Rule("80"), Rule("443"));
+        FirewallSnapshot reordered = Response(Rule("443"), Rule("22"));
 
         Assert.IsTrue(FirewallRuleSnapshotMatcher.MatchesOrder(reordered, baseline, [2, 0]));
         Assert.IsFalse(FirewallRuleSnapshotMatcher.MatchesOrder(reordered, baseline, [0, 2]));
@@ -32,14 +32,14 @@ public sealed class FirewallRuleSnapshotMatcherTests
     [TestMethod]
     public void MatchesOrder_RejectsDifferentActivityAndInvalidOccurrences()
     {
-        RuleListResponse baseline = Response(Rule("22"));
-        RuleListResponse inactive = new(Active: false, baseline.Rules, TestFirewallConfiguration.Enabled);
+        FirewallSnapshot baseline = Response(Rule("22"));
+        FirewallSnapshot inactive = new(Active: false, baseline.Rules, TestFirewallConfiguration.Enabled);
 
         Assert.IsFalse(FirewallRuleSnapshotMatcher.MatchesOrder(inactive, baseline, [0]));
         Assert.IsFalse(FirewallRuleSnapshotMatcher.MatchesOrder(baseline, baseline, [1]));
     }
 
-    private static RuleListResponse Response(params ListedFirewallRule[] rules) => new(Active: true, rules, TestFirewallConfiguration.Enabled);
+    private static FirewallSnapshot Response(params ListedFirewallRule[] rules) => new(Active: true, rules, TestFirewallConfiguration.Enabled);
 
     private static ListedFirewallRule Rule(string port) => new()
     {

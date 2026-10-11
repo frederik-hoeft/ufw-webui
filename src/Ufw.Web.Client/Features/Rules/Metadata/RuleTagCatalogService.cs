@@ -9,13 +9,10 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
 {
     public IReadOnlyList<RuleTag> Current { get; private set; } = [];
 
-    public long Version { get; private set; }
-
     public async Task<IReadOnlyList<RuleTag>> RefreshAsync(CancellationToken cancellationToken = default)
     {
         RuleTagInventoryResponse response = await apiClient.GetAsync(cancellationToken);
-        Current = Normalize(response);
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleTag>> CreateAsync(string name, string color, CancellationToken cancellationToken = default)
@@ -25,9 +22,7 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
             Name = name,
             Color = color,
         }, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleTag>> UpdateAsync(Guid tagId, string name, string color, CancellationToken cancellationToken = default)
@@ -37,17 +32,20 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
             Name = name,
             Color = color,
         }, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
     }
 
     public async Task<IReadOnlyList<RuleTag>> DeleteAsync(Guid tagId, CancellationToken cancellationToken = default)
     {
         RuleTagInventoryResponse response = await apiClient.DeleteAsync(tagId, cancellationToken);
-        Current = Normalize(response);
-        Version++;
-        return Current;
+        return ApplyResponse(response);
+    }
+
+    private IReadOnlyList<RuleTag> ApplyResponse(RuleTagInventoryResponse response)
+    {
+        IReadOnlyList<RuleTag> current = Normalize(response);
+        Current = current;
+        return current;
     }
 
     private static IReadOnlyList<RuleTag> Normalize(RuleTagInventoryResponse response)
@@ -61,15 +59,7 @@ internal sealed class RuleTagCatalogService(IRuleTagApiClient apiClient) : IRule
         List<RuleTag> tags = new(response.Tags.Count);
         foreach (RuleTagItem item in response.Tags)
         {
-            if (item is null
-                || item.Id == Guid.Empty
-                || string.IsNullOrWhiteSpace(item.Name)
-                || !RuleTagColor.TryNormalize(item.Color, out string color))
-            {
-                throw new ApiProtocolException("Rule-tag inventory response contains an invalid tag entry.");
-            }
-
-            tags.Add(new RuleTag(item.Id, item.Name.Trim(), color));
+            tags.Add(RuleMetadataProtocolMapper.MapTag(item, "Rule-tag inventory response contains an invalid tag entry."));
         }
 
         if (tags.Select(static tag => tag.Id).Distinct().Count() != tags.Count

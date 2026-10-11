@@ -10,5 +10,5 @@ internal interface IFirewallRuleReplacementExecutor
     /// <summary>
     /// Executes <paramref name="payload"/> against the current authoritative firewall state and returns the reconciled replacement outcome.
     /// </summary>
-    Task<RuleReplacementExecutionResult> ExecuteAsync(ReplaceRulePayload payload, CancellationToken cancellationToken);
+    Task<RuleReplacementExecutionResult> ExecuteAsync(ReplaceRulePayload payload, FirewallSnapshot baseline, CancellationToken cancellationToken);
 }

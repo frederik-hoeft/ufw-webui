@@ -1,4 +1,4 @@
-﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Systemd.Interop.Commands;
 using Ufw.Systemd.Interop.Configuration;
@@ -47,15 +47,46 @@ internal sealed class FirewallRuleSnapshotReader(IUfwRunner ufwRunner, IUfwDefau
             return Error("Failed to parse the current UFW rule set.");
         }
 
-        FirewallConfigurationSnapshot? configuration = await defaultsReader.ReadAsync(cancellationToken);
-        if (configuration is null)
+        // The verbose view reports effective defaults. UFW does not support combining it with numbered output,
+        // so verify that both invocations observed the same ordered rule list before accepting either view.
+        UfwProcessResult verboseResult;
+        try
         {
-            return Error("Failed to read the current UFW configuration.");
+            verboseResult = await ufwRunner.ExecuteAsync(new UfwVerboseStatusCommand(), cancellationToken);
+        }
+        catch (ChildProcessException exception)
+        {
+            _logger.LogError(exception, "Failed to start UFW verbose status query.");
+            return Error("Failed to read effective UFW policies.");
+        }
+        if (verboseResult.CancellationRequested)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new OperationCanceledException("The UFW verbose status query was canceled after starting.", cancellationToken);
+        }
+        if (!verboseResult.Succeeded
+            || !UfwVerboseStatusParser.TryParse(verboseResult.StandardOutput, snapshot,
+                out (FirewallDefaultPolicy Incoming, FirewallDefaultPolicy Outgoing, FirewallDefaultPolicy Routed)? policies))
+        {
+            _logger.LogError("The numbered and verbose UFW status views could not be reconciled.");
+            return Error("Failed to read a consistent authoritative UFW status.");
         }
 
-        return new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.ToListResponse(snapshot, configuration));
+        // Verbose status contains no IPv6 management-capability indicator, and inactive status omits defaults.
+        // Read those unavailable settings from UFW's configured defaults; never substitute configured policies
+        // for effective policies when the firewall is active.
+        FirewallConfigurationSnapshot? configured = await defaultsReader.ReadAsync(cancellationToken);
+        if (configured is null)
+        {
+            return Error("Failed to read the UFW IPv6 capability and inactive defaults.");
+        }
+        FirewallConfigurationSnapshot configuration = policies is { } effective
+            ? new(configured.IPv6Enabled, effective.Incoming, effective.Outgoing, effective.Routed)
+            : configured;
+
+        return new FirewallRuleSnapshotReadResult.Success(FirewallRuleSet.FromStatus(snapshot, configuration));
     }
 
     private static FirewallRuleSnapshotReadResult Error(string message) =>
-        new FirewallRuleSnapshotReadResult.Failure(new InternalServerErrorResponse(message));
+        new FirewallRuleSnapshotReadResult.Failure(message);
 }

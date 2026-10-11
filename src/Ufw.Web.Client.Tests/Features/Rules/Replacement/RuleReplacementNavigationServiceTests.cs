@@ -16,7 +16,7 @@ public sealed class RuleReplacementNavigationServiceTests
         ListedFirewallRule target = Rule("target", FirewallAddressFamily.IPv6, 2);
         RuleListResponse baseline = new(Active: true, [first, target], TestFirewallConfiguration.Enabled);
 
-        string uri = _service.BuildUri(baseline, target);
+        string uri = _service.BuildUri(baseline, 1);
 
         StringAssert.Contains(uri, $"baseline={Uri.EscapeDataString(FirewallRuleSnapshotFingerprint.Compute(baseline))}");
         StringAssert.Contains(uri, "target=1");
@@ -24,14 +24,16 @@ public sealed class RuleReplacementNavigationServiceTests
     }
 
     [TestMethod]
-    public void BuildUri_RejectsDetachedOrDuplicateTarget()
+    public void BuildUri_RejectsMissingOccurrenceOrDuplicateIdentity()
     {
         ListedFirewallRule target = Rule("duplicate", FirewallAddressFamily.IPv4, 1);
         ListedFirewallRule duplicate = Rule("duplicate", FirewallAddressFamily.IPv4, 2);
         RuleListResponse baseline = new(Active: true, [target, duplicate], TestFirewallConfiguration.Enabled);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, Rule("duplicate", FirewallAddressFamily.IPv4, 1)));
-        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, target));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, -1));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, 2));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, 0));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, 1));
     }
 
     [TestMethod]
@@ -39,7 +41,7 @@ public sealed class RuleReplacementNavigationServiceTests
     {
         RuleListResponse baseline = new(Active: true, [Rule("v6", FirewallAddressFamily.IPv6, 1)], TestFirewallConfiguration.Disabled);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, baseline.Rules[0]));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, 0));
     }
 
     [TestMethod]

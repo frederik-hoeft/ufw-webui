@@ -9,12 +9,7 @@ namespace Ufw.Web.Client.UI.Components.Rules;
 
 public sealed partial class RuleListToolbar
 {
-    private static readonly DialogOptions s_filterDialogOptions = new()
-    {
-        CloseButton = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_filterDialogOptions = ClientDialogOptions.FilterEditor;
 
     private RuleQuery? _loadedQuery;
     private string _searchText = string.Empty;

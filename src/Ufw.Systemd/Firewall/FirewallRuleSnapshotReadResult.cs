@@ -1,6 +1,3 @@
-﻿using Ufw.Shared.Ipc.Model;
-using Ufw.Shared.Ipc.Model.Responses.Domain;
-
 namespace Ufw.Systemd.Firewall;
 
 internal abstract record FirewallRuleSnapshotReadResult
@@ -11,23 +8,23 @@ internal abstract record FirewallRuleSnapshotReadResult
 
     internal sealed record Success : FirewallRuleSnapshotReadResult
     {
-        public Success(RuleListResponse snapshot)
+        public Success(FirewallSnapshot snapshot)
         {
             ArgumentNullException.ThrowIfNull(snapshot);
             Snapshot = snapshot;
         }
 
-        public RuleListResponse Snapshot { get; }
+        public FirewallSnapshot Snapshot { get; }
     }
 
     internal sealed record Failure : FirewallRuleSnapshotReadResult
     {
-        public Failure(IResponsePayload error)
+        public Failure(string diagnostic)
         {
-            ArgumentNullException.ThrowIfNull(error);
-            Error = error;
+            ArgumentException.ThrowIfNullOrWhiteSpace(diagnostic);
+            Diagnostic = diagnostic;
         }
 
-        public IResponsePayload Error { get; }
+        public string Diagnostic { get; }
     }
 }

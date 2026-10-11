@@ -21,18 +21,18 @@ internal sealed class FirewallBatchDeleteService(
         }
 
         IntentVerificationResult.AcceptedBatchDelete accepted = (IntentVerificationResult.AcceptedBatchDelete)verification;
-        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, (snapshot, ct) => ExecuteOperationAsync(accepted, snapshot, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedBatchDelete accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedBatchDelete accepted, FirewallSnapshot snapshot, CancellationToken cancellationToken)
     {
-        RuleBatchDeleteExecutionResult result = await executor.ExecuteAsync(accepted.Payload, cancellationToken);
+        RuleBatchDeleteExecutionResult result = await executor.ExecuteAsync(accepted.Payload, snapshot, cancellationToken);
         return ToResponse(result);
     }
 
     private static RuleBatchDeleteResponse ToResponse(RuleBatchDeleteExecutionResult result) => new(
         MapOutcome(result.Outcome),
-        result.FinalSnapshot,
+        result.FinalSnapshot?.ToResponse(),
         result.Operations.Select(MapOperation).ToArray(),
         result.PendingOccurrenceIds,
         result.Diagnostic);

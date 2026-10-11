@@ -3,6 +3,7 @@ using System.Globalization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Web;
+using Ufw.Web.Client.Features.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Replacement;
 
@@ -10,13 +11,11 @@ internal sealed class RuleReplacementNavigationService : IRuleReplacementNavigat
 {
     private const string EDIT_RULE_PATH = "/rules/edit";
 
-    public string BuildUri(RuleListResponse baseline, ListedFirewallRule target)
+    public string BuildUri(RuleListResponse baseline, int targetOccurrenceId)
     {
         ArgumentNullException.ThrowIfNull(baseline);
-        ArgumentNullException.ThrowIfNull(target);
-
-        int targetOccurrenceId = FindOccurrenceId(baseline.Rules, target);
-        if (targetOccurrenceId < 0)
+        RuleSnapshotIndex index = new(baseline.Rules);
+        if (!index.TryGet(targetOccurrenceId, out ListedFirewallRule? target))
         {
             throw new InvalidOperationException("The selected rule is no longer present in the authoritative rule snapshot.");
         }
@@ -24,7 +23,7 @@ internal sealed class RuleReplacementNavigationService : IRuleReplacementNavigat
         {
             throw new InvalidOperationException("Rule editing requires a parsed rule with a concrete address family and semantic identity.");
         }
-        if (!HasUniqueIdentity(baseline.Rules, originalRuleId))
+        if (!index.HasUniqueIdentity(originalRuleId))
         {
             throw new InvalidOperationException("Rule editing is unavailable while duplicate rules with the same semantic identity exist.");
         }
@@ -64,12 +63,11 @@ internal sealed class RuleReplacementNavigationService : IRuleReplacementNavigat
         {
             return Failure(RuleReplacementContextError.StaleBaseline);
         }
-        if (targetOccurrenceId < 0 || targetOccurrenceId >= snapshot.Rules.Count)
+        RuleSnapshotIndex index = new(snapshot.Rules);
+        if (!index.TryGet(targetOccurrenceId, out ListedFirewallRule? target))
         {
             return Failure(RuleReplacementContextError.TargetUnavailable);
         }
-
-        ListedFirewallRule target = snapshot.Rules[targetOccurrenceId];
         if (!TryGetEditableTarget(target, out FirewallRuleSpecification? targetRule, out string? originalRuleId))
         {
             return Failure(RuleReplacementContextError.TargetUnavailable);
@@ -78,7 +76,7 @@ internal sealed class RuleReplacementNavigationService : IRuleReplacementNavigat
         {
             return Failure(RuleReplacementContextError.TargetMismatch);
         }
-        if (!HasUniqueIdentity(snapshot.Rules, originalRuleId))
+        if (!index.HasUniqueIdentity(originalRuleId))
         {
             return Failure(RuleReplacementContextError.DuplicateIdentity);
         }
@@ -90,7 +88,7 @@ internal sealed class RuleReplacementNavigationService : IRuleReplacementNavigat
         RuleReplacementNavigationContext context = new(
             query.BaselineFingerprint,
             targetOccurrenceId,
-            GetFamilyPosition(snapshot.Rules, targetOccurrenceId, targetRule.AddressFamily),
+            index.GetFamilyPosition(targetOccurrenceId),
             originalRuleId,
             targetRule.AddressFamily,
             target);
@@ -108,53 +106,6 @@ internal sealed class RuleReplacementNavigationService : IRuleReplacementNavigat
             && targetRule is not null
             && targetRule.AddressFamily is FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6
             && !string.IsNullOrWhiteSpace(originalRuleId);
-    }
-
-    private static bool HasUniqueIdentity(IReadOnlyList<ListedFirewallRule> rules, string ruleId)
-    {
-        int matches = 0;
-        foreach (ListedFirewallRule rule in rules)
-        {
-            if (!string.Equals(rule.RuleId, ruleId, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            matches++;
-            if (matches > 1)
-            {
-                return false;
-            }
-        }
-
-        return matches == 1;
-    }
-
-    private static int GetFamilyPosition(IReadOnlyList<ListedFirewallRule> rules, int occurrenceId, FirewallAddressFamily family)
-    {
-        int familyPosition = 0;
-        for (int index = 0; index <= occurrenceId; index++)
-        {
-            if (ListedFirewallRuleFamily.GetObservedFamily(rules[index]) == family)
-            {
-                familyPosition++;
-            }
-        }
-
-        return familyPosition;
-    }
-
-    private static int FindOccurrenceId(IReadOnlyList<ListedFirewallRule> rules, ListedFirewallRule target)
-    {
-        for (int index = 0; index < rules.Count; index++)
-        {
-            if (ReferenceEquals(rules[index], target))
-            {
-                return index;
-            }
-        }
-
-        return -1;
     }
 
     private static RuleReplacementNavigationResolution Failure(RuleReplacementContextError error) => new(null, error);

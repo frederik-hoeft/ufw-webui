@@ -4,5 +4,5 @@ namespace Ufw.Systemd.Firewall.Insertion;
 
 internal interface IFirewallOrderedInsertionExecutor
 {
-    Task<RuleInsertionExecutionResult> ExecuteAsync(InsertRulePayload payload, CancellationToken cancellationToken);
+    Task<RuleInsertionExecutionResult> ExecuteAsync(InsertRulePayload payload, FirewallSnapshot baseline, CancellationToken cancellationToken);
 }

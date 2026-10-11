@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Json;
-using Ufw.Shared.Web;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Model.V1.RuleTags;
 
@@ -26,9 +25,8 @@ internal sealed class RuleTagApiClient(HttpClient httpClient) : IRuleTagApiClien
 
     public async Task<RuleTagInventoryResponse> UpdateAsync(Guid tagId, UpdateRuleTagRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateTagId(tagId);
+        Uri uri = ApiResourceUri.ForId(TAGS_PATH, tagId, nameof(tagId), "Rule tag");
         ArgumentNullException.ThrowIfNull(request);
-        Uri uri = BuildTagUri(tagId);
         using JsonContent content = JsonContent.Create(request, ClientJsonSerializerContext.Default.UpdateRuleTagRequest);
         using HttpResponseMessage response = await httpClient.PutAsync(uri, content, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.RuleTagInventoryResponse, cancellationToken);
@@ -36,21 +34,8 @@ internal sealed class RuleTagApiClient(HttpClient httpClient) : IRuleTagApiClien
 
     public async Task<RuleTagInventoryResponse> DeleteAsync(Guid tagId, CancellationToken cancellationToken = default)
     {
-        ValidateTagId(tagId);
-        Uri uri = BuildTagUri(tagId);
+        Uri uri = ApiResourceUri.ForId(TAGS_PATH, tagId, nameof(tagId), "Rule tag");
         using HttpResponseMessage response = await httpClient.DeleteAsync(uri, cancellationToken);
         return await response.ReadRequiredAsync(ClientJsonSerializerContext.Default.RuleTagInventoryResponse, cancellationToken);
-    }
-
-    private static Uri BuildTagUri(Guid tagId) => SimpleUriBuilder.Create(TAGS_PATH)
-        .AppendPath(tagId.ToString("D"))
-        .BuildUri(UriKind.Relative);
-
-    private static void ValidateTagId(Guid tagId)
-    {
-        if (tagId == Guid.Empty)
-        {
-            throw new ArgumentException("Rule tag ID must not be empty.", nameof(tagId));
-        }
     }
 }

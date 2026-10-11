@@ -1,0 +1,9 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<span class="rule-unsupported-label">@RulesText["ReadOnly"]</span>
+<span class="rule-raw-line">@RawLine</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string RawLine { get; set; } = string.Empty;
+}

@@ -1,0 +1,9 @@
+<div class="inventory-loading" role="status" aria-live="polite">
+    <MudProgressLinear Indeterminate="true" aria-label="@AriaLabel" />
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@Message</MudText>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string AriaLabel { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Message { get; set; } = string.Empty;
+}

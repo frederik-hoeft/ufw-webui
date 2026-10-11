@@ -4,35 +4,24 @@ using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
+using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
+using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.UI.Pages;
 
 public sealed partial class RuleGroupsManagement
 {
-    private static readonly DialogOptions s_editorDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_editorDialogOptions = ClientDialogOptions.Standard;
 
-    private static readonly DialogOptions s_deleteDialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true,
-        FullWidth = true,
-        MaxWidth = MaxWidth.Small,
-    };
+    private static readonly DialogOptions s_deleteDialogOptions = ClientDialogOptions.Standard;
 
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HashSet<Guid> _expandedGroups = [];
     private IReadOnlyList<RuleGroup> _catalogGroups = [];
+    private IReadOnlyDictionary<Guid, string> _templateNames = new Dictionary<Guid, string>();
     private IReadOnlyList<RuleGroupManagementProjection> _groups = [];
     private RuleSnapshot? _ruleSnapshot;
     private ClientError? _groupError;
@@ -49,6 +38,8 @@ public sealed partial class RuleGroupsManagement
     ];
 
     private bool IsBusy => _loading || _saving;
+
+    private bool CanDeleteSignedGroups => _ruleSnapshot?.Assessment.IsClean == true;
 
     private Severity DeletionResultSeverity => _deletionResult?.Result switch
     {
@@ -173,9 +164,14 @@ public sealed partial class RuleGroupsManagement
             Snackbar.Add(RulesText["GroupNoLongerAvailable"], Severity.Warning);
             return;
         }
+        if (projection.StoredMemberCount != 0 && !CanDeleteSignedGroups)
+        {
+            return;
+        }
 
         DialogParameters<DeleteRuleGroupDialog> parameters = [];
         parameters.Add(component => component.Projection, projection);
+        parameters.Add(component => component.TemplateNames, _templateNames);
         IDialogReference dialog = await DialogService.ShowAsync<DeleteRuleGroupDialog>(RulesText["DeleteGroup"], parameters, s_deleteDialogOptions);
         RuleGroupDeleteDialogResult? confirmation = await dialog.GetReturnValueAsync<RuleGroupDeleteDialogResult>();
         if (confirmation is null)
@@ -204,7 +200,7 @@ public sealed partial class RuleGroupsManagement
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             ClientError error = ClientErrors.Describe(exception);
             Snackbar.Add(error.Message, Severity.Error);
@@ -225,13 +221,14 @@ public sealed partial class RuleGroupsManagement
         _groupError = null;
         _ruleInventoryError = null;
         Task<IReadOnlyList<RuleGroup>> groupsTask = GroupCatalog.RefreshAsync(_lifetime.Token);
-        Task<RuleInventoryResponse> rulesTask = RuleApiClient.GetInventoryAsync(_lifetime.Token);
+        Task<RuleSnapshot> rulesTask = RuleInventory.GetAsync(_lifetime.Token);
+        Task<IReadOnlyList<RuleTemplate>> templatesTask = TemplateCatalog.RefreshAsync(_lifetime.Token);
 
         try
         {
             _catalogGroups = await groupsTask;
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _groupError = ClientErrors.Describe(exception);
             _catalogGroups = GroupCatalog.Current;
@@ -239,13 +236,23 @@ public sealed partial class RuleGroupsManagement
 
         try
         {
-            RuleInventoryResponse response = await rulesTask;
-            _ruleSnapshot = RuleSnapshot.FromResponse(response);
+            _ruleSnapshot = await rulesTask;
         }
-        catch (Exception exception) when (ClientErrors.TryDescribe(exception, out _))
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
         {
             _ruleInventoryError = ClientErrors.Describe(exception);
             _ruleSnapshot = null;
+        }
+
+        try
+        {
+            IReadOnlyList<RuleTemplate> templates = await templatesTask;
+            _templateNames = templates.ToDictionary(static template => template.Id, static template => template.Name);
+        }
+        catch (Exception exception) when (ClientErrors.CanDescribe(exception))
+        {
+            // Template IDs remain visible if their names could not be loaded.
+            _templateNames = new Dictionary<Guid, string>();
         }
 
         RebuildProjection();

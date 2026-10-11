@@ -11,5 +11,5 @@ internal interface IFirewallRuleReplacementPreflightEvaluator
     /// <summary>
     /// Evaluates snapshot-local target identity, duplicate constraints, capabilities, interfaces, and no-op state before replacement execution begins.
     /// </summary>
-    RuleReplacementPreflightResult Evaluate(RuleListResponse baseline, ReplaceRulePayload payload);
+    RuleReplacementPreflightResult Evaluate(FirewallSnapshot baseline, ReplaceRulePayload payload);
 }

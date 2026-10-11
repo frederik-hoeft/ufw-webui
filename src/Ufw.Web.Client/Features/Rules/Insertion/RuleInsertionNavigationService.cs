@@ -2,6 +2,7 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Web;
+using Ufw.Web.Client.Features.Rules;
 
 namespace Ufw.Web.Client.Features.Rules.Insertion;
 
@@ -9,17 +10,16 @@ internal sealed class RuleInsertionNavigationService : IRuleInsertionNavigationS
 {
     private const string CREATE_RULE_PATH = "/rules/create";
 
-    public string BuildUri(RuleListResponse baseline, ListedFirewallRule anchor, RuleInsertionPlacement placement)
+    public string BuildUri(RuleListResponse baseline, int anchorOccurrenceId, RuleInsertionPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(baseline);
-        ArgumentNullException.ThrowIfNull(anchor);
         if (!Enum.IsDefined(placement))
         {
             throw new ArgumentOutOfRangeException(nameof(placement));
         }
 
-        int anchorOccurrenceId = FindOccurrenceId(baseline.Rules, anchor);
-        if (anchorOccurrenceId < 0)
+        RuleSnapshotIndex index = new(baseline.Rules);
+        if (!index.TryGet(anchorOccurrenceId, out ListedFirewallRule? anchor))
         {
             throw new InvalidOperationException("The selected insertion anchor is no longer present in the authoritative rule snapshot.");
         }
@@ -68,12 +68,11 @@ internal sealed class RuleInsertionNavigationService : IRuleInsertionNavigationS
         {
             return Failure(OrderedRuleInsertionContextError.StaleBaseline);
         }
-        if (anchorOccurrenceId < 0 || anchorOccurrenceId >= snapshot.Rules.Count)
+        RuleSnapshotIndex index = new(snapshot.Rules);
+        if (!index.TryGet(anchorOccurrenceId, out ListedFirewallRule? anchor))
         {
             return Failure(OrderedRuleInsertionContextError.AnchorUnavailable);
         }
-
-        ListedFirewallRule anchor = snapshot.Rules[anchorOccurrenceId];
         if (!anchor.Parsed || anchor.Rule is null || anchor.Rule.AddressFamily is not (FirewallAddressFamily.IPv4 or FirewallAddressFamily.IPv6))
         {
             return Failure(OrderedRuleInsertionContextError.AnchorUnavailable);
@@ -86,38 +85,11 @@ internal sealed class RuleInsertionNavigationService : IRuleInsertionNavigationS
         OrderedRuleInsertionNavigationContext context = new(
             query.BaselineFingerprint,
             anchorOccurrenceId,
-            GetFamilyPosition(snapshot.Rules, anchorOccurrenceId, anchor.Rule.AddressFamily),
+            index.GetFamilyPosition(anchorOccurrenceId),
             placement,
             anchor.Rule.AddressFamily,
             anchor);
         return new RuleInsertionNavigationResolution(context, OrderedRuleInsertionContextError.None);
-    }
-
-    private static int GetFamilyPosition(IReadOnlyList<ListedFirewallRule> rules, int occurrenceId, FirewallAddressFamily family)
-    {
-        int familyPosition = 0;
-        for (int index = 0; index <= occurrenceId; index++)
-        {
-            if (ListedFirewallRuleFamily.GetObservedFamily(rules[index]) == family)
-            {
-                familyPosition++;
-            }
-        }
-
-        return familyPosition;
-    }
-
-    private static int FindOccurrenceId(IReadOnlyList<ListedFirewallRule> rules, ListedFirewallRule anchor)
-    {
-        for (int index = 0; index < rules.Count; index++)
-        {
-            if (ReferenceEquals(rules[index], anchor))
-            {
-                return index;
-            }
-        }
-
-        return -1;
     }
 
     private static RuleInsertionNavigationResolution Failure(OrderedRuleInsertionContextError error) => new(null, error);

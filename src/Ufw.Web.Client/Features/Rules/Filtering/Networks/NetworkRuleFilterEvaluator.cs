@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Web.Client.Features.Rules.Filtering.Networks;
 
@@ -24,14 +25,14 @@ internal sealed class NetworkRuleFilterEvaluator : RuleFilterEvaluator<NetworkRu
         return evidence.Count == 0 ? RuleMatchEvaluation.NoMatch : new RuleMatchEvaluation(true, evidence);
     }
 
-    private static void AddEndpointMatch(RuleEndpointField endpoint, string? value, RuleNetwork query, RuleFilterContext context, List<RuleMatchEvidence> evidence)
+    private static void AddEndpointMatch(RuleEndpointField endpoint, string? value, NetworkFilterOperand query, RuleFilterContext context, List<RuleMatchEvidence> evidence)
     {
-        RuleNetwork? ruleNetwork;
+        NetworkFilterOperand? ruleNetwork;
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, RuleSpecificationNormalizer.ANY, StringComparison.OrdinalIgnoreCase))
         {
-            ruleNetwork = RuleNetwork.Any(context.AddressFamily);
+            ruleNetwork = RuleFilterSemantics.AnyNetwork(context.AddressFamily);
         }
-        else if (!RuleNetwork.TryParse(value, out RuleNetwork? parsedRuleNetwork) || parsedRuleNetwork is null || parsedRuleNetwork.AddressFamily != context.AddressFamily)
+        else if (!RuleFilterSemantics.TryParseNetwork(value, out NetworkFilterOperand? parsedRuleNetwork) || parsedRuleNetwork is null || parsedRuleNetwork.AddressFamily != context.AddressFamily)
         {
             return;
         }
@@ -41,7 +42,7 @@ internal sealed class NetworkRuleFilterEvaluator : RuleFilterEvaluator<NetworkRu
         }
 
         NetworkRuleMatchEvidence.RelationshipKind relationship;
-        if (ruleNetwork.PrefixLength == query.PrefixLength && ruleNetwork.NetworkAddress.Equals(query.NetworkAddress))
+        if (ruleNetwork.SetEquals(query))
         {
             relationship = NetworkRuleMatchEvidence.RelationshipKind.Equal;
         }

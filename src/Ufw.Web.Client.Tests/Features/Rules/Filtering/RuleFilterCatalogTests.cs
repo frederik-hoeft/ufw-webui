@@ -1,4 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
+using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 using Ufw.Web.Client.Features.Rules.Filtering;
 using Ufw.Web.Client.Features.Rules.Filtering.Actions;
 using Ufw.Web.Client.Features.Rules.Filtering.Directions;
@@ -52,8 +53,8 @@ public sealed class RuleFilterCatalogTests
     [TestMethod]
     public void Resolve_MapsEveryConfiguredPhaseTwoFilterToExactlyOneDefinition()
     {
-        Assert.IsTrue(RuleNetwork.TryParse("10.0.0.0/8", out RuleNetwork? network));
-        Assert.IsTrue(RulePortSet.TryParse("443", out RulePortSet? ports));
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("10.0.0.0/8", out NetworkFilterOperand? network));
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts("443", out PortFilterOperand? ports));
         RuleFilter[] filters =
         [
             new TextRuleFilter("ssh"),

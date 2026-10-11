@@ -20,7 +20,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_ReorderableSnapshot_ReturnsPlanWithMoveSpecification()
     {
-        RuleListResponse baseline = Snapshot("22", "80", "443");
+        FirewallSnapshot baseline = Snapshot("22", "80", "443");
 
         RuleReorderPreflightResult result = _evaluator.Evaluate(baseline, [1, 0, 2]);
 
@@ -34,7 +34,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_InvalidOccurrencePermutation_ReturnsExplicitPreconditionRejection()
     {
-        RuleListResponse baseline = Snapshot("22", "80", "443");
+        FirewallSnapshot baseline = Snapshot("22", "80", "443");
 
         RuleReorderPreflightResult result = _evaluator.Evaluate(baseline, [0, 0, 2]);
 
@@ -45,7 +45,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_CrossFamilyOrder_ReturnsExplicitPreconditionRejection()
     {
-        RuleListResponse baseline = SnapshotTokens("22", "22v6");
+        FirewallSnapshot baseline = SnapshotTokens("22", "22v6");
 
         RuleReorderPreflightResult result = _evaluator.Evaluate(baseline, [1, 0]);
 
@@ -56,7 +56,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
     [TestMethod]
     public void Evaluate_ReversingImmutableRows_ReturnsExplicitPreconditionRejection()
     {
-        RuleListResponse baseline = new(
+        FirewallSnapshot baseline = new(
             Active: true,
             [
                 new ListedFirewallRule { DisplayNumber = 1, Parsed = false, RawLine = "first opaque row" },
@@ -73,9 +73,9 @@ public sealed class FirewallReorderPreflightEvaluatorTests
     [TestMethod]
     public void CreateSafePendingPlan_AmbiguousDuplicateOccurrences_ReturnsEmptyPlan()
     {
-        RuleListResponse baseline = Snapshot("22", "22", "80");
+        FirewallSnapshot baseline = Snapshot("22", "22", "80");
         RuleReorderPreflight preflight = Assert.IsInstanceOfType<RuleReorderPreflightResult.Accepted>(_evaluator.Evaluate(baseline, [2, 0, 1])).Preflight;
-        RuleListResponse current = Snapshot("22", "22", "80");
+        FirewallSnapshot current = Snapshot("22", "22", "80");
 
         IReadOnlyList<RuleReorderMove> pending = _evaluator.CreateSafePendingPlan(baseline, current, preflight);
 
@@ -88,9 +88,9 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         ListedFirewallRule firstOpaque = new() { DisplayNumber = 1, Parsed = false, RawLine = "first opaque row" };
         ListedFirewallRule secondOpaque = new() { DisplayNumber = 3, Parsed = false, RawLine = "second opaque row" };
         ListedFirewallRule parsed = Snapshot("22").Rules[0];
-        RuleListResponse baseline = new(true, [firstOpaque, parsed, secondOpaque], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot baseline = new(true, [firstOpaque, parsed, secondOpaque], TestFirewallConfiguration.Enabled);
         RuleReorderPreflight preflight = Assert.IsInstanceOfType<RuleReorderPreflightResult.Accepted>(_evaluator.Evaluate(baseline, [0, 2, 1])).Preflight;
-        RuleListResponse current = new(true, [secondOpaque, parsed, firstOpaque], TestFirewallConfiguration.Enabled);
+        FirewallSnapshot current = new(true, [secondOpaque, parsed, firstOpaque], TestFirewallConfiguration.Enabled);
 
         IReadOnlyList<RuleReorderMove> pending = _evaluator.CreateSafePendingPlan(baseline, current, preflight);
 
@@ -100,9 +100,9 @@ public sealed class FirewallReorderPreflightEvaluatorTests
     [TestMethod]
     public void CreateSafePendingPlan_UniquePartialState_ReplansFromObservedOrder()
     {
-        RuleListResponse baseline = Snapshot("22", "80", "443", "8080");
+        FirewallSnapshot baseline = Snapshot("22", "80", "443", "8080");
         RuleReorderPreflight preflight = Assert.IsInstanceOfType<RuleReorderPreflightResult.Accepted>(_evaluator.Evaluate(baseline, [3, 2, 1, 0])).Preflight;
-        RuleListResponse current = Snapshot("80", "443", "8080", "22");
+        FirewallSnapshot current = Snapshot("80", "443", "8080", "22");
 
         IReadOnlyList<RuleReorderMove> pending = _evaluator.CreateSafePendingPlan(baseline, current, preflight);
 
@@ -110,13 +110,13 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         CollectionAssert.AreEquivalent(new[] { 1, 2 }, pending.Select(static move => move.OccurrenceId).ToArray());
     }
 
-    private static RuleListResponse Snapshot(params string[] ports)
+    private static FirewallSnapshot Snapshot(params string[] ports)
     {
         string[] rows = [.. ports.Select(static (port, index) => $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere")];
-        return FirewallRuleSet.ToListResponse(UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!, TestFirewallConfiguration.Enabled);
+        return FirewallRuleSet.FromStatus(UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!, TestFirewallConfiguration.Enabled);
     }
 
-    private static RuleListResponse SnapshotTokens(params string[] tokens)
+    private static FirewallSnapshot SnapshotTokens(params string[] tokens)
     {
         string[] rows = [.. tokens.Select(static (token, index) =>
         {
@@ -126,6 +126,6 @@ public sealed class FirewallReorderPreflightEvaluatorTests
                 ? $"[ {index + 1}] {port}/tcp (v6)                ALLOW IN    Anywhere (v6)"
                 : $"[ {index + 1}] {port}/tcp                     ALLOW IN    Anywhere";
         })];
-        return FirewallRuleSet.ToListResponse(UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!, TestFirewallConfiguration.Enabled);
+        return FirewallRuleSet.FromStatus(UfwStatusParser.Parse(UfwStatusFixtures.WithRules(rows))!, TestFirewallConfiguration.Enabled);
     }
 }

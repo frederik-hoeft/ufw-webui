@@ -55,10 +55,19 @@ internal sealed class TestNavigationManager : NavigationManager
 
     public string? LastUri { get; private set; }
 
+    public int NavigateCount { get; private set; }
+
     public bool LastForceLoad { get; private set; }
+
+    public void SimulateLocationChange(string location)
+    {
+        Uri = ToAbsoluteUri(location).ToString();
+        NotifyLocationChanged(isInterceptedLink: false);
+    }
 
     protected override void NavigateToCore(string uri, NavigationOptions options)
     {
+        NavigateCount++;
         LastUri = ToAbsoluteUri(uri).ToString();
         LastForceLoad = options.ForceLoad;
     }

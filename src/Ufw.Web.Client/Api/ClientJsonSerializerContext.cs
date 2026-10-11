@@ -18,7 +18,6 @@ namespace Ufw.Web.Client.Api;
 [JsonSerializable(typeof(AuthTokenResponse))]
 [JsonSerializable(typeof(AntiforgeryTokenResponse))]
 [JsonSerializable(typeof(ApiProblemDetails))]
-[JsonSerializable(typeof(LegacyApiErrorMessage))]
 [JsonSerializable(typeof(KnownHostInventoryResponse))]
 [JsonSerializable(typeof(CreateKnownHostRequest))]
 [JsonSerializable(typeof(UpdateKnownHostRequest))]

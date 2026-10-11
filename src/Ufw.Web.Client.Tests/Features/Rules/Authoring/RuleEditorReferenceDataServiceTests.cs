@@ -33,6 +33,8 @@ public sealed class RuleEditorReferenceDataServiceTests
 
         RuleEditorReferenceData data = await service.LoadAsync();
 
+        Assert.IsNull(data.KnownHosts.Error);
+        Assert.IsNull(data.Interfaces.Error);
         CollectionAssert.AreEqual(new[] { visibleInterface }, data.VisibleInterfaces.ToArray());
         CollectionAssert.AreEqual(new[] { visibleV4 }, service.GetVisibleKnownHosts(data, ipv6Enabled: false).ToArray());
         CollectionAssert.AreEqual(new[] { visibleV4, visibleV6 }, service.GetVisibleKnownHosts(data, ipv6Enabled: true).ToArray());
@@ -51,18 +53,17 @@ public sealed class RuleEditorReferenceDataServiceTests
         knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventoryResponse { Interfaces = [networkInterface] });
         ClientError clientError = new(ClientErrorKind.Unavailable, "known hosts unavailable", true);
-        errors.Setup(mapper => mapper.TryDescribe(failure, out It.Ref<ClientError>.IsAny)).Returns((Exception _, out ClientError error) =>
-        {
-            error = clientError;
-            return true;
-        });
+        errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(true);
         errors.Setup(mapper => mapper.Describe(failure)).Returns(clientError);
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
         RuleEditorReferenceData data = await service.LoadAsync();
 
-        Assert.IsEmpty(data.KnownHosts);
+        Assert.AreSame(clientError, data.KnownHosts.Error);
+        Assert.IsEmpty(data.KnownHosts.Items);
+        Assert.IsNull(data.Interfaces.Error);
         CollectionAssert.AreEqual(new[] { networkInterface }, data.VisibleInterfaces.ToArray());
+        Assert.IsFalse(service.IsUnknownInterface(data, "eno1"));
         errors.Verify(mapper => mapper.Describe(failure), Times.Once);
     }
 
@@ -73,16 +74,102 @@ public sealed class RuleEditorReferenceDataServiceTests
         Mock<IKnownHostInventoryService> knownHosts = new();
         Mock<INetworkInterfaceInventoryService> networkInterfaces = new();
         Mock<IClientErrorMapper> errors = new();
-        knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new KnownHostInventoryResponse());
+        KnownHostInventoryItem host = Host("db", FirewallAddressFamily.IPv4, isVisible: true);
+        knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new KnownHostInventoryResponse { Hosts = [host] });
         networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
+        errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(true);
         errors.Setup(mapper => mapper.Describe(failure)).Returns(new ClientError(ClientErrorKind.Unavailable, "interface lookup failed", true));
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
         RuleEditorReferenceData data = await service.LoadAsync();
 
-        Assert.AreEqual("interface lookup failed", data.InterfaceInventoryError);
-        Assert.IsEmpty(data.KnownInterfaces);
+        Assert.IsNull(data.KnownHosts.Error);
+        CollectionAssert.AreEqual(new[] { host }, service.GetVisibleKnownHosts(data, ipv6Enabled: true).ToArray());
+        Assert.AreEqual("interface lookup failed", data.Interfaces.Error?.Message);
+        Assert.IsEmpty(data.Interfaces.Items);
+        Assert.IsEmpty(data.VisibleInterfaces);
         Assert.IsFalse(service.IsUnknownInterface(data, "eno1"));
+        errors.Verify(mapper => mapper.Describe(failure), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_EmptySuccessfulCatalogsAreNotMarkedUnavailableAsync()
+    {
+        Mock<IKnownHostInventoryService> knownHosts = new();
+        Mock<INetworkInterfaceInventoryService> networkInterfaces = new();
+        Mock<IClientErrorMapper> errors = new(MockBehavior.Strict);
+        knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new KnownHostInventoryResponse());
+        networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventoryResponse());
+        RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
+
+        RuleEditorReferenceData data = await service.LoadAsync();
+
+        Assert.IsNull(data.KnownHosts.Error);
+        Assert.IsNull(data.Interfaces.Error);
+        Assert.IsEmpty(data.KnownHosts.Items);
+        Assert.IsEmpty(data.Interfaces.Items);
+        Assert.IsTrue(service.IsUnknownInterface(data, "eno1"));
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_IndependentCatalogFailuresRetainBothDiagnosticsAsync()
+    {
+        HttpRequestException hostFailure = new("host lookup failed");
+        HttpRequestException interfaceFailure = new("interface lookup failed");
+        ClientError hostError = new(ClientErrorKind.Unavailable, "hosts offline", Retryable: true);
+        ClientError interfaceError = new(ClientErrorKind.Forbidden, "interfaces forbidden", Retryable: false);
+        Mock<IKnownHostInventoryService> knownHosts = new();
+        Mock<INetworkInterfaceInventoryService> networkInterfaces = new();
+        Mock<IClientErrorMapper> errors = new();
+        knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(hostFailure);
+        networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(interfaceFailure);
+        errors.Setup(mapper => mapper.CanDescribe(hostFailure)).Returns(true);
+        errors.Setup(mapper => mapper.CanDescribe(interfaceFailure)).Returns(true);
+        errors.Setup(mapper => mapper.Describe(hostFailure)).Returns(hostError);
+        errors.Setup(mapper => mapper.Describe(interfaceFailure)).Returns(interfaceError);
+        RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
+
+        RuleEditorReferenceData data = await service.LoadAsync();
+
+        Assert.AreSame(hostError, data.KnownHosts.Error);
+        Assert.AreSame(interfaceError, data.Interfaces.Error);
+        Assert.IsEmpty(data.KnownHosts.Items);
+        Assert.IsEmpty(data.Interfaces.Items);
+        Assert.IsFalse(service.IsUnknownInterface(data, "eno1"));
+        errors.Verify(mapper => mapper.Describe(hostFailure), Times.Once);
+        errors.Verify(mapper => mapper.Describe(interfaceFailure), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_CancellationIsPropagatedRatherThanReportedAsCatalogFailureAsync()
+    {
+        using CancellationTokenSource lifetime = new();
+        await lifetime.CancelAsync();
+        Mock<IKnownHostInventoryService> knownHosts = new();
+        Mock<INetworkInterfaceInventoryService> networkInterfaces = new();
+        Mock<IClientErrorMapper> errors = new(MockBehavior.Strict);
+        knownHosts.Setup(service => service.RefreshAsync(lifetime.Token)).ThrowsAsync(new OperationCanceledException(lifetime.Token));
+        networkInterfaces.Setup(service => service.RefreshAsync(lifetime.Token)).ReturnsAsync(new NetworkInterfaceInventoryResponse());
+        RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => service.LoadAsync(lifetime.Token));
+        errors.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_UnclassifiedErrorDoesNotBecomeAnEmptyCatalogAsync()
+    {
+        InvalidOperationException failure = new("unexpected lookup failure");
+        Mock<IKnownHostInventoryService> knownHosts = new();
+        Mock<INetworkInterfaceInventoryService> networkInterfaces = new();
+        Mock<IClientErrorMapper> errors = new();
+        knownHosts.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ThrowsAsync(failure);
+        networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventoryResponse());
+        errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(false);
+        RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.LoadAsync());
+        errors.Verify(mapper => mapper.Describe(It.IsAny<Exception>()), Times.Never);
     }
 
     private static KnownHostInventoryItem Host(string name, FirewallAddressFamily family, bool isVisible) => new()

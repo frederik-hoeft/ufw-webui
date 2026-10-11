@@ -15,11 +15,7 @@ public sealed record RuleMetadataEditorResult(string? Notes, IReadOnlyList<Guid>
     internal bool HasSameValueAs(RuleMetadataEditorResult other)
     {
         ArgumentNullException.ThrowIfNull(other);
-        RuleMetadataEditorResult left = Normalize();
-        RuleMetadataEditorResult right = other.Normalize();
-        return string.Equals(left.Notes, right.Notes, StringComparison.Ordinal)
-            && left.GroupId == right.GroupId
-            && left.TagIds.SequenceEqual(right.TagIds);
+        return new RuleMetadataChange(Notes, TagIds, GroupId).HasSameValueAs(new RuleMetadataChange(other.Notes, other.TagIds, other.GroupId));
     }
 
     public bool IsEmpty => string.IsNullOrWhiteSpace(Notes) && TagIds.Count == 0 && GroupId is null;

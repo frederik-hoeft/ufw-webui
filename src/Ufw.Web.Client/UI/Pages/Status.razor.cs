@@ -131,7 +131,4 @@ public sealed partial class Status
             ? StatusText["DurationMilliseconds", duration.TotalMilliseconds.ToString("0", culture)]
             : StatusText["DurationSeconds", duration.TotalSeconds.ToString("0.0", culture)];
     }
-
-    private static string FormatLocalDateTime(DateTimeOffset value) =>
-        value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 }

@@ -1,20 +1,17 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Security.Intent;
-using Ufw.Web.Client.Api;
-using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Model.V1.Rules;
 using Ufw.Web.Model.V1.Rules.Intent;
 
 namespace Ufw.Web.Client.Features.Rules.Intent;
 
-internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentContextApiClient intentContextApiClient, IIntentSigningService intentSigningService) : IRuleMutationService
+internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, ICompatibleIntentContextProvider intentContextProvider, IIntentSigningService intentSigningService) : IRuleMutationService
 {
     public async Task<RuleMutationResponse> AddRuleAsync(FirewallRuleSpecification rule, string privateKey, CancellationToken cancellationToken = default)
     {
-        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
-        AddRuleIntentRequest request = await intentSigningService.CreateAddRuleRequestAsync(context.DeploymentId, rule, privateKey, cancellationToken);
+        string deploymentId = await intentContextProvider.GetDeploymentIdAsync(cancellationToken);
+        AddRuleIntentRequest request = await intentSigningService.CreateAddRuleRequestAsync(deploymentId, rule, privateKey, cancellationToken);
         return await ruleApiClient.AddRuleAsync(request, cancellationToken);
     }
 
@@ -26,8 +23,8 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
             throw new InvalidOperationException("Only parsed rules with a stable rule ID can be deleted.");
         }
 
-        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
-        DeleteRuleIntentRequest request = await intentSigningService.CreateDeleteRuleRequestAsync(context.DeploymentId, rule.RuleId, rule.Rule, privateKey, cancellationToken);
+        string deploymentId = await intentContextProvider.GetDeploymentIdAsync(cancellationToken);
+        DeleteRuleIntentRequest request = await intentSigningService.CreateDeleteRuleRequestAsync(deploymentId, rule.RuleId, rule.Rule, privateKey, cancellationToken);
         return await ruleApiClient.DeleteRuleAsync(request, cancellationToken);
     }
 
@@ -39,10 +36,10 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(occurrenceIds);
-        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
+        string deploymentId = await intentContextProvider.GetDeploymentIdAsync(cancellationToken);
         string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
         BatchDeleteRulesIntentRequest request = await intentSigningService.CreateBatchDeleteRulesRequestAsync(
-            context.DeploymentId,
+            deploymentId,
             baselineFingerprint,
             occurrenceIds,
             privateKey,
@@ -61,10 +58,10 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(rule);
 
-        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
+        string deploymentId = await intentContextProvider.GetDeploymentIdAsync(cancellationToken);
         string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
         InsertRuleIntentRequest request = await intentSigningService.CreateInsertRuleRequestAsync(
-            context.DeploymentId,
+            deploymentId,
             baselineFingerprint,
             anchorOccurrenceId,
             placement,
@@ -85,10 +82,10 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(replacementRule);
 
-        IntentContextResponse context = await GetCompatibleIntentContextAsync(cancellationToken);
+        string deploymentId = await intentContextProvider.GetDeploymentIdAsync(cancellationToken);
         string baselineFingerprint = FirewallRuleSnapshotFingerprint.Compute(baseline);
         ReplaceRuleIntentRequest request = await intentSigningService.CreateReplaceRuleRequestAsync(
-            context.DeploymentId,
+            deploymentId,
             baselineFingerprint,
             targetOccurrenceId,
             originalRuleId,
@@ -96,16 +93,5 @@ internal sealed class RuleMutationService(IRuleApiClient ruleApiClient, IIntentC
             privateKey,
             cancellationToken);
         return await ruleApiClient.ReplaceRuleAsync(request, cancellationToken);
-    }
-
-    private async Task<IntentContextResponse> GetCompatibleIntentContextAsync(CancellationToken cancellationToken)
-    {
-        IntentContextResponse context = await intentContextApiClient.GetAsync(cancellationToken);
-        if (context.ProtocolVersion != IntentProtocol.VERSION)
-        {
-            throw new ApiProtocolException($"Intent protocol mismatch. Client supports version {IntentProtocol.VERSION}, server reports {context.ProtocolVersion}.");
-        }
-
-        return context;
     }
 }

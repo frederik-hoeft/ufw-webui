@@ -12,6 +12,9 @@ public sealed partial class RuleGroupActionsMenu
     public bool Disabled { get; set; }
 
     [Parameter]
+    public bool DeleteDisabled { get; set; }
+
+    [Parameter]
     public EventCallback<RuleGroup> EditRequested { get; set; }
 
     [Parameter]

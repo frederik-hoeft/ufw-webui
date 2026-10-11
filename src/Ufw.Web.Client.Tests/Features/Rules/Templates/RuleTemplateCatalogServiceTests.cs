@@ -54,7 +54,6 @@ public sealed class RuleTemplateCatalogServiceTests
         Assert.AreEqual("shared", alpha.Group.Comment);
         Assert.AreEqual(FirewallAddressFamily.IPv6, templates[1].Rule.AddressFamily);
         Assert.AreSame(templates, service.Current);
-        Assert.AreEqual(0L, service.Version);
     }
 
     [TestMethod]
@@ -89,7 +88,7 @@ public sealed class RuleTemplateCatalogServiceTests
     }
 
     [TestMethod]
-    public async Task MutationFailure_PreservesCurrentInventoryAndVersionAsync()
+    public async Task MutationFailure_PreservesCurrentInventoryAsync()
     {
         Mock<IRuleTemplateApiClient> api = new();
         Guid id = Guid.CreateVersion7();
@@ -105,19 +104,37 @@ public sealed class RuleTemplateCatalogServiceTests
 
         await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.CreateAsync(definition));
         Assert.AreSame(current, service.Current);
-        Assert.AreEqual(0L, service.Version);
 
         await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.UpdateAsync(id, definition));
         Assert.AreSame(current, service.Current);
-        Assert.AreEqual(0L, service.Version);
 
         await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.DeleteAsync(id));
         Assert.AreSame(current, service.Current);
-        Assert.AreEqual(0L, service.Version);
     }
 
     [TestMethod]
-    public async Task MutationMethods_UseDefinitionAndAdvanceVersionAsync()
+    public async Task InvalidResponse_DoesNotReplacePreviouslyLoadedCatalogAsync()
+    {
+        Mock<IRuleTemplateApiClient> api = new();
+        Guid id = Guid.CreateVersion7();
+        RuleTemplateInventoryResponse invalid = new([Template(id, "one", FirewallAddressFamily.Any), Template(id, "two", FirewallAddressFamily.Any)]);
+        api.SetupSequence(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleTemplateInventoryResponse([Template(id, "valid", FirewallAddressFamily.Any)]))
+            .ReturnsAsync(invalid);
+        api.Setup(client => client.CreateAsync(It.IsAny<CreateRuleTemplateRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(invalid);
+        RuleTemplateCatalogService service = new(api.Object);
+        IReadOnlyList<RuleTemplate> current = await service.RefreshAsync();
+        RuleTemplateDefinition definition = new("new", null, Rule(FirewallAddressFamily.Any), null, [], null);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        Assert.AreSame(current, service.Current);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync(definition));
+        Assert.AreSame(current, service.Current);
+    }
+
+    [TestMethod]
+    public async Task MutationMethods_UseDefinitionAndReplaceCurrentAsync()
     {
         Mock<IRuleTemplateApiClient> api = new();
         Guid id = Guid.CreateVersion7();
@@ -132,11 +149,9 @@ public sealed class RuleTemplateCatalogServiceTests
         RuleTemplateCatalogService service = new(api.Object);
 
         _ = await service.CreateAsync(definition);
-        Assert.AreEqual(1L, service.Version);
         _ = await service.UpdateAsync(id, definition);
-        Assert.AreEqual(2L, service.Version);
+
         _ = await service.DeleteAsync(id);
-        Assert.AreEqual(3L, service.Version);
         Assert.IsEmpty(service.Current);
     }
 

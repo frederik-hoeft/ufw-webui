@@ -21,19 +21,19 @@ internal sealed class FirewallReorderService(
         }
 
         IntentVerificationResult.AcceptedReorder accepted = (IntentVerificationResult.AcceptedReorder)verification;
-        return await mutationOrchestrator.ExecuteAsync(accepted, ct => ExecuteOperationAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, (snapshot, ct) => ExecuteOperationAsync(accepted, snapshot, ct), cancellationToken);
     }
 
-    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedReorder accepted, CancellationToken cancellationToken)
+    private async Task<IResponsePayload> ExecuteOperationAsync(IntentVerificationResult.AcceptedReorder accepted, FirewallSnapshot snapshot, CancellationToken cancellationToken)
     {
         RuleReorderExecutionRequest executionRequest = new(accepted.Payload.BaselineFingerprint, accepted.Payload.DesiredOrder);
-        RuleReorderExecutionResult result = await executor.ExecuteAsync(executionRequest, cancellationToken);
+        RuleReorderExecutionResult result = await executor.ExecuteAsync(executionRequest, snapshot, cancellationToken);
         return ToResponse(result);
     }
 
     private static RuleReorderResponse ToResponse(RuleReorderExecutionResult result) => new(
         MapOutcome(result.Outcome),
-        result.FinalSnapshot,
+        result.FinalSnapshot?.ToResponse(),
         [.. result.Operations.Select(MapOperation)],
         [.. result.BlockedOperations.Select(MapMove)],
         [.. result.PendingOperations.Select(MapMove)],

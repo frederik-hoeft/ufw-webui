@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 
 namespace Ufw.Web.Client.Features.Authentication;
 
-internal sealed class BearerTokenHandler(IAuthenticationService authenticationService) : DelegatingHandler
+internal sealed class BearerTokenHandler(IAuthenticationService authenticationService, IAuthenticationNavigation authenticationNavigation) : DelegatingHandler
 {
     protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -20,8 +20,13 @@ internal sealed class BearerTokenHandler(IAuthenticationService authenticationSe
         }
 
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-        if (accessToken is null || response.StatusCode != HttpStatusCode.Unauthorized || replay is null)
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
         {
+            return response;
+        }
+        if (accessToken is null || replay is null)
+        {
+            authenticationNavigation.RedirectToLogin();
             return response;
         }
 
@@ -38,6 +43,7 @@ internal sealed class BearerTokenHandler(IAuthenticationService authenticationSe
 
         if (replacementToken is null)
         {
+            authenticationNavigation.RedirectToLogin();
             return response;
         }
 
@@ -49,6 +55,7 @@ internal sealed class BearerTokenHandler(IAuthenticationService authenticationSe
         if (retryResponse.StatusCode == HttpStatusCode.Unauthorized)
         {
             authenticationService.InvalidateAccessToken(replacementToken);
+            authenticationNavigation.RedirectToLogin();
         }
 
         return retryResponse;

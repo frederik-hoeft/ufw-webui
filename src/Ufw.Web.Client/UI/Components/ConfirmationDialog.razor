@@ -1,0 +1,17 @@
+@inject IStringLocalizer<CommonStrings> CommonText
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1">@Prompt</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">@Description</MudText>
+        @ChildContent
+    </DialogContent>
+    <DialogActions>
+        <div class="delete-dialog-actions">
+            <MudButton Variant="Variant.Text" Disabled="@Busy" OnClick="OnCancel">@CommonText["Cancel"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="@(Busy || ConfirmDisabled)" OnClick="OnConfirm">
+                @ConfirmLabel
+            </MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>

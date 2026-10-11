@@ -19,7 +19,7 @@ internal sealed class FirewallReorderMoveExecutor(
 
     public async Task<RuleReorderMoveExecutionResult> ExecuteAsync(
         RuleReorderMove move,
-        RuleListResponse baseline,
+        FirewallSnapshot baseline,
         IReadOnlyList<int> preMoveOrder,
         FirewallRuleSpecification specification,
         CancellationToken cancellationToken)
@@ -29,7 +29,7 @@ internal sealed class FirewallReorderMoveExecutor(
         ArgumentNullException.ThrowIfNull(preMoveOrder);
         ArgumentNullException.ThrowIfNull(specification);
 
-        RuleListResponse? preMoveSnapshot = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
+        FirewallSnapshot? preMoveSnapshot = await snapshotReader.ReadAsync(cancellationToken).OrDefaultAsync();
         if (preMoveSnapshot is null)
         {
             return Interrupted(null, null, "The authoritative firewall state could not be read before the next move started.");
@@ -67,7 +67,7 @@ internal sealed class FirewallReorderMoveExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            RuleListResponse? canceledSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+            FirewallSnapshot? canceledSnapshot = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
             RuleRecoveryResult recovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, canceledSnapshot, CancellationToken.None);
             if (!recovery.PresenceConfirmed)
             {
@@ -77,7 +77,7 @@ internal sealed class FirewallReorderMoveExecutor(
             throw;
         }
 
-        RuleListResponse? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? afterDelete = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         if (delete.CancellationRequested || cancellationToken.IsCancellationRequested)
         {
             RuleRecoveryResult recovery = await recoveryCoordinator.EnsurePresentAsync(journalEntry, afterDelete, CancellationToken.None);
@@ -101,7 +101,7 @@ internal sealed class FirewallReorderMoveExecutor(
 
         IUfwCommand insertCommand = CreatePlannedInsertionCommand(move, afterDelete!, afterDeleteOrder, specification);
         UfwProcessExecutionResult insert = await processExecutor.ExecuteAsync(insertCommand, "reinserting a moved rule", CancellationToken.None);
-        RuleListResponse? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
+        FirewallSnapshot? afterInsert = await snapshotReader.ReadAsync(CancellationToken.None).OrDefaultAsync();
         List<int> expectedOrder = ApplyMove(preMoveOrder, move);
         if (afterInsert is not null && FirewallRuleSnapshotMatcher.MatchesOrder(afterInsert, baseline, expectedOrder))
         {
@@ -142,7 +142,7 @@ internal sealed class FirewallReorderMoveExecutor(
         return Interrupted(recovery.Snapshot, new RuleReorderOperationReport(move, status, diagnostic), diagnostic);
     }
 
-    private IUfwCommand CreatePlannedInsertionCommand(RuleReorderMove move, RuleListResponse afterDelete, IReadOnlyList<int> afterDeleteOrder, FirewallRuleSpecification specification)
+    private IUfwCommand CreatePlannedInsertionCommand(RuleReorderMove move, FirewallSnapshot afterDelete, IReadOnlyList<int> afterDeleteOrder, FirewallRuleSpecification specification)
     {
         int desiredOccurrenceIndex = move.BeforeOccurrenceId is int beforeOccurrenceId
             ? afterDeleteOrder.IndexOf(beforeOccurrenceId)
@@ -158,7 +158,7 @@ internal sealed class FirewallReorderMoveExecutor(
     private static ReorderRecoveryJournalEntry CreateJournalEntry(
         FirewallRuleSpecification specification,
         int originalFamilyPosition,
-        RuleListResponse baseline,
+        FirewallSnapshot baseline,
         IReadOnlyList<int> preMoveOrder,
         int currentIndex)
     {
@@ -200,7 +200,7 @@ internal sealed class FirewallReorderMoveExecutor(
             : new RuleRecoveryAnchor(null, rule.RawLine);
 
     private static RuleReorderMoveExecutionResult.Interrupted Interrupted(
-        RuleListResponse? snapshot,
+        FirewallSnapshot? snapshot,
         RuleReorderOperationReport? operationReport,
         string? diagnostic,
         bool recoveryFailed = false) =>

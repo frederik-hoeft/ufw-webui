@@ -38,7 +38,6 @@ public sealed class RuleGroupCatalogServiceTests
         CollectionAssert.AreEqual(new[] { "rule-b", "rule-a" }, groups[1].RuleIds.ToArray());
         CollectionAssert.AreEqual(new[] { Guid.Parse("0199aabb-ccdd-7eef-8000-000000000099") }, groups[1].TemplateIds.ToArray());
         Assert.AreSame(groups, service.Current);
-        Assert.AreEqual(0L, service.Version);
     }
 
     [TestMethod]
@@ -75,7 +74,26 @@ public sealed class RuleGroupCatalogServiceTests
     }
 
     [TestMethod]
-    public async Task MutationMethods_ReplaceCurrentAndAdvanceVersionAsync()
+    public async Task InvalidResponse_DoesNotReplacePreviouslyLoadedCatalogAsync()
+    {
+        Mock<IRuleGroupApiClient> api = new();
+        api.SetupSequence(client => client.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleGroupInventoryResponse { Groups = [Group("valid")] })
+            .ReturnsAsync(new RuleGroupInventoryResponse { Groups = [Group("duplicate"), Group("duplicate")] });
+        api.Setup(client => client.CreateAsync(It.IsAny<CreateRuleGroupRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RuleGroupInventoryResponse { Groups = [Group("duplicate"), Group("duplicate")] });
+        RuleGroupCatalogService service = new(api.Object);
+        IReadOnlyList<RuleGroup> current = await service.RefreshAsync();
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        Assert.AreSame(current, service.Current);
+
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync("duplicate"));
+        Assert.AreSame(current, service.Current);
+    }
+
+    [TestMethod]
+    public async Task MutationMethods_ReplaceCurrentFromServerResponsesAsync()
     {
         Mock<IRuleGroupApiClient> api = new();
         Guid groupId = Guid.CreateVersion7();
@@ -87,16 +105,13 @@ public sealed class RuleGroupCatalogServiceTests
         RuleGroupCatalogService service = new(api.Object);
 
         _ = await service.CreateAsync("ops");
-        Assert.AreEqual(1L, service.Version);
         Assert.AreEqual("ops", service.Current.Single().Name);
 
         _ = await service.UpdateAsync(groupId, "operations", "managed");
-        Assert.AreEqual(2L, service.Version);
         Assert.AreEqual("operations", service.Current.Single().Name);
         Assert.AreEqual("managed", service.Current.Single().Comment);
 
         _ = await service.DeleteAsync(groupId);
-        Assert.AreEqual(3L, service.Version);
         Assert.IsEmpty(service.Current);
     }
 

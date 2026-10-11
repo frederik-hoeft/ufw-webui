@@ -6,9 +6,9 @@ namespace Ufw.Systemd.Tests.TestSupport;
 
 internal static class FirewallRuleSnapshotReadResultTestExtensions
 {
-    public static RuleListResponse GetRequiredSnapshot(this FirewallRuleSnapshotReadResult result) =>
+    public static FirewallSnapshot GetRequiredSnapshot(this FirewallRuleSnapshotReadResult result) =>
         Assert.IsInstanceOfType<FirewallRuleSnapshotReadResult.Success>(result).Snapshot;
 
     public static string ComputeSnapshotFingerprint(this FirewallRuleSnapshotReadResult result) =>
-        FirewallRuleSnapshotFingerprint.Compute(result.GetRequiredSnapshot());
+        FirewallRuleSnapshotFingerprint.Compute(result.GetRequiredSnapshot().Active, result.GetRequiredSnapshot().Rules);
 }

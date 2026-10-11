@@ -53,22 +53,8 @@ internal sealed class RuleMetadataReconciliationService(IRuleMetadataReconciliat
                 throw new ApiProtocolException("Rule-metadata reconciliation response contains an invalid or duplicate orphan.");
             }
 
-            List<RuleTag> tags = new(item.Tags.Count);
-            HashSet<Guid> tagIds = [];
-            foreach (RuleTagItem tag in item.Tags)
-            {
-                if (tag is null
-                    || tag.Id == Guid.Empty
-                    || string.IsNullOrWhiteSpace(tag.Name)
-                    || !RuleTagColor.TryNormalize(tag.Color, out string color)
-                    || !tagIds.Add(tag.Id))
-                {
-                    throw new ApiProtocolException("Rule-metadata reconciliation response contains invalid tag data.");
-                }
-                tags.Add(new RuleTag(tag.Id, tag.Name.Trim(), color));
-            }
-
-            orphans.Add(new OrphanedRuleMetadata(item.RuleId, new RuleMetadata(item.Id, string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(), tags)));
+            RuleMetadata metadata = RuleMetadataProtocolMapper.MapMetadata(item, "Rule-metadata reconciliation response contains invalid metadata.");
+            orphans.Add(new OrphanedRuleMetadata(item.RuleId, metadata));
         }
 
         return new RuleMetadataReconciliationSnapshot(

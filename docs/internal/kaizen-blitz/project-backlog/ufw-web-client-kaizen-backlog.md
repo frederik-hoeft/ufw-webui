@@ -1,4 +1,14 @@
-# Ufw.Web.Client Kaizen Audit
+﻿# Ufw.Web.Client Kaizen Audit
+
+## Post-W acceptance follow-ups
+
+See [ACC-02/04/05/06](../ufw-kaizen-plan.md#post-w-acceptance-remediation-october-2026).
+
+- [x] **ACC-02:** share one WASM auth session across route authorization and `IHttpClientFactory` handler scopes.
+- [ ] **ACC-02 acceptance:** cross-browser password-change/refresh-expiry and cross-tab coordination regression tests.
+- [ ] **ACC-04 / KZ-11 (C1):** centralize 401/session-expired navigation, handling multiple concurrent failures once; keep 403 separate and do not redirect failed login. Test deep links and tabs.
+- [x] **ACC-05 / KZ-18 (C2):** delete active group rules while retaining template-referenced group and templates; show references and precise confirmation wording. Preserve concurrent-membership safety checks.
+- [x] **ACC-06 (C3):** full unmatched rule IDs in markup, accessibility and copy; presentation-only CSS truncation.
 
 ## Overall assessment
 
@@ -42,6 +52,10 @@ The architectural direction established by PR #40 should remain intact: normaliz
 
 ### KZ-01: Move rule-page application workflows out of Razor
 
+- [x] Centralize rule inventory loading/response mapping and rule metadata updates in `Features`; remove direct rule REST client injection from the four pages.
+- [x] Extract create/edit signed-mutation sequencing, post-mutation reconciliation, and list mutation workflows; keep UI lifecycle and presentation in Razor.
+- [x] Complete the code-level acceptance criteria below before checking off KZ-01; retain deferred end-to-end/manual acceptance in the cross-project plan.
+
 **Where**
 
 - `UI/Pages/RulesPage.razor:6-26`, `RulesPage.razor.cs:136-620`
@@ -51,7 +65,7 @@ The architectural direction established by PR #40 should remain intact: normaliz
 
 **Problem**
 
-`RulesPage` injects 21 collaborators, `CreateRule` 15, `EditRule` 10, and `RuleGroupsManagement` 9. The pages still call `IRuleApiClient` directly for inventory and/or metadata. They also coordinate mutation reconciliation, template persistence, orphan-group cleanup, navigation-context construction, known-host refresh, stale/fresh inventory transitions, and result interpretation.
+The rule pages still coordinate mutation reconciliation, template persistence, orphan-group cleanup, navigation-context construction, known-host refresh, stale/fresh inventory transitions, and result interpretation. These concerns need focused workflow boundaries rather than page-owned application orchestration.
 
 The repository explicitly says behavior that is testable without a renderer belongs in `Features`. These pages have become application-service composition roots rather than thin presentation coordinators.
 
@@ -75,6 +89,9 @@ Keep dialog creation, navigation, snackbars, and lifecycle cancellation in Razor
 - Razor pages own presentations, small UI projections, localization, UI state, and component lifecycle management, domain logic belongs in feature-level workflows.
 
 ### KZ-02: Make client rule filtering consume the shared semantic-domain primitives
+
+- [x] Use the shared network and port interval model through a filter-local adapter in editors, evaluators, and known-host projection.
+- [ ] Complete the deferred full client-suite/release acceptance gate.
 
 **Where**
 
@@ -165,6 +182,8 @@ After this client cleanup, reassess the residual parsing overlap among `RuleSpec
 
 ### KZ-03: Centralize snapshot occurrence indexing and remove object-identity lookup
 
+- [x] Use snapshot-local occurrence IDs, shared family positions, and semantic identity multiplicity in navigation and projections.
+
 **Where**
 
 - `Features/Rules/Insertion/RuleInsertionNavigationService.cs:21-40`, `96-121`
@@ -197,6 +216,8 @@ Introduce one snapshot-local index/locator, for example `RuleSnapshotIndex`, bui
 
 ### KZ-04: Collapse the repeated intent-signing pipeline and compatible-context lookup
 
+- [x] Centralize typed signing/envelope construction and compatible intent-context validation.
+
 **Where**
 
 - `Features/Rules/Intent/BrowserIntentSigningService.cs:17-32`, `48-67`, `89-103`, `129-143`, `169-183`, `203-222`
@@ -223,6 +244,8 @@ Keep operation-specific validation explicit. The common helper should not erase 
 - operation-specific tests still verify the exact canonical bytes and serialized payload for each mutation type.
 
 ### KZ-05: Define the rule-order permutation invariant once
+
+- [x] Use one validated, immutable permutation across preview, signed execution, and result projection.
 
 **Where**
 
@@ -399,9 +422,9 @@ Give the error mapper a filter-friendly `CanDescribe(Exception)` if that is the 
 
 Also remove the unused parameter from `ClientErrorMapper.DescribeProtocolError` if it remains unnecessary.
 
-**W-phase compatibility note:** `HttpResponseMessageExtensions` intentionally retains the `LegacyApiErrorMessage` / `{ message }` fallback while Web and client work can be migrated independently and the W-phase acceptance gate is still pending. The finalized Web contract is ProblemDetails-based after W2.7; remove the legacy parser and its source-generation/test plumbing during the client error-handling cleanup once the client phase can rely on that finalized contract.
+**Contract decision:** The Web error contract is ProblemDetails-based. Client fallback uses HTTP status for empty or incompatible bodies; no legacy `{ message }` parser is retained. API 401s use one authentication navigation policy; 403 and login credential failures remain distinct.
 
-### KZ-12: Stop localizing validator failures by exact English error text
+### KZ-12: Stop localizing validator failures by exact English error text (complete)
 
 **Where**
 
@@ -443,7 +466,7 @@ Classify every non-isolated file:
 2. intentional portal/overlay hook -> keep a small global owner-specific hook;
 3. generic Mud/application behavior -> move to `UI/Styles/controls`.
 
-Start with the action-menu clone by extracting one shared menu primitive. Do not mechanically convert portal/autocomplete styles to isolation.
+Start with the action-menu clone by extracting one shared menu primitive. Do not mechanically convert portal/autocomplete styles to isolation. C3.3 has a per-import [ownership inventory](../client-style-ownership.md), and moves the exact menu clone and shared desktop/mobile row fragments without changing owner layout. C3.4 migrates six owner-local leaf styles with scoped-CSS verification. C3.5 isolates the remaining safe dialog, endpoint and option components, including narrowly scoped descendant selectors for Mud-rendered buttons/icons. The completed ownership inventory documents why the remaining row/table, layout, portal, and mixed details styles are intentionally global. KZ-14 may revisit shared confirmation presentation, but the KZ-13 source-level audit is complete; visual integration acceptance is still outstanding.
 
 ### KZ-14: Consolidate dialog options and confirmation-dialog presentation shells
 
@@ -462,6 +485,8 @@ Modal sizing/close behavior and common confirmation markup are copied repeatedly
 - create named `ClientDialogOptions` presets for common dialog categories;
 - extract a reusable confirmation/impact shell component with slots/parameters for title/body/warnings/actions;
 - keep domain validation and destructive-operation semantics in the concrete dialog.
+
+**C3.6:** Shared `ClientDialogOptions` factory presets now own modal width, backdrop, Escape and first-child focus configuration, including the intentionally different filter-editor policy. `ConfirmationDialog` owns the identical simple destructive-confirmation body and action presentation for orphaned-metadata cleanup and tag deletion. Their callbacks remain in the concrete dialogs; richer signed, catalog and host confirmations retain their distinct domain-specific content and controls. The reconciliation dialog still passes the complete unmatched metadata identifiers; no truncation or mutation code is changed.
 
 ### KZ-15: Simplify catalog state and define/remove `Version`
 
@@ -574,6 +599,8 @@ The normal `/interfaces` inventory and rule-editor reference data should continu
 
 ### KZ-20: Factor repeated HttpClient registration and resource-client mechanics
 
+**Implemented in C4.1.** Shared typed-client registration preserves anonymous health, cookie-only auth, and bearer-then-cookie chains. The GUID resource path helper centralizes validation and SimpleUriBuilder usage without moving JSON contracts out of typed clients.
+
 **Where**
 
 - `Program.cs:76-117`
@@ -588,19 +615,21 @@ The DI block repeats base-address configuration and the same bearer/browser-cred
 
 Add small registration helpers for the established HTTP policies and a few request/URI helpers. Avoid a generic repository/base-client hierarchy; typed clients are otherwise clear and appropriately small.
 
-### KZ-21: Audit and minimize the client's public surface
+### KZ-21: Establish intentional client contract and implementation visibility
 
 **Where**
 
-Public interfaces are inconsistent across `Api`, `Features`, and `Services` even though implementations are internal and `_friends.cs` already grants test access.
+Client contracts and DI implementations under `Api`, `Features`, and `Services`, plus Razor component constructors and component-facing types.
 
 **Problem**
 
-Examples such as `IAuthApiClient`, `IKnownHostApiClient`, `INetworkInterfaceApiClient`, `IRuleTagApiClient`, and `IRuleGroupApiClient` are public while several adjacent API abstractions are internal. There is no production consumer outside the client project in this repository.
+A library-oriented public-surface rule such as CA1515 encourages internalizing public service interfaces and the types in their signatures. For Blazor, public Razor-generated components can legitimately need public constructor dependencies; changing those components to property injection solely to suppress CA1515 would make the DI model less consistent without improving architecture.
 
 **Refactor**
 
-Make implementation-detail interfaces internal unless there is an intentional external assembly contract. Keep only genuinely cross-assembly API public. This is low-risk cleanup and clarifies architectural boundaries.
+Allow public interfaces, DTOs, and feature/component models when they describe intentional contracts. Keep **concrete service implementations internal**, independently of interface accessibility, and document exceptions for framework-required types. Disable CA1515 for the client application rather than force the entire constructor dependency graph internal. Preserve Razor constructor injection and cover concrete client-owned interface implementations with a visibility regression test.
+
+**C4.2 status:** Complete. Reviewed existing client implementations and retained the public contract types and constructor-injected filter editors. Documented the policy in the client development guide, disabled CA1515 in the client's `.editorconfig`, and added a regression guard for exported concrete service implementations. No bulk contract internalization or injection migration was performed.
 
 ### KZ-22: Consolidate small presentational clones opportunistically
 
@@ -615,7 +644,11 @@ Make implementation-detail interfaces internal unless there is an intentional ex
 
 Use existing standalone/inventory primitives where they genuinely reduce duplication, introduce a shared formatting helper only for stable application-wide formatting rules, and remove one-off global indirection that does not buy readability. Do this only after the higher-leverage items; these are not architectural blockers.
 
+**C4.3 completion:** Five status/inventory/rule views now consume one local, current-culture timestamp formatter. Both standalone failure states share the diagnostic-reference rendering while retaining different user actions (retry vs full reload), icons and titles. The row/menu/dialog fragments already consolidated in C3 remain unchanged. The clone pass revealed no further small, stable presentational abstraction that merits added indirection.
+
 ### KZ-23: Ensure consistent use of SimpleUriBuilder
+
+**Implemented in C4.1.** API resource identifiers and rule/template navigation queries consistently use SimpleUriBuilder. Constant endpoints and explicit URI validation/parsing are left as-is; the one-off globally imported UriOf alias is removed.
 
 Route construction and URI manipulation should consistently use `SimpleUriBuilder` and `SimpleUriParser` to avoid ad-hoc string concatenation and parsing, ensuring correctness and maintainability across the client codebase.
 

@@ -61,6 +61,22 @@ public sealed class DaemonApiErrorMapperTests
     }
 
     [TestMethod]
+    public void MapProxyFailure_AmbiguousFirewallState_PreservesStableErrorCode()
+    {
+        DaemonApiErrorMapper mapper = new();
+        UfwIpcError daemonError = new(
+            StatusCodes.Status422UnprocessableEntity,
+            "Firewall state requires repair.",
+            code: FirewallStateErrorCodes.AMBIGUOUS_STATE);
+
+        DaemonApiError error = mapper.MapProxyFailure(daemonError);
+
+        Assert.AreEqual(StatusCodes.Status422UnprocessableEntity, error.StatusCode);
+        Assert.AreEqual(FirewallStateErrorCodes.AMBIGUOUS_STATE, error.Problem.Extensions["code"]);
+        Assert.AreEqual("Firewall state requires repair.", error.Problem.Detail);
+    }
+
+    [TestMethod]
     [DataRow(0)]
     [DataRow(399)]
     [DataRow(600)]

@@ -105,7 +105,7 @@ public sealed class RuleDisableWorkflowServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(signedRequest);
         ruleApi.Setup(client => client.DeleteRuleAsync(signedRequest, It.IsAny<CancellationToken>())).ReturnsAsync(deleteResponse);
-        RuleMutationService mutationService = new(ruleApi.Object, intentContext.Object, signer.Object);
+        RuleMutationService mutationService = new(ruleApi.Object, new CompatibleIntentContextProvider(intentContext.Object), signer.Object);
         RuleDisableWorkflowService service = new(templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), mutationService, errors.Object, new RuleTemplateNameGenerator(new UfwRuleCommandRenderer()));
 
         RuleDisableWorkflowResult result = await service.DisableAsync(row, "web", null, "private-key");

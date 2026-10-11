@@ -8,14 +8,20 @@ namespace Ufw.Web.Client.Services.Errors;
 
 internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logger, IStringLocalizer<ErrorsStrings> errorsText) : IClientErrorMapper
 {
-    public bool TryDescribe(Exception exception, out ClientError clientError)
+    public bool CanDescribe(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
+        return exception is ApiRequestException or ApiProtocolException or HttpRequestException or OperationCanceledException
+            or BrowserOperationException or JSException or JSDisconnectedException or ArgumentException;
+    }
 
+    public ClientError Describe(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
         ClientError? known = exception switch
         {
             ApiRequestException apiException => DescribeApiRequest(apiException),
-            ApiProtocolException protocolException => DescribeProtocolError(protocolException),
+            ApiProtocolException => DescribeProtocolError(),
             HttpRequestException => new(ClientErrorKind.Unavailable, errorsText["ApiUnavailable"], Retryable: true),
             OperationCanceledException => new(ClientErrorKind.Canceled, errorsText["OperationCanceled"], Retryable: true),
             BrowserOperationException or JSException or JSDisconnectedException => new(ClientErrorKind.Browser, errorsText["BrowserSecurityOperationFailed"], Retryable: true),
@@ -23,22 +29,10 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
             _ => null,
         };
 
-        if (known is null)
-        {
-            clientError = null!;
-            return false;
-        }
-
-        clientError = known;
-        return true;
-    }
-
-    public ClientError Describe(Exception exception)
-    {
-        if (TryDescribe(exception, out ClientError clientError))
+        if (known is not null)
         {
             LogKnownFailure(exception);
-            return clientError;
+            return known;
         }
 
         string reference = GetOrCreateDiagnosticReference(exception);
@@ -130,7 +124,7 @@ internal sealed partial class ClientErrorMapper(ILogger<ClientErrorMapper> logge
         }
     }
 
-    private ClientError DescribeProtocolError(ApiProtocolException exception)
+    private ClientError DescribeProtocolError()
     {
         return new(ClientErrorKind.Protocol, errorsText["ProtocolMismatch"], Retryable: false);
     }

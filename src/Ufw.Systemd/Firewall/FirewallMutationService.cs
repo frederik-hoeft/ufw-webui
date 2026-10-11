@@ -19,7 +19,7 @@ internal sealed class FirewallMutationService(
         }
 
         IntentVerificationResult.AcceptedRuleMutation accepted = (IntentVerificationResult.AcceptedRuleMutation)verification;
-        return await mutationOrchestrator.ExecuteAsync(accepted, ct => mutationExecutor.AddAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, (snapshot, ct) => mutationExecutor.AddAsync(accepted, snapshot, ct), cancellationToken);
     }
 
     public async ValueTask<IResponsePayload> DeleteAsync(DeleteRuleRequest request, CancellationToken cancellationToken)
@@ -32,6 +32,6 @@ internal sealed class FirewallMutationService(
         }
 
         IntentVerificationResult.AcceptedRuleMutation accepted = (IntentVerificationResult.AcceptedRuleMutation)verification;
-        return await mutationOrchestrator.ExecuteAsync(accepted, ct => mutationExecutor.DeleteAsync(accepted, ct), cancellationToken);
+        return await mutationOrchestrator.ExecuteAsync(accepted, (snapshot, ct) => mutationExecutor.DeleteAsync(accepted, snapshot, ct), cancellationToken);
     }
 }

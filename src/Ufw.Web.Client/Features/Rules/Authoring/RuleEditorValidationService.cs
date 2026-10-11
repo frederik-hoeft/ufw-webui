@@ -1,11 +1,9 @@
-﻿using Microsoft.Extensions.Localization;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
-using Ufw.Web.Client.Services.Localization;
 
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 
-internal sealed class RuleEditorValidationService(IRuleValidationMessageLocalizer validationMessages, IStringLocalizer<ValidationStrings> validationText) : IRuleEditorValidationService
+internal sealed class RuleEditorValidationService(IRuleValidationMessageLocalizer validationMessages) : IRuleEditorValidationService
 {
     public IReadOnlyList<string> Validate(FirewallRuleSpecification specification, string propertyName, bool ipv6Enabled)
     {
@@ -26,9 +24,9 @@ internal sealed class RuleEditorValidationService(IRuleValidationMessageLocalize
             .ToArray();
     }
 
-    private void AddIPv6CapabilityErrors(FirewallRuleSpecification specification, List<ModelValidationError> errors)
+    private static void AddIPv6CapabilityErrors(FirewallRuleSpecification specification, List<ModelValidationError> errors)
     {
-        string message = validationText["Ipv6Disabled"];
+        const string message = "IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration.";
         if (specification.AddressFamily == FirewallAddressFamily.IPv6)
         {
             errors.Add(new ModelValidationError(nameof(FirewallRuleSpecification.AddressFamily), message, FirewallRuleValidationErrorCodes.IPV6_DISABLED));

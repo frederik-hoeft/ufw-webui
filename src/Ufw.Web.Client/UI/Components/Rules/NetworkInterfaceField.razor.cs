@@ -28,6 +28,9 @@ public sealed partial class NetworkInterfaceField
     public IReadOnlyList<NetworkInterfaceInventoryItem> Suggestions { get; set; } = [];
 
     [Parameter]
+    public bool SuggestionsUnavailable { get; set; }
+
+    [Parameter]
     public bool Disabled { get; set; }
 
     [Parameter]

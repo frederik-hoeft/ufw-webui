@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
+using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Features.KnownHosts;
@@ -46,7 +47,7 @@ public sealed partial class NetworkRuleFilterEditor(IKnownHostInventoryService k
     public override bool TryBuildFilter([NotNullWhen(true)] out RuleFilter? filter)
     {
         _error = null;
-        if (!RuleNetwork.TryParse(_value, out RuleNetwork? network) || network is null)
+        if (!RuleFilterSemantics.TryParseNetwork(_value, out NetworkFilterOperand? network) || network is null)
         {
             _error = RulesText["InvalidNetworkFilter"];
             filter = null;

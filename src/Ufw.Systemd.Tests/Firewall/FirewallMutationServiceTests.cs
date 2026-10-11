@@ -25,8 +25,8 @@ namespace Ufw.Systemd.Tests.Firewall;
 [TestClass]
 public sealed class FirewallMutationServiceTests
 {
-    private static readonly string[] s_deleteIpv6Args = ["--force", "delete", "4"];
-    private static readonly string[] s_deleteReorderedArgs = ["--force", "delete", "7"];
+    private static readonly string[] s_deleteIpv6Args = ["--force", "delete", "1"];
+    private static readonly string[] s_deleteReorderedArgs = ["--force", "delete", "2"];
 
     public required TestContext TestContext { get; set; }
 
@@ -35,7 +35,7 @@ public sealed class FirewallMutationServiceTests
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.TWO_RULES);
 
-        RuleListResponse response = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
+        Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse response = (Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
 
         Assert.IsTrue(response.Active);
         Assert.HasCount(2, response.Rules);
@@ -102,7 +102,7 @@ public sealed class FirewallMutationServiceTests
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.IPV6_RULE);
 
-        RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
+        Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse listed = (Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
         Assert.HasCount(1, listed.Rules);
         Assert.IsTrue(listed.Rules[0].Parsed);
         FirewallRuleSpecification listedRule = listed.Rules[0].Rule!;
@@ -283,11 +283,11 @@ public sealed class FirewallMutationServiceTests
     public async Task TestDeleteAsync_UsesFreshNumberFromCurrentListAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
-        RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
+        Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse listed = (Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
         FirewallRuleSpecification rule = listed.Rules[0].Rule!;
         DeleteRuleRequest request = harness.SignDelete(rule);
 
-        harness.SetStatus(UfwStatusFixtures.WithRules("[7] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
+        harness.SetStatus(UfwStatusFixtures.WithRules("[1] 80/tcp                     ALLOW IN    Anywhere", "[2] 22/tcp                     ALLOW IN    Anywhere                   # ssh"));
         harness.SetStatusAfterNextMutation(UfwStatusFixtures.EMPTY_ACTIVE);
 
         RuleMutationResponse deleted = (RuleMutationResponse)await harness.Service.DeleteAsync(request, TestContext.CancellationToken);
@@ -304,7 +304,7 @@ public sealed class FirewallMutationServiceTests
     public async Task TestDeleteAsync_RejectsMissingAndAmbiguousMatchesAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere"));
-        RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
+        Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse listed = (Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
         FirewallRuleSpecification rule = listed.Rules[0].Rule!;
 
         harness.SetStatus(UfwStatusFixtures.EMPTY_ACTIVE);
@@ -313,7 +313,7 @@ public sealed class FirewallMutationServiceTests
 
         harness.SetStatus(UfwStatusFixtures.DUPLICATE_RULES);
         IResponsePayload ambiguous = await harness.Service.DeleteAsync(harness.SignDelete(rule), TestContext.CancellationToken);
-        Assert.IsInstanceOfType<ConflictResponse>(ambiguous);
+        Assert.IsInstanceOfType<UnprocessableContentResponse>(ambiguous);
     }
 
     [TestMethod]
@@ -327,7 +327,7 @@ public sealed class FirewallMutationServiceTests
         {
             if (request.Arguments.Contains("status"))
             {
-                return new ChildProcessResult(0, harness.CurrentStatus, string.Empty, CancellationRequested: false);
+                return new ChildProcessResult(0, request.Arguments.Contains("verbose") ? UfwStatusFixtures.VerboseFromNumbered(harness.CurrentStatus) : harness.CurrentStatus, string.Empty, CancellationRequested: false);
             }
 
             int current = Interlocked.Increment(ref inFlight);
@@ -404,7 +404,7 @@ public sealed class FirewallMutationServiceTests
     public async Task TestDeleteAsync_SuccessfulExitWhileRuleRemainsFailsReconciliationAsync()
     {
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.WithRules("[1] 22/tcp                     ALLOW IN    Anywhere"));
-        RuleListResponse listed = (RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
+        Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse listed = (Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse)await harness.QueryService.ListAsync(TestContext.CancellationToken);
 
         IResponsePayload response = await harness.Service.DeleteAsync(harness.SignDelete(listed.Rules[0].Rule!), TestContext.CancellationToken);
 
@@ -448,11 +448,13 @@ public sealed class FirewallMutationServiceTests
         harness.ProcessRunner.Reset();
         harness.ProcessRunner
             .Setup(static runner => runner.RunAsync(It.IsAny<ChildProcessRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ChildProcessResult(0, UfwStatusFixtures.EMPTY_ACTIVE, "diagnostic garbage\n", CancellationRequested: false));
+            .ReturnsAsync((ChildProcessRequest request, CancellationToken _) => new ChildProcessResult(0,
+                request.Arguments.Contains("verbose") ? UfwStatusFixtures.VerboseFromNumbered(UfwStatusFixtures.EMPTY_ACTIVE) : UfwStatusFixtures.EMPTY_ACTIVE,
+                "diagnostic garbage\n", CancellationRequested: false));
 
         IResponsePayload response = await harness.QueryService.ListAsync(TestContext.CancellationToken);
 
-        Assert.IsInstanceOfType<RuleListResponse>(response);
+        Assert.IsInstanceOfType<Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse>(response);
     }
 
     [TestMethod]
@@ -475,17 +477,19 @@ public sealed class FirewallMutationServiceTests
         await using FirewallHarness harness = CreateHarness(UfwStatusFixtures.EMPTY_ACTIVE);
         using CancellationTokenSource mutationCancellation = new();
         int statusCalls = 0;
+        bool mutated = false;
         harness.SetProcessHandler(async (request, _) =>
         {
             if (request.Arguments.Contains("status"))
             {
-                int call = Interlocked.Increment(ref statusCalls);
-                string status = call == 1
-                    ? UfwStatusFixtures.EMPTY_ACTIVE
-                    : UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh");
-                return new ChildProcessResult(0, status, string.Empty, CancellationRequested: false);
+                Interlocked.Increment(ref statusCalls);
+                string status = mutated
+                    ? UfwStatusFixtures.WithRules("[ 1] 22/tcp                     ALLOW IN    Anywhere                   # ssh")
+                    : UfwStatusFixtures.EMPTY_ACTIVE;
+                return new ChildProcessResult(0, request.Arguments.Contains("verbose") ? UfwStatusFixtures.VerboseFromNumbered(status) : status, string.Empty, CancellationRequested: false);
             }
 
+            mutated = true;
             await mutationCancellation.CancelAsync();
             return new ChildProcessResult(0, "Rule added\n", string.Empty, CancellationRequested: false);
         });
@@ -493,7 +497,7 @@ public sealed class FirewallMutationServiceTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await harness.Service.AddAsync(harness.SignAdd(CreateSshRule()), mutationCancellation.Token));
 
-        Assert.AreEqual(2, Volatile.Read(ref statusCalls), "The authoritative postcondition must be read even when cancellation arrives after the mutating child exits.");
+        Assert.AreEqual(4, Volatile.Read(ref statusCalls), "The authoritative postcondition must be read even when cancellation arrives after the mutating child exits.");
     }
 
     [TestMethod]
@@ -508,7 +512,7 @@ public sealed class FirewallMutationServiceTests
             if (request.Arguments.Contains("status"))
             {
                 Interlocked.Increment(ref statusCalls);
-                return new ChildProcessResult(0, harness.CurrentStatus, string.Empty, CancellationRequested: false);
+                return new ChildProcessResult(0, request.Arguments.Contains("verbose") ? UfwStatusFixtures.VerboseFromNumbered(harness.CurrentStatus) : harness.CurrentStatus, string.Empty, CancellationRequested: false);
             }
 
             mutationStarted.TrySetResult();
@@ -523,18 +527,18 @@ public sealed class FirewallMutationServiceTests
 
         Task<IResponsePayload> queuedRead = harness.QueryService.ListAsync(TestContext.CancellationToken).AsTask();
         await Task.Delay(25, TestContext.CancellationToken);
-        Assert.AreEqual(1, Volatile.Read(ref statusCalls), "The queued read must not cross the execution gate while the mutation child is still owned.");
+        Assert.AreEqual(2, Volatile.Read(ref statusCalls), "The queued read must not cross the execution gate while the mutation child is still owned.");
 
         releaseMutation.TrySetResult();
         await Assert.ThrowsAsync<OperationCanceledException>(async () => await mutation);
-        RuleListResponse listed = (RuleListResponse)await queuedRead;
+        Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse listed = (Ufw.Shared.Ipc.Model.Responses.Domain.RuleListResponse)await queuedRead;
         Assert.IsTrue(listed.Active);
-        Assert.IsGreaterThanOrEqualTo(3, Volatile.Read(ref statusCalls), "Cancellation reconciliation must occur before the queued request runs.");
+        Assert.IsGreaterThanOrEqualTo(6, Volatile.Read(ref statusCalls), "Cancellation reconciliation must occur before the queued request runs.");
     }
 
     private static void VerifyNoUfwCalls(FirewallHarness harness) =>
         harness.ProcessRunner.Verify(
-            static runner => runner.RunAsync(It.IsAny<ChildProcessRequest>(), It.IsAny<CancellationToken>()),
+            static runner => runner.RunAsync(It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")), It.IsAny<CancellationToken>()),
             Times.Never);
 
     private static FirewallRuleSpecification CreateSshRule() => new()
@@ -706,7 +710,7 @@ public sealed class FirewallMutationServiceTests
                 {
                     if (request.Arguments.Contains("status"))
                     {
-                        return new ChildProcessResult(0, CurrentStatus, string.Empty, CancellationRequested: false);
+                        return new ChildProcessResult(0, request.Arguments.Contains("verbose") ? UfwStatusFixtures.VerboseFromNumbered(CurrentStatus) : CurrentStatus, string.Empty, CancellationRequested: false);
                     }
 
                     if (_statusAfterNextMutation is not null)
@@ -729,7 +733,7 @@ public sealed class FirewallMutationServiceTests
             NetworkInterfaceSnapshotService networkInterfaceSnapshots = new(NetworkInterfaces.Object, logger);
             FirewallRuleInterfaceValidator interfaceValidator = new(networkInterfaceSnapshots);
             FirewallMutationExecutor mutationExecutor = new(snapshotReader, interfaceValidator, new FirewallRuleCapabilityValidator(), runner, new UfwRuleCommandRenderer(), logger);
-            return new FirewallMutationService(verifier, new SignedMutationOrchestrator(_nonces, _gate, MutationSafetyGuard.Object), mutationExecutor);
+            return new FirewallMutationService(verifier, new SignedMutationOrchestrator(_nonces, _gate, MutationSafetyGuard.Object, snapshotReader), mutationExecutor);
         }
 
         public ValueTask DisposeAsync()
@@ -744,5 +748,14 @@ public sealed class FirewallMutationServiceTests
 
             return ValueTask.CompletedTask;
         }
+    }
+
+    private static IFirewallRuleSnapshotReader CreateCleanSnapshotReader()
+    {
+        Mock<IFirewallRuleSnapshotReader> reader = new();
+        reader.Setup(value => value.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(new Ufw.Systemd.Firewall.FirewallSnapshot(
+                true, [], Ufw.Systemd.Tests.TestFirewallConfiguration.Enabled)));
+        return reader.Object;
     }
 }

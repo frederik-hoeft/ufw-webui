@@ -1,0 +1,7 @@
+@inject IStringLocalizer<RulesStrings> RulesText
+
+<MudTooltip Text="@(RulesText["ReadOnlyTooltip"])">
+    <span role="img" aria-label="@(RulesText["ReadOnlyAria"])">
+        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+    </span>
+</MudTooltip>

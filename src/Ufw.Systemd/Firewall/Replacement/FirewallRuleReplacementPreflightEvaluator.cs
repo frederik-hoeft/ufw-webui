@@ -11,7 +11,7 @@ internal sealed class FirewallRuleReplacementPreflightEvaluator(
     IFirewallRuleInterfaceValidator interfaceValidator,
     IFirewallRuleCapabilityValidator capabilityValidator) : IFirewallRuleReplacementPreflightEvaluator
 {
-    public RuleReplacementPreflightResult Evaluate(RuleListResponse baseline, ReplaceRulePayload payload)
+    public RuleReplacementPreflightResult Evaluate(FirewallSnapshot baseline, ReplaceRulePayload payload)
     {
         ArgumentNullException.ThrowIfNull(baseline);
         ArgumentNullException.ThrowIfNull(payload);

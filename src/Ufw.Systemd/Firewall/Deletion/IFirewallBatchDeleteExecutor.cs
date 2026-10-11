@@ -4,5 +4,5 @@ namespace Ufw.Systemd.Firewall.Deletion;
 
 internal interface IFirewallBatchDeleteExecutor
 {
-    Task<RuleBatchDeleteExecutionResult> ExecuteAsync(BatchDeleteRulesPayload payload, CancellationToken cancellationToken);
+    Task<RuleBatchDeleteExecutionResult> ExecuteAsync(BatchDeleteRulesPayload payload, FirewallSnapshot baseline, CancellationToken cancellationToken);
 }

@@ -71,11 +71,11 @@
                                          Value="@_selected.Contains(orphan.Metadata.Id)"
                                          ValueChanged="@(value => SelectionChanged(orphan.Metadata.Id, value))"
                                          Disabled="@IsBusy"
-                                         aria-label="@RulesText["SelectOrphanedMetadata", DescribeRuleId(orphan.RuleId)]" />
+                                         aria-label="@RulesText["SelectOrphanedMetadata", orphan.RuleId]" />
                             <article>
                                 <header>
                                     <MudText Typo="Typo.subtitle2">@RulesText["OrphanedMetadata"]</MudText>
-                                    <code title="@orphan.RuleId">@DescribeRuleId(orphan.RuleId)</code>
+                                    <code title="@orphan.RuleId">@orphan.RuleId</code>
                                 </header>
                                 @if (orphan.Metadata.Tags.Count > 0)
                                 {

@@ -19,6 +19,14 @@ Ufw.Web.Client/
 
 Feature-specific DI services belong with their feature. `Services` is reserved for capabilities such as clipboard, local storage, localization, theming, and general client error mapping. Razor component types and UI-specific catalogues belong under `UI` and must not leak into feature/API layers.
 
+## Type accessibility and service contracts
+
+The Blazor client is an application assembly, not a reusable public API library. Public interfaces, DTOs, feature models, and component parameter/callback types are permitted when they make contracts readable and keep constructor injection straightforward. Do not force a public Razor component to use property injection or create extra indirection solely to internalize a constructor dependency.
+
+**Concrete service and API-client implementations should be `internal`**, even when their interfaces are public. This includes browser services, feature services, request handlers, and other DI implementation details; keep implementation-specific helpers internal too. Prefer depending on clear interfaces rather than concrete services. Components retain the accessibility required by Razor generation and their component contracts; the application's entry point and framework-activated types follow their own requirements.
+
+CA1515 is disabled for `Ufw.Web.Client` in the project `.editorconfig`: it assumes library-style visibility and cannot distinguish intentional application contracts from accidental exports. The client test suite checks that concrete implementations of client-owned contracts under `Api`, `Features`, and `Services` remain non-public. During review, apply the same rule to concrete collaborators that do not implement an interface. This convention is about preserving encapsulation and useful analyzer coverage of non-public implementation details, not minimizing every exported type.
+
 ## Razor components and code-behind
 
 Keep a component's markup and significant component logic together by basename:

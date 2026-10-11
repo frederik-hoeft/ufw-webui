@@ -9,6 +9,9 @@ public sealed partial class RuleGroupMembers
     public RuleGroupManagementProjection Projection { get; set; } = null!;
 
     [Parameter]
+    public IReadOnlyDictionary<Guid, string> TemplateNames { get; set; } = new Dictionary<Guid, string>();
+
+    [Parameter]
     public bool Disabled { get; set; }
 
     [Parameter]

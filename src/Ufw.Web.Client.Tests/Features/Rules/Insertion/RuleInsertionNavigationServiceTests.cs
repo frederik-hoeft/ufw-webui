@@ -16,7 +16,7 @@ public sealed class RuleInsertionNavigationServiceTests
         ListedFirewallRule second = Rule("duplicate", FirewallAddressFamily.IPv4, 2);
         RuleListResponse baseline = new(Active: true, [first, second], TestFirewallConfiguration.Enabled);
 
-        string uri = _service.BuildUri(baseline, second, RuleInsertionPlacement.After);
+        string uri = _service.BuildUri(baseline, 1, RuleInsertionPlacement.After);
 
         StringAssert.Contains(uri, $"baseline={Uri.EscapeDataString(FirewallRuleSnapshotFingerprint.Compute(baseline))}");
         StringAssert.Contains(uri, "anchor=1");
@@ -24,13 +24,12 @@ public sealed class RuleInsertionNavigationServiceTests
     }
 
     [TestMethod]
-    public void BuildUri_RejectsAnchorThatIsNotPartOfSnapshot()
+    public void BuildUri_RejectsOccurrenceOutsideSnapshot()
     {
-        ListedFirewallRule anchor = Rule("one", FirewallAddressFamily.IPv4, 1);
-        RuleListResponse baseline = new(Active: true, [anchor], TestFirewallConfiguration.Enabled);
-        ListedFirewallRule detachedCopy = Rule("one", FirewallAddressFamily.IPv4, 1);
+        RuleListResponse baseline = new(Active: true, [Rule("one", FirewallAddressFamily.IPv4, 1)], TestFirewallConfiguration.Enabled);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, detachedCopy, RuleInsertionPlacement.Before));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, -1, RuleInsertionPlacement.Before));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, 1, RuleInsertionPlacement.Before));
     }
 
     [TestMethod]
@@ -38,7 +37,7 @@ public sealed class RuleInsertionNavigationServiceTests
     {
         RuleListResponse baseline = new(Active: true, [Rule("v6", FirewallAddressFamily.IPv6, 1)], TestFirewallConfiguration.Disabled);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, baseline.Rules[0], RuleInsertionPlacement.Before));
+        Assert.ThrowsExactly<InvalidOperationException>(() => _service.BuildUri(baseline, 0, RuleInsertionPlacement.Before));
     }
 
     [TestMethod]

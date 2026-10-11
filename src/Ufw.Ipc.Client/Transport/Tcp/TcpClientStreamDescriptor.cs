@@ -5,7 +5,7 @@ namespace Ufw.Ipc.Client.Transport.Tcp;
 
 internal sealed class TcpClientStreamDescriptor(string serverName, int port) : ITcpClientStreamDescriptor
 {
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     public async Task<NetworkStream> ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
         TcpClient tcpClient = new();

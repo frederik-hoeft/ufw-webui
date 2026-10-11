@@ -1,4 +1,4 @@
-@page "/hosts"
+﻿@page "/hosts"
 @attribute [Authorize]
 @implements IDisposable
 @inject IKnownHostInventoryService HostInventory
@@ -45,19 +45,9 @@
     </Status>
 </PageHeader>
 
-@if (_error is not null)
+@if (_error is { } error)
 {
-    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-5" role="alert">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">@HostsText["LoadFailed"]</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">@_error.Message</MudText>
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Error"
-                   StartIcon="@Icons.Material.Filled.Refresh"
-                   Disabled="@IsBusy"
-                   OnClick="RefreshAsync">
-            @CommonText["Retry"]
-        </MudButton>
-    </MudAlert>
+    <InventoryErrorAlert Title="@(HostsText["LoadFailed"])" Message="@error.Message" RetryText="@(CommonText["Retry"])" Disabled="@IsBusy" OnRetry="RefreshAsync" />
 }
 
 <div class="known-hosts-page">
@@ -73,10 +63,7 @@
 
     @if (_loading && _inventory is null)
     {
-        <div class="inventory-loading" role="status" aria-live="polite">
-            <MudProgressLinear Indeterminate="true" aria-label="@(HostsText["LoadingAria"])" />
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@HostsText["LoadingInventory"]</MudText>
-        </div>
+        <InventoryLoading AriaLabel="@(HostsText["LoadingAria"])" Message="@(HostsText["LoadingInventory"])" />
     }
     else if (_inventory is { Hosts.Count: 0 })
     {
