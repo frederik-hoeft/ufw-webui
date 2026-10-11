@@ -14,7 +14,7 @@ namespace Ufw.Shared.Ipc.Serialization.Json;
 /// </summary>
 public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IMessageSerializer
 {
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     public ValueTask<IRequestMessage> SerializeRequestAsync(string route, string method, CancellationToken cancellationToken)
     {
         ValidateRequestMetadata(route, method, payload: null);
@@ -22,7 +22,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         return ValueTask.FromResult(message);
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     public ValueTask<IRequestMessage> SerializeRequestAsync<T>(string route, string method, T payload, CancellationToken cancellationToken)
     {
         ValidateRequestMetadata(route, method, payload);
@@ -31,7 +31,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         return ValueTask.FromResult(message);
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     public ValueTask<IRequestMessage> SerializeRequestAsync(string route, string method, object? payload, Type type, CancellationToken cancellationToken)
     {
         ValidateRequestMetadata(route, method, payload);
@@ -40,7 +40,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         return ValueTask.FromResult(message);
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     public ValueTask<IResponseMessage> SerializeResponseAsync<T>(T payload, CancellationToken cancellationToken) where T : IIdentifiable
     {
         ArgumentNullException.ThrowIfNull(payload);
@@ -136,7 +136,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         };
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     private IMessage FromEnvelope(ApplicationEnvelope envelope)
     {
         if (envelope.ProtocolVersion != ApplicationProtocolVersion.CURRENT)
@@ -169,7 +169,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
             $"Application document kind '{envelope.Kind}' is not 'request' or 'response'.");
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     private RequestMessage FromRequestEnvelope(ApplicationEnvelope envelope, bool hasPayload)
     {
         if (envelope.Status is not null)
@@ -193,7 +193,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         return new RequestMessage(envelope.ProtocolVersion, envelope.Method, envelope.Route, envelope.PayloadType, CreatePayloadBlob(envelope, hasPayload));
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     private ResponseMessage FromResponseEnvelope(ApplicationEnvelope envelope, bool hasPayload)
     {
         if (envelope.Method is not null || envelope.Route is not null)
@@ -266,7 +266,7 @@ public sealed class JsonMessageSerializer(AotJsonSerializerContext context) : IM
         }
     }
 
-    [SuppressMessage("Reliability", CA2000_WARN_OBJECT_NOT_DISPOSED, Justification = CA2000_OWNERSHIP_TRANSFER)]
+    [SuppressMessage("Reliability", CA2000_OBJECT_NOT_DISPOSED, Justification = CA2000_JUSTIFY_OWNERSHIP_TRANSFER)]
     private BufferedJsonMessageBlob CreatePayloadBlob(ApplicationEnvelope envelope, bool hasPayload) => hasPayload
         ? BufferedJsonMessageBlob.FromJsonElement(envelope.Payload, context)
         : BufferedJsonMessageBlob.Empty(context);

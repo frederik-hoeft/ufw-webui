@@ -112,4 +112,8 @@ public readonly struct PacketPortSet : IDimensionSet, IEquatable<PacketPortSet>
             ? set
             : throw new ArgumentException($"Expected a {nameof(PacketPortSet)} axis.", nameof(other));
     }
+
+    public static bool operator ==(PacketPortSet left, PacketPortSet right) => left.Equals(right);
+
+    public static bool operator !=(PacketPortSet left, PacketPortSet right) => !(left == right);
 }

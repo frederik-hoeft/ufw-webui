@@ -190,8 +190,8 @@ internal sealed class PacketLayout<TAddress>
             throw new ArgumentException("The packet region contains protocols outside the closed world.", nameof(region));
         }
 
-        ValidateRegionInterface(Profile.HasIngress, region.Ingress, "ingress", region);
-        ValidateRegionInterface(Profile.HasEgress, region.Egress, "egress", region);
+        ValidateRegionInterface(Profile.HasIngress, region.Ingress, "ingress", nameof(region));
+        ValidateRegionInterface(Profile.HasEgress, region.Egress, "egress", nameof(region));
         if (region.IsEmpty)
         {
             return;
@@ -228,17 +228,13 @@ internal sealed class PacketLayout<TAddress>
         }
     }
 
-    private void ValidateRegionInterface(
-        bool axisExists,
-        FiniteSet<NetworkInterfaceName>? specified,
-        string axis,
-        PacketRegion<TAddress> region)
+    private void ValidateRegionInterface(bool axisExists, FiniteSet<NetworkInterfaceName>? specified, string axis, string regionParamName)
     {
         if (!axisExists)
         {
             if (specified is not null)
             {
-                throw new ArgumentException($"The packet region has {axis} on a chain without it.", nameof(region));
+                throw new ArgumentException($"The packet region has {axis} on a chain without it.", regionParamName);
             }
 
             return;
@@ -246,12 +242,12 @@ internal sealed class PacketLayout<TAddress>
 
         if (specified is null)
         {
-            throw new ArgumentException($"The packet region is missing its {axis} axis.", nameof(region));
+            throw new ArgumentException($"The packet region is missing its {axis} axis.", regionParamName);
         }
 
         if (!World.Interfaces.IsSupersetOf(specified.Value))
         {
-            throw new ArgumentException($"The packet region contains {axis} interfaces outside the closed world.", nameof(region));
+            throw new ArgumentException($"The packet region contains {axis} interfaces outside the closed world.", regionParamName);
         }
     }
 

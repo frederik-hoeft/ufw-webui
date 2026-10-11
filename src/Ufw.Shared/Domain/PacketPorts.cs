@@ -11,19 +11,28 @@ namespace Ufw.Shared.Domain;
 /// </summary>
 public static class PacketPorts
 {
-    /// <summary>Gets the smallest modeled port.</summary>
+    /// <summary>
+    /// Gets the smallest modeled port.
+    /// </summary>
     public const ushort MINIMUM = 1;
 
-    /// <summary>Gets the largest modeled port.</summary>
+    /// <summary>
+    /// Gets the largest modeled port.
+    /// </summary>
     public const ushort MAXIMUM = 65535;
 
-    /// <summary>Gets every modeled numeric port.</summary>
+    /// <summary>
+    /// Gets every modeled numeric port.
+    /// </summary>
     public static IntervalSet<ushort> Universe { get; } = IntervalSet<ushort>.Between(MINIMUM, MAXIMUM);
 
     /// <summary>
     /// Parses a comma-separated list of ports and inclusive <c>start:end</c> ranges.
     /// Whitespace around entries and range delimiters is ignored.
     /// </summary>
+    /// <param name="text">The text to parse.</param>
+    /// <returns>The parsed ports.</returns>
+    /// <exception cref="FormatException">Thrown when the text is not a valid port segment.</exception>
     public static IntervalSet<ushort> Parse(ReadOnlySpan<char> text) => TryParseCore(text, out IntervalSet<ushort> ports, out ReadOnlySpan<char> errorSegment, out ParseError error)
         ? ports
         : ThrowParseError(errorSegment, error);
@@ -43,7 +52,10 @@ public static class PacketPorts
     /// Parses a comma-separated list of ports and inclusive <c>start:end</c> ranges.
     /// Whitespace around entries and range delimiters is ignored.
     /// </summary>
-    public static IntervalSet<ushort> Parse(string? text) => text is null ? Parse([]) : Parse(text.AsSpan());
+    /// <param name="text">The text to parse.</param>
+    /// <returns>The parsed ports.</returns>
+    /// <exception cref="FormatException">Thrown when the text is not a valid port segment.</exception>
+    public static IntervalSet<ushort> Parse(string? text) => Parse(text.AsSpan());
 
     /// <summary>
     /// Tries to parse comma-separated ports and inclusive <c>start:end</c> ranges, allowing whitespace around entries and delimiters.
@@ -62,9 +74,7 @@ public static class PacketPorts
     /// <param name="text">The text to parse.</param>
     /// <param name="ports">The parsed ports, if parsing succeeded.</param>
     /// <returns><see langword="true"/> if parsing succeeded; otherwise, <see langword="false"/>.</returns>
-    public static bool TryParse(string? text, out IntervalSet<ushort> ports) => text is null
-        ? TryParse([], out ports)
-        : TryParse(text.AsSpan(), out ports);
+    public static bool TryParse(string? text, out IntervalSet<ushort> ports) => TryParse(text.AsSpan(), out ports);
 
     private static bool TryParseCore(ReadOnlySpan<char> text, out IntervalSet<ushort> ports, out ReadOnlySpan<char> errorSegment, out ParseError error)
     {
@@ -89,8 +99,8 @@ public static class PacketPorts
         ReadOnlySpan<char> remaining = trimmed;
         while (true)
         {
-            int segmentEnd = remaining.IndexOf(',');
-            ReadOnlySpan<char> segment = segmentEnd < 0 ? remaining : remaining[..segmentEnd].TrimEnd();
+            int separatorIndex = remaining.IndexOf(',', out int segmentEnd);
+            ReadOnlySpan<char> segment = remaining[..segmentEnd].TrimEnd();
             if (segment.IsEmpty)
             {
                 errorSegment = segment;
@@ -103,11 +113,11 @@ public static class PacketPorts
             }
 
             ranges.Add(range);
-            if (segmentEnd < 0)
+            if (separatorIndex == -1)
             {
                 break;
             }
-            remaining = remaining[(segmentEnd + 1)..].TrimStart();
+            remaining = remaining[(separatorIndex + 1)..].TrimStart();
         }
 
         ports = IntervalSet<ushort>.Of(ranges);

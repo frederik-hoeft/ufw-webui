@@ -1,13 +1,11 @@
-﻿using System.Numerics;
-using Ufw.Shared.Domain.Algebra;
+﻿using Ufw.Shared.Domain.Algebra;
 
 namespace Ufw.Shared.Domain;
 
 /// <summary>
 /// Disjoint packet rectangles for one chain. Projections are existential: a value is present when at least one packet in the space uses it.
 /// </summary>
-public sealed class PacketSpace<TAddress>
-    where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
+public sealed class PacketSpace<TAddress> where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     private readonly PacketLayout<TAddress> _layout;
 
