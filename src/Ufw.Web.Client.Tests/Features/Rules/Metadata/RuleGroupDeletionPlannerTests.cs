@@ -1,4 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
 
@@ -25,9 +26,24 @@ public sealed class RuleGroupDeletionPlannerTests
         Assert.AreEqual(snapshot.FirewallActive, plan.Baseline.Active);
         Assert.AreSame(snapshot.Rules, plan.Baseline.Rules);
         Assert.AreSame(snapshot.Configuration, plan.Baseline.Configuration);
+        Assert.AreSame(snapshot.Assessment, plan.Baseline.Assessment);
         CollectionAssert.AreEqual(new[] { 0, 2, 3 }, plan.OccurrenceIds.ToArray());
         CollectionAssert.AreEqual(new[] { "one", "two" }, plan.ExpectedRuleIds.ToArray());
         CollectionAssert.AreEqual(new[] { s_templateId }, plan.ExpectedTemplateIds.ToArray());
+    }
+
+    [TestMethod]
+    public void Create_DirtyAuthoritativeStateRejectsBeforeSigning()
+    {
+        RuleGroup group = Group(["one"]);
+        RuleSnapshot snapshot = Snapshot("one") with
+        {
+            Assessment = new FirewallStateAssessment([new FirewallStateIssue("duplicate", "one", [0, 1])]),
+        };
+        RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot, 0)));
+
+        InvalidOperationException exception = Assert.ThrowsExactly<InvalidOperationException>(() => RuleGroupDeletionPlanner.Create(projection, snapshot));
+        StringAssert.Contains(exception.Message, "unambiguous");
     }
 
     [TestMethod]

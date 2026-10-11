@@ -1,8 +1,10 @@
 ﻿using System.Net;
+using Microsoft.JSInterop;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Features.Rules.Intent;
+using Ufw.Web.Client.Services.Errors;
 
 namespace Ufw.Web.Client.Features.Rules.Metadata;
 
@@ -63,7 +65,8 @@ internal sealed class RuleGroupDeletionWorkflowService(IRuleMutationService rule
                 cleanup.Groups,
                 response);
         }
-        catch (Exception exception) when (exception is ApiRequestException or ApiProtocolException)
+        catch (Exception exception) when (exception is ApiRequestException or ApiProtocolException or HttpRequestException
+            or BrowserOperationException or JSException or JSDisconnectedException)
         {
             RuleGroupDeletionWorkflowOutcome outcome = response.Outcome == RuleBatchDeleteOutcome.Completed
                 ? RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed

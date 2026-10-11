@@ -138,6 +138,17 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void RuleFilterSemantics_AcceptsWhitespaceBetweenPortEntriesButPreservesStrictTokens()
+    {
+        Assert.IsTrue(RuleFilterSemantics.TryParsePorts(" 80, 443, 1000:1002 ", out PortFilterOperand? ports));
+        Assert.IsNotNull(ports);
+        Assert.AreEqual("80,443,1000:1002", ports.CanonicalValue);
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("80 :443", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("80, ,443", out _));
+        Assert.IsFalse(RuleFilterSemantics.TryParsePorts("any", out _));
+    }
+
+    [TestMethod]
     public void RuleFilterSemantics_UsesSharedNetworkSetsForCanonicalRangesAndContainment()
     {
         Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("10.20.30.40/24", out NetworkFilterOperand? ipv4));

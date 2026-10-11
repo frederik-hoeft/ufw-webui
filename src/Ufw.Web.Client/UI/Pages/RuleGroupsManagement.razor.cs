@@ -39,6 +39,8 @@ public sealed partial class RuleGroupsManagement
 
     private bool IsBusy => _loading || _saving;
 
+    private bool CanDeleteSignedGroups => _ruleSnapshot?.Assessment.IsClean == true;
+
     private Severity DeletionResultSeverity => _deletionResult?.Result switch
     {
         { Outcome: RuleGroupDeletionWorkflowOutcome.GroupChanged } => Severity.Warning,
@@ -160,6 +162,10 @@ public sealed partial class RuleGroupsManagement
         if (projection is null)
         {
             Snackbar.Add(RulesText["GroupNoLongerAvailable"], Severity.Warning);
+            return;
+        }
+        if (projection.StoredMemberCount != 0 && !CanDeleteSignedGroups)
+        {
             return;
         }
 

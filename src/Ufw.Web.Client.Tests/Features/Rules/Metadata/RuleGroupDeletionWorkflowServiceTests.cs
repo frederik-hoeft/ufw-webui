@@ -225,6 +225,51 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
     }
 
     [TestMethod]
+    public async Task DeleteAsync_ConfirmedBatchRetainsOutcomeWhenHttpTransportFailsDuringCleanupAsync()
+    {
+        TestHost host = new();
+        RuleGroup group = Group(["one"]);
+        RuleSnapshot snapshot = Snapshot([Rule("one")]);
+        RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
+        RuleBatchDeleteResponse batch = new(RuleBatchDeleteOutcome.Completed, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], Diagnostic: null);
+        host.Mutations.Setup(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(batch);
+        host.Groups.SetupSequence(service => service.RefreshAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([group])
+            .ThrowsAsync(new HttpRequestException("connection lost"));
+        host.Groups.SetupGet(service => service.Current).Returns([group]);
+
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+
+        Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
+        Assert.AreSame(batch, result.BatchResponse);
+        Assert.AreEqual("connection lost", result.CleanupDiagnostic);
+        CollectionAssert.AreEqual(new[] { group }, result.Groups.ToArray());
+        host.Mutations.Verify(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_ConfirmedBatchRetainsOutcomeWhenBrowserTransportFailsAsync()
+    {
+        TestHost host = new();
+        RuleGroup group = Group(["one"]);
+        RuleSnapshot snapshot = Snapshot([Rule("one")]);
+        RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
+        RuleBatchDeleteResponse batch = new(RuleBatchDeleteOutcome.Completed, new RuleListResponse(true, [], TestFirewallConfiguration.Enabled), [], [], Diagnostic: null);
+        host.Mutations.Setup(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(batch);
+        host.Groups.SetupSequence(service => service.RefreshAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([group])
+            .ThrowsAsync(new Microsoft.JSInterop.JSDisconnectedException("browser connection lost"));
+        host.Groups.SetupGet(service => service.Current).Returns([group]);
+
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+
+        Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
+        Assert.AreSame(batch, result.BatchResponse);
+    }
+
+    [TestMethod]
     public async Task DeleteAsync_PartialBatchNeverDeletesGroupAsync()
     {
         TestHost host = new();

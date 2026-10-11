@@ -66,6 +66,11 @@
     </MudAlert>
 }
 
+@if (_ruleSnapshot is { } ruleSnapshot)
+{
+    <FirewallAmbiguityAlert Assessment="@ruleSnapshot.Assessment" />
+}
+
 @if (_ruleInventoryError is not null && _groups.Count > 0)
 {
     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status">
@@ -157,6 +162,7 @@
                             <td class="actions" @onclick:stopPropagation="true">
                                 <RuleGroupActionsMenu Group="@group.Group"
                                                       Disabled="@IsBusy"
+                                                      DeleteDisabled="@(group.StoredMemberCount != 0 && !CanDeleteSignedGroups)"
                                                       EditRequested="@EditAsync"
                                                       DeleteRequested="@DeleteAsync" />
                             </td>
@@ -200,6 +206,7 @@
                         <div @onclick:stopPropagation="true">
                             <RuleGroupActionsMenu Group="@group.Group"
                                                   Disabled="@IsBusy"
+                                                  DeleteDisabled="@(group.StoredMemberCount != 0 && !CanDeleteSignedGroups)"
                                                   EditRequested="@EditAsync"
                                                   DeleteRequested="@DeleteAsync" />
                         </div>

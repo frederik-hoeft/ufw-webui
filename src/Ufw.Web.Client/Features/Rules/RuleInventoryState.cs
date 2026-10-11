@@ -23,6 +23,7 @@ internal sealed record RuleInventoryState
     public RuleSnapshotStaleReason? StaleReason { get; }
     public bool IsLoading => Status is RuleInventoryStatus.Loading or RuleInventoryStatus.Refreshing;
     public bool IsCurrent => Status == RuleInventoryStatus.Current;
+    public bool CanMutateFirewall => IsCurrent && Snapshot?.Assessment.IsClean == true;
     public bool IsStale => Status == RuleInventoryStatus.Stale;
     public static RuleInventoryState Initial { get; } = new(RuleInventoryStatus.NotLoaded, snapshot: null, error: null, refreshReason: null, staleReason: null);
 

@@ -13,7 +13,7 @@
         @RulesText["EditGroup"]
     </MudMenuItem>
     <MudDivider />
-    <MudMenuItem Disabled="@Disabled"
+    <MudMenuItem Disabled="@(Disabled || DeleteDisabled)"
                  Icon="@(Group.RuleIds.Count == 0 ? Icons.Material.Filled.Delete : Icons.Material.Filled.DeleteForever)"
                  IconColor="Color.Error"
                  OnClick="@(() => DeleteRequested.InvokeAsync(Group))"

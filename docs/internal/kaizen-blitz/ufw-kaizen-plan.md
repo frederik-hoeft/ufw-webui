@@ -257,6 +257,7 @@ Generate/inspect OpenAPI and run Web integration tests here. **Keep ACC-01/02/03
 1. [x] CLIENT KZ-20 + KZ-23 (C4.1): consolidate typed API client base-address/auth-handler registration and GUID-resource URI validation/construction; use `SimpleUriBuilder` for navigation queries and remove the redundant global URI helper. Typed client payload/response handling remains explicit, preserving independent API contracts and existing shared `ReadRequiredAsync` behavior.
 2. [x] CLIENT KZ-21 (C4.2): allow public client contracts and Razor constructor dependencies while keeping concrete service implementations internal. Disable client CA1515 and test service implementation visibility rather than internalizing the contract graph.
 3. [x] CLIENT KZ-22 (C4.3): centralize the local, culture-aware timestamp display used by five status/inventory/rule views and the shared diagnostic-reference fragment in both standalone error states. Retain distinct startup retry and unexpected-error reload actions; prior C3 work already unified row/action/menu fragments.
+4. [x] PR #44 acceptance follow-up (C4.3.1): reset anonymous login redirect coordination on arrival, require clean authoritative state for signed create/edit/group-delete routes while preserving metadata-only actions, restore UI port-filter whitespace tolerance, and retain confirmed batch outcomes on cleanup transport failures. Targeted regression tests cover each issue; browser acceptance remains outstanding.
 
 ### Immediate shared-parser corrections (C3.4.1, C4.1.1)
 

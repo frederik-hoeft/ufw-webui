@@ -56,6 +56,22 @@ public sealed class AuthenticationNavigationTests
     }
 
     [TestMethod]
+    public void RedirectToLogin_AnonymousHistoryNavigationRedirectsAgainAfterLoginReached()
+    {
+        TestNavigationManager navigation = new("https://localhost/rules");
+        using AuthenticationNavigation redirect = Create(navigation, out AuthenticationSession session);
+
+        redirect.RedirectToLogin();
+        navigation.SimulateLocationChange(navigation.LastUri!);
+        navigation.SimulateLocationChange("/templates");
+        redirect.RedirectToLogin();
+
+        Assert.AreEqual(2, navigation.NavigateCount);
+        Assert.AreEqual("/templates", Uri.UnescapeDataString(new Uri(navigation.LastUri!).Query["?returnUrl=".Length..]));
+        Assert.IsNull(session.Token);
+    }
+
+    [TestMethod]
     public void RedirectToLogin_ConcurrentRequestsNavigateOnce()
     {
         TestNavigationManager navigation = new("https://localhost/rules");

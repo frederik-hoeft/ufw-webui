@@ -44,7 +44,7 @@ public sealed partial class EditRule
 
     private bool CanEdit => _state.IsCurrent && CanUseReplacementContext && !_submitting && !_metadataSaving && !FirewallReplacementCompleted;
 
-    private bool CanSubmit => CanEdit;
+    private bool CanSubmit => CanEdit && _state.CanMutateFirewall;
 
     private bool CanRetryMetadataSave => _workflow.CanRetryMetadataSave && !_metadataSaving;
 

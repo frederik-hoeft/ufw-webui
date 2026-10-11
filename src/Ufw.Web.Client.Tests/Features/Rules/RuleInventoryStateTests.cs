@@ -13,6 +13,30 @@ namespace Ufw.Web.Client.Tests.Features.Rules;
 public sealed class RuleInventoryStateTests
 {
     [TestMethod]
+    public void CanMutateFirewall_RequiresFreshAndUnambiguousAssessment()
+    {
+        RuleSnapshot clean = new(true, [Rule("one")], TestFirewallConfiguration.Enabled);
+        RuleSnapshot ambiguous = clean with
+        {
+            Assessment = new FirewallStateAssessment([new FirewallStateIssue("duplicate", "one", [0, 1])]),
+        };
+        RuleInventoryState initial = RuleInventoryState.Initial;
+        RuleInventoryState refreshing = initial.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual));
+        RuleInventoryState current = refreshing.MoveNext(new RuleInventoryTransition.RefreshCompleted(clean));
+        RuleInventoryState dirty = current.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual))
+            .MoveNext(new RuleInventoryTransition.RefreshCompleted(ambiguous));
+        RuleInventoryState stale = current.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual))
+            .MoveNext(new RuleInventoryTransition.RefreshFailed(new ClientError(ClientErrorKind.Unavailable, "offline", Retryable: true)));
+
+        Assert.IsFalse(initial.CanMutateFirewall);
+        Assert.IsFalse(refreshing.CanMutateFirewall);
+        Assert.IsTrue(current.CanMutateFirewall);
+        Assert.IsFalse(dirty.CanMutateFirewall);
+        Assert.IsFalse(stale.CanMutateFirewall);
+        Assert.IsFalse(current.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual)).CanMutateFirewall);
+    }
+
+    [TestMethod]
     public void CompleteRefresh_LoadsMetadataBySemanticIdentity()
     {
         Guid metadataId = Guid.CreateVersion7();

@@ -42,6 +42,10 @@ internal static class RuleGroupDeletionPlanner
         {
             throw new InvalidOperationException("A group with no live-rule memberships does not require a firewall-deletion plan.");
         }
+        if (snapshot is not null && !snapshot.Assessment.IsClean)
+        {
+            throw new InvalidOperationException("Signed group deletion requires an unambiguous authoritative firewall snapshot.");
+        }
         if (snapshot is null || !projection.MemberResolutionAvailable || projection.StaleMembershipCount != 0)
         {
             throw new InvalidOperationException("All group memberships must resolve against the current firewall snapshot before deleting the group and its rules.");
@@ -72,7 +76,7 @@ internal static class RuleGroupDeletionPlanner
             throw new InvalidOperationException("The confirmed group member preview no longer matches the current firewall snapshot.");
         }
 
-        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration);
+        RuleListResponse baseline = new(snapshot.FirewallActive, snapshot.Rules, snapshot.Configuration) { Assessment = snapshot.Assessment };
         return new RuleGroupDeletionPlan(
             projection.Group.Id,
             baseline,

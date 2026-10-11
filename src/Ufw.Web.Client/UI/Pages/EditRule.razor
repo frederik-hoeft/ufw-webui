@@ -83,6 +83,8 @@ else if (_state.Snapshot is null)
 }
 else
 {
+    <FirewallAmbiguityAlert Assessment="@_state.Snapshot.Assessment" />
+
     @if (_state.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-5" role="status" aria-live="polite">

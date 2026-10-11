@@ -49,7 +49,7 @@ public sealed partial class CreateRule
 
     private bool CanEdit => _state.IsCurrent && _interaction.CanEdit(IsOrderedInsertionRequested);
 
-    private bool CanSubmit => CanEdit;
+    private bool CanSubmit => CanEdit && _state.CanMutateFirewall;
 
     private bool CanLoadSelectedTemplate => CanEdit && !_loadingTemplates && _selectedTemplateId is not null;
 
