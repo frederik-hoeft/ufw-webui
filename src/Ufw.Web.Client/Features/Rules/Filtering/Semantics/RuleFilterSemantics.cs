@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
-using System.Net.Sockets;
 using Ufw.Shared.Domain;
 using Ufw.Shared.Domain.Algebra;
 using Ufw.Shared.Firewall;
@@ -23,38 +22,19 @@ internal static class RuleFilterSemantics
         }
 
         string text = value.Trim();
-        int slash = text.IndexOf('/', StringComparison.Ordinal);
-        ReadOnlySpan<char> address = slash < 0 ? text.AsSpan() : text.AsSpan(0, slash);
-        if (!IPAddress.TryParse(address, out IPAddress? parsedAddress))
+        if (NetworkAddress.TryParseIPv4(text, out Interval<uint> ipv4))
         {
-            return false;
+            operand = new NetworkFilterOperand(FirewallAddressFamily.IPv4, IntervalSet<uint>.Of(ipv4), default, FormatIPv4(ipv4.Start, text));
+            return true;
         }
 
-        try
+        if (NetworkAddress.TryParseIPv6(text, out Interval<UInt128> ipv6))
         {
-            switch (parsedAddress.AddressFamily)
-            {
-                case AddressFamily.InterNetwork:
-                {
-                    Interval<uint> ipv4 = NetworkAddress.ParseIPv4(text);
-                    operand = new NetworkFilterOperand(FirewallAddressFamily.IPv4, IntervalSet<uint>.Of(ipv4), default, FormatIPv4(ipv4.Start, text));
-                    return true;
-                }
-                case AddressFamily.InterNetworkV6:
-                {
-                    Interval<UInt128> ipv6 = NetworkAddress.ParseIPv6(text);
-                    operand = new NetworkFilterOperand(FirewallAddressFamily.IPv6, default, IntervalSet<UInt128>.Of(ipv6), FormatIPv6(ipv6.Start, text));
-                    return true;
-                }
-                default:
-                    return false;
-            }
+            operand = new NetworkFilterOperand(FirewallAddressFamily.IPv6, default, IntervalSet<UInt128>.Of(ipv6), FormatIPv6(ipv6.Start, text));
+            return true;
         }
-        catch (FormatException)
-        {
-            // The shared parser validates the full CIDR syntax and rejects scoped IPv6 addresses.
-            return false;
-        }
+
+        return false;
     }
 
     public static bool TryParseNetwork(string? value, FirewallAddressFamily addressFamily, [NotNullWhen(true)] out NetworkFilterOperand? operand)

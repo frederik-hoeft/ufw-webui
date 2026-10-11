@@ -187,6 +187,23 @@ public sealed class RuleQueryServiceTests
     }
 
     [TestMethod]
+    public void RuleFilterSemantics_NetworkTryParsePreservesUserInputValidation()
+    {
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork(" 10.1.2.3/17 ", out NetworkFilterOperand? network));
+        Assert.IsNotNull(network);
+        Assert.AreEqual("10.1.0.0/17", network.CanonicalValue);
+
+        Assert.IsTrue(RuleFilterSemantics.TryParseNetwork("2001:db8::1/128", out NetworkFilterOperand? ipv6));
+        Assert.IsNotNull(ipv6);
+        Assert.AreEqual("2001:db8::1", ipv6.CanonicalValue);
+
+        foreach (string invalid in new[] { "any", "anywhere", "10.0.0.1/033", "10.0.0.1/abc", "2001:db8::1/129", "fe80::1%3", "not-an-address" })
+        {
+            Assert.IsFalse(RuleFilterSemantics.TryParseNetwork(invalid, out _), $"Unexpected accepted input '{invalid}'.");
+        }
+    }
+
+    [TestMethod]
     public void RuleFilterSemantics_RejectsMalformedAndWrongFamilyNetworks()
     {
         Assert.IsFalse(RuleFilterSemantics.TryParseNetwork("fe80::1%3", out _));

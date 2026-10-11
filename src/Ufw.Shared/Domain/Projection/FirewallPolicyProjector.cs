@@ -34,7 +34,7 @@ public static class FirewallPolicyProjector
             FirewallAddressFamily.IPv4,
             requireIPv6Enabled: false,
             configuration.IPv6Enabled,
-            static address => ParseAddress(address, NetworkAddress.ParseIPv4),
+            static address => ParseAddress<uint>(address, NetworkAddress.TryParseIPv4),
             PolicyWorld.CreateIPv4);
     }
 
@@ -54,7 +54,7 @@ public static class FirewallPolicyProjector
             FirewallAddressFamily.IPv6,
             requireIPv6Enabled: true,
             configuration.IPv6Enabled,
-            static address => ParseAddress(address, NetworkAddress.ParseIPv6),
+            static address => ParseAddress<UInt128>(address, NetworkAddress.TryParseIPv6),
             PolicyWorld.CreateIPv6);
     }
 
@@ -73,7 +73,7 @@ public static class FirewallPolicyProjector
             routed,
             interfaces,
             FirewallAddressFamily.IPv4,
-            static address => ParseAddress(address, NetworkAddress.ParseIPv4),
+            static address => ParseAddress<uint>(address, NetworkAddress.TryParseIPv4),
             PolicyWorld.CreateIPv4);
     }
 
@@ -92,7 +92,7 @@ public static class FirewallPolicyProjector
             routed,
             interfaces,
             FirewallAddressFamily.IPv6,
-            static address => ParseAddress(address, NetworkAddress.ParseIPv6),
+            static address => ParseAddress<UInt128>(address, NetworkAddress.TryParseIPv6),
             PolicyWorld.CreateIPv6);
     }
 
@@ -212,28 +212,21 @@ public static class FirewallPolicyProjector
         FiniteSet<NetworkInterfaceName> interfaces)
         where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
     {
-        try
+        TrafficChain chain = MapChain(specification.Direction);
+        (FiniteSet<NetworkInterfaceName>? ingress, FiniteSet<NetworkInterfaceName>? egress) = MapInterfaces(specification, chain, interfaces);
+        return new PolicyRuleDefinition<TAddress>
         {
-            TrafficChain chain = MapChain(specification.Direction);
-            (FiniteSet<NetworkInterfaceName>? ingress, FiniteSet<NetworkInterfaceName>? egress) = MapInterfaces(specification, chain, interfaces);
-            return new PolicyRuleDefinition<TAddress>
-            {
-                Id = id,
-                Chain = chain,
-                Decision = MapAction(specification.Action),
-                Source = parseAddress(specification.Source),
-                SourcePorts = ParsePorts(specification.SourcePorts),
-                Destination = parseAddress(specification.Destination),
-                DestinationPorts = ParsePorts(specification.DestinationPorts),
-                Protocols = MapProtocols(specification.Protocol),
-                Ingress = ingress,
-                Egress = egress,
-            };
-        }
-        catch (FormatException exception)
-        {
-            throw new FirewallProjectionException("A rule address or port could not be projected into the policy model.", exception);
-        }
+            Id = id,
+            Chain = chain,
+            Decision = MapAction(specification.Action),
+            Source = parseAddress(specification.Source),
+            SourcePorts = ParsePorts(specification.SourcePorts),
+            Destination = parseAddress(specification.Destination),
+            DestinationPorts = ParsePorts(specification.DestinationPorts),
+            Protocols = MapProtocols(specification.Protocol),
+            Ingress = ingress,
+            Egress = egress,
+        };
     }
 
     private static bool IncludeSpecification(FirewallRuleSpecification specification, FirewallAddressFamily target)
@@ -293,7 +286,10 @@ public static class FirewallPolicyProjector
         return FiniteSet<NetworkInterfaceName>.From(names);
     }
 
-    private static IntervalSet<TAddress>? ParseAddress<TAddress>(string? address, Func<string?, Interval<TAddress>> parse)
+    private delegate bool AddressParser<TAddress>(string? text, out Interval<TAddress> range)
+        where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>;
+
+    private static IntervalSet<TAddress>? ParseAddress<TAddress>(string? address, AddressParser<TAddress> tryParse)
         where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
     {
         if (string.IsNullOrWhiteSpace(address) || address.Trim().Equals(RuleSpecificationNormalizer.ANY, StringComparison.OrdinalIgnoreCase))
@@ -301,7 +297,12 @@ public static class FirewallPolicyProjector
             return null;
         }
 
-        return IntervalSet<TAddress>.Of(parse(address));
+        if (!tryParse(address, out Interval<TAddress> range))
+        {
+            throw new FirewallProjectionException("A rule address could not be projected into the policy model.");
+        }
+
+        return IntervalSet<TAddress>.Of(range);
     }
 
     private static IntervalSet<ushort>? ParsePorts(string? ports)
@@ -311,7 +312,12 @@ public static class FirewallPolicyProjector
             return null;
         }
 
-        return PacketPorts.Parse(ports);
+        if (!PacketPorts.TryParse(ports, out IntervalSet<ushort> ranges))
+        {
+            throw new FirewallProjectionException("A rule port could not be projected into the policy model.");
+        }
+
+        return ranges;
     }
 
     private static FiniteSet<ProtocolSymbol>? MapProtocols(FirewallProtocol protocol) => protocol switch

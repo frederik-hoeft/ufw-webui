@@ -99,6 +99,7 @@ public static class NetworkAddress
 
     private static bool TryParseIPv4Core(ReadOnlySpan<char> text, out Interval<uint> range, out ParseError error)
     {
+        text = text.Trim();
         if (IsAny(text))
         {
             range = new Interval<uint>(0, uint.MaxValue);
@@ -115,6 +116,7 @@ public static class NetworkAddress
 
     private static bool TryParseIPv6Core(ReadOnlySpan<char> text, out Interval<UInt128> range, out ParseError error)
     {
+        text = text.Trim();
         if (IsAny(text))
         {
             range = new Interval<UInt128>(UInt128.Zero, UInt128.MaxValue);
