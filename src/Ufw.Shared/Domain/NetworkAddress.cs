@@ -177,7 +177,7 @@ public static class NetworkAddress
 
     private static bool TryParsePrefix(ReadOnlySpan<char> text, int maxPrefix, out int prefix)
     {
-        if (text.IsEmpty || text[0] == '0')
+        if (text.IsEmpty || text is ['0', _, ..])
         {
             return false.WithDefaults(out prefix);
         }
