@@ -21,7 +21,7 @@ public static class PolicyDiffer
     /// <returns>An exact partition of <paramref name="query"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when a world or the query is null.</exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when the closed packet universes differ, or when the query address family does not match the worlds.
+    /// Thrown when the closed packet universes differ, when the query family differs, or when reused rule identities have inconsistent semantics.
     /// </exception>
     public static PolicyDiff<TAddress> Compare<TAddress>(
         PolicyWorld<TAddress> baseline,
@@ -44,6 +44,8 @@ public static class PolicyDiffer
             throw new ArgumentException("The query address family does not match the policy world.", nameof(query));
         }
 
+        EnsureConsistentRuleIdentities(baseline, candidate);
+
         PolicyPartition<TAddress> baselinePartition = PolicyEvaluator.Evaluate(baseline, query);
         PolicyPartition<TAddress> candidatePartition = PolicyEvaluator.Evaluate(candidate, query);
         PacketLayout<TAddress> layout = PacketLayout<TAddress>.Create(baseline, ChainProfile.For(query.Chain));
@@ -55,6 +57,35 @@ public static class PolicyDiffer
 
         List<PolicyDiffCell<TAddress>> cells = Overlay(layout, baselinePartition, candidatePartition);
         return PolicyDiff<TAddress>.Create(layout, cells, coverage);
+    }
+
+    /// <summary>
+    /// Validates the semantic-identity contract within and across both worlds before comparing any queried packets.
+    /// Rule identity is opaque, but equal identities must describe the same chain, decision, and resolved match.
+    /// </summary>
+    private static void EnsureConsistentRuleIdentities<TAddress>(PolicyWorld<TAddress> baseline, PolicyWorld<TAddress> candidate)
+        where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
+    {
+        Dictionary<RuleId, PolicyRule<TAddress>> known = [];
+        Check(baseline, nameof(baseline));
+        Check(candidate, nameof(candidate));
+
+        void Check(PolicyWorld<TAddress> world, string parameterName)
+        {
+            foreach (PolicyRule<TAddress> rule in world.Rules)
+            {
+                if (!known.TryGetValue(rule.Id, out PolicyRule<TAddress>? existing))
+                {
+                    known.Add(rule.Id, rule);
+                    continue;
+                }
+
+                if (existing.Chain != rule.Chain || existing.Decision != rule.Decision || !existing.Match.SetEquals(rule.Match))
+                {
+                    throw new ArgumentException($"Rule identity '{rule.Id}' is associated with inconsistent rule semantics.", parameterName);
+                }
+            }
+        }
     }
 
     /// <summary>

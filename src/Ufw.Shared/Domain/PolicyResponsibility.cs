@@ -7,7 +7,8 @@
 /// <see cref="DecisionProvenance.Equals(DecisionProvenance?)"/> includes family order so duplicate rule identities
 /// stay distinct inside one ordered list. Family order is only that list's index, and it is shared by every chain,
 /// so an insertion renumbers every later rule. Responsibility comparison ignores the index: a rule matches by
-/// <see cref="RuleId"/>, and a chain default matches by chain. The default action is a decision, not part of this key.
+/// its semantic <see cref="RuleId"/>, and a chain default matches by chain. Comparisons validate that reused
+/// identities have consistent rule semantics. The default action is a decision, not part of this key.
 /// A rule and a default are never the same responsibility.
 /// </remarks>
 public readonly struct PolicyResponsibility : IEquatable<PolicyResponsibility>

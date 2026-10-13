@@ -147,7 +147,7 @@ public sealed class PolicyCounterfactualTests
     }
 
     [TestMethod]
-    public void Remove_DuplicateIdentity_UsesSemanticEquality()
+    public void Remove_DuplicateSemanticRules_UsesSemanticEquality()
     {
         PolicyRuleDefinition<uint> first = Rule("dup", PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
         PolicyRuleDefinition<uint> second = Rule("dup", PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
@@ -164,16 +164,44 @@ public sealed class PolicyCounterfactualTests
         PolicyWorld<uint> differentAction = PolicyDiffSupport.World(
         [
             Rule("dup", PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
-            Rule("dup", PolicyDecision.Deny, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
+            Rule("dup-deny", PolicyDecision.Deny, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
         ]);
         PolicyRule<uint> allowing = differentAction.Rules[0];
-        PolicyDiff<uint> decisionOnly = PolicyCounterfactual.ImpactOfRemoving(differentAction, allowing, query);
-        AssertImpact(decisionOnly, differentAction, allowing, query);
-        AssertPoint(decisionOnly, differentAction, allowing, query, Port(22), PolicyDiffKind.DecisionOnly, PolicyDecision.Allow, PolicyDecision.Deny);
-        Assert.IsTrue(decisionOnly.ResponsibilityShifts().IsEmpty);
-        PolicyDiffCell<uint> replaced = Classified(decisionOnly, differentAction, allowing, query, Port(22));
-        Assert.AreEqual(replaced.BaselineProvenance, replaced.CandidateProvenance);
+        PolicyDiff<uint> bothChanged = PolicyCounterfactual.ImpactOfRemoving(differentAction, allowing, query);
+        AssertImpact(bothChanged, differentAction, allowing, query);
+        AssertPoint(bothChanged, differentAction, allowing, query, Port(22), PolicyDiffKind.Both, PolicyDecision.Allow, PolicyDecision.Deny);
+        Assert.IsTrue(bothChanged.ResponsibilityShifts().SetEquals(bothChanged.DecisionChanges()));
+        PolicyDiffCell<uint> replaced = Classified(bothChanged, differentAction, allowing, query, Port(22));
+        Assert.AreNotEqual(replaced.BaselineProvenance, replaced.CandidateProvenance);
+        Assert.AreEqual("dup-deny", ((DecisionProvenance.RuleMatch)replaced.CandidateProvenance).Id.Value);
         Assert.AreEqual(0, ((DecisionProvenance.RuleMatch)replaced.CandidateProvenance).FamilyOrder);
+    }
+
+    [TestMethod]
+    public void Remove_EffectiveNarrowRule_WithBroaderSameDecisionFallback_ShiftsResponsibilityOnly()
+    {
+        IntervalSet<uint> narrower = IntervalSet<uint>.Of(NetworkAddress.ParseIPv4("10.0.0.0/9"));
+        IntervalSet<uint> broader = IntervalSet<uint>.Of(NetworkAddress.ParseIPv4("10.0.0.0/8"));
+        PolicyWorld<uint> world = PolicyDiffSupport.World(
+        [
+            Rule("narrow", PolicyDecision.Allow, source: narrower, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
+            Rule("broad", PolicyDecision.Allow, source: broader, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
+        ]);
+        PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input, new PolicyConstraint<uint>
+        {
+            Source = broader,
+            DestinationPorts = PacketPorts.Parse("22"),
+            Protocols = Tcp(),
+        });
+        PolicyDiff<uint> impact = PolicyCounterfactual.ImpactOfRemoving(world, world.Rules[0], query);
+
+        AssertImpact(impact, world, world.Rules[0], query);
+        Assert.IsTrue(impact.DecisionChanges().IsEmpty);
+        Assert.AreEqual(narrower, impact.ResponsibilityShifts().ProjectSourceAddresses());
+        AssertPoint(impact, world, world.Rules[0], query, Port(22, source: PolicyDiffSupport.Host("10.1.1.1")), PolicyDiffKind.ResponsibilityOnly, PolicyDecision.Allow, PolicyDecision.Allow);
+        AssertPoint(impact, world, world.Rules[0], query, Port(22, source: PolicyDiffSupport.Host("10.200.1.1")), PolicyDiffKind.Unchanged, PolicyDecision.Allow, PolicyDecision.Allow);
+        Assert.AreSame(world.Rules[0], world.Rules[0]);
+        Assert.HasCount(2, world.Rules);
     }
 
     [TestMethod]

@@ -10,7 +10,7 @@ namespace Ufw.Shared.Domain;
 public sealed class PolicyRuleDefinition<TAddress>
     where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
-    /// <summary>Gets the opaque rule identity.</summary>
+    /// <summary>Gets the semantic rule identity, independent of position. Equivalent rules share an identity.</summary>
     public required RuleId Id { get; init; }
 
     /// <summary>Gets the chain the rule is evaluated on.</summary>

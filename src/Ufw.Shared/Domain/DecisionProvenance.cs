@@ -23,6 +23,7 @@ public abstract class DecisionProvenance : IEquatable<DecisionProvenance>
     /// <remarks>
     /// <see cref="Equals(DecisionProvenance?)"/> includes family order so two occurrences stay distinct inside one world.
     /// This comparison delegates to <see cref="PolicyResponsibility"/> and ignores family order.
+    /// Equal rule IDs are assumed to represent equivalent semantics; world comparison checks this invariant.
     /// A null <paramref name="other"/> is not the same responsibility.
     /// </remarks>
     public bool HasSameResponsibilityAs(DecisionProvenance? other) =>

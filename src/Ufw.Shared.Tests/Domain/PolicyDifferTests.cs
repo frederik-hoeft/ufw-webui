@@ -102,53 +102,50 @@ public sealed class PolicyDifferTests
     [TestMethod]
     public void Compare_FourKinds_AreIndependentAndPartitionTheQuery()
     {
-        PolicyConstraint<uint> constraint = Narrow(PacketPorts.Parse("22,80,443,81"));
+        PolicyConstraint<uint> constraint = Narrow(PacketPorts.Parse("22,80,443,81,82"));
         PolicyWorld<uint> baseline = PolicyDiffSupport.World(
         [
             PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
             PolicyDiffSupport.Rule("web", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("80")),
+            PolicyDiffSupport.Rule("stable", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("82")),
         ]);
         PolicyWorld<uint> candidate = PolicyDiffSupport.World(
         [
             PolicyDiffSupport.Rule("filler", TrafficChain.Output, PolicyDecision.Allow),
             PolicyDiffSupport.Rule("monitor", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22")),
-            PolicyDiffSupport.Rule("web", TrafficChain.Input, PolicyDecision.Deny, protocols: Tcp(), destinationPorts: PacketPorts.Parse("80")),
+            PolicyDiffSupport.Rule("web-deny", TrafficChain.Input, PolicyDecision.Deny, protocols: Tcp(), destinationPorts: PacketPorts.Parse("80")),
             PolicyDiffSupport.Rule("extra", TrafficChain.Input, PolicyDecision.Reject, protocols: Tcp(), destinationPorts: PacketPorts.Parse("443")),
-        ]);
+            PolicyDiffSupport.Rule("stable", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("82")),
+        ], incoming: PolicyDecision.Allow);
         PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input, constraint);
         PolicyDiff<uint> diff = PolicyDiffer.Compare(baseline, candidate, query);
 
         AssertDiff(diff, baseline, candidate, query);
-        Assert.AreEqual(new BigInteger(4), diff.Cardinality);
-        Assert.HasCount(4, diff.Cells);
+        Assert.AreEqual(new BigInteger(5), diff.Cardinality);
+        Assert.HasCount(5, diff.Cells);
         Assert.AreEqual(new BigInteger(1), diff.SpaceFor(PolicyDiffKind.Unchanged).Cardinality);
         Assert.AreEqual(new BigInteger(1), diff.SpaceFor(PolicyDiffKind.DecisionOnly).Cardinality);
         Assert.AreEqual(new BigInteger(1), diff.SpaceFor(PolicyDiffKind.ResponsibilityOnly).Cardinality);
-        Assert.AreEqual(new BigInteger(1), diff.SpaceFor(PolicyDiffKind.Both).Cardinality);
-        Assert.AreEqual(new BigInteger(2), diff.DecisionChanges().Cardinality);
-        Assert.AreEqual(new BigInteger(2), diff.ResponsibilityShifts().Cardinality);
-        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("81")), diff.Unchanged().ProjectDestinationPorts());
-        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("80")), diff.SpaceFor(PolicyDiffKind.DecisionOnly).ProjectDestinationPorts());
+        Assert.AreEqual(new BigInteger(2), diff.SpaceFor(PolicyDiffKind.Both).Cardinality);
+        Assert.AreEqual(new BigInteger(3), diff.DecisionChanges().Cardinality);
+        Assert.AreEqual(new BigInteger(3), diff.ResponsibilityShifts().Cardinality);
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("82")), diff.Unchanged().ProjectDestinationPorts());
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("81")), diff.SpaceFor(PolicyDiffKind.DecisionOnly).ProjectDestinationPorts());
         Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22")), diff.SpaceFor(PolicyDiffKind.ResponsibilityOnly).ProjectDestinationPorts());
-        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("443")), diff.SpaceFor(PolicyDiffKind.Both).ProjectDestinationPorts());
-        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("80,443")), diff.DecisionChanges().ProjectDestinationPorts());
-        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22,443")), diff.ResponsibilityShifts().ProjectDestinationPorts());
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("80,443")), diff.SpaceFor(PolicyDiffKind.Both).ProjectDestinationPorts());
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("80,81,443")), diff.DecisionChanges().ProjectDestinationPorts());
+        Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22,80,443")), diff.ResponsibilityShifts().ProjectDestinationPorts());
 
         AssertRuledPoint(diff, baseline, candidate, query, NarrowPoint(22), PolicyDiffKind.ResponsibilityOnly, "ssh", 0, "monitor", 1);
-        PolicyDiffCell<uint> decisionOnly = Classified(diff, baseline, candidate, query, NarrowPoint(80));
-        Assert.AreEqual(PolicyDiffKind.DecisionOnly, decisionOnly.Difference);
-        Assert.AreEqual(PolicyDecision.Allow, decisionOnly.BaselineDecision);
-        Assert.AreEqual(PolicyDecision.Deny, decisionOnly.CandidateDecision);
-        DecisionProvenance.RuleMatch baselineWeb = (DecisionProvenance.RuleMatch)decisionOnly.BaselineProvenance;
-        DecisionProvenance.RuleMatch candidateWeb = (DecisionProvenance.RuleMatch)decisionOnly.CandidateProvenance;
-        Assert.AreEqual("web", baselineWeb.Id.Value);
-        Assert.AreEqual("web", candidateWeb.Id.Value);
-        Assert.AreEqual(1, baselineWeb.FamilyOrder);
-        Assert.AreEqual(2, candidateWeb.FamilyOrder);
-        Assert.AreNotEqual(decisionOnly.BaselineProvenance, decisionOnly.CandidateProvenance);
+        PolicyDiffCell<uint> webChange = Classified(diff, baseline, candidate, query, NarrowPoint(80));
+        Assert.AreEqual(PolicyDiffKind.Both, webChange.Difference);
+        Assert.AreEqual(PolicyDecision.Allow, webChange.BaselineDecision);
+        Assert.AreEqual(PolicyDecision.Deny, webChange.CandidateDecision);
+        Assert.AreEqual("web", ((DecisionProvenance.RuleMatch)webChange.BaselineProvenance).Id.Value);
+        Assert.AreEqual("web-deny", ((DecisionProvenance.RuleMatch)webChange.CandidateProvenance).Id.Value);
         AssertDefaultToRule(diff, baseline, candidate, query, NarrowPoint(443), PolicyDiffKind.Both, PolicyDecision.Reject, "extra", 3);
-        Assert.AreEqual(PolicyDecision.Deny, Classified(diff, baseline, candidate, query, NarrowPoint(443)).BaselineDecision);
-        AssertDefaultPoint(diff, baseline, candidate, query, NarrowPoint(81), PolicyDiffKind.Unchanged, PolicyDecision.Deny, PolicyDecision.Deny);
+        AssertDefaultPoint(diff, baseline, candidate, query, NarrowPoint(81), PolicyDiffKind.DecisionOnly, PolicyDecision.Deny, PolicyDecision.Allow);
+        AssertRuledPoint(diff, baseline, candidate, query, NarrowPoint(82), PolicyDiffKind.Unchanged, "stable", 2, "stable", 4);
     }
 
     [TestMethod]
@@ -172,13 +169,8 @@ public sealed class PolicyDifferTests
         ]);
         PolicyWorld<uint> candidate = PolicyDiffSupport.World(
         [
-            PolicyDiffSupport.Rule(
-                "allow",
-                TrafficChain.Input,
-                PolicyDecision.Allow,
-                source: IntervalSet<uint>.Of(lower),
-                protocols: Tcp(),
-                destinationPorts: PacketPorts.Parse("80")),
+            PolicyDiffSupport.Rule("deny-upper", TrafficChain.Input, PolicyDecision.Deny, source: IntervalSet<uint>.Of(upper), protocols: Tcp(), destinationPorts: PacketPorts.Parse("80")),
+            PolicyDiffSupport.Rule("allow", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("80")),
         ]);
         PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input, constraint);
         PolicyDiff<uint> diff = PolicyDiffer.Compare(baseline, candidate, query);
@@ -202,12 +194,12 @@ public sealed class PolicyDifferTests
             "allow",
             0,
             "allow",
-            0);
+            1);
         PolicyDiffCell<uint> upperCell = Classified(diff, baseline, candidate, query, NarrowPoint(80, source: PolicyDiffSupport.Host("10.200.1.1")));
         Assert.AreEqual(PolicyDiffKind.Both, upperCell.Difference);
         Assert.AreEqual(PolicyDecision.Allow, upperCell.BaselineDecision);
         Assert.AreEqual(PolicyDecision.Deny, upperCell.CandidateDecision);
-        Assert.IsInstanceOfType<DecisionProvenance.DefaultPolicy>(upperCell.CandidateProvenance);
+        Assert.AreEqual("deny-upper", ((DecisionProvenance.RuleMatch)upperCell.CandidateProvenance).Id.Value);
     }
 
     [TestMethod]
@@ -309,7 +301,7 @@ public sealed class PolicyDifferTests
             ingress: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
             egress: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth1));
         PolicyRuleDefinition<uint> rejected = PolicyDiffSupport.Rule(
-            "route",
+            "route-reject",
             TrafficChain.Forward,
             PolicyDecision.Reject,
             source: route.Source,
@@ -339,9 +331,9 @@ public sealed class PolicyDifferTests
         Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0), diff.DecisionChanges().ProjectIngress());
         Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth1), diff.DecisionChanges().ProjectEgress());
         Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("443")), diff.DecisionChanges().ProjectDestinationPorts());
-        Assert.IsTrue(diff.ResponsibilityShifts().IsEmpty);
+        Assert.IsTrue(diff.ResponsibilityShifts().SetEquals(diff.DecisionChanges()));
         PolicyDiffCell<uint> cell = Classified(diff, baseline, candidate, query, matched);
-        Assert.AreEqual(PolicyDiffKind.DecisionOnly, cell.Difference);
+        Assert.AreEqual(PolicyDiffKind.Both, cell.Difference);
         Assert.AreEqual(PolicyDecision.Allow, cell.BaselineDecision);
         Assert.AreEqual(PolicyDecision.Reject, cell.CandidateDecision);
         AssertDefaultPoint(diff, baseline, candidate, query, otherEgress, PolicyDiffKind.Unchanged, PolicyDecision.Reject, PolicyDecision.Reject);
@@ -351,7 +343,7 @@ public sealed class PolicyDifferTests
     public void Compare_Limit_IsDistinctFromAllow()
     {
         PolicyRuleDefinition<uint> limited = PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Limit, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
-        PolicyRuleDefinition<uint> allowed = PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
+        PolicyRuleDefinition<uint> allowed = PolicyDiffSupport.Rule("ssh-allow", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
         PolicyWorld<uint> baseline = PolicyDiffSupport.World([limited]);
         PolicyWorld<uint> candidate = PolicyDiffSupport.World([allowed]);
         PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input);
@@ -359,10 +351,10 @@ public sealed class PolicyDifferTests
         PolicyDiffCell<uint> cell = Classified(diff, baseline, candidate, query, Port(22));
 
         AssertDiff(diff, baseline, candidate, query);
-        Assert.AreEqual(PolicyDiffKind.DecisionOnly, cell.Difference);
+        Assert.AreEqual(PolicyDiffKind.Both, cell.Difference);
         Assert.AreEqual(PolicyDecision.Limit, cell.BaselineDecision);
         Assert.AreEqual(PolicyDecision.Allow, cell.CandidateDecision);
-        Assert.IsTrue(diff.ResponsibilityShifts().IsEmpty);
+        Assert.IsTrue(diff.ResponsibilityShifts().SetEquals(diff.DecisionChanges()));
     }
 
     [TestMethod]
@@ -427,8 +419,8 @@ public sealed class PolicyDifferTests
         Random random = new(20260328);
         for (int round = 0; round < 4; round++)
         {
-            PolicyRuleDefinition<uint>[] baselineRules = RandomRules(random, 6);
-            PolicyRuleDefinition<uint>[] candidateRules = RandomRules(random, 6);
+            PolicyRuleDefinition<uint>[] baselineRules = RandomRules(random, 6, $"baseline-{round}");
+            PolicyRuleDefinition<uint>[] candidateRules = RandomRules(random, 6, $"candidate-{round}");
             PolicyWorld<uint> baseline = PolicyDiffSupport.World(baselineRules);
             PolicyWorld<uint> candidate = PolicyDiffSupport.World(candidateRules);
             foreach (TrafficChain chain in new[] { TrafficChain.Input, TrafficChain.Output, TrafficChain.Forward })
@@ -452,6 +444,41 @@ public sealed class PolicyDifferTests
                 }
             }
         }
+    }
+
+    [TestMethod]
+    public void Compare_RejectsConflictingSemanticIdentitiesEvenWhenShadowedOrOutsideTheQuery()
+    {
+        PolicyRuleDefinition<uint> ssh = PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
+        PolicyRuleDefinition<uint> differentAction = PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Deny, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
+        PolicyRuleDefinition<uint> differentMatch = PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("23"));
+        PolicyRuleDefinition<uint> differentChain = PolicyDiffSupport.Rule("ssh", TrafficChain.Output, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
+        PolicyWorld<uint> baseline = PolicyDiffSupport.World([ssh]);
+        PolicyQuery<uint> unrelated = PolicyDiffSupport.Query(TrafficChain.Input, Narrow(PacketPorts.Parse("80")));
+        PolicyQuery<uint> empty = PolicyDiffSupport.Query(TrafficChain.Input, new PolicyConstraint<uint> { Protocols = FiniteSet<ProtocolSymbol>.Empty });
+
+        Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(baseline, PolicyDiffSupport.World([differentAction]), unrelated));
+        Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(baseline, PolicyDiffSupport.World([differentMatch]), unrelated));
+        Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(baseline, PolicyDiffSupport.World([differentChain]), empty));
+        Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(PolicyDiffSupport.World([ssh, differentAction]), baseline, unrelated));
+        Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(baseline, PolicyDiffSupport.World([ssh, differentMatch]), empty));
+    }
+
+    [TestMethod]
+    public void Compare_AcceptsRepeatedIdenticalRuleIdentities()
+    {
+        PolicyRuleDefinition<uint> rule = PolicyDiffSupport.Rule("dup", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
+        PolicyWorld<uint> baseline = PolicyDiffSupport.World([rule, rule]);
+        PolicyWorld<uint> candidate = PolicyDiffSupport.World([rule]);
+        PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input);
+        PolicyDiff<uint> diff = PolicyDiffer.Compare(baseline, candidate, query);
+
+        AssertDiff(diff, baseline, candidate, query);
+        Assert.IsTrue(diff.Changed().IsEmpty);
+        PolicyDiffCell<uint> cell = Classified(diff, baseline, candidate, query, Port(22));
+        Assert.AreEqual(PolicyDiffKind.Unchanged, cell.Difference);
+        Assert.AreEqual(0, ((DecisionProvenance.RuleMatch)cell.BaselineProvenance).FamilyOrder);
+        Assert.AreEqual(0, ((DecisionProvenance.RuleMatch)cell.CandidateProvenance).FamilyOrder);
     }
 
     [TestMethod]
@@ -599,18 +626,18 @@ public sealed class PolicyDifferTests
 
     private static FiniteSet<ProtocolSymbol> Tcp() => FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp);
 
-    private static PolicyRuleDefinition<uint>[] RandomRules(Random random, int count)
+    private static PolicyRuleDefinition<uint>[] RandomRules(Random random, int count, string idPrefix)
     {
         PolicyRuleDefinition<uint>[] rules = new PolicyRuleDefinition<uint>[count];
         for (int index = 0; index < count; index++)
         {
-            rules[index] = RandomRule(random, index);
+            rules[index] = RandomRule(random, index, idPrefix);
         }
 
         return rules;
     }
 
-    private static PolicyRuleDefinition<uint> RandomRule(Random random, int index)
+    private static PolicyRuleDefinition<uint> RandomRule(Random random, int index, string idPrefix)
     {
         TrafficChain chain = (TrafficChain)random.Next(0, 3);
         PolicyDecision decision = (PolicyDecision)random.Next(0, 4);
@@ -625,7 +652,7 @@ public sealed class PolicyDifferTests
         FiniteSet<NetworkInterfaceName>? egress = chain == TrafficChain.Input || random.Next(0, 2) == 0
             ? null
             : FiniteSet<NetworkInterfaceName>.Of(random.Next(0, 2) == 0 ? PolicyDiffSupport.Eth0 : PolicyDiffSupport.Eth1);
-        return PolicyDiffSupport.Rule($"r{index}", chain, decision, source: source, destinationPorts: destinationPorts, protocols: protocols, ingress: ingress, egress: egress);
+        return PolicyDiffSupport.Rule($"{idPrefix}-r{index}", chain, decision, source: source, destinationPorts: destinationPorts, protocols: protocols, ingress: ingress, egress: egress);
     }
 
     private static PacketPoint<uint> RandomPoint(Random random, TrafficChain chain)
