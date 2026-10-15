@@ -24,6 +24,7 @@ public sealed class PolicyDiff<TAddress>
         _layout = layout;
         _coverage = coverage;
         _cells = cells;
+        Cells = Array.AsReadOnly(cells);
     }
 
     /// <summary>Gets the chain that was compared.</summary>
@@ -33,7 +34,7 @@ public sealed class PolicyDiff<TAddress>
     public IpFamily Family => _layout.World.Family;
 
     /// <summary>Gets the cells in canonical region order, including packets where nothing differs.</summary>
-    public IReadOnlyList<PolicyDiffCell<TAddress>> Cells => _cells;
+    public IReadOnlyList<PolicyDiffCell<TAddress>> Cells { get; }
 
     /// <summary>Gets a value indicating whether the query contained no packets.</summary>
     public bool IsEmpty => _cells.Length == 0;
@@ -120,7 +121,7 @@ public sealed class PolicyDiff<TAddress>
         ProductSpace coverage)
     {
         List<PolicyDiffCell<TAddress>> coalesced = Coalesce(layout, cells);
-        EnsureCover(layout, coalesced, coverage);
+        EnsureCover(coalesced, coverage);
         return new PolicyDiff<TAddress>(layout, coverage, [.. coalesced]);
     }
 
@@ -135,7 +136,8 @@ public sealed class PolicyDiff<TAddress>
             }
         }
 
-        return new PacketSpace<TAddress>(_layout, ProductSpace.FromRegions(regions));
+        // Filtering a disjoint comparison partition preserves disjointness.
+        return new PacketSpace<TAddress>(_layout, ProductSpace.FromDisjointRegions(regions));
     }
 
     private static List<PolicyDiffCell<TAddress>> Coalesce(PacketLayout<TAddress> layout, List<PolicyDiffCell<TAddress>> cells)
@@ -156,7 +158,8 @@ public sealed class PolicyDiff<TAddress>
         List<PolicyDiffCell<TAddress>> merged = [];
         foreach ((CellKey key, List<ProductRegion> group) in groups)
         {
-            ProductSpace space = ProductSpace.FromRegions(group);
+            // The input cells are pairwise intersections of two validated disjoint partitions.
+            ProductSpace space = ProductSpace.FromDisjointRegions(group);
             foreach (ProductRegion region in space.Regions)
             {
                 merged.Add(new PolicyDiffCell<TAddress>(
@@ -172,7 +175,11 @@ public sealed class PolicyDiff<TAddress>
         return merged;
     }
 
-    private static void EnsureCover(PacketLayout<TAddress> layout, List<PolicyDiffCell<TAddress>> cells, ProductSpace coverage)
+    // The overlay intersects two already-validated disjoint partitions of the same query.
+    // Pairwise intersections lie inside the query and are disjoint by construction; coalescing
+    // preserves their union. Rechecking all cell pairs or subtracting the query from every
+    // output cell would duplicate the validated input partitions' work at cross-product scale.
+    private static void EnsureCover(List<PolicyDiffCell<TAddress>> cells, ProductSpace coverage)
     {
         BigInteger sum = BigInteger.Zero;
         for (int index = 0; index < cells.Count; index++)
@@ -181,20 +188,6 @@ public sealed class PolicyDiff<TAddress>
             if (cell.Region.Cardinality == BigInteger.Zero)
             {
                 throw new InvalidOperationException("Policy diff contains an empty cell.");
-            }
-
-            for (int other = index + 1; other < cells.Count; other++)
-            {
-                if (cell.Region.Overlaps(cells[other].Region))
-                {
-                    throw new InvalidOperationException("Policy diff cells overlap.");
-                }
-            }
-
-            ProductSpace outside = ProductSpace.FromRegions([layout.FromPacket(cell.Region)]).Except(coverage);
-            if (!outside.IsEmpty)
-            {
-                throw new InvalidOperationException("A policy diff cell extends outside the queried packet space.");
             }
 
             sum += cell.Region.Cardinality;

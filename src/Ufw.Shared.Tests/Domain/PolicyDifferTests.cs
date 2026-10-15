@@ -8,6 +8,46 @@ namespace Ufw.Shared.Tests.Domain;
 public sealed class PolicyDifferTests
 {
     [TestMethod]
+    public void Compare_OrthogonallyFragmentedPolicies_PreserveExactResponsibilityAndCoverage()
+    {
+        const int count = 100;
+        PolicyRuleDefinition<uint>[] baselineRules = new PolicyRuleDefinition<uint>[count];
+        PolicyRuleDefinition<uint>[] candidateRules = new PolicyRuleDefinition<uint>[count];
+        for (int index = 0; index < count; index++)
+        {
+            baselineRules[index] = PolicyDiffSupport.Rule(
+                $"source-{index}", TrafficChain.Input, PolicyDecision.Allow,
+                source: IntervalSet<uint>.Singleton(0x0a000000u + (uint)index));
+            candidateRules[index] = PolicyDiffSupport.Rule(
+                $"port-{index}", TrafficChain.Input, PolicyDecision.Allow,
+                destinationPorts: IntervalSet<ushort>.Singleton((ushort)(10000 + index)));
+        }
+
+        PolicyWorld<uint> baseline = PolicyWorld.CreateIPv4(
+            [ProtocolDefinition.Tcp], FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            PolicyDecision.Deny, PolicyDecision.Deny, PolicyDecision.Deny, baselineRules);
+        PolicyWorld<uint> candidate = PolicyWorld.CreateIPv4(
+            [ProtocolDefinition.Tcp], FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            PolicyDecision.Deny, PolicyDecision.Deny, PolicyDecision.Deny, candidateRules);
+        PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input);
+
+        PolicyDiff<uint> diff = PolicyDiffer.Compare(baseline, candidate, query);
+
+        // Every source-rule region intersects every port-rule region, with distinct paired provenance.
+        // There are also one default region on each side; this must not require quadratic
+        // validation over the cross-product-sized diff or its derived responsibility view.
+        Assert.HasCount((count + 1) * (count + 1), diff.Cells);
+        Assert.AreEqual(PolicyEvaluator.Evaluate(baseline, query).Cardinality, diff.Cardinality);
+        Assert.AreEqual(diff.Cardinality, diff.Changed().Cardinality + diff.Unchanged().Cardinality);
+        Assert.AreEqual(diff.Changed().Cardinality, diff.ResponsibilityShifts().Cardinality);
+        Assert.AreEqual(diff.DecisionChanges().Cardinality, diff.SpaceFor(PolicyDiffKind.Both).Cardinality);
+        Assert.AreEqual(PolicyDiffKind.ResponsibilityOnly, diff.Classify(PolicyDiffSupport.Point(source: 0x0a000000u, destinationPort: 10000))!.Difference);
+        Assert.AreEqual(PolicyDiffKind.Both, diff.Classify(PolicyDiffSupport.Point(source: 0x0a000000u, destinationPort: 9999))!.Difference);
+        Assert.AreEqual(PolicyDiffKind.Both, diff.Classify(PolicyDiffSupport.Point(source: 0x0b000000u, destinationPort: 10000))!.Difference);
+        Assert.AreEqual(PolicyDiffKind.Unchanged, diff.Classify(PolicyDiffSupport.Point(source: 0x0b000000u, destinationPort: 9999))!.Difference);
+    }
+
+    [TestMethod]
     public void Responsibility_IgnoresFamilyOrderAndKeepsPositionalEqualitySeparate()
     {
         DecisionProvenance.RuleMatch first = new(new RuleId("ssh"), 0);

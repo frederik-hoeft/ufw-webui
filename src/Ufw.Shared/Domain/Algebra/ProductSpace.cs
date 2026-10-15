@@ -51,7 +51,15 @@ public sealed class ProductSpace
     /// Disjointness is checked before coalescing so an invalid overlapping input cannot be hidden by a later union
     /// of one axis.
     /// </remarks>
-    public static ProductSpace FromRegions(IEnumerable<ProductRegion> regions)
+    public static ProductSpace FromRegions(IEnumerable<ProductRegion> regions) => Create(regions, validateDisjoint: true);
+
+    /// <summary>
+    /// Creates a product space from regions already proven pairwise disjoint by their producer.
+    /// Only use this for trusted algebraic output; public construction still validates disjointness.
+    /// </summary>
+    internal static ProductSpace FromDisjointRegions(IEnumerable<ProductRegion> regions) => Create(regions, validateDisjoint: false);
+
+    private static ProductSpace Create(IEnumerable<ProductRegion> regions, bool validateDisjoint)
     {
         ArgumentNullException.ThrowIfNull(regions);
         List<ProductRegion> materialized = [];
@@ -76,7 +84,11 @@ public sealed class ProductSpace
             materialized.Add(region);
         }
 
-        EnsureDisjoint(materialized);
+        if (validateDisjoint)
+        {
+            EnsureDisjoint(materialized);
+        }
+
         ProductRegion[] coalesced = Coalesce(materialized);
         return new ProductSpace(coalesced);
     }
