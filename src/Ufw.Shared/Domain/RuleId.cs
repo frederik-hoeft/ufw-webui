@@ -1,8 +1,10 @@
 ﻿namespace Ufw.Shared.Domain;
 
 /// <summary>
-/// Opaque identity of one ordered policy rule. The domain does not interpret the text;
-/// the UFW projection uses the semantic rule id already computed for firewall rules.
+/// Opaque semantic identity of a policy rule, independent of its position in an ordered world.
+/// Equivalent rule semantics use the same identity, including across worlds; different semantics require distinct identities.
+/// The domain does not interpret the text. The UFW projector uses the canonical rule identity computed from normalized firewall semantics.
+/// A policy comparison rejects reuse of an identity for a different chain, decision, or resolved match.
 /// </summary>
 public readonly record struct RuleId : IComparable<RuleId>
 {

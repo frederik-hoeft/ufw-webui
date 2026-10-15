@@ -4,11 +4,13 @@ namespace Ufw.Shared.Domain;
 
 /// <summary>
 /// Closed-world snapshot the evaluator reads. It is pure data: address family, finite universes, defaults, and ordered rules.
+/// Derived worlds, including one with a rule occurrence removed, are new instances. This instance is not modified.
 /// </summary>
 public sealed class PolicyWorld<TAddress>
     where TAddress : struct, IBinaryInteger<TAddress>, IUnsignedNumber<TAddress>, IMinMaxValue<TAddress>
 {
     private readonly Dictionary<ProtocolSymbol, ProtocolDefinition> _protocolsBySymbol;
+    private readonly PolicyRuleDefinition<TAddress>[] _definitions;
     private readonly PolicyRule<TAddress>[] _rules;
 
     private PolicyWorld(
@@ -31,7 +33,8 @@ public sealed class PolicyWorld<TAddress>
         OutgoingDefault = outgoingDefault;
         RoutedDefault = routedDefault;
         _protocolsBySymbol = protocolDefinitions.Values.ToDictionary(static definition => definition.Symbol);
-        _rules = ResolveRules(definitions);
+        _definitions = [.. definitions];
+        _rules = ResolveRules(_definitions);
     }
 
     /// <summary>Gets the concrete address family.</summary>
@@ -72,6 +75,65 @@ public sealed class PolicyWorld<TAddress>
         TrafficChain.Forward => RoutedDefault,
         _ => throw new ArgumentOutOfRangeException(nameof(chain), chain, "Unsupported traffic chain."),
     };
+
+    /// <summary>
+    /// Returns a new world with the same universes and defaults, without <paramref name="occurrence"/>.
+    /// </summary>
+    /// <param name="occurrence">The rule instance to drop. Another object with the same identity is not this occurrence.</param>
+    /// <returns>The derived world. Remaining rules keep their relative order and receive contiguous family indexes from zero.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="occurrence"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="occurrence"/> does not belong to this world.</exception>
+    public PolicyWorld<TAddress> WithoutOccurrence(PolicyRule<TAddress> occurrence)
+    {
+        ArgumentNullException.ThrowIfNull(occurrence);
+        int index = IndexOfOccurrence(occurrence);
+        PolicyRuleDefinition<TAddress>[] remaining = new PolicyRuleDefinition<TAddress>[_definitions.Length - 1];
+        int destination = 0;
+        for (int source = 0; source < _definitions.Length; source++)
+        {
+            if (source == index)
+            {
+                continue;
+            }
+
+            remaining[destination++] = _definitions[source];
+        }
+
+        return new PolicyWorld<TAddress>(
+            Family,
+            AddressUniverse,
+            ProtocolDefinitions,
+            Interfaces,
+            IncomingDefault,
+            OutgoingDefault,
+            RoutedDefault,
+            remaining);
+    }
+
+    private int IndexOfOccurrence(PolicyRule<TAddress> occurrence)
+    {
+        if (_definitions.Length != _rules.Length)
+        {
+            throw new InvalidOperationException("Policy world rules and definitions diverged.");
+        }
+
+        for (int index = 0; index < _rules.Length; index++)
+        {
+            if (!ReferenceEquals(_rules[index], occurrence))
+            {
+                continue;
+            }
+
+            if (occurrence.FamilyOrder != index)
+            {
+                throw new InvalidOperationException("Rule family order does not match its position in the policy world.");
+            }
+
+            return index;
+        }
+
+        throw new ArgumentException("The rule occurrence does not belong to this policy world.", nameof(occurrence));
+    }
 
     internal static PolicyWorld<TAddress> Create(
         IpFamily family,

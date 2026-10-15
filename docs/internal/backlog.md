@@ -4,7 +4,7 @@ This document records unresolved larger design directions that are useful to ret
 
 ## Semantic firewall-policy exploration UI
 
-The read-only policy model and ordered evaluator are specified in [Semantic policy domain](../architecture/domain.md). What remains is the browser workflow that asks that model questions and presents the partition.
+The read-only policy model, ordered evaluator, world diff, and single-rule counterfactual are specified in [Semantic policy domain](../architecture/domain.md). What remains is the browser workflow that asks that model questions and presents the partition. Diff and counterfactual results are domain operations only; no browser workflow presents them yet.
 
 The UI should describe results as **permitted or denied by the modeled UFW policy**, not as proof of real network reachability. The same scope limits already stated for the domain model need to stay visible in the interaction: connection tracking, rules outside the parsed user chain, NAT, routing, and host or service availability are not what the screen is answering.
 

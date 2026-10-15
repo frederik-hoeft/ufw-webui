@@ -17,6 +17,18 @@ public abstract class DecisionProvenance : IEquatable<DecisionProvenance>
     /// <inheritdoc />
     public override bool Equals(object? obj) => Equals(obj as DecisionProvenance);
 
+    /// <summary>
+    /// Returns whether <paramref name="other"/> names the same semantic rule or the same chain default.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Equals(DecisionProvenance?)"/> includes family order so two occurrences stay distinct inside one world.
+    /// This comparison delegates to <see cref="PolicyResponsibility"/> and ignores family order.
+    /// Equal rule IDs are assumed to represent equivalent semantics; world comparison checks this invariant.
+    /// A null <paramref name="other"/> is not the same responsibility.
+    /// </remarks>
+    public bool HasSameResponsibilityAs(DecisionProvenance? other) =>
+        other is not null && PolicyResponsibility.From(this).Equals(PolicyResponsibility.From(other));
+
     /// <inheritdoc />
     public abstract override int GetHashCode();
 

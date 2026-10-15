@@ -15,7 +15,7 @@ public sealed class PolicyRule<TAddress>
         Match = match;
     }
 
-    /// <summary>Gets the opaque identity supplied when the world was built.</summary>
+    /// <summary>Gets the semantic identity supplied when the world was built.</summary>
     public RuleId Id { get; }
 
     /// <summary>Gets the zero-based index of this rule in the family list. Chains share this order; evaluation skips other chains.</summary>
