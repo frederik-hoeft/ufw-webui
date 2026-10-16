@@ -5,6 +5,7 @@ using Ufw.Systemd.Firewall.Deletion;
 using Ufw.Systemd.Firewall.Insertion;
 using Ufw.Systemd.Firewall.Ordering;
 using Ufw.Systemd.Firewall.Replacement;
+using Ufw.Systemd.Firewall.SystemState;
 using Ufw.Systemd.Interop.Configuration;
 using Ufw.Systemd.Interop.IO;
 using Ufw.Systemd.Security.Intent;
@@ -52,6 +53,8 @@ namespace Ufw.Systemd.Firewall;
 [Singleton<IFirewallRuleReplacementService, FirewallRuleReplacementService>]
 [Singleton<IFirewallRuleSnapshotReader, FirewallRuleSnapshotReader>]
 [Singleton<IFirewallRuleQueryService, FirewallRuleQueryService>]
+[Singleton<IFilterSystemStateReader, FilterSystemStateReader>]
+[Singleton<IFilterSystemStateQueryService, FilterSystemStateQueryService>]
 [Singleton<IFirewallRuleInterfaceValidator, FirewallRuleInterfaceValidator>]
 [Singleton<IFirewallRuleCapabilityValidator, FirewallRuleCapabilityValidator>]
 [Singleton<IFirewallMutationExecutor, FirewallMutationExecutor>]
