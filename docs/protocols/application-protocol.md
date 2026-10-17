@@ -151,6 +151,7 @@ The current application-v1 daemon routes are:
 | `GET` | `/api/v1/intent/context` | read deployment identity and signed-intent protocol version | no |
 | `GET` | `/api/v1/network-interfaces` | enumerate current host interface names | no |
 | `GET` | `/api/v1/rules` | read authoritative UFW rules plus effective IPv6/default-policy configuration | no |
+| `GET` | `/api/v1/system-state` | read the active IPv4 and IPv6 filter tables and any UFW user-rule links | no |
 | `POST` | `/api/v1/rules` | append a rule | yes, `rules.add` |
 | `POST` | `/api/v1/rules/insert` | insert a concrete-family rule before or after an occurrence in the exact reviewed snapshot | yes, `rules.insert` |
 | `PUT` | `/api/v1/rules/replace` | replace one concrete-family occurrence in the exact reviewed snapshot | yes, `rules.replace` |
@@ -161,6 +162,8 @@ The current application-v1 daemon routes are:
 The interface route carries host-observed names only. ASP-owned UUIDs, comments, and visibility metadata are intentionally outside IPC.
 
 A successful rules response is one authoritative snapshot. In addition to firewall activity and listed rows, it carries the daemon-observed UFW configuration needed by rule authoring: whether IPv6 rule creation is enabled and the incoming, outgoing, and routed default policies. `Ufw.Web` forwards this operational state without persisting or reconciling it into PostgreSQL.
+
+`GET /api/v1/system-state` is a different read. Its payload is the structural filter snapshot defined in [Filter system state](../architecture/system-state.md): raw filter chains for each address family, the flattened `INPUT`, `OUTPUT`, and `FORWARD` views, and optional links to normalized UFW user rules. It is not derived from `GET /api/v1/rules` and does not authorize a mutation.
 
 ## Response semantics
 

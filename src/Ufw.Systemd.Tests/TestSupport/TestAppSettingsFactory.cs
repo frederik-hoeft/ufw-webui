@@ -11,6 +11,10 @@ internal static class TestAppSettingsFactory
         string? deploymentIdPath = null,
         string? reorderRecoveryJournalPath = null,
         string? ufwDefaultsPath = null,
+        string? iptablesSavePath = null,
+        string? ip6TablesSavePath = null,
+        string? ufwUserRulesPath = null,
+        string? ufwUser6RulesPath = null,
         string? pipeName = null,
         TransportType transportType = TransportType.Pipe,
         string tcpListenAddress = "127.0.0.1",
@@ -29,6 +33,10 @@ internal static class TestAppSettingsFactory
             ExposeRemoteExceptionDetails = exposeRemoteExceptionDetails,
             UfwPath = "/usr/sbin/ufw",
             UfwDefaultsPath = ufwDefaultsPath ?? "/nonexistent/ufw-defaults",
+            IptablesSavePath = iptablesSavePath ?? "/usr/sbin/iptables-save",
+            Ip6TablesSavePath = ip6TablesSavePath ?? "/usr/sbin/ip6tables-save",
+            UfwUserRulesPath = ufwUserRulesPath ?? "/nonexistent/user.rules",
+            UfwUser6RulesPath = ufwUser6RulesPath ?? "/nonexistent/user6.rules",
             Transport = new TransportOptions
             {
                 Type = transportType,

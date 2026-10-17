@@ -27,6 +27,10 @@ internal static class TestAppSettingsFactory
             // Never executed by the in-process adapter; value is only present to satisfy the model shape.
             UfwPath = "/nonexistent/ufw-for-tests",
             UfwDefaultsPath = "/nonexistent/ufw-defaults-for-tests",
+            IptablesSavePath = "/nonexistent/iptables-save",
+            Ip6TablesSavePath = "/nonexistent/ip6tables-save",
+            UfwUserRulesPath = "/nonexistent/user.rules",
+            UfwUser6RulesPath = "/nonexistent/user6.rules",
             Transport = new TransportOptions
             {
                 Type = transportType,

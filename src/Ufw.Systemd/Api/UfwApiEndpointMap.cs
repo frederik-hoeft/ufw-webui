@@ -13,6 +13,7 @@ namespace Ufw.Systemd.Api;
 [ApiControllerRegistration<NetworkInterfacesController>]
 [ApiControllerRegistration<RulesController>]
 [ApiControllerRegistration<StatusController>]
+[ApiControllerRegistration<SystemStateController>]
 [ApiControllerMappingGenerator<UfwApiEndpointMappingFactory, IRequestMessage, IResponseMessage>]
 internal sealed partial class UfwApiEndpointMap : ApiEndpointMap<IRequestMessage, IResponseMessage>
 {

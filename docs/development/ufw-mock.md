@@ -4,7 +4,7 @@
 
 The mock sits at the same subprocess boundary as UFW. `Ufw.Systemd` does not know whether `ufw_path` names the real executable or the mock, so daemon parsing, mutation serialization, reconciliation, signed-intent verification, IPC, and web behavior remain production code. No production project depends on `Ufw.Mock`.
 
-The compatibility target is the UFW 0.36.2 command surface used by this project. The goal is faithful behavior at the command boundary, not emulation of Linux netfilter internals.
+The compatibility target is the UFW 0.36.2 command surface used by this project. The goal is faithful behavior at the command boundary, not emulation of Linux netfilter internals. Filter system state is not read through `ufw_path`. The daemon runs the configured `iptables-save` and `ip6tables-save` binaries and reads `user.rules` / `user6.rules` itself, so the mock does not have to imitate a live netfilter table. `scripts/setup-dev.sh` records those paths from the host, or the usual `/usr/sbin` and `/etc/ufw` locations when the tools are not on `PATH`. Override them with `IPTABLES_SAVE_PATH`, `IP6TABLES_SAVE_PATH`, `UFW_USER_RULES_PATH`, and `UFW_USER6_RULES_PATH` when a fixture should stand in for the host files.
 
 ## Running it directly
 

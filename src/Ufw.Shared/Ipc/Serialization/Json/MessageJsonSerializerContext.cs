@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using Ufw.Roslyn.Json;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall.SystemState;
 using Ufw.Shared.Ipc.Model.Requests.Domain;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
@@ -58,5 +59,20 @@ namespace Ufw.Shared.Ipc.Serialization.Json;
 [JsonSerializable(typeof(RuleInsertionResponse))]
 [JsonSerializable(typeof(RuleReorderResponse))]
 [JsonSerializable(typeof(RuleReplacementResponse))]
+[JsonSerializable(typeof(FilterSystemStateResponse))]
+[JsonSerializable(typeof(FilterSystemState))]
+[JsonSerializable(typeof(AddressFamilyFilterState))]
+[JsonSerializable(typeof(RawFilterTable))]
+[JsonSerializable(typeof(RawFilterChain))]
+[JsonSerializable(typeof(RawFilterRule))]
+[JsonSerializable(typeof(FilterRuleLocation))]
+[JsonSerializable(typeof(FilterClause))]
+[JsonSerializable(typeof(FilterClauseKind))]
+[JsonSerializable(typeof(FilterChainPolicy))]
+[JsonSerializable(typeof(FilterTarget))]
+[JsonSerializable(typeof(FilterTargetKind))]
+[JsonSerializable(typeof(ResolvedFilterChain))]
+[JsonSerializable(typeof(ResolvedFilterRule))]
+[JsonSerializable(typeof(UfwUserRuleReference))]
 [JsonTypeInfoBindingsGenerator(GenerationMode = BindingsGenerationMode.Optimized)]
 public sealed partial class MessageJsonSerializerContext : AotJsonSerializerContext;

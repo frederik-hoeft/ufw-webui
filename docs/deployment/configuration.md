@@ -115,8 +115,14 @@ The production template is `deploy/systemd/settings.json.example`.
 | `expose_remote_exception_details` | include unexpected exception details in daemon API error responses; enable only for local development | `false` |
 | `ufw_path` | UFW executable | `/usr/sbin/ufw` |
 | `ufw_defaults_path` | UFW host defaults used for IPv6 capability and default policies | `/etc/default/ufw` |
+| `iptables_save_path` | `iptables-save` used to read the active IPv4 filter table | `/usr/sbin/iptables-save` |
+| `ip6tables_save_path` | `ip6tables-save` used to read the active IPv6 filter table | `/usr/sbin/ip6tables-save` |
+| `ufw_user_rules_path` | UFW IPv4 user-rule file used to enrich filter rules | `/etc/ufw/user.rules` |
+| `ufw_user6_rules_path` | UFW IPv6 user-rule file used to enrich filter rules | `/etc/ufw/user6.rules` |
 
 The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
+
+The four filter-table paths are required settings, but the daemon does not check that the save binaries or user-rule files exist at startup. `GET /api/v1/system-state` fails if a save command cannot be run or parsed. A missing user-rule file yields a snapshot with no UFW links. A present user-rule file that is not valid UFW syntax fails that read. These paths do not affect `ufw status` or signed mutations.
 
 ### Daemon transport and stream security
 

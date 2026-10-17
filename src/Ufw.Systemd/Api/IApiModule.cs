@@ -15,6 +15,7 @@ namespace Ufw.Systemd.Api;
 [Scoped<NetworkInterfacesController>]
 [Scoped<RulesController>]
 [Scoped<StatusController>]
+[Scoped<SystemStateController>]
 [Singleton<MessageJsonSerializerContext>(Factory = nameof(GetMessageJsonSerializerContext))]
 [Singleton<AotJsonSerializerContext>(Factory = nameof(GetAotJsonSerializerContext))]
 [Singleton<ItpOptions>(Factory = nameof(GetItpOptions))]
