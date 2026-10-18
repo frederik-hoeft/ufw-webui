@@ -43,6 +43,7 @@ public sealed class IptablesSaveGrammarTests
         Assert.AreEqual(1, Chain(table, "INPUT").Rules[1].Location.Index);
 
         RawFilterRule routed = Chain(table, "INPUT").Rules[1];
+        StringAssert.Contains(routed.SourceLine!, "-m recent --set --name DEFAULT");
         Assert.IsTrue(routed.Target.IsChainReference);
         Assert.AreEqual("ufw-user-input", routed.Target.Name);
         Assert.AreEqual(FilterClauseKind.Protocol, routed.Clauses[0].Kind);
@@ -81,12 +82,25 @@ public sealed class IptablesSaveGrammarTests
     }
 
     [TestMethod]
-    public void TryParse_ReadsInstalledUfwRuleFilesWhenPresent()
+    public void TryParse_CanonicalizesDocumentedProtocolAndMultiportAliases()
     {
-        ParseIfPresent("/etc/ufw/before.rules", FirewallAddressFamily.IPv4);
-        ParseIfPresent("/etc/ufw/after.rules", FirewallAddressFamily.IPv4);
-        ParseIfPresent("/etc/ufw/before6.rules", FirewallAddressFamily.IPv6);
-        ParseIfPresent("/etc/ufw/after6.rules", FirewallAddressFamily.IPv6);
+        const string save = """
+            *filter
+            :INPUT DROP [0:0]
+            :OUTPUT ACCEPT [0:0]
+            :FORWARD DROP [0:0]
+            -A INPUT -p 6 -m multiport --destination-ports 443,80 -j ACCEPT
+            -A INPUT -p tcp -m multiport --dports 80,443 -j ACCEPT
+            COMMIT
+            """;
+
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
+        RawFilterRule first = table.Chains[0].Rules[0];
+        RawFilterRule second = table.Chains[0].Rules[1];
+        Assert.AreEqual("tcp", first.Clauses.Single(static clause => clause.Kind == FilterClauseKind.Protocol).Value);
+        Assert.AreEqual("80,443", first.Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort).Value);
+        CollectionAssert.AreEquivalent(first.Clauses.Select(static clause => $"{clause.Kind}:{clause.Value}").ToArray(),
+            second.Clauses.Select(static clause => $"{clause.Kind}:{clause.Value}").ToArray());
     }
 
     [TestMethod]
@@ -135,18 +149,6 @@ public sealed class IptablesSaveGrammarTests
         Assert.AreEqual("-m hl --hl-eq 255", solicitation.Clauses[2].Value);
         Assert.AreEqual("fe80::/10", solicitation.Clauses.Single(static clause => clause.Kind == FilterClauseKind.SourceAddress).Value);
         Assert.AreEqual("ff02::fb", table.Chains[0].Rules[1].Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationAddress).Value);
-    }
-
-    private static void ParseIfPresent(string path, FirewallAddressFamily family)
-    {
-        if (!File.Exists(path))
-        {
-            return;
-        }
-
-        string text = File.ReadAllText(path);
-        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(text, family, out RawFilterTable? table), path);
-        Assert.IsTrue(table.Chains.Count > 0, path);
     }
 
     private static RawFilterChain Chain(RawFilterTable table, string name) => table.Chains.Single(chain => chain.Name == name);

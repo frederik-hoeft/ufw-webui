@@ -110,7 +110,7 @@ internal sealed class IptablesSaveGrammar
             _chains.Add(_chainsByName[name]);
         }
 
-        public void VisitRule(string chainName, IReadOnlyList<IptablesToken> arguments)
+        public void VisitRule(string chainName, IReadOnlyList<IptablesToken> arguments, string sourceLine)
         {
             if (_failed)
             {
@@ -138,6 +138,7 @@ internal sealed class IptablesSaveGrammar
             chain.Rules.Add(new RawFilterRule
             {
                 Location = new FilterRuleLocation(family, chainName, chain.Rules.Count),
+                SourceLine = sourceLine,
                 Clauses = clauses,
                 Target = target,
             });
@@ -211,6 +212,7 @@ internal sealed class IptablesSaveGrammar
             return new RawFilterRule
             {
                 Location = rule.Location,
+                SourceLine = rule.SourceLine,
                 Clauses = rule.Clauses,
                 Target = new FilterTarget
                 {

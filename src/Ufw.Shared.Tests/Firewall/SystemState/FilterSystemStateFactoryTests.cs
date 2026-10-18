@@ -9,6 +9,11 @@ namespace Ufw.Shared.Tests.Firewall.SystemState;
 [TestClass]
 public sealed class FilterSystemStateFactoryTests
 {
+    private static readonly string[] s_inputPath = ["INPUT"];
+    private static readonly string[] s_beforeInputPath = ["INPUT", "ufw-before-input"];
+    private static readonly string[] s_sharedInputPath = ["INPUT", "shared"];
+    private static readonly int[] s_translationIndices = [0, 1, 2];
+
     [TestMethod]
     public void Create_InlinesJumpsAndRecordsProvenanceWithoutStoppingAtVerdicts()
     {
@@ -32,9 +37,9 @@ public sealed class FilterSystemStateFactoryTests
         Assert.AreEqual(FilterChainPolicy.Drop, input.Policy);
         Assert.HasCount(6, input.Rules);
         Assert.AreEqual("INPUT", input.Rules[0].ProvenanceChain);
-        CollectionAssert.AreEqual(new[] { "INPUT" }, input.Rules[0].ChainPath.ToArray());
+        CollectionAssert.AreEqual(s_inputPath, input.Rules[0].ChainPath.ToArray());
         Assert.AreEqual("ufw-before-input", input.Rules[1].ProvenanceChain);
-        CollectionAssert.AreEqual(new[] { "INPUT", "ufw-before-input" }, input.Rules[1].ChainPath.ToArray());
+        CollectionAssert.AreEqual(s_beforeInputPath, input.Rules[1].ChainPath.ToArray());
         Assert.AreEqual("ufw-user-input", input.Rules[3].ProvenanceChain);
         Assert.AreEqual(0, input.Rules[3].Location.Index);
         Assert.AreEqual("RETURN", input.Rules[4].Target.Name);
@@ -66,8 +71,8 @@ public sealed class FilterSystemStateFactoryTests
         Assert.AreEqual(1, input.Rules[2].Location.Index);
         Assert.AreEqual(0, input.Rules[4].Location.Index);
         Assert.AreEqual(input.Rules[1].Location, input.Rules[4].Location);
-        CollectionAssert.AreEqual(new[] { "INPUT", "shared" }, input.Rules[1].ChainPath.ToArray());
-        CollectionAssert.AreEqual(new[] { "INPUT", "shared" }, input.Rules[4].ChainPath.ToArray());
+        CollectionAssert.AreEqual(s_sharedInputPath, input.Rules[1].ChainPath.ToArray());
+        CollectionAssert.AreEqual(s_sharedInputPath, input.Rules[4].ChainPath.ToArray());
     }
 
     [TestMethod]
@@ -101,7 +106,7 @@ public sealed class FilterSystemStateFactoryTests
             Chain("FORWARD", FilterChainPolicy.Drop));
 
         FilterSystemState state = FilterSystemStateFactory.Create(ipv4, EmptyV6(), [first, second, absent]);
-        ResolvedFilterRule[] userChain = state.IPv4.Input.Rules.Where(static rule => rule.ProvenanceChain == "ufw-user-input").ToArray();
+        ResolvedFilterRule[] userChain = [.. state.IPv4.Input.Rules.Where(static rule => rule.ProvenanceChain == "ufw-user-input")];
 
         Assert.IsNull(userChain[0].UserRule);
         UfwUserRuleReference firstLink = userChain[1].UserRule!;
@@ -112,6 +117,86 @@ public sealed class FilterSystemStateFactoryTests
         Assert.AreEqual(1, userChain[2].UserRule!.UserRuleIndex);
         Assert.IsNull(userChain[3].UserRule);
         Assert.IsTrue(userChain.All(static rule => rule.UserRule?.UserRuleIndex != 2));
+    }
+
+    [TestMethod]
+    public void Create_ReconcilesLaterManagedRulesWhenEarlierConfiguredRulesAreNotActive()
+    {
+        UfwUserRuleTranslation removed = Translation(0, Spec(FirewallAction.Allow, "22"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22")));
+        UfwUserRuleTranslation active = Translation(1, Spec(FirewallAction.Allow, "80"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")));
+        RawFilterTable table = Table(
+            Chain("INPUT", FilterChainPolicy.Drop, Rule("INPUT", 0, Jump("ufw-user-input"))),
+            Chain("ufw-user-input", FilterChainPolicy.None, Rule("ufw-user-input", 0, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        UfwUserRuleReference? user = FilterSystemStateFactory.Create(table, EmptyV6(), [removed, active]).IPv4.Input.Rules[1].UserRule;
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(1, user.UserRuleIndex);
+    }
+
+    [TestMethod]
+    public void Create_DoesNotGuessWhichIdenticalConfiguredOccurrenceIsInstalled()
+    {
+        UfwUserRuleTranslation first = Translation(0, Spec(FirewallAction.Allow, "22"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22")));
+        UfwUserRuleTranslation second = Translation(1, Spec(FirewallAction.Allow, "22"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22")));
+        RawFilterTable table = Table(
+            Chain("INPUT", FilterChainPolicy.Drop, Rule("INPUT", 0, Jump("ufw-user-input"))),
+            Chain("ufw-user-input", FilterChainPolicy.None, Rule("ufw-user-input", 0, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        Assert.IsNull(FilterSystemStateFactory.Create(table, EmptyV6(), [first, second]).IPv4.Input.Rules[1].UserRule);
+    }
+
+    [TestMethod]
+    public void Create_DoesNotLinkIndividuallyUniqueButNonMandatoryAlignedRules()
+    {
+        UfwUserRuleTranslation first = Translation(0, Spec(FirewallAction.Allow, "22"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22")));
+        UfwUserRuleTranslation second = Translation(1, Spec(FirewallAction.Allow, "80"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")));
+        RawFilterTable table = Table(
+            Chain("INPUT", FilterChainPolicy.Drop, Rule("INPUT", 0, Jump("ufw-user-input"))),
+            Chain("ufw-user-input", FilterChainPolicy.None,
+                Rule("ufw-user-input", 0, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")),
+                Rule("ufw-user-input", 1, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22")),
+                Rule("ufw-user-input", 2, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        ResolvedFilterRule[] userRules = [.. FilterSystemStateFactory.Create(table, EmptyV6(), [first, second]).IPv4.Input.Rules
+            .Where(static rule => rule.ProvenanceChain == "ufw-user-input")];
+
+        Assert.IsTrue(userRules.All(static rule => rule.UserRule is null));
+    }
+
+    [TestMethod]
+    public void Create_DoesNotLinkAnOpaqueExpressionWithDifferentPredicates()
+    {
+        UfwUserRuleTranslation expected = Translation(0, Spec(FirewallAction.Allow, "22"),
+            Translated("ufw-user-input", Target("ACCEPT"), Opaque("-m conntrack --ctstate NEW")));
+        RawFilterTable table = Table(
+            Chain("INPUT", FilterChainPolicy.Drop, Rule("INPUT", 0, Jump("ufw-user-input"))),
+            Chain("ufw-user-input", FilterChainPolicy.None,
+                Rule("ufw-user-input", 0, Target("ACCEPT"), Opaque("-m conntrack --ctstate NEW --ctstate INVALID"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        Assert.IsNull(FilterSystemStateFactory.Create(table, EmptyV6(), [expected]).IPv4.Input.Rules[1].UserRule);
+    }
+
+    [TestMethod]
+    public void Create_DoesNotAttributeConflictingAlternativeAlignments()
+    {
+        UfwUserRuleTranslation first = Translation(0, Spec(FirewallAction.Allow, "22"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22")));
+        UfwUserRuleTranslation second = Translation(1, Spec(FirewallAction.Allow, "80"), Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")));
+        RawFilterTable table = Table(
+            Chain("INPUT", FilterChainPolicy.Drop, Rule("INPUT", 0, Jump("ufw-user-input"))),
+            Chain("ufw-user-input", FilterChainPolicy.None,
+                Rule("ufw-user-input", 0, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")),
+                Rule("ufw-user-input", 1, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "22"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        ResolvedFilterRule[] user = [.. FilterSystemStateFactory.Create(table, EmptyV6(), [first, second]).IPv4.Input.Rules
+            .Where(static rule => rule.ProvenanceChain == "ufw-user-input")];
+
+        Assert.IsTrue(user.All(static rule => rule.UserRule is null));
     }
 
     [TestMethod]
@@ -135,13 +220,13 @@ public sealed class FilterSystemStateFactoryTests
             Chain("OUTPUT", FilterChainPolicy.Accept),
             Chain("FORWARD", FilterChainPolicy.Drop));
 
-        ResolvedFilterRule[] input = FilterSystemStateFactory.Create(ipv4, EmptyV6(), [translation]).IPv4.Input.Rules.ToArray();
-        ResolvedFilterRule[] linked = input.Where(static rule => rule.UserRule is not null).ToArray();
+        ResolvedFilterRule[] input = [.. FilterSystemStateFactory.Create(ipv4, EmptyV6(), [translation]).IPv4.Input.Rules];
+        ResolvedFilterRule[] linked = [.. input.Where(static rule => rule.UserRule is not null)];
 
         Assert.HasCount(3, linked);
         string limitId = RuleIdentity.Compute(limit);
         Assert.IsTrue(linked.All(rule => rule.UserRule!.TranslationCount == 3 && rule.UserRule.RuleId == limitId));
-        CollectionAssert.AreEqual(new[] { 0, 1, 2 }, linked.Select(static rule => rule.UserRule!.TranslationIndex).ToArray());
+        CollectionAssert.AreEqual(s_translationIndices, linked.Select(static rule => rule.UserRule!.TranslationIndex).ToArray());
         Assert.IsTrue(input.Any(static rule => rule.ProvenanceChain == "ufw-user-limit" && rule.UserRule is null));
     }
 
@@ -156,7 +241,7 @@ public sealed class FilterSystemStateFactoryTests
             Chain("OUTPUT", FilterChainPolicy.Accept),
             Chain("FORWARD", FilterChainPolicy.Accept));
 
-        ResolvedFilterRule[] rules = FilterSystemStateFactory.Create(ipv4, EmptyV6()).IPv4.Input.Rules.ToArray();
+        ResolvedFilterRule[] rules = [.. FilterSystemStateFactory.Create(ipv4, EmptyV6()).IPv4.Input.Rules];
 
         Assert.HasCount(3, rules);
         Assert.AreEqual(FilterTargetKind.Goto, rules[0].Target.Kind);

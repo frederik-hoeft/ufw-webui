@@ -12,17 +12,27 @@ internal sealed class AppSettings : IRequireValidation
 
     public required string UfwDefaultsPath { get; init; }
 
+    // The AOT JSON bindings may create an object without running its initializers.
+    // Resolve optional read-only observation paths in getters so existing settings files remain valid.
+#pragma warning disable IDE0032 // Explicit backing fields preserve defaults with the AOT configuration binding generator.
+    private string? _iptablesSavePath;
+    private string? _ip6TablesSavePath;
+    private string? _ufwUserRulesPath;
+    private string? _ufwUser6RulesPath;
+
     [JsonPropertyName("iptables_save_path")]
-    public required string IptablesSavePath { get; init; }
+    public string IptablesSavePath { get => _iptablesSavePath ?? "/usr/sbin/iptables-save"; init => _iptablesSavePath = value; }
 
     [JsonPropertyName("ip6tables_save_path")]
-    public required string Ip6TablesSavePath { get; init; }
+    public string Ip6TablesSavePath { get => _ip6TablesSavePath ?? "/usr/sbin/ip6tables-save"; init => _ip6TablesSavePath = value; }
 
     [JsonPropertyName("ufw_user_rules_path")]
-    public required string UfwUserRulesPath { get; init; }
+    public string UfwUserRulesPath { get => _ufwUserRulesPath ?? "/etc/ufw/user.rules"; init => _ufwUserRulesPath = value; }
 
     [JsonPropertyName("ufw_user6_rules_path")]
-    public required string UfwUser6RulesPath { get; init; }
+    public string UfwUser6RulesPath { get => _ufwUser6RulesPath ?? "/etc/ufw/user6.rules"; init => _ufwUser6RulesPath = value; }
+
+#pragma warning restore IDE0032
 
     public required TransportOptions Transport { get; init; }
 

@@ -127,59 +127,32 @@ public static class FilterSystemStateFactory
         RawFilterTable table,
         IReadOnlyList<UfwUserRuleTranslation> translations)
     {
-        Dictionary<string, List<PendingTranslation>> expectedByChain = new(StringComparer.Ordinal);
+        Dictionary<string, List<(UfwUserRuleTranslation Translation, TranslatedIptablesRule Rule, int TranslationIndex)>> expectedByChain = new(StringComparer.Ordinal);
         foreach (UfwUserRuleTranslation translation in translations)
         {
             ArgumentNullException.ThrowIfNull(translation);
             for (int index = 0; index < translation.IptablesRules.Count; index++)
             {
                 TranslatedIptablesRule rule = translation.IptablesRules[index];
-                if (!expectedByChain.TryGetValue(rule.ChainName, out List<PendingTranslation>? pending))
+                if (!expectedByChain.TryGetValue(rule.ChainName, out List<(UfwUserRuleTranslation, TranslatedIptablesRule, int)>? pending))
                 {
                     pending = [];
                     expectedByChain.Add(rule.ChainName, pending);
                 }
 
-                pending.Add(new PendingTranslation(translation, rule, index));
+                pending.Add((translation, rule, index));
             }
         }
 
         Dictionary<FilterRuleLocation, UfwUserRuleReference> links = [];
         foreach (RawFilterChain chain in table.Chains)
         {
-            if (!expectedByChain.TryGetValue(chain.Name, out List<PendingTranslation>? pending))
+            if (expectedByChain.TryGetValue(chain.Name, out List<(UfwUserRuleTranslation, TranslatedIptablesRule, int)>? pending))
             {
-                continue;
-            }
-
-            int cursor = 0;
-            foreach (RawFilterRule rule in chain.Rules)
-            {
-                if (cursor >= pending.Count)
-                {
-                    break;
-                }
-
-                PendingTranslation candidate = pending[cursor];
-                if (!FilterRuleMatcher.Matches(rule, candidate.Rule))
-                {
-                    continue;
-                }
-
-                links[rule.Location] = new UfwUserRuleReference
-                {
-                    UserRuleIndex = candidate.Translation.Index,
-                    TranslationIndex = candidate.TranslationIndex,
-                    TranslationCount = candidate.Translation.IptablesRules.Count,
-                    RuleId = candidate.Translation.RuleId,
-                    Specification = candidate.Translation.Specification,
-                };
-                cursor++;
+                UfwUserRuleAttributor.Associate(chain, pending, links);
             }
         }
 
         return links;
     }
-
-    private readonly record struct PendingTranslation(UfwUserRuleTranslation Translation, TranslatedIptablesRule Rule, int TranslationIndex);
 }

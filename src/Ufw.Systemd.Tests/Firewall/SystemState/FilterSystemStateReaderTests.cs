@@ -15,6 +15,8 @@ namespace Ufw.Systemd.Tests.Firewall.SystemState;
 [TestClass]
 public sealed class FilterSystemStateReaderTests
 {
+    private static readonly string[] s_managedChainPath = ["INPUT", "ufw-before-input", "ufw-user-input"];
+
     public required TestContext TestContext { get; set; }
 
     [TestMethod]
@@ -74,7 +76,7 @@ public sealed class FilterSystemStateReaderTests
 
             FilterSystemStateResponse response = (FilterSystemStateResponse)await service.GetAsync(cancellation.Token);
 
-            ResolvedFilterRule[] linked = response.State.IPv4.Input.Rules.Where(static rule => rule.UserRule is not null).ToArray();
+            ResolvedFilterRule[] linked = [.. response.State.IPv4.Input.Rules.Where(static rule => rule.UserRule is not null)];
             Assert.HasCount(3, linked);
             UfwUserRuleReference ssh = linked[0].UserRule!;
             UfwUserRuleReference webTcp = linked[1].UserRule!;
@@ -87,7 +89,7 @@ public sealed class FilterSystemStateReaderTests
             Assert.AreEqual(1, webUdp.TranslationIndex);
             Assert.AreEqual(FirewallProtocol.Any, webTcp.Specification!.Protocol);
             Assert.AreEqual("ufw-user-input", linked[0].ProvenanceChain);
-            CollectionAssert.AreEqual(new[] { "INPUT", "ufw-before-input", "ufw-user-input" }, linked[0].ChainPath.ToArray());
+            CollectionAssert.AreEqual(s_managedChainPath, linked[0].ChainPath.ToArray());
             Assert.IsTrue(response.State.IPv4.Input.Rules.Any(static rule => rule.ProvenanceChain == "ufw-before-input" && rule.UserRule is null));
             Assert.IsEmpty(response.State.IPv6.Input.Rules);
             Assert.AreEqual(FilterChainPolicy.Accept, response.State.IPv6.Input.Policy);

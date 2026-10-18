@@ -341,7 +341,7 @@ internal sealed class IptablesRuleLine : ParserBase<IIptablesDocumentVisitor>
             return false;
         }
 
-        syntaxNode = new RuleLineSyntaxNode(Name, chainName, arguments);
+        syntaxNode = new RuleLineSyntaxNode(Name, chainName, arguments, input.Substring(offset, charsConsumed).TrimEnd('\r', '\n'));
         return true;
     }
 }

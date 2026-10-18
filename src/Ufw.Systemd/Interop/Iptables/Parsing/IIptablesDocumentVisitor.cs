@@ -8,7 +8,7 @@ internal interface IIptablesDocumentVisitor : INodeVisitor
 
     void VisitChain(string name, string policy);
 
-    void VisitRule(string chainName, IReadOnlyList<IptablesToken> arguments);
+    void VisitRule(string chainName, IReadOnlyList<IptablesToken> arguments, string sourceLine);
 
     void VisitTuple(string body);
 

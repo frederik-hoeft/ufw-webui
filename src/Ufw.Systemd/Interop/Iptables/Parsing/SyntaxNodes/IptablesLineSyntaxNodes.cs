@@ -14,9 +14,9 @@ internal sealed class ChainLineSyntaxNode(string? name, string chainName, string
     protected override void Accept(IIptablesDocumentVisitor visitor) => visitor.VisitChain(chainName, policy);
 }
 
-internal sealed class RuleLineSyntaxNode(string? name, string chainName, IReadOnlyList<IptablesToken> arguments) : SyntaxNodeBase<IIptablesDocumentVisitor>(name)
+internal sealed class RuleLineSyntaxNode(string? name, string chainName, IReadOnlyList<IptablesToken> arguments, string sourceLine) : SyntaxNodeBase<IIptablesDocumentVisitor>(name)
 {
-    protected override void Accept(IIptablesDocumentVisitor visitor) => visitor.VisitRule(chainName, arguments);
+    protected override void Accept(IIptablesDocumentVisitor visitor) => visitor.VisitRule(chainName, arguments, sourceLine);
 }
 
 internal sealed class TupleLineSyntaxNode(string? name, string body) : SyntaxNodeBase<IIptablesDocumentVisitor>(name)

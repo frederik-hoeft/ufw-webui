@@ -2,8 +2,8 @@ namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// Structural equality used to enrich live rules from UFW's iptables translations.
-/// Structured clauses ignore source order. Opaque text and target arguments allow the live
-/// rule to carry extra iptables-save default tokens.
+/// Structured clauses ignore source order. Unknown extensions compare exactly; only documented
+/// save-time defaults of known targets/modules are considered equivalent.
 /// </summary>
 internal static class FilterRuleMatcher
 {
@@ -30,7 +30,7 @@ internal static class FilterRuleMatcher
 
         for (int index = 0; index < expectedOpaque.Count; index++)
         {
-            if (!TokensCover(expectedOpaque[index].Value, liveOpaque[index].Value))
+            if (!OpaqueMatches(expectedOpaque[index].Value, liveOpaque[index].Value))
             {
                 return false;
             }
@@ -46,7 +46,15 @@ internal static class FilterRuleMatcher
             return false;
         }
 
-        return TokensCover(expected.Arguments, live.Arguments);
+        if (SameTokens(expected.Arguments, live.Arguments))
+        {
+            return true;
+        }
+
+        // iptables-save prints an explicit reject-with option for UFW's implicit default.
+        return expected.Name == "REJECT" && string.IsNullOrEmpty(expected.Arguments)
+            && IsDefaultRejectArguments(live.Arguments);
+
     }
 
     private static bool SameStructuredClauses(IReadOnlyList<FilterClause> live, IReadOnlyList<FilterClause> expected)
@@ -100,42 +108,54 @@ internal static class FilterRuleMatcher
         return opaque;
     }
 
-    /// <summary>
-    /// True when every token of <paramref name="expected"/> occurs, in order, in <paramref name="live"/>.
-    /// An empty expected argument list matches any live arguments.
-    /// </summary>
-    private static bool TokensCover(string? expected, string? live)
+    private static bool IsDefaultRejectArguments(string? arguments) =>
+        SameTokens(arguments, "--reject-with icmp-port-unreachable")
+        || SameTokens(arguments, "--reject-with icmp6-port-unreachable");
+
+    private static bool OpaqueMatches(string configured, string observed)
     {
-        List<string> expectedTokens = Tokenize(expected);
-        if (expectedTokens.Count == 0)
+        List<string> source = Tokenize(configured);
+        List<string> live = Tokenize(observed);
+        if (source.SequenceEqual(live, StringComparer.Ordinal))
         {
             return true;
         }
 
-        List<string> liveTokens = Tokenize(live);
-        int liveIndex = 0;
-        foreach (string token in expectedTokens)
+        // The recent matcher supplies these defaults in some iptables-save versions.
+        // No arbitrary live options are ignored: extra predicates must not be mistaken for
+        // equivalent configured rules, even if all configured tokens occur in order.
+        if (source.Count < 2 || source[0] != "-m" || source[1] != "recent"
+            || live.Count < 2 || live[0] != "-m" || live[1] != "recent")
         {
-            bool found = false;
-            while (liveIndex < liveTokens.Count)
-            {
-                string candidate = liveTokens[liveIndex];
-                liveIndex++;
-                if (string.Equals(candidate, token, StringComparison.Ordinal))
-                {
-                    found = true;
-                    break;
-                }
-            }
+            return false;
+        }
 
-            if (!found)
+        List<string> canonicalLive = [live[0], live[1]];
+        for (int index = 2; index < live.Count; index++)
+        {
+            if (index + 1 < live.Count && live[index] == "--name" && live[index + 1] == "DEFAULT")
             {
-                return false;
+                index++;
+            }
+            else if (index + 1 < live.Count && live[index] == "--mask" && live[index + 1] is "255.255.255.255" or "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+            {
+                index++;
+            }
+            else if (live[index] == "--rsource")
+            {
+                // --rsource is the default address selector for recent.
+            }
+            else
+            {
+                canonicalLive.Add(live[index]);
             }
         }
 
-        return true;
+        return source.SequenceEqual(canonicalLive, StringComparer.Ordinal);
     }
+
+    private static bool SameTokens(string? left, string? right) =>
+        Tokenize(left).SequenceEqual(Tokenize(right), StringComparer.Ordinal);
 
     private static List<string> Tokenize(string? text)
     {

@@ -20,7 +20,7 @@ The local `appsettings.json` file is gitignored and excluded from publish output
 
 The daemon `serve` command loads one explicit JSON settings file exactly once during process startup. Configuration is immutable for the lifetime of the daemon; changes require a process restart. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
 
-Daemon settings are explicit rather than backed by independent C# defaults. Required JSON members must be present even when their value is `false` or `null`. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, the selected transport endpoint, TLS certificate files, and security-state paths.
+Daemon settings use explicit required JSON members for the existing runtime configuration. The optional read-only filter inventory command and user-rule paths default to the conventional system paths, preserving compatibility with previously installed settings files. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, the selected transport endpoint, TLS certificate files, and security-state paths.
 
 The installer preserves an existing settings file on update unless `--settings PATH` is supplied explicitly.
 

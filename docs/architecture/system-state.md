@@ -12,11 +12,11 @@ Save output may contain other tables. They are skipped. The model keeps the filt
 
 `GET /api/v1/system-state` returns this snapshot. It is not signed, it does not mutate the firewall, and it does not change `GET /api/v1/rules`. ASP and the browser do not call it yet.
 
-The save binaries and the two user-rule paths are explicit daemon settings, alongside the UFW executable. A missing user-rule file is empty enrichment. A user-rule file that is not valid UFW syntax fails the read. The daemon does not require the save binaries to exist at startup, so a host that can still run the existing UFW rule API is not blocked from starting; this read fails on its own when they are absent or fail.
+The save binaries and the two user-rule paths are configurable daemon settings with conventional defaults, alongside the UFW executable. A missing user-rule file is empty enrichment. A user-rule file that is not valid UFW syntax fails the read. The daemon does not require the save binaries to exist at startup, so a host that can still run the existing UFW rule API is not blocked from starting; this read fails on its own when they are absent or fail.
 
 ## Raw rules
 
-A raw rule keeps the chain that owns it and its zero-based index in that chain. That location is the rule's physical identity for the snapshot. Two identical lines are two rules. The order of clauses on a rule is the order in the save text.
+A raw rule keeps the chain that owns it and its zero-based index in that chain. That location is the rule's physical identity for the snapshot. Two identical lines are two rules. The order of clauses on a rule is the order in the save text. The original active save declaration is also retained verbatim, so unsupported options and their original spelling/quoting remain available even when a clause cannot be interpreted.
 
 Clauses that correspond to UFW's filter predicates are structured, and negation is part of the clause:
 
@@ -56,7 +56,7 @@ Inside `### RULES ###`, UFW writes a `### tuple ###` line and then the iptables 
 
 The tuple fields are UFW's own record: action, protocol, destination port, destination address, source port, source address, and either a direction or an interface mark, with an optional application pair and a hex-encoded `comment=`. `route:` marks a forward rule. A `_log` or `_log-all` suffix is not a separate action in the mutable rule model, so the reference uses the underlying allow, deny, reject, or limit. When the tuple fits that model, the reference carries the normalized specification and the same `RuleId` the rule list would compute. A protocol the mutable model cannot name, such as `esp`, still links the iptables lines to the tuple, without a specification or rule id.
 
-Matching walks each live chain in order and binds those expected lines in order. Structured clauses compare as a multiset, so save-time reordering and an implicit `-m tcp` around a port still match. Opaque text matches when the tokens from the user-rule file occur, in order, inside the live text, which is what lets iptables-save append module defaults such as a `recent` name and mask. An omitted reject argument matches the default `--reject-with` the save prints. Duplicate lines bind to duplicate translations from front to back; they are not collapsed.
+Reconciliation uses order-preserving alignment of configured translations with observed physical rules. Structured clauses compare as multisets, so harmless predicate reordering and an implicit `-m tcp` around a port still match. Opaque clauses require exact token equivalence apart from recognized save-time defaults of the `recent` module, and target options require equivalence apart from an implicit default `REJECT` argument. Unrecognized extra predicates are not ignored. An installed physical rule is associated with a source occurrence only when its ordered correspondence is unambiguous; if one of multiple otherwise identical configured occurrences is missing, all ambiguous associations remain absent. A bounded alignment budget prevents oversized source inputs from affecting the completeness of the authoritative physical inventory.
 
 The live rule is kept whether or not a tuple matches. A tuple whose lines are not in the live table adds no rules. Enrichment never filters the snapshot. Out-of-band edits to UFW-managed chains are not a supported configuration; the matcher does not try to repair them.
 

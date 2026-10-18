@@ -384,8 +384,8 @@ internal static class IptablesRuleInterpreter
             "f" or "fragment" => "fragment",
             "4" => "4",
             "6" => "6",
-            "sport" or "source-port" or "sports" => "source-port",
-            "dport" or "destination-port" or "dports" => "destination-port",
+            "sport" or "source-port" or "sports" or "source-ports" => "source-port",
+            "dport" or "destination-port" or "dports" or "destination-ports" => "destination-port",
             "ports" => "ports",
             _ => name,
         };
@@ -399,6 +399,15 @@ internal static class IptablesRuleInterpreter
             protocol = null;
             return true;
         }
+
+        candidate = candidate switch
+        {
+            "6" => "tcp",
+            "17" => "udp",
+            "1" => "icmp",
+            "58" => "ipv6-icmp",
+            _ => candidate,
+        };
 
         if (candidate.Length == 0)
         {

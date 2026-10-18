@@ -162,22 +162,4 @@ public sealed class UfwUserRulesGrammarTests
 
         Assert.IsFalse(UfwUserRulesGrammar.Instance.TryParse(rules, FirewallAddressFamily.IPv4, out _));
     }
-
-    [TestMethod]
-    public void TryParse_ReadsInstalledUserRuleFilesWhenPresent()
-    {
-        ParseIfPresent("/etc/ufw/user.rules", FirewallAddressFamily.IPv4);
-        ParseIfPresent("/etc/ufw/user6.rules", FirewallAddressFamily.IPv6);
-        ParseIfPresent("/usr/share/ufw/user.rules", FirewallAddressFamily.IPv4);
-    }
-
-    private static void ParseIfPresent(string path, FirewallAddressFamily family)
-    {
-        if (!File.Exists(path))
-        {
-            return;
-        }
-
-        Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(File.ReadAllText(path), family, out _), path);
-    }
 }

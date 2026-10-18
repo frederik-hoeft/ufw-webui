@@ -41,6 +41,34 @@ public sealed class ConfigurationImplTests
     }
 
     [TestMethod]
+    public async Task LoadAsync_PreexistingConfigurationUsesDefaultReadOnlyInventoryPathsAsync()
+    {
+        string path = await WriteSettingsAsync();
+        try
+        {
+            string json = await File.ReadAllTextAsync(path);
+            string[] lines = json.Split('\n');
+            json = string.Join('\n', lines.Where(static line => !line.Contains("iptables_save_path", StringComparison.Ordinal)
+                && !line.Contains("ip6tables_save_path", StringComparison.Ordinal)
+                && !line.Contains("ufw_user_rules_path", StringComparison.Ordinal)
+                && !line.Contains("ufw_user6_rules_path", StringComparison.Ordinal)));
+
+            await File.WriteAllTextAsync(path, json);
+            ConfigurationImpl configuration = CreateConfiguration();
+            await configuration.LoadAsync(path, CancellationToken.None);
+
+            Assert.AreEqual("/usr/sbin/iptables-save", configuration.Settings.IptablesSavePath);
+            Assert.AreEqual("/usr/sbin/ip6tables-save", configuration.Settings.Ip6TablesSavePath);
+            Assert.AreEqual("/etc/ufw/user.rules", configuration.Settings.UfwUserRulesPath);
+            Assert.AreEqual("/etc/ufw/user6.rules", configuration.Settings.UfwUser6RulesPath);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
     public async Task LoadAsync_MissingRequiredSetting_DoesNotFallBackToModelDefaultAsync()
     {
         string path = await WriteSettingsAsync(includeRequestTimeout: false);

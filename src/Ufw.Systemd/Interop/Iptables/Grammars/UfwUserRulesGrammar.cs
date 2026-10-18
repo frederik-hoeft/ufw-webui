@@ -98,7 +98,7 @@ internal sealed class UfwUserRulesGrammar
             }
         }
 
-        public void VisitRule(string chainName, IReadOnlyList<IptablesToken> arguments)
+        public void VisitRule(string chainName, IReadOnlyList<IptablesToken> arguments, string sourceLine)
         {
             if (_failed)
             {
