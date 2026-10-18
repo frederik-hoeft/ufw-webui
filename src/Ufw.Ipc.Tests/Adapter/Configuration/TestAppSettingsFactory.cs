@@ -28,7 +28,7 @@ internal static class TestAppSettingsFactory
             UfwPath = "/nonexistent/ufw-for-tests",
             UfwDefaultsPath = "/nonexistent/ufw-defaults-for-tests",
             IptablesSavePath = "/nonexistent/iptables-save",
-            Ip6TablesSavePath = "/nonexistent/ip6tables-save",
+            Ip6tablesSavePath = "/nonexistent/ip6tables-save",
             UfwUserRulesPath = "/nonexistent/user.rules",
             UfwUser6RulesPath = "/nonexistent/user6.rules",
             Transport = new TransportOptions

@@ -29,6 +29,7 @@ public sealed class ConfigurationImplTests
             await configuration.LoadAsync(path, CancellationToken.None);
 
             Assert.AreEqual("/usr/sbin/ufw", configuration.Settings.UfwPath);
+            Assert.AreEqual("/usr/sbin/ip6tables-save", configuration.Settings.Ip6tablesSavePath);
             Assert.AreEqual(TransportType.Pipe, configuration.Settings.Transport.Type);
             Assert.AreEqual(TimeSpan.FromMinutes(30), configuration.Settings.Network.RequestTimeout);
             environmentValidator.Verify(validator => validator.ThrowIfInvalid(It.Is<AppSettings>(settings => settings.Network.MaxConnections == 8)), Times.Once);
@@ -90,7 +91,7 @@ public sealed class ConfigurationImplTests
           "ufw_path": "/usr/sbin/ufw",
           "ufw_defaults_path": "/etc/default/ufw",
           "iptables_save_path": "/usr/sbin/iptables-save",
-          "ip6_tables_save_path": "/usr/sbin/ip6tables-save",
+          "ip6tables_save_path": "/usr/sbin/ip6tables-save",
           "ufw_user_rules_path": "/etc/ufw/user.rules",
           "ufw_user6_rules_path": "/etc/ufw/user6.rules",
           "transport": {

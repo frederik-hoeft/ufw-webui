@@ -50,7 +50,7 @@ public sealed class ConfiguredTransportLayerServiceTests
             UfwPath = ufwPath,
             UfwDefaultsPath = settings.UfwDefaultsPath,
             IptablesSavePath = ufwPath,
-            Ip6TablesSavePath = ufwPath,
+            Ip6tablesSavePath = ufwPath,
             UfwUserRulesPath = settings.UfwUserRulesPath,
             UfwUser6RulesPath = settings.UfwUser6RulesPath,
             Transport = settings.Transport,

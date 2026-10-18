@@ -26,7 +26,7 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
             return new FilterSystemStateReadResult.Failure(ipv4.Diagnostic);
         }
 
-        Observation<RawFilterTable> ipv6 = await ReadSaveAsync(configuration.Settings.Ip6TablesSavePath, FirewallAddressFamily.IPv6, "IPv6", cancellationToken);
+        Observation<RawFilterTable> ipv6 = await ReadSaveAsync(configuration.Settings.Ip6tablesSavePath, FirewallAddressFamily.IPv6, "IPv6", cancellationToken);
         if (ipv6.Diagnostic is not null)
         {
             return new FilterSystemStateReadResult.Failure(ipv6.Diagnostic);

@@ -136,7 +136,7 @@ public sealed class ConfigurationEnvironmentValidatorTests
         UfwPath = ufwPath,
         UfwDefaultsPath = baseline.UfwDefaultsPath,
         IptablesSavePath = iptablesSavePath ?? ufwPath,
-        Ip6TablesSavePath = ufwPath,
+        Ip6tablesSavePath = ufwPath,
         UfwUserRulesPath = baseline.UfwUserRulesPath,
         UfwUser6RulesPath = baseline.UfwUser6RulesPath,
         Transport = transport ?? baseline.Transport,

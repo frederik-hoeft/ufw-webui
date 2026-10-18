@@ -12,7 +12,7 @@ internal sealed class AppSettings : IRequireValidation
 
     public required string IptablesSavePath { get; init; }
 
-    public required string Ip6TablesSavePath { get; init; }
+    public required string Ip6tablesSavePath { get; init; }
 
     public required string UfwUserRulesPath { get; init; }
 
@@ -32,7 +32,7 @@ internal sealed class AppSettings : IRequireValidation
         }
 
         if (string.IsNullOrWhiteSpace(IptablesSavePath)
-            || string.IsNullOrWhiteSpace(Ip6TablesSavePath)
+            || string.IsNullOrWhiteSpace(Ip6tablesSavePath)
             || string.IsNullOrWhiteSpace(UfwUserRulesPath)
             || string.IsNullOrWhiteSpace(UfwUser6RulesPath))
         {

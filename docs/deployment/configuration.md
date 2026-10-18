@@ -116,7 +116,7 @@ The production template is `deploy/systemd/settings.json.example`.
 | `ufw_path` | UFW executable | `/usr/sbin/ufw` |
 | `ufw_defaults_path` | UFW host defaults used for IPv6 capability and default policies | `/etc/default/ufw` |
 | `iptables_save_path` | `iptables-save` used to read the active IPv4 filter table | `/usr/sbin/iptables-save` |
-| `ip6_tables_save_path` | `ip6tables-save` used to read the active IPv6 filter table | `/usr/sbin/ip6tables-save` |
+| `ip6tables_save_path` | `ip6tables-save` used to read the active IPv6 filter table | `/usr/sbin/ip6tables-save` |
 | `ufw_user_rules_path` | UFW IPv4 user-rule file used to enrich filter rules | `/etc/ufw/user.rules` |
 | `ufw_user6_rules_path` | UFW IPv6 user-rule file used to enrich filter rules | `/etc/ufw/user6.rules` |
 
