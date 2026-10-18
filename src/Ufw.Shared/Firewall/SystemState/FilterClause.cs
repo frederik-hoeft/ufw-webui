@@ -14,4 +14,7 @@ public sealed class FilterClause
     /// Canonical value for a structured clause, or the uninterpreted text of an opaque clause.
     /// </summary>
     public required string Value { get; init; }
+
+    /// <summary>Lexical tokens captured by the parser for opaque clauses, when available.</summary>
+    public IReadOnlyList<string>? ParsedTokens { get; init; }
 }

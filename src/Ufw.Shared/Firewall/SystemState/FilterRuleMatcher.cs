@@ -30,7 +30,7 @@ internal static class FilterRuleMatcher
 
         for (int index = 0; index < expectedOpaque.Count; index++)
         {
-            if (!OpaqueMatches(expectedOpaque[index].Value, liveOpaque[index].Value))
+            if (!OpaqueMatches(expectedOpaque[index], liveOpaque[index]))
             {
                 return false;
             }
@@ -46,14 +46,14 @@ internal static class FilterRuleMatcher
             return false;
         }
 
-        if (SameTokens(expected.Arguments, live.Arguments))
+        if (SameTokens(expected, live))
         {
             return true;
         }
 
         // iptables-save prints an explicit reject-with option for UFW's implicit default.
         return expected.Name == "REJECT" && string.IsNullOrEmpty(expected.Arguments)
-            && IsDefaultRejectArguments(live.Arguments);
+            && IsDefaultRejectArguments(live);
 
     }
 
@@ -108,14 +108,14 @@ internal static class FilterRuleMatcher
         return opaque;
     }
 
-    private static bool IsDefaultRejectArguments(string? arguments) =>
-        SameTokens(arguments, "--reject-with icmp-port-unreachable")
-        || SameTokens(arguments, "--reject-with icmp6-port-unreachable");
+    private static bool IsDefaultRejectArguments(FilterTarget target) =>
+        FilterExpressionTokens.Of(target).SequenceEqual(["--reject-with", "icmp-port-unreachable"], StringComparer.Ordinal)
+        || FilterExpressionTokens.Of(target).SequenceEqual(["--reject-with", "icmp6-port-unreachable"], StringComparer.Ordinal);
 
-    private static bool OpaqueMatches(string configured, string observed)
+    private static bool OpaqueMatches(FilterClause configured, FilterClause observed)
     {
-        List<string> source = Tokenize(configured);
-        List<string> live = Tokenize(observed);
+        IReadOnlyList<string> source = FilterExpressionTokens.Of(configured);
+        IReadOnlyList<string> live = FilterExpressionTokens.Of(observed);
         if (source.SequenceEqual(live, StringComparer.Ordinal))
         {
             return true;
@@ -154,58 +154,6 @@ internal static class FilterRuleMatcher
         return source.SequenceEqual(canonicalLive, StringComparer.Ordinal);
     }
 
-    private static bool SameTokens(string? left, string? right) =>
-        Tokenize(left).SequenceEqual(Tokenize(right), StringComparer.Ordinal);
-
-    private static List<string> Tokenize(string? text)
-    {
-        List<string> tokens = [];
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return tokens;
-        }
-
-        int index = 0;
-        while (index < text.Length)
-        {
-            while (index < text.Length && char.IsWhiteSpace(text[index]))
-            {
-                index++;
-            }
-
-            if (index >= text.Length)
-            {
-                break;
-            }
-
-            if (text[index] is '"' or '\'')
-            {
-                char quote = text[index];
-                index++;
-                int start = index;
-                while (index < text.Length && text[index] != quote)
-                {
-                    index++;
-                }
-
-                tokens.Add(text[start..index]);
-                if (index < text.Length)
-                {
-                    index++;
-                }
-
-                continue;
-            }
-
-            int wordStart = index;
-            while (index < text.Length && !char.IsWhiteSpace(text[index]))
-            {
-                index++;
-            }
-
-            tokens.Add(text[wordStart..index]);
-        }
-
-        return tokens;
-    }
+    private static bool SameTokens(FilterTarget left, FilterTarget right) =>
+        FilterExpressionTokens.Of(left).SequenceEqual(FilterExpressionTokens.Of(right), StringComparer.Ordinal);
 }

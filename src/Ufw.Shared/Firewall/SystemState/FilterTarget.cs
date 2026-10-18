@@ -16,4 +16,7 @@ public sealed class FilterTarget
     /// Uninterpreted target options, such as <c>--reject-with</c> or <c>--log-prefix</c>.
     /// </summary>
     public string? Arguments { get; init; }
+
+    /// <summary>Target argument tokens from the input grammar, without re-tokenizing the rendered text.</summary>
+    public IReadOnlyList<string>? ParsedArguments { get; init; }
 }

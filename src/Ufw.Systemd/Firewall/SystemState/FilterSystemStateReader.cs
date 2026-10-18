@@ -8,7 +8,7 @@ using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.SystemState;
 
-internal sealed class FilterSystemStateReader(IConfiguration configuration, IChildProcessRunner processes, ILogger logger) : IFilterSystemStateReader
+internal sealed class FilterSystemStateReader(IConfiguration configuration, IChildProcessRunner processes, IFirewallRuleSnapshotReader snapshotReader, ILogger logger) : IFilterSystemStateReader
 {
     private static readonly ImmutableDictionary<string, string> s_environment = ImmutableDictionary<string, string>.Empty
         .Add("LC_ALL", "C")
@@ -44,7 +44,23 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
             return new FilterSystemStateReadResult.Failure(ipv6Rules.Diagnostic);
         }
 
-        return new FilterSystemStateReadResult.Success(FilterSystemStateFactory.Create(ipv4.Value!, ipv6.Value!, ipv4Rules.Value, ipv6Rules.Value));
+        // The two UFW and Netfilter observations are not atomic. Treat the numbered UFW
+        // snapshot as the authority for managed identities, but never use it to filter
+        // the physical inventory. If the observations disagree, omit only enrichment.
+        FirewallRuleSnapshotReadResult managed = await snapshotReader.ReadAsync(cancellationToken);
+        IReadOnlyList<UfwUserRuleTranslation> managedIpv4 = [];
+        IReadOnlyList<UfwUserRuleTranslation> managedIpv6 = [];
+        if (managed is FirewallRuleSnapshotReadResult.Success success)
+        {
+            managedIpv4 = UfwManagedRuleLinker.Link(ipv4Rules.Value!, success.Snapshot.Rules, FirewallAddressFamily.IPv4);
+            managedIpv6 = UfwManagedRuleLinker.Link(ipv6Rules.Value!, success.Snapshot.Rules, FirewallAddressFamily.IPv6);
+        }
+        else
+        {
+            _logger.LogWarning("Could not reconcile the managed UFW snapshot; physical filter inventory remains available without managed attribution.");
+        }
+
+        return new FilterSystemStateReadResult.Success(FilterSystemStateFactory.Create(ipv4.Value!, ipv6.Value!, managedIpv4, managedIpv6));
     }
 
     private async Task<Observation<RawFilterTable>> ReadSaveAsync(

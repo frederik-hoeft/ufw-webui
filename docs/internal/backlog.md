@@ -1,4 +1,4 @@
-﻿# Design Backlog
+# Design Backlog
 
 This document records unresolved larger design directions that are useful to retain between implementation phases. It is deliberately non-normative: none of these sections describes current product behavior unless a permanent architecture/protocol document says so.
 
@@ -42,6 +42,10 @@ Sorting remains conceptually separate from filtering. Any future non-firewall so
 Evaluate whether a future signed-intent protocol revision should include the canonical UFW rule text shown to the administrator and require the daemon to compare that signed presentation with text rendered independently from the authoritative structural rule. This would be a defense-in-depth consistency assertion, not the command-injection boundary: validated structural fields and direct argv execution remain authoritative.
 
 Because this changes the signed payload, it requires an explicit protocol-version/security design rather than being added as an incidental UI check.
+
+## Shared firewall predicate value objects
+
+Evaluate extracting reusable, validated value objects for source/destination networks (CIDRs), port ranges and lists, and other repeated firewall predicates currently expressed as strings in `FirewallRuleSpecification` and the read-only system-state inventory. Centralize normalization, parsing, equality, bounds validation, and canonical formatting so consumers do not repeatedly parse strings. Prefer existing closed enums for direction, address family, and other truly finite categories; retain an explicit opaque representation for iptables extensions and protocol values outside the modeled domain rather than coercing them into a restrictive enum. Preserve signed-rule identity and existing DTO/IPC compatibility through explicit conversion boundaries, with a focused migration plan before changing contracts.
 
 ## Backlog discipline
 

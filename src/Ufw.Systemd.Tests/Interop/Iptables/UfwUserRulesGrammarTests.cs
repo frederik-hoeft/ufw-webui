@@ -81,7 +81,7 @@ public sealed class UfwUserRulesGrammarTests
         Assert.AreEqual(FirewallProtocol.Udp, logged.Specification.Protocol);
         Assert.HasCount(4, logged.IptablesRules);
         Assert.AreEqual("ufw-user-logging-output", logged.IptablesRules[1].ChainName);
-        StringAssert.Contains(logged.IptablesRules[1].Target.Arguments, "[UFW ALLOW]");
+        Assert.Contains("[UFW ALLOW]", logged.IptablesRules[1].Target.Arguments!);
 
         UfwUserRuleTranslation route = translations[3];
         Assert.AreEqual(FirewallDirection.Forward, route.Specification!.Direction);

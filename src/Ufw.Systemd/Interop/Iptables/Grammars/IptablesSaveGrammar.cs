@@ -6,6 +6,7 @@ using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Iptables.Parsing;
 using Ufw.Systemd.Interop.Iptables.Parsing.Terminals;
+using Ufw.Systemd.Interop.Iptables.Parsing.Lines;
 
 namespace Ufw.Systemd.Interop.Iptables.Grammars;
 
@@ -220,6 +221,7 @@ internal sealed class IptablesSaveGrammar
                     Name = rule.Target.Name,
                     IsChainReference = isReference,
                     Arguments = rule.Target.Arguments,
+                    ParsedArguments = rule.Target.ParsedArguments,
                 },
             };
         }

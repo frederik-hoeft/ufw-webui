@@ -43,7 +43,7 @@ public sealed class IptablesSaveGrammarTests
         Assert.AreEqual(1, Chain(table, "INPUT").Rules[1].Location.Index);
 
         RawFilterRule routed = Chain(table, "INPUT").Rules[1];
-        StringAssert.Contains(routed.SourceLine!, "-m recent --set --name DEFAULT");
+        Assert.Contains("-m recent --set --name DEFAULT", routed.SourceLine!);
         Assert.IsTrue(routed.Target.IsChainReference);
         Assert.AreEqual("ufw-user-input", routed.Target.Name);
         Assert.AreEqual(FilterClauseKind.Protocol, routed.Clauses[0].Kind);

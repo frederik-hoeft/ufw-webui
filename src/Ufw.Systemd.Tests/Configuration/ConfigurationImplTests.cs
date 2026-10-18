@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using System.Text.Json;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
@@ -41,26 +41,17 @@ public sealed class ConfigurationImplTests
     }
 
     [TestMethod]
-    public async Task LoadAsync_PreexistingConfigurationUsesDefaultReadOnlyInventoryPathsAsync()
+    public async Task LoadAsync_MissingInventoryConfigurationFailsAtStartupAsync()
     {
         string path = await WriteSettingsAsync();
         try
         {
             string json = await File.ReadAllTextAsync(path);
-            string[] lines = json.Split('\n');
-            json = string.Join('\n', lines.Where(static line => !line.Contains("iptables_save_path", StringComparison.Ordinal)
-                && !line.Contains("ip6tables_save_path", StringComparison.Ordinal)
-                && !line.Contains("ufw_user_rules_path", StringComparison.Ordinal)
-                && !line.Contains("ufw_user6_rules_path", StringComparison.Ordinal)));
-
+            json = json.Replace("\"iptables_save_path\": \"/usr/sbin/iptables-save\",", "", StringComparison.Ordinal);
             await File.WriteAllTextAsync(path, json);
-            ConfigurationImpl configuration = CreateConfiguration();
-            await configuration.LoadAsync(path, CancellationToken.None);
 
-            Assert.AreEqual("/usr/sbin/iptables-save", configuration.Settings.IptablesSavePath);
-            Assert.AreEqual("/usr/sbin/ip6tables-save", configuration.Settings.Ip6TablesSavePath);
-            Assert.AreEqual("/etc/ufw/user.rules", configuration.Settings.UfwUserRulesPath);
-            Assert.AreEqual("/etc/ufw/user6.rules", configuration.Settings.UfwUser6RulesPath);
+            ConfigurationImpl configuration = CreateConfiguration();
+            await Assert.ThrowsExactlyAsync<JsonException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
         }
         finally
         {
@@ -99,7 +90,7 @@ public sealed class ConfigurationImplTests
           "ufw_path": "/usr/sbin/ufw",
           "ufw_defaults_path": "/etc/default/ufw",
           "iptables_save_path": "/usr/sbin/iptables-save",
-          "ip6tables_save_path": "/usr/sbin/ip6tables-save",
+          "ip6_tables_save_path": "/usr/sbin/ip6tables-save",
           "ufw_user_rules_path": "/etc/ufw/user.rules",
           "ufw_user6_rules_path": "/etc/ufw/user6.rules",
           "transport": {

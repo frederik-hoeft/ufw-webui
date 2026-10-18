@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
+using Ufw.Systemd.Interop.Iptables.Grammars;
 
 namespace Ufw.Systemd.Interop.Iptables.Parsing;
 
@@ -26,16 +27,19 @@ internal static class UfwTupleInterpreter
             return false;
         }
 
-        string line = body;
-        string? encodedComment = null;
-        int commentIndex = line.IndexOf(" comment=", StringComparison.Ordinal);
-        if (commentIndex >= 0)
+        if (!UfwTupleBodyGrammar.Instance.TryParse(body, out IReadOnlyList<string>? parsedFields))
         {
-            encodedComment = line[(commentIndex + " comment=".Length)..].Trim();
-            line = line[..commentIndex];
+            return false;
         }
 
-        string[] fields = line.Split((char[])null!, StringSplitOptions.RemoveEmptyEntries);
+        string[] fields = parsedFields.ToArray();
+        string? encodedComment = null;
+        if (fields.Length > 0 && fields[^1].StartsWith("comment=", StringComparison.Ordinal))
+        {
+            encodedComment = fields[^1]["comment=".Length..];
+            fields = fields[..^1];
+        }
+
         if (fields.Length is < 6 or > 9)
         {
             return false;

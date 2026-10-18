@@ -119,7 +119,7 @@ public sealed class FilterSystemStateReaderTests
             .ReturnsAsync(new ChildProcessResult(1, string.Empty, "nft unavailable", false));
 
         InternalServerErrorResponse saveError = (InternalServerErrorResponse)await failedSave.GetAsync(TestContext.CancellationToken);
-        StringAssert.Contains(saveError.Message, "IPv6");
+        Assert.Contains("IPv6", saveError.Message!);
 
         string directory = Path.Combine(Path.GetTempPath(), "ufw-system-state-bad-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -129,7 +129,7 @@ public sealed class FilterSystemStateReaderTests
         {
             FilterSystemStateQueryService malformed = CreateService(MinimalSave("ACCEPT"), MinimalSave("ACCEPT"), userRules, "/missing/user6.rules", out _);
             InternalServerErrorResponse rulesError = (InternalServerErrorResponse)await malformed.GetAsync(TestContext.CancellationToken);
-            StringAssert.Contains(rulesError.Message, "IPv4");
+            Assert.Contains("IPv4", rulesError.Message!);
         }
         finally
         {
@@ -157,9 +157,33 @@ public sealed class FilterSystemStateReaderTests
             ip6TablesSavePath: ipv6Path,
             ufwUserRulesPath: userRulesPath,
             ufwUser6RulesPath: user6RulesPath));
-        FilterSystemStateReader reader = new(configuration, processes.Object, new ConsoleLogger());
+        Mock<IFirewallRuleSnapshotReader> snapshotReader = new();
+        snapshotReader.Setup(reader => reader.ReadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FirewallRuleSnapshotReadResult.Success(ManagedSnapshot()));
+        FilterSystemStateReader reader = new(configuration, processes.Object, snapshotReader.Object, new ConsoleLogger());
         UfwExecutionGate gate = new();
         return new FilterSystemStateQueryService(reader, gate);
+    }
+
+    private static FirewallSnapshot ManagedSnapshot()
+    {
+        FirewallRuleSpecification ssh = RuleSpecificationNormalizer.Normalize(new FirewallRuleSpecification
+        {
+            AddressFamily = FirewallAddressFamily.IPv4, Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In, Protocol = FirewallProtocol.Tcp,
+            DestinationPorts = "22",
+        });
+        FirewallRuleSpecification web = RuleSpecificationNormalizer.Normalize(new FirewallRuleSpecification
+        {
+            AddressFamily = FirewallAddressFamily.IPv4, Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In, Protocol = FirewallProtocol.Any,
+            DestinationPorts = "80",
+        });
+        return new FirewallSnapshot(true,
+        [
+            new ListedFirewallRule { Parsed = true, Rule = ssh, RuleId = RuleIdentity.Compute(ssh), DisplayNumber = 1 },
+            new ListedFirewallRule { Parsed = true, Rule = web, RuleId = RuleIdentity.Compute(web), DisplayNumber = 2 },
+        ], new FirewallConfigurationSnapshot(true, FirewallDefaultPolicy.Deny, FirewallDefaultPolicy.Allow, FirewallDefaultPolicy.Deny));
     }
 
     private static string MinimalSave(string inputPolicy) => $"""
