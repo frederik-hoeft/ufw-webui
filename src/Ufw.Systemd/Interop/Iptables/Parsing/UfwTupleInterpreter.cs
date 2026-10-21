@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
@@ -32,7 +32,7 @@ internal static class UfwTupleInterpreter
             return false;
         }
 
-        string[] fields = parsedFields.ToArray();
+        string[] fields = [.. parsedFields];
         string? encodedComment = null;
         if (fields.Length > 0 && fields[^1].StartsWith("comment=", StringComparison.Ordinal))
         {
