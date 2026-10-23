@@ -1,6 +1,7 @@
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Systemd.Interop.Iptables.Grammars;
+using Ufw.Systemd.Interop.Iptables.Parsing;
 
 namespace Ufw.Systemd.Tests.Interop.Iptables;
 
@@ -218,6 +219,20 @@ public sealed class UfwUserRulesGrammarTests
         Assert.AreEqual("eth0", second.SourceInterface);
         Assert.AreEqual("eth1", second.DestinationInterface);
         Assert.AreEqual("test", second.Comment);
+    }
+
+    [TestMethod]
+    public void TryParse_DecodesQuotedApplicationProfileEscapes()
+    {
+        const string quoted = """allow tcp 80 0.0.0.0/0 any 0.0.0.0/0 "Folder\\Path \"quoted\" \x" 'O\'Brien\\Profiles' in""";
+
+        Assert.IsTrue(UfwTupleBodyGrammar.Instance.TryParse(quoted, out UfwTupleSyntax? tuple));
+        Assert.AreEqual("Folder\\Path \"quoted\" x", tuple.DestinationApplication);
+        Assert.AreEqual("O'Brien\\Profiles", tuple.SourceApplication);
+
+        const string unquoted = """allow tcp 80 0.0.0.0/0 any 0.0.0.0/0 Bare\Name - in""";
+        Assert.IsTrue(UfwTupleBodyGrammar.Instance.TryParse(unquoted, out UfwTupleSyntax? plain));
+        Assert.AreEqual(@"Bare\Name", plain.DestinationApplication);
     }
 
     [TestMethod]

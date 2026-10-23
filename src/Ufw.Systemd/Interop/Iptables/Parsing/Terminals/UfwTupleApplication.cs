@@ -16,9 +16,11 @@ internal sealed partial class UfwTupleApplication(string? name, UfwTupleFieldRol
 
     protected override bool TryCreateSyntaxNode(Match match, [NotNullWhen(true)] out ISyntaxNode? syntaxNode)
     {
-        string value = match.Groups["double"].Success ? match.Groups["double"].Value :
-            match.Groups["single"].Success ? match.Groups["single"].Value : match.Groups["plain"].Value;
-        syntaxNode = new UfwTupleApplicationSyntaxNode(Name, role, value.Replace("\\\"", "\"").Replace("\\'", "'"));
+        bool doubleQuoted = match.Groups["double"].Success;
+        bool singleQuoted = match.Groups["single"].Success;
+        string value = doubleQuoted ? match.Groups["double"].Value :
+            singleQuoted ? match.Groups["single"].Value : match.Groups["plain"].Value;
+        syntaxNode = new UfwTupleApplicationSyntaxNode(Name, role, doubleQuoted || singleQuoted ? QuotedStringEscapeDecoder.Decode(value) : value);
         return true;
     }
 }
