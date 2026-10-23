@@ -33,34 +33,59 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
         }
 
         Observation<IReadOnlyList<UfwUserRuleTranslation>> ipv4Rules = ReadUserRules(configuration.Settings.UfwUserRulesPath, FirewallAddressFamily.IPv4, "IPv4");
-        if (ipv4Rules.Diagnostic is not null)
-        {
-            return new FilterSystemStateReadResult.Failure(ipv4Rules.Diagnostic);
-        }
-
         Observation<IReadOnlyList<UfwUserRuleTranslation>> ipv6Rules = ReadUserRules(configuration.Settings.UfwUser6RulesPath, FirewallAddressFamily.IPv6, "IPv6");
-        if (ipv6Rules.Diagnostic is not null)
-        {
-            return new FilterSystemStateReadResult.Failure(ipv6Rules.Diagnostic);
-        }
+        FilterEnrichmentReport ipv4Enrichment = ipv4Rules.Diagnostic is null
+            ? new FilterEnrichmentReport(FilterEnrichmentStatus.Complete)
+            : new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, ipv4Rules.Diagnostic);
+        FilterEnrichmentReport ipv6Enrichment = ipv6Rules.Diagnostic is null
+            ? new FilterEnrichmentReport(FilterEnrichmentStatus.Complete)
+            : new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, ipv6Rules.Diagnostic);
 
-        // The two UFW and Netfilter observations are not atomic. Treat the numbered UFW
-        // snapshot as the authority for managed identities, but never use it to filter
-        // the physical inventory. If the observations disagree, omit only enrichment.
-        FirewallRuleSnapshotReadResult managed = await snapshotReader.ReadAsync(cancellationToken);
+        // UFW observations and Netfilter saves are not atomic. Never use optional enrichment
+        // to filter the authoritative physical inventory or to suppress a successful read.
         IReadOnlyList<UfwUserRuleTranslation> managedIpv4 = [];
         IReadOnlyList<UfwUserRuleTranslation> managedIpv6 = [];
-        if (managed is FirewallRuleSnapshotReadResult.Success success)
+        if (ipv4Rules.Diagnostic is null || ipv6Rules.Diagnostic is null)
         {
-            managedIpv4 = UfwManagedRuleLinker.Link(ipv4Rules.Value!, success.Snapshot.Rules, FirewallAddressFamily.IPv4);
-            managedIpv6 = UfwManagedRuleLinker.Link(ipv6Rules.Value!, success.Snapshot.Rules, FirewallAddressFamily.IPv6);
-        }
-        else
-        {
-            _logger.LogWarning("Could not reconcile the managed UFW snapshot; physical filter inventory remains available without managed attribution.");
+            FirewallRuleSnapshotReadResult managed = await snapshotReader.ReadAsync(cancellationToken);
+            if (managed is FirewallRuleSnapshotReadResult.Success success)
+            {
+                if (ipv4Rules.Diagnostic is null)
+                {
+                    managedIpv4 = UfwManagedRuleLinker.Link(ipv4Rules.Value!, success.Snapshot.Rules, FirewallAddressFamily.IPv4);
+                    if (managedIpv4.Count != ipv4Rules.Value!.Count)
+                    {
+                        ipv4Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Partial, "Some IPv4 user-rule tuples do not match the numbered UFW snapshot.");
+                    }
+                }
+
+                if (ipv6Rules.Diagnostic is null)
+                {
+                    managedIpv6 = UfwManagedRuleLinker.Link(ipv6Rules.Value!, success.Snapshot.Rules, FirewallAddressFamily.IPv6);
+                    if (managedIpv6.Count != ipv6Rules.Value!.Count)
+                    {
+                        ipv6Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Partial, "Some IPv6 user-rule tuples do not match the numbered UFW snapshot.");
+                    }
+                }
+            }
+            else
+            {
+                const string diagnostic = "The numbered UFW snapshot is unavailable; managed-rule attribution was skipped.";
+                _logger.LogWarning(diagnostic);
+                if (ipv4Rules.Diagnostic is null)
+                {
+                    ipv4Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, diagnostic);
+                }
+
+                if (ipv6Rules.Diagnostic is null)
+                {
+                    ipv6Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, diagnostic);
+                }
+            }
         }
 
-        return new FilterSystemStateReadResult.Success(FilterSystemStateFactory.Create(ipv4.Value!, ipv6.Value!, managedIpv4, managedIpv6));
+        return new FilterSystemStateReadResult.Success(FilterSystemStateFactory.Create(
+            ipv4.Value!, ipv6.Value!, managedIpv4, managedIpv6, ipv4Enrichment, ipv6Enrichment));
     }
 
     private async Task<Observation<RawFilterTable>> ReadSaveAsync(
@@ -104,7 +129,7 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
     {
         if (!File.Exists(path))
         {
-            return Observation<IReadOnlyList<UfwUserRuleTranslation>>.Succeeded([]);
+            return Observation<IReadOnlyList<UfwUserRuleTranslation>>.Failed($"The {familyName} UFW user-rule file is unavailable.");
         }
 
         string contents;

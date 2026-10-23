@@ -122,7 +122,7 @@ The production template is `deploy/systemd/settings.json.example`.
 
 The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
 
-The four filter-table paths are required settings. The daemon validates that both save executables exist at startup; missing user-rule files are permitted for optional enrichment. `GET /api/v1/system-state` fails if a save command cannot be run or parsed. A missing user-rule file yields a snapshot with no UFW links. A present user-rule file that is not valid UFW syntax fails that read. These paths do not affect `ufw status` or signed mutations.
+The four filter-table paths are required settings. The daemon validates that both save executables exist at startup; missing user-rule files are permitted for optional enrichment. `GET /api/v1/system-state` fails if a save command cannot be run or parsed. Missing, unreadable, or invalid user-rule files disable managed-rule enrichment for the affected family and record a diagnostic, without suppressing the authoritative physical inventory. Failed save commands or malformed save output still fail the inventory read. These paths do not affect `ufw status` or signed mutations.
 
 ### Daemon transport and stream security
 

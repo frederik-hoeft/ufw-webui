@@ -109,10 +109,12 @@ public sealed class FilterSystemStateReaderTests
 
         Assert.HasCount(1, response.State.IPv4.Input.Rules);
         Assert.IsNull(response.State.IPv4.Input.Rules[0].UserRule);
+        Assert.AreEqual(FilterEnrichmentStatus.Unavailable, response.State.IPv4.Enrichment.Status);
+        Assert.AreEqual(FilterEnrichmentStatus.Unavailable, response.State.IPv6.Enrichment.Status);
     }
 
     [TestMethod]
-    public async Task ReadAsync_FailedSaveOrMalformedUserRulesFailTheReadAsync()
+    public async Task ReadAsync_FailedSaveFailsButMalformedUserRulesOnlyDisableEnrichmentAsync()
     {
         FilterSystemStateQueryService failedSave = CreateService(MinimalSave("ACCEPT"), MinimalSave("ACCEPT"), "/missing/user.rules", "/missing/user6.rules", out Mock<IChildProcessRunner> processes);
         processes.Setup(runner => runner.RunAsync(It.Is<ChildProcessRequest>(request => request.Command.Contains("ip6", StringComparison.Ordinal)), It.IsAny<CancellationToken>()))
@@ -128,8 +130,11 @@ public sealed class FilterSystemStateReaderTests
         try
         {
             FilterSystemStateQueryService malformed = CreateService(MinimalSave("ACCEPT"), MinimalSave("ACCEPT"), userRules, "/missing/user6.rules", out _);
-            InternalServerErrorResponse rulesError = (InternalServerErrorResponse)await malformed.GetAsync(TestContext.CancellationToken);
-            Assert.Contains("IPv4", rulesError.Message!);
+            FilterSystemStateResponse result = (FilterSystemStateResponse)await malformed.GetAsync(TestContext.CancellationToken);
+            Assert.HasCount(1, result.State.IPv4.Input.Rules);
+            Assert.AreEqual(FilterEnrichmentStatus.Unavailable, result.State.IPv4.Enrichment.Status);
+            Assert.Contains("IPv4", result.State.IPv4.Enrichment.Diagnostic!);
+            Assert.AreEqual(FilterEnrichmentStatus.Unavailable, result.State.IPv6.Enrichment.Status);
         }
         finally
         {

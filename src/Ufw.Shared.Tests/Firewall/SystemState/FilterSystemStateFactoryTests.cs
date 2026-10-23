@@ -67,12 +67,79 @@ public sealed class FilterSystemStateFactoryTests
         ResolvedFilterChain input = FilterSystemStateFactory.Create(ipv4, EmptyV6()).IPv4.Input;
 
         Assert.HasCount(6, input.Rules);
+        Assert.AreEqual(FilterTraversalStatus.CycleDetected, input.TraversalStatus);
         Assert.AreEqual(0, input.Rules[1].Location.Index);
         Assert.AreEqual(1, input.Rules[2].Location.Index);
         Assert.AreEqual(0, input.Rules[4].Location.Index);
         Assert.AreEqual(input.Rules[1].Location, input.Rules[4].Location);
         CollectionAssert.AreEqual(s_sharedInputPath, input.Rules[1].ChainPath.ToArray());
         CollectionAssert.AreEqual(s_sharedInputPath, input.Rules[4].ChainPath.ToArray());
+    }
+
+    [TestMethod]
+    public void Create_DistinguishesRepeatedJumpEdgesWithoutDuplicatingPhysicalIdentities()
+    {
+        RawFilterTable table = Table(
+            Chain("INPUT", FilterChainPolicy.Accept, Rule("INPUT", 0, Jump("shared")), Rule("INPUT", 1, Jump("shared"))),
+            Chain("shared", FilterChainPolicy.None, Rule("shared", 0, Target("ACCEPT"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Accept));
+
+        ResolvedFilterChain input = FilterSystemStateFactory.Create(table, EmptyV6()).IPv4.Input;
+
+        Assert.AreEqual(FilterTraversalStatus.None, input.TraversalStatus);
+        Assert.HasCount(4, input.Rules);
+        Assert.AreEqual(input.Rules[1].Location, input.Rules[3].Location);
+        CollectionAssert.AreEqual(new[] { new FilterRuleLocation(FirewallAddressFamily.IPv4, "INPUT", 0) }, input.Rules[1].JumpPath.ToArray());
+        CollectionAssert.AreEqual(new[] { new FilterRuleLocation(FirewallAddressFamily.IPv4, "INPUT", 1) }, input.Rules[3].JumpPath.ToArray());
+    }
+
+    [TestMethod]
+    public void Create_BoundsExponentiallyBranchingAcyclicGraphWithoutLosingRawRules()
+    {
+        const int depth = 24;
+        List<RawFilterChain> chains = [];
+        for (int index = 0; index < depth; index++)
+        {
+            string name = index == 0 ? "INPUT" : $"chain-{index}";
+            string next = $"chain-{index + 1}";
+            chains.Add(Chain(name, index == 0 ? FilterChainPolicy.Accept : FilterChainPolicy.None,
+                Rule(name, 0, Jump(next)), Rule(name, 1, Jump(next))));
+        }
+
+        chains.Add(Chain($"chain-{depth}", FilterChainPolicy.None, Rule($"chain-{depth}", 0, Target("ACCEPT"))));
+        chains.Add(Chain("OUTPUT", FilterChainPolicy.Accept));
+        chains.Add(Chain("FORWARD", FilterChainPolicy.Accept));
+
+        AddressFamilyFilterState state = FilterSystemStateFactory.Create(Table([.. chains]), EmptyV6()).IPv4;
+
+        Assert.AreEqual(FilterTraversalStatus.RuleLimitReached, state.Input.TraversalStatus);
+        Assert.HasCount(20_000, state.Input.Rules);
+        Assert.AreEqual(depth + 3, state.Raw.Chains.Count);
+        Assert.HasCount(1, state.Raw.Chains[depth].Rules);
+        Assert.AreEqual(FilterTraversalStatus.None, state.Output.TraversalStatus);
+    }
+
+    [TestMethod]
+    public void Create_LimitsDeepTraversalWithoutStackOverflow()
+    {
+        const int depth = 150;
+        List<RawFilterChain> chains = [];
+        for (int index = 0; index < depth; index++)
+        {
+            string name = index == 0 ? "INPUT" : $"chain-{index}";
+            chains.Add(Chain(name, index == 0 ? FilterChainPolicy.Drop : FilterChainPolicy.None,
+                Rule(name, 0, Jump($"chain-{index + 1}"))));
+        }
+
+        chains.Add(Chain($"chain-{depth}", FilterChainPolicy.None, Rule($"chain-{depth}", 0, Target("DROP"))));
+        chains.Add(Chain("OUTPUT", FilterChainPolicy.Accept));
+        chains.Add(Chain("FORWARD", FilterChainPolicy.Accept));
+
+        AddressFamilyFilterState state = FilterSystemStateFactory.Create(Table([.. chains]), EmptyV6()).IPv4;
+
+        Assert.AreEqual(FilterTraversalStatus.DepthLimitReached, state.Input.TraversalStatus);
+        Assert.HasCount(128, state.Input.Rules);
+        Assert.AreEqual(depth + 3, state.Raw.Chains.Count);
     }
 
     [TestMethod]
@@ -269,6 +336,61 @@ public sealed class FilterSystemStateFactoryTests
     }
 
     [TestMethod]
+    public void Create_RetainsManagedAttributionsOutsideRootTraversal()
+    {
+        UfwUserRuleTranslation configured = Translation(0, Spec(FirewallAction.Allow, "80"),
+            Translated("orphan", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")));
+        RawFilterTable table = Table(Chain("INPUT", FilterChainPolicy.Accept),
+            Chain("orphan", FilterChainPolicy.None, Rule("orphan", 0, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80"))),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        AddressFamilyFilterState state = FilterSystemStateFactory.Create(table, EmptyV6(), [configured]).IPv4;
+
+        Assert.IsEmpty(state.Input.Rules);
+        Assert.HasCount(1, state.ManagedRuleAttributions);
+        Assert.AreEqual("orphan", state.ManagedRuleAttributions[0].Location.ChainName);
+        Assert.AreEqual(0, state.ManagedRuleAttributions[0].UserRule.UserRuleIndex);
+    }
+
+    [TestMethod]
+    public void Create_ReportsPartiallyMatchedTranslations()
+    {
+        UfwUserRuleTranslation configured = Translation(0, Spec(FirewallAction.Allow, "80"),
+            Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")));
+        RawFilterTable table = Table(Chain("INPUT", FilterChainPolicy.Accept),
+            Chain("ufw-user-input", FilterChainPolicy.None), Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        AddressFamilyFilterState state = FilterSystemStateFactory.Create(table, EmptyV6(), [configured]).IPv4;
+
+        Assert.AreEqual(FilterEnrichmentStatus.Partial, state.Enrichment.Status);
+        Assert.HasCount(4, state.Raw.Chains);
+    }
+
+    [TestMethod]
+    public void Create_ReportsSkippedResourceLimitedAlignment()
+    {
+        const int count = 2_100;
+        UfwUserRuleTranslation configured = Translation(0, Spec(FirewallAction.Allow, "80"),
+            Translated("ufw-user-input", Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80")));
+        RawFilterRule[] physical = new RawFilterRule[count];
+        for (int index = 0; index < count; index++)
+        {
+            physical[index] = Rule("ufw-user-input", index, Target("ACCEPT"), Port(FilterClauseKind.DestinationPort, "80"));
+        }
+
+        UfwUserRuleTranslation[] translations = new UfwUserRuleTranslation[count];
+        Array.Fill(translations, configured);
+        RawFilterTable table = Table(Chain("INPUT", FilterChainPolicy.Accept),
+            Chain("ufw-user-input", FilterChainPolicy.None, physical),
+            Chain("OUTPUT", FilterChainPolicy.Accept), Chain("FORWARD", FilterChainPolicy.Drop));
+
+        AddressFamilyFilterState state = FilterSystemStateFactory.Create(table, EmptyV6(), translations).IPv4;
+
+        Assert.AreEqual(FilterEnrichmentStatus.ResourceLimitReached, state.Enrichment.Status);
+        Assert.HasCount(count, state.Raw.Chains[1].Rules);
+    }
+
+    [TestMethod]
     public void Create_RejectsATableOfTheWrongFamily()
     {
         Assert.ThrowsExactly<ArgumentException>(() => FilterSystemStateFactory.Create(EmptyV6(), EmptyV6()));
@@ -295,6 +417,10 @@ public sealed class FilterSystemStateFactoryTests
         Assert.AreEqual("10.0.0.0/8", enriched.Clauses[0].Value);
         Assert.IsTrue(restored.State.IPv4.Input.Rules[0].Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort).Negated);
         Assert.AreEqual(0, enriched.UserRule!.UserRuleIndex);
+        Assert.HasCount(1, restored.State.IPv4.ManagedRuleAttributions);
+        Assert.AreEqual(enriched.Location, restored.State.IPv4.ManagedRuleAttributions[0].Location);
+        Assert.AreEqual(FilterEnrichmentStatus.Complete, restored.State.IPv4.Enrichment.Status);
+        CollectionAssert.AreEqual(new[] { new FilterRuleLocation(FirewallAddressFamily.IPv4, "INPUT", 0) }, enriched.JumpPath.ToArray());
         Assert.AreEqual(FirewallProtocol.Tcp, enriched.UserRule.Specification!.Protocol);
     }
 

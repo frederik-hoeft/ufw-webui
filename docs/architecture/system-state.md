@@ -12,7 +12,7 @@ Save output may contain other tables. They are skipped. The model keeps the filt
 
 `GET /api/v1/system-state` returns this snapshot. It is not signed, it does not mutate the firewall, and it does not change `GET /api/v1/rules`. ASP and the browser do not call it yet.
 
-The save binaries and the two user-rule paths are explicit required daemon settings, alongside the UFW executable. A missing user-rule file is empty enrichment. A user-rule file that is not valid UFW syntax fails the read. The daemon validates that both save executables exist at startup; execution or parse failures are still reported by the inventory read.
+The save binaries and the two user-rule paths are explicit required daemon settings, alongside the UFW executable. An unavailable or invalid user-rule file suppresses enrichment for its family, with a diagnostic in the returned state, rather than failing the authoritative physical inventory. The daemon validates that both save executables exist at startup; execution or parse failures are still reported by the inventory read.
 
 ## Raw rules
 
@@ -34,9 +34,11 @@ The target records whether the rule used `-j` or `-g`, the target name, and any 
 
 ## Resolved roots
 
-The raw table resolves to three roots, `INPUT`, `OUTPUT`, and `FORWARD`. Walking a root lists every rule in that chain. When a rule's target is a chain reference, the target chain's rules are inlined at that point, and the walk then continues with the later rules of the caller. Jump and goto are both references; the target kind stays on the rule, and later rules of the caller are still listed. `ACCEPT`, `DROP`, `REJECT`, and `RETURN` do not prune the walk. This is the shape of the chain graph, not a prediction of which rule a packet would hit.
+The raw table resolves to three roots, `INPUT`, `OUTPUT`, and `FORWARD`. The raw chain graph is always the complete authoritative inventory. Root expansion is a bounded presentation view, not an additional source of physical rules. Walking a root lists its rules in structural order. When a rule's target is a chain reference, the target chain's rules are inlined at that point, and the walk then continues with the later rules of the caller. Jump and goto are both references; the target kind stays on the rule, and later rules of the caller are still listed. `ACCEPT`, `DROP`, `REJECT`, and `RETURN` do not prune the walk. This is the shape of the chain graph, not a prediction of which rule a packet would hit.
 
-Each emitted rule keeps the physical location above. Provenance is the chain that owned the rule in the save output. The path from the root to that chain is recorded with it. A chain reached by two different jumps is inlined twice; both occurrences share one location. A chain already on the active walk stack is not entered again, so a cycle cannot expand forever. A built-in chain that is absent from the table is an empty root with no policy. Chains that nothing reaches from the three roots remain in the raw table only.
+Each emitted rule keeps the physical location above. Provenance is the chain that owned the rule in the save output. Both the chain-name path and the ordered physical jump occurrences used to reach it are recorded; these distinguish separate jumps to the same chain. A chain reached by two different jumps is inlined twice, with both emitted occurrences sharing one physical location. A chain already on the active walk stack is not entered again.
+
+To avoid exponential expansion of small chain graphs, each root is limited to 20,000 emitted entries and a maximum chain depth of 128. The root's `TraversalStatus` identifies a rule-count limit, depth limit, or cycle. A bounded expansion is incomplete and must never be mistaken for the full graph; consumers can always inspect the complete raw table. Managed-rule associations are also available by physical location independently of the bounded per-root expansion. A built-in chain that is absent from the table is an empty root with no policy. Chains that nothing reaches from the three roots remain in the raw table only.
 
 ```mermaid
 flowchart TB
@@ -61,6 +63,8 @@ Managed identity is not established by `user.rules` alone. The daemon independen
 Reconciliation uses order-preserving alignment of configured translations with observed physical rules. Structured clauses compare as multisets, so harmless predicate reordering and an implicit `-m tcp` around a port still match. Opaque clauses carry parser-produced token sequences and require exact token equivalence apart from recognized save-time defaults of the `recent` module, and target options require equivalence apart from an implicit default `REJECT` argument. Unrecognized extra predicates are not ignored. An installed physical rule is associated with a source occurrence only when its ordered correspondence is unambiguous; if one of multiple otherwise identical configured occurrences is missing, all ambiguous associations remain absent. A bounded alignment budget prevents oversized source inputs from affecting the completeness of the authoritative physical inventory.
 
 The live rule is kept whether or not a tuple matches. A tuple whose lines are not in the live table adds no rules. Enrichment never filters the snapshot. Out-of-band edits to UFW-managed chains are not a supported configuration; the matcher does not try to repair them.
+
+Managed attribution is optional. Each address family reports an `Enrichment` status: `Complete` means all usable configured translations were associated, `Partial` means some correspondence is unresolved, `Unavailable` means an optional source or numbered status could not be read, and `ResourceLimitReached` means the attribution alignment exceeded its work budget. An optional diagnostic explains degraded states. A missing, unreadable, or malformed user-rule file does not invalidate a successful active iptables observation; only that family's enrichment becomes unavailable. A failed numbered UFW snapshot withholds attribution for both families. This report distinguishes an unattributed physical rule from incomplete or unavailable enrichment.
 
 ## What this model is not
 

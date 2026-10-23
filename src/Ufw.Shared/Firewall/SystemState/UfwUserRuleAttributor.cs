@@ -11,16 +11,22 @@ internal static class UfwUserRuleAttributor
     // remains complete when source enrichment cannot be computed within this bound.
     private const long MaxAlignmentCells = 4_000_000;
 
-    public static void Associate(
+    /// <returns>False if the alignment is skipped due to the bounded work limit.</returns>
+    public static bool Associate(
         RawFilterChain chain,
         IReadOnlyList<(UfwUserRuleTranslation Translation, TranslatedIptablesRule Rule, int TranslationIndex)> expected,
         Dictionary<FilterRuleLocation, UfwUserRuleReference> links)
     {
         int sourceCount = expected.Count;
         int liveCount = chain.Rules.Count;
-        if (sourceCount == 0 || liveCount == 0 || (sourceCount + 1L) * (liveCount + 1L) > MaxAlignmentCells)
+        if (sourceCount == 0 || liveCount == 0)
         {
-            return;
+            return true;
+        }
+
+        if ((sourceCount + 1L) * (liveCount + 1L) > MaxAlignmentCells)
+        {
+            return false;
         }
 
         // The two tables allow us to distinguish a unique correspondence from one of multiple
@@ -62,7 +68,7 @@ internal static class UfwUserRuleAttributor
         int length = prefix[^1];
         if (length == 0)
         {
-            return;
+            return true;
         }
 
         int[] possibleBySource = new int[sourceCount];
@@ -130,5 +136,7 @@ internal static class UfwUserRuleAttributor
                 });
             }
         }
+
+        return true;
     }
 }

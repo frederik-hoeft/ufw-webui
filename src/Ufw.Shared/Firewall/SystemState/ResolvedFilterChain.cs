@@ -11,5 +11,8 @@ public sealed class ResolvedFilterChain
 
     public required FilterChainPolicy Policy { get; init; }
 
+    /// <summary>Indicates whether <see cref="Rules"/> is a complete structural expansion of this root.</summary>
+    public FilterTraversalStatus TraversalStatus { get; init; }
+
     public required IReadOnlyList<ResolvedFilterRule> Rules { get; init; }
 }

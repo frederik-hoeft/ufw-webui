@@ -13,6 +13,9 @@ public sealed class ResolvedFilterRule
     /// <summary>Chain names from the built-in root through the owning chain, inclusive.</summary>
     public required IReadOnlyList<string> ChainPath { get; init; }
 
+    /// <summary>Physical jump occurrences used to reach the owning chain, in root-to-leaf order.</summary>
+    public IReadOnlyList<FilterRuleLocation> JumpPath { get; init; } = [];
+
     public required IReadOnlyList<FilterClause> Clauses { get; init; }
 
     public required FilterTarget Target { get; init; }
