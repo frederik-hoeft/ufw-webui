@@ -148,6 +148,79 @@ public sealed class UfwUserRulesGrammarTests
     }
 
     [TestMethod]
+    public void TryParse_OnlyCollectsTranslationsWithinFilterTable()
+    {
+        const string rules = """
+            *nat
+            :POSTROUTING ACCEPT [0:0]
+            ### RULES ###
+            ### tuple ### allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in
+            -A POSTROUTING -p tcp --dport 22 -j ACCEPT
+            COMMIT
+            *filter
+            :ufw-user-input - [0:0]
+            ### RULES ###
+            ### tuple ### allow tcp 80 0.0.0.0/0 any 0.0.0.0/0 in
+            -A ufw-user-input -p tcp --dport 80 -j ACCEPT
+            COMMIT
+            """;
+
+        Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(rules, FirewallAddressFamily.IPv4, out IReadOnlyList<UfwUserRuleTranslation>? translations));
+        Assert.HasCount(1, translations);
+        Assert.AreEqual("80", translations[0].Specification!.DestinationPorts);
+        Assert.AreEqual("ufw-user-input", translations[0].IptablesRules.Single().ChainName);
+    }
+
+    [TestMethod]
+    public void TryParse_RejectsInvalidTupleLayoutsAndOptions()
+    {
+        string[] invalidBodies =
+        [
+            "allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in extra",
+            "allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in bogus invalid_direction",
+            "route:bogus tcp 22 0.0.0.0/0 any 0.0.0.0/0 in",
+            "allow_unknown tcp 22 0.0.0.0/0 any 0.0.0.0/0 in",
+            "allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 invalid_direction",
+            "allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in_eth0!invalid",
+            "allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in comment=xyz",
+            "allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in comment=f",
+        ];
+
+        foreach (string body in invalidBodies)
+        {
+            string rules = $"*filter\n:ufw-user-input - [0:0]\n### RULES ###\n### tuple ### {body}\n-A ufw-user-input -j ACCEPT\nCOMMIT\n";
+            Assert.IsFalse(UfwUserRulesGrammar.Instance.TryParse(rules, FirewallAddressFamily.IPv4, out _), body);
+        }
+    }
+
+    [TestMethod]
+    public void TryParse_HandlesEightFieldApplicationsAndRouteLogSuffixWithComments()
+    {
+        const string rules = """
+            *filter
+            :ufw-user-input - [0:0]
+            :ufw-user-forward - [0:0]
+            ### RULES ###
+            ### tuple ### allow tcp 80,443 0.0.0.0/0 any 0.0.0.0/0 Apache -
+            -A ufw-user-input -p tcp -m multiport --dports 80,443 -j ACCEPT
+            ### tuple ### route:allow_log-all udp 53 0.0.0.0/0 any 0.0.0.0/0 "Apache Full" - in_eth0!out_eth1 comment=74657374
+            -A ufw-user-forward -p udp --dport 53 -j ACCEPT
+            COMMIT
+            """;
+
+        Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(rules, FirewallAddressFamily.IPv4, out IReadOnlyList<UfwUserRuleTranslation>? translations));
+        Assert.HasCount(2, translations);
+        Assert.AreEqual("80,443", translations[0].Specification!.DestinationPorts);
+        FirewallRuleSpecification first = translations[0].Specification!;
+        FirewallRuleSpecification second = translations[1].Specification!;
+        Assert.AreEqual(FirewallDirection.In, first.Direction);
+        Assert.AreEqual(FirewallDirection.Forward, second.Direction);
+        Assert.AreEqual("eth0", second.SourceInterface);
+        Assert.AreEqual("eth1", second.DestinationInterface);
+        Assert.AreEqual("test", second.Comment);
+    }
+
+    [TestMethod]
     public void TryParse_RejectsAMalformedTuple()
     {
         const string rules = """

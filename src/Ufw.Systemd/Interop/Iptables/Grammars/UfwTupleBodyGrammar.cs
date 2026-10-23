@@ -7,33 +7,53 @@ using Ufw.Systemd.Interop.Iptables.Parsing.Terminals;
 
 namespace Ufw.Systemd.Interop.Iptables.Grammars;
 
-/// <summary>Lexical grammar for a UFW tuple annotation; interpretation belongs to the tuple interpreter.</summary>
+/// <summary>
+/// Composes supported UFW tuple layouts from typed field parsers. All source-specific
+/// syntax decisions happen here, not in the specification-mapping layer.
+/// </summary>
 internal sealed class UfwTupleBodyGrammar
 {
-    private readonly IParser _grammar = Grammar.Sequence(
-        Grammar.Repeat(Grammar.Sequence(
-            Grammar.Optional(HorizontalWhitespace.Instance),
-            Grammar.Alternative(
-                BareWordToken.Instance.NamedCopy("tuple-field"),
-                QuotedStringToken.Instance.NamedCopy("tuple-field"),
-                TuplePlaceholderToken.Instance.NamedCopy("tuple-field")))),
-        Grammar.Optional(HorizontalWhitespace.Instance))
-        .RequireVisitor<IIptablesTokenVisitor>();
+    private readonly IParser _grammar;
+
+    private UfwTupleBodyGrammar()
+    {
+        IParser ws = HorizontalWhitespace.Instance;
+        IParser core = Grammar.Sequence(
+            UfwTupleAction.Instance, ws, UfwTupleProtocol.Instance, ws,
+            new UfwTuplePort("destination-port", UfwTupleFieldRole.Destination), ws,
+            new UfwTupleAddress("destination-address", UfwTupleFieldRole.Destination), ws,
+            new UfwTuplePort("source-port", UfwTupleFieldRole.Source), ws,
+            new UfwTupleAddress("source-address", UfwTupleFieldRole.Source));
+
+        IParser appPair = Grammar.Sequence(
+            new UfwTupleApplication("destination-application", UfwTupleFieldRole.Destination), ws,
+            new UfwTupleApplication("source-application", UfwTupleFieldRole.Source));
+
+        _grammar = Grammar.Sequence(
+            core,
+            Grammar.Optional(Grammar.Alternative(
+                Grammar.Sequence(ws, appPair, ws, UfwTupleDirection.Instance),
+                Grammar.Sequence(ws, UfwTupleDirection.Instance),
+                Grammar.Sequence(ws, appPair))),
+            Grammar.Optional(Grammar.Sequence(ws, UfwTupleComment.Instance)),
+            Grammar.Optional(ws))
+            .RequireVisitor<IUfwTupleVisitor>();
+    }
 
     public static UfwTupleBodyGrammar Instance { get; } = new();
 
-    public bool TryParse(string input, [NotNullWhen(true)] out IReadOnlyList<string>? fields)
+    public bool TryParse(string input, [NotNullWhen(true)] out UfwTupleSyntax? tuple)
     {
         ArgumentNullException.ThrowIfNull(input);
         if (!_grammar.TryParse(input, 0, out ISyntaxNode? node, out int consumed) || consumed != input.Length)
         {
-            fields = null;
+            tuple = null;
             return false;
         }
 
-        IptablesTokenCollector collector = new();
+        UfwTupleSyntaxCollector collector = new();
         node.Accept(collector);
-        fields = collector.Tokens.Select(static token => token.Text).ToArray();
+        tuple = collector.Build();
         return true;
     }
 }

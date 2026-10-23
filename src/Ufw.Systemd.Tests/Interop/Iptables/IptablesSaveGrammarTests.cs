@@ -151,5 +151,38 @@ public sealed class IptablesSaveGrammarTests
         Assert.AreEqual("ff02::fb", table.Chains[0].Rules[1].Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationAddress).Value);
     }
 
+    [TestMethod]
+    public void TryParse_KeepsUnknownModuleOptionsOpaqueEvenWhenTheirNamesLookLikePorts()
+    {
+        const string save = """
+            *filter
+            :INPUT DROP [0:0]
+            :FORWARD DROP [0:0]
+            :OUTPUT ACCEPT [0:0]
+            -A INPUT -p tcp -m custom --dport 22 --ports 100:200 -j ACCEPT
+            -A INPUT -p tcp -m custom --dport 22 -m tcp --dport 80 -j ACCEPT
+            -A INPUT -p tcp --dport 443 -j ACCEPT
+            -A INPUT -m multiport --dports 80,443 -j ACCEPT
+            -A INPUT -p tcp -m custom --dports 80,443 -j ACCEPT
+            -A INPUT -p tcp -j CUSTOM --dport 22
+            -A INPUT -p tcp -m custom --flag yes -s 10.0.0.1 --dport 22 -j ACCEPT
+            COMMIT
+            """;
+
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
+        RawFilterRule[] rules = [.. Chain(table, "INPUT").Rules];
+        Assert.AreEqual("-m custom --dport 22 --ports 100:200", rules[0].Clauses.Single(static clause => clause.Kind == FilterClauseKind.Opaque).Value);
+        Assert.IsFalse(rules[0].Clauses.Any(static clause => clause.Kind == FilterClauseKind.DestinationPort));
+        Assert.AreEqual("-m custom --dport 22", rules[1].Clauses.Single(static clause => clause.Kind == FilterClauseKind.Opaque).Value);
+        Assert.AreEqual("80", rules[1].Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort).Value);
+        Assert.AreEqual("443", rules[2].Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort).Value);
+        Assert.AreEqual("80,443", rules[3].Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort).Value);
+        Assert.IsFalse(rules[4].Clauses.Any(static clause => clause.Kind == FilterClauseKind.DestinationPort));
+        Assert.IsFalse(rules[5].Clauses.Any(static clause => clause.Kind == FilterClauseKind.DestinationPort));
+        Assert.AreEqual("--dport 22", rules[5].Target.Arguments);
+        Assert.AreEqual("10.0.0.1", rules[6].Clauses.Single(static clause => clause.Kind == FilterClauseKind.SourceAddress).Value);
+        Assert.IsFalse(rules[6].Clauses.Any(static clause => clause.Kind == FilterClauseKind.DestinationPort));
+    }
+
     private static RawFilterChain Chain(RawFilterTable table, string name) => table.Chains.Single(chain => chain.Name == name);
 }

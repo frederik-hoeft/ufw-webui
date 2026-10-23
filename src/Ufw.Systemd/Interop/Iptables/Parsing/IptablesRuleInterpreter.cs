@@ -29,6 +29,7 @@ internal static class IptablesRuleInterpreter
         List<FilterClause> parsed = [];
         List<string> opaque = [];
         string? openModule = null;
+        string? protocol = null;
         FilterTargetKind targetKind = FilterTargetKind.None;
         string? targetName = null;
         List<string>? targetArguments = null;
@@ -38,7 +39,7 @@ internal static class IptablesRuleInterpreter
         {
             if (IsClauseStarter(tokens[index]))
             {
-                if (!TryConsumeClause(tokens, family, ref index, ref openModule, opaque, parsed, ref targetKind, ref targetName, ref targetArguments))
+                if (!TryConsumeClause(tokens, family, ref index, ref openModule, ref protocol, opaque, parsed, ref targetKind, ref targetName, ref targetArguments))
                 {
                     clauses = [];
                     target = UnavailableTarget();
@@ -78,6 +79,7 @@ internal static class IptablesRuleInterpreter
         FirewallAddressFamily family,
         ref int index,
         ref string? openModule,
+        ref string? protocol,
         List<string> opaque,
         List<FilterClause> clauses,
         ref FilterTargetKind targetKind,
@@ -113,9 +115,24 @@ internal static class IptablesRuleInterpreter
                 clauses.Add(OpaqueClause((negated ? "! " : string.Empty) + tokens[optionIndex].Format()));
                 return true;
             default:
-                if (TryConsumeStructured(option, negated, tokens, family, ref index, out FilterClause? clause))
+                if (CanInterpretOption(tokens[optionIndex].Text, option, openModule, protocol)
+                    && TryConsumeStructured(option, negated, tokens, family, ref index, out FilterClause? clause))
                 {
+                    string? activeModule = openModule;
                     FlushOpaque(clauses, opaque, ref openModule);
+                    if (option == "protocol")
+                    {
+                        // A new core protocol selection permits its implicit transport matcher.
+                        protocol = clause?.Value;
+                        openModule = null;
+                    }
+                    else
+                    {
+                        // Address/interface predicates do not end an extension's option scope.
+                        // An unknown module may have more options after a core predicate.
+                        openModule = activeModule;
+                    }
+
                     if (clause is not null)
                     {
                         clauses.Add(clause);
@@ -171,7 +188,9 @@ internal static class IptablesRuleInterpreter
         targetName = tokens[index].Text;
         index++;
         targetArguments ??= [];
-        while (index < tokens.Count && !IsClauseStarter(tokens[index]))
+        // Once a target is selected, subsequent options belong to that target. Their
+        // names may collide with regular predicate options and must not be promoted.
+        while (index < tokens.Count)
         {
             targetArguments.Add(tokens[index].Kind == IptablesTokenKind.Negation ? "!" : tokens[index].Format());
             index++;
@@ -296,6 +315,30 @@ internal static class IptablesRuleInterpreter
         }
 
         return false;
+    }
+
+    private static bool CanInterpretOption(string token, string option, string? module, string? protocol)
+    {
+        if (option is not ("source-port" or "destination-port" or "ports"))
+        {
+            return true;
+        }
+
+        // A module can introduce arbitrarily named options. Never classify an unknown
+        // extension's option solely by its spelling, even when the protocol is TCP/UDP.
+        if (module is not null && !s_transparentModules.Contains(module))
+        {
+            return false;
+        }
+
+        bool multiport = token is "--sports" or "--source-ports" or "--dports" or "--destination-ports" or "--ports";
+        if (multiport)
+        {
+            return module == "multiport";
+        }
+
+        return module is "tcp" or "udp" or "udplite" or "sctp" or "dccp"
+            || (module is null && protocol is "tcp" or "udp" or "udplite" or "sctp" or "dccp");
     }
 
     private static bool TryReadValue(IReadOnlyList<IptablesToken> tokens, ref int index, ref bool negated, out string value)

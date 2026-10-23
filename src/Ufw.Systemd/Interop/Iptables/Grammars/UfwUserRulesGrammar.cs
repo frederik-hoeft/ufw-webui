@@ -69,6 +69,7 @@ internal sealed class UfwUserRulesGrammar
         private bool _failed;
         private bool _sawFilter;
         private bool _tableOpen;
+        private bool _inFilter;
 
         public void VisitTable(string name)
         {
@@ -79,7 +80,8 @@ internal sealed class UfwUserRulesGrammar
             }
 
             _tableOpen = true;
-            if (name == "filter")
+            _inFilter = name == "filter";
+            if (_inFilter)
             {
                 if (_sawFilter)
                 {
@@ -112,7 +114,7 @@ internal sealed class UfwUserRulesGrammar
                 return;
             }
 
-            if (!_inRules || !_tupleOpen)
+            if (!_inFilter || !_inRules || !_tupleOpen)
             {
                 return;
             }
@@ -133,6 +135,12 @@ internal sealed class UfwUserRulesGrammar
 
         public void VisitTuple(string body)
         {
+            if (!_inFilter && _tableOpen)
+            {
+                // Tuple annotations in other tables do not describe filter translations.
+                return;
+            }
+
             if (_failed || !_inRules)
             {
                 _failed = true;
@@ -157,7 +165,7 @@ internal sealed class UfwUserRulesGrammar
             }
 
             CloseTuple();
-            _inRules = name == RULES_SECTION;
+            _inRules = _inFilter && name == RULES_SECTION;
         }
 
         public void VisitCommit()
@@ -170,6 +178,7 @@ internal sealed class UfwUserRulesGrammar
 
             CloseTuple();
             _tableOpen = false;
+            _inFilter = false;
             _inRules = false;
         }
 

@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using System.Text;
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Systemd.Interop.Iptables.Grammars;
 
@@ -27,62 +25,12 @@ internal static class UfwTupleInterpreter
             return false;
         }
 
-        if (!UfwTupleBodyGrammar.Instance.TryParse(body, out IReadOnlyList<string>? parsedFields))
+        if (!UfwTupleBodyGrammar.Instance.TryParse(body, out UfwTupleSyntax? tuple))
         {
             return false;
         }
 
-        string[] fields = [.. parsedFields];
-        string? encodedComment = null;
-        if (fields.Length > 0 && fields[^1].StartsWith("comment=", StringComparison.Ordinal))
-        {
-            encodedComment = fields[^1]["comment=".Length..];
-            fields = fields[..^1];
-        }
-
-        if (fields.Length is < 6 or > 9)
-        {
-            return false;
-        }
-
-        if (!TryAction(fields[0], out FirewallAction action, out bool forward))
-        {
-            return false;
-        }
-
-        string directionField = "in";
-        string interfaceIn = string.Empty;
-        string interfaceOut = string.Empty;
-        if (fields.Length is 7 or 9 && !TryInterfaces(fields[^1], out directionField, out interfaceIn, out interfaceOut))
-        {
-            return false;
-        }
-
-        if (directionField is not ("in" or "out"))
-        {
-            return false;
-        }
-
-        string? comment = null;
-        if (!string.IsNullOrEmpty(encodedComment) && !TryDecodeComment(encodedComment, out comment))
-        {
-            return false;
-        }
-
-        if (!TryRepresent(
-                family,
-                action,
-                forward,
-                directionField,
-                fields[1],
-                fields[2],
-                fields[3],
-                fields[4],
-                fields[5],
-                interfaceIn,
-                interfaceOut,
-                comment,
-                out specification))
+        if (!TryRepresent(family, tuple, out specification))
         {
             specification = null;
             ruleId = null;
@@ -93,170 +41,30 @@ internal static class UfwTupleInterpreter
         return true;
     }
 
-    private static bool TryAction(string field, out FirewallAction action, out bool forward)
-    {
-        forward = false;
-        string actionField = field;
-        int colon = actionField.IndexOf(':');
-        if (colon >= 0)
-        {
-            if (colon == 0 || actionField[(colon + 1)..].Contains(':') || actionField[..colon] != "route")
-            {
-                action = default;
-                return false;
-            }
-
-            forward = true;
-            actionField = actionField[(colon + 1)..];
-        }
-
-        int underscore = actionField.IndexOf('_');
-        if (underscore >= 0)
-        {
-            string logType = actionField[(underscore + 1)..];
-            if (logType is not ("log" or "log-all"))
-            {
-                action = default;
-                return false;
-            }
-
-            actionField = actionField[..underscore];
-        }
-
-        switch (actionField)
-        {
-            case "allow":
-                action = FirewallAction.Allow;
-                return true;
-            case "deny":
-                action = FirewallAction.Deny;
-                return true;
-            case "reject":
-                action = FirewallAction.Reject;
-                return true;
-            case "limit":
-                action = FirewallAction.Limit;
-                return true;
-            default:
-                action = default;
-                return false;
-        }
-    }
-
-    private static bool TryInterfaces(string field, out string direction, out string interfaceIn, out string interfaceOut)
-    {
-        direction = "in";
-        interfaceIn = string.Empty;
-        interfaceOut = string.Empty;
-        int bang = field.IndexOf('!');
-        if (bang >= 0)
-        {
-            if (!TryPrefixedInterface(field[..bang], "in", out interfaceIn)
-                || !TryPrefixedInterface(field[(bang + 1)..], "out", out interfaceOut))
-            {
-                return false;
-            }
-
-            direction = "in";
-            return true;
-        }
-
-        int underscore = field.IndexOf('_');
-        if (underscore < 0)
-        {
-            direction = field;
-            return direction is "in" or "out";
-        }
-
-        direction = field[..underscore];
-        string interfaceName = field[(underscore + 1)..];
-        if (interfaceName.Length == 0 || direction is not ("in" or "out"))
-        {
-            return false;
-        }
-
-        if (direction == "in")
-        {
-            interfaceIn = interfaceName;
-        }
-        else
-        {
-            interfaceOut = interfaceName;
-        }
-
-        return true;
-    }
-
-    private static bool TryPrefixedInterface(string field, string expectedDirection, out string interfaceName)
-    {
-        interfaceName = string.Empty;
-        string prefix = expectedDirection + "_";
-        if (!field.StartsWith(prefix, StringComparison.Ordinal) || field.Length == prefix.Length)
-        {
-            return false;
-        }
-
-        interfaceName = field[prefix.Length..];
-        return true;
-    }
-
-    private static bool TryDecodeComment(string hex, out string? comment)
-    {
-        comment = null;
-        if (hex.Length % 2 != 0)
-        {
-            return false;
-        }
-
-        try
-        {
-            byte[] bytes = Convert.FromHexString(hex);
-            comment = RuleSpecificationNormalizer.NormalizeComment(Encoding.UTF8.GetString(bytes));
-            return true;
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
-    }
-
-    private static bool TryRepresent(
-        FirewallAddressFamily family,
-        FirewallAction action,
-        bool forward,
-        string directionField,
-        string protocolField,
-        string destinationPorts,
-        string destination,
-        string sourcePorts,
-        string source,
-        string interfaceIn,
-        string interfaceOut,
-        string? comment,
-        out FirewallRuleSpecification specification)
+    private static bool TryRepresent(FirewallAddressFamily family, UfwTupleSyntax tuple, out FirewallRuleSpecification specification)
     {
         specification = new FirewallRuleSpecification
         {
-            Action = action,
+            Action = tuple.Action,
             AddressFamily = family,
-            Direction = forward
+            Direction = tuple.Forward
                 ? FirewallDirection.Forward
-                : directionField == "out" ? FirewallDirection.Out : FirewallDirection.In,
+                : tuple.Direction == "out" ? FirewallDirection.Out : FirewallDirection.In,
         };
 
-        if (!TryProtocol(protocolField, out FirewallProtocol protocol))
+        if (!TryProtocol(tuple.Protocol, out FirewallProtocol protocol))
         {
             return false;
         }
 
-        if (!TryPorts(destinationPorts, out string? normalizedDestinationPorts)
-            || !TryPorts(sourcePorts, out string? normalizedSourcePorts))
+        if (!TryPorts(tuple.DestinationPorts, out string? normalizedDestinationPorts)
+            || !TryPorts(tuple.SourcePorts, out string? normalizedSourcePorts))
         {
             return false;
         }
 
-        string normalizedSource = RuleSpecificationNormalizer.NormalizeAddress(source);
-        string normalizedDestination = RuleSpecificationNormalizer.NormalizeAddress(destination);
+        string normalizedSource = RuleSpecificationNormalizer.NormalizeAddress(tuple.Source);
+        string normalizedDestination = RuleSpecificationNormalizer.NormalizeAddress(tuple.Destination);
         if (!AddressFits(normalizedSource, family) || !AddressFits(normalizedDestination, family))
         {
             return false;
@@ -264,29 +72,29 @@ internal static class UfwTupleInterpreter
 
         string? sourceInterface;
         string? destinationInterface;
-        if (forward)
+        if (tuple.Forward)
         {
-            sourceInterface = NullIfEmpty(interfaceIn);
-            destinationInterface = NullIfEmpty(interfaceOut);
+            sourceInterface = NullIfEmpty(tuple.InterfaceIn);
+            destinationInterface = NullIfEmpty(tuple.InterfaceOut);
         }
         else if (specification.Direction == FirewallDirection.In)
         {
-            if (interfaceOut.Length > 0)
+            if (tuple.InterfaceOut.Length > 0)
             {
                 return false;
             }
 
             sourceInterface = null;
-            destinationInterface = NullIfEmpty(interfaceIn);
+            destinationInterface = NullIfEmpty(tuple.InterfaceIn);
         }
         else
         {
-            if (interfaceIn.Length > 0)
+            if (tuple.InterfaceIn.Length > 0)
             {
                 return false;
             }
 
-            sourceInterface = NullIfEmpty(interfaceOut);
+            sourceInterface = NullIfEmpty(tuple.InterfaceOut);
             destinationInterface = null;
         }
 
@@ -297,7 +105,7 @@ internal static class UfwTupleInterpreter
         specification.DestinationPorts = normalizedDestinationPorts;
         specification.SourceInterface = sourceInterface;
         specification.DestinationInterface = destinationInterface;
-        specification.Comment = comment;
+        specification.Comment = tuple.Comment;
         specification = RuleSpecificationNormalizer.Normalize(specification);
         return true;
     }
@@ -329,48 +137,13 @@ internal static class UfwTupleInterpreter
             return true;
         }
 
-        string? normalized = RuleSpecificationNormalizer.NormalizePorts(field);
-        if (string.IsNullOrEmpty(normalized))
-        {
-            ports = null;
-            return false;
-        }
-
-        foreach (string part in normalized.Split(','))
-        {
-            int colon = part.IndexOf(':');
-            if (colon < 0)
-            {
-                if (!IsPort(part))
-                {
-                    ports = null;
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (!IsPort(part[..colon]) || !IsPort(part[(colon + 1)..]))
-            {
-                ports = null;
-                return false;
-            }
-        }
-
-        ports = normalized;
-        return true;
+        bool recognized = IptablesPredicateNormalizer.TryCanonicalPorts(field, out string normalized);
+        ports = recognized ? normalized : null;
+        return recognized;
     }
-
-    private static bool IsPort(string text) =>
-        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int port) && port is >= 1 and <= 65535;
 
     private static bool AddressFits(string address, FirewallAddressFamily family)
     {
-        if (address == RuleSpecificationNormalizer.ANY)
-        {
-            return true;
-        }
-
         if (address == RuleSpecificationNormalizer.ANY)
         {
             return true;
