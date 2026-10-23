@@ -49,6 +49,7 @@ public sealed class ConfiguredTransportLayerServiceTests
             ExposeRemoteExceptionDetails = settings.ExposeRemoteExceptionDetails,
             UfwPath = ufwPath,
             UfwDefaultsPath = settings.UfwDefaultsPath,
+            FilterSystemStateEnabled = settings.FilterSystemStateEnabled,
             IptablesSavePath = ufwPath,
             Ip6tablesSavePath = ufwPath,
             UfwUserRulesPath = settings.UfwUserRulesPath,

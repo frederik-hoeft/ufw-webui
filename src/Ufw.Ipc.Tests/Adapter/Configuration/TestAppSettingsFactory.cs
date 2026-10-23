@@ -27,6 +27,7 @@ internal static class TestAppSettingsFactory
             // Never executed by the in-process adapter; value is only present to satisfy the model shape.
             UfwPath = "/nonexistent/ufw-for-tests",
             UfwDefaultsPath = "/nonexistent/ufw-defaults-for-tests",
+            FilterSystemStateEnabled = true,
             IptablesSavePath = "/nonexistent/iptables-save",
             Ip6tablesSavePath = "/nonexistent/ip6tables-save",
             UfwUserRulesPath = "/nonexistent/user.rules",

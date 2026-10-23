@@ -10,6 +10,8 @@ internal sealed class AppSettings : IRequireValidation
 
     public required string UfwDefaultsPath { get; init; }
 
+    public required bool FilterSystemStateEnabled { get; init; }
+
     public required string IptablesSavePath { get; init; }
 
     public required string Ip6tablesSavePath { get; init; }

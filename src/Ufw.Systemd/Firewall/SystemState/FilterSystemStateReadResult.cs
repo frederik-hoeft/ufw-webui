@@ -10,5 +10,7 @@ internal abstract record FilterSystemStateReadResult
 
     internal sealed record Success(FilterSystemState State) : FilterSystemStateReadResult;
 
+    internal sealed record Disabled : FilterSystemStateReadResult;
+
     internal sealed record Failure(string Diagnostic) : FilterSystemStateReadResult;
 }

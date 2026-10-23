@@ -42,6 +42,25 @@ public sealed class ConfigurationImplTests
     }
 
     [TestMethod]
+    public async Task LoadAsync_MissingInventoryEnabledFlagFailsAtStartupAsync()
+    {
+        string path = await WriteSettingsAsync();
+        try
+        {
+            string json = await File.ReadAllTextAsync(path);
+            json = json.Replace("\"filter_system_state_enabled\": true,", string.Empty, StringComparison.Ordinal);
+            await File.WriteAllTextAsync(path, json);
+
+            ConfigurationImpl configuration = CreateConfiguration();
+            await Assert.ThrowsExactlyAsync<JsonException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
     public async Task LoadAsync_MissingInventoryConfigurationFailsAtStartupAsync()
     {
         string path = await WriteSettingsAsync();
@@ -90,6 +109,7 @@ public sealed class ConfigurationImplTests
           "expose_remote_exception_details": false,
           "ufw_path": "/usr/sbin/ufw",
           "ufw_defaults_path": "/etc/default/ufw",
+          "filter_system_state_enabled": true,
           "iptables_save_path": "/usr/sbin/iptables-save",
           "ip6tables_save_path": "/usr/sbin/ip6tables-save",
           "ufw_user_rules_path": "/etc/ufw/user.rules",

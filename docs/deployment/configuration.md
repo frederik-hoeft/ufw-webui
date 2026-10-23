@@ -20,7 +20,7 @@ The local `appsettings.json` file is gitignored and excluded from publish output
 
 The daemon `serve` command loads one explicit JSON settings file exactly once during process startup. Configuration is immutable for the lifetime of the daemon; changes require a process restart. The systemd installer uses `/etc/ufw-manager/settings.json` and seeds it from `deploy/systemd/settings.json.example` on first install.
 
-Daemon settings use explicit required JSON members, including the filter inventory command and user-rule paths. Settings files from older installations must be updated before starting the newer daemon. The required shape is validated at startup rather than waiting for the first inventory request. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, the selected transport endpoint, TLS certificate files, and security-state paths.
+Daemon settings use explicit required JSON members, including the filter inventory enable flag, command paths, and user-rule paths. Settings files from older installations must be updated before starting the newer daemon. The required shape is validated at startup rather than waiting for the first inventory request. Startup first validates configuration shape, then validates host-dependent requirements such as the UFW executable, the selected transport endpoint, TLS certificate files, and security-state paths.
 
 The installer preserves an existing settings file on update unless `--settings PATH` is supplied explicitly.
 
@@ -115,6 +115,7 @@ The production template is `deploy/systemd/settings.json.example`.
 | `expose_remote_exception_details` | include unexpected exception details in daemon API error responses; enable only for local development | `false` |
 | `ufw_path` | UFW executable | `/usr/sbin/ufw` |
 | `ufw_defaults_path` | UFW host defaults used for IPv6 capability and default policies | `/etc/default/ufw` |
+| `filter_system_state_enabled` | enable live filter inventory; disable for hosts without iptables tooling | `true` |
 | `iptables_save_path` | `iptables-save` used to read the active IPv4 filter table | `/usr/sbin/iptables-save` |
 | `ip6tables_save_path` | `ip6tables-save` used to read the active IPv6 filter table | `/usr/sbin/ip6tables-save` |
 | `ufw_user_rules_path` | UFW IPv4 user-rule file used to enrich filter rules | `/etc/ufw/user.rules` |
@@ -122,7 +123,7 @@ The production template is `deploy/systemd/settings.json.example`.
 
 The defaults file is part of authoritative firewall configuration. The daemon requires `IPV6`, `DEFAULT_INPUT_POLICY`, `DEFAULT_OUTPUT_POLICY`, and `DEFAULT_FORWARD_POLICY` to be readable and supported; a rules snapshot fails closed if that configuration cannot be established.
 
-The four filter-table paths are required settings. The daemon validates that both save executables exist at startup; missing user-rule files are permitted for optional enrichment. `GET /api/v1/system-state` fails if a save command cannot be run or parsed. Missing, unreadable, or invalid user-rule files disable managed-rule enrichment for the affected family and record a diagnostic, without suppressing the authoritative physical inventory. Failed save commands or malformed save output still fail the inventory read. These paths do not affect `ufw status` or signed mutations.
+`filter_system_state_enabled` controls whether the daemon exposes live filter inventory. Set it to `false` only when the required iptables tooling is unavailable, such as Windows/Ufw.Mock development. The four filter-table paths remain required configuration members; when inventory is enabled, the daemon validates that both save executables exist at startup; missing user-rule files are permitted for optional enrichment. With inventory disabled, `GET /api/v1/system-state` returns `501 Not Implemented` without invoking any save commands; otherwise the request fails if a save command cannot be run or parsed. Missing, unreadable, or invalid user-rule files disable managed-rule enrichment for the affected family and record a diagnostic, without suppressing the authoritative physical inventory. Failed save commands or malformed save output still fail the inventory read. These paths do not affect `ufw status` or signed mutations.
 
 ### Daemon transport and stream security
 

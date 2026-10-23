@@ -3,10 +3,9 @@ using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Iptables.Parsing.SyntaxNodes;
 
-using Ufw.Systemd.Interop.Iptables.Parsing;
-
 namespace Ufw.Systemd.Interop.Iptables.Parsing.Terminals;
 
+/// <summary>Matches one or more horizontal whitespace characters.</summary>
 internal sealed class HorizontalWhitespace(string? name = null) : ParserBase, IParser<HorizontalWhitespace>
 {
     public static HorizontalWhitespace Instance { get; } = new();
@@ -31,5 +30,3 @@ internal sealed class HorizontalWhitespace(string? name = null) : ParserBase, IP
         return true;
     }
 }
-
-/// <summary>Matches a newline, or succeeds with no input only at the end of the text.</summary>

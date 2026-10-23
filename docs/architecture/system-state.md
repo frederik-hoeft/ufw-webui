@@ -12,7 +12,7 @@ Save output may contain other tables. They are skipped. The model keeps the filt
 
 `GET /api/v1/system-state` returns this snapshot. It is not signed, it does not mutate the firewall, and it does not change `GET /api/v1/rules`. ASP and the browser do not call it yet.
 
-The save binaries and the two user-rule paths are explicit required daemon settings, alongside the UFW executable. An unavailable or invalid user-rule file suppresses enrichment for its family, with a diagnostic in the returned state, rather than failing the authoritative physical inventory. The daemon validates that both save executables exist at startup; execution or parse failures are still reported by the inventory read.
+The inventory can be explicitly disabled for development hosts without iptables tooling; a disabled inventory returns `501 Not Implemented` without starting firewall observation. When enabled, the save binaries and two user-rule paths are explicit required daemon settings, alongside the UFW executable. An unavailable or invalid user-rule file suppresses enrichment for its family, with a diagnostic in the returned state, rather than failing the authoritative physical inventory. The daemon validates that both save executables exist at startup when inventory is enabled; execution or parse failures are still reported by the inventory read.
 
 ## Raw rules
 

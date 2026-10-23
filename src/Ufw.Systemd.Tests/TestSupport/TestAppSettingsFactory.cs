@@ -26,13 +26,15 @@ internal static class TestAppSettingsFactory
         string? serverCertificateKeyPath = null,
         bool debugMode = true,
         bool exposeRemoteExceptionDetails = false,
-        int maxConnections = 8) =>
+        int maxConnections = 8,
+        bool filterSystemStateEnabled = true) =>
         new()
         {
             DebugMode = debugMode,
             ExposeRemoteExceptionDetails = exposeRemoteExceptionDetails,
             UfwPath = "/usr/sbin/ufw",
             UfwDefaultsPath = ufwDefaultsPath ?? "/nonexistent/ufw-defaults",
+            FilterSystemStateEnabled = filterSystemStateEnabled,
             IptablesSavePath = iptablesSavePath ?? "/usr/sbin/iptables-save",
             Ip6tablesSavePath = ip6TablesSavePath ?? "/usr/sbin/ip6tables-save",
             UfwUserRulesPath = ufwUserRulesPath ?? "/nonexistent/user.rules",

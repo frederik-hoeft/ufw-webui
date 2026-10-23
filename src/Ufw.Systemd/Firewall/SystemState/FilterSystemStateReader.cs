@@ -20,6 +20,11 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
 
     public async ValueTask<FilterSystemStateReadResult> ReadAsync(CancellationToken cancellationToken)
     {
+        if (!configuration.Settings.FilterSystemStateEnabled)
+        {
+            return new FilterSystemStateReadResult.Disabled();
+        }
+
         Observation<RawFilterTable> ipv4 = await ReadSaveAsync(configuration.Settings.IptablesSavePath, FirewallAddressFamily.IPv4, "IPv4", cancellationToken);
         if (ipv4.Diagnostic is not null)
         {

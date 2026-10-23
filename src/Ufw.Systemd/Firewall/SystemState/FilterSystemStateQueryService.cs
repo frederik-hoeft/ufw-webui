@@ -15,6 +15,7 @@ internal sealed class FilterSystemStateQueryService(IFilterSystemStateReader rea
         return result switch
         {
             FilterSystemStateReadResult.Success success => new FilterSystemStateResponse(success.State),
+            FilterSystemStateReadResult.Disabled => new NotImplementedResponse("Filter system state inventory is disabled in the daemon configuration."),
             FilterSystemStateReadResult.Failure failure => new InternalServerErrorResponse(failure.Diagnostic),
             _ => throw new InvalidOperationException($"Unsupported filter system-state result '{result.GetType().Name}'."),
         };

@@ -3,10 +3,9 @@ using Ufw.Shared.Parsing.Parsers;
 using Ufw.Shared.Parsing.SyntaxNodes;
 using Ufw.Systemd.Interop.Iptables.Parsing.SyntaxNodes;
 
-using Ufw.Systemd.Interop.Iptables.Parsing;
-
 namespace Ufw.Systemd.Interop.Iptables.Parsing.Terminals;
 
+/// <summary>Matches a line ending, or succeeds without consuming characters at end of input.</summary>
 internal sealed class EndOfLine(string? name = null) : ParserBase
 {
     public static EndOfLine Instance { get; } = new();
@@ -48,5 +47,3 @@ internal sealed class EndOfLine(string? name = null) : ParserBase
         return true;
     }
 }
-
-/// <summary>Matches a newline and nothing else. Fails at end of input so blank lines cannot loop.</summary>

@@ -101,6 +101,23 @@ public sealed class FilterSystemStateReaderTests
     }
 
     [TestMethod]
+    public async Task ReadAsync_DisabledInventoryNeverStartsAnObservationAsync()
+    {
+        Mock<IChildProcessRunner> processes = new(MockBehavior.Strict);
+        Mock<IFirewallRuleSnapshotReader> snapshotReader = new(MockBehavior.Strict);
+        TestConfiguration configuration = new(TestAppSettingsFactory.Create(filterSystemStateEnabled: false));
+        FilterSystemStateReader reader = new(configuration, processes.Object, snapshotReader.Object, new ConsoleLogger());
+        using UfwExecutionGate gate = new();
+        FilterSystemStateQueryService service = new(reader, gate);
+
+        NotImplementedResponse result = (NotImplementedResponse)await service.GetAsync(TestContext.CancellationToken);
+
+        Assert.Contains("disabled", result.Message!);
+        processes.VerifyNoOtherCalls();
+        snapshotReader.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
     public async Task ReadAsync_MissingUserRulesAreEmptyEnrichmentAsync()
     {
         FilterSystemStateQueryService service = CreateService(MinimalSave("DROP"), MinimalSave("ACCEPT"), "/missing/user.rules", "/missing/user6.rules", out _);

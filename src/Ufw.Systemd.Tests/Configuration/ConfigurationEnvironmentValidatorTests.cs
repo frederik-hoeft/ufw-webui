@@ -23,6 +23,21 @@ public sealed class ConfigurationEnvironmentValidatorTests
     }
 
     [TestMethod]
+    public void ThrowIfInvalid_DisabledInventoryDoesNotRequireSaveExecutables()
+    {
+        string ufwPath = Path.GetTempFileName();
+        try
+        {
+            AppSettings settings = CopyWithUfwPath(TestAppSettingsFactory.Create(filterSystemStateEnabled: false), ufwPath, iptablesSavePath: "/missing/iptables-save");
+            new ConfigurationEnvironmentValidator().ThrowIfInvalid(settings);
+        }
+        finally
+        {
+            File.Delete(ufwPath);
+        }
+    }
+
+    [TestMethod]
     public void ThrowIfInvalid_RequiresConfiguredUfwExecutable()
     {
         AppSettings settings = CreateSettings(ufwPath: "/definitely/not/a/ufw-executable");
@@ -135,6 +150,7 @@ public sealed class ConfigurationEnvironmentValidatorTests
         ExposeRemoteExceptionDetails = baseline.ExposeRemoteExceptionDetails,
         UfwPath = ufwPath,
         UfwDefaultsPath = baseline.UfwDefaultsPath,
+        FilterSystemStateEnabled = baseline.FilterSystemStateEnabled,
         IptablesSavePath = iptablesSavePath ?? ufwPath,
         Ip6tablesSavePath = ufwPath,
         UfwUserRulesPath = baseline.UfwUserRulesPath,
