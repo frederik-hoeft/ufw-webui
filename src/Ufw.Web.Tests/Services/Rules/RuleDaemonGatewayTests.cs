@@ -24,7 +24,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleListResponse>.Success(expected));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync();
+        DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync(TestContext.CancellationToken);
 
         Assert.AreSame(expected, result.Result);
         client.VerifyAll();
@@ -38,7 +38,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleListResponse>.Failure(expected));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync();
+        DaemonResult<RuleListResponse> result = await gateway.GetRulesAsync(TestContext.CancellationToken);
 
         Assert.IsFalse(result.IsSuccess);
         Assert.AreSame(expected, result.Error);
@@ -53,7 +53,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(static c => c.TrySendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", It.IsAny<CancellationToken>())).ThrowsAsync(expected);
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonInvalidResponseException actual = await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetRulesAsync());
+        DaemonInvalidResponseException actual = await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetRulesAsync(TestContext.CancellationToken));
 
         Assert.AreSame(expected, actual.InnerException);
         client.VerifyAll();
@@ -72,7 +72,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.TrySendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReplacementResponse>.Success(response));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request);
+        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request, TestContext.CancellationToken);
 
         RuleReplacementExecutionResult replacement = result.Result;
         Assert.AreSame(response, replacement.Firewall);
@@ -92,7 +92,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.TrySendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReplacementResponse>.Success(response));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request);
+        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request, TestContext.CancellationToken);
 
         Assert.AreSame(response, result.Result.Firewall);
         Assert.IsInstanceOfType<RuleReplacementReconciliationNotRequired>(result.Result.Reconciliation);
@@ -110,7 +110,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.TrySendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReplacementResponse>.Success(response));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request);
+        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request, TestContext.CancellationToken);
 
         Assert.AreSame(response, result.Result.Firewall);
         Assert.IsInstanceOfType<RuleReplacementReconciliationPreparationFailed>(result.Result.Reconciliation);
@@ -130,7 +130,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.TrySendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReplacementResponse>.Success(response));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request);
+        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<RuleReplacementReconciliationPreparationFailed>(result.Result.Reconciliation);
         client.VerifyAll();
@@ -149,7 +149,7 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.TrySendAsync<ReplaceRuleRequest, RuleReplacementResponse>(request, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleReplacementResponse>.Success(response));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request);
+        DaemonResult<RuleReplacementExecutionResult> result = await gateway.ReplaceRuleAsync(request, TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<RuleReplacementReconciliationPreparationFailed>(result.Result.Reconciliation);
         client.VerifyAll();
@@ -181,12 +181,12 @@ public sealed class RuleDaemonGatewayTests
         client.Setup(c => c.TrySendAsync<DeleteRuleRequest, RuleMutationResponse>(delete, It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<RuleMutationResponse>.Success(deleteResponse));
         RuleDaemonGateway gateway = CreateGateway(client.Object);
 
-        DaemonResult<RuleMutationResponse> addResult = await gateway.AddRuleAsync(add);
-        DaemonResult<RuleInsertionResponse> insertResult = await gateway.InsertRuleAsync(insert);
-        DaemonResult<RuleReplacementExecutionResult> replaceResult = await gateway.ReplaceRuleAsync(replace);
-        DaemonResult<RuleReorderResponse> reorderResult = await gateway.ReorderRulesAsync(reorder);
-        DaemonResult<RuleBatchDeleteResponse> batchDeleteResult = await gateway.BatchDeleteRulesAsync(batchDelete);
-        DaemonResult<RuleMutationResponse> deleteResult = await gateway.DeleteRuleAsync(delete);
+        DaemonResult<RuleMutationResponse> addResult = await gateway.AddRuleAsync(add, TestContext.CancellationToken);
+        DaemonResult<RuleInsertionResponse> insertResult = await gateway.InsertRuleAsync(insert, TestContext.CancellationToken);
+        DaemonResult<RuleReplacementExecutionResult> replaceResult = await gateway.ReplaceRuleAsync(replace, TestContext.CancellationToken);
+        DaemonResult<RuleReorderResponse> reorderResult = await gateway.ReorderRulesAsync(reorder, TestContext.CancellationToken);
+        DaemonResult<RuleBatchDeleteResponse> batchDeleteResult = await gateway.BatchDeleteRulesAsync(batchDelete, TestContext.CancellationToken);
+        DaemonResult<RuleMutationResponse> deleteResult = await gateway.DeleteRuleAsync(delete, TestContext.CancellationToken);
 
         Assert.AreSame(addResponse, addResult.Result);
         Assert.AreSame(insertResponse, insertResult.Result);
@@ -267,4 +267,6 @@ public sealed class RuleDaemonGatewayTests
         RawLine = ruleId,
         Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
     };
+
+    public TestContext TestContext { get; set; }
 }

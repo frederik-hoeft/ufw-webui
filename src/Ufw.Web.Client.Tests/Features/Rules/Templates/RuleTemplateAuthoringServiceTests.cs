@@ -30,7 +30,7 @@ public sealed class RuleTemplateAuthoringServiceTests
         Assert.AreEqual("inbound HTTPS", definition.Description);
         Assert.AreEqual("2001:db8::1", definition.Rule.Source);
         Assert.AreEqual("keep this", definition.Notes);
-        CollectionAssert.AreEqual(new[] { tagA, tagB }.Order().ToArray(), definition.TagIds.ToArray());
+        Assert.AreSequenceEqual(new[] { tagA, tagB }.Order().ToArray(), definition.TagIds.ToArray());
         Assert.AreEqual(groupId, definition.GroupId);
         Assert.AreNotSame(source, definition.Rule);
         Assert.AreEqual("2001:0db8::1", source.Source);

@@ -57,7 +57,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
         Assert.AreEqual(eno1.Id, retained.Id);
         Assert.AreEqual("service VLAN", retained.Comment);
         Assert.IsFalse(retained.IsVisible);
-        Assert.IsFalse(reconciled.Interfaces.Any(static item => item.Name == "docker0"));
+        Assert.DoesNotContain(static item => item.Name == "docker0", reconciled.Interfaces);
         NetworkInterfaceInventoryItem wlan0 = reconciled.Interfaces.Single(static item => item.Name == "wlan0");
         Assert.AreEqual('7', wlan0.Id.ToString("D")[14]);
         Assert.IsTrue(wlan0.IsVisible);
@@ -135,7 +135,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
         Assert.HasCount(1, cleanup.StaleInterfaces);
         Assert.AreEqual(wlan0Id, cleanup.StaleInterfaces[0].Id);
         Assert.AreEqual("wlan0", cleanup.StaleInterfaces[0].Name);
-        Assert.IsFalse(cleanup.StaleInterfaces.Any(item => item.Id == eno1Id));
+        Assert.DoesNotContain(item => item.Id == eno1Id, cleanup.StaleInterfaces);
     }
 
     [TestMethod]
@@ -187,7 +187,7 @@ public sealed class NetworkInterfaceInventoryServiceTests
 
         NetworkInterfaceInventorySnapshot reconciled = await host.Service.ReconcileAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(s_vlanInterfaceNames, reconciled.Interfaces.Select(static item => item.Name).ToArray());
+        Assert.AreSequenceEqual(s_vlanInterfaceNames, reconciled.Interfaces.Select(static item => item.Name).ToArray());
     }
 
     [TestMethod]

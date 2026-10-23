@@ -103,7 +103,7 @@ public sealed class AntiforgeryValidationMiddlewareTests
         ApplicationBuilder app = new(serviceProvider);
         app.UseRouting();
         app.UseMiddleware<AntiforgeryValidationMiddleware>();
-        app.UseEndpoints(endpoints => endpoints.MapPost("/protected", static context => context.Response.WriteAsync("ok"))
+        app.UseEndpoints(endpoints => endpoints.MapPost("/protected", context => context.Response.WriteAsync("ok", TestContext.CancellationToken))
             .WithMetadata(new RequireAntiforgeryValidationAttribute()));
         RequestDelegate pipeline = app.Build();
         DefaultHttpContext context = new()
@@ -140,4 +140,6 @@ public sealed class AntiforgeryValidationMiddlewareTests
             "antiforgery-test"));
         return context;
     }
+
+    public TestContext TestContext { get; set; }
 }

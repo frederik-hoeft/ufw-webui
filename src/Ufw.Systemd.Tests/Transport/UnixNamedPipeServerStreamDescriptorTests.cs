@@ -35,7 +35,7 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
             Assert.AreEqual(expected, File.GetUnixFileMode(pipePath));
 
             await using NamedPipeClientStream client = new(".", pipePath, PipeDirection.InOut, SystemPipeOptions.Asynchronous);
-            await client.ConnectAsync();
+            await client.ConnectAsync(TestContext.CancellationToken);
             await using NamedPipeServerStream server = await serverTask;
         }
         finally
@@ -71,7 +71,7 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
             await WaitForSocketAsync(pipePath);
 
             await using NamedPipeClientStream client = new(".", pipePath, PipeDirection.InOut, SystemPipeOptions.Asynchronous);
-            await client.ConnectAsync();
+            await client.ConnectAsync(TestContext.CancellationToken);
             await using NamedPipeServerStream replacementServer = await replacementServerTask;
         }
         finally
@@ -94,4 +94,6 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
 
         Assert.Fail($"Socket '{path}' was not created in time.");
     }
+
+    public TestContext TestContext { get; set; }
 }

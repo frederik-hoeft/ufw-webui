@@ -47,9 +47,8 @@ public sealed class FirewallRuleReplacementExecutorTests
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
         Assert.AreEqual("new", result.ReplacementRule!.Rule!.Comment);
-        CollectionAssert.AreEqual(
-            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp", "comment", "new" },
-            harness.Commands.Single());
+        Assert.AreSequenceEqual(
+            ["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp", "comment", "new"], harness.Commands.Single());
     }
 
     [TestMethod]
@@ -62,9 +61,8 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "80")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
-        CollectionAssert.AreEqual(
-            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp", "comment", string.Empty },
-            harness.Commands.Single());
+        Assert.AreSequenceEqual(
+            ["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "80", "proto", "tcp", "comment", string.Empty], harness.Commands.Single());
     }
 
     [TestMethod]
@@ -88,7 +86,8 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "80", "updated")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
-        StringAssert.Contains(result.Diagnostic, "occurs more than once");
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("occurs more than once", result.Diagnostic);
         Assert.IsEmpty(harness.Commands);
     }
 
@@ -103,9 +102,9 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
-        Assert.AreEqual(2, harness.Commands.Count);
+        Assert.HasCount(2, harness.Commands);
         Assert.AreEqual("insert", harness.Commands[0][0]);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "3" }, harness.Commands[1]);
+        Assert.AreSequenceEqual(["--force", "delete", "3"], harness.Commands[1]);
     }
 
     [TestMethod]
@@ -117,7 +116,8 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
-        StringAssert.Contains(result.Diagnostic, "duplicate");
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("duplicate", result.Diagnostic);
         Assert.IsEmpty(harness.Commands);
     }
 
@@ -162,10 +162,9 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(1, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "2", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            harness.Commands[0]);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "3" }, harness.Commands[1]);
+        Assert.AreSequenceEqual(
+            ["insert", "2", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], harness.Commands[0]);
+        Assert.AreSequenceEqual(["--force", "delete", "3"], harness.Commands[1]);
     }
 
     [TestMethod]
@@ -179,10 +178,9 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(3, Rule(FirewallAddressFamily.IPv6, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
-            harness.Commands[0]);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "5" }, harness.Commands[1]);
+        Assert.AreSequenceEqual(
+            ["insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"], harness.Commands[0]);
+        Assert.AreSequenceEqual(["--force", "delete", "5"], harness.Commands[1]);
     }
 
     [TestMethod]
@@ -262,8 +260,9 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
-        StringAssert.Contains(result.Diagnostic, "insert reported failure");
-        Assert.AreEqual(2, harness.Commands.Count);
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("insert reported failure", result.Diagnostic);
+        Assert.HasCount(2, harness.Commands);
     }
 
     [TestMethod]
@@ -279,7 +278,8 @@ public sealed class FirewallRuleReplacementExecutorTests
         RuleReplacementExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.Completed, result.Outcome);
-        StringAssert.Contains(result.Diagnostic, "delete reported failure");
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("delete reported failure", result.Diagnostic);
     }
 
     [TestMethod]
@@ -296,8 +296,8 @@ public sealed class FirewallRuleReplacementExecutorTests
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, result.Outcome);
         Assert.AreEqual(RuleReplacementRecoveryStatus.RestoredBaseline, result.RecoveryStatus);
-        Assert.AreEqual(3, harness.Commands.Count);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[2]);
+        Assert.HasCount(3, harness.Commands);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[2]);
     }
 
     [TestMethod]
@@ -314,8 +314,8 @@ public sealed class FirewallRuleReplacementExecutorTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             _ = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, cancellation.Token));
 
-        Assert.AreEqual(3, harness.Commands.Count);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[2]);
+        Assert.HasCount(3, harness.Commands);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[2]);
     }
 
     [TestMethod]
@@ -347,7 +347,7 @@ public sealed class FirewallRuleReplacementExecutorTests
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.StateUncertain, result.Outcome);
         Assert.IsNull(result.RecoveryStatus);
-        Assert.AreEqual(2, harness.Commands.Count);
+        Assert.HasCount(2, harness.Commands);
     }
 
     [TestMethod]
@@ -387,8 +387,8 @@ public sealed class FirewallRuleReplacementExecutorTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             _ = await harness.Executor.ExecuteAsync(harness.Payload(0, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, cancellation.Token));
 
-        Assert.AreEqual(2, harness.Commands.Count);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[1]);
+        Assert.HasCount(2, harness.Commands);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[1]);
     }
 
     private static FirewallRuleSpecification Rule(FirewallAddressFamily family, string port, string? comment = null) => new()

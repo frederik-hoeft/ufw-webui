@@ -31,7 +31,7 @@ public sealed class RuleOrderingServiceTests
         api.Setup(candidate => candidate.ReorderRulesAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
         RuleOrderingService service = new(api.Object, new CompatibleIntentContextProvider(context.Object), signer.Object);
 
-        RuleReorderResponse actual = await service.ApplyAsync(baseline, desiredOrder, "private-key");
+        RuleReorderResponse actual = await service.ApplyAsync(baseline, desiredOrder, "private-key", TestContext.CancellationToken);
 
         Assert.AreSame(expected, actual);
         Assert.AreEqual(RuleReorderOutcome.PartiallyCompleted, actual.Outcome);
@@ -56,7 +56,7 @@ public sealed class RuleOrderingServiceTests
         RuleOrderingService service = new(api.Object, new CompatibleIntentContextProvider(context.Object), signer.Object);
 
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() =>
-            service.ApplyAsync(new RuleListResponse(true, [Rule("a", 1)], TestFirewallConfiguration.Enabled), [0], "private-key"));
+            service.ApplyAsync(new RuleListResponse(true, [Rule("a", 1)], TestFirewallConfiguration.Enabled), [0], "private-key", TestContext.CancellationToken));
 
         signer.VerifyNoOtherCalls();
         api.VerifyNoOtherCalls();
@@ -71,9 +71,9 @@ public sealed class RuleOrderingServiceTests
         RuleOrderingService service = new(api.Object, new CompatibleIntentContextProvider(context.Object), signer.Object);
         RuleListResponse baseline = new(true, [Rule("a", 1), Rule("b", 2)], TestFirewallConfiguration.Enabled);
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0], "private-key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0, 0], "private-key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0, 2], "private-key"));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0], "private-key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0, 0], "private-key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.ApplyAsync(baseline, [0, 2], "private-key", TestContext.CancellationToken));
 
         context.VerifyNoOtherCalls();
         signer.VerifyNoOtherCalls();
@@ -100,4 +100,6 @@ public sealed class RuleOrderingServiceTests
     };
 
     private static RuleReorderResponse Response(RuleReorderOutcome outcome, RuleListResponse snapshot) => new(outcome, snapshot, [], [], [], Diagnostic: null);
+
+    public TestContext TestContext { get; set; }
 }

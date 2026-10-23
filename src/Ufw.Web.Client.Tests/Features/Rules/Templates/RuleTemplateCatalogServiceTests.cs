@@ -38,7 +38,7 @@ public sealed class RuleTemplateCatalogServiceTests
         });
         RuleTemplateCatalogService service = new(api.Object);
 
-        IReadOnlyList<RuleTemplate> templates = await service.RefreshAsync();
+        IReadOnlyList<RuleTemplate> templates = await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.HasCount(2, templates);
         RuleTemplate alpha = templates[0];
@@ -68,7 +68,7 @@ public sealed class RuleTemplateCatalogServiceTests
                 Template(Guid.CreateVersion7(), "prod", FirewallAddressFamily.Any),
             ],
         });
-        IReadOnlyList<RuleTemplate> sameName = await new RuleTemplateCatalogService(duplicateApi.Object).RefreshAsync();
+        IReadOnlyList<RuleTemplate> sameName = await new RuleTemplateCatalogService(duplicateApi.Object).RefreshAsync(TestContext.CancellationToken);
         Assert.HasCount(2, sameName);
         Assert.AreNotEqual(sameName[0].Id, sameName[1].Id);
 
@@ -77,14 +77,14 @@ public sealed class RuleTemplateCatalogServiceTests
         {
             Templates = [Template(duplicateId, "Prod", FirewallAddressFamily.Any), Template(duplicateId, "Other", FirewallAddressFamily.Any)],
         });
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleTemplateCatalogService(duplicateApi.Object).RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleTemplateCatalogService(duplicateApi.Object).RefreshAsync(TestContext.CancellationToken));
 
         Mock<IRuleTemplateApiClient> invalidApi = new();
         invalidApi.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new RuleTemplateInventoryResponse
         {
             Templates = [Template(Guid.CreateVersion7(), "broken", FirewallAddressFamily.IPv4, source: "2001:db8::1")],
         });
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleTemplateCatalogService(invalidApi.Object).RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleTemplateCatalogService(invalidApi.Object).RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -99,16 +99,16 @@ public sealed class RuleTemplateCatalogServiceTests
         api.Setup(client => client.UpdateAsync(id, It.IsAny<UpdateRuleTemplateRequest>(), It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         api.Setup(client => client.DeleteAsync(id, It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         RuleTemplateCatalogService service = new(api.Object);
-        IReadOnlyList<RuleTemplate> current = await service.RefreshAsync();
+        IReadOnlyList<RuleTemplate> current = await service.RefreshAsync(TestContext.CancellationToken);
         RuleTemplateDefinition definition = new("web", null, Rule(FirewallAddressFamily.Any), null, [], null);
 
-        await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.CreateAsync(definition));
+        await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.CreateAsync(definition, TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
 
-        await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.UpdateAsync(id, definition));
+        await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.UpdateAsync(id, definition, TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
 
-        await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.DeleteAsync(id));
+        await Assert.ThrowsExactlyAsync<ApiRequestException>(() => service.DeleteAsync(id, TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
     }
 
@@ -123,13 +123,13 @@ public sealed class RuleTemplateCatalogServiceTests
             .ReturnsAsync(invalid);
         api.Setup(client => client.CreateAsync(It.IsAny<CreateRuleTemplateRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(invalid);
         RuleTemplateCatalogService service = new(api.Object);
-        IReadOnlyList<RuleTemplate> current = await service.RefreshAsync();
+        IReadOnlyList<RuleTemplate> current = await service.RefreshAsync(TestContext.CancellationToken);
         RuleTemplateDefinition definition = new("new", null, Rule(FirewallAddressFamily.Any), null, [], null);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync(definition));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync(definition, TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
     }
 
@@ -148,10 +148,10 @@ public sealed class RuleTemplateCatalogServiceTests
         api.Setup(client => client.DeleteAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(new RuleTemplateInventoryResponse());
         RuleTemplateCatalogService service = new(api.Object);
 
-        _ = await service.CreateAsync(definition);
-        _ = await service.UpdateAsync(id, definition);
+        _ = await service.CreateAsync(definition, TestContext.CancellationToken);
+        _ = await service.UpdateAsync(id, definition, TestContext.CancellationToken);
 
-        _ = await service.DeleteAsync(id);
+        _ = await service.DeleteAsync(id, TestContext.CancellationToken);
         Assert.IsEmpty(service.Current);
     }
 
@@ -179,4 +179,6 @@ public sealed class RuleTemplateCatalogServiceTests
         Destination = RuleSpecificationNormalizer.ANY,
         DestinationPorts = "443",
     };
+
+    public TestContext TestContext { get; set; }
 }

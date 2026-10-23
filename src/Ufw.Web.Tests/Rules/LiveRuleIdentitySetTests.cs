@@ -28,7 +28,7 @@ public sealed class LiveRuleIdentitySetTests
         Assert.IsTrue(identities.Contains("sha256:a"));
         Assert.IsTrue(identities.Contains("sha256:A"));
         Assert.IsFalse(identities.Contains("SHA256:A"));
-        CollectionAssert.AreEqual(new[] { "sha256:A", "sha256:a", "sha256:b" }, identities.ToArray());
+        Assert.AreSequenceEqual(["sha256:A", "sha256:a", "sha256:b"], identities.ToArray());
     }
 
     private static ListedFirewallRule Listed(string? ruleId) => new()

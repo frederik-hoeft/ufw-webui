@@ -28,7 +28,7 @@ public sealed class RuleTemplatesControllerTests
         ActionResult<RuleTemplateInventoryResponse> action = await controller.GetAsync(TestContext.CancellationToken);
 
         RuleTemplateInventoryResponse response = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(action.Result).Value);
-        CollectionAssert.AreEqual(new[] { template }, response.Templates.ToArray());
+        Assert.AreSequenceEqual([template], response.Templates.ToArray());
     }
 
     [TestMethod]
@@ -81,7 +81,7 @@ public sealed class RuleTemplatesControllerTests
         Assert.AreEqual("dmz0", captured.Rule.DestinationInterface);
         Assert.AreEqual("web ingress", captured.Rule.Comment);
         Assert.AreEqual("operations note", captured.Notes);
-        CollectionAssert.AreEqual(new[] { firstTag, secondTag }, captured.TagIds.ToArray());
+        Assert.AreSequenceEqual([firstTag, secondTag], captured.TagIds.ToArray());
         Assert.AreEqual(group, captured.GroupId);
         dataAccess.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -231,7 +231,7 @@ public sealed class RuleTemplatesControllerTests
         IActionResult action = await controller.DeleteAsync(id, TestContext.CancellationToken);
 
         RuleTemplateInventoryResponse response = Assert.IsInstanceOfType<RuleTemplateInventoryResponse>(Assert.IsInstanceOfType<OkObjectResult>(action).Value);
-        CollectionAssert.AreEqual(new[] { template }, response.Templates.ToArray());
+        Assert.AreSequenceEqual([template], response.Templates.ToArray());
     }
 
     private static RuleTemplatesController CreateController(IRuleTemplateDataAccess dataAccess) => new(dataAccess)

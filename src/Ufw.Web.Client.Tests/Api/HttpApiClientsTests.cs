@@ -43,25 +43,22 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         AuthApiClient client = new(http);
 
-        AuthTokenResponse login = await client.LoginAsync(new LoginRequest("admin@example.invalid", "secret"));
-        AuthTokenResponse? refresh = await client.TryRefreshAsync();
-        await client.LogoutAsync();
+        AuthTokenResponse login = await client.LoginAsync(new LoginRequest("admin@example.invalid", "secret"), TestContext.CancellationToken);
+        AuthTokenResponse? refresh = await client.TryRefreshAsync(TestContext.CancellationToken);
+        await client.LogoutAsync(TestContext.CancellationToken);
 
         Assert.AreEqual("login", login.AccessToken);
         Assert.IsNull(refresh);
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 "/api/v1/auth/login",
                 "/api/v1/auth/antiforgery",
                 "/api/v1/auth/refresh",
                 "/api/v1/auth/antiforgery",
                 "/api/v1/auth/logout",
-            },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
-        CollectionAssert.AreEqual(
-            new[] { HttpMethod.Post, HttpMethod.Get, HttpMethod.Post, HttpMethod.Get, HttpMethod.Post },
-            handler.Requests.Select(static request => request.Method).ToArray());
+            ], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        Assert.AreSequenceEqual(
+            [HttpMethod.Post, HttpMethod.Get, HttpMethod.Post, HttpMethod.Get, HttpMethod.Post], handler.Requests.Select(static request => request.Method).ToArray());
         Assert.AreEqual("refresh-antiforgery", handler.Requests[2].Headers[BrowserRequestHeaders.CSRF_TOKEN].Single());
         Assert.AreEqual("logout-antiforgery", handler.Requests[4].Headers[BrowserRequestHeaders.CSRF_TOKEN].Single());
         using JsonDocument body = JsonDocument.Parse(handler.Requests[0].Content!);
@@ -75,7 +72,7 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         AuthApiClient client = new(http);
 
-        AuthTokenResponse response = await client.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), "access-token");
+        AuthTokenResponse response = await client.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), "access-token", TestContext.CancellationToken);
 
         Assert.AreEqual("replacement", response.AccessToken);
         Assert.AreEqual(HttpMethod.Post, handler.Requests[0].Method);
@@ -99,7 +96,7 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         AuthApiClient client = new(http);
 
-        ApiRequestException exception = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.LogoutAsync());
+        ApiRequestException exception = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.LogoutAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(HttpStatusCode.Forbidden, exception.StatusCode);
         Assert.AreEqual("logout denied", exception.Message);
@@ -111,7 +108,7 @@ public sealed class HttpApiClientsTests
         using RecordingHttpMessageHandler intentHandler = new((_, _) => Json(HttpStatusCode.OK, $"{{\"protocolVersion\":{IntentProtocol.VERSION},\"deploymentId\":\"deployment\"}}"));
         using HttpClient intentHttp = CreateClient(intentHandler);
         IntentContextApiClient intentClient = new(intentHttp);
-        Assert.AreEqual("deployment", (await intentClient.GetAsync()).DeploymentId);
+        Assert.AreEqual("deployment", (await intentClient.GetAsync(TestContext.CancellationToken)).DeploymentId);
         Assert.AreEqual(HttpMethod.Get, intentHandler.Requests[0].Method);
         Assert.AreEqual("/api/v1/intent/context", intentHandler.Requests[0].RequestUri!.AbsolutePath);
 
@@ -135,21 +132,19 @@ public sealed class HttpApiClientsTests
         });
         using HttpClient rulesHttp = CreateClient(rulesHandler);
         RuleApiClient rules = new(rulesHttp);
-        await rules.GetInventoryAsync();
-        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId], GroupId = groupId });
-        await rules.AddRuleAsync(AddRequest());
-        await rules.DeleteRuleAsync(DeleteRequest());
-        await rules.InsertRuleAsync(InsertRequest());
-        await rules.ReorderRulesAsync(ReorderRequest());
-        await rules.ReplaceRuleAsync(ReplaceRequest());
-        await rules.BatchDeleteRulesAsync(BatchDeleteRequest());
+        await rules.GetInventoryAsync(TestContext.CancellationToken);
+        await rules.UpdateMetadataAsync("rule/id", new UpdateRuleMetadataRequest { TagIds = [tagId], GroupId = groupId }, TestContext.CancellationToken);
+        await rules.AddRuleAsync(AddRequest(), TestContext.CancellationToken);
+        await rules.DeleteRuleAsync(DeleteRequest(), TestContext.CancellationToken);
+        await rules.InsertRuleAsync(InsertRequest(), TestContext.CancellationToken);
+        await rules.ReorderRulesAsync(ReorderRequest(), TestContext.CancellationToken);
+        await rules.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken);
+        await rules.BatchDeleteRulesAsync(BatchDeleteRequest(), TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put, HttpMethod.Put, HttpMethod.Delete },
-            rulesHandler.Requests.Select(static request => request.Method).ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order", "/api/v1/rules/replace", "/api/v1/rules/batch" },
-            rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        Assert.AreSequenceEqual(
+            [HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete, HttpMethod.Post, HttpMethod.Put, HttpMethod.Put, HttpMethod.Delete], rulesHandler.Requests.Select(static request => request.Method).ToArray());
+        Assert.AreSequenceEqual(
+            ["/api/v1/rules", "/api/v1/rules/rule%2Fid/metadata", "/api/v1/rules", "/api/v1/rules", "/api/v1/rules/insert", "/api/v1/rules/order", "/api/v1/rules/replace", "/api/v1/rules/batch"], rulesHandler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         Assert.IsTrue(rulesHandler.Requests.Skip(1).All(static request => request.Content is not null));
         using JsonDocument metadataBody = JsonDocument.Parse(rulesHandler.Requests[1].Content!);
         Assert.AreEqual(tagId, metadataBody.RootElement.GetProperty("tagIds")[0].GetGuid());
@@ -177,15 +172,14 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleMetadataReconciliationApiClient client = new(http);
 
-        RuleMetadataReconciliationResponse discovered = await client.GetAsync();
-        RuleMetadataReconciliationResponse cleaned = await client.CleanupAsync(new CleanupRuleMetadataRequest { MetadataIds = [metadataId] });
+        RuleMetadataReconciliationResponse discovered = await client.GetAsync(TestContext.CancellationToken);
+        RuleMetadataReconciliationResponse cleaned = await client.CleanupAsync(new CleanupRuleMetadataRequest { MetadataIds = [metadataId] }, TestContext.CancellationToken);
 
         Assert.HasCount(1, discovered.Orphans);
         Assert.AreEqual(1, cleaned.RemovedCount);
-        CollectionAssert.AreEqual(new[] { HttpMethod.Get, HttpMethod.Post }, handler.Requests.Select(static request => request.Method).ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "/api/v1/rule-metadata/reconciliation", "/api/v1/rule-metadata/reconciliation/cleanup" },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        Assert.AreSequenceEqual([HttpMethod.Get, HttpMethod.Post], handler.Requests.Select(static request => request.Method).ToArray());
+        Assert.AreSequenceEqual(
+            ["/api/v1/rule-metadata/reconciliation", "/api/v1/rule-metadata/reconciliation/cleanup"], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
         using JsonDocument body = JsonDocument.Parse(handler.Requests[1].Content!);
         Assert.AreEqual(metadataId, body.RootElement.GetProperty("metadataIds")[0].GetGuid());
     }
@@ -205,23 +199,20 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleTagApiClient client = new(http);
 
-        await client.GetAsync();
-        await client.CreateAsync(new CreateRuleTagRequest { Name = "prod", Color = "#112233" });
-        await client.UpdateAsync(tagId, new UpdateRuleTagRequest { Name = "production", Color = "#aabbcc" });
-        await client.DeleteAsync(tagId);
+        await client.GetAsync(TestContext.CancellationToken);
+        await client.CreateAsync(new CreateRuleTagRequest { Name = "prod", Color = "#112233" }, TestContext.CancellationToken);
+        await client.UpdateAsync(tagId, new UpdateRuleTagRequest { Name = "production", Color = "#aabbcc" }, TestContext.CancellationToken);
+        await client.DeleteAsync(tagId, TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
-            handler.Requests.Select(static request => request.Method).ToArray());
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete], handler.Requests.Select(static request => request.Method).ToArray());
+        Assert.AreSequenceEqual(
+            [
                 "/api/v1/rule-tags",
                 "/api/v1/rule-tags",
                 $"/api/v1/rule-tags/{tagId:D}",
                 $"/api/v1/rule-tags/{tagId:D}",
-            },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+            ], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
 
         using JsonDocument createBody = JsonDocument.Parse(handler.Requests[1].Content!);
         Assert.AreEqual("prod", createBody.RootElement.GetProperty("name").GetString());
@@ -230,8 +221,8 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual("production", updateBody.RootElement.GetProperty("name").GetString());
         Assert.AreEqual("#aabbcc", updateBody.RootElement.GetProperty("color").GetString());
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTagRequest()));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTagRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty, TestContext.CancellationToken));
         Assert.HasCount(4, handler.Requests);
     }
 
@@ -250,23 +241,20 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleGroupApiClient client = new(http);
 
-        await client.GetAsync();
-        await client.CreateAsync(new CreateRuleGroupRequest { Name = "ops" });
-        await client.UpdateAsync(groupId, new UpdateRuleGroupRequest { Name = "operations", Comment = "managed" });
-        await client.DeleteAsync(groupId);
+        await client.GetAsync(TestContext.CancellationToken);
+        await client.CreateAsync(new CreateRuleGroupRequest { Name = "ops" }, TestContext.CancellationToken);
+        await client.UpdateAsync(groupId, new UpdateRuleGroupRequest { Name = "operations", Comment = "managed" }, TestContext.CancellationToken);
+        await client.DeleteAsync(groupId, TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
-            handler.Requests.Select(static request => request.Method).ToArray());
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete], handler.Requests.Select(static request => request.Method).ToArray());
+        Assert.AreSequenceEqual(
+            [
                 "/api/v1/rule-groups",
                 "/api/v1/rule-groups",
                 $"/api/v1/rule-groups/{groupId:D}",
                 $"/api/v1/rule-groups/{groupId:D}",
-            },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+            ], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
 
         using JsonDocument createBody = JsonDocument.Parse(handler.Requests[1].Content!);
         Assert.AreEqual("ops", createBody.RootElement.GetProperty("name").GetString());
@@ -274,8 +262,8 @@ public sealed class HttpApiClientsTests
         Assert.AreEqual("operations", updateBody.RootElement.GetProperty("name").GetString());
         Assert.AreEqual("managed", updateBody.RootElement.GetProperty("comment").GetString());
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleGroupRequest()));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleGroupRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty, TestContext.CancellationToken));
         Assert.HasCount(4, handler.Requests);
     }
 
@@ -291,8 +279,8 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        RuleInsertionResponse report = await client.InsertRuleAsync(InsertRequest());
-        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.InsertRuleAsync(InsertRequest()));
+        RuleInsertionResponse report = await client.InsertRuleAsync(InsertRequest(), TestContext.CancellationToken);
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.InsertRuleAsync(InsertRequest(), TestContext.CancellationToken));
 
         Assert.AreEqual(RuleInsertionOutcome.StaleBaseline, report.Outcome);
         Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
@@ -306,7 +294,7 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.InsertRuleAsync(InsertRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.InsertRuleAsync(InsertRequest(), TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -321,8 +309,8 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
-        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
+        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken);
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken));
 
         Assert.AreEqual(RuleReplacementOutcome.PartiallyCompleted, report.Firewall.Outcome);
         Assert.AreEqual(RuleReplacementRecoveryOutcome.Failed, report.Firewall.RecoveryOutcome);
@@ -344,7 +332,7 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest());
+        RuleReplacementMutationResponse report = await client.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken);
 
         Assert.AreEqual(RuleReplacementOutcome.Completed, report.Firewall.Outcome);
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
@@ -370,9 +358,9 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReplaceRuleAsync(ReplaceRequest(), TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -387,8 +375,8 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        RuleReorderResponse report = await client.ReorderRulesAsync(ReorderRequest());
-        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ReorderRulesAsync(ReorderRequest()));
+        RuleReorderResponse report = await client.ReorderRulesAsync(ReorderRequest(), TestContext.CancellationToken);
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ReorderRulesAsync(ReorderRequest(), TestContext.CancellationToken));
 
         Assert.AreEqual(RuleReorderOutcome.PartiallyCompleted, report.Outcome);
         Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
@@ -402,7 +390,7 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReorderRulesAsync(ReorderRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.ReorderRulesAsync(ReorderRequest(), TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -417,8 +405,8 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        RuleBatchDeleteResponse report = await client.BatchDeleteRulesAsync(BatchDeleteRequest());
-        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+        RuleBatchDeleteResponse report = await client.BatchDeleteRulesAsync(BatchDeleteRequest(), TestContext.CancellationToken);
+        ApiRequestException replay = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest(), TestContext.CancellationToken));
 
         Assert.AreEqual(RuleBatchDeleteOutcome.PartiallyCompleted, report.Outcome);
         Assert.AreEqual(HttpStatusCode.Conflict, replay.StatusCode);
@@ -441,8 +429,8 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         RuleApiClient client = new(http);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest()));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => client.BatchDeleteRulesAsync(BatchDeleteRequest(), TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -454,23 +442,21 @@ public sealed class HttpApiClientsTests
         using HttpClient http = CreateClient(handler);
         NetworkInterfaceApiClient client = new(http);
 
-        await client.GetAsync();
-        await client.ReconcileAsync();
-        await client.UpdateCommentAsync(id, "note");
-        await client.UpdateVisibilityAsync(id, false);
+        await client.GetAsync(TestContext.CancellationToken);
+        await client.ReconcileAsync(TestContext.CancellationToken);
+        await client.UpdateCommentAsync(id, "note", TestContext.CancellationToken);
+        await client.UpdateVisibilityAsync(id, false, TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 "/api/v1/network-interfaces",
                 "/api/v1/network-interfaces/reconcile",
                 $"/api/v1/network-interfaces/{id:D}/comment",
                 $"/api/v1/network-interfaces/{id:D}/visibility",
-            },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
-        CollectionAssert.AreEqual(new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Put }, handler.Requests.Select(static request => request.Method).ToArray());
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateCommentAsync(Guid.Empty, "note"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateVisibilityAsync(Guid.Empty, true));
+            ], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        Assert.AreSequenceEqual([HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Put], handler.Requests.Select(static request => request.Method).ToArray());
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateCommentAsync(Guid.Empty, "note", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateVisibilityAsync(Guid.Empty, true, TestContext.CancellationToken));
         Assert.HasCount(4, handler.Requests);
     }
 
@@ -628,4 +614,6 @@ public sealed class HttpApiClientsTests
 
     private static string MutationResponseJson(string operation) =>
         $"{{\"operation\":\"{operation}\",\"rule\":{{\"ruleId\":\"id\",\"displayNumber\":1,\"parsed\":true,\"rawLine\":\"line\",\"rule\":null}}}}";
+
+    public TestContext TestContext { get; set; }
 }

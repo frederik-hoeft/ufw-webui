@@ -19,7 +19,7 @@ public sealed class BrowserIntentSigningServiceTests
         BrowserIntentSigningService service = new(crypto.Object, new MutableTimeProvider(s_now));
         FirewallRuleSpecification rule = CreateNonCanonicalRule();
 
-        AddRuleIntentRequest request = await service.CreateAddRuleRequestAsync("deployment", rule, "private-key");
+        AddRuleIntentRequest request = await service.CreateAddRuleRequestAsync("deployment", rule, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual("deployment", request.DeploymentId);
         Assert.AreEqual("key-id", request.KeyId);
@@ -27,7 +27,7 @@ public sealed class BrowserIntentSigningServiceTests
         Assert.AreEqual(IntentOperations.ADD_RULE, request.Operation);
         Assert.AreEqual(s_now.ToUnixTimeSeconds(), request.IssuedAtUnix);
         Assert.AreEqual("signature", request.Signature);
-        CollectionAssert.AreEqual(IntentCanonicalizer.Canonicalize(request, rule), captured.Payload);
+        Assert.AreSequenceEqual(IntentCanonicalizer.Canonicalize(request, rule), captured.Payload);
         Assert.AreEqual("private-key", captured.PrivateKey);
         Assert.AreEqual("any", request.Payload.GetProperty("rule").GetProperty("source").GetString());
         Assert.AreEqual("443", request.Payload.GetProperty("rule").GetProperty("destinationPorts").GetString());
@@ -41,11 +41,11 @@ public sealed class BrowserIntentSigningServiceTests
         BrowserIntentSigningService service = new(crypto.Object, new MutableTimeProvider(s_now));
         FirewallRuleSpecification rule = CreateNonCanonicalRule();
 
-        DeleteRuleIntentRequest request = await service.CreateDeleteRuleRequestAsync("deployment", "stable-id", rule, "private-key");
+        DeleteRuleIntentRequest request = await service.CreateDeleteRuleRequestAsync("deployment", "stable-id", rule, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(IntentOperations.DELETE_RULE, request.Operation);
         Assert.AreEqual("stable-id", request.Payload.GetProperty("ruleId").GetString());
-        CollectionAssert.AreEqual(IntentCanonicalizer.Canonicalize(request, rule, "stable-id"), captured.Payload);
+        Assert.AreSequenceEqual(IntentCanonicalizer.Canonicalize(request, rule, "stable-id"), captured.Payload);
     }
 
     [TestMethod]
@@ -56,13 +56,13 @@ public sealed class BrowserIntentSigningServiceTests
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
         int[] occurrenceIds = [4, 1, 3];
 
-        BatchDeleteRulesIntentRequest request = await service.CreateBatchDeleteRulesRequestAsync("deployment", fingerprint, occurrenceIds, "private-key");
+        BatchDeleteRulesIntentRequest request = await service.CreateBatchDeleteRulesRequestAsync("deployment", fingerprint, occurrenceIds, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(IntentOperations.DELETE_RULES_BATCH, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
-        CollectionAssert.AreEqual(occurrenceIds, request.Payload.GetProperty("occurrenceIds").EnumerateArray().Select(static item => item.GetInt32()).ToArray());
+        Assert.AreSequenceEqual(occurrenceIds, request.Payload.GetProperty("occurrenceIds").EnumerateArray().Select(static item => item.GetInt32()).ToArray());
         BatchDeleteRulesPayload payload = new() { BaselineFingerprint = fingerprint, OccurrenceIds = occurrenceIds };
-        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeBatchDelete(request, payload), captured.Payload);
+        Assert.AreSequenceEqual(IntentCanonicalizer.CanonicalizeBatchDelete(request, payload), captured.Payload);
     }
 
     [TestMethod]
@@ -73,7 +73,7 @@ public sealed class BrowserIntentSigningServiceTests
         FirewallRuleSpecification rule = CreateNonCanonicalRule();
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
 
-        InsertRuleIntentRequest request = await service.CreateInsertRuleRequestAsync("deployment", fingerprint, anchorOccurrenceId: 3, RuleInsertionPlacement.Before, rule, "private-key");
+        InsertRuleIntentRequest request = await service.CreateInsertRuleRequestAsync("deployment", fingerprint, anchorOccurrenceId: 3, RuleInsertionPlacement.Before, rule, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(IntentOperations.INSERT_RULE, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
@@ -87,7 +87,7 @@ public sealed class BrowserIntentSigningServiceTests
             Placement = RuleInsertionPlacement.Before,
             Rule = RuleSpecificationNormalizer.Normalize(rule),
         };
-        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeInsert(request, payload), captured.Payload);
+        Assert.AreSequenceEqual(IntentCanonicalizer.CanonicalizeInsert(request, payload), captured.Payload);
     }
 
     [TestMethod]
@@ -112,7 +112,7 @@ public sealed class BrowserIntentSigningServiceTests
             targetOccurrenceId: 3,
             originalRuleId,
             replacement,
-            "private-key");
+            "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(IntentOperations.REPLACE_RULE, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
@@ -127,7 +127,7 @@ public sealed class BrowserIntentSigningServiceTests
             OriginalRuleId = originalRuleId,
             ReplacementRule = RuleSpecificationNormalizer.Normalize(replacement),
         };
-        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeReplace(request, payload), captured.Payload);
+        Assert.AreSequenceEqual(IntentCanonicalizer.CanonicalizeReplace(request, payload), captured.Payload);
     }
 
     [TestMethod]
@@ -138,13 +138,13 @@ public sealed class BrowserIntentSigningServiceTests
         string fingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
         int[] desiredOrder = [2, 0, 1];
 
-        ReorderRulesIntentRequest request = await service.CreateReorderRulesRequestAsync("deployment", fingerprint, desiredOrder, "private-key");
+        ReorderRulesIntentRequest request = await service.CreateReorderRulesRequestAsync("deployment", fingerprint, desiredOrder, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(IntentOperations.REORDER_RULES, request.Operation);
         Assert.AreEqual(fingerprint, request.Payload.GetProperty("baselineFingerprint").GetString());
-        CollectionAssert.AreEqual(desiredOrder, request.Payload.GetProperty("desiredOrder").EnumerateArray().Select(static item => item.GetInt32()).ToArray());
+        Assert.AreSequenceEqual(desiredOrder, request.Payload.GetProperty("desiredOrder").EnumerateArray().Select(static item => item.GetInt32()).ToArray());
         ReorderRulesPayload payload = new() { BaselineFingerprint = fingerprint, DesiredOrder = desiredOrder };
-        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeReorder(request, payload), captured.Payload);
+        Assert.AreSequenceEqual(IntentCanonicalizer.CanonicalizeReorder(request, payload), captured.Payload);
     }
 
     [TestMethod]
@@ -153,30 +153,30 @@ public sealed class BrowserIntentSigningServiceTests
         Mock<IBrowserIntentCryptoService> crypto = new();
         BrowserIntentSigningService service = new(crypto.Object, TimeProvider.System);
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync(" ", new FirewallRuleSpecification(), "key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync("deployment", new FirewallRuleSpecification(), " "));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateDeleteRuleRequestAsync("deployment", " ", new FirewallRuleSpecification(), "key"));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync(" ", new FirewallRuleSpecification(), "key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateAddRuleRequestAsync("deployment", new FirewallRuleSpecification(), " ", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateDeleteRuleRequestAsync("deployment", " ", new FirewallRuleSpecification(), "key", TestContext.CancellationToken));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateInsertRuleRequestAsync(
             "deployment",
             FirewallRuleSnapshotFingerprint.Compute(active: true, []),
             anchorOccurrenceId: 0,
             RuleInsertionPlacement.Before,
             new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.Any },
-            "key"));
+            "key", TestContext.CancellationToken));
         string validFingerprint = FirewallRuleSnapshotFingerprint.Compute(active: true, []);
         string validRuleId = RuleIdentity.Compute(new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 });
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReplaceRuleRequestAsync(
-            "deployment", "not-a-fingerprint", 0, validRuleId, new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }, "key"));
+            "deployment", "not-a-fingerprint", 0, validRuleId, new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }, "key", TestContext.CancellationToken));
         await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.CreateReplaceRuleRequestAsync(
-            "deployment", validFingerprint, -1, validRuleId, new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }, "key"));
+            "deployment", validFingerprint, -1, validRuleId, new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }, "key", TestContext.CancellationToken));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReplaceRuleRequestAsync(
-            "deployment", validFingerprint, 0, "not-a-rule-id", new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }, "key"));
+            "deployment", validFingerprint, 0, "not-a-rule-id", new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }, "key", TestContext.CancellationToken));
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReplaceRuleRequestAsync(
-            "deployment", validFingerprint, 0, validRuleId, new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.Any }, "key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateBatchDeleteRulesRequestAsync("deployment", "not-a-fingerprint", [0], "key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateBatchDeleteRulesRequestAsync("deployment", FirewallRuleSnapshotFingerprint.Compute(active: true, []), [1, 1], "key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync("deployment", "not-a-fingerprint", [0], "key"));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync("deployment", FirewallRuleSnapshotFingerprint.Compute(active: true, []), [], " "));
+            "deployment", validFingerprint, 0, validRuleId, new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.Any }, "key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateBatchDeleteRulesRequestAsync("deployment", "not-a-fingerprint", [0], "key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateBatchDeleteRulesRequestAsync("deployment", FirewallRuleSnapshotFingerprint.Compute(active: true, []), [1, 1], "key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync("deployment", "not-a-fingerprint", [0], "key", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateReorderRulesRequestAsync("deployment", FirewallRuleSnapshotFingerprint.Compute(active: true, []), [], " ", TestContext.CancellationToken));
         crypto.VerifyNoOtherCalls();
     }
 
@@ -215,4 +215,6 @@ public sealed class BrowserIntentSigningServiceTests
 
         public byte[] Payload { get; set; } = [];
     }
+
+    public TestContext TestContext { get; set; }
 }

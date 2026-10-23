@@ -18,9 +18,9 @@ public sealed class RuleInsertionNavigationServiceTests
 
         string uri = _service.BuildUri(baseline, 1, RuleInsertionPlacement.After);
 
-        StringAssert.Contains(uri, $"baseline={Uri.EscapeDataString(FirewallRuleSnapshotFingerprint.Compute(baseline))}");
-        StringAssert.Contains(uri, "anchor=1");
-        StringAssert.Contains(uri, "placement=after");
+        Assert.Contains($"baseline={Uri.EscapeDataString(FirewallRuleSnapshotFingerprint.Compute(baseline))}", uri);
+        Assert.Contains("anchor=1", uri);
+        Assert.Contains("placement=after", uri);
     }
 
     [TestMethod]

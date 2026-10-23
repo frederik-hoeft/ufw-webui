@@ -42,7 +42,7 @@ internal sealed class RuleTagsControllerIntegrationTests : ControllerIntegration
             ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             context.ChangeTracker.Clear();
             RuleTagEntry persisted = await context.Set<RuleTagEntry>().SingleAsync(cancellationToken);
-            Assert.IsTrue(persisted.Id > 0);
+            Assert.IsGreaterThan(0, persisted.Id);
             Assert.AreEqual(tag.Id, persisted.PublicId);
 
             IActionResult deleteResult = await controller.DeleteAsync(tag.Id, cancellationToken);

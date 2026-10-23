@@ -62,7 +62,7 @@ public sealed class BatchDeleteIntentCanonicalizerTests
 
         Assert.IsNotNull(roundTrip);
         Assert.AreEqual(payload.BaselineFingerprint, roundTrip.BaselineFingerprint);
-        CollectionAssert.AreEqual(payload.OccurrenceIds, roundTrip.OccurrenceIds);
+        Assert.AreSequenceEqual(payload.OccurrenceIds, roundTrip.OccurrenceIds);
     }
 
     private static TestIntent CreateIntent() => new()

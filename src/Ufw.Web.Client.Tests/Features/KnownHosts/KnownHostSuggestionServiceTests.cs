@@ -21,10 +21,10 @@ public sealed class KnownHostSuggestionServiceTests
     [TestMethod]
     public void Search_MatchesNameAddressAndCommentAndFiltersFamily()
     {
-        CollectionAssert.AreEqual(new[] { "database" }, _service.Search(s_hosts, FirewallAddressFamily.IPv4, "postgres").Select(static host => host.Name).ToArray());
-        CollectionAssert.AreEqual(new[] { "office" }, _service.Search(s_hosts, FirewallAddressFamily.IPv4, "198.51").Select(static host => host.Name).ToArray());
+        Assert.AreSequenceEqual(["database"], _service.Search(s_hosts, FirewallAddressFamily.IPv4, "postgres").Select(static host => host.Name).ToArray());
+        Assert.AreSequenceEqual(["office"], _service.Search(s_hosts, FirewallAddressFamily.IPv4, "198.51").Select(static host => host.Name).ToArray());
         Assert.IsEmpty(_service.Search(s_hosts, FirewallAddressFamily.IPv4, "edge"));
-        CollectionAssert.AreEqual(new[] { "edge-v6" }, _service.Search(s_hosts, FirewallAddressFamily.Any, "edge").Select(static host => host.Name).ToArray());
+        Assert.AreSequenceEqual(["edge-v6"], _service.Search(s_hosts, FirewallAddressFamily.Any, "edge").Select(static host => host.Name).ToArray());
     }
 
     [TestMethod]

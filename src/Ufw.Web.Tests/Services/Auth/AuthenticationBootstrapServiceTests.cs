@@ -74,7 +74,7 @@ public sealed class AuthenticationBootstrapServiceTests
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
             () => host.ApplyAsync(options, TestContext.CancellationToken));
 
-        StringAssert.Contains(exception.Message, "requires a password");
+        Assert.Contains("requires a password", exception.Message);
         Assert.IsNull(await host.UserManager.FindByEmailAsync("bootstrap@example.invalid"));
     }
 

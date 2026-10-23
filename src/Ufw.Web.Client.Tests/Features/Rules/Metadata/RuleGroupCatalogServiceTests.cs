@@ -26,7 +26,7 @@ public sealed class RuleGroupCatalogServiceTests
         });
         RuleGroupCatalogService service = new(api.Object);
 
-        IReadOnlyList<RuleGroup> groups = await service.RefreshAsync();
+        IReadOnlyList<RuleGroup> groups = await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.HasCount(2, groups);
         Assert.AreEqual(alphaId, groups[0].Id);
@@ -35,8 +35,8 @@ public sealed class RuleGroupCatalogServiceTests
         Assert.AreEqual(zetaId, groups[1].Id);
         Assert.AreEqual("zeta", groups[1].Name);
         Assert.AreEqual("later", groups[1].Comment);
-        CollectionAssert.AreEqual(new[] { "rule-b", "rule-a" }, groups[1].RuleIds.ToArray());
-        CollectionAssert.AreEqual(new[] { Guid.Parse("0199aabb-ccdd-7eef-8000-000000000099") }, groups[1].TemplateIds.ToArray());
+        Assert.AreSequenceEqual(["rule-b", "rule-a"], groups[1].RuleIds.ToArray());
+        Assert.AreSequenceEqual([Guid.Parse("0199aabb-ccdd-7eef-8000-000000000099")], groups[1].TemplateIds.ToArray());
         Assert.AreSame(groups, service.Current);
     }
 
@@ -49,7 +49,7 @@ public sealed class RuleGroupCatalogServiceTests
             Groups = [Group("Ops"), Group("ops")],
         });
         RuleGroupCatalogService duplicateNames = new(duplicateNamesApi.Object);
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateNames.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateNames.RefreshAsync(TestContext.CancellationToken));
 
         Mock<IRuleGroupApiClient> duplicateMembersApi = new();
         duplicateMembersApi.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new RuleGroupInventoryResponse
@@ -57,7 +57,7 @@ public sealed class RuleGroupCatalogServiceTests
             Groups = [new RuleGroupItem(Guid.CreateVersion7(), "ops", null, ["rule", "rule"])],
         });
         RuleGroupCatalogService duplicateMembers = new(duplicateMembersApi.Object);
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateMembers.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateMembers.RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -70,7 +70,7 @@ public sealed class RuleGroupCatalogServiceTests
         });
         RuleGroupCatalogService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -83,12 +83,12 @@ public sealed class RuleGroupCatalogServiceTests
         api.Setup(client => client.CreateAsync(It.IsAny<CreateRuleGroupRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleGroupInventoryResponse { Groups = [Group("duplicate"), Group("duplicate")] });
         RuleGroupCatalogService service = new(api.Object);
-        IReadOnlyList<RuleGroup> current = await service.RefreshAsync();
+        IReadOnlyList<RuleGroup> current = await service.RefreshAsync(TestContext.CancellationToken);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync("duplicate"));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync("duplicate", cancellationToken: TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
     }
 
@@ -104,16 +104,18 @@ public sealed class RuleGroupCatalogServiceTests
         api.Setup(client => client.DeleteAsync(groupId, It.IsAny<CancellationToken>())).ReturnsAsync(new RuleGroupInventoryResponse());
         RuleGroupCatalogService service = new(api.Object);
 
-        _ = await service.CreateAsync("ops");
+        _ = await service.CreateAsync("ops", cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual("ops", service.Current.Single().Name);
 
-        _ = await service.UpdateAsync(groupId, "operations", "managed");
+        _ = await service.UpdateAsync(groupId, "operations", "managed", TestContext.CancellationToken);
         Assert.AreEqual("operations", service.Current.Single().Name);
         Assert.AreEqual("managed", service.Current.Single().Comment);
 
-        _ = await service.DeleteAsync(groupId);
+        _ = await service.DeleteAsync(groupId, TestContext.CancellationToken);
         Assert.IsEmpty(service.Current);
     }
 
     private static RuleGroupItem Group(string name) => new(Guid.CreateVersion7(), name, null, []);
+
+    public TestContext TestContext { get; set; }
 }

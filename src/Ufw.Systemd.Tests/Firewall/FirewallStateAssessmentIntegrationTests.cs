@@ -26,6 +26,6 @@ public sealed class FirewallStateAssessmentIntegrationTests
         Assert.HasCount(1, snapshot.Assessment.Issues);
         FirewallStateIssue issue = snapshot.Assessment.Issues[0];
         Assert.AreEqual(FirewallStateAssessmentEvaluator.DUPLICATE_RULE_IDENTITY, issue.Code);
-        CollectionAssert.AreEqual(new[] { 0, 2 }, issue.OccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([0, 2], issue.OccurrenceIds.ToArray());
     }
 }

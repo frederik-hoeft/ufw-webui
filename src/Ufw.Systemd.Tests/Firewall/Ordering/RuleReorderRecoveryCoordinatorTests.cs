@@ -32,9 +32,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
 
         string[] command = await ExecuteRecoveryAsync(entry, snapshot, confirmed);
 
-        CollectionAssert.AreEqual(
-            new[] { "insert", "3", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            command);
+        Assert.AreSequenceEqual(
+            ["insert", "3", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], command);
     }
 
     [TestMethod]
@@ -50,9 +49,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
 
         string[] command = await ExecuteRecoveryAsync(entry, snapshot, confirmed);
 
-        CollectionAssert.AreEqual(
-            new[] { "insert", "2", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            command);
+        Assert.AreSequenceEqual(
+            ["insert", "2", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], command);
     }
 
     [TestMethod]
@@ -68,9 +66,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
 
         string[] crossFamilyCommand = await ExecuteRecoveryAsync(crossFamilyEntry, crossFamilySnapshot, crossFamilyConfirmed);
 
-        CollectionAssert.AreEqual(
-            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            crossFamilyCommand);
+        Assert.AreSequenceEqual(
+            ["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], crossFamilyCommand);
 
         ListedFirewallRule opaque = new() { Parsed = false, RawLine = "[ 2] unsupported ipv4 syntax" };
         FirewallSnapshot opaqueSnapshot = new(crossFamilySnapshot.Active, [crossFamilySnapshot.Rules[0], opaque], crossFamilySnapshot.Configuration);
@@ -85,9 +82,8 @@ public sealed class RuleReorderRecoveryCoordinatorTests
 
         string[] opaqueCommand = await ExecuteRecoveryAsync(opaqueEntry, opaqueSnapshot, opaqueConfirmed);
 
-        CollectionAssert.AreEqual(
-            new[] { "insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            opaqueCommand);
+        Assert.AreSequenceEqual(
+            ["insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], opaqueCommand);
     }
 
     private async Task<string[]> ExecuteRecoveryAsync(ReorderRecoveryJournalEntry entry, FirewallSnapshot snapshot, FirewallSnapshot confirmed)

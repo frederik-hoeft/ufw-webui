@@ -26,7 +26,7 @@ public sealed class NetworkInterfacesControllerTests
         IResponsePayload response = await controller.GetNetworkInterfacesAsync(TestContext.CancellationToken);
 
         NetworkInterfaceListResponse inventory = Assert.IsInstanceOfType<NetworkInterfaceListResponse>(response);
-        CollectionAssert.AreEqual(names, inventory.Interfaces.ToArray());
+        Assert.AreSequenceEqual(names, inventory.Interfaces.ToArray());
     }
 
     [TestMethod]

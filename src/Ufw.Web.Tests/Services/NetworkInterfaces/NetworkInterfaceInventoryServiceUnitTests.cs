@@ -21,7 +21,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         RecordingDataAccess dataAccess = new() { PresentResult = expected };
         NetworkInterfaceInventoryService service = new(daemonGateway, dataAccess, new FixedTimeProvider(s_now));
 
-        NetworkInterfaceInventorySnapshot result = await service.ReconcileAsync();
+        NetworkInterfaceInventorySnapshot result = await service.ReconcileAsync(TestContext.CancellationToken);
 
         Assert.AreSame(expected, result);
         Assert.AreSame(interfaceNames, dataAccess.ReconciledNames);
@@ -35,7 +35,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         RecordingDataAccess dataAccess = new();
         NetworkInterfaceInventoryService service = new(new FailingDaemonGateway(ipcError), dataAccess, TimeProvider.System);
 
-        DaemonUnavailableException exception = await Assert.ThrowsExactlyAsync<DaemonUnavailableException>(() => service.ReconcileAsync());
+        DaemonUnavailableException exception = await Assert.ThrowsExactlyAsync<DaemonUnavailableException>(() => service.ReconcileAsync(TestContext.CancellationToken));
 
         Assert.AreSame(ipcError, exception.Error);
         Assert.IsNull(dataAccess.ReconciledNames);
@@ -52,7 +52,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         RecordingDataAccess dataAccess = new() { PresentResult = expected };
         NetworkInterfaceInventoryService service = new(new RecordingDaemonGateway([]), dataAccess, TimeProvider.System);
 
-        NetworkInterfaceInventorySnapshot? result = await service.UpdateCommentAsync(publicId, comment);
+        NetworkInterfaceInventorySnapshot? result = await service.UpdateCommentAsync(publicId, comment, TestContext.CancellationToken);
 
         Assert.AreSame(expected, result);
         Assert.AreEqual(publicId, dataAccess.CommentPublicId);
@@ -67,7 +67,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         RecordingDataAccess dataAccess = new() { PresentResult = expected };
         NetworkInterfaceInventoryService service = new(new RecordingDaemonGateway([]), dataAccess, TimeProvider.System);
 
-        NetworkInterfaceInventorySnapshot? result = await service.UpdateCommentAsync(publicId, "  management VLAN  ");
+        NetworkInterfaceInventorySnapshot? result = await service.UpdateCommentAsync(publicId, "  management VLAN  ", TestContext.CancellationToken);
 
         Assert.AreSame(expected, result);
         Assert.AreEqual(publicId, dataAccess.CommentPublicId);
@@ -82,7 +82,7 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         RecordingDataAccess dataAccess = new() { PresentResult = expected };
         NetworkInterfaceInventoryService service = new(new RecordingDaemonGateway([]), dataAccess, TimeProvider.System);
 
-        NetworkInterfaceInventorySnapshot? result = await service.UpdateVisibilityAsync(publicId, isVisible: false);
+        NetworkInterfaceInventorySnapshot? result = await service.UpdateVisibilityAsync(publicId, isVisible: false, TestContext.CancellationToken);
 
         Assert.AreSame(expected, result);
         Assert.AreEqual(publicId, dataAccess.VisibilityPublicId);
@@ -99,13 +99,13 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         RecordingDataAccess dataAccess = new() { StaleResult = stale, CleanupRemovedCount = 1 };
         NetworkInterfaceInventoryService service = new(new RecordingDaemonGateway(interfaceNames), dataAccess, new FixedTimeProvider(s_now));
 
-        NetworkInterfaceCleanupResult result = await service.CleanupStaleAsync([second, first, second]);
+        NetworkInterfaceCleanupResult result = await service.CleanupStaleAsync([second, first, second], TestContext.CancellationToken);
 
         Assert.AreEqual(1, result.RemovedCount);
         Assert.AreSame(stale.Interfaces, result.StaleInterfaces);
         Assert.AreEqual(s_now, result.ReconciledAt);
         Assert.AreSame(interfaceNames, dataAccess.CleanupNames);
-        CollectionAssert.AreEqual(new[] { first, second }.Order().ToArray(), dataAccess.CleanupIds!.ToArray());
+        Assert.AreSequenceEqual(new[] { first, second }.Order().ToArray(), dataAccess.CleanupIds!.ToArray());
         Assert.AreEqual(s_now, dataAccess.CleanupReconciledAt);
     }
 
@@ -201,4 +201,6 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
             return Task.FromResult(MutationResult);
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

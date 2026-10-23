@@ -42,7 +42,7 @@ public sealed class KnownHostInventoryServiceTests
         });
         KnownHostInventoryService service = new(api.Object);
 
-        KnownHostInventoryResponse response = await service.RefreshAsync();
+        KnownHostInventoryResponse response = await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.HasCount(2, response.Hosts);
         Assert.AreEqual("Primary", response.Hosts[0].Name);
@@ -74,7 +74,7 @@ public sealed class KnownHostInventoryServiceTests
         });
         KnownHostInventoryService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -97,7 +97,7 @@ public sealed class KnownHostInventoryServiceTests
         });
         KnownHostInventoryService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -114,7 +114,7 @@ public sealed class KnownHostInventoryServiceTests
         });
         KnownHostInventoryService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -134,19 +134,19 @@ public sealed class KnownHostInventoryServiceTests
         api.Setup(client => client.DeleteAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(deleted);
         KnownHostInventoryService service = new(api.Object);
 
-        _ = await service.CreateAsync(createRequest);
+        _ = await service.CreateAsync(createRequest, TestContext.CancellationToken);
         Assert.IsNotNull(service.Current);
         Assert.AreEqual("one", service.Current.Hosts.Single().Name);
 
-        _ = await service.UpdateAsync(id, updateRequest);
+        _ = await service.UpdateAsync(id, updateRequest, TestContext.CancellationToken);
         Assert.IsNotNull(service.Current);
         Assert.AreEqual("renamed", service.Current.Hosts.Single().Name);
 
-        _ = await service.ReconcileDnsAsync(id);
+        _ = await service.ReconcileDnsAsync(id, TestContext.CancellationToken);
         Assert.IsNotNull(service.Current);
         Assert.AreEqual("192.0.2.3", service.Current.Hosts.Single().Address);
 
-        _ = await service.DeleteAsync(id);
+        _ = await service.DeleteAsync(id, TestContext.CancellationToken);
         Assert.IsNotNull(service.Current);
         Assert.IsEmpty(service.Current.Hosts);
     }
@@ -171,7 +171,7 @@ public sealed class KnownHostInventoryServiceTests
             .ReturnsAsync(response);
         KnownHostInventoryService service = new(api.Object);
 
-        KnownHostInventoryResponse updated = await service.UpdateVisibilityAsync(host, isVisible: false);
+        KnownHostInventoryResponse updated = await service.UpdateVisibilityAsync(host, isVisible: false, TestContext.CancellationToken);
 
         Assert.AreSame(updated, service.Current);
         api.VerifyAll();
@@ -198,7 +198,7 @@ public sealed class KnownHostInventoryServiceTests
             .ReturnsAsync(new KnownHostInventoryResponse { Hosts = [host] });
         KnownHostInventoryService service = new(api.Object);
 
-        _ = await service.UpdateVisibilityAsync(host, isVisible: false);
+        _ = await service.UpdateVisibilityAsync(host, isVisible: false, TestContext.CancellationToken);
 
         api.VerifyAll();
     }
@@ -211,4 +211,6 @@ public sealed class KnownHostInventoryServiceTests
         AddressFamily = FirewallAddressFamily.IPv4,
         IsVisible = true,
     };
+
+    public TestContext TestContext { get; set; }
 }

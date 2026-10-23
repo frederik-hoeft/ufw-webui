@@ -67,7 +67,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
         RuleReplacementPreflightResult.Rejected rejected = Assert.IsInstanceOfType<RuleReplacementPreflightResult.Rejected>(evaluator.Evaluate(baseline, payload));
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, rejected.Outcome);
-        StringAssert.Contains(rejected.Diagnostic, "identity does not match");
+        Assert.Contains("identity does not match", rejected.Diagnostic);
     }
 
     [TestMethod]
@@ -80,7 +80,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
         RuleReplacementPreflightResult.Rejected rejected = Assert.IsInstanceOfType<RuleReplacementPreflightResult.Rejected>(evaluator.Evaluate(baseline, payload));
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, rejected.Outcome);
-        StringAssert.Contains(rejected.Diagnostic, "occurs more than once");
+        Assert.Contains("occurs more than once", rejected.Diagnostic);
     }
 
     [TestMethod]
@@ -93,7 +93,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
         RuleReplacementPreflightResult.Rejected rejected = Assert.IsInstanceOfType<RuleReplacementPreflightResult.Rejected>(evaluator.Evaluate(baseline, payload));
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.PreconditionFailed, rejected.Outcome);
-        StringAssert.Contains(rejected.Diagnostic, "duplicate");
+        Assert.Contains("duplicate", rejected.Diagnostic);
     }
 
     [TestMethod]
@@ -132,7 +132,7 @@ public sealed class FirewallRuleReplacementPreflightEvaluatorTests
         RuleReplacementPreflightResult.Rejected rejected = Assert.IsInstanceOfType<RuleReplacementPreflightResult.Rejected>(evaluator.Evaluate(baseline, payload));
 
         Assert.AreEqual(RuleReplacementExecutionOutcome.StateUncertain, rejected.Outcome);
-        StringAssert.Contains(rejected.Diagnostic, "interface inspection failed");
+        Assert.Contains("interface inspection failed", rejected.Diagnostic);
     }
 
     private static FirewallRuleReplacementPreflightEvaluator CreateEvaluator(IResponsePayload? interfaceResponse = null)

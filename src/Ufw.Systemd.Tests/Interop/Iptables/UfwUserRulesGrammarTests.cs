@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Systemd.Interop.Iptables.Grammars;
 using Ufw.Systemd.Interop.Iptables.Parsing;
@@ -65,7 +65,7 @@ public sealed class UfwUserRulesGrammarTests
         Assert.AreEqual("22", ssh.Specification.DestinationPorts);
         Assert.AreEqual(RuleIdentity.Compute(ssh.Specification), ssh.RuleId);
         Assert.HasCount(1, ssh.IptablesRules);
-        Assert.IsFalse(ssh.IptablesRules[0].Clauses.Any(static clause => clause.Kind == FilterClauseKind.Opaque));
+        Assert.DoesNotContain(static clause => clause.Kind == FilterClauseKind.Opaque, ssh.IptablesRules[0].Clauses);
 
         UfwUserRuleTranslation limit = translations[1];
         Assert.AreEqual(FirewallAction.Limit, limit.Specification!.Action);
@@ -91,7 +91,7 @@ public sealed class UfwUserRulesGrammarTests
         Assert.AreEqual("eth1", route.Specification.DestinationInterface);
         Assert.AreEqual("10.0.0.0/8", route.Specification.Source);
         Assert.AreEqual("192.168.0.0/16", route.Specification.Destination);
-        Assert.IsFalse(route.IptablesRules[0].Clauses.Any(static clause => clause.Kind == FilterClauseKind.Protocol));
+        Assert.DoesNotContain(static clause => clause.Kind == FilterClauseKind.Protocol, route.IptablesRules[0].Clauses);
 
         UfwUserRuleTranslation app = translations[4];
         Assert.AreEqual("80,443", app.Specification!.DestinationPorts);

@@ -34,7 +34,7 @@ public sealed class UfwRuleCommandTests
         UfwRenderedRule rendered = s_renderer.Render(rule);
         UfwAddRuleCommand command = new(rule, s_renderer);
 
-        CollectionAssert.AreEqual(rendered.Arguments.ToArray(), command.BuildArguments().ToArray());
+        Assert.AreSequenceEqual(rendered.Arguments.ToArray(), command.BuildArguments().ToArray());
     }
 
     [TestMethod]
@@ -42,7 +42,7 @@ public sealed class UfwRuleCommandTests
     {
         UfwDeleteRuleCommand command = new(12);
 
-        CollectionAssert.AreEqual(s_expectedDeleteArguments, command.BuildArguments().ToArray());
+        Assert.AreSequenceEqual(s_expectedDeleteArguments, command.BuildArguments().ToArray());
     }
 
     [TestMethod]
@@ -58,7 +58,7 @@ public sealed class UfwRuleCommandTests
         };
         UfwInsertRuleCommand command = new(3, rule, s_renderer);
 
-        CollectionAssert.AreEqual(s_expectedInsertArguments, command.BuildArguments().ToArray());
+        Assert.AreSequenceEqual(s_expectedInsertArguments, command.BuildArguments().ToArray());
     }
 
     [TestMethod]
@@ -76,7 +76,7 @@ public sealed class UfwRuleCommandTests
         };
         UfwInsertRuleCommand command = new(4, rule, s_renderer);
 
-        CollectionAssert.AreEqual(s_expectedRouteInsertArguments, command.BuildArguments().ToArray());
+        Assert.AreSequenceEqual(s_expectedRouteInsertArguments, command.BuildArguments().ToArray());
     }
 
     [TestMethod]
@@ -101,9 +101,8 @@ public sealed class UfwRuleCommandTests
         };
         UfwUpdateExistingRuleCommand command = new(rule, s_renderer);
 
-        CollectionAssert.AreEqual(
-            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp", "comment", string.Empty },
-            command.BuildArguments().ToArray());
+        Assert.AreSequenceEqual(
+            ["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp", "comment", string.Empty], command.BuildArguments().ToArray());
     }
 
     [TestMethod]
@@ -120,7 +119,7 @@ public sealed class UfwRuleCommandTests
         };
         UfwUpdateExistingRuleCommand command = new(rule, s_renderer);
 
-        CollectionAssert.AreEqual(s_renderer.Render(rule).Arguments.ToArray(), command.BuildArguments().ToArray());
+        Assert.AreSequenceEqual(s_renderer.Render(rule).Arguments.ToArray(), command.BuildArguments().ToArray());
     }
 
     [TestMethod]

@@ -45,10 +45,10 @@ public sealed class AuthenticationHandlerScopeTests
         IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
         using HttpClient rules = factory.CreateClient("rules");
         using HttpClient templates = factory.CreateClient("templates");
-        using HttpResponseMessage rulesResponse = await rules.GetAsync("https://localhost/rules");
-        using HttpResponseMessage templatesResponse = await templates.GetAsync("https://localhost/templates");
+        using HttpResponseMessage rulesResponse = await rules.GetAsync("https://localhost/rules", TestContext.CancellationToken);
+        using HttpResponseMessage templatesResponse = await templates.GetAsync("https://localhost/templates", TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(new[] { "test-access-token", "test-access-token" }, observed);
+        Assert.AreSequenceEqual(new[] { "test-access-token", "test-access-token" }, observed);
         Assert.IsTrue((await state.GetAuthenticationStateAsync()).User.Identity!.IsAuthenticated);
         session.Clear();
         Assert.IsFalse((await state.GetAuthenticationStateAsync()).User.Identity!.IsAuthenticated);
@@ -62,4 +62,6 @@ public sealed class AuthenticationHandlerScopeTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { RequestMessage = request });
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

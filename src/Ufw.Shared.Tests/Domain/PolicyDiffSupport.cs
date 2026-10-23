@@ -82,7 +82,7 @@ internal static class PolicyDiffSupport
         for (int index = 0; index < diff.Cells.Count; index++)
         {
             PolicyDiffCell<uint> cell = diff.Cells[index];
-            Assert.IsTrue(cell.Region.Cardinality > BigInteger.Zero);
+            Assert.IsGreaterThan(BigInteger.Zero, cell.Region.Cardinality);
             sum += cell.Region.Cardinality;
             bool decisionChanged = cell.BaselineDecision != cell.CandidateDecision;
             bool responsibilityChanged = ResponsibilityDiffers(cell.BaselineProvenance, cell.CandidateProvenance);
@@ -92,7 +92,7 @@ internal static class PolicyDiffSupport
             Assert.AreEqual(KindOf(decisionChanged, responsibilityChanged), cell.Difference);
             for (int other = index + 1; other < diff.Cells.Count; other++)
             {
-                Assert.IsTrue(cell.Region.CompareTo(diff.Cells[other].Region) < 0);
+                Assert.IsLessThan(0, cell.Region.CompareTo(diff.Cells[other].Region));
                 Assert.IsFalse(cell.Region.Overlaps(diff.Cells[other].Region));
             }
 

@@ -31,13 +31,13 @@ public sealed class RuleEditorReferenceDataServiceTests
             .ReturnsAsync(new NetworkInterfaceInventoryResponse { Interfaces = [visibleInterface, hiddenInterface] });
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
-        RuleEditorReferenceData data = await service.LoadAsync();
+        RuleEditorReferenceData data = await service.LoadAsync(TestContext.CancellationToken);
 
         Assert.IsNull(data.KnownHosts.Error);
         Assert.IsNull(data.Interfaces.Error);
-        CollectionAssert.AreEqual(new[] { visibleInterface }, data.VisibleInterfaces.ToArray());
-        CollectionAssert.AreEqual(new[] { visibleV4 }, service.GetVisibleKnownHosts(data, ipv6Enabled: false).ToArray());
-        CollectionAssert.AreEqual(new[] { visibleV4, visibleV6 }, service.GetVisibleKnownHosts(data, ipv6Enabled: true).ToArray());
+        Assert.AreSequenceEqual([visibleInterface], data.VisibleInterfaces.ToArray());
+        Assert.AreSequenceEqual([visibleV4], service.GetVisibleKnownHosts(data, ipv6Enabled: false).ToArray());
+        Assert.AreSequenceEqual([visibleV4, visibleV6], service.GetVisibleKnownHosts(data, ipv6Enabled: true).ToArray());
         Assert.IsTrue(service.IsUnknownInterface(data, "missing0"));
         Assert.IsFalse(service.IsUnknownInterface(data, "wg0"));
     }
@@ -57,12 +57,12 @@ public sealed class RuleEditorReferenceDataServiceTests
         errors.Setup(mapper => mapper.Describe(failure)).Returns(clientError);
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
-        RuleEditorReferenceData data = await service.LoadAsync();
+        RuleEditorReferenceData data = await service.LoadAsync(TestContext.CancellationToken);
 
         Assert.AreSame(clientError, data.KnownHosts.Error);
         Assert.IsEmpty(data.KnownHosts.Items);
         Assert.IsNull(data.Interfaces.Error);
-        CollectionAssert.AreEqual(new[] { networkInterface }, data.VisibleInterfaces.ToArray());
+        Assert.AreSequenceEqual([networkInterface], data.VisibleInterfaces.ToArray());
         Assert.IsFalse(service.IsUnknownInterface(data, "eno1"));
         errors.Verify(mapper => mapper.Describe(failure), Times.Once);
     }
@@ -81,10 +81,10 @@ public sealed class RuleEditorReferenceDataServiceTests
         errors.Setup(mapper => mapper.Describe(failure)).Returns(new ClientError(ClientErrorKind.Unavailable, "interface lookup failed", true));
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
-        RuleEditorReferenceData data = await service.LoadAsync();
+        RuleEditorReferenceData data = await service.LoadAsync(TestContext.CancellationToken);
 
         Assert.IsNull(data.KnownHosts.Error);
-        CollectionAssert.AreEqual(new[] { host }, service.GetVisibleKnownHosts(data, ipv6Enabled: true).ToArray());
+        Assert.AreSequenceEqual([host], service.GetVisibleKnownHosts(data, ipv6Enabled: true).ToArray());
         Assert.AreEqual("interface lookup failed", data.Interfaces.Error?.Message);
         Assert.IsEmpty(data.Interfaces.Items);
         Assert.IsEmpty(data.VisibleInterfaces);
@@ -102,7 +102,7 @@ public sealed class RuleEditorReferenceDataServiceTests
         networkInterfaces.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new NetworkInterfaceInventoryResponse());
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
-        RuleEditorReferenceData data = await service.LoadAsync();
+        RuleEditorReferenceData data = await service.LoadAsync(TestContext.CancellationToken);
 
         Assert.IsNull(data.KnownHosts.Error);
         Assert.IsNull(data.Interfaces.Error);
@@ -129,7 +129,7 @@ public sealed class RuleEditorReferenceDataServiceTests
         errors.Setup(mapper => mapper.Describe(interfaceFailure)).Returns(interfaceError);
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
-        RuleEditorReferenceData data = await service.LoadAsync();
+        RuleEditorReferenceData data = await service.LoadAsync(TestContext.CancellationToken);
 
         Assert.AreSame(hostError, data.KnownHosts.Error);
         Assert.AreSame(interfaceError, data.Interfaces.Error);
@@ -168,7 +168,7 @@ public sealed class RuleEditorReferenceDataServiceTests
         errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(false);
         RuleEditorReferenceDataService service = new(knownHosts.Object, networkInterfaces.Object, errors.Object);
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.LoadAsync());
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.LoadAsync(TestContext.CancellationToken));
         errors.Verify(mapper => mapper.Describe(It.IsAny<Exception>()), Times.Never);
     }
 
@@ -187,4 +187,6 @@ public sealed class RuleEditorReferenceDataServiceTests
         Name = name,
         IsVisible = isVisible,
     };
+
+    public TestContext TestContext { get; set; }
 }

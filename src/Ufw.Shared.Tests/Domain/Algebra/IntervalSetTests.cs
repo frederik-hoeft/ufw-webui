@@ -17,7 +17,7 @@ public sealed class IntervalSetTests
             new Interval<uint>(2, 4),
         ]);
 
-        Assert.AreEqual(1, set.Intervals.Count);
+        Assert.HasCount(1, set.Intervals);
         Assert.AreEqual(new Interval<uint>(1, 8), set.Intervals[0]);
         Assert.AreEqual(new BigInteger(8), set.Cardinality);
     }
@@ -27,7 +27,7 @@ public sealed class IntervalSetTests
     {
         IntervalSet<uint> value = IntervalSet<uint>.Between(0, 10).Except(IntervalSet<uint>.Between(3, 5));
 
-        Assert.AreEqual(2, value.Intervals.Count);
+        Assert.HasCount(2, value.Intervals);
         Assert.AreEqual(new Interval<uint>(0, 2), value.Intervals[0]);
         Assert.AreEqual(new Interval<uint>(6, 10), value.Intervals[1]);
         Assert.IsFalse(value.Contains(3));

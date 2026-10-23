@@ -281,7 +281,7 @@ public sealed class IntentSignatureTests
 
         IntentVerificationResult.AcceptedReorder accepted =
             Assert.IsInstanceOfType<IntentVerificationResult.AcceptedReorder>(verifier.VerifyReorder(request));
-        CollectionAssert.AreEqual(CreateReorderPayload().DesiredOrder, accepted.Payload.DesiredOrder);
+        Assert.AreSequenceEqual(CreateReorderPayload().DesiredOrder, accepted.Payload.DesiredOrder);
     }
 
     [TestMethod]
@@ -445,7 +445,7 @@ public sealed class IntentSignatureTests
         IntentVerifier verifier = CreateVerifier(key, clock);
 
         IntentVerificationResult.AcceptedBatchDelete accepted = Assert.IsInstanceOfType<IntentVerificationResult.AcceptedBatchDelete>(verifier.VerifyBatchDelete(request));
-        CollectionAssert.AreEqual(CreateBatchDeletePayload().OccurrenceIds, accepted.Payload.OccurrenceIds);
+        Assert.AreSequenceEqual(CreateBatchDeletePayload().OccurrenceIds, accepted.Payload.OccurrenceIds);
     }
 
     [TestMethod]
@@ -532,7 +532,7 @@ public sealed class IntentSignatureTests
         };
         AddRuleRequest request = IntentRequestFactory.CreateAddRequest(key, DEPLOYMENT_ID, left, MessageJsonSerializerContext.Default.AddRulePayload, clock);
 
-        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeAdd(request, left), IntentCanonicalizer.CanonicalizeAdd(request, right));
+        Assert.AreSequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, left), IntentCanonicalizer.CanonicalizeAdd(request, right));
     }
 
     [TestMethod]

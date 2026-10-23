@@ -47,7 +47,7 @@ public sealed class FirewallRuleReplacementServiceTests
         IResponsePayload result = await service.ReplaceAsync(CreateRequest(), TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<RuleReplacementResponse>(result);
-        CollectionAssert.AreEqual(new List<string> { "gate", "guard", "nonce", "executor" }, calls);
+        Assert.AreSequenceEqual(new List<string> { "gate", "guard", "nonce", "executor" }, calls);
     }
 
     [TestMethod]
@@ -84,7 +84,7 @@ public sealed class FirewallRuleReplacementServiceTests
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             _ = await service.ReplaceAsync(CreateRequest(), TestContext.CancellationToken));
 
-        StringAssert.Contains(exception.Message, "recovery");
+        Assert.Contains("recovery", exception.Message);
         nonceStore.VerifyNoOtherCalls();
         executor.VerifyNoOtherCalls();
     }
@@ -123,8 +123,8 @@ public sealed class FirewallRuleReplacementServiceTests
             service.ReplaceAsync(request, TestContext.CancellationToken).AsTask(),
             service.ReplaceAsync(request, TestContext.CancellationToken).AsTask());
 
-        Assert.AreEqual(1, results.Count(static result => result is RuleReplacementResponse));
-        Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
+        Assert.ContainsSingle(static result => result is RuleReplacementResponse, results);
+        Assert.ContainsSingle(static result => result is ConflictResponse, results);
         executor.Verify(value => value.ExecuteAsync(It.IsAny<ReplaceRulePayload>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 

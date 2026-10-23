@@ -36,7 +36,7 @@ public sealed class RuleMetadataMutationServiceTests
         api.Setup(client => client.UpdateMetadataAsync("rule", It.IsAny<UpdateRuleMetadataRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMetadataMutationResponse());
 
-        RuleMetadataMutationResponse result = await new RuleMetadataMutationService(api.Object).UpdateAsync("rule", new RuleMetadataChange(null, [], null));
+        RuleMetadataMutationResponse result = await new RuleMetadataMutationService(api.Object).UpdateAsync("rule", new RuleMetadataChange(null, [], null), TestContext.CancellationToken);
 
         Assert.IsNull(result.Metadata);
     }
@@ -51,8 +51,8 @@ public sealed class RuleMetadataMutationServiceTests
         RuleMetadataMutationService service = new(api.Object);
         RuleMetadataChange change = new(null, [], null);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.UpdateAsync("rule", change));
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.UpdateAsync("rule", change));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.UpdateAsync("rule", change, TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.UpdateAsync("rule", change, TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -61,8 +61,10 @@ public sealed class RuleMetadataMutationServiceTests
         Mock<IRuleApiClient> api = new(MockBehavior.Strict);
         RuleMetadataMutationService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.UpdateAsync("", new RuleMetadataChange(null, [], null)));
-        await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => service.UpdateAsync("rule", null!));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.UpdateAsync("", new RuleMetadataChange(null, [], null), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => service.UpdateAsync("rule", null!, TestContext.CancellationToken));
         api.VerifyNoOtherCalls();
     }
+
+    public TestContext TestContext { get; set; }
 }

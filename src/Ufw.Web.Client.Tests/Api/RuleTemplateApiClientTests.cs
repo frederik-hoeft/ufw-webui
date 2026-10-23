@@ -17,25 +17,22 @@ public sealed class RuleTemplateApiClientTests
         using HttpClient http = new(handler) { BaseAddress = new Uri("https://localhost/") };
         RuleTemplateApiClient client = new(http);
 
-        await client.GetAsync();
-        await client.CreateAsync(new CreateRuleTemplateRequest { Name = "web" });
-        await client.UpdateAsync(id, new UpdateRuleTemplateRequest { Name = "web-updated" });
-        await client.DeleteAsync(id);
+        await client.GetAsync(TestContext.CancellationToken);
+        await client.CreateAsync(new CreateRuleTemplateRequest { Name = "web" }, TestContext.CancellationToken);
+        await client.UpdateAsync(id, new UpdateRuleTemplateRequest { Name = "web-updated" }, TestContext.CancellationToken);
+        await client.DeleteAsync(id, TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 "/api/v1/rule-templates",
                 "/api/v1/rule-templates",
                 $"/api/v1/rule-templates/{id:D}",
                 $"/api/v1/rule-templates/{id:D}",
-            },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
-        CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete },
-            handler.Requests.Select(static request => request.Method).ToArray());
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTemplateRequest()));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+            ], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        Assert.AreSequenceEqual(
+            [HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete], handler.Requests.Select(static request => request.Method).ToArray());
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateRuleTemplateRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty, TestContext.CancellationToken));
     }
 
     private sealed class RecordingHandler(string responseJson) : HttpMessageHandler
@@ -51,4 +48,6 @@ public sealed class RuleTemplateApiClientTests
             });
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

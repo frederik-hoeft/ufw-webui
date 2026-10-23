@@ -362,7 +362,8 @@ public sealed class RulesControllerTests
         Assert.AreSame(firewall, report.Firewall);
         Assert.AreEqual(RuleReplacementOutcome.Completed, report.Firewall.Outcome);
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
-        StringAssert.Contains(report.MetadataDiagnostic, "metadata reconciliation failed");
+        Assert.IsNotNull(report.MetadataDiagnostic);
+        Assert.Contains("metadata reconciliation failed", report.MetadataDiagnostic);
     }
 
     [TestMethod]
@@ -383,7 +384,8 @@ public sealed class RulesControllerTests
         RuleReplacementMutationResponse report = Assert.IsInstanceOfType<RuleReplacementMutationResponse>(response.Value);
         Assert.AreSame(firewall, report.Firewall);
         Assert.AreEqual(RuleReplacementMetadataReconciliationOutcome.Failed, report.MetadataReconciliation);
-        StringAssert.Contains(report.MetadataDiagnostic, "metadata reconciliation failed");
+        Assert.IsNotNull(report.MetadataDiagnostic);
+        Assert.Contains("metadata reconciliation failed", report.MetadataDiagnostic);
         metadata.VerifyNoOtherCalls();
     }
 

@@ -48,13 +48,11 @@ public sealed class HttpResponseMessageExtensionsTests
         Assert.AreEqual("first second", exception.Message);
         Assert.AreEqual(HttpMethod.Put, exception.Method);
         Assert.AreEqual(request.RequestUri, exception.RequestUri);
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 new ApiValidationError("field", "first.code", "first"),
                 new ApiValidationError("field", "second.code", "second"),
-            },
-            exception.ValidationErrors.ToArray());
+            ], exception.ValidationErrors.ToArray());
     }
 
     [TestMethod]

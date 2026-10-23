@@ -12,11 +12,11 @@ public sealed class BrowserClipboardServiceTests
         RecordingJsRuntime jsRuntime = new();
         BrowserClipboardService clipboard = new(jsRuntime);
 
-        await clipboard.WriteTextAsync("ufw allow from any to any");
+        await clipboard.WriteTextAsync("ufw allow from any to any", TestContext.CancellationToken);
 
         Assert.HasCount(1, jsRuntime.Calls);
         Assert.AreEqual("navigator.clipboard.writeText", jsRuntime.Calls[0].Identifier);
-        CollectionAssert.AreEqual(new object?[] { "ufw allow from any to any" }, jsRuntime.Calls[0].Args);
+        Assert.AreSequenceEqual(["ufw allow from any to any"], jsRuntime.Calls[0].Args);
     }
 
     private sealed class RecordingJsRuntime : IJSRuntime
@@ -33,4 +33,6 @@ public sealed class BrowserClipboardServiceTests
             return ValueTask.FromResult(default(TValue)!);
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

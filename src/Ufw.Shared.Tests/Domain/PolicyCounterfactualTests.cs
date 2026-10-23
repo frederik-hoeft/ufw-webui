@@ -24,7 +24,7 @@ public sealed class PolicyCounterfactualTests
         Assert.AreSame(before[1], world.Rules[1]);
         Assert.AreEqual(0, world.Rules[0].FamilyOrder);
         Assert.AreEqual(1, world.Rules[1].FamilyOrder);
-        Assert.AreEqual(1, derived.Rules.Count);
+        Assert.HasCount(1, derived.Rules);
         Assert.AreNotSame(before[1], derived.Rules[0]);
         Assert.AreEqual(before[1].Id, derived.Rules[0].Id);
         Assert.AreEqual(0, derived.Rules[0].FamilyOrder);

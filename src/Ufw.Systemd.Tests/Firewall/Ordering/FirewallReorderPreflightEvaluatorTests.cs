@@ -39,7 +39,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         RuleReorderPreflightResult result = _evaluator.Evaluate(baseline, [0, 0, 2]);
 
         RuleReorderPreflightResult.Rejected rejected = Assert.IsInstanceOfType<RuleReorderPreflightResult.Rejected>(result);
-        StringAssert.Contains(rejected.Diagnostic, "exactly once");
+        Assert.Contains("exactly once", rejected.Diagnostic);
     }
 
     [TestMethod]
@@ -50,7 +50,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         RuleReorderPreflightResult result = _evaluator.Evaluate(baseline, [1, 0]);
 
         RuleReorderPreflightResult.Rejected rejected = Assert.IsInstanceOfType<RuleReorderPreflightResult.Rejected>(result);
-        StringAssert.Contains(rejected.Diagnostic, "IPv4");
+        Assert.Contains("IPv4", rejected.Diagnostic);
     }
 
     [TestMethod]
@@ -107,7 +107,7 @@ public sealed class FirewallReorderPreflightEvaluatorTests
         IReadOnlyList<RuleReorderMove> pending = _evaluator.CreateSafePendingPlan(baseline, current, preflight);
 
         Assert.HasCount(2, pending);
-        CollectionAssert.AreEquivalent(new[] { 1, 2 }, pending.Select(static move => move.OccurrenceId).ToArray());
+        Assert.AreSequenceEqual([1, 2], pending.Select(static move => move.OccurrenceId).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     private static FirewallSnapshot Snapshot(params string[] ports)

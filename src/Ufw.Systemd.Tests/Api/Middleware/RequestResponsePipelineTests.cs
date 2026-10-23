@@ -26,7 +26,7 @@ public sealed class RequestResponsePipelineTests
         Assert.AreSame(response.Object, firstResponse);
         Assert.AreSame(response.Object, secondResponse);
         string[] expectedInvocations = ["outer:before", "inner:before", "terminal", "inner:after", "outer:after", "outer:before", "inner:before", "terminal", "inner:after", "outer:after"];
-        CollectionAssert.AreEqual(expectedInvocations, invocations);
+        Assert.AreSequenceEqual(expectedInvocations, invocations);
     }
 
     private sealed class RecordingMiddleware(int priority, string name, List<string> invocations) : IRequestMiddleware

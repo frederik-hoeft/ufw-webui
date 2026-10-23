@@ -91,10 +91,10 @@ public sealed class RuleListProjectionServiceTests
 
         Assert.HasCount(2, projection.Families);
         Assert.AreEqual(FirewallAddressFamily.IPv4, projection.Families[0].AddressFamily);
-        CollectionAssert.AreEqual(new[] { 1, 2 }, projection.Families[0].Rows.Select(static row => row.FamilyPosition).ToArray());
+        Assert.AreSequenceEqual([1, 2], projection.Families[0].Rows.Select(static row => row.FamilyPosition).ToArray());
         Assert.IsTrue(projection.Families[0].Rows.All(static row => row.FamilyCount == 2));
         Assert.AreEqual(FirewallAddressFamily.IPv6, projection.Families[1].AddressFamily);
-        CollectionAssert.AreEqual(new[] { 1, 2 }, projection.Families[1].Rows.Select(static row => row.FamilyPosition).ToArray());
+        Assert.AreSequenceEqual([1, 2], projection.Families[1].Rows.Select(static row => row.FamilyPosition).ToArray());
         Assert.IsTrue(projection.Families[1].Rows.All(static row => row.FamilyCount == 2));
     }
 
@@ -175,11 +175,11 @@ public sealed class RuleListProjectionServiceTests
         RuleFamilyProjection ipv4 = projection.Families.Single(static family => family.AddressFamily == FirewallAddressFamily.IPv4);
         RuleFamilyProjection ipv6 = projection.Families.Single(static family => family.AddressFamily == FirewallAddressFamily.IPv6);
 
-        CollectionAssert.AreEqual(new[] { "v4-b", "v4-a" }, ipv4.Rows.Select(static row => row.Rule.RuleId).ToArray());
+        Assert.AreSequenceEqual(["v4-b", "v4-a"], ipv4.Rows.Select(static row => row.Rule.RuleId).ToArray());
         Assert.AreEqual(new RulePositionChange(2, 1, DirectlyMoved: true), ipv4.Rows[0].PositionChange);
         Assert.AreEqual(new RulePositionChange(1, 2, DirectlyMoved: false), ipv4.Rows[1].PositionChange);
         Assert.IsTrue(ipv6.Rows.All(static row => row.PositionChange is null));
-        CollectionAssert.AreEqual(new int?[] { 1, 2, 3, 4 }, authoritative.Select(static rule => rule.DisplayNumber).ToArray());
+        Assert.AreSequenceEqual([1, 2, 3, 4], authoritative.Select(static rule => rule.DisplayNumber).ToArray());
     }
 
     [TestMethod]

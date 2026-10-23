@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using System.Text.Json;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Configuration.Model;
@@ -66,9 +66,9 @@ public sealed class ConfigurationImplTests
         string path = await WriteSettingsAsync();
         try
         {
-            string json = await File.ReadAllTextAsync(path);
+            string json = await File.ReadAllTextAsync(path, TestContext.CancellationToken);
             json = json.Replace("\"iptables_save_path\": \"/usr/sbin/iptables-save\",", "", StringComparison.Ordinal);
-            await File.WriteAllTextAsync(path, json);
+            await File.WriteAllTextAsync(path, json, TestContext.CancellationToken);
 
             ConfigurationImpl configuration = CreateConfiguration();
             await Assert.ThrowsExactlyAsync<JsonException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
@@ -139,4 +139,6 @@ public sealed class ConfigurationImplTests
         await File.WriteAllTextAsync(path, json);
         return path;
     }
+
+    public TestContext TestContext { get; set; }
 }

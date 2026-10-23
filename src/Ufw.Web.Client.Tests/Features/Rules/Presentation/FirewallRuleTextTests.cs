@@ -15,9 +15,9 @@ public sealed class FirewallRuleTextTests
 
         string result = text.DescribeEndpoint(null, "80:90", "eno1");
 
-        StringAssert.Contains(result, "any");
-        StringAssert.Contains(result, "80-90");
-        StringAssert.Contains(result, "eno1");
+        Assert.Contains("any", result);
+        Assert.Contains("80-90", result);
+        Assert.Contains("eno1", result);
     }
 
     [TestMethod]

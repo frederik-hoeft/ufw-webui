@@ -18,7 +18,7 @@ public sealed class ProductSpaceTests
         Assert.AreEqual(whole.Cardinality, inside.Cardinality + outside.Cardinality);
         Assert.IsFalse(outside.Overlaps(cut));
         Assert.AreEqual(inside.Cardinality, cut.Cardinality);
-        Assert.IsTrue(outside.Regions.Count >= 1);
+        Assert.IsGreaterThanOrEqualTo(1, outside.Regions.Count);
     }
 
     [TestMethod]
@@ -28,7 +28,7 @@ public sealed class ProductSpaceTests
         ProductRegion right = Rectangle(2, 4, 0, 0, 0, 0);
         ProductSpace space = ProductSpace.FromRegions([left, right]);
 
-        Assert.AreEqual(1, space.Regions.Count);
+        Assert.HasCount(1, space.Regions);
         Assert.AreEqual(left.Cardinality + right.Cardinality, space.Cardinality);
         IntervalSet<ushort> merged = (IntervalSet<ushort>)space.Regions[0].Axis(0);
         Assert.AreEqual(IntervalSet<ushort>.Between(0, 4), merged);

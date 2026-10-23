@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Features.Rules;
@@ -36,7 +36,7 @@ public sealed class RuleReplacementWorkflowServiceTests
         Assert.AreEqual("replacement", state.ConfirmedRuleId);
         Assert.IsNull(state.MetadataSaveDiagnostic);
         Assert.IsFalse(state.CanRetryMetadataSave);
-        CollectionAssert.AreEqual(new[] { "firewall", "metadata" }, steps);
+        Assert.AreSequenceEqual(new[] { "firewall", "metadata" }, steps);
     }
 
     [TestMethod]
@@ -48,7 +48,7 @@ public sealed class RuleReplacementWorkflowServiceTests
             .ReturnsAsync(Response(RuleReplacementOutcome.Completed, RuleReplacementMetadataReconciliationOutcome.Completed));
 
         RuleEditWorkflowState state = await host.Service.ReplaceAsync(Snapshot(), Context(Snapshot()), Specification(),
-            new RuleMetadataChange(" note ", [Guid.Empty, Guid.Empty], null), new RuleMetadataChange("note", [Guid.Empty], null), "key");
+            new RuleMetadataChange(" note ", [Guid.Empty, Guid.Empty], null), new RuleMetadataChange("note", [Guid.Empty], null), "key", TestContext.CancellationToken);
 
         Assert.IsTrue(state.FirewallCompleted);
         Assert.IsNull(state.MetadataSaveDiagnostic);
@@ -66,7 +66,7 @@ public sealed class RuleReplacementWorkflowServiceTests
             It.IsAny<FirewallRuleSpecification>(), "key", It.IsAny<CancellationToken>())).ReturnsAsync(Response(outcome, reconciliation));
 
         RuleEditWorkflowState state = await host.Service.ReplaceAsync(Snapshot(), Context(Snapshot()), Specification(),
-            new RuleMetadataChange(null, [], null), new RuleMetadataChange("change", [], null), "key");
+            new RuleMetadataChange(null, [], null), new RuleMetadataChange("change", [], null), "key", TestContext.CancellationToken);
 
         Assert.AreEqual(outcome == RuleReplacementOutcome.Completed, state.FirewallCompleted);
         Assert.IsFalse(state.CanRetryMetadataSave);
@@ -88,12 +88,12 @@ public sealed class RuleReplacementWorkflowServiceTests
         host.Errors.Setup(mapper => mapper.Describe(It.IsAny<HttpRequestException>()))
             .Returns(new ClientError(ClientErrorKind.Unavailable, "retry metadata", Retryable: true));
 
-        RuleEditWorkflowState state = await host.Service.ReplaceAsync(Snapshot(), Context(Snapshot()), Specification(), previous, desired, "key");
+        RuleEditWorkflowState state = await host.Service.ReplaceAsync(Snapshot(), Context(Snapshot()), Specification(), previous, desired, "key", TestContext.CancellationToken);
 
         Assert.IsTrue(state.FirewallCompleted);
         Assert.IsTrue(state.CanRetryMetadataSave);
         Assert.AreEqual("retry metadata", state.MetadataSaveDiagnostic);
-        RuleEditWorkflowState retried = await host.Service.RetryMetadataAsync(state, previous, desired);
+        RuleEditWorkflowState retried = await host.Service.RetryMetadataAsync(state, previous, desired, TestContext.CancellationToken);
         Assert.IsFalse(retried.CanRetryMetadataSave);
         Assert.IsNull(retried.MetadataSaveDiagnostic);
         host.Mutations.Verify(service => service.ReplaceRuleAsync(It.IsAny<RuleListResponse>(), It.IsAny<int>(), It.IsAny<string>(),
@@ -105,7 +105,7 @@ public sealed class RuleReplacementWorkflowServiceTests
     {
         TestHost host = new();
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.RetryMetadataAsync(
-            RuleEditWorkflowState.Initial, new RuleMetadataChange(null, [], null), new RuleMetadataChange(null, [], null)));
+            RuleEditWorkflowState.Initial, new RuleMetadataChange(null, [], null), new RuleMetadataChange(null, [], null), TestContext.CancellationToken));
         host.Mutations.VerifyNoOtherCalls();
         host.Metadata.VerifyNoOtherCalls();
     }
@@ -132,4 +132,6 @@ public sealed class RuleReplacementWorkflowServiceTests
         public Mock<IClientErrorMapper> Errors { get; } = new(MockBehavior.Strict);
         public RuleReplacementWorkflowService Service => new(Mutations.Object, Metadata.Object, Errors.Object);
     }
+
+    public TestContext TestContext { get; set; }
 }

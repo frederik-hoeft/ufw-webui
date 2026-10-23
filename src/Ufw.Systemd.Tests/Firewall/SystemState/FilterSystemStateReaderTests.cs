@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
@@ -89,8 +89,8 @@ public sealed class FilterSystemStateReaderTests
             Assert.AreEqual(1, webUdp.TranslationIndex);
             Assert.AreEqual(FirewallProtocol.Any, webTcp.Specification!.Protocol);
             Assert.AreEqual("ufw-user-input", linked[0].ProvenanceChain);
-            CollectionAssert.AreEqual(s_managedChainPath, linked[0].ChainPath.ToArray());
-            Assert.IsTrue(response.State.IPv4.Input.Rules.Any(static rule => rule.ProvenanceChain == "ufw-before-input" && rule.UserRule is null));
+            Assert.AreSequenceEqual(s_managedChainPath, linked[0].ChainPath.ToArray());
+            Assert.Contains(static rule => rule.ProvenanceChain == "ufw-before-input" && rule.UserRule is null, response.State.IPv4.Input.Rules);
             Assert.IsEmpty(response.State.IPv6.Input.Rules);
             Assert.AreEqual(FilterChainPolicy.Accept, response.State.IPv6.Input.Policy);
         }

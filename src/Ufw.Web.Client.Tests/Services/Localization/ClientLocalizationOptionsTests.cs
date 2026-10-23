@@ -13,7 +13,7 @@ public sealed class ClientLocalizationOptionsTests
 
         Assert.AreEqual("en-US", options.DefaultCulture.Name);
         Assert.AreEqual("ufw.culture", options.StorageKey);
-        CollectionAssert.AreEqual(new[] { "en-US", "de-DE" }, options.SupportedCultures.Select(static culture => culture.Name).ToArray());
+        Assert.AreSequenceEqual(["en-US", "de-DE"], options.SupportedCultures.Select(static culture => culture.Name).ToArray());
         Assert.IsTrue(options.IsSupported("DE-de"));
         Assert.IsFalse(options.IsSupported("fr-FR"));
     }

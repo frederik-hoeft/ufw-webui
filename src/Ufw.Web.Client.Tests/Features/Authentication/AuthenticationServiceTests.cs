@@ -16,7 +16,7 @@ public sealed class AuthenticationServiceTests
     {
         TestHost host = new(("fresh", s_now.AddMinutes(2)));
 
-        string? token = await host.Service.GetAccessTokenAsync();
+        string? token = await host.Service.GetAccessTokenAsync(TestContext.CancellationToken);
 
         Assert.AreEqual("fresh", token);
         host.Api.Verify(api => api.TryRefreshAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -29,7 +29,7 @@ public sealed class AuthenticationServiceTests
         AuthTokenResponse replacement = new("new", s_now.AddMinutes(5));
         host.Api.Setup(api => api.TryRefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync(replacement);
 
-        string? token = await host.Service.GetAccessTokenAsync();
+        string? token = await host.Service.GetAccessTokenAsync(TestContext.CancellationToken);
 
         Assert.AreEqual("new", token);
         host.Session.Verify(session => session.SetToken("new", replacement.ExpiresAt), Times.Once);
@@ -41,7 +41,7 @@ public sealed class AuthenticationServiceTests
         TestHost host = new(("old", s_now.AddSeconds(20)));
         host.Api.Setup(api => api.TryRefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync((AuthTokenResponse?)null);
 
-        string? token = await host.Service.GetAccessTokenAsync();
+        string? token = await host.Service.GetAccessTokenAsync(TestContext.CancellationToken);
 
         Assert.IsNull(token);
         host.Session.Verify(session => session.Clear(), Times.Once);
@@ -52,7 +52,7 @@ public sealed class AuthenticationServiceTests
     {
         TestHost host = new(("replacement", s_now.AddMinutes(1)));
 
-        string? token = await host.Service.RefreshAfterUnauthorizedAsync("rejected");
+        string? token = await host.Service.RefreshAfterUnauthorizedAsync("rejected", TestContext.CancellationToken);
 
         Assert.AreEqual("replacement", token);
         host.Api.Verify(api => api.TryRefreshAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -65,7 +65,7 @@ public sealed class AuthenticationServiceTests
         AuthTokenResponse response = new("login-token", s_now.AddMinutes(5));
         host.Api.Setup(api => api.LoginAsync(new LoginRequest("admin@example.invalid", "secret"), It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
-        await host.Service.LoginAsync("admin@example.invalid", "secret");
+        await host.Service.LoginAsync("admin@example.invalid", "secret", TestContext.CancellationToken);
 
         Assert.AreEqual(1, host.Coordinator.InvocationCount);
         host.Session.Verify(session => session.SetToken("login-token", response.ExpiresAt), Times.Once);
@@ -78,7 +78,7 @@ public sealed class AuthenticationServiceTests
         AuthTokenResponse response = new("replacement-token", s_now.AddMinutes(6));
         host.Api.Setup(api => api.ChangePasswordAsync(new ChangePasswordRequest("current", "replacement"), "current-token", It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
-        await host.Service.ChangePasswordAsync("current", "replacement");
+        await host.Service.ChangePasswordAsync("current", "replacement", TestContext.CancellationToken);
 
         Assert.AreEqual(1, host.Coordinator.InvocationCount);
         host.Session.Verify(session => session.SetToken("replacement-token", response.ExpiresAt), Times.Once);
@@ -90,7 +90,7 @@ public sealed class AuthenticationServiceTests
         TestHost host = new(("token", s_now.AddMinutes(5)));
         host.Api.Setup(api => api.LogoutAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        await host.Service.LogoutAsync();
+        await host.Service.LogoutAsync(TestContext.CancellationToken);
 
         host.Api.Verify(api => api.LogoutAsync(It.IsAny<CancellationToken>()), Times.Once);
         host.Session.Verify(session => session.Clear(), Times.Once);
@@ -123,4 +123,6 @@ public sealed class AuthenticationServiceTests
 
         public AuthenticationService Service { get; }
     }
+
+    public TestContext TestContext { get; set; }
 }

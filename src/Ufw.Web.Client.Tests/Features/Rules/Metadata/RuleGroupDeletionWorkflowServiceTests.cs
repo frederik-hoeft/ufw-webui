@@ -23,7 +23,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         });
         host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([group]);
 
-        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot);
+        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot, TestContext.CancellationToken);
 
         Assert.AreSame(group, candidate);
     }
@@ -38,7 +38,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             ["rule"] = Metadata(group),
         });
 
-        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot);
+        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot, TestContext.CancellationToken);
 
         Assert.IsNull(candidate);
         host.Groups.VerifyNoOtherCalls();
@@ -56,7 +56,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         });
         host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([group]);
 
-        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot);
+        RuleGroup? candidate = await host.Service.GetSingleRuleCleanupCandidateAsync(snapshot.Rules[0], snapshot, TestContext.CancellationToken);
 
         Assert.IsNull(candidate);
         host.Mutations.VerifyNoOtherCalls();
@@ -78,11 +78,11 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             It.Is<IReadOnlyList<int>>(occurrences => occurrences.SequenceEqual(new[] { 0 })), "key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(batch);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupRetained, result.Outcome);
         Assert.AreSame(batch, result.BatchResponse);
-        CollectionAssert.AreEqual(new[] { stillReferenced }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([stillReferenced], result.Groups.ToArray());
         host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -94,7 +94,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         RuleGroupManagementProjection projection = Projection(group);
         host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([group]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot: null, privateKey: null);
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot: null, privateKey: null, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupRetained, result.Outcome);
         host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -111,10 +111,10 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
         host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([changed]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupChanged, result.Outcome);
-        CollectionAssert.AreEqual(new[] { changed }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([changed], result.Groups.ToArray());
         host.Mutations.VerifyNoOtherCalls();
         host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -142,11 +142,11 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ReturnsAsync([emptyGroup]);
         host.Groups.Setup(service => service.DeleteAsync(group.Id, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.Deleted, result.Outcome);
         Assert.AreSame(response, result.BatchResponse);
-        Assert.AreEqual(0, result.Groups.Count);
+        Assert.IsEmpty(result.Groups);
     }
 
     [TestMethod]
@@ -159,10 +159,10 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
         host.Groups.Setup(service => service.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([changed]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupChanged, result.Outcome);
-        CollectionAssert.AreEqual(new[] { changed }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([changed], result.Groups.ToArray());
         host.Mutations.VerifyNoOtherCalls();
         host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -175,9 +175,9 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         RuleSnapshot snapshot = Snapshot([Rule("one"), Rule("one")]);
         RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot.Rules[0], occurrenceId: 0)));
 
-        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteAsync(projection, snapshot, "key"));
+        InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken));
 
-        StringAssert.Contains(exception.Message, "preview");
+        Assert.Contains("preview", exception.Message);
         host.Mutations.VerifyNoOtherCalls();
         host.Groups.VerifyNoOtherCalls();
     }
@@ -195,10 +195,10 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ReturnsAsync([group])
             .ReturnsAsync([group]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupRetained, result.Outcome);
-        CollectionAssert.AreEqual(new[] { group }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([group], result.Groups.ToArray());
         host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -216,12 +216,12 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ThrowsAsync(new ApiRequestException(HttpStatusCode.ServiceUnavailable, "groups unavailable"));
         host.Groups.SetupGet(service => service.Current).Returns([group]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
         Assert.AreSame(response, result.BatchResponse);
         Assert.AreEqual("groups unavailable", result.CleanupDiagnostic);
-        CollectionAssert.AreEqual(new[] { group }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([group], result.Groups.ToArray());
     }
 
     [TestMethod]
@@ -239,12 +239,12 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ThrowsAsync(new HttpRequestException("connection lost"));
         host.Groups.SetupGet(service => service.Current).Returns([group]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
         Assert.AreSame(batch, result.BatchResponse);
         Assert.AreEqual("connection lost", result.CleanupDiagnostic);
-        CollectionAssert.AreEqual(new[] { group }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([group], result.Groups.ToArray());
         host.Mutations.Verify(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -263,7 +263,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ThrowsAsync(new Microsoft.JSInterop.JSDisconnectedException("browser connection lost"));
         host.Groups.SetupGet(service => service.Current).Returns([group]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
         Assert.AreSame(batch, result.BatchResponse);
@@ -284,12 +284,12 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ThrowsAsync(new TaskCanceledException("group refresh timed out"));
         host.Groups.SetupGet(service => service.Current).Returns([group]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
         Assert.AreSame(batch, result.BatchResponse);
         Assert.AreEqual("group refresh timed out", result.CleanupDiagnostic);
-        CollectionAssert.AreEqual(new[] { group }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([group], result.Groups.ToArray());
         host.Groups.Verify(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         host.Mutations.Verify(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -312,12 +312,12 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ThrowsAsync(new TaskCanceledException("group deletion timed out"));
         host.Groups.SetupGet(service => service.Current).Returns([emptyGroup]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupCleanupFailed, result.Outcome);
         Assert.AreSame(batch, result.BatchResponse);
         Assert.AreEqual("group deletion timed out", result.CleanupDiagnostic);
-        CollectionAssert.AreEqual(new[] { emptyGroup }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([emptyGroup], result.Groups.ToArray());
         host.Mutations.Verify(service => service.BatchDeleteRulesAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -365,7 +365,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
             .ReturnsAsync([group])
             .ReturnsAsync([remaining]);
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key");
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.BatchIncomplete, result.Outcome);
         Assert.AreSame(response, result.BatchResponse);
@@ -380,7 +380,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         RuleSnapshot snapshot = Snapshot([]);
         RuleGroupManagementProjection projection = Projection(group, Member("stale"));
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteAsync(projection, snapshot, "key"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteAsync(projection, snapshot, "key", TestContext.CancellationToken));
 
         host.Mutations.VerifyNoOtherCalls();
         host.Groups.VerifyNoOtherCalls();
@@ -398,10 +398,10 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         host.Groups.Setup(service => service.DeleteAsync(empty.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ApiRequestException(HttpStatusCode.Conflict, "in use"));
 
-        RuleGroupCleanupResult result = await host.Service.DeleteIfEmptyAsync(empty.Id);
+        RuleGroupCleanupResult result = await host.Service.DeleteIfEmptyAsync(empty.Id, TestContext.CancellationToken);
 
         Assert.IsFalse(result.Deleted);
-        CollectionAssert.AreEqual(new[] { reassigned }, result.Groups.ToArray());
+        Assert.AreSequenceEqual([reassigned], result.Groups.ToArray());
     }
 
     [TestMethod]
@@ -417,7 +417,7 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         host.Groups.Setup(service => service.DeleteAsync(empty.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ApiRequestException(HttpStatusCode.Conflict, "in use"));
 
-        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot: null, privateKey: null);
+        RuleGroupDeletionWorkflowResult result = await host.Service.DeleteAsync(projection, snapshot: null, privateKey: null, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleGroupDeletionWorkflowOutcome.GroupRetained, result.Outcome);
         host.Mutations.VerifyNoOtherCalls();
@@ -454,4 +454,6 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
 
         public RuleGroupDeletionWorkflowService Service => new(Mutations.Object, Groups.Object);
     }
+
+    public TestContext TestContext { get; set; }
 }

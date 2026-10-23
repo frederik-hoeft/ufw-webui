@@ -40,9 +40,10 @@ public sealed class UfwProcessExecutorTests
 
         Assert.IsFalse(result.Succeeded);
         Assert.IsFalse(result.RunnerFailed);
-        StringAssert.Contains(result.Diagnostic, "exited with code 2");
-        StringAssert.Contains(result.Diagnostic, "deleting a test rule");
-        StringAssert.Contains(result.Diagnostic, "permission denied");
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("exited with code 2", result.Diagnostic);
+        Assert.Contains("deleting a test rule", result.Diagnostic);
+        Assert.Contains("permission denied", result.Diagnostic);
     }
 
     [TestMethod]

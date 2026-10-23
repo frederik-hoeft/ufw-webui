@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Api;
+﻿using Ufw.Web.Client.Api;
 
 namespace Ufw.Web.Client.Tests.Api;
 
@@ -30,6 +30,6 @@ public sealed class ApiResourceUriTests
         ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(() => ApiResourceUri.ForId("api/v1/rule-groups", Guid.Empty, "groupId", "Rule group"));
 
         Assert.AreEqual("groupId", exception.ParamName);
-        StringAssert.Contains(exception.Message, "Rule group ID must not be empty.");
+        Assert.Contains("Rule group ID must not be empty.", exception.Message);
     }
 }

@@ -19,9 +19,9 @@ public sealed class NetworkInterfaceDaemonGatewayTests
             .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(["wlan0", "eno1", "docker0"])));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
+        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(new[] { "docker0", "eno1", "wlan0" }, result.Result.ToArray());
+        Assert.AreSequenceEqual(["docker0", "eno1", "wlan0"], result.Result.ToArray());
         client.VerifyAll();
     }
 
@@ -43,7 +43,7 @@ public sealed class NetworkInterfaceDaemonGatewayTests
                 .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(names!)));
             NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-            await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetInterfaceNamesAsync());
+            await Assert.ThrowsExactlyAsync<DaemonInvalidResponseException>(() => gateway.GetInterfaceNamesAsync(TestContext.CancellationToken));
         }
     }
 
@@ -55,7 +55,7 @@ public sealed class NetworkInterfaceDaemonGatewayTests
         client.Setup(ufw => ufw.TrySendAsync<NetworkInterfaceListResponse>(RequestMethod.Get, "/api/v1/network-interfaces", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Failure(expected));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
+        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync(TestContext.CancellationToken);
 
         Assert.AreSame(expected, result.Error);
     }
@@ -68,8 +68,10 @@ public sealed class NetworkInterfaceDaemonGatewayTests
             .ReturnsAsync(UfwIpcResult<NetworkInterfaceListResponse>.Success(new NetworkInterfaceListResponse(["eno1", "ENO1"])));
         NetworkInterfaceDaemonGateway gateway = new(client.Object);
 
-        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync();
+        DaemonResult<IReadOnlyList<string>> result = await gateway.GetInterfaceNamesAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(new[] { "ENO1", "eno1" }, result.Result.ToArray());
+        Assert.AreSequenceEqual(["ENO1", "eno1"], result.Result.ToArray());
     }
+
+    public TestContext TestContext { get; set; }
 }

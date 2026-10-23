@@ -45,7 +45,7 @@ public sealed class BatchDeleteTransportIntegrationTests : IpcProtocolTestBase
                 BatchDeleteRulesPayload? receivedPayload = received.Payload.Deserialize(MessageJsonSerializerContext.Default.BatchDeleteRulesPayload);
                 Assert.IsNotNull(receivedPayload);
                 Assert.AreEqual(CreatePayload().BaselineFingerprint, receivedPayload.BaselineFingerprint);
-                CollectionAssert.AreEqual(CreatePayload().OccurrenceIds, receivedPayload.OccurrenceIds);
+                Assert.AreSequenceEqual(CreatePayload().OccurrenceIds, receivedPayload.OccurrenceIds);
 
                 Assert.AreEqual(expected.Outcome, response.Outcome);
                 Assert.AreEqual(expected.Diagnostic, response.Diagnostic);
@@ -53,7 +53,7 @@ public sealed class BatchDeleteTransportIntegrationTests : IpcProtocolTestBase
                 Assert.HasCount(1, response.FinalSnapshot.Rules);
                 Assert.HasCount(2, response.Operations);
                 Assert.AreEqual(RuleBatchDeleteOperationOutcome.DeletedAfterProcessFailure, response.Operations[0].Outcome);
-                CollectionAssert.AreEqual(new[] { 1 }, response.PendingOccurrenceIds.ToArray());
+                Assert.AreSequenceEqual([1], response.PendingOccurrenceIds.ToArray());
             },
             cancellationToken: TestContext.CancellationToken).AsTask();
     }

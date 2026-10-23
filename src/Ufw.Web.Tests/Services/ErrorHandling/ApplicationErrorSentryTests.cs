@@ -16,7 +16,7 @@ public sealed class ApplicationErrorSentryTests
 
         Assert.Throws<ApiProxyException>(() => sentry.Watch<int>(() => throw failure));
 
-        Assert.IsTrue(logger.Entries.Any(entry => entry.Level == LogLevel.Error && ReferenceEquals(entry.Exception, failure)));
+        Assert.Contains(entry => entry.Level == LogLevel.Error && ReferenceEquals(entry.Exception, failure), logger.Entries);
     }
 
     private sealed class RecordingLogger<T> : ILogger<T>

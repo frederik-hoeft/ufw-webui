@@ -15,7 +15,7 @@ public sealed class BrowserCredentialsHandlerTests
         using BrowserCredentialsHandler handler = new() { InnerHandler = inner };
         using HttpClient client = new(handler);
 
-        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/auth/refresh");
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/auth/refresh", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.HasCount(1, inner.Requests);
@@ -23,4 +23,6 @@ public sealed class BrowserCredentialsHandlerTests
         Assert.AreEqual("include", options["credentials"]);
         Assert.IsFalse(inner.Requests[0].Headers.ContainsKey(BrowserRequestHeaders.CSRF_TOKEN));
     }
+
+    public TestContext TestContext { get; set; }
 }

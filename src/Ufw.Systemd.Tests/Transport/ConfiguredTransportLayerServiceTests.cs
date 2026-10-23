@@ -61,7 +61,7 @@ public sealed class ConfiguredTransportLayerServiceTests
 
         try
         {
-            await File.WriteAllTextAsync(settingsPath, JsonSerializer.Serialize(settings, AppSettingsJsonSerializerContext.Default.AppSettings));
+            await File.WriteAllTextAsync(settingsPath, JsonSerializer.Serialize(settings, AppSettingsJsonSerializerContext.Default.AppSettings), TestContext.CancellationToken);
             await using DefaultServiceProvider serviceProvider = new();
             IConfiguration configuration = serviceProvider.GetService<IConfiguration>();
             await configuration.LoadAsync(settingsPath, CancellationToken.None);
@@ -76,4 +76,6 @@ public sealed class ConfiguredTransportLayerServiceTests
             File.Delete(ufwPath);
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

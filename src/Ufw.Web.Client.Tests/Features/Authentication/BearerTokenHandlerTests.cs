@@ -19,7 +19,7 @@ public sealed class BearerTokenHandlerTests
         using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
-        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.AreEqual("Bearer", inner.Requests[0].AuthorizationScheme);
@@ -40,14 +40,14 @@ public sealed class BearerTokenHandlerTests
         request.Headers.Add("X-Test", "value");
         request.Content = new StringContent("payload", Encoding.UTF8, "application/json");
 
-        using HttpResponseMessage response = await client.SendAsync(request);
+        using HttpResponseMessage response = await client.SendAsync(request, TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.HasCount(2, inner.Requests);
         Assert.AreEqual(inner.Requests[0].Method, inner.Requests[1].Method);
         Assert.AreEqual(inner.Requests[0].RequestUri, inner.Requests[1].RequestUri);
-        CollectionAssert.AreEqual(inner.Requests[0].Content, inner.Requests[1].Content);
-        CollectionAssert.AreEqual(inner.Requests[0].Headers["X-Test"], inner.Requests[1].Headers["X-Test"]);
+        Assert.AreSequenceEqual(inner.Requests[0].Content, inner.Requests[1].Content);
+        Assert.AreSequenceEqual(inner.Requests[0].Headers["X-Test"], inner.Requests[1].Headers["X-Test"]);
         Assert.AreEqual("old", inner.Requests[0].AuthorizationParameter);
         Assert.AreEqual("new", inner.Requests[1].AuthorizationParameter);
         authentication.Verify(service => service.RefreshAfterUnauthorizedAsync("old", It.IsAny<CancellationToken>()), Times.Once);
@@ -64,7 +64,7 @@ public sealed class BearerTokenHandlerTests
         using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
-        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.HasCount(2, inner.Requests);
@@ -83,7 +83,7 @@ public sealed class BearerTokenHandlerTests
         using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
-        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.HasCount(1, inner.Requests);
@@ -100,7 +100,7 @@ public sealed class BearerTokenHandlerTests
         using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
-        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode);
         authentication.Verify(service => service.RefreshAfterUnauthorizedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -116,11 +116,13 @@ public sealed class BearerTokenHandlerTests
         using BearerTokenHandler handler = new(authentication.Object, navigation.Object) { InnerHandler = inner };
         using HttpClient client = new(handler);
 
-        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules");
+        using HttpResponseMessage response = await client.GetAsync("https://localhost/api/v1/rules", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.HasCount(1, inner.Requests);
         authentication.Verify(service => service.RefreshAfterUnauthorizedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         navigation.Verify(service => service.RedirectToLogin(), Times.Once);
     }
+
+    public TestContext TestContext { get; set; }
 }

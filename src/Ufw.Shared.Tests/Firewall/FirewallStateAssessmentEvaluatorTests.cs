@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 
@@ -25,7 +25,7 @@ public sealed class FirewallStateAssessmentEvaluatorTests
         FirewallStateIssue issue = assessment.Issues[0];
         Assert.AreEqual(FirewallStateAssessmentEvaluator.DUPLICATE_RULE_IDENTITY, issue.Code);
         Assert.AreEqual("sha256:duplicate", issue.RuleId);
-        CollectionAssert.AreEqual(new[] { 0, 2 }, issue.OccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([0, 2], issue.OccurrenceIds.ToArray());
     }
 
     [TestMethod]

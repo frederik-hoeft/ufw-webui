@@ -27,9 +27,9 @@ public sealed class RuleGroupDeletionPlannerTests
         Assert.AreSame(snapshot.Rules, plan.Baseline.Rules);
         Assert.AreSame(snapshot.Configuration, plan.Baseline.Configuration);
         Assert.AreSame(snapshot.Assessment, plan.Baseline.Assessment);
-        CollectionAssert.AreEqual(new[] { 0, 2, 3 }, plan.OccurrenceIds.ToArray());
-        CollectionAssert.AreEqual(new[] { "one", "two" }, plan.ExpectedRuleIds.ToArray());
-        CollectionAssert.AreEqual(new[] { s_templateId }, plan.ExpectedTemplateIds.ToArray());
+        Assert.AreSequenceEqual([0, 2, 3], plan.OccurrenceIds.ToArray());
+        Assert.AreSequenceEqual(["one", "two"], plan.ExpectedRuleIds.ToArray());
+        Assert.AreSequenceEqual([s_templateId], plan.ExpectedTemplateIds.ToArray());
     }
 
     [TestMethod]
@@ -43,7 +43,7 @@ public sealed class RuleGroupDeletionPlannerTests
         RuleGroupManagementProjection projection = Projection(group, Member("one", Row(snapshot, 0)));
 
         InvalidOperationException exception = Assert.ThrowsExactly<InvalidOperationException>(() => RuleGroupDeletionPlanner.Create(projection, snapshot));
-        StringAssert.Contains(exception.Message, "unambiguous");
+        Assert.Contains("unambiguous", exception.Message);
     }
 
     [TestMethod]
@@ -68,7 +68,7 @@ public sealed class RuleGroupDeletionPlannerTests
         RuleGroupManagementProjection incorrect = Projection(group, Member("one", Row(snapshot, 0), Row(snapshot, 2)));
 
         InvalidOperationException exception = Assert.ThrowsExactly<InvalidOperationException>(() => RuleGroupDeletionPlanner.Create(incomplete, snapshot));
-        StringAssert.Contains(exception.Message, "preview");
+        Assert.Contains("preview", exception.Message);
         Assert.ThrowsExactly<InvalidOperationException>(() => RuleGroupDeletionPlanner.Create(incorrect, snapshot));
     }
 

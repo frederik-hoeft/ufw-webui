@@ -271,7 +271,7 @@ public sealed class RuleMetadataServiceTests
 
         IReadOnlyList<RuleGroupItem> groups = await host.Groups.GetAsync(TestContext.CancellationToken);
         Assert.IsEmpty(groups.Single(candidate => candidate.Id == first.Id).RuleIds);
-        CollectionAssert.AreEqual(new[] { "sha256:live" }, groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
+        Assert.AreSequenceEqual(["sha256:live"], groups.Single(candidate => candidate.Id == second.Id).RuleIds.ToArray());
     }
 
     [TestMethod]
@@ -445,7 +445,7 @@ public sealed class RuleMetadataServiceTests
         Assert.AreEqual(2, await host.MetadataRowCountAsync(TestContext.CancellationToken));
         host.SetRules("sha256:duplicate", "sha256:keep");
         RuleInventoryResponse inventory = await host.Inventory.GetAsync(TestContext.CancellationToken);
-        CollectionAssert.AreEquivalent(new[] { "sha256:duplicate", "sha256:keep" }, inventory.Metadata.Select(static item => item.RuleId).ToArray());
+        Assert.AreSequenceEqual(["sha256:duplicate", "sha256:keep"], inventory.Metadata.Select(static item => item.RuleId).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]

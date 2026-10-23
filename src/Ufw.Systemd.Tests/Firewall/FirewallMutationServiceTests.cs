@@ -131,8 +131,8 @@ public sealed class FirewallMutationServiceTests
         IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(rule), TestContext.CancellationToken);
 
         ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
-        Assert.IsTrue(validation.Errors.Any(static error =>
-            error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily)));
+        Assert.Contains(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily), validation.Errors);
         harness.ProcessRunner.Verify(
             static runner => runner.RunAsync(
                 It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),
@@ -153,8 +153,8 @@ public sealed class FirewallMutationServiceTests
         IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(rule), TestContext.CancellationToken);
 
         ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
-        Assert.IsTrue(validation.Errors.Any(static error =>
-            error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily)));
+        Assert.Contains(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily), validation.Errors);
         harness.ProcessRunner.Verify(
             static runner => runner.RunAsync(
                 It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),
@@ -206,9 +206,9 @@ public sealed class FirewallMutationServiceTests
         IResponsePayload response = await harness.Service.AddAsync(harness.SignAdd(rule), TestContext.CancellationToken);
 
         ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
-        Assert.IsTrue(validation.Errors.Any(static error =>
+        Assert.Contains(static error =>
             error.PropertyName == nameof(FirewallRuleSpecification.DestinationInterface)
-            && error.ErrorMessage.Contains("missing0", StringComparison.Ordinal)));
+            && error.ErrorMessage.Contains("missing0", StringComparison.Ordinal), validation.Errors);
         VerifyNoUfwCalls(harness);
     }
 
@@ -366,8 +366,8 @@ public sealed class FirewallMutationServiceTests
             harness.Service.AddAsync(request, TestContext.CancellationToken).AsTask(),
             harness.Service.AddAsync(request, TestContext.CancellationToken).AsTask());
 
-        Assert.AreEqual(1, results.Count(static result => result is RuleMutationResponse));
-        Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
+        Assert.ContainsSingle(static result => result is RuleMutationResponse, results);
+        Assert.ContainsSingle(static result => result is ConflictResponse, results);
         harness.ProcessRunner.Verify(
             static runner => runner.RunAsync(
                 It.Is<ChildProcessRequest>(request => !request.Arguments.Contains("status")),

@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Systemd.Interop.Iptables.Grammars;
 
@@ -71,7 +71,7 @@ public sealed class IptablesSaveGrammarTests
         FilterClause port = rejected.Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort);
         Assert.IsTrue(port.Negated);
         Assert.AreEqual("22", port.Value);
-        Assert.IsFalse(rejected.Clauses.Any(static clause => clause.Kind == FilterClauseKind.Opaque));
+        Assert.DoesNotContain(static clause => clause.Kind == FilterClauseKind.Opaque, rejected.Clauses);
 
         RawFilterRule dns = Chain(table, "ufw-user-forward").Rules[0];
         Assert.AreEqual("192.168.0.0/24", dns.Clauses.Single(static clause => clause.Kind == FilterClauseKind.SourceAddress).Value);
@@ -99,8 +99,7 @@ public sealed class IptablesSaveGrammarTests
         RawFilterRule second = table.Chains[0].Rules[1];
         Assert.AreEqual("tcp", first.Clauses.Single(static clause => clause.Kind == FilterClauseKind.Protocol).Value);
         Assert.AreEqual("80,443", first.Clauses.Single(static clause => clause.Kind == FilterClauseKind.DestinationPort).Value);
-        CollectionAssert.AreEquivalent(first.Clauses.Select(static clause => $"{clause.Kind}:{clause.Value}").ToArray(),
-            second.Clauses.Select(static clause => $"{clause.Kind}:{clause.Value}").ToArray());
+        Assert.AreSequenceEqual(first.Clauses.Select(static clause => $"{clause.Kind}:{clause.Value}").ToArray(), second.Clauses.Select(static clause => $"{clause.Kind}:{clause.Value}").ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]

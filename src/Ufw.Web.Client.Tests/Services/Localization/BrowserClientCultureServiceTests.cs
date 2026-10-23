@@ -23,7 +23,7 @@ public sealed class BrowserClientCultureServiceTests
             TestNavigationManager navigation = new();
             BrowserClientCultureService service = CreateService(storage, navigation);
 
-            await service.SetCultureAsync("de-DE");
+            await service.SetCultureAsync("de-DE", TestContext.CancellationToken);
 
             storage.Verify(localStorage => localStorage.SetItemAsync("ufw.culture", "de-DE", It.IsAny<CancellationToken>()), Times.Once);
             Assert.AreEqual("https://localhost/app", navigation.LastUri);
@@ -46,7 +46,7 @@ public sealed class BrowserClientCultureServiceTests
             TestNavigationManager navigation = new();
             BrowserClientCultureService service = CreateService(storage, navigation);
 
-            await service.SetCultureAsync("EN-us");
+            await service.SetCultureAsync("EN-us", TestContext.CancellationToken);
 
             storage.VerifyNoOtherCalls();
             Assert.IsNull(navigation.LastUri);
@@ -63,7 +63,7 @@ public sealed class BrowserClientCultureServiceTests
         Mock<ILocalStorage> storage = CreateStorage();
         BrowserClientCultureService service = CreateService(storage, new TestNavigationManager());
 
-        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.SetCultureAsync("fr-FR"));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.SetCultureAsync("fr-FR", TestContext.CancellationToken));
 
         storage.VerifyNoOtherCalls();
     }
@@ -81,7 +81,7 @@ public sealed class BrowserClientCultureServiceTests
             TestNavigationManager navigation = new();
             BrowserClientCultureService service = CreateService(storage, navigation);
 
-            await Assert.ThrowsExactlyAsync<JSException>(() => service.SetCultureAsync("de-DE"));
+            await Assert.ThrowsExactlyAsync<JSException>(() => service.SetCultureAsync("de-DE", TestContext.CancellationToken));
 
             Assert.IsNull(navigation.LastUri);
         }
@@ -101,4 +101,6 @@ public sealed class BrowserClientCultureServiceTests
 
     private static BrowserClientCultureService CreateService(Mock<ILocalStorage> storage, TestNavigationManager navigation) =>
         new(ClientLocalizationOptionsTests.CreateOptions("en-US", "en-US", "de-DE"), storage.Object, navigation, NullLogger<BrowserClientCultureService>.Instance);
+
+    public TestContext TestContext { get; set; }
 }

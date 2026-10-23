@@ -26,7 +26,7 @@ public sealed class RuleTagCatalogServiceTests
         });
         RuleTagCatalogService service = new(api.Object);
 
-        IReadOnlyList<RuleTag> tags = await service.RefreshAsync();
+        IReadOnlyList<RuleTag> tags = await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.HasCount(2, tags);
         Assert.AreEqual(alphaId, tags[0].Id);
@@ -51,7 +51,7 @@ public sealed class RuleTagCatalogServiceTests
             ],
         });
         RuleTagCatalogService duplicateService = new(duplicateApi.Object);
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateService.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => duplicateService.RefreshAsync(TestContext.CancellationToken));
 
         Mock<IRuleTagApiClient> invalidApi = new();
         invalidApi.Setup(client => client.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new RuleTagInventoryResponse
@@ -59,7 +59,7 @@ public sealed class RuleTagCatalogServiceTests
             Tags = [Tag("prod", "red")],
         });
         RuleTagCatalogService invalidService = new(invalidApi.Object);
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => invalidService.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => invalidService.RefreshAsync(TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -72,12 +72,12 @@ public sealed class RuleTagCatalogServiceTests
         api.Setup(client => client.CreateAsync(It.IsAny<CreateRuleTagRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleTagInventoryResponse { Tags = [Tag("invalid", "not-a-color")] });
         RuleTagCatalogService service = new(api.Object);
-        IReadOnlyList<RuleTag> current = await service.RefreshAsync();
+        IReadOnlyList<RuleTag> current = await service.RefreshAsync(TestContext.CancellationToken);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync("invalid", "#112233"));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateAsync("invalid", "#112233", TestContext.CancellationToken));
         Assert.AreSame(current, service.Current);
     }
 
@@ -93,13 +93,13 @@ public sealed class RuleTagCatalogServiceTests
         api.Setup(client => client.DeleteAsync(tagId, It.IsAny<CancellationToken>())).ReturnsAsync(new RuleTagInventoryResponse());
         RuleTagCatalogService service = new(api.Object);
 
-        _ = await service.CreateAsync("prod", "#112233");
+        _ = await service.CreateAsync("prod", "#112233", TestContext.CancellationToken);
         Assert.AreEqual("prod", service.Current.Single().Name);
 
-        _ = await service.UpdateAsync(tagId, "production", "#AABBCC");
+        _ = await service.UpdateAsync(tagId, "production", "#AABBCC", TestContext.CancellationToken);
         Assert.AreEqual("production", service.Current.Single().Name);
 
-        _ = await service.DeleteAsync(tagId);
+        _ = await service.DeleteAsync(tagId, TestContext.CancellationToken);
         Assert.IsEmpty(service.Current);
     }
 
@@ -109,4 +109,6 @@ public sealed class RuleTagCatalogServiceTests
         Name = name,
         Color = color,
     };
+
+    public TestContext TestContext { get; set; }
 }

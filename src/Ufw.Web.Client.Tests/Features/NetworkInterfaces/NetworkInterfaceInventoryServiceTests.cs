@@ -27,9 +27,9 @@ public sealed class NetworkInterfaceInventoryServiceTests
         });
         NetworkInterfaceInventoryService service = new(api.Object);
 
-        NetworkInterfaceInventoryResponse response = await service.RefreshAsync();
+        NetworkInterfaceInventoryResponse response = await service.RefreshAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(new[] { "eno1", "wlan0", "docker0" }, response.Interfaces.Select(static item => item.Name).ToArray());
+        Assert.AreSequenceEqual(["eno1", "wlan0", "docker0"], response.Interfaces.Select(static item => item.Name).ToArray());
         Assert.AreEqual("wireless", response.Interfaces.Single(item => item.Id == zId).Comment);
         Assert.IsNull(response.Interfaces.Single(item => item.Id == hiddenId).Comment);
         Assert.AreSame(response, service.Current);
@@ -44,9 +44,9 @@ public sealed class NetworkInterfaceInventoryServiceTests
             .ReturnsAsync(new NetworkInterfaceInventoryResponse { Interfaces = [new() { Id = id, Name = "eno1", IsVisible = true }] })
             .ReturnsAsync(new NetworkInterfaceInventoryResponse { Interfaces = [new() { Id = id, Name = "eno1" }, new() { Id = Guid.NewGuid(), Name = "eno1" }] });
         NetworkInterfaceInventoryService service = new(api.Object);
-        NetworkInterfaceInventoryResponse initial = await service.RefreshAsync();
+        NetworkInterfaceInventoryResponse initial = await service.RefreshAsync(TestContext.CancellationToken);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
 
         Assert.AreSame(initial, service.Current);
     }
@@ -62,8 +62,10 @@ public sealed class NetworkInterfaceInventoryServiceTests
         api.Setup(client => client.ReconcileAsync(It.IsAny<CancellationToken>())).ReturnsAsync(response);
         NetworkInterfaceInventoryService service = new(api.Object);
 
-        Assert.AreEqual("note", (await service.UpdateCommentAsync(id, "note")).Interfaces[0].Comment);
-        Assert.AreEqual("note", (await service.UpdateVisibilityAsync(id, false)).Interfaces[0].Comment);
-        Assert.AreEqual("note", (await service.ReconcileAsync()).Interfaces[0].Comment);
+        Assert.AreEqual("note", (await service.UpdateCommentAsync(id, "note", TestContext.CancellationToken)).Interfaces[0].Comment);
+        Assert.AreEqual("note", (await service.UpdateVisibilityAsync(id, false, TestContext.CancellationToken)).Interfaces[0].Comment);
+        Assert.AreEqual("note", (await service.ReconcileAsync(TestContext.CancellationToken)).Interfaces[0].Comment);
     }
+
+    public TestContext TestContext { get; set; }
 }

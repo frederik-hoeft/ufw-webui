@@ -59,7 +59,7 @@ public sealed class FirewallMutationSafetyGuardTests
         InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await guard.EnsureSafeAsync(TestContext.CancellationToken));
 
-        StringAssert.Contains(exception.Message, "mutations remain blocked");
+        Assert.Contains("mutations remain blocked", exception.Message);
     }
 
     private static ReorderRecoveryJournalEntry TestEntry() => new(

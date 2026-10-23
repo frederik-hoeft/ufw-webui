@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Features.Rules;
@@ -35,7 +35,7 @@ public sealed class RuleCreationWorkflowServiceTests
         Assert.AreSame(firewall, result.Firewall);
         Assert.AreEqual("confirmed", result.ConfirmedRuleId);
         Assert.IsNull(result.MetadataError);
-        CollectionAssert.AreEqual(new[] { "firewall", "metadata" }, steps);
+        Assert.AreSequenceEqual(new[] { "firewall", "metadata" }, steps);
         host.Mutations.VerifyAll();
         host.Metadata.VerifyAll();
     }
@@ -54,7 +54,7 @@ public sealed class RuleCreationWorkflowServiceTests
             .ThrowsAsync(new HttpRequestException("offline"));
         host.Errors.Setup(mapper => mapper.Describe(It.IsAny<HttpRequestException>())).Returns(mapped);
 
-        RuleCreationAddResult result = await host.Service.AddAsync(Specification(), metadata, "key");
+        RuleCreationAddResult result = await host.Service.AddAsync(Specification(), metadata, "key", TestContext.CancellationToken);
 
         Assert.AreSame(firewall, result.Firewall);
         Assert.AreEqual("confirmed", result.ConfirmedRuleId);
@@ -69,7 +69,7 @@ public sealed class RuleCreationWorkflowServiceTests
         host.Mutations.Setup(service => service.AddRuleAsync(It.IsAny<FirewallRuleSpecification>(), "key", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("mutation failed"));
 
-        await Assert.ThrowsExactlyAsync<HttpRequestException>(() => host.Service.AddAsync(Specification(), new RuleMetadataChange("note", [], null), "key"));
+        await Assert.ThrowsExactlyAsync<HttpRequestException>(() => host.Service.AddAsync(Specification(), new RuleMetadataChange("note", [], null), "key", TestContext.CancellationToken));
 
         host.Metadata.VerifyNoOtherCalls();
     }
@@ -84,7 +84,7 @@ public sealed class RuleCreationWorkflowServiceTests
         host.Mutations.Setup(service => service.InsertRuleAsync(It.IsAny<RuleListResponse>(), 0, RuleInsertionPlacement.Before,
             It.IsAny<FirewallRuleSpecification>(), "key", It.IsAny<CancellationToken>())).ReturnsAsync(firewall);
 
-        RuleCreationInsertionResult result = await host.Service.InsertAsync(snapshot, context, Specification(), new RuleMetadataChange("note", [], null), "key");
+        RuleCreationInsertionResult result = await host.Service.InsertAsync(snapshot, context, Specification(), new RuleMetadataChange("note", [], null), "key", TestContext.CancellationToken);
 
         Assert.AreSame(firewall, result.Firewall);
         Assert.IsNull(result.MetadataError);
@@ -104,7 +104,7 @@ public sealed class RuleCreationWorkflowServiceTests
             It.IsAny<FirewallRuleSpecification>(), "key", It.IsAny<CancellationToken>())).ReturnsAsync(firewall);
         host.Metadata.Setup(service => service.UpdateAsync("inserted", metadata, It.IsAny<CancellationToken>())).ReturnsAsync(new RuleMetadataMutationResponse());
 
-        RuleCreationInsertionResult result = await host.Service.InsertAsync(snapshot, context, Specification(), metadata, "key");
+        RuleCreationInsertionResult result = await host.Service.InsertAsync(snapshot, context, Specification(), metadata, "key", TestContext.CancellationToken);
 
         Assert.AreSame(firewall, result.Firewall);
         Assert.IsNull(result.MetadataError);
@@ -148,4 +148,6 @@ public sealed class RuleCreationWorkflowServiceTests
         public Mock<IClientErrorMapper> Errors { get; } = new(MockBehavior.Strict);
         public RuleCreationWorkflowService Service => new(Mutations.Object, Metadata.Object, Reconciliation.Object, Errors.Object);
     }
+
+    public TestContext TestContext { get; set; }
 }

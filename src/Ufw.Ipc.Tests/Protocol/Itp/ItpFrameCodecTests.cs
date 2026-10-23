@@ -26,7 +26,7 @@ public sealed class ItpFrameCodecTests
 
         Assert.AreEqual(ItpPacketType.ApplicationData, frame.PacketType);
         Assert.AreEqual(ItpPayloadFormat.IpcJson, frame.PayloadFormat);
-        CollectionAssert.AreEqual(payload, frame.Payload.ToArray());
+        Assert.AreSequenceEqual(payload, frame.Payload.ToArray());
     }
 
     [TestMethod]
@@ -89,7 +89,7 @@ public sealed class ItpFrameCodecTests
 
         await using OneByteReadStream fragmented = new(frameBytes);
         ItpFrame frame = await new ItpConnection(fragmented).ReadAsync(TestContext.CancellationToken);
-        CollectionAssert.AreEqual(payload, frame.Payload.ToArray());
+        Assert.AreSequenceEqual(payload, frame.Payload.ToArray());
     }
 
     [TestMethod]
@@ -199,7 +199,7 @@ public sealed class ItpFrameCodecTests
         stream.Position = 0;
         ItpFrame frame = await new ItpConnection(stream, options).ReadAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(payload, frame.Payload.ToArray());
+        Assert.AreSequenceEqual(payload, frame.Payload.ToArray());
     }
 
     [TestMethod]

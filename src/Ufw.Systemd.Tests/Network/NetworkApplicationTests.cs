@@ -35,7 +35,7 @@ public sealed class NetworkApplicationTests
         worker.CompleteFirstWorker();
 
         InvalidOperationException exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await runTask);
-        StringAssert.Contains(exception.Message, "network worker stopped", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("network worker stopped", exception.Message, StringComparison.OrdinalIgnoreCase);
         await worker.SiblingWorkersStopped;
         Assert.AreEqual(1, worker.CancelledSiblingCount);
     }

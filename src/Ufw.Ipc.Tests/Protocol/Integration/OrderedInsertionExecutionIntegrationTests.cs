@@ -215,7 +215,7 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             Assert.IsNotNull(response.FinalSnapshot);
             Assert.IsNull(response.InsertedRule);
             Assert.HasCount(baseline.Rules.Count + 1, response.FinalSnapshot.Rules);
-            Assert.IsFalse(response.FinalSnapshot.Rules.Any(static rule => rule.Rule?.DestinationPorts == "53"));
+            Assert.DoesNotContain(static rule => rule.Rule?.DestinationPorts == "53", response.FinalSnapshot.Rules);
         }, cancellationToken: TestContext.CancellationToken);
     }
 
@@ -256,8 +256,8 @@ public sealed class OrderedInsertionExecutionIntegrationTests : IpcProtocolTestB
             Assert.AreEqual(RuleInsertionOutcome.StateUncertain, response.Outcome);
             Assert.IsNotNull(response.FinalSnapshot);
             Assert.IsNull(response.InsertedRule);
-            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static rule => rule.Rule?.DestinationPorts == "53"));
-            Assert.IsTrue(response.FinalSnapshot.Rules.Any(static rule => rule.Rule?.DestinationPorts == "123"));
+            Assert.Contains(static rule => rule.Rule?.DestinationPorts == "53", response.FinalSnapshot.Rules);
+            Assert.Contains(static rule => rule.Rule?.DestinationPorts == "123", response.FinalSnapshot.Rules);
         }, cancellationToken: TestContext.CancellationToken);
     }
 

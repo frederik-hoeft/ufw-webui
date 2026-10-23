@@ -21,7 +21,7 @@ public sealed class RuleGroupManagementProjectionServiceTests
         Assert.AreEqual(2, result.StoredMemberCount);
         Assert.AreEqual(0, result.LiveOccurrenceCount);
         Assert.AreEqual(0, result.StaleMembershipCount);
-        CollectionAssert.AreEqual(new[] { "a", "b" }, result.Members.Select(static member => member.RuleId).ToArray());
+        Assert.AreSequenceEqual(["a", "b"], result.Members.Select(static member => member.RuleId).ToArray());
     }
 
     [TestMethod]

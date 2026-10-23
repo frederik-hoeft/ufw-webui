@@ -20,12 +20,12 @@ public sealed class BrowserAuthenticationOperationCoordinatorTests
         {
             operationRan = true;
             return Task.FromResult(42);
-        });
+        }, TestContext.CancellationToken);
 
         Assert.AreEqual(42, result);
         Assert.IsTrue(operationRan);
         Assert.AreEqual(1, js.ImportCount);
-        CollectionAssert.AreEqual(new[] { "acquire", "release" }, js.Module.Calls.Select(static call => call.Identifier).ToArray());
+        Assert.AreSequenceEqual(["acquire", "release"], js.Module.Calls.Select(static call => call.Identifier).ToArray());
         Assert.AreEqual("ufw-webui-auth-session", js.Module.Calls[0].Args[0]);
         Assert.AreEqual(js.Module.Calls[0].Args[1], js.Module.Calls[1].Args[0]);
     }
@@ -38,10 +38,10 @@ public sealed class BrowserAuthenticationOperationCoordinatorTests
         InvalidOperationException failure = new("operation failed");
 
         InvalidOperationException actual = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
-            coordinator.RunExclusiveAsync<int>(_ => Task.FromException<int>(failure)));
+            coordinator.RunExclusiveAsync<int>(_ => Task.FromException<int>(failure), TestContext.CancellationToken));
 
         Assert.AreSame(failure, actual);
-        CollectionAssert.AreEqual(new[] { "acquire", "release" }, js.Module.Calls.Select(static call => call.Identifier).ToArray());
+        Assert.AreSequenceEqual(["acquire", "release"], js.Module.Calls.Select(static call => call.Identifier).ToArray());
     }
 
     [TestMethod]
@@ -57,11 +57,11 @@ public sealed class BrowserAuthenticationOperationCoordinatorTests
             {
                 operationRan = true;
                 return Task.CompletedTask;
-            }));
+            }, TestContext.CancellationToken));
 
         Assert.IsInstanceOfType<JSException>(exception.InnerException);
         Assert.IsFalse(operationRan);
-        Assert.IsFalse(js.Module.Calls.Any(static call => call.Identifier == "release"));
+        Assert.DoesNotContain(static call => call.Identifier == "release", js.Module.Calls);
     }
 
     [TestMethod]
@@ -69,11 +69,13 @@ public sealed class BrowserAuthenticationOperationCoordinatorTests
     {
         RecordingJsRuntime js = new();
         BrowserAuthenticationOperationCoordinator coordinator = new(js, NullLogger<BrowserAuthenticationOperationCoordinator>.Instance);
-        await coordinator.RunExclusiveAsync(_ => Task.CompletedTask);
+        await coordinator.RunExclusiveAsync(_ => Task.CompletedTask, TestContext.CancellationToken);
 
         await coordinator.DisposeAsync();
 
         Assert.AreEqual(1, js.Module.DisposeCount);
-        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => coordinator.RunExclusiveAsync(_ => Task.CompletedTask));
+        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => coordinator.RunExclusiveAsync(_ => Task.CompletedTask, TestContext.CancellationToken));
     }
+
+    public TestContext TestContext { get; set; }
 }
