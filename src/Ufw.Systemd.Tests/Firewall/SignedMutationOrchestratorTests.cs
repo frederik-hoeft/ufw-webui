@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model;
 using Ufw.Shared.Ipc.Model.Responses;
@@ -49,7 +49,7 @@ public sealed class SignedMutationOrchestratorTests
         }, TestContext.CancellationToken);
 
         Assert.AreSame(expected, response);
-        CollectionAssert.AreEqual(new List<string> { "gate", "guard", "nonce", "operation" }, calls);
+        Assert.AreSequenceEqual(new List<string> { "gate", "guard", "nonce", "operation" }, calls);
     }
 
     [TestMethod]
@@ -112,7 +112,8 @@ public sealed class SignedMutationOrchestratorTests
         }, TestContext.CancellationToken);
 
         UnprocessableContentResponse error = Assert.IsInstanceOfType<UnprocessableContentResponse>(response);
-        StringAssert.Contains(error.Message, "duplicate semantic rule identities");
+        Assert.IsNotNull(error.Message);
+        Assert.Contains("duplicate semantic rule identities", error.Message);
         Assert.AreEqual(FirewallStateErrorCodes.AMBIGUOUS_STATE, error.Code);
         Assert.IsFalse(operationRan);
         nonceStore.VerifyNoOtherCalls();
@@ -135,7 +136,7 @@ public sealed class SignedMutationOrchestratorTests
                 return Task.FromResult<IResponsePayload>(new OkResponse());
             }, TestContext.CancellationToken));
 
-        StringAssert.Contains(exception.Message, "recovery");
+        Assert.Contains("recovery", exception.Message);
         Assert.IsFalse(operationRan);
         nonceStore.VerifyNoOtherCalls();
     }

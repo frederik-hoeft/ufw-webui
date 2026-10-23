@@ -13,7 +13,7 @@ public sealed class RuleOrderPermutationTests
         RuleOrderPermutation permutation = RuleOrderPermutation.Create(order, 3);
         order[0] = 0;
 
-        CollectionAssert.AreEqual(new[] { 2, 0, 1 }, permutation.Occurrences.ToArray());
+        Assert.AreSequenceEqual([2, 0, 1], permutation.Occurrences.ToArray());
         Assert.ThrowsExactly<NotSupportedException>(() => ((IList<int>)permutation.Occurrences)[0] = 1);
     }
 

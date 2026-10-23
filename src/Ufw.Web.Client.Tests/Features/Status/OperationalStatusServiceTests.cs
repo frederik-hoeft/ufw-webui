@@ -35,21 +35,21 @@ public sealed class OperationalStatusServiceTests
         List<bool> refreshingStates = [];
         service.Changed += () => refreshingStates.Add(service.IsRefreshing);
 
-        Task refresh = service.RefreshAsync();
+        Task refresh = service.RefreshAsync(TestContext.CancellationToken);
         Assert.IsTrue(service.IsRefreshing);
         clock.Advance(TimeSpan.FromMilliseconds(125));
         rulesResult.SetResult(Inventory(new RuleListResponse(true, [new ListedFirewallRule(), new ListedFirewallRule()], TestFirewallConfiguration.Enabled)));
         await refresh;
 
         Assert.IsFalse(service.IsRefreshing);
-        CollectionAssert.AreEqual(new[] { true, false }, refreshingStates);
+        Assert.AreSequenceEqual(new[] { true, false }, refreshingStates);
         Assert.AreEqual(OperationalAvailability.Available, service.Current.ManagementApi);
         Assert.AreEqual(OperationalAvailability.Available, service.Current.Daemon);
         Assert.AreEqual(OperationalAvailability.Available, service.Current.FirewallSnapshot);
-        Assert.AreEqual(true, service.Current.FirewallActive);
+        Assert.IsTrue(service.Current.FirewallActive);
         Assert.AreEqual(2, service.Current.RuleCount);
         Assert.AreEqual(IntentProtocol.VERSION, service.Current.IntentProtocolVersion);
-        Assert.AreEqual(true, service.Current.IntentProtocolCompatible);
+        Assert.IsTrue(service.Current.IntentProtocolCompatible);
         Assert.AreEqual("deployment", service.Current.DeploymentId);
         Assert.AreEqual(s_now.AddMilliseconds(125), service.Current.CheckedAt);
         Assert.AreEqual(TimeSpan.FromMilliseconds(125), service.Current.RoundTrip);
@@ -73,7 +73,7 @@ public sealed class OperationalStatusServiceTests
         errors.Setup(mapper => mapper.Describe(daemonFailure)).Returns(mapped);
         using OperationalStatusService service = CreateService(management, daemon, rules, intent, errors, new MutableTimeProvider(s_now));
 
-        await service.RefreshAsync();
+        await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(OperationalAvailability.Available, service.Current.ManagementApi);
         Assert.AreEqual(OperationalAvailability.Unavailable, service.Current.Daemon);
@@ -102,7 +102,7 @@ public sealed class OperationalStatusServiceTests
             .Returns((Exception exception) => new ClientError(ClientErrorKind.Unavailable, exception.Message, true));
         using OperationalStatusService service = CreateService(management, daemon, rules, intent, errors, new MutableTimeProvider(s_now));
 
-        await service.RefreshAsync();
+        await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(OperationalAvailability.Unavailable, service.Current.ManagementApi);
         Assert.AreEqual(OperationalAvailability.Unknown, service.Current.Daemon);
@@ -130,12 +130,12 @@ public sealed class OperationalStatusServiceTests
             .Returns(new ClientError(ClientErrorKind.Unavailable, "management", true));
         using OperationalStatusService service = CreateService(management, daemon, rules, intent, errors, new MutableTimeProvider(s_now));
 
-        await service.RefreshAsync();
+        await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(OperationalAvailability.Unavailable, service.Current.ManagementApi);
         Assert.AreEqual(OperationalAvailability.Available, service.Current.Daemon);
         Assert.AreEqual(OperationalAvailability.Available, service.Current.FirewallSnapshot);
-        Assert.AreEqual(false, service.Current.FirewallActive);
+        Assert.IsFalse(service.Current.FirewallActive);
     }
 
     [TestMethod]
@@ -155,7 +155,7 @@ public sealed class OperationalStatusServiceTests
         errors.Setup(mapper => mapper.Describe(failure)).Returns(mapped);
         using OperationalStatusService service = CreateService(management, daemon, rules, intent, errors, new MutableTimeProvider(s_now));
 
-        await service.RefreshAsync();
+        await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(OperationalAvailability.Available, service.Current.Daemon);
         Assert.AreEqual(OperationalAvailability.Available, service.Current.FirewallSnapshot);
@@ -208,4 +208,6 @@ public sealed class OperationalStatusServiceTests
         client.Setup(probe => probe.ProbeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         return client;
     }
+
+    public TestContext TestContext { get; set; }
 }

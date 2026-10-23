@@ -144,8 +144,8 @@ public sealed class UfwInsertionPlacementResolverTests
         string[] insert = [.. UfwInsertionPlacementResolver.Resolve(rules, FirewallAddressFamily.IPv4, 0).CreateCommand(rule, s_renderer).BuildArguments()];
         string[] add = [.. UfwInsertionPlacementResolver.Resolve(rules, FirewallAddressFamily.IPv4, 1).CreateCommand(rule, s_renderer).BuildArguments()];
 
-        CollectionAssert.AreEqual(new[] { "insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" }, insert);
-        CollectionAssert.AreEqual(new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" }, add);
+        Assert.AreSequenceEqual(["insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], insert);
+        Assert.AreSequenceEqual(["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], add);
     }
 
     private static ListedFirewallRule Parsed(FirewallAddressFamily family, string port) => new()

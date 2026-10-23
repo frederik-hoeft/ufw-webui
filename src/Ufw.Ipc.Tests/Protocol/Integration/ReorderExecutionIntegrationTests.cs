@@ -146,7 +146,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
             Assert.IsNotNull(response.FinalSnapshot);
             Assert.IsEmpty(response.BlockedOperations);
             Assert.IsEmpty(response.PendingOperations);
-            CollectionAssert.AreEqual(desiredOrder, MapToBaselineOccurrences(baseline, response.FinalSnapshot));
+            Assert.AreSequenceEqual(desiredOrder, MapToBaselineOccurrences(baseline, response.FinalSnapshot));
             Assert.IsGreaterThan(0, response.Operations.Length);
 
             UfwIpcException replay = await Assert.ThrowsExactlyAsync<UfwIpcException>(async () =>
@@ -154,7 +154,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
             Assert.AreEqual(409, replay.StatusCode);
 
             RuleListResponse afterReplay = await context.Client.SendAsync<RuleListResponse>(RequestMethod.Get, "/api/v1/rules", cancellationToken);
-            CollectionAssert.AreEqual(desiredOrder, MapToBaselineOccurrences(baseline, afterReplay));
+            Assert.AreSequenceEqual(desiredOrder, MapToBaselineOccurrences(baseline, afterReplay));
         }, cancellationToken: TestContext.CancellationToken);
     }
 
@@ -225,7 +225,7 @@ public sealed class ReorderExecutionIntegrationTests : IpcProtocolTestBase
 
             foreach (ListedFirewallRule original in baseline.Rules)
             {
-                Assert.IsTrue(response.FinalSnapshot.Rules.Any(candidate => SameRule(candidate, original)));
+                Assert.Contains(candidate => SameRule(candidate, original), response.FinalSnapshot.Rules);
             }
         }, cancellationToken: TestContext.CancellationToken);
     }

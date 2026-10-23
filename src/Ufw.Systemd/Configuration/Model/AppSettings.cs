@@ -1,4 +1,4 @@
-﻿namespace Ufw.Systemd.Configuration.Model;
+namespace Ufw.Systemd.Configuration.Model;
 
 internal sealed class AppSettings : IRequireValidation
 {
@@ -9,6 +9,16 @@ internal sealed class AppSettings : IRequireValidation
     public required string UfwPath { get; init; }
 
     public required string UfwDefaultsPath { get; init; }
+
+    public required bool FilterSystemStateEnabled { get; init; }
+
+    public required string IptablesSavePath { get; init; }
+
+    public required string Ip6tablesSavePath { get; init; }
+
+    public required string UfwUserRulesPath { get; init; }
+
+    public required string UfwUser6RulesPath { get; init; }
 
     public required TransportOptions Transport { get; init; }
 
@@ -21,6 +31,14 @@ internal sealed class AppSettings : IRequireValidation
         if (string.IsNullOrWhiteSpace(UfwPath) || string.IsNullOrWhiteSpace(UfwDefaultsPath))
         {
             throw new InvalidOperationException("UFW executable and defaults paths are required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(IptablesSavePath)
+            || string.IsNullOrWhiteSpace(Ip6tablesSavePath)
+            || string.IsNullOrWhiteSpace(UfwUserRulesPath)
+            || string.IsNullOrWhiteSpace(UfwUser6RulesPath))
+        {
+            throw new InvalidOperationException("iptables-save and UFW user-rules paths are required.");
         }
 
         if (Transport is null)

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Ipc.Serialization.Json;
@@ -40,7 +40,7 @@ public sealed class FirewallStateAssessmentSerializationTests
 
         Assert.IsFalse(roundtrip.Assessment.IsClean);
         Assert.AreEqual(FirewallStateAssessmentEvaluator.DUPLICATE_RULE_IDENTITY, roundtrip.Assessment.Issues[0].Code);
-        CollectionAssert.AreEqual(s_duplicateOccurrences, roundtrip.Assessment.Issues[0].OccurrenceIds.ToArray());
+        Assert.AreSequenceEqual(s_duplicateOccurrences, roundtrip.Assessment.Issues[0].OccurrenceIds.ToArray());
         Assert.AreEqual(FirewallRuleSnapshotFingerprint.Compute(withoutAssessment), FirewallRuleSnapshotFingerprint.Compute(snapshot));
     }
 }

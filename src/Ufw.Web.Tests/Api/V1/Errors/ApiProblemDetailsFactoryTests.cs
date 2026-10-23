@@ -26,14 +26,12 @@ public sealed class ApiProblemDetailsFactoryTests
         Assert.AreEqual("One or more validation errors occurred.", problem.Title);
         IReadOnlyList<ApiValidationError> errors = Assert.IsInstanceOfType<IReadOnlyList<ApiValidationError>>(
             problem.Extensions[ApiProblemDetails.VALIDATION_ERRORS_PROPERTY]);
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 new ApiValidationError("Payload.Rule.Protocol", Code: null, "Protocol failure."),
                 new ApiValidationError("Payload.Rule.Source", Code: null, "First source failure."),
                 new ApiValidationError("Payload.Rule.Source", Code: null, "Second source failure."),
-            },
-            errors.ToArray());
+            ], errors.ToArray());
     }
 
     [TestMethod]

@@ -51,7 +51,8 @@ public sealed class ResponseContractOpenApiTests
         IDictionary<string, OpenApiMediaType> content = GetContent(response);
         Assert.HasCount(1, content);
         AssertSchemaReference(content[PROBLEM_DETAILS_MEDIA_TYPE].Schema, "ApiProblemDetails");
-        StringAssert.Contains(response.Description, "Framework authorization failures may be bodyless");
+        Assert.IsNotNull(response.Description);
+        Assert.Contains("Framework authorization failures may be bodyless", response.Description);
     }
 
     [TestMethod]

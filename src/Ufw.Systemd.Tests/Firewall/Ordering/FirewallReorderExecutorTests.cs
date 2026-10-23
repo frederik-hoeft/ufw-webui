@@ -34,10 +34,9 @@ public sealed class FirewallReorderExecutorTests
         Assert.AreEqual(RuleReorderOperationStatus.Applied, result.Operations[0].Status);
         Assert.IsEmpty(result.BlockedOperations);
         Assert.IsEmpty(result.PendingOperations);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[0]);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "2", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            harness.Commands[1]);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[0]);
+        Assert.AreSequenceEqual(
+            ["insert", "2", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], harness.Commands[1]);
         Assert.IsNull(harness.Journal.Entry);
     }
 
@@ -61,13 +60,12 @@ public sealed class FirewallReorderExecutorTests
         Assert.HasCount(3, result.Operations);
         Assert.IsTrue(result.Operations.All(static operation => operation.Status == RuleReorderOperationStatus.Applied));
         Assert.HasCount(6, harness.Commands);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[0]);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[2]);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[4]);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[0]);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[2]);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[4]);
         Assert.IsNotNull(result.FinalSnapshot);
-        CollectionAssert.AreEqual(
-            new[] { "8080", "443", "80", "22" },
-            result.FinalSnapshot.Rules.Select(static rule => rule.Rule!.DestinationPorts).ToArray());
+        Assert.AreSequenceEqual(
+            ["8080", "443", "80", "22"], result.FinalSnapshot.Rules.Select(static rule => rule.Rule!.DestinationPorts).ToArray());
         Assert.IsNull(harness.Journal.Entry);
     }
 
@@ -80,10 +78,9 @@ public sealed class FirewallReorderExecutorTests
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(2, harness.Commands);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[0]);
-        CollectionAssert.AreEqual(
-            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            harness.Commands[1]);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[0]);
+        Assert.AreSequenceEqual(
+            ["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], harness.Commands[1]);
     }
 
     [TestMethod]
@@ -98,10 +95,9 @@ public sealed class FirewallReorderExecutorTests
 
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(2, harness.Commands);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "3" }, harness.Commands[0]);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
-            harness.Commands[1]);
+        Assert.AreSequenceEqual(["--force", "delete", "3"], harness.Commands[0]);
+        Assert.AreSequenceEqual(
+            ["insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"], harness.Commands[1]);
     }
 
     [TestMethod]
@@ -128,10 +124,9 @@ public sealed class FirewallReorderExecutorTests
         Assert.AreEqual(RuleReorderExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(1, result.Operations);
         Assert.AreEqual(RuleReorderOperationStatus.Applied, result.Operations[0].Status);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "1" }, harness.Commands[0]);
-        CollectionAssert.AreEqual(
-            new[] { "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0" },
-            harness.Commands[1]);
+        Assert.AreSequenceEqual(["--force", "delete", "1"], harness.Commands[0]);
+        Assert.AreSequenceEqual(
+            ["allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0"], harness.Commands[1]);
         Assert.IsNull(harness.Journal.Entry);
     }
 
@@ -212,9 +207,8 @@ public sealed class FirewallReorderExecutorTests
         Assert.HasCount(1, result.PendingOperations);
         Assert.AreEqual(0, result.PendingOperations[0].OccurrenceId);
         Assert.HasCount(3, harness.Commands);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            harness.Commands[2]);
+        Assert.AreSequenceEqual(
+            ["insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], harness.Commands[2]);
         Assert.IsNull(harness.Journal.Entry);
     }
 

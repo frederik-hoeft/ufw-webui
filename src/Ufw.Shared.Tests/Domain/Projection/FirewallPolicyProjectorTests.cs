@@ -1,4 +1,4 @@
-using Ufw.Shared.Domain;
+﻿using Ufw.Shared.Domain;
 using Ufw.Shared.Domain.Algebra;
 using Ufw.Shared.Domain.Projection;
 using Ufw.Shared.Firewall;
@@ -110,7 +110,7 @@ public sealed class FirewallPolicyProjectorTests
             RawLine = "Anywhere ALLOW IN Anywhere (v6)",
         };
         PolicyWorld<uint> ipv4 = FirewallPolicyProjector.ProjectIPv4([ipv6Opaque], Configuration(ipv6Enabled: true), ["eth0"]);
-        Assert.HasCount(0, ipv4.Rules);
+        Assert.IsEmpty(ipv4.Rules);
         Assert.ThrowsExactly<FirewallProjectionException>(() =>
             FirewallPolicyProjector.ProjectIPv6([ipv6Opaque], Configuration(ipv6Enabled: false), ["eth0"]));
 
@@ -166,7 +166,7 @@ public sealed class FirewallPolicyProjectorTests
             FirewallDefaultPolicy.Deny,
             ["eth0"]);
 
-        Assert.HasCount(0, ipv4.Rules);
+        Assert.IsEmpty(ipv4.Rules);
         Assert.ThrowsExactly<FirewallProjectionException>(() =>
             FirewallPolicyProjector.ProjectIPv6(
                 [invalidIpv6],

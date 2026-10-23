@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Web.Client.Services.Errors;
 using Ufw.Web.Client.UI.Pages.Inventory;
 
@@ -85,7 +85,7 @@ public sealed class InventoryPageOperationsTests
         Assert.AreEqual("last confirmed", operations.Current);
         Assert.AreSame(mapped, operations.Error);
         Assert.AreEqual(InventoryPageOperation.Idle, operations.Operation);
-        CollectionAssert.AreEqual(new[] { mapped }, notifications);
+        Assert.AreSequenceEqual(new[] { mapped }, notifications);
 
         Assert.IsTrue(await operations.RefreshAsync(_ => Task.FromResult("current"), CancellationToken.None));
         Assert.IsNull(operations.Error);

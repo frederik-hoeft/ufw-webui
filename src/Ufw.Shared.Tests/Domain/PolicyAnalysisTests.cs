@@ -39,7 +39,7 @@ public sealed class PolicyAnalysisTests
         Assert.AreEqual(FiniteSet<ProtocolSymbol>.Of(ProtocolSymbol.Tcp), shadowed.ProjectProtocols());
         Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("22")), shadowed.ProjectDestinationPorts());
         Assert.AreEqual(world.Rules[0].Match.Cardinality, shadowed.Cardinality);
-        Assert.IsTrue(PolicyAnalysis.ShadowedRules(world, TrafficChain.Input).Count == 0);
+        Assert.IsEmpty(PolicyAnalysis.ShadowedRules(world, TrafficChain.Input));
     }
 
     private static PolicyWorld<uint> World(params PolicyRuleDefinition<uint>[] rules) =>

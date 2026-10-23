@@ -70,7 +70,7 @@ public sealed class ReorderIntentCanonicalizerTests
 
         Assert.IsNotNull(roundTrip);
         Assert.AreEqual(payload.BaselineFingerprint, roundTrip.BaselineFingerprint);
-        CollectionAssert.AreEqual(payload.DesiredOrder, roundTrip.DesiredOrder);
+        Assert.AreSequenceEqual(payload.DesiredOrder, roundTrip.DesiredOrder);
     }
 
     [TestMethod]

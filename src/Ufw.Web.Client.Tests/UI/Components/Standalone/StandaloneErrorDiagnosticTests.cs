@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Web.HtmlRendering;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,9 +30,9 @@ public sealed class StandaloneErrorDiagnosticTests
     {
         string html = await RenderAsync("error <123> & debug");
 
-        StringAssert.Contains(html, "error-diagnostic-reference");
-        StringAssert.Contains(html, "DiagnosticReference:");
-        StringAssert.Contains(html, "error &lt;123&gt; &amp; debug");
+        Assert.Contains("error-diagnostic-reference", html);
+        Assert.Contains("DiagnosticReference:", html);
+        Assert.Contains("error &lt;123&gt; &amp; debug", html);
         Assert.IsFalse(html.Contains("error <123>", StringComparison.Ordinal));
     }
 

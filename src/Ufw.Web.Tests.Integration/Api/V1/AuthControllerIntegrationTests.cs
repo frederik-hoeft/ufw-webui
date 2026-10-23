@@ -36,10 +36,10 @@ internal sealed class AuthControllerIntegrationTests : ControllerIntegrationTest
             Assert.AreEqual(now.AddMinutes(5), response.ExpiresAt);
 
             string setCookie = AssertSingleRefreshCookie(controller);
-            StringAssert.Contains(setCookie, "httponly", StringComparison.OrdinalIgnoreCase);
-            StringAssert.Contains(setCookie, "secure", StringComparison.OrdinalIgnoreCase);
-            StringAssert.Contains(setCookie, "samesite=strict", StringComparison.OrdinalIgnoreCase);
-            StringAssert.Contains(setCookie, "path=/", StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("secure", setCookie, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("samesite=strict", setCookie, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("path=/", setCookie, StringComparison.OrdinalIgnoreCase);
 
             ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             Assert.AreEqual(1, await context.Set<RefreshToken>().CountAsync(cancellationToken));
@@ -93,7 +93,7 @@ internal sealed class AuthControllerIntegrationTests : ControllerIntegrationTest
 
             Assert.IsInstanceOfType<NoContentResult>(result);
             string setCookie = AssertSingleRefreshCookie(controller);
-            StringAssert.Contains(setCookie, "expires=", StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("expires=", setCookie, StringComparison.OrdinalIgnoreCase);
 
             ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             context.ChangeTracker.Clear();

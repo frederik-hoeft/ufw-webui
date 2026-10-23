@@ -17,28 +17,25 @@ public sealed class KnownHostApiClientTests
         using HttpClient http = new(handler) { BaseAddress = new Uri("https://localhost/") };
         KnownHostApiClient client = new(http);
 
-        await client.GetAsync();
-        await client.CreateAsync(new CreateKnownHostRequest { Name = "nas", Address = "192.0.2.10" });
-        await client.UpdateAsync(id, new UpdateKnownHostRequest { Name = "nas", Address = "192.0.2.11" });
-        await client.ReconcileDnsAsync(id);
-        await client.DeleteAsync(id);
+        await client.GetAsync(TestContext.CancellationToken);
+        await client.CreateAsync(new CreateKnownHostRequest { Name = "nas", Address = "192.0.2.10" }, TestContext.CancellationToken);
+        await client.UpdateAsync(id, new UpdateKnownHostRequest { Name = "nas", Address = "192.0.2.11" }, TestContext.CancellationToken);
+        await client.ReconcileDnsAsync(id, TestContext.CancellationToken);
+        await client.DeleteAsync(id, TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 "/api/v1/known-hosts",
                 "/api/v1/known-hosts",
                 $"/api/v1/known-hosts/{id:D}",
                 $"/api/v1/known-hosts/{id:D}/dns/reconcile",
                 $"/api/v1/known-hosts/{id:D}",
-            },
-            handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
-        CollectionAssert.AreEqual(
-            new[] { HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete },
-            handler.Requests.Select(static request => request.Method).ToArray());
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateKnownHostRequest()));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.ReconcileDnsAsync(Guid.Empty));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty));
+            ], handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray());
+        Assert.AreSequenceEqual(
+            [HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Post, HttpMethod.Delete], handler.Requests.Select(static request => request.Method).ToArray());
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.UpdateAsync(Guid.Empty, new UpdateKnownHostRequest(), TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.ReconcileDnsAsync(Guid.Empty, TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => client.DeleteAsync(Guid.Empty, TestContext.CancellationToken));
         Assert.HasCount(5, handler.Requests);
     }
 
@@ -55,4 +52,6 @@ public sealed class KnownHostApiClientTests
             });
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

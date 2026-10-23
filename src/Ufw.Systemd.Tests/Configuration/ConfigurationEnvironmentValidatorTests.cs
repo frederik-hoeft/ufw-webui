@@ -8,6 +8,36 @@ namespace Ufw.Systemd.Tests.Configuration;
 public sealed class ConfigurationEnvironmentValidatorTests
 {
     [TestMethod]
+    public void ThrowIfInvalid_RequiresFilterSaveExecutablesAtStartup()
+    {
+        string ufwPath = Path.GetTempFileName();
+        try
+        {
+            AppSettings invalid = CopyWithUfwPath(TestAppSettingsFactory.Create(), ufwPath, iptablesSavePath: "/missing/iptables-save");
+            Assert.ThrowsExactly<InvalidOperationException>(() => new ConfigurationEnvironmentValidator().ThrowIfInvalid(invalid));
+        }
+        finally
+        {
+            File.Delete(ufwPath);
+        }
+    }
+
+    [TestMethod]
+    public void ThrowIfInvalid_DisabledInventoryDoesNotRequireSaveExecutables()
+    {
+        string ufwPath = Path.GetTempFileName();
+        try
+        {
+            AppSettings settings = CopyWithUfwPath(TestAppSettingsFactory.Create(filterSystemStateEnabled: false), ufwPath, iptablesSavePath: "/missing/iptables-save");
+            new ConfigurationEnvironmentValidator().ThrowIfInvalid(settings);
+        }
+        finally
+        {
+            File.Delete(ufwPath);
+        }
+    }
+
+    [TestMethod]
     public void ThrowIfInvalid_RequiresConfiguredUfwExecutable()
     {
         AppSettings settings = CreateSettings(ufwPath: "/definitely/not/a/ufw-executable");
@@ -114,12 +144,17 @@ public sealed class ConfigurationEnvironmentValidatorTests
 
     private static AppSettings CreateSettings(string ufwPath) => CopyWithUfwPath(TestAppSettingsFactory.Create(), ufwPath);
 
-    private static AppSettings CopyWithUfwPath(AppSettings baseline, string ufwPath, TransportOptions? transport = null) => new()
+    private static AppSettings CopyWithUfwPath(AppSettings baseline, string ufwPath, TransportOptions? transport = null, string? iptablesSavePath = null) => new()
     {
         DebugMode = baseline.DebugMode,
         ExposeRemoteExceptionDetails = baseline.ExposeRemoteExceptionDetails,
         UfwPath = ufwPath,
         UfwDefaultsPath = baseline.UfwDefaultsPath,
+        FilterSystemStateEnabled = baseline.FilterSystemStateEnabled,
+        IptablesSavePath = iptablesSavePath ?? ufwPath,
+        Ip6tablesSavePath = ufwPath,
+        UfwUserRulesPath = baseline.UfwUserRulesPath,
+        UfwUser6RulesPath = baseline.UfwUser6RulesPath,
         Transport = transport ?? baseline.Transport,
         Network = baseline.Network,
         Security = baseline.Security,

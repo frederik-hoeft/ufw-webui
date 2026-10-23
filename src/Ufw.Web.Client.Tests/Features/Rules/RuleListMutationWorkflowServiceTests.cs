@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Web.Client.Features.Rules;
@@ -25,7 +25,7 @@ public sealed class RuleListMutationWorkflowServiceTests
         };
         host.Metadata.Setup(service => service.UpdateAsync("rule", change, It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
-        RuleInventoryState result = await host.Service.UpdateMetadataAsync(baseline, "rule", change);
+        RuleInventoryState result = await host.Service.UpdateMetadataAsync(baseline, "rule", change, TestContext.CancellationToken);
 
         Assert.AreEqual("note", result.Snapshot!.Metadata["rule"].Notes);
         Assert.IsEmpty(baseline.Snapshot!.Metadata);
@@ -44,11 +44,11 @@ public sealed class RuleListMutationWorkflowServiceTests
         host.Groups.Setup(service => service.DeleteIfEmptyAsync(group.Id, It.IsAny<CancellationToken>()))
             .Callback(() => steps.Add("cleanup")).ReturnsAsync(cleanup);
 
-        RuleListDeletionResult result = await host.Service.DeleteAsync(rule, "key", group);
+        RuleListDeletionResult result = await host.Service.DeleteAsync(rule, "key", group, TestContext.CancellationToken);
 
         Assert.AreSame(cleanup, result.GroupCleanup);
         Assert.IsNull(result.GroupCleanupError);
-        CollectionAssert.AreEqual(new[] { "delete", "cleanup" }, steps);
+        Assert.AreSequenceEqual(new[] { "delete", "cleanup" }, steps);
     }
 
     [TestMethod]
@@ -59,7 +59,7 @@ public sealed class RuleListMutationWorkflowServiceTests
         host.Mutations.Setup(service => service.DeleteRuleAsync(rule, "key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMutationResponse("delete", rule));
 
-        RuleListDeletionResult result = await host.Service.DeleteAsync(rule, "key", null);
+        RuleListDeletionResult result = await host.Service.DeleteAsync(rule, "key", null, TestContext.CancellationToken);
 
         Assert.IsNull(result.GroupCleanup);
         Assert.IsNull(result.GroupCleanupError);
@@ -80,7 +80,7 @@ public sealed class RuleListMutationWorkflowServiceTests
         ClientError error = new(ClientErrorKind.Unavailable, "group cleanup failed", true);
         host.Errors.Setup(mapper => mapper.Describe(failure)).Returns(error);
 
-        RuleListDeletionResult result = await host.Service.DeleteAsync(rule, "key", group);
+        RuleListDeletionResult result = await host.Service.DeleteAsync(rule, "key", group, TestContext.CancellationToken);
 
         Assert.IsNull(result.GroupCleanup);
         Assert.AreSame(error, result.GroupCleanupError);
@@ -95,7 +95,7 @@ public sealed class RuleListMutationWorkflowServiceTests
         HttpRequestException failure = new("delete failed");
         host.Mutations.Setup(service => service.DeleteRuleAsync(rule, "key", It.IsAny<CancellationToken>())).ThrowsAsync(failure);
 
-        await Assert.ThrowsExactlyAsync<HttpRequestException>(() => host.Service.DeleteAsync(rule, "key", Group()));
+        await Assert.ThrowsExactlyAsync<HttpRequestException>(() => host.Service.DeleteAsync(rule, "key", Group(), TestContext.CancellationToken));
 
         host.Groups.VerifyNoOtherCalls();
     }
@@ -111,13 +111,13 @@ public sealed class RuleListMutationWorkflowServiceTests
         host.Ordering.Setup(service => service.ApplyAsync(It.Is<RuleListResponse>(value => value.Rules.Count == 1),
             It.Is<IReadOnlyList<int>>(order => order.Count == 1 && order[0] == 0), "key", It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
-        RuleListOrderingResult result = await host.Service.ApplyOrderingAsync(baseline, preview, "key");
+        RuleListOrderingResult result = await host.Service.ApplyOrderingAsync(baseline, preview, "key", TestContext.CancellationToken);
 
         Assert.AreSame(response, result.Response);
         Assert.IsTrue(result.State.IsCurrent);
         Assert.IsNotNull(result.State.Snapshot);
         Assert.HasCount(1, result.BaselineRules);
-        CollectionAssert.AreEqual(new[] { 0 }, result.DesiredOrder.ToArray());
+        Assert.AreSequenceEqual([0], result.DesiredOrder.ToArray());
     }
 
     [TestMethod]
@@ -128,7 +128,7 @@ public sealed class RuleListMutationWorkflowServiceTests
         host.Ordering.Setup(service => service.ApplyAsync(It.IsAny<RuleListResponse>(), It.IsAny<IReadOnlyList<int>>(), "key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleReorderResponse(RuleReorderOutcome.StateUncertain, null, [], [], [], Diagnostic: "uncertain"));
 
-        RuleListOrderingResult result = await host.Service.ApplyOrderingAsync(baseline, new RuleOrderingPreview([0], new HashSet<int>()), "key");
+        RuleListOrderingResult result = await host.Service.ApplyOrderingAsync(baseline, new RuleOrderingPreview([0], new HashSet<int>()), "key", TestContext.CancellationToken);
 
         Assert.IsTrue(result.State.IsStale);
         Assert.AreSame(baseline.Snapshot, result.State.Snapshot);
@@ -152,4 +152,6 @@ public sealed class RuleListMutationWorkflowServiceTests
         public Mock<IClientErrorMapper> Errors { get; } = new(MockBehavior.Strict);
         public RuleListMutationWorkflowService Service => new(Metadata.Object, Mutations.Object, Groups.Object, Ordering.Object, Errors.Object, TimeProvider.System);
     }
+
+    public TestContext TestContext { get; set; }
 }

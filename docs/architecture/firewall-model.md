@@ -228,6 +228,10 @@ The daemon serializes only its own UFW accesses. It does not provide a cross-pro
 
 The same normalized rules, default policies, and known interfaces can be read as a partition of packet space. That interpretation is specified in [Semantic policy domain](domain.md). It is a read-only view over one closed world: one address family, one chain at a time, and only the protocols, ports, and interfaces the model can name. It does not change semantic identity, ordering, or any mutation lifecycle above, and it does not claim that a packet the model allows will be delivered. Connection tracking, rules outside the parsed UFW user chain, NAT, routing, and whether UFW is currently enforcing the configured policy stay outside that reading.
 
+## Active filter table
+
+`ufw status` is not the kernel filter table. Chains installed around the user rules, and rules that did not come from a UFW tuple, are visible only in `iptables-save` / `ip6tables-save`. [Filter system state](system-state.md) is the read-only structural model of that table. It does not take part in semantic identity, ordering, or the mutation lifecycles above. Where a live filter rule is one of the iptables lines `user.rules` or `user6.rules` wrote for a tuple, the snapshot can point back at the normalized user rule; the save output stays authoritative either way.
+
 ## Mutation boundary
 
 The privileged mutation contract supports append-style add, exact-snapshot ordered insertion, exact-snapshot occurrence replacement, semantic single delete, exact-snapshot batch delete, and exact-snapshot reorder. Ordered insertion and replacement both change membership and placement semantics and therefore remain distinct signed operations rather than extensions of append add or reorder. Batch deletion is likewise a generic occurrence-based firewall operation; higher-level application concepts such as rule groups compose it without extending daemon authority to ASP-owned identifiers. Reversible disable follows the same rule: template persistence is an ASP operation followed by the existing signed semantic delete, not a daemon-visible `disable` primitive.

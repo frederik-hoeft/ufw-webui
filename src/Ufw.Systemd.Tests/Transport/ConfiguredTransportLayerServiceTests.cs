@@ -49,6 +49,11 @@ public sealed class ConfiguredTransportLayerServiceTests
             ExposeRemoteExceptionDetails = settings.ExposeRemoteExceptionDetails,
             UfwPath = ufwPath,
             UfwDefaultsPath = settings.UfwDefaultsPath,
+            FilterSystemStateEnabled = settings.FilterSystemStateEnabled,
+            IptablesSavePath = ufwPath,
+            Ip6tablesSavePath = ufwPath,
+            UfwUserRulesPath = settings.UfwUserRulesPath,
+            UfwUser6RulesPath = settings.UfwUser6RulesPath,
             Transport = settings.Transport,
             Network = settings.Network,
             Security = null,
@@ -56,7 +61,7 @@ public sealed class ConfiguredTransportLayerServiceTests
 
         try
         {
-            await File.WriteAllTextAsync(settingsPath, JsonSerializer.Serialize(settings, AppSettingsJsonSerializerContext.Default.AppSettings));
+            await File.WriteAllTextAsync(settingsPath, JsonSerializer.Serialize(settings, AppSettingsJsonSerializerContext.Default.AppSettings), TestContext.CancellationToken);
             await using DefaultServiceProvider serviceProvider = new();
             IConfiguration configuration = serviceProvider.GetService<IConfiguration>();
             await configuration.LoadAsync(settingsPath, CancellationToken.None);
@@ -71,4 +76,6 @@ public sealed class ConfiguredTransportLayerServiceTests
             File.Delete(ufwPath);
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

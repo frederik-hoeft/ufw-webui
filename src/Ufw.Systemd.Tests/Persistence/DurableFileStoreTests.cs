@@ -17,7 +17,7 @@ public sealed class DurableFileStoreTests
             await store.AppendAsync(path, "first\n"u8.ToArray(), CancellationToken.None);
             await store.AppendAsync(path, "second\n"u8.ToArray(), CancellationToken.None);
 
-            Assert.AreEqual("first\nsecond\n", await File.ReadAllTextAsync(path));
+            Assert.AreEqual("first\nsecond\n", await File.ReadAllTextAsync(path, TestContext.CancellationToken));
         }
         finally
         {
@@ -30,13 +30,13 @@ public sealed class DurableFileStoreTests
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "state");
-        await File.WriteAllTextAsync(path, "old");
+        await File.WriteAllTextAsync(path, "old", TestContext.CancellationToken);
         DurableFileStore store = new();
         try
         {
             await store.ReplaceAsync(path, "new"u8.ToArray(), CancellationToken.None);
 
-            Assert.AreEqual("new", await File.ReadAllTextAsync(path));
+            Assert.AreEqual("new", await File.ReadAllTextAsync(path, TestContext.CancellationToken));
             Assert.IsFalse(File.Exists(path + ".tmp"));
         }
         finally
@@ -50,7 +50,7 @@ public sealed class DurableFileStoreTests
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "state");
-        await File.WriteAllTextAsync(path, "old");
+        await File.WriteAllTextAsync(path, "old", TestContext.CancellationToken);
         DurableFileStore store = new();
         using CancellationTokenSource cancellation = new();
         await cancellation.CancelAsync();
@@ -58,7 +58,7 @@ public sealed class DurableFileStoreTests
         {
             await Assert.ThrowsAsync<OperationCanceledException>(() => store.ReplaceAsync(path, Encoding.UTF8.GetBytes("new"), cancellation.Token));
 
-            Assert.AreEqual("old", await File.ReadAllTextAsync(path));
+            Assert.AreEqual("old", await File.ReadAllTextAsync(path, TestContext.CancellationToken));
             Assert.IsFalse(File.Exists(path + ".tmp"));
         }
         finally
@@ -77,7 +77,7 @@ public sealed class DurableFileStoreTests
         {
             Assert.IsTrue(store.TryCreateNew(path, "first"u8.ToArray()));
             Assert.IsFalse(store.TryCreateNew(path, "second"u8.ToArray()));
-            Assert.AreEqual("first", await File.ReadAllTextAsync(path));
+            Assert.AreEqual("first", await File.ReadAllTextAsync(path, TestContext.CancellationToken));
         }
         finally
         {
@@ -90,8 +90,8 @@ public sealed class DurableFileStoreTests
     {
         string directory = CreateTemporaryDirectory();
         string path = Path.Combine(directory, "state");
-        await File.WriteAllTextAsync(path, "state");
-        await File.WriteAllTextAsync(path + ".tmp", "staging");
+        await File.WriteAllTextAsync(path, "state", TestContext.CancellationToken);
+        await File.WriteAllTextAsync(path + ".tmp", "staging", TestContext.CancellationToken);
         DurableFileStore store = new();
         try
         {
@@ -112,4 +112,6 @@ public sealed class DurableFileStoreTests
         Directory.CreateDirectory(directory);
         return directory;
     }
+
+    public TestContext TestContext { get; set; }
 }

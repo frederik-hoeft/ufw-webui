@@ -65,7 +65,8 @@ public sealed class RuleReplacementContractTests
 
         Assert.IsFalse(resolved);
         Assert.IsNull(target);
-        StringAssert.Contains(diagnostic, "outside the signed baseline");
+        Assert.IsNotNull(diagnostic);
+        Assert.Contains("outside the signed baseline", diagnostic);
     }
 
     [TestMethod]
@@ -78,7 +79,8 @@ public sealed class RuleReplacementContractTests
 
         Assert.IsFalse(resolved);
         Assert.IsNull(actual);
-        StringAssert.Contains(diagnostic, "parsed target rule");
+        Assert.IsNotNull(diagnostic);
+        Assert.Contains("parsed target rule", diagnostic);
     }
 
     [TestMethod]
@@ -91,7 +93,8 @@ public sealed class RuleReplacementContractTests
 
         Assert.IsFalse(resolved);
         Assert.IsNull(actual);
-        StringAssert.Contains(diagnostic, "identity does not match");
+        Assert.IsNotNull(diagnostic);
+        Assert.Contains("identity does not match", diagnostic);
     }
 
     [TestMethod]
@@ -104,7 +107,8 @@ public sealed class RuleReplacementContractTests
 
         Assert.IsFalse(resolved);
         Assert.IsNull(actual);
-        StringAssert.Contains(diagnostic, "address family must match");
+        Assert.IsNotNull(diagnostic);
+        Assert.Contains("address family must match", diagnostic);
     }
 
     private static ReplaceRulePayload Payload(string originalRuleId, FirewallAddressFamily family, int targetOccurrenceId = 0) => new()

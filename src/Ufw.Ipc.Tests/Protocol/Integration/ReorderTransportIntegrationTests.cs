@@ -40,16 +40,16 @@ public sealed class ReorderTransportIntegrationTests : IpcProtocolTestBase
                 ReorderRulesPayload? receivedPayload = received.Payload.Deserialize(MessageJsonSerializerContext.Default.ReorderRulesPayload);
                 Assert.IsNotNull(receivedPayload);
                 Assert.AreEqual(CreatePayload().BaselineFingerprint, receivedPayload.BaselineFingerprint);
-                CollectionAssert.AreEqual(CreatePayload().DesiredOrder, receivedPayload.DesiredOrder);
+                Assert.AreSequenceEqual(CreatePayload().DesiredOrder, receivedPayload.DesiredOrder);
 
                 Assert.AreEqual(expected.Outcome, response.Outcome);
                 Assert.AreEqual(expected.Diagnostic, response.Diagnostic);
                 Assert.IsNotNull(response.FinalSnapshot);
-                Assert.AreEqual(1, response.FinalSnapshot.Rules.Count);
-                Assert.AreEqual(1, response.Operations.Length);
+                Assert.HasCount(1, response.FinalSnapshot.Rules);
+                Assert.HasCount(1, response.Operations);
                 Assert.AreEqual(RuleReorderOperationOutcome.FailedAndRestored, response.Operations[0].Outcome);
-                Assert.AreEqual(1, response.BlockedOperations.Length);
-                Assert.AreEqual(1, response.PendingOperations.Length);
+                Assert.HasCount(1, response.BlockedOperations);
+                Assert.HasCount(1, response.PendingOperations);
             },
             cancellationToken: TestContext.CancellationToken).AsTask();
     }

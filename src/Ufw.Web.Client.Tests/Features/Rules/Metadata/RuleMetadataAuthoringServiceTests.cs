@@ -17,7 +17,7 @@ public sealed class RuleMetadataAuthoringServiceTests
         groups.Setup(catalog => catalog.RefreshAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         RuleMetadataAuthoringService service = new(tags.Object, groups.Object, Mock.Of<IRuleTagColorGenerator>());
 
-        await service.RefreshAsync();
+        await service.RefreshAsync(TestContext.CancellationToken);
 
         tags.Verify(catalog => catalog.RefreshAsync(It.IsAny<CancellationToken>()), Times.Once);
         groups.Verify(catalog => catalog.RefreshAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -32,18 +32,18 @@ public sealed class RuleMetadataAuthoringServiceTests
         RuleTag candidate = new(candidateId, "Preprod", "#445566");
         RuleMetadataAuthoringService service = Create(tags: [selected, candidate]);
 
-        MetadataCatalogSearchResult<RuleTag> matching = service.SearchTags("  pre  ", [selectedId]);
+        MetadataCatalogSearchResult<RuleTag> matching = service.SearchTags("  pre  ", [selectedId], TestContext.CancellationToken);
         Assert.HasCount(1, matching.Matches);
         Assert.AreEqual(candidateId, matching.Matches[0].Id);
         Assert.AreEqual("pre", matching.CreateName);
 
-        MetadataCatalogSearchResult<RuleTag> exactSelected = service.SearchTags(" production ", [selectedId]);
+        MetadataCatalogSearchResult<RuleTag> exactSelected = service.SearchTags(" production ", [selectedId], TestContext.CancellationToken);
         Assert.IsEmpty(exactSelected.Matches);
         Assert.IsNull(exactSelected.CreateName);
 
-        Assert.IsNull(service.SearchTags(new string('a', RuleTagLimits.MAX_NAME_LENGTH + 1), []).CreateName);
-        Assert.IsNull(service.SearchTags("   ", []).CreateName);
-        CollectionAssert.AreEquivalent(new[] { selectedId }, service.SelectTags([selectedId, Guid.NewGuid()]).Select(static tag => tag.Id).ToArray());
+        Assert.IsNull(service.SearchTags(new string('a', RuleTagLimits.MAX_NAME_LENGTH + 1), [], TestContext.CancellationToken).CreateName);
+        Assert.IsNull(service.SearchTags("   ", [], TestContext.CancellationToken).CreateName);
+        Assert.AreSequenceEqual([selectedId], service.SelectTags([selectedId, Guid.NewGuid()]).Select(static tag => tag.Id).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -53,12 +53,12 @@ public sealed class RuleMetadataAuthoringServiceTests
         RuleGroup group = Group(id, "Operations");
         RuleMetadataAuthoringService service = Create(groups: [group]);
 
-        MetadataCatalogSearchResult<RuleGroup> result = service.SearchGroups("  oper  ");
+        MetadataCatalogSearchResult<RuleGroup> result = service.SearchGroups("  oper  ", TestContext.CancellationToken);
         Assert.HasCount(1, result.Matches);
         Assert.AreEqual(id, result.Matches[0].Id);
         Assert.AreEqual("oper", result.CreateName);
-        Assert.IsNull(service.SearchGroups("  OPERATIONS ").CreateName);
-        Assert.IsNull(service.SearchGroups(new string('x', RuleGroupLimits.MAX_NAME_LENGTH + 1)).CreateName);
+        Assert.IsNull(service.SearchGroups("  OPERATIONS ", TestContext.CancellationToken).CreateName);
+        Assert.IsNull(service.SearchGroups(new string('x', RuleGroupLimits.MAX_NAME_LENGTH + 1), TestContext.CancellationToken).CreateName);
         Assert.AreSame(group, service.FindGroup(id));
         Assert.IsNull(service.FindGroup(Guid.CreateVersion7()));
     }
@@ -85,7 +85,7 @@ public sealed class RuleMetadataAuthoringServiceTests
         tags.Setup(catalog => catalog.CreateAsync("Prod", "#123456", It.IsAny<CancellationToken>())).ReturnsAsync([created]);
         RuleMetadataAuthoringService service = new(tags.Object, Mock.Of<IRuleGroupCatalogService>(), colors.Object);
 
-        RuleTag actual = await service.CreateTagAsync("  Prod  ");
+        RuleTag actual = await service.CreateTagAsync("  Prod  ", cancellationToken: TestContext.CancellationToken);
 
         Assert.AreSame(created, actual);
         colors.Verify(generator => generator.Generate(), Times.Once);
@@ -98,7 +98,7 @@ public sealed class RuleMetadataAuthoringServiceTests
         groups.Setup(catalog => catalog.CreateAsync("Ops", null, It.IsAny<CancellationToken>())).ReturnsAsync([]);
         RuleMetadataAuthoringService service = new(Mock.Of<IRuleTagCatalogService>(), groups.Object, Mock.Of<IRuleTagColorGenerator>());
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateGroupAsync(" Ops "));
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.CreateGroupAsync(" Ops ", cancellationToken: TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -108,8 +108,8 @@ public sealed class RuleMetadataAuthoringServiceTests
         Mock<IRuleGroupCatalogService> groups = new();
         RuleMetadataAuthoringService service = new(tags.Object, groups.Object, Mock.Of<IRuleTagColorGenerator>());
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateTagAsync("   "));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateGroupAsync(new string('x', RuleGroupLimits.MAX_NAME_LENGTH + 1)));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateTagAsync("   ", cancellationToken: TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CreateGroupAsync(new string('x', RuleGroupLimits.MAX_NAME_LENGTH + 1), cancellationToken: TestContext.CancellationToken));
         tags.Verify(catalog => catalog.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         groups.Verify(catalog => catalog.CreateAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -124,4 +124,6 @@ public sealed class RuleMetadataAuthoringServiceTests
     }
 
     private static RuleGroup Group(Guid id, string name) => new(id, name, null, [], []);
+
+    public TestContext TestContext { get; set; }
 }

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,7 +83,7 @@ public sealed class ClientApiServiceCollectionExtensionsTests
             using HttpClient client = factory.CreateClient(name);
             using HttpRequestMessage message = new(HttpMethod.Get, "check");
             message.Headers.Add("X-Test-Client", name);
-            using HttpResponseMessage response = await client.SendAsync(message);
+            using HttpResponseMessage response = await client.SendAsync(message, TestContext.CancellationToken);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         }
     }
@@ -102,4 +102,6 @@ public sealed class ClientApiServiceCollectionExtensionsTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { RequestMessage = request });
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

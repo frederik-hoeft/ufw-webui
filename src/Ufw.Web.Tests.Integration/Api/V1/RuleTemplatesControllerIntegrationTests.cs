@@ -68,9 +68,9 @@ internal sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegr
             ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             context.ChangeTracker.Clear();
             RuleTemplateEntry persisted = await context.Set<RuleTemplateEntry>().Include(static entry => entry.Tags).SingleAsync(cancellationToken);
-            Assert.IsTrue(persisted.Id > 0);
+            Assert.IsGreaterThan(0, persisted.Id);
             Assert.AreEqual(template.Id, persisted.PublicId);
-            Assert.AreEqual(1, persisted.Tags.Count);
+            Assert.HasCount(1, persisted.Tags);
             Assert.AreEqual(groupId, (await context.Set<RuleGroupEntry>().SingleAsync(cancellationToken)).PublicId);
 
             IActionResult updateResult = await controller.UpdateAsync(template.Id, new UpdateRuleTemplateRequest
@@ -191,7 +191,7 @@ internal sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegr
                 GroupId: null), cancellationToken);
 
             RuleTagsNotFoundError tagError = Assert.IsInstanceOfType<RuleTagsNotFoundError>(tagResult.Error);
-            CollectionAssert.AreEqual(new[] { firstMissingTag, secondMissingTag }, tagError.TagIds.ToArray());
+            Assert.AreSequenceEqual([firstMissingTag, secondMissingTag], tagError.TagIds.ToArray());
 
             Guid missingGroup = Guid.Parse("0199a100-0000-7000-8000-000000000013");
             DataMutationResult groupResult = await templates.CreateAsync(new RuleTemplateValues(
@@ -260,7 +260,7 @@ internal sealed class RuleTemplatesControllerIntegrationTests : ControllerIntegr
                 (await groups.GetAsync(cancellationToken)).Result).Value);
             RuleGroupItem protectedGroup = groupInventory.Groups.Single();
             Assert.IsEmpty(protectedGroup.RuleIds);
-            CollectionAssert.AreEqual(new[] { template.Id }, protectedGroup.TemplateIds.ToArray());
+            Assert.AreSequenceEqual([template.Id], protectedGroup.TemplateIds.ToArray());
 
             _ = await controller.DeleteAsync(template.Id, cancellationToken);
             Assert.IsInstanceOfType<OkObjectResult>(await tags.DeleteAsync(tag.Id, cancellationToken));

@@ -57,6 +57,8 @@ Environment:
   UFW_PATH           UFW executable written to daemon config. Defaults to command -v
                      ufw; on Unix falls back to /usr/sbin/ufw. On Windows, point this
                      at a Windows-compatible UFW mock/executable when one is not on PATH.
+  FILTER_SYSTEM_STATE_ENABLED  Force filter inventory on/off (true or false).
+                     By default enabled only when both save executables exist.
   UFW_DEFAULTS_PATH  UFW defaults file written to daemon config. Defaults to
                      /etc/default/ufw on Unix and a generated mock-compatible file
                      under the development state directory on Windows.
@@ -434,7 +436,45 @@ DEFAULT_FORWARD_POLICY="DROP"
 EOF_UFW_DEFAULTS
 fi
 
+resolve_optional_tool() {
+    local override_name="$1"
+    local command_name="$2"
+    local fallback="$3"
+    local resolved="${!override_name:-}"
+    if [[ -n "$resolved" ]]; then
+        to_shell_path "$resolved"
+        return
+    fi
+    resolved="$(command -v "$command_name" || true)"
+    if [[ -n "$resolved" ]]; then
+        printf '%s\n' "$resolved"
+        return
+    fi
+    printf '%s\n' "$fallback"
+}
+
+iptables_save_path="$(resolve_optional_tool IPTABLES_SAVE_PATH iptables-save /usr/sbin/iptables-save)"
+ip6tables_save_path="$(resolve_optional_tool IP6TABLES_SAVE_PATH ip6tables-save /usr/sbin/ip6tables-save)"
+filter_system_state_enabled="${FILTER_SYSTEM_STATE_ENABLED:-}"
+if [[ -z "$filter_system_state_enabled" ]]; then
+    if [[ -f "$iptables_save_path" && -f "$ip6tables_save_path" ]]; then
+        filter_system_state_enabled=true
+    else
+        filter_system_state_enabled=false
+        warn "filter system state inventory is disabled: iptables-save/ip6tables-save are unavailable; UFW mock development remains supported"
+    fi
+fi
+[[ "$filter_system_state_enabled" == true || "$filter_system_state_enabled" == false ]] \
+    || fail 'FILTER_SYSTEM_STATE_ENABLED must be true or false'
+
+ufw_user_rules_path="${UFW_USER_RULES_PATH:-/etc/ufw/user.rules}"
+ufw_user6_rules_path="${UFW_USER6_RULES_PATH:-/etc/ufw/user6.rules}"
+
 config_ufw_defaults_path="$(to_host_path "$ufw_defaults_path")"
+config_iptables_save_path="$(to_host_path "$iptables_save_path")"
+config_ip6tables_save_path="$(to_host_path "$ip6tables_save_path")"
+config_ufw_user_rules_path="$(to_host_path "$ufw_user_rules_path")"
+config_ufw_user6_rules_path="$(to_host_path "$ufw_user6_rules_path")"
 config_server_cert="$(to_host_path "$SERVER_CERT")"
 config_server_key="$(to_host_path "$SERVER_KEY")"
 config_authorized_keys="$(to_host_path "$AUTHORIZED_KEYS")"
@@ -444,6 +484,10 @@ config_reorder_recovery_journal="$(to_host_path "$REORDER_RECOVERY_JOURNAL")"
 
 escaped_ufw_path="$(json_escape "$ufw_path")"
 escaped_ufw_defaults_path="$(json_escape "$config_ufw_defaults_path")"
+escaped_iptables_save_path="$(json_escape "$config_iptables_save_path")"
+escaped_ip6tables_save_path="$(json_escape "$config_ip6tables_save_path")"
+escaped_ufw_user_rules_path="$(json_escape "$config_ufw_user_rules_path")"
+escaped_ufw_user6_rules_path="$(json_escape "$config_ufw_user6_rules_path")"
 escaped_pipe_name="$(json_escape "$PIPE_NAME")"
 escaped_server_cert="$(json_escape "$config_server_cert")"
 escaped_server_key="$(json_escape "$config_server_key")"
@@ -458,6 +502,11 @@ cat > "$SYSTEMD_CONFIG" <<EOF_SYSTEMD_CONFIG
   "expose_remote_exception_details": true,
   "ufw_path": "$escaped_ufw_path",
   "ufw_defaults_path": "$escaped_ufw_defaults_path",
+  "filter_system_state_enabled": $filter_system_state_enabled,
+  "iptables_save_path": "$escaped_iptables_save_path",
+  "ip6tables_save_path": "$escaped_ip6tables_save_path",
+  "ufw_user_rules_path": "$escaped_ufw_user_rules_path",
+  "ufw_user6_rules_path": "$escaped_ufw_user6_rules_path",
   "transport": {
     "type": "pipe",
     "pipe": {

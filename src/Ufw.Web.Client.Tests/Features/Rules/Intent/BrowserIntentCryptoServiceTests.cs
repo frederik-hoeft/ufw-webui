@@ -19,14 +19,14 @@ public sealed class BrowserIntentCryptoServiceTests
         await using BrowserIntentCryptoService service = new(js, NullLogger<BrowserIntentCryptoService>.Instance);
         byte[] payload = [1, 2, 3];
 
-        Assert.AreEqual("key-id", await service.GetKeyIdAsync("private"));
-        Assert.AreEqual("nonce", await service.CreateNonceAsync(16));
-        Assert.AreEqual("signature", await service.SignAsync("private", payload));
+        Assert.AreEqual("key-id", await service.GetKeyIdAsync("private", TestContext.CancellationToken));
+        Assert.AreEqual("nonce", await service.CreateNonceAsync(16, TestContext.CancellationToken));
+        Assert.AreEqual("signature", await service.SignAsync("private", payload, TestContext.CancellationToken));
 
         Assert.AreEqual(1, js.ImportCount);
         Assert.AreEqual("private", js.Module.Calls.Single(call => call.Identifier == "getKeyId").Args[0]);
         Assert.AreEqual(16, js.Module.Calls.Single(call => call.Identifier == "createNonce").Args[0]);
-        CollectionAssert.AreEqual(payload, (byte[])js.Module.Calls.Single(call => call.Identifier == "sign").Args[1]!);
+        Assert.AreSequenceEqual(payload, (byte[])js.Module.Calls.Single(call => call.Identifier == "sign").Args[1]!);
     }
 
     [TestMethod]
@@ -35,7 +35,7 @@ public sealed class BrowserIntentCryptoServiceTests
         RecordingJsRuntime js = new() { ImportException = new JSException("blocked") };
         await using BrowserIntentCryptoService service = new(js, NullLogger<BrowserIntentCryptoService>.Instance);
 
-        BrowserOperationException exception = await Assert.ThrowsExactlyAsync<BrowserOperationException>(() => service.GetKeyIdAsync("private"));
+        BrowserOperationException exception = await Assert.ThrowsExactlyAsync<BrowserOperationException>(() => service.GetKeyIdAsync("private", TestContext.CancellationToken));
 
         Assert.IsInstanceOfType<JSException>(exception.InnerException);
     }
@@ -46,12 +46,12 @@ public sealed class BrowserIntentCryptoServiceTests
         RecordingJsRuntime js = new();
         js.Module.SetResult("getKeyId", "key-id");
         BrowserIntentCryptoService service = new(js, NullLogger<BrowserIntentCryptoService>.Instance);
-        await service.GetKeyIdAsync("private");
+        await service.GetKeyIdAsync("private", TestContext.CancellationToken);
 
         await service.DisposeAsync();
 
         Assert.AreEqual(1, js.Module.DisposeCount);
-        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => service.GetKeyIdAsync("private"));
+        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => service.GetKeyIdAsync("private", TestContext.CancellationToken));
     }
 
     [TestMethod]
@@ -60,8 +60,10 @@ public sealed class BrowserIntentCryptoServiceTests
         RecordingJsRuntime js = new();
         await using BrowserIntentCryptoService service = new(js, NullLogger<BrowserIntentCryptoService>.Instance);
 
-        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.CreateNonceAsync(0));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.CreateNonceAsync(0, TestContext.CancellationToken));
 
         Assert.AreEqual(0, js.ImportCount);
     }
+
+    public TestContext TestContext { get; set; }
 }

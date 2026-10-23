@@ -51,7 +51,7 @@ public sealed class FileNonceStoreTests
                 store.TryConsumeAsync("same-nonce", expiresAt, TestContext.CancellationToken).AsTask(),
                 store.TryConsumeAsync("same-nonce", expiresAt, TestContext.CancellationToken).AsTask());
 
-            Assert.AreEqual(1, results.Count(static result => result));
+            Assert.ContainsSingle(static result => result, results);
         }
         finally
         {
@@ -178,7 +178,7 @@ public sealed class FileNonceStoreTests
             }
 
             string[] persisted = await File.ReadAllLinesAsync(path, TestContext.CancellationToken);
-            CollectionAssert.AreEquivalent(new[] { "# ufw-intent-nonces v1", $"stable {stableExpiresAt}", $"short-lived-64 {clock.GetUtcNow().ToUnixTimeSeconds() + 1}" }, persisted);
+            Assert.AreSequenceEqual(["# ufw-intent-nonces v1", $"stable {stableExpiresAt}", $"short-lived-64 {clock.GetUtcNow().ToUnixTimeSeconds() + 1}"], persisted, Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
 
             using FileNonceStore reloaded = new(configuration, clock, new DurableFileStore());
             Assert.IsFalse(await reloaded.TryConsumeAsync("stable", clock.GetUtcNow().ToUnixTimeSeconds() + 300, TestContext.CancellationToken));

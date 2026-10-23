@@ -19,8 +19,8 @@ public sealed class BrowserClientThemeServiceTests
         int changed = 0;
         service.Changed += () => changed++;
 
-        await service.InitializeAsync();
-        await service.InitializeAsync();
+        await service.InitializeAsync(TestContext.CancellationToken);
+        await service.InitializeAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(ClientThemeMode.Dark, service.Mode);
         Assert.IsTrue(service.IsDarkMode);
@@ -36,7 +36,7 @@ public sealed class BrowserClientThemeServiceTests
             .Returns(() => ValueTask.FromException<string?>(new JSException("blocked")));
         BrowserClientThemeService service = new(storage.Object, NullLogger<BrowserClientThemeService>.Instance);
 
-        await service.InitializeAsync();
+        await service.InitializeAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(ClientThemeMode.Light, service.Mode);
     }
@@ -51,7 +51,7 @@ public sealed class BrowserClientThemeServiceTests
         int changed = 0;
         service.Changed += () => changed++;
 
-        await service.SetModeAsync(ClientThemeMode.Dark);
+        await service.SetModeAsync(ClientThemeMode.Dark, TestContext.CancellationToken);
 
         Assert.AreEqual(ClientThemeMode.Dark, service.Mode);
         Assert.AreEqual(1, changed);
@@ -65,9 +65,9 @@ public sealed class BrowserClientThemeServiceTests
             .Returns(() => ValueTask.CompletedTask);
         BrowserClientThemeService service = new(storage.Object, NullLogger<BrowserClientThemeService>.Instance);
 
-        await service.ToggleAsync();
+        await service.ToggleAsync(TestContext.CancellationToken);
         Assert.AreEqual(ClientThemeMode.Dark, service.Mode);
-        await service.ToggleAsync();
+        await service.ToggleAsync(TestContext.CancellationToken);
         Assert.AreEqual(ClientThemeMode.Light, service.Mode);
 
         storage.Verify(service => service.SetItemAsync("ufw.theme", "dark", It.IsAny<CancellationToken>()), Times.Once);
@@ -80,8 +80,10 @@ public sealed class BrowserClientThemeServiceTests
         Mock<ILocalStorage> storage = new();
         BrowserClientThemeService service = new(storage.Object, NullLogger<BrowserClientThemeService>.Instance);
 
-        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.SetModeAsync((ClientThemeMode)42));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() => service.SetModeAsync((ClientThemeMode)42, TestContext.CancellationToken));
 
         storage.VerifyNoOtherCalls();
     }
+
+    public TestContext TestContext { get; set; }
 }

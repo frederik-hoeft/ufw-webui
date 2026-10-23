@@ -3,6 +3,11 @@
   "expose_remote_exception_details": false,
   "ufw_path": "/usr/sbin/ufw",
   "ufw_defaults_path": "/etc/default/ufw",
+  "filter_system_state_enabled": true,
+  "iptables_save_path": "/usr/sbin/iptables-save",
+  "ip6tables_save_path": "/usr/sbin/ip6tables-save",
+  "ufw_user_rules_path": "/etc/ufw/user.rules",
+  "ufw_user6_rules_path": "/etc/ufw/user6.rules",
   "transport": {
     "type": "pipe",
     "pipe": {

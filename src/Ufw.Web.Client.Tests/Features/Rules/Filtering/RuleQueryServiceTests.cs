@@ -72,7 +72,7 @@ public sealed class RuleQueryServiceTests
 
         RuleFamilyQueryResult result = _service.Evaluate(family, query);
 
-        CollectionAssert.AreEqual(new[] { 0, 2 }, result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
+        Assert.AreSequenceEqual([0, 2], result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
         NetworkRuleMatchEvidence firstEvidence = (NetworkRuleMatchEvidence)result.Rows[0].Evidence.Single();
         Assert.AreEqual(NetworkRuleMatchEvidence.RelationshipKind.ContainsQuery, firstEvidence.Relationship);
         NetworkRuleMatchEvidence anyEvidence = (NetworkRuleMatchEvidence)result.Rows[1].Evidence.Single();
@@ -116,7 +116,7 @@ public sealed class RuleQueryServiceTests
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new NetworkRuleFilter(RuleEndpointField.Source, queryNetwork!)]));
 
-        CollectionAssert.AreEqual(new[] { 0, 1 }, result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
+        Assert.AreSequenceEqual([0, 1], result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
         Assert.AreEqual("::/0", ((NetworkRuleMatchEvidence)result.Rows[1].Evidence.Single()).RuleNetwork);
     }
 
@@ -247,7 +247,7 @@ public sealed class RuleQueryServiceTests
 
         RuleFamilyQueryResult result = _service.Evaluate(family, new RuleQuery([new PortRuleFilter(RuleEndpointField.Destination, ports!)]));
 
-        CollectionAssert.AreEqual(new[] { 0, 2 }, result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
+        Assert.AreSequenceEqual([0, 2], result.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
         Assert.AreEqual("any", ((PortRuleMatchEvidence)result.Rows[1].Evidence.Single()).RulePorts);
     }
 
@@ -389,7 +389,7 @@ public sealed class RuleQueryServiceTests
         Assert.AreEqual(0, result.Rows[0].Row.OccurrenceId);
         TextRuleMatchEvidence evidence = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence.Single());
         Assert.AreEqual(TextRuleMatchEvidence.FieldKind.SourceKnownHost, evidence.Field);
-        StringAssert.Contains(evidence.Value, "nas1.service.home.arpa");
+        Assert.Contains("nas1.service.home.arpa", evidence.Value);
     }
 
     [TestMethod]
@@ -411,7 +411,7 @@ public sealed class RuleQueryServiceTests
         RuleFamilyQueryResult hidden = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("hidden")]), hosts);
         RuleFamilyQueryResult otherFamily = _service.Evaluate(family, new RuleQuery([new TextRuleFilter("nas-v6")]), hosts);
 
-        CollectionAssert.AreEqual(new[] { 0 }, visible.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
+        Assert.AreSequenceEqual([0], visible.Rows.Select(static row => row.Row.OccurrenceId).ToArray());
         Assert.IsEmpty(hidden.Rows);
         Assert.IsEmpty(otherFamily.Rows);
     }
@@ -430,7 +430,7 @@ public sealed class RuleQueryServiceTests
         Assert.HasCount(1, result.Rows);
         TextRuleMatchEvidence evidence = Assert.IsInstanceOfType<TextRuleMatchEvidence>(result.Rows[0].Evidence.Single());
         Assert.AreEqual(TextRuleMatchEvidence.FieldKind.DestinationKnownHost, evidence.Field);
-        StringAssert.Contains(evidence.Value, "db1.service.home.arpa [10.100.20.17] primary database");
+        Assert.Contains("db1.service.home.arpa [10.100.20.17] primary database", evidence.Value);
     }
 
     [TestMethod]
@@ -498,7 +498,7 @@ public sealed class RuleQueryServiceTests
 
         InvalidOperationException exception = Assert.ThrowsExactly<InvalidOperationException>(() => _service.Evaluate(family, query));
 
-        StringAssert.Contains(exception.Message, nameof(UnregisteredRuleFilter));
+        Assert.Contains(nameof(UnregisteredRuleFilter), exception.Message);
     }
 
     [TestMethod]
@@ -506,7 +506,7 @@ public sealed class RuleQueryServiceTests
     {
         TextRuleFilter filter = new("prometheus \"home network\" tcp");
 
-        CollectionAssert.AreEqual(new[] { "prometheus", "home network", "tcp" }, filter.Terms.ToArray());
+        Assert.AreSequenceEqual(["prometheus", "home network", "tcp"], filter.Terms.ToArray());
     }
 
     private sealed record UnregisteredRuleFilter : RuleFilter;

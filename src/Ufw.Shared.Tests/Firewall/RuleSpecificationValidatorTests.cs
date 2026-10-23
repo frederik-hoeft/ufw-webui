@@ -59,10 +59,10 @@ public sealed class RuleSpecificationValidatorTests
 
         ModelValidationError[] errors = RuleSpecificationValidator.Validate(specification);
 
-        Assert.IsTrue(errors.Any(static error => error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily)));
-        Assert.IsTrue(errors.Any(static error => error.PropertyName == nameof(FirewallRuleSpecification.SourcePorts)));
-        Assert.IsTrue(errors.Any(static error => error.PropertyName == nameof(FirewallRuleSpecification.SourceInterface)));
-        Assert.IsTrue(errors.Any(static error => error.PropertyName == nameof(FirewallRuleSpecification.Comment)));
+        Assert.Contains(static error => error.PropertyName == nameof(FirewallRuleSpecification.AddressFamily), errors);
+        Assert.Contains(static error => error.PropertyName == nameof(FirewallRuleSpecification.SourcePorts), errors);
+        Assert.Contains(static error => error.PropertyName == nameof(FirewallRuleSpecification.SourceInterface), errors);
+        Assert.Contains(static error => error.PropertyName == nameof(FirewallRuleSpecification.Comment), errors);
     }
 
     [TestMethod]
@@ -99,7 +99,7 @@ public sealed class RuleSpecificationValidatorTests
         foreach ((FirewallRuleSpecification specification, string propertyName, string code) in cases)
         {
             ModelValidationError[] errors = RuleSpecificationValidator.Validate(specification);
-            Assert.IsTrue(errors.Any(error => error.PropertyName == propertyName && error.Code == code),
+            Assert.Contains(error => error.PropertyName == propertyName && error.Code == code, errors,
                 $"Expected validation code '{code}' for property '{propertyName}'.");
         }
     }
@@ -118,7 +118,7 @@ public sealed class RuleSpecificationValidatorTests
 
         Assert.IsFalse(valid);
         Assert.IsNotNull(response);
-        Assert.IsTrue(response.Errors.Any(static error =>
-            error.PropertyName == nameof(FirewallRuleSpecification.DestinationInterface)));
+        Assert.Contains(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.DestinationInterface), response.Errors);
     }
 }

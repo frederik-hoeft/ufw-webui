@@ -62,7 +62,7 @@ public sealed class FirewallOrderedInsertionServiceTests
         IResponsePayload result = await service.InsertAsync(CreateRequest(), TestContext.CancellationToken);
 
         Assert.IsInstanceOfType<RuleInsertionResponse>(result);
-        CollectionAssert.AreEqual(new[] { "gate", "guard", "nonce", "executor" }, calls);
+        Assert.AreSequenceEqual(new[] { "gate", "guard", "nonce", "executor" }, calls);
     }
 
     [TestMethod]
@@ -123,8 +123,8 @@ public sealed class FirewallOrderedInsertionServiceTests
             service.InsertAsync(request, TestContext.CancellationToken).AsTask(),
             service.InsertAsync(request, TestContext.CancellationToken).AsTask());
 
-        Assert.AreEqual(1, results.Count(static result => result is RuleInsertionResponse));
-        Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
+        Assert.ContainsSingle(static result => result is RuleInsertionResponse, results);
+        Assert.ContainsSingle(static result => result is ConflictResponse, results);
         executor.Verify(value => value.ExecuteAsync(It.IsAny<InsertRulePayload>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 

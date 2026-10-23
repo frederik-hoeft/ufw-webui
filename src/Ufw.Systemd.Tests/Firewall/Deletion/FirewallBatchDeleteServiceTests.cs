@@ -95,8 +95,8 @@ public sealed class FirewallBatchDeleteServiceTests
             service.DeleteAsync(request, TestContext.CancellationToken).AsTask(),
             service.DeleteAsync(request, TestContext.CancellationToken).AsTask());
 
-        Assert.AreEqual(1, results.Count(static result => result is RuleBatchDeleteResponse));
-        Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
+        Assert.ContainsSingle(static result => result is RuleBatchDeleteResponse, results);
+        Assert.ContainsSingle(static result => result is ConflictResponse, results);
         executor.Verify(candidate => candidate.ExecuteAsync(It.IsAny<BatchDeleteRulesPayload>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -143,7 +143,7 @@ public sealed class FirewallBatchDeleteServiceTests
         Assert.AreEqual(finalSnapshot.ToResponse(), response.FinalSnapshot);
         Assert.AreEqual(ResponseOperationOutcome.DeletedAfterProcessFailure, response.Operations[0].Outcome);
         Assert.AreEqual("sha256:rule", response.Operations[0].RuleId);
-        CollectionAssert.AreEqual(new[] { 1 }, response.PendingOccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([1], response.PendingOccurrenceIds.ToArray());
         Assert.AreEqual("stopped", response.Diagnostic);
     }
 

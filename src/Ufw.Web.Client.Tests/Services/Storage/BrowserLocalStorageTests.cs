@@ -12,17 +12,16 @@ public sealed class BrowserLocalStorageTests
         StorageJsRuntime js = new() { GetResult = "stored" };
         BrowserLocalStorage storage = new(js);
 
-        string? value = await storage.GetItemAsync("key");
-        await storage.SetItemAsync("key", "value");
-        await storage.RemoveItemAsync("key");
+        string? value = await storage.GetItemAsync("key", TestContext.CancellationToken);
+        await storage.SetItemAsync("key", "value", TestContext.CancellationToken);
+        await storage.RemoveItemAsync("key", TestContext.CancellationToken);
 
         Assert.AreEqual("stored", value);
-        CollectionAssert.AreEqual(
-            new[] { "localStorage.getItem", "localStorage.setItem", "localStorage.removeItem" },
-            js.Calls.Select(static call => call.Identifier).ToArray());
-        CollectionAssert.AreEqual(new object?[] { "key" }, js.Calls[0].Args);
-        CollectionAssert.AreEqual(new object?[] { "key", "value" }, js.Calls[1].Args);
-        CollectionAssert.AreEqual(new object?[] { "key" }, js.Calls[2].Args);
+        Assert.AreSequenceEqual(
+            ["localStorage.getItem", "localStorage.setItem", "localStorage.removeItem"], js.Calls.Select(static call => call.Identifier).ToArray());
+        Assert.AreSequenceEqual(["key"], js.Calls[0].Args);
+        Assert.AreSequenceEqual(["key", "value"], js.Calls[1].Args);
+        Assert.AreSequenceEqual(["key"], js.Calls[2].Args);
     }
 
     [TestMethod]
@@ -31,10 +30,10 @@ public sealed class BrowserLocalStorageTests
         StorageJsRuntime js = new();
         BrowserLocalStorage storage = new(js);
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => storage.GetItemAsync(" ").AsTask());
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => storage.SetItemAsync(" ", "value").AsTask());
-        await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => storage.SetItemAsync("key", null!).AsTask());
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => storage.RemoveItemAsync("").AsTask());
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => storage.GetItemAsync(" ", TestContext.CancellationToken).AsTask());
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => storage.SetItemAsync(" ", "value", TestContext.CancellationToken).AsTask());
+        await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => storage.SetItemAsync("key", null!, TestContext.CancellationToken).AsTask());
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => storage.RemoveItemAsync("", TestContext.CancellationToken).AsTask());
         Assert.IsEmpty(js.Calls);
     }
 
@@ -54,4 +53,6 @@ public sealed class BrowserLocalStorageTests
             return ValueTask.FromResult((TValue)result!);
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

@@ -26,7 +26,7 @@ public sealed class RuleMutationServiceTests
         host.Signer.Setup(service => service.CreateAddRuleRequestAsync("deployment", rule, "key", It.IsAny<CancellationToken>())).ReturnsAsync(signed);
         host.Rules.Setup(client => client.AddRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RuleMutationResponse actual = await host.Service.AddRuleAsync(rule, "key");
+        RuleMutationResponse actual = await host.Service.AddRuleAsync(rule, "key", TestContext.CancellationToken);
 
         Assert.AreSame(expected, actual);
     }
@@ -39,9 +39,9 @@ public sealed class RuleMutationServiceTests
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION + 1, "deployment"));
 
         ApiProtocolException exception = await Assert.ThrowsExactlyAsync<ApiProtocolException>(() =>
-            host.Service.AddRuleAsync(new FirewallRuleSpecification(), "key"));
+            host.Service.AddRuleAsync(new FirewallRuleSpecification(), "key", TestContext.CancellationToken));
 
-        StringAssert.Contains(exception.Message, "protocol mismatch", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("protocol mismatch", exception.Message, StringComparison.OrdinalIgnoreCase);
         host.Signer.VerifyNoOtherCalls();
         host.Rules.VerifyNoOtherCalls();
     }
@@ -59,7 +59,7 @@ public sealed class RuleMutationServiceTests
 
         foreach (ListedFirewallRule invalid in invalidRules)
         {
-            await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteRuleAsync(invalid, "key"));
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DeleteRuleAsync(invalid, "key", TestContext.CancellationToken));
         }
 
         host.Context.VerifyNoOtherCalls();
@@ -80,7 +80,7 @@ public sealed class RuleMutationServiceTests
         host.Signer.Setup(service => service.CreateDeleteRuleRequestAsync("deployment", "stable-id", specification, "key", It.IsAny<CancellationToken>())).ReturnsAsync(signed);
         host.Rules.Setup(client => client.DeleteRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RuleMutationResponse actual = await host.Service.DeleteRuleAsync(rule, "key");
+        RuleMutationResponse actual = await host.Service.DeleteRuleAsync(rule, "key", TestContext.CancellationToken);
 
         Assert.AreSame(expected, actual);
     }
@@ -105,7 +105,7 @@ public sealed class RuleMutationServiceTests
             .ReturnsAsync(signed);
         host.Rules.Setup(client => client.BatchDeleteRulesAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RuleBatchDeleteResponse actual = await host.Service.BatchDeleteRulesAsync(baseline, [0], "key");
+        RuleBatchDeleteResponse actual = await host.Service.BatchDeleteRulesAsync(baseline, [0], "key", TestContext.CancellationToken);
 
         Assert.AreSame(expected, actual);
     }
@@ -141,7 +141,7 @@ public sealed class RuleMutationServiceTests
             .ReturnsAsync(signed);
         host.Rules.Setup(client => client.InsertRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RuleInsertionResponse actual = await host.Service.InsertRuleAsync(baseline, anchorOccurrenceId: 0, RuleInsertionPlacement.After, rule, "key");
+        RuleInsertionResponse actual = await host.Service.InsertRuleAsync(baseline, anchorOccurrenceId: 0, RuleInsertionPlacement.After, rule, "key", TestContext.CancellationToken);
 
         Assert.AreSame(expected, actual);
     }
@@ -185,7 +185,7 @@ public sealed class RuleMutationServiceTests
             .ReturnsAsync(signed);
         host.Rules.Setup(client => client.ReplaceRuleAsync(signed, It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
-        RuleReplacementMutationResponse actual = await host.Service.ReplaceRuleAsync(baseline, targetOccurrenceId: 0, originalRuleId, replacement, "key");
+        RuleReplacementMutationResponse actual = await host.Service.ReplaceRuleAsync(baseline, targetOccurrenceId: 0, originalRuleId, replacement, "key", TestContext.CancellationToken);
 
         Assert.AreSame(expected, actual);
     }
@@ -202,7 +202,7 @@ public sealed class RuleMutationServiceTests
             targetOccurrenceId: 0,
             RuleIdentity.Compute(new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 }),
             new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
-            "key"));
+            "key", TestContext.CancellationToken));
 
         host.Signer.VerifyNoOtherCalls();
         host.Rules.VerifyNoOtherCalls();
@@ -220,7 +220,7 @@ public sealed class RuleMutationServiceTests
             anchorOccurrenceId: 0,
             RuleInsertionPlacement.Before,
             new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
-            "key"));
+            "key", TestContext.CancellationToken));
 
         host.Signer.VerifyNoOtherCalls();
         host.Rules.VerifyNoOtherCalls();
@@ -286,4 +286,6 @@ public sealed class RuleMutationServiceTests
 
         public RuleMutationService Service => new(Rules.Object, new CompatibleIntentContextProvider(Context.Object), Signer.Object);
     }
+
+    public TestContext TestContext { get; set; }
 }

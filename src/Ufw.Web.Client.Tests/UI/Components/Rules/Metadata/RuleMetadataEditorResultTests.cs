@@ -21,7 +21,7 @@ public sealed class RuleMetadataEditorResultTests
         RuleMetadataEditorResult result = RuleMetadataEditorResult.FromMetadata(metadata).Normalize();
 
         Assert.AreEqual("operator note", result.Notes);
-        CollectionAssert.AreEqual(new[] { firstTagId, secondTagId }.Order().ToArray(), result.TagIds.ToArray());
+        Assert.AreSequenceEqual(new[] { firstTagId, secondTagId }.Order().ToArray(), result.TagIds.ToArray());
         Assert.AreEqual(groupId, result.GroupId);
     }
 
@@ -34,7 +34,7 @@ public sealed class RuleMetadataEditorResultTests
         RuleMetadataEditorResult normalized = result.Normalize();
 
         Assert.IsNull(normalized.Notes);
-        CollectionAssert.AreEqual(new[] { tagId }, normalized.TagIds.ToArray());
+        Assert.AreSequenceEqual([tagId], normalized.TagIds.ToArray());
         Assert.IsNull(normalized.GroupId);
         Assert.IsFalse(normalized.IsEmpty);
         Assert.IsTrue(RuleMetadataEditorResult.Empty.IsEmpty);

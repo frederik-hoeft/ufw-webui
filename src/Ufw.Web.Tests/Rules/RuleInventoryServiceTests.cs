@@ -22,7 +22,7 @@ public sealed class RuleInventoryServiceTests
         TestRuleMetadataDataAccess metadata = new();
         RuleInventoryService service = new(daemon, metadata, new TestTimeProvider(capturedAt));
 
-        RuleInventoryResponse response = await service.GetAsync();
+        RuleInventoryResponse response = await service.GetAsync(TestContext.CancellationToken);
 
         Assert.AreSame(firewall, response.Firewall);
         Assert.AreEqual(capturedAt, response.CapturedAt);
@@ -83,4 +83,6 @@ public sealed class RuleInventoryServiceTests
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
     }
+
+    public TestContext TestContext { get; set; }
 }

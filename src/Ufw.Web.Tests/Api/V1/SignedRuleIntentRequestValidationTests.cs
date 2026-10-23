@@ -29,7 +29,7 @@ public sealed class SignedRuleIntentRequestValidationTests
         foreach (SignedRuleIntentRequest request in requests)
         {
             List<ValidationResult> results = Validate(request);
-            Assert.HasCount(0, results, request.GetType().Name);
+            Assert.IsEmpty(results, request.GetType().Name);
         }
     }
 
@@ -50,7 +50,7 @@ public sealed class SignedRuleIntentRequestValidationTests
 
         List<ValidationResult> results = Validate(request);
 
-        Assert.IsTrue(results.Any(static result => result.MemberNames.Contains(nameof(SignedRuleIntentRequest.Operation), StringComparer.Ordinal)));
+        Assert.Contains(static result => result.MemberNames.Contains(nameof(SignedRuleIntentRequest.Operation), StringComparer.Ordinal), results);
     }
 
     [TestMethod]
@@ -105,7 +105,7 @@ public sealed class SignedRuleIntentRequestValidationTests
         List<ValidationResult> results = Validate(request);
 
         Assert.IsTrue(HasMember(results, nameof(SignedRuleIntentRequest.Payload)));
-        StringAssert.Contains(results.Single().ErrorMessage!, "Unknown JSON property 'unexpected'");
+        Assert.Contains("Unknown JSON property 'unexpected'", results.Single().ErrorMessage!);
     }
 
     [TestMethod]
@@ -138,7 +138,7 @@ public sealed class SignedRuleIntentRequestValidationTests
         List<ValidationResult> results = Validate(request);
 
         Assert.IsTrue(HasMember(results, nameof(SignedRuleIntentRequest.Payload)));
-        StringAssert.Contains(results.Single().ErrorMessage!, "Duplicate JSON property 'rule'");
+        Assert.Contains("Duplicate JSON property 'rule'", results.Single().ErrorMessage!);
     }
 
     [TestMethod]
@@ -163,7 +163,7 @@ public sealed class SignedRuleIntentRequestValidationTests
         List<ValidationResult> results = Validate(request);
 
         Assert.IsTrue(HasMember(results, nameof(SignedRuleIntentRequest.Payload)));
-        StringAssert.Contains(results.Single().ErrorMessage!, "Required JSON property 'anchorOccurrenceId' is missing");
+        Assert.Contains("Required JSON property 'anchorOccurrenceId' is missing", results.Single().ErrorMessage!);
     }
 
     [TestMethod]
@@ -186,7 +186,7 @@ public sealed class SignedRuleIntentRequestValidationTests
         List<ValidationResult> results = Validate(request);
 
         Assert.IsTrue(HasMember(results, nameof(SignedRuleIntentRequest.Payload)));
-        StringAssert.Contains(results.Single().ErrorMessage!, "Required JSON property 'action' is missing");
+        Assert.Contains("Required JSON property 'action' is missing", results.Single().ErrorMessage!);
     }
 
     [TestMethod]
@@ -211,7 +211,7 @@ public sealed class SignedRuleIntentRequestValidationTests
         List<ValidationResult> results = Validate(request);
 
         Assert.IsTrue(HasMember(results, nameof(SignedRuleIntentRequest.Payload)));
-        StringAssert.Contains(results.Single().ErrorMessage!, "Unknown JSON property 'unexpected'");
+        Assert.Contains("Unknown JSON property 'unexpected'", results.Single().ErrorMessage!);
     }
 
     [TestMethod]
@@ -235,7 +235,7 @@ public sealed class SignedRuleIntentRequestValidationTests
 
         List<ValidationResult> results = Validate(request);
 
-        Assert.IsTrue(results.Any(static result => result.MemberNames.Contains("Payload.Rule.DestinationPorts", StringComparer.Ordinal)));
+        Assert.Contains(static result => result.MemberNames.Contains("Payload.Rule.DestinationPorts", StringComparer.Ordinal), results);
         Assert.AreEqual(originalJson, request.Payload.GetRawText());
     }
 
@@ -251,7 +251,7 @@ public sealed class SignedRuleIntentRequestValidationTests
 
         List<ValidationResult> results = Validate(request);
 
-        Assert.IsTrue(results.Any(static result => result.MemberNames.Contains("Payload.Rule.DestinationPorts", StringComparer.Ordinal)));
+        Assert.Contains(static result => result.MemberNames.Contains("Payload.Rule.DestinationPorts", StringComparer.Ordinal), results);
     }
 
     private static List<ValidationResult> Validate(SignedRuleIntentRequest request)

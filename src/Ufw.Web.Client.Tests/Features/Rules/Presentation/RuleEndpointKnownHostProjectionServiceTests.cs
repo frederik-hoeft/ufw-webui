@@ -27,7 +27,7 @@ public sealed class RuleEndpointKnownHostProjectionServiceTests
         RuleEndpointKnownHostProjection projection = _service.Project("10.20.0.17/24", [exact, contained]);
 
         Assert.AreEqual("10.20.0.0/24", projection.Address);
-        CollectionAssert.AreEqual(new[] { exact }, projection.Hosts.ToArray());
+        Assert.AreSequenceEqual([exact], projection.Hosts.ToArray());
     }
 
     [TestMethod]
@@ -39,7 +39,7 @@ public sealed class RuleEndpointKnownHostProjectionServiceTests
 
         RuleEndpointKnownHostProjection projection = _service.Project("192.0.2.10", [visible, hidden, ipv6]);
 
-        CollectionAssert.AreEqual(new[] { visible, hidden }, projection.Hosts.ToArray());
+        Assert.AreSequenceEqual([visible, hidden], projection.Hosts.ToArray());
     }
 
     private static KnownHostInventoryItem Host(string name, string address, FirewallAddressFamily family, bool isVisible = true) => new()

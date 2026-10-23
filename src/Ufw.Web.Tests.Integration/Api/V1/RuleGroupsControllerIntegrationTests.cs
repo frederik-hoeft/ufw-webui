@@ -49,7 +49,7 @@ internal sealed class RuleGroupsControllerIntegrationTests : ControllerIntegrati
             ApplicationDbContext context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             context.ChangeTracker.Clear();
             RuleGroupEntry persisted = await context.Set<RuleGroupEntry>().SingleAsync(cancellationToken);
-            Assert.IsTrue(persisted.Id > 0);
+            Assert.IsGreaterThan(0, persisted.Id);
             Assert.AreEqual(group.Id, persisted.PublicId);
 
             IActionResult deleteResult = await controller.DeleteAsync(group.Id, cancellationToken);

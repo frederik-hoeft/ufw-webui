@@ -19,8 +19,8 @@ public sealed class OperationalStatusApiClientsTests
         using HttpClient daemonHttp = CreateClient(daemonHandler);
         DaemonStatusApiClient daemon = new(daemonHttp);
 
-        await management.ProbeAsync();
-        await daemon.ProbeAsync();
+        await management.ProbeAsync(TestContext.CancellationToken);
+        await daemon.ProbeAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(HttpMethod.Get, managementHandler.Requests[0].Method);
         Assert.AreEqual("/api/health", managementHandler.Requests[0].RequestUri!.AbsolutePath);
@@ -35,7 +35,7 @@ public sealed class OperationalStatusApiClientsTests
         using HttpClient http = CreateClient(handler);
         ManagementApiHealthClient client = new(http);
 
-        ApiRequestException exception = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ProbeAsync());
+        ApiRequestException exception = await Assert.ThrowsExactlyAsync<ApiRequestException>(() => client.ProbeAsync(TestContext.CancellationToken));
 
         Assert.AreEqual(HttpStatusCode.ServiceUnavailable, exception.StatusCode);
     }
@@ -44,4 +44,6 @@ public sealed class OperationalStatusApiClientsTests
     {
         BaseAddress = new Uri("https://localhost/"),
     };
+
+    public TestContext TestContext { get; set; }
 }

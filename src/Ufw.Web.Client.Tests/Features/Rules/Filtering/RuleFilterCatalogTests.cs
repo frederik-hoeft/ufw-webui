@@ -32,7 +32,7 @@ public sealed class RuleFilterCatalogTests
     {
         IReadOnlyList<RuleFilterDefinition> definitions = _catalog.Definitions;
 
-        Assert.AreEqual(definitions.Count, definitions.Select(static definition => definition.Key).Distinct(StringComparer.Ordinal).Count());
+        Assert.HasCount(definitions.Count, definitions.Select(static definition => definition.Key).Distinct(StringComparer.Ordinal));
         Assert.IsTrue(definitions.All(static definition => typeof(IRuleFilterEditor).IsAssignableFrom(definition.EditorComponentType)));
         Assert.HasCount(8, definitions.Where(static definition => definition.Selectable));
         Assert.IsFalse(definitions.Single(static definition => definition.Key == "text").Selectable);
@@ -46,8 +46,8 @@ public sealed class RuleFilterCatalogTests
 
         Assert.AreEqual(typeof(NetworkRuleFilterEditor), source.EditorComponentType);
         Assert.AreEqual(typeof(NetworkRuleFilterEditor), destination.EditorComponentType);
-        Assert.AreEqual(true, source.Parameters[nameof(NetworkRuleFilterEditor.SourceEndpoint)]);
-        Assert.AreEqual(false, destination.Parameters[nameof(NetworkRuleFilterEditor.SourceEndpoint)]);
+        Assert.IsTrue((bool?)source.Parameters[nameof(NetworkRuleFilterEditor.SourceEndpoint)]);
+        Assert.IsFalse((bool?)destination.Parameters[nameof(NetworkRuleFilterEditor.SourceEndpoint)]);
     }
 
     [TestMethod]
@@ -70,7 +70,7 @@ public sealed class RuleFilterCatalogTests
 
         string[] keys = [.. filters.Select(filter => _catalog.Resolve(filter).Key)];
 
-        CollectionAssert.AreEqual(new[] { "text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag", "group" }, keys);
+        Assert.AreSequenceEqual(["text", "source-network", "destination-network", "port", "protocol", "action", "direction", "tag", "group"], keys);
     }
 
     [TestMethod]
@@ -78,7 +78,7 @@ public sealed class RuleFilterCatalogTests
     {
         InvalidOperationException exception = Assert.ThrowsExactly<InvalidOperationException>(() => _catalog.Resolve(new UnregisteredRuleFilter()));
 
-        StringAssert.Contains(exception.Message, nameof(UnregisteredRuleFilter));
+        Assert.Contains(nameof(UnregisteredRuleFilter), exception.Message);
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public sealed class RuleFilterCatalogTests
             new TestDefinitionProvider(duplicate),
         ]));
 
-        StringAssert.Contains(exception.Message, "duplicate");
+        Assert.Contains("duplicate", exception.Message);
     }
 
     private static RuleFilterCatalog CreateCatalog() => new(

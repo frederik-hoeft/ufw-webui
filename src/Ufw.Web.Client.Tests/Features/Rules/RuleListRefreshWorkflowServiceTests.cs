@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Features.KnownHosts;
@@ -30,7 +30,7 @@ public sealed class RuleListRefreshWorkflowServiceTests
         Assert.AreSame(snapshot, result.State.Snapshot);
         Assert.HasCount(1, result.KnownHosts);
         Assert.AreSame(visible, result.KnownHosts[0]);
-        CollectionAssert.AreEqual(new[] { "rules", "hosts" }, order);
+        Assert.AreSequenceEqual(new[] { "rules", "hosts" }, order);
     }
 
     [TestMethod]
@@ -46,7 +46,7 @@ public sealed class RuleListRefreshWorkflowServiceTests
         ClientError error = new(ClientErrorKind.Unavailable, "offline", true);
         host.Errors.Setup(mapper => mapper.Describe(failure)).Returns(error);
 
-        RuleListRefreshResult result = await host.Service.RefreshAsync(current.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.AfterMutation)), [previous]);
+        RuleListRefreshResult result = await host.Service.RefreshAsync(current.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.AfterMutation)), [previous], TestContext.CancellationToken);
 
         Assert.IsTrue(result.State.IsStale);
         Assert.AreSame(snapshot, result.State.Snapshot);
@@ -68,7 +68,7 @@ public sealed class RuleListRefreshWorkflowServiceTests
         host.Hosts.SetupGet(service => service.Current).Returns(new KnownHostInventoryResponse([Host("hidden", false), cached]));
         host.Errors.Setup(mapper => mapper.CanDescribe(failure)).Returns(true);
 
-        RuleListRefreshResult result = await host.Service.RefreshAsync(RuleInventoryState.Initial.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual)), []);
+        RuleListRefreshResult result = await host.Service.RefreshAsync(RuleInventoryState.Initial.MoveNext(new RuleInventoryTransition.RefreshStarted(RuleInventoryRefreshReason.Manual)), [], TestContext.CancellationToken);
 
         Assert.IsTrue(result.State.IsCurrent);
         Assert.AreSame(snapshot, result.State.Snapshot);
@@ -104,4 +104,6 @@ public sealed class RuleListRefreshWorkflowServiceTests
         public Mock<IClientErrorMapper> Errors { get; } = new(MockBehavior.Strict);
         public RuleListRefreshWorkflowService Service => new(Inventory.Object, Hosts.Object, Errors.Object);
     }
+
+    public TestContext TestContext { get; set; }
 }

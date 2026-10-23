@@ -48,6 +48,8 @@ public sealed class RuleInventoryServiceTests
             .ReturnsAsync(new RuleInventoryResponse(new RuleListResponse(true, [], TestFirewallConfiguration.Enabled),
             [new RuleMetadataItem { Id = Guid.Empty, RuleId = "broken", Tags = [] }]));
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleInventoryService(api.Object).GetAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleInventoryService(api.Object).GetAsync(TestContext.CancellationToken));
     }
+
+    public TestContext TestContext { get; set; }
 }

@@ -33,9 +33,8 @@ public sealed class FirewallOrderedInsertionExecutorTests
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
         Assert.IsNotNull(result.InsertedRule);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" },
-            harness.Commands.Single());
+        Assert.AreSequenceEqual(
+            ["insert", "1", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], harness.Commands.Single());
     }
 
     [TestMethod]
@@ -47,7 +46,7 @@ public sealed class FirewallOrderedInsertionExecutorTests
             harness.Payload(anchorOccurrenceId: 1, RuleInsertionPlacement.After, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
-        CollectionAssert.AreEqual(new[] { "insert", "3", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp" }, harness.Commands.Single());
+        Assert.AreSequenceEqual(["insert", "3", "allow", "in", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp"], harness.Commands.Single());
     }
 
     [TestMethod]
@@ -83,9 +82,8 @@ public sealed class FirewallOrderedInsertionExecutorTests
             harness.Payload(anchorOccurrenceId: 3, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv6, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
-        CollectionAssert.AreEqual(
-            new[] { "insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp" },
-            harness.Commands.Single());
+        Assert.AreSequenceEqual(
+            ["insert", "4", "allow", "in", "from", "::/0", "to", "::/0", "port", "22", "proto", "tcp"], harness.Commands.Single());
     }
 
     [TestMethod]
@@ -155,7 +153,8 @@ public sealed class FirewallOrderedInsertionExecutorTests
             harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
-        StringAssert.Contains(result.Diagnostic, "reported failure");
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("reported failure", result.Diagnostic);
     }
 
     [TestMethod]
@@ -168,7 +167,8 @@ public sealed class FirewallOrderedInsertionExecutorTests
             harness.Payload(0, RuleInsertionPlacement.Before, Rule(FirewallAddressFamily.IPv4, "22")), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleInsertionExecutionOutcome.Completed, result.Outcome);
-        StringAssert.Contains(result.Diagnostic, "wait failed");
+        Assert.IsNotNull(result.Diagnostic);
+        Assert.Contains("wait failed", result.Diagnostic);
     }
 
     [TestMethod]

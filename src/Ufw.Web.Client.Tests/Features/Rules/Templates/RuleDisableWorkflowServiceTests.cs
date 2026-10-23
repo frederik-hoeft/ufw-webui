@@ -36,7 +36,7 @@ public sealed class RuleDisableWorkflowServiceTests
         RuleMutationResponse deleteResponse = new(IntentOperations.DELETE_RULE, row.Rule);
         host.Mutations.Setup(service => service.DeleteRuleAsync(row.Rule, "private-key", It.IsAny<CancellationToken>())).ReturnsAsync(deleteResponse);
 
-        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "  web access  ", "  temporarily disabled  ", "private-key");
+        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "  web access  ", "  temporarily disabled  ", "private-key", TestContext.CancellationToken);
 
         Assert.IsTrue(result.Completed);
         Assert.IsTrue(result.TemplatePersistenceConfirmed);
@@ -47,7 +47,7 @@ public sealed class RuleDisableWorkflowServiceTests
         Assert.AreEqual("web access", captured.Name);
         Assert.AreEqual("temporarily disabled", captured.Description);
         Assert.AreEqual("keep this", captured.Notes);
-        CollectionAssert.AreEqual(new[] { tagId }, captured.TagIds.ToArray());
+        Assert.AreSequenceEqual([tagId], captured.TagIds.ToArray());
         Assert.AreEqual(groupId, captured.GroupId);
         Assert.AreNotSame(row.Rule.Rule, captured.Rule);
         Assert.AreEqual(row.Rule.Rule!.DestinationPorts, captured.Rule.DestinationPorts);
@@ -68,7 +68,7 @@ public sealed class RuleDisableWorkflowServiceTests
         host.Mutations.Setup(service => service.DeleteRuleAsync(row.Rule, "private-key", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RuleMutationResponse(IntentOperations.DELETE_RULE, row.Rule));
 
-        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, null, null, "private-key");
+        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, null, null, "private-key", TestContext.CancellationToken);
 
         Assert.IsTrue(result.Completed);
         Assert.IsNotNull(saved);
@@ -108,7 +108,7 @@ public sealed class RuleDisableWorkflowServiceTests
         RuleMutationService mutationService = new(ruleApi.Object, new CompatibleIntentContextProvider(intentContext.Object), signer.Object);
         RuleDisableWorkflowService service = new(templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), mutationService, errors.Object, new RuleTemplateNameGenerator(new UfwRuleCommandRenderer()));
 
-        RuleDisableWorkflowResult result = await service.DisableAsync(row, "web", null, "private-key");
+        RuleDisableWorkflowResult result = await service.DisableAsync(row, "web", null, "private-key", TestContext.CancellationToken);
 
         Assert.IsTrue(result.Completed);
         Assert.AreEqual(IntentOperations.DELETE_RULE, result.DeleteResponse?.Operation);
@@ -127,7 +127,7 @@ public sealed class RuleDisableWorkflowServiceTests
         host.Templates.Setup(catalog => catalog.CreateAsync(It.IsAny<RuleTemplateDefinition>(), It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         host.Errors.Setup(mapper => mapper.Describe(failure)).Returns(expected);
 
-        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "web", null, "private-key");
+        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "web", null, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleDisableWorkflowOutcome.TemplatePersistenceNotConfirmed, result.Outcome);
         Assert.IsFalse(result.TemplatePersistenceConfirmed);
@@ -148,7 +148,7 @@ public sealed class RuleDisableWorkflowServiceTests
         host.Mutations.Setup(service => service.DeleteRuleAsync(row.Rule, "private-key", It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         host.Errors.Setup(mapper => mapper.Describe(failure)).Returns(expected);
 
-        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "web", null, "private-key");
+        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "web", null, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleDisableWorkflowOutcome.FirewallDeleteNotConfirmed, result.Outcome);
         Assert.IsTrue(result.TemplatePersistenceConfirmed);
@@ -170,7 +170,7 @@ public sealed class RuleDisableWorkflowServiceTests
         host.Mutations.Setup(service => service.DeleteRuleAsync(row.Rule, "private-key", It.IsAny<CancellationToken>())).ThrowsAsync(failure);
         host.Errors.Setup(mapper => mapper.Describe(failure)).Returns(expected);
 
-        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "web", null, "private-key");
+        RuleDisableWorkflowResult result = await host.Service.DisableAsync(row, "web", null, "private-key", TestContext.CancellationToken);
 
         Assert.AreEqual(RuleDisableWorkflowOutcome.FirewallDeleteNotConfirmed, result.Outcome);
         Assert.IsTrue(result.TemplatePersistenceConfirmed);
@@ -183,7 +183,7 @@ public sealed class RuleDisableWorkflowServiceTests
         TestHost host = new();
         RuleRowProjection duplicateSemanticRow = Row(canMutate: false);
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DisableAsync(duplicateSemanticRow, "web", null, "private-key"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.Service.DisableAsync(duplicateSemanticRow, "web", null, "private-key", TestContext.CancellationToken));
 
         host.Templates.VerifyNoOtherCalls();
         host.Mutations.VerifyNoOtherCalls();
@@ -224,4 +224,6 @@ public sealed class RuleDisableWorkflowServiceTests
                 Templates.Object, new RuleTemplateAuthoringService(new RuleDraftFactory()), Mutations.Object, Errors.Object, new RuleTemplateNameGenerator(new UfwRuleCommandRenderer()));
         }
     }
+
+    public TestContext TestContext { get; set; }
 }

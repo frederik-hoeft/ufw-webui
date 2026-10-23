@@ -29,10 +29,49 @@ public sealed class ConfigurationImplTests
             await configuration.LoadAsync(path, CancellationToken.None);
 
             Assert.AreEqual("/usr/sbin/ufw", configuration.Settings.UfwPath);
+            Assert.AreEqual("/usr/sbin/ip6tables-save", configuration.Settings.Ip6tablesSavePath);
             Assert.AreEqual(TransportType.Pipe, configuration.Settings.Transport.Type);
             Assert.AreEqual(TimeSpan.FromMinutes(30), configuration.Settings.Network.RequestTimeout);
             environmentValidator.Verify(validator => validator.ThrowIfInvalid(It.Is<AppSettings>(settings => settings.Network.MaxConnections == 8)), Times.Once);
             await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_MissingInventoryEnabledFlagFailsAtStartupAsync()
+    {
+        string path = await WriteSettingsAsync();
+        try
+        {
+            string json = await File.ReadAllTextAsync(path);
+            json = json.Replace("\"filter_system_state_enabled\": true,", string.Empty, StringComparison.Ordinal);
+            await File.WriteAllTextAsync(path, json);
+
+            ConfigurationImpl configuration = CreateConfiguration();
+            await Assert.ThrowsExactlyAsync<JsonException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_MissingInventoryConfigurationFailsAtStartupAsync()
+    {
+        string path = await WriteSettingsAsync();
+        try
+        {
+            string json = await File.ReadAllTextAsync(path, TestContext.CancellationToken);
+            json = json.Replace("\"iptables_save_path\": \"/usr/sbin/iptables-save\",", "", StringComparison.Ordinal);
+            await File.WriteAllTextAsync(path, json, TestContext.CancellationToken);
+
+            ConfigurationImpl configuration = CreateConfiguration();
+            await Assert.ThrowsExactlyAsync<JsonException>(async () => await configuration.LoadAsync(path, CancellationToken.None));
         }
         finally
         {
@@ -70,6 +109,11 @@ public sealed class ConfigurationImplTests
           "expose_remote_exception_details": false,
           "ufw_path": "/usr/sbin/ufw",
           "ufw_defaults_path": "/etc/default/ufw",
+          "filter_system_state_enabled": true,
+          "iptables_save_path": "/usr/sbin/iptables-save",
+          "ip6tables_save_path": "/usr/sbin/ip6tables-save",
+          "ufw_user_rules_path": "/etc/ufw/user.rules",
+          "ufw_user6_rules_path": "/etc/ufw/user6.rules",
           "transport": {
             "type": "pipe",
             "pipe": {
@@ -95,4 +139,6 @@ public sealed class ConfigurationImplTests
         await File.WriteAllTextAsync(path, json);
         return path;
     }
+
+    public TestContext TestContext { get; set; }
 }

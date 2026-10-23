@@ -18,9 +18,9 @@ public sealed class RuleReplacementNavigationServiceTests
 
         string uri = _service.BuildUri(baseline, 1);
 
-        StringAssert.Contains(uri, $"baseline={Uri.EscapeDataString(FirewallRuleSnapshotFingerprint.Compute(baseline))}");
-        StringAssert.Contains(uri, "target=1");
-        StringAssert.Contains(uri, "ruleId=target");
+        Assert.Contains($"baseline={Uri.EscapeDataString(FirewallRuleSnapshotFingerprint.Compute(baseline))}", uri);
+        Assert.Contains("target=1", uri);
+        Assert.Contains("ruleId=target", uri);
     }
 
     [TestMethod]

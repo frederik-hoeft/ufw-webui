@@ -18,9 +18,11 @@ public sealed class IntentDaemonGatewayTests
         client.Setup(static c => c.TrySendAsync<IntentContextResponse>(RequestMethod.Get, "/api/v1/intent/context", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult<IntentContextResponse>.Success(expected));
         IntentDaemonGateway gateway = new(client.Object);
 
-        DaemonResult<IntentContextResponse> result = await gateway.GetContextAsync();
+        DaemonResult<IntentContextResponse> result = await gateway.GetContextAsync(TestContext.CancellationToken);
 
         Assert.AreSame(expected, result.Result);
         client.VerifyAll();
     }
+
+    public TestContext TestContext { get; set; }
 }

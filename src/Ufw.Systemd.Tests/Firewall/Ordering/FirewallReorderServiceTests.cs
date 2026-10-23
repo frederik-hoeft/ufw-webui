@@ -105,8 +105,8 @@ public sealed class FirewallReorderServiceTests
             service.ReorderAsync(request, TestContext.CancellationToken).AsTask(),
             service.ReorderAsync(request, TestContext.CancellationToken).AsTask());
 
-        Assert.AreEqual(1, results.Count(static result => result is RuleReorderResponse));
-        Assert.AreEqual(1, results.Count(static result => result is ConflictResponse));
+        Assert.ContainsSingle(static result => result is RuleReorderResponse, results);
+        Assert.ContainsSingle(static result => result is ConflictResponse, results);
         executor.Verify(
             candidate => candidate.ExecuteAsync(It.IsAny<RuleReorderExecutionRequest>(), It.IsAny<FirewallSnapshot>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -228,12 +228,12 @@ public sealed class FirewallReorderServiceTests
         RuleReorderResponse response = Assert.IsInstanceOfType<RuleReorderResponse>(payload);
         Assert.AreEqual(RuleReorderOutcome.PartiallyCompleted, response.Outcome);
         Assert.AreEqual(finalSnapshot.ToResponse(), response.FinalSnapshot);
-        Assert.AreEqual(1, response.Operations.Length);
+        Assert.HasCount(1, response.Operations);
         Assert.AreEqual(ResponseOperationOutcome.FailedAndRestored, response.Operations[0].Outcome);
         Assert.AreEqual("restored", response.Operations[0].Diagnostic);
         Assert.AreEqual(2, response.Operations[0].Move.OccurrenceId);
-        Assert.AreEqual(1, response.BlockedOperations.Length);
-        Assert.AreEqual(1, response.PendingOperations.Length);
+        Assert.HasCount(1, response.BlockedOperations);
+        Assert.HasCount(1, response.PendingOperations);
         Assert.AreEqual("state diverged", response.Diagnostic);
     }
 

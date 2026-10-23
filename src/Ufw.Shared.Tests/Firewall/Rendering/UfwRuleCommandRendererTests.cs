@@ -25,7 +25,7 @@ public sealed class UfwRuleCommandRendererTests
         [
             "allow", "in", "on", "eth0", "from", "any", "to", "any", "port", "22", "proto", "tcp", "comment", "ssh"
         ];
-        CollectionAssert.AreEqual(expected, rendered.Arguments.ToArray());
+        Assert.AreSequenceEqual(expected, rendered.Arguments.ToArray());
         Assert.AreEqual("allow in on eth0 from any to any port 22 proto tcp comment ssh", rendered.DisplayText);
     }
 
@@ -47,7 +47,7 @@ public sealed class UfwRuleCommandRendererTests
         [
             "route", "allow", "in", "on", "br0", "out", "on", "eth0", "from", "10.0.0.0/8", "to", "192.168.0.0/16"
         ];
-        CollectionAssert.AreEqual(expected, rendered.Arguments.ToArray());
+        Assert.AreSequenceEqual(expected, rendered.Arguments.ToArray());
         Assert.AreEqual("route allow in on br0 out on eth0 from 10.0.0.0/8 to 192.168.0.0/16", rendered.DisplayText);
     }
 

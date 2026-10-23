@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Security.Intent;
 using Ufw.Web.Client.Api;
@@ -19,8 +19,8 @@ public sealed class CompatibleIntentContextProviderTests
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION, "second"));
         CompatibleIntentContextProvider provider = new(client.Object);
 
-        Assert.AreEqual("first", await provider.GetDeploymentIdAsync());
-        Assert.AreEqual("second", await provider.GetDeploymentIdAsync());
+        Assert.AreEqual("first", await provider.GetDeploymentIdAsync(TestContext.CancellationToken));
+        Assert.AreEqual("second", await provider.GetDeploymentIdAsync(TestContext.CancellationToken));
         client.Verify(candidate => candidate.GetAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
@@ -32,7 +32,9 @@ public sealed class CompatibleIntentContextProviderTests
             .ReturnsAsync(new IntentContextResponse(IntentProtocol.VERSION + 1, "deployment"));
         CompatibleIntentContextProvider provider = new(client.Object);
 
-        ApiProtocolException exception = await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => provider.GetDeploymentIdAsync());
-        StringAssert.Contains(exception.Message, "protocol mismatch", StringComparison.OrdinalIgnoreCase);
+        ApiProtocolException exception = await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => provider.GetDeploymentIdAsync(TestContext.CancellationToken));
+        Assert.Contains("protocol mismatch", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    public TestContext TestContext { get; set; }
 }

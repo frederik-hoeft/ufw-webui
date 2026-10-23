@@ -27,7 +27,7 @@ public sealed class JwtTokenServiceTests
         userManager.Setup(manager => manager.GetRolesAsync(user)).ReturnsAsync(["admin", "operator"]);
         JwtTokenService service = CreateService(userManager.Object, TimeSpan.FromMinutes(10));
 
-        AccessToken accessToken = await service.IssueAsync(user);
+        AccessToken accessToken = await service.IssueAsync(user, TestContext.CancellationToken);
         JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken.Value);
 
         Assert.AreEqual(s_now.AddMinutes(10), accessToken.ExpiresAt);
@@ -36,7 +36,7 @@ public sealed class JwtTokenServiceTests
         Assert.AreEqual("user-id", token.Claims.Single(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value);
         Assert.AreEqual("admin@example.invalid", token.Claims.Single(claim => claim.Type == JwtRegisteredClaimNames.Email).Value);
         Assert.AreEqual("Administrator", token.Claims.Single(claim => claim.Type == JwtRegisteredClaimNames.Name).Value);
-        CollectionAssert.AreEquivalent(new[] { "admin", "operator" }, token.Claims.Where(claim => claim.Type == "role").Select(claim => claim.Value).ToArray());
+        Assert.AreSequenceEqual(["admin", "operator"], token.Claims.Where(claim => claim.Type == "role").Select(claim => claim.Value).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         Assert.IsFalse(string.IsNullOrWhiteSpace(token.Claims.Single(claim => claim.Type == JwtRegisteredClaimNames.Jti).Value));
         Assert.AreEqual(s_now.UtcDateTime, token.ValidFrom);
         Assert.AreEqual(accessToken.ExpiresAt.UtcDateTime, token.ValidTo);
@@ -50,12 +50,12 @@ public sealed class JwtTokenServiceTests
         userManager.Setup(manager => manager.GetRolesAsync(user)).ReturnsAsync([]);
         JwtTokenService service = CreateService(userManager.Object, TimeSpan.FromMinutes(5));
 
-        AccessToken accessToken = await service.IssueAsync(user);
+        AccessToken accessToken = await service.IssueAsync(user, TestContext.CancellationToken);
         JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken.Value);
 
-        Assert.IsFalse(token.Claims.Any(claim => claim.Type == JwtRegisteredClaimNames.Email));
-        Assert.IsFalse(token.Claims.Any(claim => claim.Type == JwtRegisteredClaimNames.Name));
-        Assert.IsFalse(token.Claims.Any(claim => claim.Type == "role"));
+        Assert.DoesNotContain(claim => claim.Type == JwtRegisteredClaimNames.Email, token.Claims);
+        Assert.DoesNotContain(claim => claim.Type == JwtRegisteredClaimNames.Name, token.Claims);
+        Assert.DoesNotContain(claim => claim.Type == "role", token.Claims);
     }
 
     [TestMethod]
@@ -109,4 +109,6 @@ public sealed class JwtTokenServiceTests
     {
         public override DateTimeOffset GetUtcNow() => now;
     }
+
+    public TestContext TestContext { get; set; }
 }

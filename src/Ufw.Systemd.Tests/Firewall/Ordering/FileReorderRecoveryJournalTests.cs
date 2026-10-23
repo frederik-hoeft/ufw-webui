@@ -84,7 +84,7 @@ public sealed class FileReorderRecoveryJournalTests
             InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 _ = await journal.ReadAsync(TestContext.CancellationToken));
 
-            StringAssert.Contains(exception.Message, "format version");
+            Assert.Contains("format version", exception.Message);
             Assert.IsTrue(File.Exists(path));
         }
         finally

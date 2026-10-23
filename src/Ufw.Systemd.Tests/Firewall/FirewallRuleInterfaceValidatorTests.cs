@@ -26,9 +26,9 @@ public sealed class FirewallRuleInterfaceValidatorTests
 
         ModelValidationErrorResponse validation = Assert.IsInstanceOfType<ModelValidationErrorResponse>(response);
         Assert.HasCount(2, validation.Errors);
-        Assert.IsTrue(validation.Errors.Any(static error =>
-            error.PropertyName == nameof(FirewallRuleSpecification.SourceInterface) && error.Code == FirewallRuleValidationErrorCodes.INTERFACE_NOT_FOUND));
-        Assert.IsTrue(validation.Errors.Any(static error =>
-            error.PropertyName == nameof(FirewallRuleSpecification.DestinationInterface) && error.Code == FirewallRuleValidationErrorCodes.INTERFACE_NOT_FOUND));
+        Assert.Contains(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.SourceInterface) && error.Code == FirewallRuleValidationErrorCodes.INTERFACE_NOT_FOUND, validation.Errors);
+        Assert.Contains(static error =>
+            error.PropertyName == nameof(FirewallRuleSpecification.DestinationInterface) && error.Code == FirewallRuleValidationErrorCodes.INTERFACE_NOT_FOUND, validation.Errors);
     }
 }

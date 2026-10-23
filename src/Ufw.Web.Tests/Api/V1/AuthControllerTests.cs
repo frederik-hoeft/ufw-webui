@@ -93,7 +93,7 @@ public sealed class AuthControllerTests
 
         Assert.IsInstanceOfType<UnauthorizedResult>(result);
         string setCookie = AssertSingleRefreshCookie(controller);
-        StringAssert.Contains(setCookie, "expires=", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expires=", setCookie, StringComparison.OrdinalIgnoreCase);
     }
 
     [TestMethod]
@@ -112,7 +112,7 @@ public sealed class AuthControllerTests
         OkObjectResult ok = Assert.IsInstanceOfType<OkObjectResult>(result);
         AuthTokenResponse response = Assert.IsInstanceOfType<AuthTokenResponse>(ok.Value);
         Assert.AreEqual("replacement-access", response.AccessToken);
-        StringAssert.Contains(AssertSingleRefreshCookie(controller), "replacement-refresh", StringComparison.Ordinal);
+        Assert.Contains("replacement-refresh", AssertSingleRefreshCookie(controller), StringComparison.Ordinal);
     }
 
     [TestMethod]
@@ -135,13 +135,11 @@ public sealed class AuthControllerTests
         ProblemDetails problem = Assert.IsInstanceOfType<ProblemDetails>(problemResult.Value);
         IReadOnlyList<ApiValidationError> errors = Assert.IsInstanceOfType<IReadOnlyList<ApiValidationError>>(
             problem.Extensions[ApiProblemDetails.VALIDATION_ERRORS_PROPERTY]);
-        CollectionAssert.AreEqual(
-            new[]
-            {
+        Assert.AreSequenceEqual(
+            [
                 new ApiValidationError(nameof(ChangePasswordRequest.CurrentPassword), Code: null, "Current password is incorrect."),
                 new ApiValidationError(nameof(ChangePasswordRequest.NewPassword), Code: null, "Replacement password is too short."),
-            },
-            errors.ToArray());
+            ], errors.ToArray());
     }
 
     [TestMethod]
@@ -157,7 +155,7 @@ public sealed class AuthControllerTests
             service => service.RevokeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         string setCookie = AssertSingleRefreshCookie(controller);
-        StringAssert.Contains(setCookie, "expires=", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expires=", setCookie, StringComparison.OrdinalIgnoreCase);
     }
 
     private static AuthController CreateController(IAuthenticationFlowService authentication, IAntiforgery? antiforgery = null) =>

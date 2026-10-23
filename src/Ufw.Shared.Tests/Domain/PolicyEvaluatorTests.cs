@@ -125,7 +125,7 @@ public sealed class PolicyEvaluatorTests
             Ingress = FiniteSet<NetworkInterfaceName>.Of(s_eth0),
         });
 
-        Assert.IsTrue(refined.Cardinality < full.Cardinality);
+        Assert.IsLessThan(full.Cardinality, refined.Cardinality);
         Assert.AreEqual(full.Cardinality / world.Protocols.Cardinality / world.Interfaces.Cardinality, refined.Cardinality);
         PacketPoint<uint> point = Point(protocol: ProtocolSymbol.Tcp, destinationPort: 22, ingress: s_eth0);
         Assert.AreEqual(full.Decide(point)!.Decision, refined.Decide(point)!.Decision);

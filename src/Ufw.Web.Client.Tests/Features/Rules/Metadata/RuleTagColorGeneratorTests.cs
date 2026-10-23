@@ -29,6 +29,6 @@ public sealed class RuleTagColorGeneratorTests
         double[] hues = [0d, 60d, 120d, 180d, 240d, 300d];
         string[] colors = [.. hues.Select(RuleTagColorGenerator.FromHue)];
 
-        Assert.AreEqual(colors.Length, colors.Distinct(StringComparer.Ordinal).Count());
+        Assert.HasCount(colors.Length, colors.Distinct(StringComparer.Ordinal));
     }
 }

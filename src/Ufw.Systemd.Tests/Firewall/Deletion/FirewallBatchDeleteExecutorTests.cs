@@ -36,12 +36,12 @@ public sealed class FirewallBatchDeleteExecutorTests
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.Completed, result.Outcome);
         Assert.HasCount(2, result.Operations);
         Assert.IsTrue(result.Operations.All(static operation => operation.Status == RuleBatchDeleteOperationStatus.Deleted));
-        CollectionAssert.AreEqual(new[] { 3, 1 }, result.Operations.Select(static operation => operation.OccurrenceId).ToArray());
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "4" }, harness.Commands[0]);
-        CollectionAssert.AreEqual(new[] { "--force", "delete", "2" }, harness.Commands[1]);
+        Assert.AreSequenceEqual([3, 1], result.Operations.Select(static operation => operation.OccurrenceId).ToArray());
+        Assert.AreSequenceEqual(["--force", "delete", "4"], harness.Commands[0]);
+        Assert.AreSequenceEqual(["--force", "delete", "2"], harness.Commands[1]);
         Assert.IsEmpty(result.PendingOccurrenceIds);
         Assert.IsNotNull(result.FinalSnapshot);
-        CollectionAssert.AreEqual(new[] { "22", "443" }, result.FinalSnapshot.Rules.Select(static rule => rule.Rule!.DestinationPorts).ToArray());
+        Assert.AreSequenceEqual(["22", "443"], result.FinalSnapshot.Rules.Select(static rule => rule.Rule!.DestinationPorts).ToArray());
     }
 
     [TestMethod]
@@ -59,7 +59,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.StaleBaseline, result.Outcome);
         Assert.IsEmpty(result.Operations);
         Assert.IsEmpty(harness.Commands);
-        CollectionAssert.AreEqual(new[] { 0 }, result.PendingOccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([0], result.PendingOccurrenceIds.ToArray());
         Assert.IsNotNull(result.FinalSnapshot);
     }
 
@@ -97,8 +97,10 @@ public sealed class FirewallBatchDeleteExecutorTests
         RuleBatchDeleteExecutionResult result = await harness.Executor.ExecuteAsync(harness.Payload([2]), harness.Baseline, TestContext.CancellationToken);
 
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.Completed, result.Outcome);
-        Assert.AreEqual(RuleBatchDeleteOperationStatus.DeletedAfterProcessFailure, result.Operations[0].Status);
-        StringAssert.Contains(result.Operations[0].Diagnostic, "delete reported failure");
+        RuleBatchDeleteOperationReport operation = result.Operations[0];
+        Assert.AreEqual(RuleBatchDeleteOperationStatus.DeletedAfterProcessFailure, operation.Status);
+        Assert.IsNotNull(operation.Diagnostic);
+        Assert.Contains("delete reported failure", operation.Diagnostic);
     }
 
     [TestMethod]
@@ -112,7 +114,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         Assert.AreEqual(RuleBatchDeleteExecutionOutcome.PartiallyCompleted, result.Outcome);
         Assert.HasCount(1, result.Operations);
         Assert.AreEqual(RuleBatchDeleteOperationStatus.Failed, result.Operations[0].Status);
-        CollectionAssert.AreEqual(new[] { 2, 0 }, result.PendingOccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([2, 0], result.PendingOccurrenceIds.ToArray());
         Assert.IsNotNull(result.FinalSnapshot);
     }
 
@@ -131,7 +133,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         Assert.HasCount(1, result.Operations);
         Assert.AreEqual(3, result.Operations[0].OccurrenceId);
         Assert.AreEqual(RuleBatchDeleteOperationStatus.Deleted, result.Operations[0].Status);
-        CollectionAssert.AreEqual(new[] { 1 }, result.PendingOccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([1], result.PendingOccurrenceIds.ToArray());
         Assert.HasCount(1, harness.Commands);
     }
 
@@ -146,7 +148,7 @@ public sealed class FirewallBatchDeleteExecutorTests
         Assert.IsNull(result.FinalSnapshot);
         Assert.HasCount(1, result.Operations);
         Assert.AreEqual(RuleBatchDeleteOperationStatus.StateUncertain, result.Operations[0].Status);
-        CollectionAssert.AreEqual(new[] { 1 }, result.PendingOccurrenceIds.ToArray());
+        Assert.AreSequenceEqual([1], result.PendingOccurrenceIds.ToArray());
     }
 
     [TestMethod]

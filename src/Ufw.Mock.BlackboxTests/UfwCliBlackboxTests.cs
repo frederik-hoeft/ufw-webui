@@ -49,13 +49,13 @@ public sealed class UfwCliBlackboxTests
 
         CommandResult enable = await InvokeAsync("--force", "enable");
         Assert.AreEqual(0, enable.ExitCode);
-        StringAssert.Contains(enable.StdOut, "Firewall is active and enabled on system startup");
+        Assert.Contains("Firewall is active and enabled on system startup", enable.StdOut);
 
         CommandResult verbose = await InvokeAsync("status", "verbose");
-        StringAssert.Contains(verbose.StdOut, "Status: active");
-        StringAssert.Contains(verbose.StdOut, "Logging: on (low)");
-        StringAssert.Contains(verbose.StdOut, "Default: deny (incoming), allow (outgoing), deny (routed)");
-        StringAssert.Contains(verbose.StdOut, "New profiles: skip");
+        Assert.Contains("Status: active", verbose.StdOut);
+        Assert.Contains("Logging: on (low)", verbose.StdOut);
+        Assert.Contains("Default: deny (incoming), allow (outgoing), deny (routed)", verbose.StdOut);
+        Assert.Contains("New profiles: skip", verbose.StdOut);
     }
 
     [TestMethod]
@@ -67,11 +67,11 @@ public sealed class UfwCliBlackboxTests
 
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "[ 1] 22/tcp");
-        StringAssert.Contains(status.StdOut, "ALLOW IN");
-        StringAssert.Contains(status.StdOut, "Anywhere # ssh");
-        StringAssert.Contains(status.StdOut, "[ 2] 22/tcp (v6)");
-        StringAssert.Contains(status.StdOut, "Anywhere (v6) # ssh");
+        Assert.Contains("[ 1] 22/tcp", status.StdOut);
+        Assert.Contains("ALLOW IN", status.StdOut);
+        Assert.Contains("Anywhere # ssh", status.StdOut);
+        Assert.Contains("[ 2] 22/tcp (v6)", status.StdOut);
+        Assert.Contains("Anywhere (v6) # ssh", status.StdOut);
         Assert.IsFalse(status.StdOut.Contains("Anywhere/tcp", StringComparison.Ordinal));
     }
 
@@ -82,12 +82,12 @@ public sealed class UfwCliBlackboxTests
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult enabledStatus = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(enabledStatus.StdOut, "22/tcp (v6)");
+        Assert.Contains("22/tcp (v6)", enabledStatus.StdOut);
 
-        await File.WriteAllTextAsync(_defaultsPath, "IPV6=no\n");
+        await File.WriteAllTextAsync(_defaultsPath, "IPV6=no\n", TestContext.CancellationToken);
 
         CommandResult disabledStatus = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(disabledStatus.StdOut, "[ 1] 22/tcp");
+        Assert.Contains("[ 1] 22/tcp", disabledStatus.StdOut);
         Assert.IsFalse(disabledStatus.StdOut.Contains("(v6)", StringComparison.Ordinal));
 
         CommandResult addAny = await InvokeAsync("allow", "443/tcp");
@@ -96,7 +96,7 @@ public sealed class UfwCliBlackboxTests
 
         CommandResult addIpv6 = await InvokeAsync("allow", "from", "::/0", "to", "::/0", "port", "8443", "proto", "tcp");
         Assert.AreEqual(1, addIpv6.ExitCode);
-        StringAssert.Contains(addIpv6.StdErr, "IPv6 support not enabled");
+        Assert.Contains("IPv6 support not enabled", addIpv6.StdErr);
 
         CommandResult disabledAdded = await InvokeAsync("show", "added");
         Assert.IsFalse(disabledAdded.StdOut.Contains("::/0", StringComparison.Ordinal));
@@ -106,13 +106,13 @@ public sealed class UfwCliBlackboxTests
         CommandResult delete = await InvokeAsync("--force", "delete", "1");
         Assert.AreEqual(0, delete.ExitCode);
         CommandResult afterDelete = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(afterDelete.StdOut, "[ 1] 443/tcp");
+        Assert.Contains("[ 1] 443/tcp", afterDelete.StdOut);
         Assert.IsFalse(afterDelete.StdOut.Contains("22/tcp", StringComparison.Ordinal));
 
-        await File.WriteAllTextAsync(_defaultsPath, "IPV6=yes\n");
+        await File.WriteAllTextAsync(_defaultsPath, "IPV6=yes\n", TestContext.CancellationToken);
         CommandResult reenabledStatus = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(reenabledStatus.StdOut, "22/tcp (v6)");
-        StringAssert.Contains(reenabledStatus.StdOut, "443/tcp");
+        Assert.Contains("22/tcp (v6)", reenabledStatus.StdOut);
+        Assert.Contains("443/tcp", reenabledStatus.StdOut);
         Assert.AreEqual(1, CountOccurrences(reenabledStatus.StdOut, "443/tcp"));
     }
 
@@ -146,8 +146,8 @@ public sealed class UfwCliBlackboxTests
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "[ 1] 80/tcp");
-        StringAssert.Contains(status.StdOut, "[ 2] 443/tcp (v6)");
+        Assert.Contains("[ 1] 80/tcp", status.StdOut);
+        Assert.Contains("[ 2] 443/tcp (v6)", status.StdOut);
         Assert.AreEqual(1, CountOccurrences(status.StdOut, "80/tcp"));
         Assert.AreEqual(1, CountOccurrences(status.StdOut, "443/tcp"));
     }
@@ -161,9 +161,9 @@ public sealed class UfwCliBlackboxTests
         Assert.AreEqual("Rule added", add.StdOut);
 
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "10.0.0.0/8 on eth1");
-        StringAssert.Contains(status.StdOut, "ALLOW FWD");
-        StringAssert.Contains(status.StdOut, "192.168.0.0/16 on eth0");
+        Assert.Contains("10.0.0.0/8 on eth1", status.StdOut);
+        Assert.Contains("ALLOW FWD", status.StdOut);
+        Assert.Contains("192.168.0.0/16 on eth0", status.StdOut);
     }
 
     [TestMethod]
@@ -176,15 +176,15 @@ public sealed class UfwCliBlackboxTests
         Assert.AreEqual("Rule deleted", numberedDelete.StdOut);
         CommandResult afterNumber = await InvokeAsync("status", "numbered");
         Assert.IsFalse(afterNumber.StdOut.Contains("[ 2]", StringComparison.Ordinal));
-        StringAssert.Contains(afterNumber.StdOut, "22/tcp (v6)");
+        Assert.Contains("22/tcp (v6)", afterNumber.StdOut);
 
         _ = await InvokeAsync("--force", "reset");
         _ = await InvokeAsync("allow", "22/tcp");
         _ = await InvokeAsync("--force", "enable");
         CommandResult syntaxDelete = await InvokeAsync("delete", "allow", "22/tcp");
         Assert.AreEqual(0, syntaxDelete.ExitCode);
-        StringAssert.Contains(syntaxDelete.StdOut, "Rule deleted");
-        StringAssert.Contains(syntaxDelete.StdOut, "Rule deleted (v6)");
+        Assert.Contains("Rule deleted", syntaxDelete.StdOut);
+        Assert.Contains("Rule deleted (v6)", syntaxDelete.StdOut);
         CommandResult afterSyntax = await InvokeAsync("status", "numbered");
         Assert.IsFalse(afterSyntax.StdOut.Contains("22/tcp", StringComparison.Ordinal));
     }
@@ -203,9 +203,9 @@ public sealed class UfwCliBlackboxTests
         int ssh = status.StdOut.IndexOf("22/tcp", StringComparison.Ordinal);
         int http = status.StdOut.IndexOf("80/tcp", StringComparison.Ordinal);
         int https = status.StdOut.IndexOf("443/tcp", StringComparison.Ordinal);
-        Assert.IsTrue(reject < http);
-        Assert.IsTrue(http < ssh);
-        Assert.IsTrue(ssh < https);
+        Assert.IsLessThan(http, reject);
+        Assert.IsLessThan(ssh, http);
+        Assert.IsLessThan(https, ssh);
     }
 
     [TestMethod]
@@ -240,10 +240,10 @@ public sealed class UfwCliBlackboxTests
         int http = status.StdOut.IndexOf("80/tcp", StringComparison.Ordinal);
         int ssh = status.StdOut.IndexOf("22/tcp", StringComparison.Ordinal);
         int https = status.StdOut.IndexOf("443/tcp", StringComparison.Ordinal);
-        Assert.IsTrue(http >= 0);
-        Assert.IsTrue(ssh > http);
-        Assert.IsTrue(https > ssh);
-        StringAssert.Contains(status.StdOut, "DENY FWD");
+        Assert.IsGreaterThanOrEqualTo(0, http);
+        Assert.IsGreaterThan(http, ssh);
+        Assert.IsGreaterThan(ssh, https);
+        Assert.Contains("DENY FWD", status.StdOut);
     }
 
     [TestMethod]
@@ -257,9 +257,9 @@ public sealed class UfwCliBlackboxTests
 
         CommandResult status = await InvokeAsync("status", "numbered");
 
-        StringAssert.Contains(status.StdOut, "Anywhere/tcp");
-        StringAssert.Contains(status.StdOut, "10.100.200.2/udp");
-        StringAssert.Contains(status.StdOut, "REJECT FWD");
+        Assert.Contains("Anywhere/tcp", status.StdOut);
+        Assert.Contains("10.100.200.2/udp", status.StdOut);
+        Assert.Contains("REJECT FWD", status.StdOut);
     }
 
     [TestMethod]
@@ -297,16 +297,16 @@ public sealed class UfwCliBlackboxTests
             "proto",
             "tcp");
         Assert.AreEqual(1, wrongFamilySegment.ExitCode);
-        StringAssert.Contains(wrongFamilySegment.StdErr, "Invalid position '2'");
+        Assert.Contains("Invalid position '2'", wrongFamilySegment.StdErr);
 
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
         int httpV6 = status.StdOut.IndexOf("80/tcp (v6)", StringComparison.Ordinal);
         int sshV6 = status.StdOut.IndexOf("22/tcp (v6)", StringComparison.Ordinal);
         int httpsV6 = status.StdOut.IndexOf("443/tcp (v6)", StringComparison.Ordinal);
-        Assert.IsTrue(httpV6 >= 0);
-        Assert.IsTrue(sshV6 > httpV6);
-        Assert.IsTrue(httpsV6 > sshV6);
+        Assert.IsGreaterThanOrEqualTo(0, httpV6);
+        Assert.IsGreaterThan(httpV6, sshV6);
+        Assert.IsGreaterThan(sshV6, httpsV6);
     }
 
     [TestMethod]
@@ -324,10 +324,10 @@ public sealed class UfwCliBlackboxTests
         int httpV4 = status.StdOut.IndexOf("80/tcp", StringComparison.Ordinal);
         int sshV6 = status.StdOut.IndexOf("22/tcp (v6)", StringComparison.Ordinal);
         int httpV6 = status.StdOut.IndexOf("80/tcp (v6)", StringComparison.Ordinal);
-        Assert.IsTrue(sshV4 >= 0);
-        Assert.IsTrue(httpV4 > sshV4);
-        Assert.IsTrue(sshV6 > httpV4);
-        Assert.IsTrue(httpV6 > sshV6);
+        Assert.IsGreaterThanOrEqualTo(0, sshV4);
+        Assert.IsGreaterThan(sshV4, httpV4);
+        Assert.IsGreaterThan(httpV4, sshV6);
+        Assert.IsGreaterThan(sshV6, httpV6);
     }
 
     [TestMethod]
@@ -347,12 +347,12 @@ public sealed class UfwCliBlackboxTests
         int httpV6 = status.StdOut.IndexOf("80/tcp (v6)", StringComparison.Ordinal);
         int sshV6 = status.StdOut.IndexOf("22/tcp (v6)", StringComparison.Ordinal);
         int httpsV6 = status.StdOut.IndexOf("443/tcp (v6)", StringComparison.Ordinal);
-        Assert.IsTrue(httpV4 >= 0);
-        Assert.IsTrue(sshV4 > httpV4);
-        Assert.IsTrue(httpsV4 > sshV4);
-        Assert.IsTrue(httpV6 > httpsV4);
-        Assert.IsTrue(sshV6 > httpV6);
-        Assert.IsTrue(httpsV6 > sshV6);
+        Assert.IsGreaterThanOrEqualTo(0, httpV4);
+        Assert.IsGreaterThan(httpV4, sshV4);
+        Assert.IsGreaterThan(sshV4, httpsV4);
+        Assert.IsGreaterThan(httpsV4, httpV6);
+        Assert.IsGreaterThan(httpV6, sshV6);
+        Assert.IsGreaterThan(sshV6, httpsV6);
     }
 
     [TestMethod]
@@ -363,7 +363,7 @@ public sealed class UfwCliBlackboxTests
         CommandResult inserted = await InvokeAsync("insert", "2", "deny", "from", "0.0.0.0/0", "to", "0.0.0.0/0", "port", "22", "proto", "tcp");
 
         Assert.AreEqual(1, inserted.ExitCode);
-        StringAssert.Contains(inserted.StdErr, "Invalid position '2'");
+        Assert.Contains("Invalid position '2'", inserted.StdErr);
     }
 
     [TestMethod]
@@ -386,7 +386,7 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult dryRun = await InvokeAsync("--dry-run", "enable");
         Assert.AreEqual(0, dryRun.ExitCode);
-        StringAssert.Contains(dryRun.StdOut, "Firewall is active");
+        Assert.Contains("Firewall is active", dryRun.StdOut);
 
         CommandResult status = await InvokeAsync("status");
         Assert.AreEqual("Status: inactive", status.StdOut);
@@ -407,12 +407,12 @@ public sealed class UfwCliBlackboxTests
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "verbose");
-        StringAssert.Contains(status.StdOut, "Logging: on (full)");
-        StringAssert.Contains(status.StdOut, "Default: reject (incoming), deny (outgoing), allow (routed)");
+        Assert.Contains("Logging: on (full)", status.StdOut);
+        Assert.Contains("Default: reject (incoming), deny (outgoing), allow (routed)", status.StdOut);
 
         _ = await InvokeAsync("logging", "off");
         CommandResult loggingOff = await InvokeAsync("status", "verbose");
-        StringAssert.Contains(loggingOff.StdOut, "Logging: off");
+        Assert.Contains("Logging: off", loggingOff.StdOut);
     }
 
     [TestMethod]
@@ -420,8 +420,8 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult invalid = await InvokeAsync("allow", "proto", "gre", "to", "any", "port", "80");
         Assert.AreEqual(1, invalid.ExitCode);
-        StringAssert.Contains(invalid.StdErr, "ERROR:");
-        StringAssert.Contains(invalid.StdErr, "cannot be combined with a port clause");
+        Assert.Contains("ERROR:", invalid.StdErr);
+        Assert.Contains("cannot be combined with a port clause", invalid.StdErr);
 
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
@@ -443,23 +443,23 @@ public sealed class UfwCliBlackboxTests
                 }
               ]
             }
-            """);
+            """, TestContext.CancellationToken);
 
         CommandResult list = await InvokeAsync("app", "list");
-        StringAssert.Contains(list.StdOut, "Available applications:");
-        StringAssert.Contains(list.StdOut, "OpenSSH");
+        Assert.Contains("Available applications:", list.StdOut);
+        Assert.Contains("OpenSSH", list.StdOut);
 
         CommandResult info = await InvokeAsync("app", "info", "OpenSSH");
-        StringAssert.Contains(info.StdOut, "Profile: OpenSSH");
-        StringAssert.Contains(info.StdOut, "Port:\n  22/tcp");
+        Assert.Contains("Profile: OpenSSH", info.StdOut);
+        Assert.Contains("Port:\n  22/tcp", info.StdOut);
 
         _ = await InvokeAsync("app", "default", "allow");
         CommandResult update = await InvokeAsync("app", "update", "--add-new", "OpenSSH");
         Assert.AreEqual(0, update.ExitCode);
-        StringAssert.Contains(update.StdOut, "Rules updated for profile 'OpenSSH'");
+        Assert.Contains("Rules updated for profile 'OpenSSH'", update.StdOut);
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "OpenSSH");
+        Assert.Contains("OpenSSH", status.StdOut);
     }
 
     [TestMethod]
@@ -479,11 +479,11 @@ public sealed class UfwCliBlackboxTests
                 }
               ]
             }
-            """);
+            """, TestContext.CancellationToken);
 
         CommandResult result = await InvokeAsync("app", "update", "--add-new", "all");
         Assert.AreEqual(1, result.ExitCode);
-        StringAssert.Contains(result.StdErr, "Cannot specify 'all' with '--add-new'");
+        Assert.Contains("Cannot specify 'all' with '--add-new'", result.StdErr);
     }
 
     [TestMethod]
@@ -499,8 +499,8 @@ public sealed class UfwCliBlackboxTests
         }
 
         CommandResult added = await InvokeAsync("show", "added");
-        StringAssert.Contains(added.StdOut, "Added user rules");
-        StringAssert.Contains(added.StdOut, "ufw allow");
+        Assert.Contains("Added user rules", added.StdOut);
+        Assert.Contains("ufw allow", added.StdOut);
     }
 
     [TestMethod]
@@ -511,9 +511,9 @@ public sealed class UfwCliBlackboxTests
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "10.0.0.1");
-        StringAssert.Contains(status.StdOut, "DENY FWD");
-        StringAssert.Contains(status.StdOut, "514/udp");
+        Assert.Contains("10.0.0.1", status.StdOut);
+        Assert.Contains("DENY FWD", status.StdOut);
+        Assert.Contains("514/udp", status.StdOut);
     }
 
     [TestMethod]
@@ -528,10 +528,10 @@ public sealed class UfwCliBlackboxTests
         int httpV4 = status.StdOut.IndexOf("[ 2] 80/tcp", StringComparison.Ordinal);
         int sshV6 = status.StdOut.IndexOf("[ 3] 22/tcp (v6)", StringComparison.Ordinal);
         int httpV6 = status.StdOut.IndexOf("[ 4] 80/tcp (v6)", StringComparison.Ordinal);
-        Assert.IsTrue(sshV4 >= 0);
-        Assert.IsTrue(httpV4 > sshV4);
-        Assert.IsTrue(sshV6 > httpV4);
-        Assert.IsTrue(httpV6 > sshV6);
+        Assert.IsGreaterThanOrEqualTo(0, sshV4);
+        Assert.IsGreaterThan(sshV4, httpV4);
+        Assert.IsGreaterThan(httpV4, sshV6);
+        Assert.IsGreaterThan(sshV6, httpV6);
     }
 
     [TestMethod]
@@ -541,11 +541,11 @@ public sealed class UfwCliBlackboxTests
 
         CommandResult delete = await InvokeAsync("--force", "route", "delete", "1");
         Assert.AreEqual(1, delete.ExitCode);
-        StringAssert.Contains(delete.StdErr, "'route delete NUM' unsupported");
+        Assert.Contains("'route delete NUM' unsupported", delete.StdErr);
 
         _ = await InvokeAsync("--force", "enable");
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "ALLOW FWD");
+        Assert.Contains("ALLOW FWD", status.StdOut);
     }
 
     [TestMethod]
@@ -553,11 +553,11 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult incoming = await InvokeAsync("route", "allow", "in", "to", "10.0.0.1");
         Assert.AreEqual(1, incoming.ExitCode);
-        StringAssert.Contains(incoming.StdErr, "Invalid interface clause for route rule");
+        Assert.Contains("Invalid interface clause for route rule", incoming.StdErr);
 
         CommandResult outgoing = await InvokeAsync("route", "allow", "out", "to", "10.0.0.1");
         Assert.AreEqual(1, outgoing.ExitCode);
-        StringAssert.Contains(outgoing.StdErr, "Invalid interface clause for route rule");
+        Assert.Contains("Invalid interface clause for route rule", outgoing.StdErr);
     }
 
     [TestMethod]
@@ -565,7 +565,7 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult invalid = await InvokeAsync("allow", "proto", "igmp", "from", "2001:db8::1", "to", "any");
         Assert.AreEqual(1, invalid.ExitCode);
-        StringAssert.Contains(invalid.StdErr, "Invalid IPv6 address with protocol 'igmp'");
+        Assert.Contains("Invalid IPv6 address with protocol 'igmp'", invalid.StdErr);
 
         CommandResult valid = await InvokeAsync("allow", "proto", "igmp", "to", "224.0.0.1");
         Assert.AreEqual(0, valid.ExitCode);
@@ -592,19 +592,19 @@ public sealed class UfwCliBlackboxTests
                 }
               ]
             }
-            """);
+            """, TestContext.CancellationToken);
 
         CommandResult add = await InvokeAsync("allow", "from", "any", "app", "Client", "to", "any", "app", "Server");
         Assert.AreEqual(0, add.ExitCode);
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "Server");
-        StringAssert.Contains(status.StdOut, "Client");
-        Assert.IsTrue(status.StdOut.IndexOf("Server", StringComparison.Ordinal) < status.StdOut.IndexOf("Client", StringComparison.Ordinal));
+        Assert.Contains("Server", status.StdOut);
+        Assert.Contains("Client", status.StdOut);
+        Assert.IsLessThan(status.StdOut.IndexOf("Client", StringComparison.Ordinal), status.StdOut.IndexOf("Server", StringComparison.Ordinal));
 
         CommandResult added = await InvokeAsync("show", "added");
-        StringAssert.Contains(added.StdOut, "from 0.0.0.0/0 app Client to 0.0.0.0/0 app Server");
+        Assert.Contains("from 0.0.0.0/0 app Client to 0.0.0.0/0 app Server", added.StdOut);
     }
 
     [TestMethod]
@@ -612,11 +612,11 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult missing = await InvokeAsync("allow");
         Assert.AreEqual(1, missing.ExitCode);
-        StringAssert.Contains(missing.StdErr, "Not enough arguments");
+        Assert.Contains("Not enough arguments", missing.StdErr);
 
         CommandResult invalidInterface = await InvokeAsync("allow", "in", "on", "interface-name-too-long", "22/tcp");
         Assert.AreEqual(1, invalidInterface.ExitCode);
-        StringAssert.Contains(invalidInterface.StdErr, "Invalid interface");
+        Assert.Contains("Invalid interface", invalidInterface.StdErr);
     }
 
     [TestMethod]
@@ -624,11 +624,11 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult enable = await InvokeAsync("enable", "unexpected");
         Assert.AreEqual(1, enable.ExitCode);
-        StringAssert.Contains(enable.StdErr, "Usage: ufw enable");
+        Assert.Contains("Usage: ufw enable", enable.StdErr);
 
         CommandResult appList = await InvokeAsync("app", "list", "unexpected");
         Assert.AreEqual(1, appList.ExitCode);
-        StringAssert.Contains(appList.StdErr, "Usage: ufw app list");
+        Assert.Contains("Usage: ufw app list", appList.StdErr);
     }
 
     [TestMethod]
@@ -640,7 +640,7 @@ public sealed class UfwCliBlackboxTests
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "verbose");
-        StringAssert.Contains(status.StdOut, "Default: allow (incoming), deny (outgoing), reject (routed)");
+        Assert.Contains("Default: allow (incoming), deny (outgoing), reject (routed)", status.StdOut);
     }
 
     [TestMethod]
@@ -654,7 +654,7 @@ public sealed class UfwCliBlackboxTests
 
         CommandResult invalid = await InvokeAsync("allow", "22/tcp", "log");
         Assert.AreEqual(1, invalid.ExitCode);
-        StringAssert.Contains(invalid.StdErr, "Option 'log' not allowed here");
+        Assert.Contains("Option 'log' not allowed here", invalid.StdErr);
     }
 
     [TestMethod]
@@ -672,7 +672,7 @@ public sealed class UfwCliBlackboxTests
                 }
               ]
             }
-            """);
+            """, TestContext.CancellationToken);
 
         CommandResult simple = await InvokeAsync("allow", "http");
         Assert.AreEqual(0, simple.ExitCode);
@@ -681,8 +681,8 @@ public sealed class UfwCliBlackboxTests
         _ = await InvokeAsync("--force", "enable");
 
         CommandResult status = await InvokeAsync("status", "numbered");
-        StringAssert.Contains(status.StdOut, "80/tcp");
-        StringAssert.Contains(status.StdOut, "443/tcp");
+        Assert.Contains("80/tcp", status.StdOut);
+        Assert.Contains("443/tcp", status.StdOut);
         Assert.IsFalse(status.StdOut.Contains("8080", StringComparison.Ordinal));
     }
 
@@ -694,12 +694,12 @@ public sealed class UfwCliBlackboxTests
               "schemaVersion": 1,
               "loggingLevel": "surprise"
             }
-            """);
+            """, TestContext.CancellationToken);
 
         CommandResult status = await InvokeAsync("status");
         Assert.AreEqual(1, status.ExitCode);
-        StringAssert.Contains(status.StdErr, "Invalid mock state");
-        StringAssert.Contains(status.StdErr, "logging level");
+        Assert.Contains("Invalid mock state", status.StdErr);
+        Assert.Contains("logging level", status.StdErr);
     }
 
     [TestMethod]
@@ -707,7 +707,7 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult result = await InvokeAsync("not-a-ufw-command");
         Assert.AreEqual(1, result.ExitCode);
-        StringAssert.Contains(result.StdErr, "ERROR: Invalid syntax");
+        Assert.Contains("ERROR: Invalid syntax", result.StdErr);
     }
 
     [TestMethod]
@@ -715,8 +715,8 @@ public sealed class UfwCliBlackboxTests
     {
         CommandResult version = await InvokeAsync("--version");
         Assert.AreEqual(0, version.ExitCode);
-        StringAssert.Contains(version.StdOut, "ufw 0.36.2");
-        StringAssert.Contains(version.StdOut, "Ufw.Mock");
+        Assert.Contains("ufw 0.36.2", version.StdOut);
+        Assert.Contains("Ufw.Mock", version.StdOut);
     }
 
     private async Task<CommandResult> InvokeAsync(params string[] args)
@@ -757,4 +757,6 @@ public sealed class UfwCliBlackboxTests
     }
 
     private sealed record CommandResult(int ExitCode, string StdOut, string StdErr);
+
+    public TestContext TestContext { get; set; }
 }

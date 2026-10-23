@@ -71,7 +71,7 @@ public sealed class FirewallReorderRecoveryServiceTests
             await service.RecoverAsync(TestContext.CancellationToken);
 
             Assert.HasCount(1, commands);
-            CollectionAssert.AreEqual(s_recoveryInsertArguments, commands[0]);
+            Assert.AreSequenceEqual(s_recoveryInsertArguments, commands[0]);
             Assert.IsNull(await afterRestart.ReadAsync(TestContext.CancellationToken));
             Assert.IsFalse(File.Exists(path));
         }
@@ -120,7 +120,7 @@ public sealed class FirewallReorderRecoveryServiceTests
 
             Assert.IsTrue(result.PresenceConfirmed);
             Assert.IsTrue(result.InsertionAttempted);
-            CollectionAssert.AreEqual(s_ipv6RecoveryInsertArguments, commands.Single());
+            Assert.AreSequenceEqual(s_ipv6RecoveryInsertArguments, commands.Single());
             Assert.IsNull(await journal.ReadAsync(TestContext.CancellationToken));
         }
         finally
@@ -159,7 +159,7 @@ public sealed class FirewallReorderRecoveryServiceTests
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await service.RecoverAsync(TestContext.CancellationToken));
 
-            StringAssert.Contains(exception.Message, "could not be recovered safely");
+            Assert.Contains("could not be recovered safely", exception.Message);
             Assert.IsNotNull(await journal.ReadAsync(TestContext.CancellationToken));
             runner.Verify(
                 candidate => candidate.ExecuteAsync(It.IsAny<IUfwCommand>(), It.IsAny<CancellationToken>()),

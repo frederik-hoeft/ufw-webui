@@ -16,9 +16,11 @@ public sealed class StatusDaemonGatewayTests
         client.Setup(static c => c.TrySendAsync(RequestMethod.Get, "/api/v1/status", It.IsAny<CancellationToken>())).ReturnsAsync(UfwIpcResult.Success());
         StatusDaemonGateway gateway = new(client.Object);
 
-        DaemonResult result = await gateway.GetStatusAsync();
+        DaemonResult result = await gateway.GetStatusAsync(TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         client.VerifyAll();
     }
+
+    public TestContext TestContext { get; set; }
 }

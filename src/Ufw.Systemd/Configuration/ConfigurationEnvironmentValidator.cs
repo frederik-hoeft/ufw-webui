@@ -13,6 +13,16 @@ internal sealed class ConfigurationEnvironmentValidator : IConfigurationEnvironm
             throw new InvalidOperationException($"The configured UFW executable does not exist: '{settings.UfwPath}'.");
         }
 
+        if (settings.FilterSystemStateEnabled && (!File.Exists(settings.IptablesSavePath) || !File.Exists(settings.Ip6tablesSavePath)))
+        {
+            throw new InvalidOperationException("The configured iptables-save and ip6tables-save executables must exist.");
+        }
+
+        if (Directory.Exists(settings.UfwUserRulesPath) || Directory.Exists(settings.UfwUser6RulesPath))
+        {
+            throw new InvalidOperationException("UFW user-rule configuration paths must not refer to directories.");
+        }
+
         ThrowIfTransportEnvironmentInvalid(settings.Transport);
         ThrowIfSecurityEnvironmentInvalid(settings.Security);
     }

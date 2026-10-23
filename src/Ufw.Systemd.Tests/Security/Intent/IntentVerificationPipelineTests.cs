@@ -120,7 +120,7 @@ public sealed class IntentVerificationPipelineTests
 
         Assert.AreEqual("any", accepted.Payload.Rule.Source);
         Assert.AreEqual("22,80", accepted.Payload.Rule.DestinationPorts);
-        CollectionAssert.AreEqual(IntentCanonicalizer.CanonicalizeAdd(request, accepted.Payload), accepted.Canonical);
+        Assert.AreSequenceEqual(IntentCanonicalizer.CanonicalizeAdd(request, accepted.Payload), accepted.Canonical);
     }
 
     private static AddRuleRequest CreateRequest() => new()

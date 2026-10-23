@@ -33,7 +33,7 @@ public sealed class RuleMetadataReconciliationServiceTests
         });
         RuleMetadataReconciliationService service = new(api.Object);
 
-        RuleMetadataReconciliationSnapshot snapshot = await service.RefreshAsync();
+        RuleMetadataReconciliationSnapshot snapshot = await service.RefreshAsync(TestContext.CancellationToken);
 
         Assert.HasCount(2, snapshot.Orphans);
         Assert.AreEqual("alpha", snapshot.Orphans[0].RuleId);
@@ -55,10 +55,10 @@ public sealed class RuleMetadataReconciliationServiceTests
             .ReturnsAsync(new RuleMetadataReconciliationResponse { RemovedCount = 1 });
         RuleMetadataReconciliationService service = new(api.Object);
 
-        RuleMetadataReconciliationSnapshot snapshot = await service.CleanupAsync([metadataId, metadataId]);
+        RuleMetadataReconciliationSnapshot snapshot = await service.CleanupAsync([metadataId, metadataId], TestContext.CancellationToken);
 
         Assert.IsNotNull(captured);
-        CollectionAssert.AreEqual(new[] { metadataId }, captured.MetadataIds.ToArray());
+        Assert.AreSequenceEqual([metadataId], captured.MetadataIds.ToArray());
         Assert.AreEqual(1, snapshot.RemovedCount);
         Assert.IsEmpty(snapshot.Orphans);
     }
@@ -69,8 +69,8 @@ public sealed class RuleMetadataReconciliationServiceTests
         Mock<IRuleMetadataReconciliationApiClient> api = new(MockBehavior.Strict);
         RuleMetadataReconciliationService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CleanupAsync([]));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CleanupAsync([Guid.Empty]));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CleanupAsync([], TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.CleanupAsync([Guid.Empty], TestContext.CancellationToken));
         api.VerifyNoOtherCalls();
     }
 
@@ -89,6 +89,8 @@ public sealed class RuleMetadataReconciliationServiceTests
         });
         RuleMetadataReconciliationService service = new(api.Object);
 
-        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync());
+        await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
     }
+
+    public TestContext TestContext { get; set; }
 }

@@ -27,7 +27,7 @@ public sealed class RuleReorderPlannerTests
         RuleReorderPlan plan = _planner.Plan(current, desired, new HashSet<int>());
         int[] applied = Apply(current, plan.Moves);
 
-        CollectionAssert.AreEqual(desired, applied);
+        Assert.AreSequenceEqual(desired, applied);
         Assert.HasCount(2, plan.Moves);
         Assert.AreEqual(2, plan.Moves[0].OccurrenceId);
         Assert.IsNull(plan.Moves[0].BeforeOccurrenceId);
@@ -46,10 +46,10 @@ public sealed class RuleReorderPlannerTests
 
         RuleReorderPlan plan = _planner.Plan(current, desired, immutable);
 
-        CollectionAssert.AreEqual(desired, Apply(current, plan.Moves));
-        Assert.IsTrue(plan.UntouchedOccurrences.Contains(1));
-        Assert.IsTrue(plan.UntouchedOccurrences.Contains(3));
-        Assert.IsFalse(plan.Moves.Any(move => immutable.Contains(move.OccurrenceId)));
+        Assert.AreSequenceEqual(desired, Apply(current, plan.Moves));
+        Assert.Contains(1, plan.UntouchedOccurrences);
+        Assert.Contains(3, plan.UntouchedOccurrences);
+        Assert.DoesNotContain(move => immutable.Contains(move.OccurrenceId), plan.Moves);
     }
 
     [TestMethod]
@@ -62,7 +62,7 @@ public sealed class RuleReorderPlannerTests
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
             () => _planner.Plan(current, desired, immutable));
 
-        StringAssert.Contains(exception.Message, "immutable occurrence");
+        Assert.Contains("immutable occurrence", exception.Message);
     }
 
     [TestMethod]
@@ -96,9 +96,9 @@ public sealed class RuleReorderPlannerTests
                 RuleReorderPlan first = _planner.Plan(current, desired, new HashSet<int>());
                 RuleReorderPlan second = _planner.Plan(current, desired, new HashSet<int>());
 
-                CollectionAssert.AreEqual(desired, Apply(current, first.Moves));
-                Assert.AreEqual(count - LongestCommonSubsequenceLength(current, desired), first.Moves.Count);
-                CollectionAssert.AreEqual(first.Moves.ToArray(), second.Moves.ToArray());
+                Assert.AreSequenceEqual(desired, Apply(current, first.Moves));
+                Assert.HasCount(count - LongestCommonSubsequenceLength(current, desired), first.Moves);
+                Assert.AreSequenceEqual(first.Moves.ToArray(), second.Moves.ToArray());
             }
         }
     }
@@ -122,9 +122,9 @@ public sealed class RuleReorderPlannerTests
                     }
 
                     RuleReorderPlan plan = _planner.Plan(current, desired, immutable);
-                    CollectionAssert.AreEqual(desired, Apply(current, plan.Moves));
-                    Assert.AreEqual(count - maximumUntouched, plan.Moves.Count);
-                    Assert.IsFalse(plan.Moves.Any(move => immutable.Contains(move.OccurrenceId)));
+                    Assert.AreSequenceEqual(desired, Apply(current, plan.Moves));
+                    Assert.HasCount(count - maximumUntouched, plan.Moves);
+                    Assert.DoesNotContain(move => immutable.Contains(move.OccurrenceId), plan.Moves);
                 }
             }
         }
@@ -143,9 +143,9 @@ public sealed class RuleReorderPlannerTests
 
         RuleReorderPlan plan = _planner.Plan(current, desired, new HashSet<int>(), reinsertionCosts);
 
-        Assert.AreEqual(2, plan.Moves.Count);
+        Assert.HasCount(2, plan.Moves);
         Assert.IsTrue(plan.UntouchedOccurrences.SetEquals([1, 3]));
-        CollectionAssert.AreEqual(desired, Apply(current, plan.Moves));
+        Assert.AreSequenceEqual(desired, Apply(current, plan.Moves));
     }
 
     [TestMethod]
@@ -160,9 +160,9 @@ public sealed class RuleReorderPlannerTests
 
         RuleReorderPlan plan = _planner.Plan(current, desired, new HashSet<int>(), reinsertionCosts);
 
-        Assert.AreEqual(1, plan.Moves.Count);
+        Assert.HasCount(1, plan.Moves);
         Assert.IsTrue(plan.UntouchedOccurrences.SetEquals([0, 1, 3]));
-        CollectionAssert.AreEqual(desired, Apply(current, plan.Moves));
+        Assert.AreSequenceEqual(desired, Apply(current, plan.Moves));
     }
 
     private static int[] Apply(IReadOnlyList<int> current, IReadOnlyList<RuleReorderMove> moves)

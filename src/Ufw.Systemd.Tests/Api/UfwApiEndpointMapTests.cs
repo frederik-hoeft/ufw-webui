@@ -16,6 +16,8 @@ public sealed class UfwApiEndpointMapTests
         Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Get.ToString(), "/api/v1/network-interfaces"));
         Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Get.ToString(), "/api/v1/status"));
         Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Get.ToString(), "/api/v1/rules"));
+        Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Get.ToString(), "/api/v1/system-state"));
+        Assert.IsInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Post.ToString(), "/api/v1/system-state"));
         Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Post.ToString(), "/api/v1/rules"));
         Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Post.ToString(), "/api/v1/rules/insert"));
         Assert.IsNotInstanceOfType<NotFoundEndpoint>(endpointMap.Match(RequestMethod.Put.ToString(), "/api/v1/rules/order"));

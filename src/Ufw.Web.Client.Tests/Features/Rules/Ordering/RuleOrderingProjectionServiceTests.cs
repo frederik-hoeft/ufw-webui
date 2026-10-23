@@ -17,8 +17,8 @@ public sealed class RuleOrderingProjectionServiceTests
 
         RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(2, FirewallAddressFamily.IPv4, 1));
 
-        CollectionAssert.AreEqual(new[] { 2, 0, 1 }, preview.DesiredOrder.ToArray());
-        CollectionAssert.AreEqual(new int?[] { 1, 2, 3 }, authoritative.Select(static rule => rule.DisplayNumber).ToArray());
+        Assert.AreSequenceEqual([2, 0, 1], preview.DesiredOrder.ToArray());
+        Assert.AreSequenceEqual([1, 2, 3], authoritative.Select(static rule => rule.DisplayNumber).ToArray());
         Assert.IsTrue(preview.WasDirectlyMoved(2));
         Assert.IsFalse(preview.WasDirectlyMoved(0));
         Assert.IsTrue(preview.HasChanges);
@@ -32,8 +32,8 @@ public sealed class RuleOrderingProjectionServiceTests
 
         RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest(0, FirewallAddressFamily.IPv4, 3));
 
-        CollectionAssert.AreEqual(new[] { 2, 1, 0 }, second.DesiredOrder.ToArray());
-        CollectionAssert.AreEquivalent(new[] { 0, 2 }, second.DirectlyMovedOccurrences.ToArray());
+        Assert.AreSequenceEqual([2, 1, 0], second.DesiredOrder.ToArray());
+        Assert.AreSequenceEqual([0, 2], second.DirectlyMovedOccurrences.ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -45,7 +45,7 @@ public sealed class RuleOrderingProjectionServiceTests
 
         RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 1));
 
-        CollectionAssert.AreEqual(new[] { 1, 0 }, preview.DesiredOrder.ToArray());
+        Assert.AreSequenceEqual([1, 0], preview.DesiredOrder.ToArray());
         Assert.IsTrue(preview.WasDirectlyMoved(1));
         Assert.IsFalse(preview.WasDirectlyMoved(0));
     }
@@ -63,8 +63,8 @@ public sealed class RuleOrderingProjectionServiceTests
 
         RuleOrderingPreview preview = _service.Move(authoritative, null, new RuleMoveRequest(3, FirewallAddressFamily.IPv6, 1));
 
-        CollectionAssert.AreEqual(new[] { 0, 1, 3, 2 }, preview.DesiredOrder.ToArray());
-        CollectionAssert.AreEqual(new int?[] { 1, 2, 3, 4 }, authoritative.Select(static rule => rule.DisplayNumber).ToArray());
+        Assert.AreSequenceEqual([0, 1, 3, 2], preview.DesiredOrder.ToArray());
+        Assert.AreSequenceEqual([1, 2, 3, 4], authoritative.Select(static rule => rule.DisplayNumber).ToArray());
     }
 
     [TestMethod]
@@ -103,7 +103,7 @@ public sealed class RuleOrderingProjectionServiceTests
 
         RuleOrderingPreview second = _service.Move(authoritative, first, new RuleMoveRequest(1, FirewallAddressFamily.IPv4, 2));
 
-        CollectionAssert.AreEqual(new[] { 0, 1 }, second.DesiredOrder.ToArray());
+        Assert.AreSequenceEqual([0, 1], second.DesiredOrder.ToArray());
         Assert.IsFalse(second.HasChanges);
     }
 

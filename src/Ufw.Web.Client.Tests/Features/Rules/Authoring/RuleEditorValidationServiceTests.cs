@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;
 using Ufw.Web.Client.Features.Rules.Authoring;
@@ -22,7 +22,7 @@ public sealed class RuleEditorValidationServiceTests
         IReadOnlyList<string> actionErrors = _service.Validate(rule, nameof(FirewallRuleSpecification.Action), ipv6Enabled: true);
         IReadOnlyList<string> protocolErrors = _service.Validate(rule, nameof(FirewallRuleSpecification.Protocol), ipv6Enabled: true);
 
-        CollectionAssert.AreEqual(new[] { "ActionUnsupported" }, actionErrors.ToArray());
+        Assert.AreSequenceEqual(["ActionUnsupported"], actionErrors.ToArray());
         Assert.IsEmpty(protocolErrors);
     }
 
@@ -56,7 +56,7 @@ public sealed class RuleEditorValidationServiceTests
 
         IReadOnlyList<string> result = service.Validate(rule, nameof(FirewallRuleSpecification.AddressFamily), ipv6Enabled: false);
 
-        CollectionAssert.AreEqual(new[] { "localized" }, result.ToArray());
+        Assert.AreSequenceEqual(["localized"], result.ToArray());
         Assert.IsNotNull(captured);
         Assert.AreEqual(FirewallRuleValidationErrorCodes.IPV6_DISABLED, captured.Code);
         Assert.AreEqual("IPv6 rules are unavailable because IPv6 support is disabled in the current UFW configuration.", captured.ErrorMessage);
@@ -70,7 +70,7 @@ public sealed class RuleEditorValidationServiceTests
         rule.Source = "2001:db8::1";
         rule.Destination = "2001:db8::2";
 
-        Assert.IsFalse(_service.Validate(rule, nameof(FirewallRuleSpecification.AddressFamily), ipv6Enabled: true).Contains("Ipv6Disabled", StringComparer.Ordinal));
+        Assert.DoesNotContain("Ipv6Disabled", _service.Validate(rule, nameof(FirewallRuleSpecification.AddressFamily), ipv6Enabled: true), StringComparer.Ordinal);
     }
 
     private static FirewallRuleSpecification ValidRule() => new()

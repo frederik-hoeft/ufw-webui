@@ -48,7 +48,7 @@ public sealed class RuleTemplateNameGeneratorTests
 
         string name = _generator.Generate(rule);
 
-        Assert.IsTrue(name.Length <= RuleTemplateLimits.MAX_NAME_LENGTH);
+        Assert.IsLessThanOrEqualTo(RuleTemplateLimits.MAX_NAME_LENGTH, name.Length);
         Assert.IsTrue(name.EndsWith("...", StringComparison.Ordinal));
     }
 }
