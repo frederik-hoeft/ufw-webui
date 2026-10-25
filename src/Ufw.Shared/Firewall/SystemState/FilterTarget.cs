@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// Jump, goto, or extension target at the end of a rule.

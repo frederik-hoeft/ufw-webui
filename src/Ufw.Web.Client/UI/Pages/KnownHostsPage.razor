@@ -1,4 +1,4 @@
-﻿@page "/hosts"
+@page "/hosts"
 @attribute [Authorize]
 @implements IDisposable
 @inject IKnownHostInventoryService HostInventory
@@ -14,7 +14,7 @@
 <PageHeader Title="@(HostsText["Title"])"
             Description="@(HostsText["Description"])"
             Breadcrumbs="@Breadcrumbs"
-            ShowStatus="@(_inventory is not null)">
+            ShowStatus="@(Inventory is not null)">
     <Actions>
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.Refresh"
@@ -33,19 +33,19 @@
         </MudButton>
     </Actions>
     <Status>
-        @if (_inventory is not null)
+        @if (Inventory is not null)
         {
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeCount(_inventory.Hosts.Count)
+                @DescribeCount(Inventory.Hosts.Count)
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeVisibleCount(_inventory.Hosts.Count(static host => host.IsVisible))
+                @DescribeVisibleCount(Inventory.Hosts.Count(static host => host.IsVisible))
             </MudChip>
         }
     </Status>
 </PageHeader>
 
-@if (_error is { } error)
+@if (Error is { } error)
 {
     <InventoryErrorAlert Title="@(HostsText["LoadFailed"])" Message="@error.Message" RetryText="@(CommonText["Retry"])" Disabled="@IsBusy" OnRetry="RefreshAsync" />
 }
@@ -61,11 +61,11 @@
         </div>
     </header>
 
-    @if (_loading && _inventory is null)
+    @if (Loading && Inventory is null)
     {
         <InventoryLoading AriaLabel="@(HostsText["LoadingAria"])" Message="@(HostsText["LoadingInventory"])" />
     }
-    else if (_inventory is { Hosts.Count: 0 })
+    else if (Inventory is { Hosts.Count: 0 })
     {
         <div class="inventory-empty">
             <MudIcon Icon="@Icons.Material.Filled.Devices" Size="Size.Large" Color="Color.Secondary" />
@@ -82,10 +82,10 @@
             </MudButton>
         </div>
     }
-    else if (_inventory is not null)
+    else if (Inventory is not null)
     {
         <MudTable T="KnownHostInventoryItem"
-                  Items="@_inventory.Hosts"
+                  Items="@Inventory.Hosts"
                   Dense="true"
                   Hover="true"
                   Elevation="0"
@@ -146,7 +146,7 @@
         </MudTable>
 
         <div class="inventory-mobile">
-            @foreach (KnownHostInventoryItem host in _inventory.Hosts)
+            @foreach (KnownHostInventoryItem host in Inventory.Hosts)
             {
                 <article>
                     <div class="inventory-mobile-visibility">

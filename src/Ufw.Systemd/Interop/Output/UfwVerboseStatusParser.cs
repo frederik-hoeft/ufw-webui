@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Systemd.Interop.Output;

@@ -6,8 +6,8 @@ namespace Ufw.Shared.Tests.Domain;
 
 internal static class PolicyDiffSupport
 {
-    internal static readonly NetworkInterfaceName Eth0 = new("eth0");
-    internal static readonly NetworkInterfaceName Eth1 = new("eth1");
+    internal static readonly NetworkInterfaceName s_eth0 = new("eth0");
+    internal static readonly NetworkInterfaceName s_eth1 = new("eth1");
 
     internal static PolicyWorld<uint> World(
         PolicyRuleDefinition<uint>[] rules,
@@ -18,7 +18,7 @@ internal static class PolicyDiffSupport
         FiniteSet<NetworkInterfaceName>? interfaces = null) =>
         PolicyWorld.CreateIPv4(
             protocols ?? [ProtocolDefinition.Tcp, ProtocolDefinition.Udp],
-            interfaces ?? FiniteSet<NetworkInterfaceName>.Of(Eth0, Eth1),
+            interfaces ?? FiniteSet<NetworkInterfaceName>.Of(s_eth0, s_eth1),
             incoming,
             outgoing,
             routed,
@@ -66,7 +66,7 @@ internal static class PolicyDiffSupport
             destination,
             destinationPort,
             protocol ?? ProtocolSymbol.Tcp,
-            ingressSpecified ? ingress : ingress ?? Eth0,
+            ingressSpecified ? ingress : ingress ?? s_eth0,
             egressSpecified ? egress : egress);
 
     internal static uint Host(string address) => NetworkAddress.ParseIPv4(address).Start;

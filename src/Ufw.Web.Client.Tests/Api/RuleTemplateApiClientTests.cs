@@ -49,5 +49,5 @@ public sealed class RuleTemplateApiClientTests
         }
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

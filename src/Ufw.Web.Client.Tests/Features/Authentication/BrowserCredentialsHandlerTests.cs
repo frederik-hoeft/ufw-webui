@@ -24,5 +24,5 @@ public sealed class BrowserCredentialsHandlerTests
         Assert.IsFalse(inner.Requests[0].Headers.ContainsKey(BrowserRequestHeaders.CSRF_TOKEN));
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

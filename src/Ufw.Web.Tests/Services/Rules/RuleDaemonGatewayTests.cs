@@ -268,5 +268,5 @@ public sealed class RuleDaemonGatewayTests
         Rule = new FirewallRuleSpecification { AddressFamily = FirewallAddressFamily.IPv4 },
     };
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

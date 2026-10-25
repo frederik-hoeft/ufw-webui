@@ -216,5 +216,5 @@ public sealed class BrowserIntentSigningServiceTests
         public byte[] Payload { get; set; } = [];
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

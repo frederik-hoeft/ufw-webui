@@ -124,5 +124,5 @@ public sealed class AuthenticationServiceTests
         public AuthenticationService Service { get; }
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall;
+﻿namespace Ufw.Shared.Firewall;
 
 /// <summary>
 /// Describes authoritative firewall-state ambiguities. Occurrences use zero-based snapshot indices.

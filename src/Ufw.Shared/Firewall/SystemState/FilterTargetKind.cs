@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// How a rule names its target. This is chain structure, not a packet verdict.

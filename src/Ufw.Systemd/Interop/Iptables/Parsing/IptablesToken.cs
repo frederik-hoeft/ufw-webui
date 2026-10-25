@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Interop.Iptables.Parsing;
+﻿namespace Ufw.Systemd.Interop.Iptables.Parsing;
 
 internal readonly record struct IptablesToken(IptablesTokenKind Kind, string Text, string? Role)
 {

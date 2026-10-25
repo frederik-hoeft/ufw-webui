@@ -24,10 +24,10 @@ public sealed class PolicyDifferTests
         }
 
         PolicyWorld<uint> baseline = PolicyWorld.CreateIPv4(
-            [ProtocolDefinition.Tcp], FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            [ProtocolDefinition.Tcp], FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
             PolicyDecision.Deny, PolicyDecision.Deny, PolicyDecision.Deny, baselineRules);
         PolicyWorld<uint> candidate = PolicyWorld.CreateIPv4(
-            [ProtocolDefinition.Tcp], FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            [ProtocolDefinition.Tcp], FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
             PolicyDecision.Deny, PolicyDecision.Deny, PolicyDecision.Deny, candidateRules);
         PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input);
 
@@ -201,7 +201,7 @@ public sealed class PolicyDifferTests
             Destination = IntervalSet<uint>.Singleton(PolicyDiffSupport.Host("192.168.0.1")),
             DestinationPorts = PacketPorts.Parse("80"),
             Protocols = Tcp(),
-            Ingress = FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            Ingress = FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
         };
         PolicyWorld<uint> baseline = PolicyDiffSupport.World(
         [
@@ -258,7 +258,7 @@ public sealed class PolicyDifferTests
         Assert.IsTrue(inputDiff.ResponsibilityShifts().IsEmpty);
         Assert.IsTrue(outputDiff.Changed().IsEmpty);
         AssertDefaultPoint(inputDiff, baseline, candidate, input, PolicyDiffSupport.Point(), PolicyDiffKind.DecisionOnly, PolicyDecision.Deny, PolicyDecision.Allow);
-        PacketPoint<uint> outputPoint = PolicyDiffSupport.Point(ingress: null, ingressSpecified: true, egress: PolicyDiffSupport.Eth1);
+        PacketPoint<uint> outputPoint = PolicyDiffSupport.Point(ingress: null, ingressSpecified: true, egress: PolicyDiffSupport.s_eth1);
         AssertDefaultPoint(outputDiff, baseline, candidate, output, outputPoint, PolicyDiffKind.Unchanged, PolicyDecision.Allow, PolicyDecision.Allow);
     }
 
@@ -300,14 +300,14 @@ public sealed class PolicyDifferTests
         PolicyWorld<uint> baseline = PolicyDiffSupport.World(
             [PolicyDiffSupport.Rule("web", TrafficChain.Input, PolicyDecision.Allow, destinationPorts: PacketPorts.Parse("80"))],
             protocols: protocols,
-            interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0));
+            interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0));
         PolicyWorld<uint> candidate = PolicyDiffSupport.World(
             [
                 PolicyDiffSupport.Rule("web", TrafficChain.Input, PolicyDecision.Allow, destinationPorts: PacketPorts.Parse("80")),
                 PolicyDiffSupport.Rule("echo", TrafficChain.Input, PolicyDecision.Allow, protocols: FiniteSet<ProtocolSymbol>.Of(icmp)),
             ],
             protocols: protocols,
-            interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0));
+            interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0));
         PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input);
         PolicyDiff<uint> diff = PolicyDiffer.Compare(baseline, candidate, query);
 
@@ -338,8 +338,8 @@ public sealed class PolicyDifferTests
             destination: IntervalSet<uint>.Of(NetworkAddress.ParseIPv4("192.168.0.0/16")),
             protocols: Tcp(),
             destinationPorts: PacketPorts.Parse("443"),
-            ingress: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
-            egress: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth1));
+            ingress: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
+            egress: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth1));
         PolicyRuleDefinition<uint> rejected = PolicyDiffSupport.Rule(
             "route-reject",
             TrafficChain.Forward,
@@ -358,18 +358,18 @@ public sealed class PolicyDifferTests
             source: PolicyDiffSupport.Host("10.1.1.1"),
             destination: PolicyDiffSupport.Host("192.168.1.9"),
             destinationPort: 443,
-            ingress: PolicyDiffSupport.Eth0,
-            egress: PolicyDiffSupport.Eth1);
+            ingress: PolicyDiffSupport.s_eth0,
+            egress: PolicyDiffSupport.s_eth1);
         PacketPoint<uint> otherEgress = PolicyDiffSupport.Point(
             source: PolicyDiffSupport.Host("10.1.1.1"),
             destination: PolicyDiffSupport.Host("192.168.1.9"),
             destinationPort: 443,
-            ingress: PolicyDiffSupport.Eth0,
-            egress: PolicyDiffSupport.Eth0);
+            ingress: PolicyDiffSupport.s_eth0,
+            egress: PolicyDiffSupport.s_eth0);
 
         AssertDiff(diff, baseline, candidate, query);
-        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0), diff.DecisionChanges().ProjectIngress());
-        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth1), diff.DecisionChanges().ProjectEgress());
+        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0), diff.DecisionChanges().ProjectIngress());
+        Assert.AreEqual(FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth1), diff.DecisionChanges().ProjectEgress());
         Assert.AreEqual(PacketPortSet.FromPorts(PacketPorts.Parse("443")), diff.DecisionChanges().ProjectDestinationPorts());
         Assert.IsTrue(diff.ResponsibilityShifts().SetEquals(diff.DecisionChanges()));
         PolicyDiffCell<uint> cell = Classified(diff, baseline, candidate, query, matched);
@@ -444,8 +444,8 @@ public sealed class PolicyDifferTests
     public void Compare_InterfaceUniverseOrder_DoesNotAffectEquivalence()
     {
         PolicyRuleDefinition<uint> rule = PolicyDiffSupport.Rule("ssh", TrafficChain.Input, PolicyDecision.Allow, protocols: Tcp(), destinationPorts: PacketPorts.Parse("22"));
-        PolicyWorld<uint> forward = PolicyDiffSupport.World([rule], interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0, PolicyDiffSupport.Eth1));
-        PolicyWorld<uint> reversed = PolicyDiffSupport.World([rule], interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth1, PolicyDiffSupport.Eth0));
+        PolicyWorld<uint> forward = PolicyDiffSupport.World([rule], interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0, PolicyDiffSupport.s_eth1));
+        PolicyWorld<uint> reversed = PolicyDiffSupport.World([rule], interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth1, PolicyDiffSupport.s_eth0));
         PolicyQuery<uint> query = PolicyDiffSupport.Query(TrafficChain.Input);
         PolicyDiff<uint> diff = PolicyDiffer.Compare(forward, reversed, query);
 
@@ -525,7 +525,7 @@ public sealed class PolicyDifferTests
     public void Compare_RejectsClosedWorldMismatchesAndNullArguments()
     {
         PolicyWorld<uint> world = PolicyDiffSupport.World([]);
-        PolicyWorld<uint> otherInterfaces = PolicyDiffSupport.World([], interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0));
+        PolicyWorld<uint> otherInterfaces = PolicyDiffSupport.World([], interfaces: FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0));
         ProtocolSymbol icmp = new("icmp");
         PolicyWorld<uint> portless = PolicyDiffSupport.World([], protocols: [ProtocolDefinition.Tcp, new ProtocolDefinition(icmp, usesPorts: false)]);
         PolicyWorld<uint> portBearing = PolicyDiffSupport.World([], protocols: [ProtocolDefinition.Tcp, new ProtocolDefinition(icmp, usesPorts: true)]);
@@ -542,7 +542,7 @@ public sealed class PolicyDifferTests
         Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(world, world, PolicyQuery<uint>.Create(IpFamily.IPv6, TrafficChain.Input)));
         Assert.ThrowsExactly<ArgumentException>(() => PolicyDiffer.Compare(world, world, PolicyDiffSupport.Query(TrafficChain.Output, new PolicyConstraint<uint>
         {
-            Ingress = FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            Ingress = FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
         })));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => diff.SpaceFor((PolicyDiffKind)99));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => diff.CellsFor((PolicyDiffKind)99));
@@ -651,7 +651,7 @@ public sealed class PolicyDifferTests
         Destination = IntervalSet<uint>.Singleton(PolicyDiffSupport.Host("192.168.0.1")),
         DestinationPorts = destinationPorts,
         Protocols = Tcp(),
-        Ingress = FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+        Ingress = FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
     };
 
     private static PacketPoint<uint> NarrowPoint(ushort destinationPort, uint? source = null) => PolicyDiffSupport.Point(
@@ -659,7 +659,7 @@ public sealed class PolicyDifferTests
         sourcePort: 40000,
         destination: PolicyDiffSupport.Host("192.168.0.1"),
         destinationPort: destinationPort,
-        ingress: PolicyDiffSupport.Eth0);
+        ingress: PolicyDiffSupport.s_eth0);
 
     private static PacketPoint<uint> Port(ushort destinationPort, ProtocolSymbol? protocol = null) =>
         PolicyDiffSupport.Point(destinationPort: destinationPort, protocol: protocol);
@@ -688,10 +688,10 @@ public sealed class PolicyDifferTests
         FiniteSet<ProtocolSymbol>? protocols = random.Next(0, 2) == 0 ? null : FiniteSet<ProtocolSymbol>.Of(random.Next(0, 2) == 0 ? ProtocolSymbol.Tcp : ProtocolSymbol.Udp);
         FiniteSet<NetworkInterfaceName>? ingress = chain == TrafficChain.Output || random.Next(0, 2) == 0
             ? null
-            : FiniteSet<NetworkInterfaceName>.Of(random.Next(0, 2) == 0 ? PolicyDiffSupport.Eth0 : PolicyDiffSupport.Eth1);
+            : FiniteSet<NetworkInterfaceName>.Of(random.Next(0, 2) == 0 ? PolicyDiffSupport.s_eth0 : PolicyDiffSupport.s_eth1);
         FiniteSet<NetworkInterfaceName>? egress = chain == TrafficChain.Input || random.Next(0, 2) == 0
             ? null
-            : FiniteSet<NetworkInterfaceName>.Of(random.Next(0, 2) == 0 ? PolicyDiffSupport.Eth0 : PolicyDiffSupport.Eth1);
+            : FiniteSet<NetworkInterfaceName>.Of(random.Next(0, 2) == 0 ? PolicyDiffSupport.s_eth0 : PolicyDiffSupport.s_eth1);
         return PolicyDiffSupport.Rule($"{idPrefix}-r{index}", chain, decision, source: source, destinationPorts: destinationPorts, protocols: protocols, ingress: ingress, egress: egress);
     }
 
@@ -704,8 +704,8 @@ public sealed class PolicyDifferTests
             destination: (uint)random.NextInt64(0, 1L << 32),
             destinationPort: (ushort)random.Next(1, 65536),
             protocol: random.Next(0, 2) == 0 ? ProtocolSymbol.Tcp : ProtocolSymbol.Udp,
-            ingress: profile.HasIngress ? (random.Next(0, 2) == 0 ? PolicyDiffSupport.Eth0 : PolicyDiffSupport.Eth1) : null,
-            egress: profile.HasEgress ? (random.Next(0, 2) == 0 ? PolicyDiffSupport.Eth0 : PolicyDiffSupport.Eth1) : null,
+            ingress: profile.HasIngress ? (random.Next(0, 2) == 0 ? PolicyDiffSupport.s_eth0 : PolicyDiffSupport.s_eth1) : null,
+            egress: profile.HasEgress ? (random.Next(0, 2) == 0 ? PolicyDiffSupport.s_eth0 : PolicyDiffSupport.s_eth1) : null,
             ingressSpecified: true,
             egressSpecified: true);
     }

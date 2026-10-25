@@ -1,5 +1,5 @@
-﻿using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
+using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 
 namespace Ufw.Web.Client.Features.Rules.Filtering.Ports;
 

@@ -110,5 +110,5 @@ public sealed class RuleTagCatalogServiceTests
         Color = color,
     };
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

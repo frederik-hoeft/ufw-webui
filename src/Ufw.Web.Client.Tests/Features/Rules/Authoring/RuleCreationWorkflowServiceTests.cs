@@ -149,5 +149,5 @@ public sealed class RuleCreationWorkflowServiceTests
         public RuleCreationWorkflowService Service => new(Mutations.Object, Metadata.Object, Reconciliation.Object, Errors.Object);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

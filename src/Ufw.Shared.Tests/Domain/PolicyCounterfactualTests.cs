@@ -137,7 +137,7 @@ public sealed class PolicyCounterfactualTests
         Assert.AreEqual(0, ((DecisionProvenance.RuleMatch)ssh.BaselineProvenance).FamilyOrder);
         Assert.IsTrue(outputImpact.DecisionChanges().IsEmpty);
         Assert.IsTrue(outputImpact.ResponsibilityShifts().IsEmpty);
-        PacketPoint<uint> outputPoint = PolicyDiffSupport.Point(ingress: null, ingressSpecified: true, egress: PolicyDiffSupport.Eth0);
+        PacketPoint<uint> outputPoint = PolicyDiffSupport.Point(ingress: null, ingressSpecified: true, egress: PolicyDiffSupport.s_eth0);
         PolicyDiffCell<uint> outputCell = Classified(outputImpact, world, world.Rules[0], output, outputPoint);
         Assert.AreEqual(PolicyDiffKind.Unchanged, outputCell.Difference);
         Assert.AreEqual(PolicyDecision.Deny, outputCell.BaselineDecision);
@@ -217,7 +217,7 @@ public sealed class PolicyCounterfactualTests
         };
         PolicyWorld<UInt128> world = PolicyWorld.CreateIPv6(
             [ProtocolDefinition.Tcp, ProtocolDefinition.Udp],
-            FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
+            FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
             PolicyDecision.Deny,
             PolicyDecision.Allow,
             PolicyDecision.Reject,
@@ -227,8 +227,8 @@ public sealed class PolicyCounterfactualTests
         PolicyDiff<UInt128> diff = PolicyCounterfactual.ImpactOfRemoving(world, occurrence, query);
         UInt128 inside = NetworkAddress.ParseIPv6("2001:db8::1").Start;
         UInt128 outside = NetworkAddress.ParseIPv6("2001:db9::1").Start;
-        PacketPoint<UInt128> insidePoint = new(UInt128.Zero, 1, inside, 443, ProtocolSymbol.Tcp, PolicyDiffSupport.Eth0);
-        PacketPoint<UInt128> outsidePoint = new(UInt128.Zero, 1, outside, 443, ProtocolSymbol.Tcp, PolicyDiffSupport.Eth0);
+        PacketPoint<UInt128> insidePoint = new(UInt128.Zero, 1, inside, 443, ProtocolSymbol.Tcp, PolicyDiffSupport.s_eth0);
+        PacketPoint<UInt128> outsidePoint = new(UInt128.Zero, 1, outside, 443, ProtocolSymbol.Tcp, PolicyDiffSupport.s_eth0);
 
         Assert.AreSame(occurrence, world.Rules[0]);
         Assert.HasCount(1, world.Rules);
@@ -258,8 +258,8 @@ public sealed class PolicyCounterfactualTests
                 decision,
                 destinationPorts: random.Next(0, 2) == 0 ? null : PacketPorts.Parse((random.Next(1, 1024)).ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 protocols: random.Next(0, 2) == 0 ? null : Tcp(),
-                ingress: chain == TrafficChain.Output ? null : FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth0),
-                egress: chain == TrafficChain.Input ? null : FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.Eth1));
+                ingress: chain == TrafficChain.Output ? null : FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth0),
+                egress: chain == TrafficChain.Input ? null : FiniteSet<NetworkInterfaceName>.Of(PolicyDiffSupport.s_eth1));
         }
 
         PolicyWorld<uint> world = PolicyDiffSupport.World(rules);

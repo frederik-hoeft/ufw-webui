@@ -209,5 +209,5 @@ public sealed class OperationalStatusServiceTests
         return client;
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

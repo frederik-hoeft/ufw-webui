@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// Enrichment linking one live iptables rule back to the UFW user rule that translated into it.

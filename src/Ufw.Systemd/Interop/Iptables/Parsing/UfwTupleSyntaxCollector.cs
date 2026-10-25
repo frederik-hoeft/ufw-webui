@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Systemd.Interop.Iptables.Parsing.SyntaxNodes;
 
 namespace Ufw.Systemd.Interop.Iptables.Parsing;

@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Features.Rules.Metadata;
+﻿namespace Ufw.Web.Client.Features.Rules.Metadata;
 
 /// <summary>
 /// Editable rule metadata without HTTP transport or UI-component dependencies.

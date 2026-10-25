@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>Availability and completeness of optional managed-UFW attribution for one address family.</summary>
 public enum FilterEnrichmentStatus

@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// Reconciles source translations with an observed chain without assuming that configured and

@@ -84,5 +84,5 @@ public sealed class RuleInventoryServiceTests
         public override DateTimeOffset GetUtcNow() => utcNow;
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

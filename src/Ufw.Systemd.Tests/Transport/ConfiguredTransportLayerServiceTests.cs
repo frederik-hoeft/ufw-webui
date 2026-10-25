@@ -77,5 +77,5 @@ public sealed class ConfiguredTransportLayerServiceTests
         }
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

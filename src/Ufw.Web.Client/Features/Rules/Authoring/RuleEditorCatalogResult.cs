@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Services.Errors;
+﻿using Ufw.Web.Client.Services.Errors;
 
 namespace Ufw.Web.Client.Features.Rules.Authoring;
 

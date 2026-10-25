@@ -36,5 +36,5 @@ public sealed class CompatibleIntentContextProviderTests
         Assert.Contains("protocol mismatch", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

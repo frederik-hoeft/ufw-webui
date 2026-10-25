@@ -287,5 +287,5 @@ public sealed class RuleMutationServiceTests
         public RuleMutationService Service => new(Rules.Object, new CompatibleIntentContextProvider(Context.Object), Signer.Object);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

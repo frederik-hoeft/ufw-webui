@@ -1,4 +1,4 @@
-using Ufw.Shared.Ipc.Model;
+﻿using Ufw.Shared.Ipc.Model;
 
 namespace Ufw.Systemd.Firewall.SystemState;
 

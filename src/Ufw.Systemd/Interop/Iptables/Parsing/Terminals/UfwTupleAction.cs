@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Parsing.Parsers;

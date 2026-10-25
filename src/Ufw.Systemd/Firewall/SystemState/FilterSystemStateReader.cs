@@ -75,16 +75,16 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
             }
             else
             {
-                const string diagnostic = "The numbered UFW snapshot is unavailable; managed-rule attribution was skipped.";
-                _logger.LogWarning(diagnostic);
+                const string DIAGNOSTIC = "The numbered UFW snapshot is unavailable; managed-rule attribution was skipped.";
+                _logger.LogWarning(DIAGNOSTIC);
                 if (ipv4Rules.Diagnostic is null)
                 {
-                    ipv4Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, diagnostic);
+                    ipv4Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, DIAGNOSTIC);
                 }
 
                 if (ipv6Rules.Diagnostic is null)
                 {
-                    ipv6Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, diagnostic);
+                    ipv6Enrichment = new FilterEnrichmentReport(FilterEnrichmentStatus.Unavailable, DIAGNOSTIC);
                 }
             }
         }

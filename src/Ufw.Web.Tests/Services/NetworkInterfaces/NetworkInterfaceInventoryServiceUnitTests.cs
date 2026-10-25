@@ -202,5 +202,5 @@ public sealed class NetworkInterfaceInventoryServiceUnitTests
         }
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

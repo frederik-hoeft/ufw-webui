@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// One rule in a root-chain traversal. <see cref="Location"/> is the physical rule.

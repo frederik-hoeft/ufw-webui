@@ -1,9 +1,9 @@
-﻿using System.Collections.Concurrent;
-using System.Net;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Moq;
+using System.Collections.Concurrent;
+using System.Net;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Client.Api.Intent;
@@ -103,5 +103,5 @@ public sealed class ClientApiServiceCollectionExtensionsTests
         }
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

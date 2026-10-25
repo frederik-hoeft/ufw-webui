@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Ufw.Web.Client;
 using Ufw.Web.Client.Features.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Metadata;

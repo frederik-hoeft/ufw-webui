@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Features.Rules.Authoring;
+﻿namespace Ufw.Web.Client.Features.Rules.Authoring;
 
 internal enum RuleCreationPhase
 {

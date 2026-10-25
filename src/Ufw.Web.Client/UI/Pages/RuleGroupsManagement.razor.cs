@@ -6,8 +6,8 @@ using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Metadata;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
-using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Client.UI.Components;
+using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Model.V1.Rules;
 
 namespace Ufw.Web.Client.UI.Pages;

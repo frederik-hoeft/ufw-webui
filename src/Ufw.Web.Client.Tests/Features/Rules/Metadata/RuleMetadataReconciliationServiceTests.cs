@@ -92,5 +92,5 @@ public sealed class RuleMetadataReconciliationServiceTests
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => service.RefreshAsync(TestContext.CancellationToken));
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

@@ -1,5 +1,5 @@
 ﻿using Ufw.Shared.Firewall;
-﻿using Ufw.Shared.Ipc.Model.Responses.Domain;
+using Ufw.Shared.Ipc.Model.Responses.Domain;
 using Ufw.Shared.Management.Rules;
 using Ufw.Web.Client.Api;
 using Ufw.Web.Client.Features.Rules;

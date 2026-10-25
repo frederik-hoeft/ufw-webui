@@ -455,5 +455,5 @@ public sealed class RuleGroupDeletionWorkflowServiceTests
         public RuleGroupDeletionWorkflowService Service => new(Mutations.Object, Groups.Object);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

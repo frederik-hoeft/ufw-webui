@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Shared.Ipc.Model.Responses.Domain;

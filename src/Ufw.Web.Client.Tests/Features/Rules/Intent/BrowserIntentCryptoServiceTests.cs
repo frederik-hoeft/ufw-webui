@@ -65,5 +65,5 @@ public sealed class BrowserIntentCryptoServiceTests
         Assert.AreEqual(0, js.ImportCount);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

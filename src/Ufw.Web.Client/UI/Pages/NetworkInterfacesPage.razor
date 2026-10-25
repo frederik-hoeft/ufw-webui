@@ -1,4 +1,4 @@
-﻿@page "/interfaces"
+@page "/interfaces"
 @attribute [Authorize]
 @implements IDisposable
 @inject INetworkInterfaceInventoryService InterfaceInventory
@@ -13,7 +13,7 @@
 <PageHeader Title="@(InterfacesText["Title"])"
             Description="@(InterfacesText["Description"])"
             Breadcrumbs="@Breadcrumbs"
-            ShowStatus="@(_inventory is not null)">
+            ShowStatus="@(Inventory is not null)">
     <Actions>
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.Refresh"
@@ -32,16 +32,16 @@
         </MudButton>
     </Actions>
     <Status>
-        @if (_inventory is not null)
+        @if (Inventory is not null)
         {
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeCount(_inventory.Interfaces.Count)
+                @DescribeCount(Inventory.Interfaces.Count)
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @DescribeVisibleCount(_inventory.Interfaces.Count(static item => item.IsVisible))
+                @DescribeVisibleCount(Inventory.Interfaces.Count(static item => item.IsVisible))
             </MudChip>
             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="page-status-chip">
-                @(_inventory.ReconciledAt is { } reconciledAt
+                @(Inventory.ReconciledAt is { } reconciledAt
                     ? InterfacesText["ReconciledAt", LocalDateTimeText.Format(reconciledAt)]
                     : InterfacesText["NotReconciledYet"])
             </MudChip>
@@ -49,7 +49,7 @@
     </Status>
 </PageHeader>
 
-@if (_error is { } error)
+@if (Error is { } error)
 {
     <InventoryErrorAlert Title="@(InterfacesText["LoadFailed"])" Message="@error.Message" RetryText="@(CommonText["Retry"])" Disabled="@IsBusy" OnRetry="RefreshAsync" />
 }
@@ -65,11 +65,11 @@
         </div>
     </header>
 
-    @if (_loading && _inventory is null)
+    @if (Loading && Inventory is null)
     {
         <InventoryLoading AriaLabel="@(InterfacesText["LoadingAria"])" Message="@(InterfacesText["LoadingInventory"])" />
     }
-    else if (_inventory is { Interfaces.Count: 0 })
+    else if (Inventory is { Interfaces.Count: 0 })
     {
         <div class="inventory-empty">
             <MudIcon Icon="@Icons.Material.Filled.Lan" Size="Size.Large" Color="Color.Secondary" />
@@ -79,10 +79,10 @@
             </MudText>
         </div>
     }
-    else if (_inventory is not null)
+    else if (Inventory is not null)
     {
         <MudTable T="NetworkInterfaceInventoryItem"
-                  Items="@_inventory.Interfaces"
+                  Items="@Inventory.Interfaces"
                   Dense="true"
                   Hover="true"
                   Elevation="0"
@@ -126,7 +126,7 @@
         </MudTable>
 
         <div class="inventory-mobile">
-            @foreach (NetworkInterfaceInventoryItem item in _inventory.Interfaces)
+            @foreach (NetworkInterfaceInventoryItem item in Inventory.Interfaces)
             {
                 <article>
                     <div class="inventory-mobile-visibility">

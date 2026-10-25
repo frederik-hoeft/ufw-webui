@@ -153,5 +153,5 @@ public sealed class RuleListMutationWorkflowServiceTests
         public RuleListMutationWorkflowService Service => new(Metadata.Object, Mutations.Object, Groups.Object, Ordering.Object, Errors.Object, TimeProvider.System);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

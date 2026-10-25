@@ -45,5 +45,5 @@ public sealed class OperationalStatusApiClientsTests
         BaseAddress = new Uri("https://localhost/"),
     };
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

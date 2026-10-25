@@ -105,5 +105,5 @@ public sealed class RuleListRefreshWorkflowServiceTests
         public RuleListRefreshWorkflowService Service => new(Inventory.Object, Hosts.Object, Errors.Object);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

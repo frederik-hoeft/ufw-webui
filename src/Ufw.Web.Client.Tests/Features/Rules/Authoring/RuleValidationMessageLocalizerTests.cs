@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 using Moq;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses;

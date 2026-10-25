@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall;
+﻿namespace Ufw.Shared.Firewall;
 
 /// <summary>
 /// Stable error identities for rejected firewall-state mutations.

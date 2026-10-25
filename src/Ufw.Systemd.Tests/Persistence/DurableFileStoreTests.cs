@@ -6,6 +6,8 @@ namespace Ufw.Systemd.Tests.Persistence;
 [TestClass]
 public sealed class DurableFileStoreTests
 {
+    public required TestContext TestContext { get; set; }
+
     [TestMethod]
     public async Task AppendAsync_CreatesParentAndAppendsContentsAsync()
     {
@@ -112,6 +114,4 @@ public sealed class DurableFileStoreTests
         Directory.CreateDirectory(directory);
         return directory;
     }
-
-    public TestContext TestContext { get; set; }
 }

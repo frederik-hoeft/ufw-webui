@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Firewall;
+﻿namespace Ufw.Systemd.Firewall;
 
 internal abstract record FirewallRuleSnapshotReadResult
 {

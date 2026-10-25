@@ -125,5 +125,5 @@ public sealed class RuleMetadataAuthoringServiceTests
 
     private static RuleGroup Group(Guid id, string name) => new(id, name, null, [], []);
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

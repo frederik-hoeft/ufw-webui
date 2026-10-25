@@ -188,5 +188,5 @@ public sealed class RuleEditorReferenceDataServiceTests
         IsVisible = isVisible,
     };
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

@@ -117,5 +117,5 @@ public sealed class RuleGroupCatalogServiceTests
 
     private static RuleGroupItem Group(string name) => new(Guid.CreateVersion7(), name, null, []);
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }
