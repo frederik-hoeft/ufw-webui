@@ -1,6 +1,6 @@
 ﻿using MudBlazor;
-using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Client.UI.Components;
+using Ufw.Web.Client.UI.Components.Rules.Metadata;
 
 namespace Ufw.Web.Client.UI.Pages;
 

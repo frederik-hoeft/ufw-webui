@@ -46,16 +46,16 @@ public sealed class ProductSpaceTests
     [TestMethod]
     public void SmallGrid_ExceptAgreesWithPointEnumeration()
     {
-        const int limit = 12;
-        ProductRegion whole = Rectangle(0, limit, 0, limit, 0, limit);
-        ProductRegion cut = Rectangle(3, 8, 0, 4, 10, limit);
+        const int LIMIT = 12;
+        ProductRegion whole = Rectangle(0, LIMIT, 0, LIMIT, 0, LIMIT);
+        ProductRegion cut = Rectangle(3, 8, 0, 4, 10, LIMIT);
         ProductSpace outside = ProductSpace.FromRegions([whole]).Except(cut);
         BigInteger seen = BigInteger.Zero;
-        for (ushort x = 0; x <= limit; x++)
+        for (ushort x = 0; x <= LIMIT; x++)
         {
-            for (ushort y = 0; y <= limit; y++)
+            for (ushort y = 0; y <= LIMIT; y++)
             {
-                for (ushort z = 0; z <= limit; z++)
+                for (ushort z = 0; z <= LIMIT; z++)
                 {
                     bool inCut = x is >= 3 and <= 8 && y <= 4 && z >= 10;
                     bool inOutside = Contains(outside, x, y, z);

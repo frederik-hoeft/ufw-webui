@@ -6,10 +6,7 @@ namespace Ufw.Systemd.Firewall;
 
 internal static class FirewallRuleSnapshotReadResultExtensions
 {
-    public static TResult Match<TResult>(
-        this FirewallRuleSnapshotReadResult result,
-        Func<FirewallSnapshot, TResult> onSuccess,
-        Func<string, TResult> onFailure)
+    public static TResult Match<TResult>(this FirewallRuleSnapshotReadResult result, Func<FirewallSnapshot, TResult> onSuccess, Func<string, TResult> onFailure)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(onSuccess);
@@ -36,16 +33,15 @@ internal static class FirewallRuleSnapshotReadResultExtensions
     public static IResponsePayload ToResponsePayload(this FirewallRuleSnapshotReadResult result) =>
         result.Match<IResponsePayload>(static snapshot => snapshot.ToResponse(), static message => new InternalServerErrorResponse(message));
 
-    public static bool TryGetSnapshot(
-        this FirewallRuleSnapshotReadResult result,
-        [NotNullWhen(true)] out FirewallSnapshot? snapshot,
-        [NotNullWhen(false)] out IResponsePayload? error)
+    public static bool TryGetSnapshot(this FirewallRuleSnapshotReadResult result, [NotNullWhen(true)] out FirewallSnapshot? snapshot, [NotNullWhen(false)] out IResponsePayload? error)
     {
-        (bool HasSnapshot, FirewallSnapshot? Snapshot, IResponsePayload? Error) = result.Match<(bool, FirewallSnapshot?, IResponsePayload?)>(
-            static snapshot => (true, snapshot, null),
-            static diagnostic => (false, null, new InternalServerErrorResponse(diagnostic)));
-        snapshot = Snapshot;
-        error = Error;
-        return HasSnapshot;
+        FirewallRuleMatchResult snapshotResult = result.Match(
+            onSuccess: static snapshot => new FirewallRuleMatchResult(HasSnapshot: true, snapshot, Error: null),
+            onFailure: static diagnostic => new FirewallRuleMatchResult(HasSnapshot: false, Snapshot: null, new InternalServerErrorResponse(diagnostic)));
+        snapshot = snapshotResult.Snapshot;
+        error = snapshotResult.Error;
+        return snapshotResult.HasSnapshot;
     }
 }
+
+file readonly record struct FirewallRuleMatchResult(bool HasSnapshot, FirewallSnapshot? Snapshot, IResponsePayload? Error);

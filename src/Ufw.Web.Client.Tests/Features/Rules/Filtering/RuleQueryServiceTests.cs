@@ -1,5 +1,4 @@
 ﻿using Ufw.Shared.Firewall;
-using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 using Ufw.Shared.Management.KnownHosts;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Features.Rules;
@@ -11,6 +10,7 @@ using Ufw.Web.Client.Features.Rules.Filtering.KnownHosts;
 using Ufw.Web.Client.Features.Rules.Filtering.Networks;
 using Ufw.Web.Client.Features.Rules.Filtering.Ports;
 using Ufw.Web.Client.Features.Rules.Filtering.Protocols;
+using Ufw.Web.Client.Features.Rules.Filtering.Semantics;
 using Ufw.Web.Client.Features.Rules.Filtering.Tags;
 using Ufw.Web.Client.Features.Rules.Filtering.Text;
 using Ufw.Web.Client.Features.Rules.Metadata;

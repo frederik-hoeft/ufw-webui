@@ -1,4 +1,4 @@
-namespace Ufw.Systemd.Firewall.SystemState;
+﻿namespace Ufw.Systemd.Firewall.SystemState;
 
 internal interface IFilterSystemStateReader
 {

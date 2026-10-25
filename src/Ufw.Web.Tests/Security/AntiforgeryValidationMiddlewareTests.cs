@@ -141,5 +141,5 @@ public sealed class AntiforgeryValidationMiddlewareTests
         return context;
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

@@ -1,10 +1,9 @@
 ﻿using MudBlazor;
 using Ufw.Shared.Management.NetworkInterfaces;
-using Ufw.Web.Client.Api.NetworkInterfaces;
 using Ufw.Web.Client.Services.Errors;
+using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Client.UI.Components.Interfaces;
 using Ufw.Web.Client.UI.Pages.Inventory;
-using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Model.V1.NetworkInterfaces;
 
 namespace Ufw.Web.Client.UI.Pages;
@@ -15,9 +14,9 @@ public sealed partial class NetworkInterfacesPage
 
     private readonly CancellationTokenSource _lifetime = new();
     private InventoryPageOperations<NetworkInterfaceInventoryResponse> _operations = null!;
-    private NetworkInterfaceInventoryResponse? _inventory => _operations.Current;
-    private ClientError? _error => _operations.Error;
-    private bool _loading => _operations.IsLoading;
+    private NetworkInterfaceInventoryResponse? Inventory => _operations.Current;
+    private ClientError? Error => _operations.Error;
+    private bool Loading => _operations.IsLoading;
 
     private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
     [
@@ -39,12 +38,12 @@ public sealed partial class NetworkInterfacesPage
         _lifetime.Dispose();
     }
 
-    private Task RefreshAsync() => _operations.RefreshAsync(InterfaceInventory.RefreshAsync, _lifetime.Token);
+    private Task<bool> RefreshAsync() => _operations.RefreshAsync(InterfaceInventory.RefreshAsync, _lifetime.Token);
 
-    private Task ReconcileAsync() => _operations.RefreshAsync(
+    private Task<bool> ReconcileAsync() => _operations.RefreshAsync(
         InterfaceInventory.ReconcileAsync, _lifetime.Token, error => Snackbar.Add(error.Message, Severity.Error));
 
-    private Task EditCommentAsync(NetworkInterfaceInventoryItem item) => SaveAsync(async cancellationToken =>
+    private Task<bool> EditCommentAsync(NetworkInterfaceInventoryItem item) => SaveAsync(async cancellationToken =>
     {
         DialogParameters<EditNetworkInterfaceCommentDialog> parameters = new()
         {

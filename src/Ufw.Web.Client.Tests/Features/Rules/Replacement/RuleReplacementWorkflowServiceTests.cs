@@ -133,5 +133,5 @@ public sealed class RuleReplacementWorkflowServiceTests
         public RuleReplacementWorkflowService Service => new(Mutations.Object, Metadata.Object, Errors.Object);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

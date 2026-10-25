@@ -73,5 +73,5 @@ public sealed class NetworkInterfaceDaemonGatewayTests
         Assert.AreSequenceEqual(["ENO1", "eno1"], result.Result.ToArray());
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

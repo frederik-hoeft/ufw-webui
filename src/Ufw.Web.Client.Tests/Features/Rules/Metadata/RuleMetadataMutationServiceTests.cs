@@ -66,5 +66,5 @@ public sealed class RuleMetadataMutationServiceTests
         api.VerifyNoOtherCalls();
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

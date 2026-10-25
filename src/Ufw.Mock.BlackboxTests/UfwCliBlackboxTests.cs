@@ -11,6 +11,8 @@ public sealed class UfwCliBlackboxTests
     private string _defaultsPath = null!;
     private string? _originalDefaultsPath;
 
+    public required TestContext TestContext { get; set; }
+
     [TestInitialize]
     public void Initialize()
     {
@@ -757,6 +759,4 @@ public sealed class UfwCliBlackboxTests
     }
 
     private sealed record CommandResult(int ExitCode, string StdOut, string StdErr);
-
-    public TestContext TestContext { get; set; }
 }

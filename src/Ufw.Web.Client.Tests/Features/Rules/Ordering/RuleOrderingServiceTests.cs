@@ -101,5 +101,5 @@ public sealed class RuleOrderingServiceTests
 
     private static RuleReorderResponse Response(RuleReorderOutcome outcome, RuleListResponse snapshot) => new(outcome, snapshot, [], [], [], Diagnostic: null);
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

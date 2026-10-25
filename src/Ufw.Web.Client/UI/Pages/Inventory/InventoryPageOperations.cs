@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Services.Errors;
+﻿using Ufw.Web.Client.Services.Errors;
 
 namespace Ufw.Web.Client.UI.Pages.Inventory;
 
@@ -19,16 +19,16 @@ internal sealed class InventoryPageOperations<TInventory>(IClientErrorMapper err
     public bool IsLoading => Operation == InventoryPageOperation.Refreshing;
 
     public Task<bool> RefreshAsync(Func<CancellationToken, Task<TInventory>> refresh, CancellationToken cancellationToken, Action<ClientError>? onError = null)
-        => RunAsync(async token => await refresh(token), InventoryPageOperation.Refreshing, cancellationToken, onError);
+        => RunAsync(async token => await refresh(token), InventoryPageOperation.Refreshing, onError, cancellationToken);
 
     public Task<bool> UpdateAsync(Func<CancellationToken, Task<TInventory?>> update, CancellationToken cancellationToken, Action<ClientError>? onError = null)
-        => RunAsync(update, InventoryPageOperation.Updating, cancellationToken, onError);
+        => RunAsync(update, InventoryPageOperation.Updating, onError, cancellationToken);
 
     private async Task<bool> RunAsync(
         Func<CancellationToken, Task<TInventory?>> operation,
         InventoryPageOperation mode,
-        CancellationToken cancellationToken,
-        Action<ClientError>? onError)
+        Action<ClientError>? onError,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(operation);
         if (IsBusy || cancellationToken.IsCancellationRequested)

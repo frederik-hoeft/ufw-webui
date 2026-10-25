@@ -110,5 +110,5 @@ public sealed class JwtTokenServiceTests
         public override DateTimeOffset GetUtcNow() => now;
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

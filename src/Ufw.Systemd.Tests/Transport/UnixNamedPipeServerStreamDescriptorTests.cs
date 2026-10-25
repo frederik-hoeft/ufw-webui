@@ -1,4 +1,5 @@
-﻿using System.IO.Pipes;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipes;
 using Ufw.Systemd.Tests.TestSupport;
 using Ufw.Systemd.Transport.Pipes.Unix;
 using SystemPipeOptions = System.IO.Pipes.PipeOptions;
@@ -9,13 +10,10 @@ namespace Ufw.Systemd.Tests.Transport;
 public sealed class UnixNamedPipeServerStreamDescriptorTests
 {
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
+    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "Test is only run on Unix.")]
     public async Task ServeCreatesGroupReadableAndWritableSocketOnUnixAsync()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string directory = Path.Combine(Path.GetTempPath(), $"ufw-pipe-{Guid.NewGuid():N}");
         string pipePath = Path.Combine(directory, "ufw-systemd.sock");
         Directory.CreateDirectory(directory);
@@ -45,13 +43,9 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
     }
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public async Task CancelingPendingAcceptReleasesSocketForSubsequentServerAsync()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string directory = Path.Combine(Path.GetTempPath(), $"ufw-pipe-{Guid.NewGuid():N}");
         string pipePath = Path.Combine(directory, "ufw-systemd.sock");
         Directory.CreateDirectory(directory);
@@ -95,5 +89,5 @@ public sealed class UnixNamedPipeServerStreamDescriptorTests
         Assert.Fail($"Socket '{path}' was not created in time.");
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

@@ -212,5 +212,5 @@ public sealed class KnownHostInventoryServiceTests
         IsVisible = true,
     };
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

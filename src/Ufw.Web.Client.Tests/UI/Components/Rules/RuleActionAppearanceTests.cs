@@ -1,4 +1,4 @@
-using Ufw.Shared.Firewall;
+﻿using Ufw.Shared.Firewall;
 using Ufw.Web.Client.UI.Components.Rules;
 
 namespace Ufw.Web.Client.Tests.UI.Components.Rules;

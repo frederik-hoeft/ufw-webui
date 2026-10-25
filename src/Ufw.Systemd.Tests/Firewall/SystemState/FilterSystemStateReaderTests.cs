@@ -1,5 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Moq;
+﻿using Moq;
+using System.Diagnostics.CodeAnalysis;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Shared.Ipc.Model.Responses;
@@ -191,14 +191,18 @@ public sealed class FilterSystemStateReaderTests
     {
         FirewallRuleSpecification ssh = RuleSpecificationNormalizer.Normalize(new FirewallRuleSpecification
         {
-            AddressFamily = FirewallAddressFamily.IPv4, Action = FirewallAction.Allow,
-            Direction = FirewallDirection.In, Protocol = FirewallProtocol.Tcp,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Tcp,
             DestinationPorts = "22",
         });
         FirewallRuleSpecification web = RuleSpecificationNormalizer.Normalize(new FirewallRuleSpecification
         {
-            AddressFamily = FirewallAddressFamily.IPv4, Action = FirewallAction.Allow,
-            Direction = FirewallDirection.In, Protocol = FirewallProtocol.Any,
+            AddressFamily = FirewallAddressFamily.IPv4,
+            Action = FirewallAction.Allow,
+            Direction = FirewallDirection.In,
+            Protocol = FirewallProtocol.Any,
             DestinationPorts = "80",
         });
         return new FirewallSnapshot(true,

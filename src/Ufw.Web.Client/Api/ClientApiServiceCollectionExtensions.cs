@@ -1,4 +1,4 @@
-using Ufw.Web.Client.Api.Auth;
+﻿using Ufw.Web.Client.Api.Auth;
 using Ufw.Web.Client.Api.Intent;
 using Ufw.Web.Client.Api.KnownHosts;
 using Ufw.Web.Client.Api.NetworkInterfaces;

@@ -1,4 +1,4 @@
-namespace Ufw.Web.Client.Features.Rules.Intent;
+﻿namespace Ufw.Web.Client.Features.Rules.Intent;
 
 internal interface ICompatibleIntentContextProvider
 {

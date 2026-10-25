@@ -1,4 +1,4 @@
-using Ufw.Shared.Domain;
+﻿using Ufw.Shared.Domain;
 using Ufw.Shared.Domain.Algebra;
 
 namespace Ufw.Shared.Tests.Domain;

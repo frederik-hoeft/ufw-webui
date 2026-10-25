@@ -3,8 +3,8 @@ using MudBlazor;
 using Ufw.Shared.Web;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
-using Ufw.Web.Client.UI.Components.Rules.Templates;
 using Ufw.Web.Client.UI.Components;
+using Ufw.Web.Client.UI.Components.Rules.Templates;
 
 namespace Ufw.Web.Client.UI.Pages;
 

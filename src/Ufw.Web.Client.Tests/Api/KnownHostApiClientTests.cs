@@ -53,5 +53,5 @@ public sealed class KnownHostApiClientTests
         }
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

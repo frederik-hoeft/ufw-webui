@@ -180,5 +180,5 @@ public sealed class RuleTemplateCatalogServiceTests
         DestinationPorts = "443",
     };
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

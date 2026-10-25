@@ -102,5 +102,5 @@ public sealed class BrowserClientCultureServiceTests
     private static BrowserClientCultureService CreateService(Mock<ILocalStorage> storage, TestNavigationManager navigation) =>
         new(ClientLocalizationOptionsTests.CreateOptions("en-US", "en-US", "de-DE"), storage.Object, navigation, NullLogger<BrowserClientCultureService>.Instance);
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

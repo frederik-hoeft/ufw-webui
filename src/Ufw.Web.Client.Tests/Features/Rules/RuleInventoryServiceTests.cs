@@ -51,5 +51,5 @@ public sealed class RuleInventoryServiceTests
         await Assert.ThrowsExactlyAsync<ApiProtocolException>(() => new RuleInventoryService(api.Object).GetAsync(TestContext.CancellationToken));
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

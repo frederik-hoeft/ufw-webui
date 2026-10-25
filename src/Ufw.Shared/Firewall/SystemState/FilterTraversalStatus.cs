@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>Indicates why a structural root traversal could not be fully materialized.</summary>
 [Flags]

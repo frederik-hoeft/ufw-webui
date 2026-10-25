@@ -77,5 +77,5 @@ public sealed class BrowserAuthenticationOperationCoordinatorTests
         await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => coordinator.RunExclusiveAsync(_ => Task.CompletedTask, TestContext.CancellationToken));
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

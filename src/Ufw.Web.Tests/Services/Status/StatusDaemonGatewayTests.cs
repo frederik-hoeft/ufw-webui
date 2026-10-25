@@ -22,5 +22,5 @@ public sealed class StatusDaemonGatewayTests
         client.VerifyAll();
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

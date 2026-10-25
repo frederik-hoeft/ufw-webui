@@ -67,5 +67,5 @@ public sealed class NetworkInterfaceInventoryServiceTests
         Assert.AreEqual("note", (await service.ReconcileAsync(TestContext.CancellationToken)).Interfaces[0].Comment);
     }
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

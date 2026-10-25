@@ -1,8 +1,8 @@
 ﻿using MudBlazor;
 using Ufw.Shared.Firewall;
 using Ufw.Shared.Ipc.Model.Responses.Domain;
-using Ufw.Shared.Web;
 using Ufw.Shared.Management.KnownHosts;
+using Ufw.Shared.Web;
 using Ufw.Web.Client.Api.Rules;
 using Ufw.Web.Client.Features.Rules;
 using Ufw.Web.Client.Features.Rules.Filtering;
@@ -11,12 +11,12 @@ using Ufw.Web.Client.Features.Rules.Ordering;
 using Ufw.Web.Client.Features.Rules.Services;
 using Ufw.Web.Client.Features.Rules.Templates;
 using Ufw.Web.Client.Services.Errors;
+using Ufw.Web.Client.UI.Components;
 using Ufw.Web.Client.UI.Components.Rules;
 using Ufw.Web.Client.UI.Components.Rules.Metadata;
 using Ufw.Web.Client.UI.Components.Rules.Templates;
-using Ufw.Web.Client.UI.Components;
-using Ufw.Web.Model.V1.KnownHosts;
 using Ufw.Web.Client.UI.Formatting;
+using Ufw.Web.Model.V1.KnownHosts;
 
 namespace Ufw.Web.Client.UI.Pages;
 

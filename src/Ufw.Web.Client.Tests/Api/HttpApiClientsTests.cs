@@ -615,5 +615,5 @@ public sealed class HttpApiClientsTests
     private static string MutationResponseJson(string operation) =>
         $"{{\"operation\":\"{operation}\",\"rule\":{{\"ruleId\":\"id\",\"displayNumber\":1,\"parsed\":true,\"rawLine\":\"line\",\"rule\":null}}}}";
 
-    public TestContext TestContext { get; set; }
+    public required TestContext TestContext { get; set; }
 }

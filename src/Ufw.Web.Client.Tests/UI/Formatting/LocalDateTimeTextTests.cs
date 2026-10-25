@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Ufw.Web.Client.UI.Formatting;
 
 namespace Ufw.Web.Client.Tests.UI.Formatting;

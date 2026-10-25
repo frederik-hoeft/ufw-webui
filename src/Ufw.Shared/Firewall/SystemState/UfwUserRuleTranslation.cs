@@ -1,4 +1,4 @@
-namespace Ufw.Shared.Firewall.SystemState;
+﻿namespace Ufw.Shared.Firewall.SystemState;
 
 /// <summary>
 /// One UFW user rule and the iptables lines <c>user.rules</c> or <c>user6.rules</c> uses to install it.

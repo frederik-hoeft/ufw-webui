@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 
 namespace Ufw.Systemd.Interop.Iptables.Parsing.Terminals;
 
