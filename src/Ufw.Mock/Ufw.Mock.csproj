@@ -15,5 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ufw.Shared\Ufw.Shared.csproj" />
+    <ProjectReference Include="..\Ufw.Mock.Core\Ufw.Mock.Core.csproj" />
   </ItemGroup>
 </Project>

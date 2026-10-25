@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -16,5 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ufw.Systemd\Ufw.Systemd.csproj" />
+    <ProjectReference Include="..\Ufw.Mock\Ufw.Mock.csproj" />
+    <ProjectReference Include="..\Ufw.Mock.Iptables\Ufw.Mock.Iptables.csproj" />
   </ItemGroup>
 </Project>

@@ -98,7 +98,7 @@ public sealed class ConfigurationImplTests
     }
 
     private static ConfigurationImpl CreateConfiguration(IConfigurationEnvironmentValidator? environmentValidator = null) =>
-        new(AppSettingsJsonSerializerContext.Default, environmentValidator ?? Mock.Of<IConfigurationEnvironmentValidator>());
+        new(AppSettingsJsonSerializerContext.Default, environmentValidator ?? Moq.Mock.Of<IConfigurationEnvironmentValidator>());
 
     private static async Task<string> WriteSettingsAsync(bool includeRequestTimeout = true)
     {

@@ -35,6 +35,8 @@ On Windows, or whenever the daemon should use the mock, build it first:
 
 ```bash
 dotnet build src/Ufw.Mock/Ufw.Mock.csproj
+dotnet build src/Ufw.Mock.IptablesSave/Ufw.Mock.IptablesSave.csproj
+dotnet build src/Ufw.Mock.Ip6tablesSave/Ufw.Mock.Ip6tablesSave.csproj
 ```
 
 Start the development PostgreSQL instance:
@@ -59,7 +61,7 @@ To select a specific UFW-compatible executable, set `UFW_PATH` before running th
 UFW_PATH=/path/to/Ufw.Mock ./scripts/setup-dev.sh --force --install-ca
 ```
 
-See [UFW mock](ufw-mock.md) for its persistence and compatibility behavior.
+When `UFW_PATH` selects the built mock, setup also selects the built IPv4/IPv6 `iptables-save` mocks and configures the mock-generated user-rule files. This enables host filter inventory without a Linux firewall, including on Windows. The three subprocesses need access to the same `UFW_MOCK_STATE_PATH` (default: per-user application data); see [UFW mock](ufw-mock.md) for fixture injection and path overrides.
 
 ## Run the stack
 

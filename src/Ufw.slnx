@@ -14,6 +14,10 @@
   <Project Path="Ufw.Ipc.Client/Ufw.Ipc.Client.csproj" />
   <Project Path="Ufw.Ipc.Tests/Ufw.Ipc.Tests.csproj" />
   <Project Path="Ufw.Mock.BlackboxTests/Ufw.Mock.BlackboxTests.csproj" />
+  <Project Path="Ufw.Mock.Core/Ufw.Mock.Core.csproj" />
+  <Project Path="Ufw.Mock.Ip6tablesSave/Ufw.Mock.Ip6tablesSave.csproj" />
+  <Project Path="Ufw.Mock.Iptables/Ufw.Mock.Iptables.csproj" />
+  <Project Path="Ufw.Mock.IptablesSave/Ufw.Mock.IptablesSave.csproj" />
   <Project Path="Ufw.Mock/Ufw.Mock.csproj" />
   <Project Path="Ufw.Roslyn.SourceGen/Ufw.Roslyn.SourceGen.csproj" />
   <Project Path="Ufw.Roslyn/Ufw.Roslyn.csproj" />

@@ -71,7 +71,7 @@ public sealed class FilterSystemStateReaderTests
 
         try
         {
-            FilterSystemStateQueryService service = CreateService(ipv4Save, ipv6Save, userRules, user6Rules, out _);
+            FilterSystemStateQueryService service = CreateService(ipv4Save, ipv6Save, userRules, user6Rules, out Mock<IChildProcessRunner> processes);
             using CancellationTokenSource cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
 
             FilterSystemStateResponse response = (FilterSystemStateResponse)await service.GetAsync(cancellation.Token);
@@ -93,6 +93,12 @@ public sealed class FilterSystemStateReaderTests
             Assert.Contains(static rule => rule.ProvenanceChain == "ufw-before-input" && rule.UserRule is null, response.State.IPv4.Input.Rules);
             Assert.IsEmpty(response.State.IPv6.Input.Rules);
             Assert.AreEqual(FilterChainPolicy.Accept, response.State.IPv6.Input.Policy);
+            processes.Verify(runner => runner.RunAsync(It.Is<ChildProcessRequest>(request =>
+                request.Command == "/usr/sbin/iptables-save" && request.Environment["UFW_DEFAULTS_PATH"] == "/nonexistent/ufw-defaults"),
+                It.IsAny<CancellationToken>()), Times.Once);
+            processes.Verify(runner => runner.RunAsync(It.Is<ChildProcessRequest>(request =>
+                request.Command == "/usr/sbin/ip6tables-save" && request.Environment["UFW_DEFAULTS_PATH"] == "/nonexistent/ufw-defaults"),
+                It.IsAny<CancellationToken>()), Times.Once);
         }
         finally
         {

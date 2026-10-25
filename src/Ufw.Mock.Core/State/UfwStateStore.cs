@@ -1,6 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ufw.Mock.Cli;
+using Ufw.Mock.Formatting;
+using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.State;
 
@@ -15,13 +17,25 @@ internal sealed class UfwStateStore
         Converters = { new JsonStringEnumConverter() },
     };
 
+    public const string USER_RULES_PATH_ENVIRONMENT_VARIABLE = "UFW_MOCK_USER_RULES_PATH";
+    public const string USER6_RULES_PATH_ENVIRONMENT_VARIABLE = "UFW_MOCK_USER6_RULES_PATH";
+
     private readonly string _path;
+    private readonly string _userRulesPath;
+    private readonly string _user6RulesPath;
 
     public UfwStateStore(string? path = null)
     {
         try
         {
             _path = path ?? ResolveDefaultPath();
+            string directory = Path.GetDirectoryName(Path.GetFullPath(_path))!;
+            _userRulesPath = ResolveUserRulesPath(USER_RULES_PATH_ENVIRONMENT_VARIABLE, Path.Combine(directory, "user.rules"));
+            _user6RulesPath = ResolveUserRulesPath(USER6_RULES_PATH_ENVIRONMENT_VARIABLE, Path.Combine(directory, "user6.rules"));
+            if (Path.GetFullPath(_path) == _userRulesPath || Path.GetFullPath(_path) == _user6RulesPath || _userRulesPath == _user6RulesPath)
+            {
+                throw new ArgumentException("Mock state and user-rule files must have distinct paths.");
+            }
         }
         catch (Exception exception) when (IsFileSystemException(exception))
         {
@@ -34,6 +48,7 @@ internal sealed class UfwStateStore
         ArgumentNullException.ThrowIfNull(operation);
         using FileStream lockHandle = AcquireLock();
         UfwMockState state = Load();
+        EnsureUserRules(state);
         return operation(state);
     }
 
@@ -86,6 +101,7 @@ internal sealed class UfwStateStore
             string json = JsonSerializer.Serialize(state, s_jsonOptions);
             File.WriteAllText(temporaryPath, json + Environment.NewLine);
             File.Move(temporaryPath, _path, true);
+            WriteUserRules(state);
         }
         catch (Exception exception) when (IsFileSystemException(exception))
         {
@@ -101,6 +117,51 @@ internal sealed class UfwStateStore
             {
             }
         }
+    }
+
+    private void EnsureUserRules(UfwMockState state)
+    {
+        if (!File.Exists(_userRulesPath) || !File.Exists(_user6RulesPath))
+        {
+            WriteUserRules(state);
+        }
+    }
+
+    private void WriteUserRules(UfwMockState state)
+    {
+        WriteTextAtomically(_userRulesPath, MockUserRulesFormatter.Format(state, FirewallAddressFamily.IPv4));
+        WriteTextAtomically(_user6RulesPath, MockUserRulesFormatter.Format(state, FirewallAddressFamily.IPv6));
+    }
+
+    private static void WriteTextAtomically(string path, string contents)
+    {
+        string temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            EnsureDirectory(path);
+            File.WriteAllText(temporaryPath, contents);
+            File.Move(temporaryPath, path, true);
+        }
+        catch (Exception exception) when (IsFileSystemException(exception))
+        {
+            throw new UfwCliException($"Could not write mock user rules '{path}': {exception.Message}");
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
+    private static string ResolveUserRulesPath(string variable, string fallback)
+    {
+        string? configured = Environment.GetEnvironmentVariable(variable);
+        return Path.GetFullPath(string.IsNullOrWhiteSpace(configured) ? fallback : configured);
     }
 
     private FileStream AcquireLock()

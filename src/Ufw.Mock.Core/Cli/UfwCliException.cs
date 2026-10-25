@@ -1,6 +1,6 @@
-﻿namespace Ufw.Mock.Cli;
+namespace Ufw.Mock.Cli;
 
-internal sealed class UfwCliException : Exception
+public sealed class UfwCliException : Exception
 {
     public UfwCliException()
     {

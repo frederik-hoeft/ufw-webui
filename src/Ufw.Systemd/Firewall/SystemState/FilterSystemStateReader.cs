@@ -102,7 +102,8 @@ internal sealed class FilterSystemStateReader(IConfiguration configuration, IChi
         ChildProcessResult result;
         try
         {
-            result = await processes.RunAsync(new ChildProcessRequest(path, s_saveArguments, s_environment), cancellationToken);
+            ImmutableDictionary<string, string> environment = s_environment.SetItem("UFW_DEFAULTS_PATH", configuration.Settings.UfwDefaultsPath);
+            result = await processes.RunAsync(new ChildProcessRequest(path, s_saveArguments, environment), cancellationToken);
         }
         catch (ChildProcessException exception)
         {

@@ -59,6 +59,9 @@ Environment:
                      at a Windows-compatible UFW mock/executable when one is not on PATH.
   FILTER_SYSTEM_STATE_ENABLED  Force filter inventory on/off (true or false).
                      By default enabled only when both save executables exist.
+  IPTABLES_SAVE_PATH/IP6TABLES_SAVE_PATH  Explicit filter save executable overrides.
+  UFW_MOCK_STATE_PATH  Mock state file (mock save and UFW must share this path).
+  UFW_MOCK_USER_RULES_PATH/UFW_MOCK_USER6_RULES_PATH  Optional mock translation files.
   UFW_DEFAULTS_PATH  UFW defaults file written to daemon config. Defaults to
                      /etc/default/ufw on Unix and a generated mock-compatible file
                      under the development state directory on Windows.
@@ -453,8 +456,26 @@ resolve_optional_tool() {
     printf '%s\n' "$fallback"
 }
 
-iptables_save_path="$(resolve_optional_tool IPTABLES_SAVE_PATH iptables-save /usr/sbin/iptables-save)"
-ip6tables_save_path="$(resolve_optional_tool IP6TABLES_SAVE_PATH ip6tables-save /usr/sbin/ip6tables-save)"
+# A mock UFW executable uses sibling mock save frontends, not the host's real firewall.
+# Explicit overrides always win, including when deliberately testing a real save backend.
+mock_ufw=false
+if [[ "$ufw_path" == *Ufw.Mock || "$ufw_path" == *Ufw.Mock.exe ]]; then
+    mock_ufw=true
+fi
+mock_suffix=""
+if is_windows; then
+    mock_suffix=".exe"
+fi
+if [[ "$mock_ufw" == true ]]; then
+    mock_iptables_save="$REPO_ROOT/src/artifacts/bin/Ufw.Mock.IptablesSave/debug/Ufw.Mock.IptablesSave$mock_suffix"
+    mock_ip6tables_save="$REPO_ROOT/src/artifacts/bin/Ufw.Mock.Ip6tablesSave/debug/Ufw.Mock.Ip6tablesSave$mock_suffix"
+    # Never fall back to host iptables binaries when the selected UFW executable is a mock.
+    iptables_save_path="$(to_shell_path "${IPTABLES_SAVE_PATH:-$mock_iptables_save}")"
+    ip6tables_save_path="$(to_shell_path "${IP6TABLES_SAVE_PATH:-$mock_ip6tables_save}")"
+else
+    iptables_save_path="$(resolve_optional_tool IPTABLES_SAVE_PATH iptables-save /usr/sbin/iptables-save)"
+    ip6tables_save_path="$(resolve_optional_tool IP6TABLES_SAVE_PATH ip6tables-save /usr/sbin/ip6tables-save)"
+fi
 filter_system_state_enabled="${FILTER_SYSTEM_STATE_ENABLED:-}"
 if [[ -z "$filter_system_state_enabled" ]]; then
     if [[ -f "$iptables_save_path" && -f "$ip6tables_save_path" ]]; then
@@ -467,8 +488,23 @@ fi
 [[ "$filter_system_state_enabled" == true || "$filter_system_state_enabled" == false ]] \
     || fail 'FILTER_SYSTEM_STATE_ENABLED must be true or false'
 
-ufw_user_rules_path="${UFW_USER_RULES_PATH:-/etc/ufw/user.rules}"
-ufw_user6_rules_path="${UFW_USER6_RULES_PATH:-/etc/ufw/user6.rules}"
+if [[ "$mock_ufw" == true ]]; then
+    if [[ -n "${UFW_MOCK_STATE_PATH:-}" ]]; then
+        mock_state_path="$(to_shell_path "$UFW_MOCK_STATE_PATH")"
+    elif is_windows; then
+        mock_state_path="$(to_shell_path "${LOCALAPPDATA:-$HOME/AppData/Local}")/Ufw.Mock/state.json"
+    else
+        mock_state_path="${XDG_DATA_HOME:-$HOME/.local/share}/Ufw.Mock/state.json"
+    fi
+    mock_state_directory="$(dirname "$mock_state_path")"
+    ufw_user_rules_path="${UFW_USER_RULES_PATH:-${UFW_MOCK_USER_RULES_PATH:-$mock_state_directory/user.rules}}"
+    ufw_user6_rules_path="${UFW_USER6_RULES_PATH:-${UFW_MOCK_USER6_RULES_PATH:-$mock_state_directory/user6.rules}}"
+    ufw_user_rules_path="$(to_shell_path "$ufw_user_rules_path")"
+    ufw_user6_rules_path="$(to_shell_path "$ufw_user6_rules_path")"
+else
+    ufw_user_rules_path="${UFW_USER_RULES_PATH:-/etc/ufw/user.rules}"
+    ufw_user6_rules_path="${UFW_USER6_RULES_PATH:-/etc/ufw/user6.rules}"
+fi
 
 config_ufw_defaults_path="$(to_host_path "$ufw_defaults_path")"
 config_iptables_save_path="$(to_host_path "$iptables_save_path")"
