@@ -5,7 +5,7 @@ using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Systemd.Firewall;
 using Ufw.Systemd.Firewall.SystemState;
-using Ufw.Systemd.Interop.Iptables.Grammars;
+using Ufw.Shared.Firewall.Iptables.Grammars;
 using Ufw.Systemd.Interop.Output;
 
 namespace Ufw.Systemd.Tests.Interop.Iptables;
@@ -512,6 +512,12 @@ public sealed class MockIptablesIntegrationTests
         foreach (string badRule in new[]
         {
             "-A external-chain -p tcp --dport banana -j ACCEPT",
+            "-A external-chain -p tcp --dport 0 -j ACCEPT",
+            "-A external-chain -p tcp --dport 80, -j ACCEPT",
+            "-A external-chain -p tcp --dports 80,,443 -j ACCEPT",
+            "-A external-chain -p tcp --dport --sport -j ACCEPT",
+            "-A external-chain -p tcp --dport 443 -m comment --comment \"unterminated -j ACCEPT",
+            "-I external-chain 0 -j DROP",
             "-A external-chain -j nonexistent-target",
             "-A external-chain --unsupported-extension 123 -j DROP",
             "-A missing-chain -j DROP",
@@ -613,6 +619,38 @@ public sealed class MockIptablesIntegrationTests
         int appended = save.IndexOf("-A host-guard -p tcp --dport 1000 -j DROP", StringComparison.Ordinal);
         Assert.IsGreaterThanOrEqualTo(0, inserted);
         Assert.IsGreaterThan(inserted, appended);
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out _));
+    }
+
+    [TestMethod]
+    public async Task RestoreGrammarHandlesFlushQuotedCommentsAndOpaqueNonFilterSectionsAsync()
+    {
+        string fixture = Path.Combine(_directory, "restore.rules");
+        await File.WriteAllTextAsync(fixture, """
+            *raw
+            :PREROUTING ACCEPT [0:0]
+            -N custom-raw
+            -A PREROUTING -j NOTRACK
+            COMMIT
+            *filter
+            :host-guard - [0:0]
+            -A host-guard -p tcp --dport 1000 -j DROP
+            -F host-guard
+            -A host-guard -m comment --comment "test fixture" -p tcp --dport 2000 -j ACCEPT
+            -I	host-guard	1	-p tcp --dport 3000 -j ACCEPT
+            -A INPUT -j host-guard
+            COMMIT
+            """);
+        SetEnvironment("UFW_MOCK_IPTABLES4_BEFORE_FILES", fixture);
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+        string save = InvokeSave(FirewallAddressFamily.IPv4, "-t", "filter").StdOut;
+        Assert.Contains("-A host-guard -m comment --comment \"test fixture\" -p tcp --dport 2000 -j ACCEPT", save);
+        Assert.IsFalse(save.Contains("--dport 1000", StringComparison.Ordinal));
+        int inserted = save.IndexOf("-A host-guard -p tcp --dport 3000 -j ACCEPT", StringComparison.Ordinal);
+        int appended = save.IndexOf("-A host-guard -m comment", StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, inserted);
+        Assert.IsGreaterThan(inserted, appended);
+        Assert.IsFalse(save.Contains("custom-raw", StringComparison.Ordinal));
         Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out _));
     }
 

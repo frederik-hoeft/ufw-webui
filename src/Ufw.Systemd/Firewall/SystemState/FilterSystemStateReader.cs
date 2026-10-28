@@ -3,7 +3,7 @@ using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 using Ufw.Systemd.Configuration;
 using Ufw.Systemd.Interop.IO;
-using Ufw.Systemd.Interop.Iptables.Grammars;
+using Ufw.Shared.Firewall.Iptables.Grammars;
 using Ufw.Systemd.Services.Logging;
 
 namespace Ufw.Systemd.Firewall.SystemState;

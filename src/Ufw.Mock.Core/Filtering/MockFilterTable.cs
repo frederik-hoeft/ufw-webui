@@ -1,14 +1,15 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
 using Ufw.Mock.Formatting;
 using Ufw.Mock.Services;
 using Ufw.Mock.State;
 using Ufw.Shared.Firewall;
+using Ufw.Shared.Firewall.Iptables.Grammars;
+using Ufw.Shared.Firewall.Iptables.Parsing;
 
 namespace Ufw.Mock.Filtering;
 
 /// <summary>Builds a read-only filter table from the shared mock state and optional iptables-restore fixtures.</summary>
-internal sealed partial class MockFilterTable
+internal sealed class MockFilterTable
 {
     private readonly Dictionary<string, Chain> _chains = new(StringComparer.Ordinal);
     private readonly List<Chain> _ordered = [];
@@ -230,60 +231,43 @@ internal sealed partial class MockFilterTable
             }
             try
             {
-                if (line.StartsWith('*'))
+                // Non-filter tables are not installed by this mock. Keep their contents
+                // opaque, as before, but still enforce the surrounding table boundaries.
+                if (table is not null && table != "filter" && !line.StartsWith('*') && line != "COMMIT")
                 {
-                    if (table is not null || line.Length == 1)
-                    {
-                        throw new FormatException("Invalid table declaration.");
-                    }
-                    table = line[1..];
+                    continue;
                 }
-                else if (line == "COMMIT")
+                if (!IptablesRestoreLineGrammar.Instance.TryParse(line, out IptablesRestoreStatement? statement))
                 {
-                    if (table is null)
-                    {
-                        throw new FormatException("Unmatched COMMIT.");
-                    }
-                    table = null;
+                    throw new FormatException($"Unsupported restore declaration: {line}");
                 }
-                else if (table == "filter")
+
+                switch (statement.Operation)
                 {
-                    if (line[0] == ':')
-                    {
-                        string[] fields = line[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                        if (fields.Length != 3 || !IsCounter(fields[2]))
+                    case IptablesRestoreOperation.Table:
+                        if (table is not null)
                         {
-                            throw new FormatException("Invalid chain declaration.");
+                            throw new FormatException("Invalid table declaration.");
                         }
-                        Redeclare(fields[0], fields[1]);
-                    }
-                    else if (line.StartsWith("-A ", StringComparison.Ordinal))
-                    {
-                        ValidateFixtureRule(line);
-                        Append(line);
-                    }
-                    else if (line.StartsWith("-I ", StringComparison.Ordinal))
-                    {
-                        ValidateFixtureRule(line);
-                        Insert(line);
-                    }
-                    else if (line.StartsWith("-F ", StringComparison.Ordinal))
-                    {
-                        string name = line[3..];
-                        if (!_chains.TryGetValue(name, out Chain? chain))
+                        table = statement.Name;
+                        break;
+                    case IptablesRestoreOperation.Commit:
+                        if (table is null)
                         {
-                            throw new FormatException($"Unknown chain '{name}'.");
+                            throw new FormatException("Unmatched COMMIT.");
                         }
-                        chain.Rules.Clear();
-                    }
-                    else
-                    {
-                        throw new FormatException($"Unsupported filter declaration: {line}");
-                    }
-                }
-                else if (table is null)
-                {
-                    throw new FormatException("Declaration outside a table.");
+                        table = null;
+                        break;
+                    default:
+                        if (table is null)
+                        {
+                            throw new FormatException("Declaration outside a table.");
+                        }
+                        if (table == "filter")
+                        {
+                            ApplyFilterStatement(statement);
+                        }
+                        break;
                 }
             }
             catch (FormatException exception)
@@ -297,8 +281,31 @@ internal sealed partial class MockFilterTable
         }
     }
 
-    [GeneratedRegex("\"[^\"]*\"|'[^']*'|\\S+")]
-    private static partial Regex FixtureTokens();
+    private void ApplyFilterStatement(IptablesRestoreStatement statement)
+    {
+        switch (statement.Operation)
+        {
+            case IptablesRestoreOperation.Chain:
+                Redeclare(statement.Name!, statement.Policy!);
+                break;
+            case IptablesRestoreOperation.Append:
+                ValidateFixtureRule(statement.Arguments!);
+                Append(statement.SourceLine!);
+                break;
+            case IptablesRestoreOperation.Insert:
+                Insert(statement);
+                break;
+            case IptablesRestoreOperation.Flush:
+                if (!_chains.TryGetValue(statement.Name!, out Chain? chain))
+                {
+                    throw new FormatException($"Unknown chain '{statement.Name}'.");
+                }
+                chain.Rules.Clear();
+                break;
+            default:
+                throw new FormatException("Unexpected restore statement.");
+        }
+    }
 
     private static readonly HashSet<string> s_standardTargets = new(StringComparer.Ordinal)
     {
@@ -325,80 +332,48 @@ internal sealed partial class MockFilterTable
         "--log-ip-options", "--log-uid", "--physdev-is-bridged",
     };
 
-    /// <summary>Only a deliberately supported restore vocabulary can become mock kernel state.</summary>
-    private void ValidateFixtureRule(string rule)
+    /// <summary>Validate a supported subset of option semantics after shared grammar tokenization.</summary>
+    private void ValidateFixtureRule(IReadOnlyList<IptablesToken> arguments)
     {
-        // Preserve quoted comment/log prefix arguments while validating their tokens.
-        string[] tokens = [.. FixtureTokens().Matches(rule)
-            .Select(static match => match.Value.Trim('"', '\''))];
-        if (tokens.Length < 3)
+        if (arguments.Count == 0)
         {
             throw new FormatException("Missing rule specification.");
         }
-        int start = 2;
-        if (tokens[0] == "-I" && uint.TryParse(tokens[2], out _))
+
+        for (int index = 0; index < arguments.Count; index++)
         {
-            start++;
-        }
-        if (start >= tokens.Length)
-        {
-            throw new FormatException("Missing rule specification.");
-        }
-        for (int i = start; i < tokens.Length; i++)
-        {
-            string option = tokens[i];
-            if (s_flags.Contains(option))
+            string option = arguments[index].Text;
+            if (arguments[index].Kind == IptablesTokenKind.Negation || s_flags.Contains(option))
             {
                 continue;
             }
-            if (option is "--tcp-flags" or "--match-set")
-            {
-                if (i + 2 >= tokens.Length)
-                {
-                    throw new FormatException($"Missing operands for '{option}'.");
-                }
-                i += 2;
-                continue;
-            }
-            if (!s_valueOptions.Contains(option) || i + 1 >= tokens.Length)
+            int arity = option is "--tcp-flags" or "--match-set" ? 2 : s_valueOptions.Contains(option) ? 1 : 0;
+            if (arity == 0 || index + arity >= arguments.Count)
             {
                 throw new FormatException($"Unsupported or incomplete filter option '{option}'.");
             }
-            string argument = tokens[++i];
-            if (option is "-j" or "--jump" or "-g" or "--goto")
+            for (int operand = index + 1; operand <= index + arity; operand++)
             {
-                if (!s_standardTargets.Contains(argument) && !_chains.ContainsKey(argument))
+                if (arguments[operand].Kind is not (IptablesTokenKind.BareWord or IptablesTokenKind.QuotedString))
                 {
-                    throw new FormatException($"Unknown jump target '{argument}'.");
+                    throw new FormatException($"Unsupported or incomplete filter option '{option}'.");
                 }
             }
-            else if (option is ("--dport" or "--sport" or "--dports" or "--sports") && !ValidPorts(argument))
+            string value = arguments[index + 1].Text;
+            if (option is "-j" or "--jump" or "-g" or "--goto")
             {
-                throw new FormatException($"Invalid port match '{argument}'.");
+                if (!s_standardTargets.Contains(value) && !_chains.ContainsKey(value))
+                {
+                    throw new FormatException($"Unknown jump target '{value}'.");
+                }
             }
-        }
-    }
-
-    private static bool ValidPorts(string value)
-    {
-        if (value.Length == 0)
-        {
-            return false;
-        }
-        foreach (string range in value.Split(','))
-        {
-            string[] endpoints = range.Split(':');
-            if (endpoints.Length > 2 || endpoints.Any(static endpoint => endpoint.Length == 0 ||
-                !ushort.TryParse(endpoint, out _)))
+            else if (option is ("--dport" or "--sport" or "--dports" or "--sports") &&
+                !IptablesPredicateNormalizer.TryCanonicalPorts(value, out _))
             {
-                return false;
+                throw new FormatException($"Invalid port match '{value}'.");
             }
-            if (endpoints.Length == 2 && ushort.Parse(endpoints[0]) > ushort.Parse(endpoints[1]))
-            {
-                return false;
-            }
+            index += arity;
         }
-        return true;
     }
 
     private void Redeclare(string name, string policy)
@@ -426,31 +401,26 @@ internal sealed partial class MockFilterTable
         Declare(name, policy);
     }
 
-    private void Insert(string declaration)
+    private void Insert(IptablesRestoreStatement statement)
     {
-        string[] fields = declaration[3..].Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-        if (fields.Length < 2 || !fields[1].StartsWith('-') && fields[1] != "!" &&
-            !int.TryParse(fields[1], out _))
-        {
-            throw new FormatException($"Invalid insert rule: {declaration}");
-        }
-        string body = declaration[(3 + fields[0].Length)..].TrimStart();
+        IReadOnlyList<IptablesToken> arguments = statement.Arguments!;
         int position = 1;
-        if (fields.Length == 3 && int.TryParse(fields[1], out int requestedPosition))
+        int skip = 0;
+        if (arguments.Count > 0 && arguments[0].Kind == IptablesTokenKind.BareWord &&
+            int.TryParse(arguments[0].Text, out int requestedPosition))
         {
             position = requestedPosition;
-            body = fields[2];
+            skip = 1;
         }
-        (Chain chain, string rule) = ValidateAppend("-A " + fields[0] + " " + body);
+        ValidateFixtureRule(arguments.Skip(skip).ToArray());
+        string ruleLine = "-A " + statement.Name + " " + string.Join(' ', arguments.Skip(skip).Select(static token => token.Format()));
+        (Chain chain, string rule) = ValidateAppend(ruleLine);
         if (position < 1 || position > chain.Rules.Count + 1)
         {
             throw new FormatException($"Invalid insert position '{position}' for '{chain.Name}'.");
         }
         chain.Rules.Insert(position - 1, rule);
     }
-
-    private static bool IsCounter(string field) => field.Length > 2 && field[0] == '[' && field[^1] == ']'
-        && field[1..^1].Split(':') is { Length: 2 } parts && parts.All(static part => ulong.TryParse(part, out _));
 
     private void Declare(string name, string policy)
     {

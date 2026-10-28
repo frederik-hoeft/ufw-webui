@@ -1,6 +1,6 @@
 ﻿using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
-using Ufw.Systemd.Interop.Iptables.Grammars;
+using Ufw.Shared.Firewall.Iptables.Grammars;
 
 namespace Ufw.Systemd.Tests.Interop.Iptables;
 

@@ -1,6 +1,6 @@
 ﻿using Ufw.Shared.Parsing.SyntaxNodes;
-using Ufw.Systemd.Interop.Iptables.Parsing;
-using Ufw.Systemd.Interop.Iptables.Parsing.Terminals;
+using Ufw.Shared.Firewall.Iptables.Parsing;
+using Ufw.Shared.Firewall.Iptables.Parsing.Terminals;
 
 namespace Ufw.Systemd.Tests.Interop.Iptables;
 
