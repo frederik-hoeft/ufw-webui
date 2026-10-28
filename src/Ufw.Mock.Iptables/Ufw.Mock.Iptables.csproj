@@ -6,6 +6,9 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="ConsoleAppFramework" Version="5.7.13" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Ufw.Mock.Core\Ufw.Mock.Core.csproj" />
   </ItemGroup>
 </Project>

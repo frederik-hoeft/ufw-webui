@@ -1,5 +1,4 @@
-using Ufw.Mock.Cli;
-using Ufw.Mock.State;
+using ConsoleAppFramework;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Iptables;
@@ -16,48 +15,31 @@ public static class IptablesSaveApplication
             FirewallAddressFamily.IPv6 => "ip6tables-save",
             _ => throw new ArgumentOutOfRangeException(nameof(family)),
         };
-        if (arguments.Length == 1 && arguments[0] is "--version" or "-V")
-        {
-            Console.Out.WriteLine(executable + " v1.8.10 (nf_tables, Ufw.Mock)");
-            return 0;
-        }
-        if (arguments.Length == 1 && arguments[0] is "--help" or "-h")
-        {
-            Console.Out.WriteLine("Usage: " + executable + " [-t filter] [-c]");
-            return 0;
-        }
-        bool tableSeen = false;
-        for (int index = 0; index < arguments.Length; index++)
-        {
-            if (arguments[index] is "-c" or "--counters")
-            {
-                continue;
-            }
-            if (!tableSeen && arguments[index] is "-t" or "--table" && index + 1 < arguments.Length && arguments[index + 1] == "filter")
-            {
-                tableSeen = true;
-                index++;
-                continue;
-            }
-            Console.Error.WriteLine(executable + ": unsupported arguments");
-            return 2;
-        }
+
+        // CAF settings are process-wide; preserve them for repeated in-process mock invocations.
+        int previousExitCode = Environment.ExitCode;
+        string? previousVersion = ConsoleApp.Version;
+        Action<string> previousLogError = ConsoleApp.LogError;
+        bool argumentError = false;
         try
         {
-            UfwStateStore store = new();
-            string output = store.Read(state =>
+            Environment.ExitCode = 0;
+            ConsoleApp.Version = executable + " v1.8.10 (nf_tables, Ufw.Mock)";
+            ConsoleApp.LogError = message =>
             {
-                MockFilterTable table = new(state, family);
-                table.Add(state, family);
-                return table.Format();
-            });
-            Console.Out.Write(output);
-            return 0;
+                argumentError = true;
+                Console.Error.WriteLine(executable + ": " + message);
+            };
+            ConsoleApp.ConsoleAppBuilder app = ConsoleApp.Create();
+            app.Add("", new IptablesSaveCommand(executable, family).Save);
+            app.Run(arguments is ["-V"] ? ["--version"] : arguments);
+            return argumentError ? 2 : Environment.ExitCode;
         }
-        catch (Exception exception) when (exception is UfwCliException or IOException or UnauthorizedAccessException or FormatException)
+        finally
         {
-            Console.Error.WriteLine(executable + ": " + exception.Message);
-            return 1;
+            ConsoleApp.LogError = previousLogError;
+            ConsoleApp.Version = previousVersion;
+            Environment.ExitCode = previousExitCode;
         }
     }
 }
