@@ -12,21 +12,50 @@ internal static class MockUserRulesFormatter
         StringBuilder builder = new();
         builder.AppendLine("# Ufw.Mock generated user rules");
         builder.AppendLine("*filter");
-        foreach (string suffix in new[] { "user-input", "user-output", "user-forward", "user-limit", "user-limit-accept", "user-logging-input", "user-logging-output", "user-logging-forward" })
+        foreach (string suffix in new[]
+        {
+            "user-input", "user-output", "user-forward",
+            "before-logging-input", "before-logging-output", "before-logging-forward",
+            "user-logging-input", "user-logging-output", "user-logging-forward",
+            "after-logging-input", "after-logging-output", "after-logging-forward",
+            "logging-deny", "logging-allow",
+        })
         {
             builder.Append(':').Append(MockChainNames.Prefix(family)).Append(suffix).AppendLine(" - [0:0]");
+        }
+        if (family == FirewallAddressFamily.IPv4)
+        {
+            builder.AppendLine(":ufw-user-limit - [0:0]");
+            builder.AppendLine(":ufw-user-limit-accept - [0:0]");
         }
         builder.AppendLine("### RULES ###");
         foreach (UfwMockRule rule in state.Rules.Where(rule => rule.Specification.AddressFamily == family))
         {
             builder.AppendLine();
             builder.AppendLine(MockRuleExpansion.FormatTuple(rule));
-            foreach (string declaration in MockRuleExpansion.FormatDeclarations(rule))
+            foreach (MockIptablesDeclaration declaration in MockRuleExpansion.Expand(rule))
             {
-                builder.AppendLine(declaration);
+                builder.AppendLine(declaration.ToRestoreLine());
             }
         }
         builder.AppendLine("### END RULES ###");
+        builder.AppendLine();
+        builder.AppendLine("### LOGGING ###");
+        foreach (MockIptablesDeclaration declaration in MockUfwAuxiliaryRules.Logging(state, family))
+        {
+            builder.AppendLine(declaration.ToRestoreLine());
+        }
+        builder.AppendLine("### END LOGGING ###");
+        if (family == FirewallAddressFamily.IPv4)
+        {
+            builder.AppendLine();
+            builder.AppendLine("### RATE LIMITING ###");
+            foreach (MockIptablesDeclaration declaration in MockUfwAuxiliaryRules.RateLimit(state, family))
+            {
+                builder.AppendLine(declaration.ToRestoreLine());
+            }
+            builder.AppendLine("### END RATE LIMITING ###");
+        }
         builder.AppendLine("COMMIT");
         return builder.ToString();
     }

@@ -6,4 +6,5 @@ internal enum UfwRuleMutationKind
     Inserted,
     Updated,
     Skipped,
+    UnsupportedIpv6Limit,
 }

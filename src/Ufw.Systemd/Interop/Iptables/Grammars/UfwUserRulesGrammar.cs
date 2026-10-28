@@ -31,7 +31,7 @@ internal sealed class UfwUserRulesGrammar
                     IptablesTableLine.Instance,
                     IptablesChainLine.Instance,
                     IptablesCommitLine.Instance,
-                    IptablesRuleLine.Instance)),
+                    IptablesRuleLine.UserRulesInstance)),
                 Grammar.Optional(HorizontalWhitespace.Instance))
             .RequireVisitor<IIptablesDocumentVisitor>();
     }

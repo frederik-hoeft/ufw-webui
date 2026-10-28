@@ -188,10 +188,20 @@ internal static class IptablesRuleInterpreter
         targetName = tokens[index].Text;
         index++;
         targetArguments ??= [];
-        // Once a target is selected, subsequent options belong to that target. Their
-        // names may collide with regular predicate options and must not be promoted.
+        // Once a target is selected, subsequent options belong to that target.
+        // UFW places application comment matches after the target in user.rules,
+        // whereas iptables-save emits these matches before the target.
+        // Recognize only this known match tail; leave other target arguments opaque.
         while (index < tokens.Count)
         {
+            if (index + 3 < tokens.Count && tokens[index].Text == "-m"
+                && tokens[index + 1].Text == "comment" && tokens[index + 2].Text == "--comment"
+                && tokens[index + 3].Kind is IptablesTokenKind.BareWord or IptablesTokenKind.QuotedString)
+            {
+                clauses.Add(OpaqueClause("-m comment --comment " + tokens[index + 3].Format()));
+                index += 4;
+                continue;
+            }
             targetArguments.Add(tokens[index].Kind == IptablesTokenKind.Negation ? "!" : tokens[index].Format());
             index++;
         }

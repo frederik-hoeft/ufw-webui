@@ -96,6 +96,10 @@ internal sealed class UfwRuleMutationService
             InsertRule(state.Rules, rule, placement, familyInsertPosition);
             mutationResults.Add(new UfwRuleMutationResult(rule, placement == RulePlacement.Insert ? UfwRuleMutationKind.Inserted : UfwRuleMutationKind.Added));
         }
+        if (request.Rule.Specification.Action == FirewallAction.Limit && ipv6Enabled && request.Rule.Specification.AddressFamily != FirewallAddressFamily.IPv4)
+        {
+            mutationResults.Add(new UfwRuleMutationResult(request.Rule, UfwRuleMutationKind.UnsupportedIpv6Limit));
+        }
         return mutationResults;
     }
 

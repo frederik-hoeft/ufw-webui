@@ -59,7 +59,7 @@ internal static class MockRuleExpansion
         return "### tuple ### " + string.Join(' ', fields);
     }
 
-    public static IReadOnlyList<string> FormatDeclarations(UfwMockRule rule)
+    public static IReadOnlyList<MockIptablesDeclaration> Expand(UfwMockRule rule)
     {
         FirewallRuleSpecification specification = rule.Specification;
         string chain = specification.Direction switch
@@ -69,34 +69,47 @@ internal static class MockRuleExpansion
             FirewallDirection.Forward => MockChainNames.User(specification.AddressFamily, "forward"),
             _ => throw new ArgumentOutOfRangeException(nameof(rule)),
         };
-
+        string direction = specification.Direction switch
+        {
+            FirewallDirection.In => "input",
+            FirewallDirection.Out => "output",
+            FirewallDirection.Forward => "forward",
+            _ => throw new ArgumentOutOfRangeException(nameof(rule)),
+        };
+        string chainPrefix = MockChainNames.Prefix(specification.AddressFamily);
         string? protocol = rule.ExtendedProtocol ?? (specification.Protocol == FirewallProtocol.Any ? null : RuleSpecificationNormalizer.FormatProtocol(specification.Protocol));
         string[] protocols = protocol is null && (specification.SourcePorts is not null || specification.DestinationPorts is not null)
             ? ["tcp", "udp"]
             : [protocol ?? "all"];
-        List<string> declarations = [];
+        string? comment = FormatApplicationComment(rule);
+        List<MockIptablesDeclaration> declarations = [];
         foreach (string concreteProtocol in protocols)
         {
-            string predicates = FormatPredicates(specification, concreteProtocol);
-            string prefix = "-A " + chain + predicates;
+            string predicates = FormatPredicates(specification, concreteProtocol).TrimStart();
+            string prefix = predicates.Length == 0 ? string.Empty : predicates + " ";
             if (specification.Action == FirewallAction.Limit)
             {
-                declarations.Add(prefix + " -m conntrack --ctstate NEW -m recent --set");
-                declarations.Add(prefix + " -m conntrack --ctstate NEW -m recent --update --seconds 30 --hitcount 6 -j " + MockChainNames.Prefix(specification.AddressFamily) + "user-limit");
-                declarations.Add(prefix + " -j " + MockChainNames.Prefix(specification.AddressFamily) + "user-limit-accept");
+                // UFW uses the recent extension's update rule and a fallthrough accept.
+                // IPv6 limit rules are not installed by UFW 0.36.x.
+                if (specification.AddressFamily == FirewallAddressFamily.IPv6)
+                {
+                    continue;
+                }
+                string recent = prefix + "-m conntrack --ctstate NEW -m recent --update --seconds 30 --hitcount 6";
+                declarations.Add(new(chain, recent + " -j " + chainPrefix + "user-limit", comment));
+                declarations.Add(new(chain, prefix + "-j " + chainPrefix + "user-limit-accept", comment));
                 continue;
             }
 
             if (rule.Logging != UfwRuleLogging.None)
             {
-                string loggingChain = MockChainNames.Prefix(specification.AddressFamily) + (specification.Direction switch
-                {
-                    FirewallDirection.Out => "user-logging-output",
-                    FirewallDirection.Forward => "user-logging-forward",
-                    _ => "user-logging-input",
-                });
-                declarations.Add(prefix + " -j " + loggingChain);
+                string loggingChain = chainPrefix + "user-logging-" + direction;
+                string label = specification.Action == FirewallAction.Allow ? "ALLOW" : "BLOCK";
+                declarations.Add(new(loggingChain, prefix + "-m limit --limit 3/min --limit-burst 10 -j LOG --log-prefix \"[UFW " + label + "] \""));
+                declarations.Add(new(loggingChain, prefix + "-j RETURN"));
+                declarations.Add(new(chain, prefix + "-j " + loggingChain));
             }
+
             string target = specification.Action switch
             {
                 FirewallAction.Allow => "ACCEPT",
@@ -104,9 +117,24 @@ internal static class MockRuleExpansion
                 FirewallAction.Reject => "REJECT",
                 _ => throw new ArgumentOutOfRangeException(nameof(rule)),
             };
-            declarations.Add(prefix + " -j " + target);
+            string rejectOptions = specification.Action == FirewallAction.Reject && concreteProtocol == "tcp" ? " --reject-with tcp-reset" : string.Empty;
+            declarations.Add(new(chain, prefix + "-j " + target + rejectOptions, comment));
         }
         return declarations;
+    }
+
+    private static string? FormatApplicationComment(UfwMockRule rule)
+    {
+        List<string> components = [];
+        if (rule.DestinationApplicationName is not null)
+        {
+            components.Add("dapp_" + rule.DestinationApplicationName.Replace(" ", "%20", StringComparison.Ordinal));
+        }
+        if (rule.SourceApplicationName is not null)
+        {
+            components.Add("sapp_" + rule.SourceApplicationName.Replace(" ", "%20", StringComparison.Ordinal));
+        }
+        return components.Count == 0 ? null : string.Join(',', components);
     }
 
     private static string FormatPredicates(FirewallRuleSpecification specification, string protocol)
@@ -131,23 +159,36 @@ internal static class MockRuleExpansion
         {
             builder.Append(" -p ").Append(protocol);
         }
-        if (specification.Source is not null && RuleSpecificationNormalizer.NormalizeAddress(specification.Source) != RuleSpecificationNormalizer.ANY)
+        bool multiport = (specification.SourcePorts?.Contains(',') ?? false)
+            || (specification.DestinationPorts?.Contains(',') ?? false)
+            || (specification.SourcePorts?.Contains(':') ?? false)
+            || (specification.DestinationPorts?.Contains(':') ?? false);
+        if (multiport)
         {
-            builder.Append(" -s ").Append(specification.Source);
+            if (specification.DestinationPorts is not null)
+            {
+                builder.Append(" -m multiport --dports ").Append(specification.DestinationPorts);
+            }
+            if (specification.SourcePorts is not null)
+            {
+                builder.Append(" -m multiport --sports ").Append(specification.SourcePorts);
+            }
         }
         if (specification.Destination is not null && RuleSpecificationNormalizer.NormalizeAddress(specification.Destination) != RuleSpecificationNormalizer.ANY)
         {
             builder.Append(" -d ").Append(specification.Destination);
         }
-        if (specification.SourcePorts is not null || specification.DestinationPorts is not null)
+        if (!multiport)
         {
-            bool multiport = (specification.SourcePorts?.Contains(',') ?? false) || (specification.DestinationPorts?.Contains(',') ?? false);
-            if (multiport)
-            {
-                builder.Append(" -m multiport");
-            }
-            AppendPorts(builder, specification.SourcePorts, multiport ? "--sports" : "--sport");
-            AppendPorts(builder, specification.DestinationPorts, multiport ? "--dports" : "--dport");
+            AppendPorts(builder, specification.DestinationPorts, "--dport");
+        }
+        if (specification.Source is not null && RuleSpecificationNormalizer.NormalizeAddress(specification.Source) != RuleSpecificationNormalizer.ANY)
+        {
+            builder.Append(" -s ").Append(specification.Source);
+        }
+        if (!multiport)
+        {
+            AppendPorts(builder, specification.SourcePorts, "--sport");
         }
         return builder.ToString();
     }
@@ -167,5 +208,5 @@ internal static class MockRuleExpansion
 
     private static string InterfaceSuffix(string? value) => value is null ? string.Empty : "_" + value;
 
-    private static string QuoteApplication(string? value) => value is null ? "-" : '"' + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + '"';
+    private static string QuoteApplication(string? value) => value is null ? "-" : value.Replace(" ", "%20", StringComparison.Ordinal);
 }

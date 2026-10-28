@@ -30,6 +30,7 @@ internal sealed class UfwRuleMutationReporter
         return result.Kind switch
         {
             UfwRuleMutationKind.Skipped => "Skipping adding existing rule" + suffix,
+            UfwRuleMutationKind.UnsupportedIpv6Limit => "Skipping unsupported IPv6 'limit' rule",
             UfwRuleMutationKind.Added => FormatMutationMessage(enabled, "added", result.Rule.Specification.AddressFamily),
             UfwRuleMutationKind.Inserted => enabled ? "Rule inserted" + suffix : "Rules updated" + suffix,
             UfwRuleMutationKind.Updated => FormatMutationMessage(enabled, "updated", result.Rule.Specification.AddressFamily),

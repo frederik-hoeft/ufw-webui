@@ -51,7 +51,10 @@ internal sealed class MockFilterTable
         }
         foreach (string name in new[] { "user-input", "user-output", "user-forward", "user-logging-input", "user-logging-output", "user-logging-forward", "user-limit", "user-limit-accept" })
         {
-            Declare(prefix + name, "-");
+            if (family != FirewallAddressFamily.IPv6 || name is not ("user-limit" or "user-limit-accept"))
+            {
+                Declare(prefix + name, "-");
+            }
         }
     }
 
@@ -90,16 +93,28 @@ internal sealed class MockFilterTable
             {
                 Append($"-A {prefix}before-{direction} -j {prefix}user-{direction}");
             }
+            // iptables-restore -I rules are installed before the rule-specific logging
+            // bodies. Represent that installed ordering in iptables-save's -A syntax.
+            foreach (MockIptablesDeclaration declaration in MockUfwAuxiliaryRules.Logging(state, family).Where(static item => item.Insert))
+            {
+                Append(declaration.ToSaveLine());
+            }
             foreach (UfwMockRule rule in state.Rules.Where(rule => rule.Specification.AddressFamily == family))
             {
-                foreach (string declaration in MockRuleExpansion.FormatDeclarations(rule))
+                foreach (MockIptablesDeclaration declaration in MockRuleExpansion.Expand(rule))
                 {
-                    Append(declaration);
+                    Append(declaration.ToSaveLine());
                 }
             }
+            foreach (MockIptablesDeclaration declaration in MockUfwAuxiliaryRules.Logging(state, family).Where(static item => !item.Insert))
+            {
+                Append(declaration.ToSaveLine());
+            }
             MockUfwDefaultRules.AddAfter(family, prefix, Append);
-            Append($"-A {prefix}user-limit -j REJECT");
-            Append($"-A {prefix}user-limit-accept -j ACCEPT");
+            foreach (MockIptablesDeclaration declaration in MockUfwAuxiliaryRules.RateLimit(state, family))
+            {
+                Append(declaration.ToSaveLine());
+            }
             Append($"-A {prefix}skip-to-policy-input -j {FormatSkipTarget(state.DefaultIncomingPolicy)}");
             Append($"-A {prefix}skip-to-policy-output -j {FormatSkipTarget(state.DefaultOutgoingPolicy)}");
             Append($"-A {prefix}skip-to-policy-forward -j {FormatSkipTarget(state.DefaultRoutedPolicy)}");

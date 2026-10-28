@@ -17,7 +17,9 @@ internal sealed class ParsedRuleRequest
             {
                 throw new UfwCliException("IPv6 support not enabled");
             }
-            return [CloneForFamily(Rule, family)];
+            return family == FirewallAddressFamily.IPv6 && Rule.Specification.Action == FirewallAction.Limit
+                ? []
+                : [CloneForFamily(Rule, family)];
         }
 
         if (string.Equals(Rule.ExtendedProtocol, "ipv6", StringComparison.Ordinal)
@@ -26,7 +28,7 @@ internal sealed class ParsedRuleRequest
             return [CloneForFamily(Rule, FirewallAddressFamily.IPv4)];
         }
 
-        return ipv6Enabled
+        return ipv6Enabled && Rule.Specification.Action != FirewallAction.Limit
             ? [CloneForFamily(Rule, FirewallAddressFamily.IPv4), CloneForFamily(Rule, FirewallAddressFamily.IPv6)]
             : [CloneForFamily(Rule, FirewallAddressFamily.IPv4)];
     }

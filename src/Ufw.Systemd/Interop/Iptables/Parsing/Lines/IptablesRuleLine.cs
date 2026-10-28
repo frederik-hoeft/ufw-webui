@@ -19,11 +19,14 @@ internal sealed class IptablesRuleLine : ParserBase<IIptablesDocumentVisitor>
 
     private readonly IParser _parser;
 
-    private IptablesRuleLine(string? name)
+    private readonly bool _allowInsert;
+
+    private IptablesRuleLine(string? name, bool allowInsert = false)
     {
         Name = name;
+        _allowInsert = allowInsert;
         _parser = Grammar.Sequence(
-            AppendCommand.Instance,
+            allowInsert ? Grammar.Alternative(AppendCommand.Instance, InsertCommand.Instance) : AppendCommand.Instance,
             HorizontalWhitespace.Instance,
             ChainNameToken.Instance.NamedCopy("rule-chain"),
             Grammar.Optional(Grammar.Sequence(HorizontalWhitespace.Instance, CounterToken.Instance.NamedCopy("rule-counter"))),
@@ -34,9 +37,11 @@ internal sealed class IptablesRuleLine : ParserBase<IIptablesDocumentVisitor>
 
     public static IptablesRuleLine Instance { get; } = new(name: null);
 
+    public static IptablesRuleLine UserRulesInstance { get; } = new(name: null, allowInsert: true);
+
     public override string? Name { get; }
 
-    public override IParser NamedCopy(string name) => new IptablesRuleLine(name);
+    public override IParser NamedCopy(string name) => new IptablesRuleLine(name, _allowInsert);
 
     public override bool TryParse(string input, int offset, [NotNullWhen(true)] out ISyntaxNode? syntaxNode, out int charsConsumed)
     {

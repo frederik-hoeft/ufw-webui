@@ -173,9 +173,11 @@ public sealed class MockIptablesIntegrationTests
     }
 
     [TestMethod]
-    public async Task Ipv6LimitAndLoggingRulesUseIpv6TargetsAsync()
+    public async Task Ipv6LimitIsSkippedWhileLoggingUsesIpv6TargetsAsync()
     {
-        Assert.AreEqual(0, (await InvokeUfwAsync("limit", "2222/tcp")).ExitCode);
+        (int limitCode, string limitOutput, _) = await InvokeUfwAsync("limit", "2222/tcp");
+        Assert.AreEqual(0, limitCode);
+        Assert.Contains("Skipping unsupported IPv6 'limit' rule", limitOutput);
         Assert.AreEqual(0, (await InvokeUfwAsync("allow", "out", "log", "53/udp")).ExitCode);
         Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
 
@@ -184,10 +186,99 @@ public sealed class MockIptablesIntegrationTests
         Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(output, FirewallAddressFamily.IPv6, out RawFilterTable? table));
         RawFilterChain input = table.Chains.Single(static chain => chain.Name == "ufw6-user-input");
         RawFilterChain outputChain = table.Chains.Single(static chain => chain.Name == "ufw6-user-output");
-        Assert.IsTrue(input.Rules.Any(static rule => rule.Target.Name == "ufw6-user-limit"));
-        Assert.IsTrue(input.Rules.Any(static rule => rule.Target.Name == "ufw6-user-limit-accept"));
+        Assert.HasCount(0, input.Rules);
+        Assert.IsFalse(table.Chains.Any(static chain => chain.Name is "ufw6-user-limit" or "ufw6-user-limit-accept"));
         Assert.IsTrue(outputChain.Rules.Any(static rule => rule.Target.Name == "ufw6-user-logging-output"));
+        RawFilterChain logging = table.Chains.Single(static chain => chain.Name == "ufw6-user-logging-output");
+        Assert.IsTrue(logging.Rules.Any(static rule => rule.Target.Name == "LOG"));
+        Assert.IsTrue(logging.Rules.Any(static rule => rule.Target.Name == "RETURN"));
+        Assert.DoesNotContain("### tuple ### limit", await File.ReadAllTextAsync(Path.Combine(_directory, "user6.rules")));
         Assert.IsFalse(output.Contains("-j ufw-user-", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task GeneratedRejectLoggingAndLimitDeclarationsFollowUfwRuleTemplatesAsync()
+    {
+        Assert.AreEqual(0, (await InvokeUfwAsync("reject", "log-all", "80/tcp")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("allow", "out", "log", "53/udp")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("limit", "2222/tcp")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+
+        string userRules = await File.ReadAllTextAsync(Path.Combine(_directory, "user.rules"));
+        Assert.Contains("-A ufw-user-input -p tcp --dport 80 -j REJECT --reject-with tcp-reset", userRules);
+        Assert.Contains("-A ufw-user-logging-input -p tcp --dport 80 -m limit --limit 3/min --limit-burst 10 -j LOG", userRules);
+        Assert.Contains("-A ufw-user-logging-input -p tcp --dport 80 -j RETURN", userRules);
+        Assert.Contains("-A ufw-user-input -p tcp --dport 80 -j ufw-user-logging-input", userRules);
+        Assert.Contains("-A ufw-user-limit -m limit --limit 3/minute -j LOG --log-prefix", userRules);
+        Assert.Contains("-A ufw-user-input -p tcp --dport 2222 -m conntrack --ctstate NEW -m recent --update --seconds 30 --hitcount 6 -j ufw-user-limit", userRules);
+        Assert.DoesNotContain("--set", userRules);
+        Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(userRules, FirewallAddressFamily.IPv4, out IReadOnlyList<UfwUserRuleTranslation>? translations));
+        Assert.AreEqual(3, translations.Count);
+
+        (int code, string save, string errors) = InvokeSave(FirewallAddressFamily.IPv4, "-t", "filter");
+        Assert.AreEqual(0, code, errors);
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
+        Assert.AreEqual(2, table.Chains.Single(static chain => chain.Name == "ufw-user-limit").Rules.Count);
+        Assert.AreEqual(2, table.Chains.Single(static chain => chain.Name == "ufw-user-logging-input").Rules.Count);
+        Assert.AreEqual(4, table.Chains.Single(static chain => chain.Name == "ufw-user-input").Rules.Count);
+    }
+
+    [TestMethod]
+    public async Task ApplicationAnnotationsUseRestoreAndSaveQuotingIndependentlyAsync()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_directory, "state.json"), """
+            {
+              "schemaVersion": 1,
+              "applicationProfiles": [
+                { "name": "Client App", "ports": "12345/tcp" },
+                { "name": "Web App", "ports": "443/tcp" }
+              ]
+            }
+            """);
+        (int code, _, string errors) = await InvokeUfwAsync("allow", "from", "10.0.0.0/8", "app", "Client App", "to", "any", "app", "Web App");
+        Assert.AreEqual(0, code, errors);
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+        string rules = await File.ReadAllTextAsync(Path.Combine(_directory, "user.rules"));
+        Assert.Contains("--comment 'dapp_Web%20App,sapp_Client%20App'", rules);
+        Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(rules, FirewallAddressFamily.IPv4, out IReadOnlyList<UfwUserRuleTranslation>? translations));
+        Assert.IsGreaterThan(0, translations.Count);
+
+        (code, string save, errors) = InvokeSave(FirewallAddressFamily.IPv4, "-t", "filter");
+        Assert.AreEqual(0, code, errors);
+        Assert.Contains("-A ufw-user-input -s 10.0.0.0/8 -m comment --comment \"dapp_Web%20App,sapp_Client%20App\" -j ACCEPT", save);
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
+        Assert.IsGreaterThan(0, table.Chains.Single(static chain => chain.Name == "ufw-user-input").Rules.Count);
+        // Test the physical/configuration match independently of the numbered-row linker:
+        // app names in numbered UFW status are intentionally opaque to its rule mapper.
+        FilterSystemState result = FilterSystemStateFactory.Create(table,
+            new RawFilterTable { AddressFamily = FirewallAddressFamily.IPv6, Chains = [] }, translations);
+        Assert.AreEqual(FilterEnrichmentStatus.Complete, result.IPv4.Enrichment.Status);
+    }
+
+    [TestMethod]
+    public async Task GlobalLoggingRulesRespectLevelsAndDisabledLoggingAsync()
+    {
+        Assert.AreEqual(0, (await InvokeUfwAsync("allow", "out", "log", "53/udp")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+        string low = InvokeSave(FirewallAddressFamily.IPv4).StdOut;
+        Assert.Contains("-A ufw-after-logging-input -j LOG --log-prefix \"[UFW BLOCK] \" -m limit --limit 3/min --limit-burst 10", low);
+        Assert.DoesNotContain("-A ufw-before-logging-input -j LOG", low);
+
+        Assert.AreEqual(0, (await InvokeUfwAsync("logging", "full")).ExitCode);
+        string full = InvokeSave(FirewallAddressFamily.IPv4).StdOut;
+        Assert.Contains("-A ufw-before-logging-input -j LOG --log-prefix \"[UFW AUDIT] \"", full);
+        Assert.DoesNotContain("-A ufw-before-logging-input -j LOG --log-prefix \"[UFW AUDIT] \" -m limit", full);
+
+        Assert.AreEqual(0, (await InvokeUfwAsync("logging", "off")).ExitCode);
+        string userRules = await File.ReadAllTextAsync(Path.Combine(_directory, "user.rules"));
+        Assert.Contains("-I ufw-user-logging-output -j RETURN", userRules);
+        Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(userRules, FirewallAddressFamily.IPv4, out _));
+        string save = InvokeSave(FirewallAddressFamily.IPv4).StdOut;
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
+        RawFilterChain logging = table.Chains.Single(static chain => chain.Name == "ufw-user-logging-output");
+        Assert.AreEqual("RETURN", logging.Rules[0].Target.Name);
+        Assert.IsTrue(logging.Rules.Any(static rule => rule.Target.Name == "LOG"));
+        Assert.DoesNotContain("-A ufw-user-limit -m limit", save);
     }
 
     [TestMethod]
