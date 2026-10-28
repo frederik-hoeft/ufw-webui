@@ -2,7 +2,7 @@
 
 internal sealed class UfwMockState
 {
-    public const int CURRENT_SCHEMA_VERSION = 1;
+    public const int CURRENT_SCHEMA_VERSION = 2;
 
     public int SchemaVersion { get; set; } = CURRENT_SCHEMA_VERSION;
 
@@ -19,6 +19,8 @@ internal sealed class UfwMockState
     public string DefaultApplicationPolicy { get; set; } = "skip";
 
     public bool IPv6Enabled { get; set; } = true;
+
+    public UfwMockInstalledState? Installed { get; set; }
 
     public List<UfwMockRule> Rules { get; set; } = [];
 

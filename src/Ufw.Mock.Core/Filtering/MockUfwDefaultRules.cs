@@ -1,6 +1,6 @@
 using Ufw.Shared.Firewall;
 
-namespace Ufw.Mock.Iptables;
+namespace Ufw.Mock.Filtering;
 
 /// <summary>
 /// The stock UFW 0.36.2 before/after filter behavior, expressed as rules rather than

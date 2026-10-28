@@ -1,6 +1,7 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ufw.Mock.Cli;
+using Ufw.Mock.Filtering;
 using Ufw.Mock.Formatting;
 using Ufw.Shared.Firewall;
 
@@ -52,14 +53,38 @@ internal sealed class UfwStateStore
         return operation(state);
     }
 
-    public T Update<T>(bool dryRun, Func<UfwMockState, T> operation)
+    /// <summary>Observe the installed table without generating UFW configuration files.</summary>
+    public T ReadInstalled<T>(Func<UfwMockState, T> operation)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        using FileStream lockHandle = AcquireLock();
+        return operation(Load());
+    }
+
+    public T Update<T>(bool dryRun, Func<UfwMockState, T> operation, bool reloadFixtures = false)
     {
         ArgumentNullException.ThrowIfNull(operation);
         using FileStream lockHandle = AcquireLock();
         UfwMockState state = Load();
+        bool wasEnabled = state.Enabled;
         T result = operation(state);
         if (!dryRun)
         {
+            if (state.Enabled)
+            {
+                try
+                {
+                    state.Installed = MockInstalledFilterState.Install(state, state.Installed, reloadFixtures);
+                }
+                catch (Exception exception) when (exception is FormatException or IOException or UnauthorizedAccessException)
+                {
+                    throw new UfwCliException($"Could not install mock firewall: {exception.Message}");
+                }
+            }
+            else if (wasEnabled || state.Installed is null)
+            {
+                state.Installed = MockInstalledFilterState.Stop(state.Installed);
+            }
             Save(state);
         }
         return result;
@@ -77,6 +102,12 @@ internal sealed class UfwStateStore
             string json = File.ReadAllText(_path);
             UfwMockState state = JsonSerializer.Deserialize<UfwMockState>(json, s_jsonOptions)
                 ?? throw new JsonException("State document is empty.");
+            // Older versions stored only UFW configuration and generated physical
+            // output on demand. Upgrade on the next persisted mutation.
+            if (state.SchemaVersion == 1)
+            {
+                state.SchemaVersion = UfwMockState.CURRENT_SCHEMA_VERSION;
+            }
             UfwStateValidator.Validate(state);
             return state;
         }

@@ -1,4 +1,5 @@
-using Ufw.Mock.Cli;
+﻿using Ufw.Mock.Cli;
+using Ufw.Mock.Filtering;
 using Ufw.Mock.State;
 using Ufw.Shared.Firewall;
 
@@ -21,11 +22,9 @@ internal sealed class IptablesSaveCommand(string executable, FirewallAddressFami
         try
         {
             UfwStateStore store = new();
-            string output = store.Read(state =>
+            string output = store.ReadInstalled(state =>
             {
-                MockFilterTable filterTable = new(state, family);
-                filterTable.Add(state, family);
-                return filterTable.Format();
+                return MockInstalledFilterState.Observe(state, family).Format();
             });
             Console.Out.Write(output);
             return 0;

@@ -12,7 +12,7 @@ internal sealed class UfwLifecycleService(UfwGlobalOptions options, UfwStateStor
         {
             state.Enabled = true;
             return 0;
-        });
+        }, reloadFixtures: true);
         Console.WriteLine("Firewall is active and enabled on system startup");
         return 0;
     });
@@ -32,11 +32,9 @@ internal sealed class UfwLifecycleService(UfwGlobalOptions options, UfwStateStor
     public int Reload(IReadOnlyList<string> arguments) => execution.Execute(() =>
     {
         RequireNoArguments(arguments, "ufw reload");
-        return store.Read(state =>
-        {
-            Console.WriteLine(state.Enabled ? "Firewall reloaded" : "Firewall not enabled (skipping reload)");
-            return 0;
-        });
+        bool enabled = store.Update(options.DryRun, state => state.Enabled, reloadFixtures: true);
+        Console.WriteLine(enabled ? "Firewall reloaded" : "Firewall not enabled (skipping reload)");
+        return 0;
     });
 
     public int Reset(IReadOnlyList<string> arguments) => execution.Execute(() =>
