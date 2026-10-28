@@ -13,8 +13,9 @@ namespace Ufw.Shared.Firewall.Iptables.Grammars;
 /// <summary>
 /// Composition root for <c>iptables-save</c> / <c>ip6tables-save</c> output.
 /// Only the filter table is retained. Other tables are accepted and ignored.
+/// Produces a structured snapshot without installing firewall rules.
 /// </summary>
-internal sealed class IptablesSaveGrammar
+public sealed class IptablesSaveGrammar
 {
     private readonly IParser _grammar;
 
@@ -32,8 +33,15 @@ internal sealed class IptablesSaveGrammar
             .RequireVisitor<IIptablesDocumentVisitor>();
     }
 
+    /// <summary>Reusable grammar instance.</summary>
     public static IptablesSaveGrammar Instance { get; } = new();
 
+    /// <summary>Parses a complete save document and extracts its filter table.</summary>
+    /// <param name="input">Complete iptables-save output.</param>
+    /// <param name="family">Address family of the producing binary.</param>
+    /// <param name="table">Parsed filter table, or <see langword="null"/> on failure.</param>
+    /// <returns><see langword="false"/> for invalid documents or missing filter tables.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The address family is not IPv4 or IPv6.</exception>
     public bool TryParse(string input, FirewallAddressFamily family, [NotNullWhen(true)] out RawFilterTable? table)
     {
         ArgumentNullException.ThrowIfNull(input);

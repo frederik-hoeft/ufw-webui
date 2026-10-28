@@ -6,10 +6,13 @@ using Ufw.Shared.Firewall;
 namespace Ufw.Shared.Firewall.Iptables.Parsing;
 
 /// <summary>Canonicalizes understood iptables predicate values without interpreting module-specific filters.</summary>
-internal static class IptablesPredicateNormalizer
+public static class IptablesPredicateNormalizer
 {
+    /// <summary>Normalizes a protocol name or number; <c>all</c> maps to a null protocol.</summary>
+    /// <returns>False for invalid protocol tokens.</returns>
     public static bool TryCanonicalProtocol(string text, out string? protocol)
     {
+        ArgumentNullException.ThrowIfNull(text);
         // Protocol names are canonically lowercase; preserve the daemon's existing wire representation.
 #pragma warning disable CA1308
         string candidate = text.ToLowerInvariant();
@@ -48,8 +51,11 @@ internal static class IptablesPredicateNormalizer
         return true;
     }
 
+    /// <summary>Normalizes an IPv4 or IPv6 address or prefix for the specified family.</summary>
+    /// <returns>False for invalid addresses, masks, or address-family mismatches.</returns>
     public static bool TryCanonicalAddress(string text, FirewallAddressFamily family, out string canonical)
     {
+        ArgumentNullException.ThrowIfNull(text);
         string candidate = text.Trim();
         int slash = candidate.IndexOf('/');
         if (slash > 0 && family == FirewallAddressFamily.IPv4 && candidate[(slash + 1)..].Contains('.', StringComparison.Ordinal))
@@ -136,8 +142,12 @@ internal static class IptablesPredicateNormalizer
         return true;
     }
 
+    /// <summary>Normalizes port numbers, ranges, and comma-separated lists.</summary>
+    /// <remarks>Each port must be between 1 and 65535; empty list elements are rejected.</remarks>
+    /// <returns>False when an input is not a valid iptables port predicate.</returns>
     public static bool TryCanonicalPorts(string text, out string ports)
     {
+        ArgumentNullException.ThrowIfNull(text);
         // NormalizePorts is intentionally tolerant for domain normalization.
         // iptables match arguments must not contain empty comma-separated elements.
         if (text.Split(',').Any(static part => part.Length == 0))
@@ -180,8 +190,10 @@ internal static class IptablesPredicateNormalizer
     private static bool IsPort(string text) =>
         int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int port) && port is >= 1 and <= 65535;
 
+    /// <summary>Checks the supported iptables interface-name syntax, including trailing <c>+</c> wildcards.</summary>
     public static bool IsInterfaceName(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
         if (name.Length is < 1 or > 16)
         {
             return false;

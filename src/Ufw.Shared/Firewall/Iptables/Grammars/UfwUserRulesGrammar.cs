@@ -13,8 +13,9 @@ namespace Ufw.Shared.Firewall.Iptables.Grammars;
 /// <summary>
 /// Composition root for UFW <c>user.rules</c> / <c>user6.rules</c>.
 /// Tuple translations inside <c>### RULES ###</c> are the only enrichment source.
+/// Supporting logging and utility rules are parsed but do not become managed-rule attributions.
 /// </summary>
-internal sealed class UfwUserRulesGrammar
+public sealed class UfwUserRulesGrammar
 {
     private const string RULES_SECTION = "RULES";
 
@@ -36,8 +37,14 @@ internal sealed class UfwUserRulesGrammar
             .RequireVisitor<IIptablesDocumentVisitor>();
     }
 
+    /// <summary>Reusable grammar instance.</summary>
     public static UfwUserRulesGrammar Instance { get; } = new();
 
+    /// <summary>Parses UFW's translation file and relates annotated tuples to their physical rules.</summary>
+    /// <param name="input">Entire user.rules or user6.rules document.</param>
+    /// <param name="family">Address family represented by the file.</param>
+    /// <param name="translations">Recognized user-rule translations on success; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the document is structurally valid.</returns>
     public bool TryParse(string input, FirewallAddressFamily family, [NotNullWhen(true)] out IReadOnlyList<UfwUserRuleTranslation>? translations)
     {
         ArgumentNullException.ThrowIfNull(input);

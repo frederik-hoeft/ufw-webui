@@ -1,6 +1,7 @@
 ﻿namespace Ufw.Shared.Firewall.Iptables.Parsing;
 
-internal enum IptablesTokenKind
+/// <summary>Lexical categories recognized in iptables and UFW rule documents.</summary>
+public enum IptablesTokenKind
 {
     TableName,
     ChainName,

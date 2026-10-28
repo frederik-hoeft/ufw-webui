@@ -11,8 +11,9 @@ namespace Ufw.Shared.Firewall.Iptables.Grammars;
 /// Parses one iptables-restore statement using the same lexical and line grammars
 /// as the daemon's iptables-save and UFW translation parsers.
 /// The caller interprets installation order and chain-state mutations.
+/// This parser validates statement syntax, not kernel extension support or restore semantics.
 /// </summary>
-internal sealed class IptablesRestoreLineGrammar
+public sealed class IptablesRestoreLineGrammar
 {
     private readonly IParser _grammar = Grammar.Alternative(
         IptablesTableLine.Instance,
@@ -21,10 +22,16 @@ internal sealed class IptablesRestoreLineGrammar
         IptablesFlushLine.Instance,
         IptablesCommitLine.Instance);
 
+    /// <summary>Reusable grammar instance.</summary>
     public static IptablesRestoreLineGrammar Instance { get; } = new();
 
+    /// <summary>Parses exactly one non-comment restore statement, consuming the complete input.</summary>
+    /// <param name="line">Statement text without a trailing line ending.</param>
+    /// <param name="statement">Typed statement on success; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if the entire line matches the grammar.</returns>
     public bool TryParse(string line, [NotNullWhen(true)] out IptablesRestoreStatement? statement)
     {
+        ArgumentNullException.ThrowIfNull(line);
         if (!_grammar.TryParse(line, 0, out ISyntaxNode? node, out int consumed) || consumed != line.Length)
         {
             statement = null;
@@ -58,12 +65,3 @@ internal sealed class IptablesRestoreLineGrammar
         public void VisitSection(string name) { }
     }
 }
-
-internal enum IptablesRestoreOperation { Table, Chain, Append, Insert, Flush, Commit }
-
-internal sealed record IptablesRestoreStatement(
-    IptablesRestoreOperation Operation,
-    string? Name = null,
-    string? Policy = null,
-    IReadOnlyList<IptablesToken>? Arguments = null,
-    string? SourceLine = null);

@@ -1,6 +1,4 @@
-﻿using Ufw.Shared.Parsing.SyntaxNodes;
-using Ufw.Shared.Firewall.Iptables.Parsing;
-using Ufw.Shared.Firewall.Iptables.Parsing.Terminals;
+﻿using Ufw.Shared.Firewall.Iptables.Grammars;
 
 namespace Ufw.Systemd.Tests.Interop.Iptables;
 
@@ -10,13 +8,10 @@ public sealed class QuotedStringTokenTests
     [TestMethod]
     public void TryParse_DecodesBackslashesQuotesAndOtherEscapes()
     {
-        const string input = """'Folder\\Path \'quoted\' \x'""";
+        const string line = """-A INPUT -m comment --comment 'Folder\\Path \'quoted\' \x' -j ACCEPT""";
 
-        Assert.IsTrue(QuotedStringToken.Instance.TryParse(input, 0, out ISyntaxNode? node, out int consumed));
-        Assert.AreEqual(input.Length, consumed);
-        IptablesTokenCollector collector = new();
-        node.Accept(collector);
-        Assert.HasCount(1, collector.Tokens);
-        Assert.AreEqual("Folder\\Path 'quoted' x", collector.Tokens[0].Text);
+        Assert.IsTrue(IptablesRestoreLineGrammar.Instance.TryParse(line, out IptablesRestoreStatement? statement));
+        Assert.IsNotNull(statement.Arguments);
+        Assert.AreEqual("Folder\\Path 'quoted' x", statement.Arguments[3].Text);
     }
 }

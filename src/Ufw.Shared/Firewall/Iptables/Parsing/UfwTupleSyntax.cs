@@ -2,8 +2,9 @@
 
 namespace Ufw.Shared.Firewall.Iptables.Parsing;
 
-/// <summary>Validated shape of a UFW tuple annotation, independent of the mutable rule model.</summary>
-internal sealed class UfwTupleSyntax
+/// <summary>Decoded UFW tuple fields, independent of the mutable rule model.</summary>
+/// <remarks>Syntax validity does not imply every field can be mapped to a supported firewall specification.</remarks>
+public sealed class UfwTupleSyntax
 {
     public required FirewallAction Action { get; init; }
     public required bool Forward { get; init; }

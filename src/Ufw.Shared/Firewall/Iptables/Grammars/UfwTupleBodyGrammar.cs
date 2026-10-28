@@ -10,8 +10,9 @@ namespace Ufw.Shared.Firewall.Iptables.Grammars;
 /// <summary>
 /// Composes supported UFW tuple layouts from typed field parsers. All source-specific
 /// syntax decisions happen here, not in the specification-mapping layer.
+/// Produces syntax data, not a validated firewall rule specification.
 /// </summary>
-internal sealed class UfwTupleBodyGrammar
+public sealed class UfwTupleBodyGrammar
 {
     private readonly IParser _grammar;
 
@@ -40,8 +41,13 @@ internal sealed class UfwTupleBodyGrammar
             .RequireVisitor<IUfwTupleVisitor>();
     }
 
+    /// <summary>Reusable grammar instance.</summary>
     public static UfwTupleBodyGrammar Instance { get; } = new();
 
+    /// <summary>Parses the content following a UFW <c>### tuple ###</c> marker.</summary>
+    /// <param name="input">Tuple body without the marker.</param>
+    /// <param name="tuple">Decoded tuple fields on success; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if the complete tuple matches a supported layout.</returns>
     public bool TryParse(string input, [NotNullWhen(true)] out UfwTupleSyntax? tuple)
     {
         ArgumentNullException.ThrowIfNull(input);
