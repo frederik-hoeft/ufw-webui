@@ -12,9 +12,9 @@ internal static class MockUserRulesFormatter
         StringBuilder builder = new();
         builder.AppendLine("# Ufw.Mock generated user rules");
         builder.AppendLine("*filter");
-        foreach (string chain in new[] { "ufw-user-input", "ufw-user-output", "ufw-user-forward", "ufw-user-limit", "ufw-user-limit-accept", "ufw-user-logging-input", "ufw-user-logging-output" })
+        foreach (string suffix in new[] { "user-input", "user-output", "user-forward", "user-limit", "user-limit-accept", "user-logging-input", "user-logging-output", "user-logging-forward" })
         {
-            builder.Append(':').Append(chain).AppendLine(" - [0:0]");
+            builder.Append(':').Append(MockChainNames.Prefix(family)).Append(suffix).AppendLine(" - [0:0]");
         }
         builder.AppendLine("### RULES ###");
         foreach (UfwMockRule rule in state.Rules.Where(rule => rule.Specification.AddressFamily == family))

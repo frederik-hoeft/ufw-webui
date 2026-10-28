@@ -1,7 +1,7 @@
 using System.Text;
 using Ufw.Mock.Formatting;
-using Ufw.Mock.State;
 using Ufw.Mock.Services;
+using Ufw.Mock.State;
 using Ufw.Shared.Firewall;
 
 namespace Ufw.Mock.Iptables;
@@ -12,36 +12,83 @@ internal sealed class MockFilterTable
     private readonly Dictionary<string, Chain> _chains = new(StringComparer.Ordinal);
     private readonly List<Chain> _ordered = [];
     private readonly bool _ufwActive;
+    private readonly bool _ipv6Blocked;
 
     public MockFilterTable(UfwMockState state, FirewallAddressFamily family)
     {
-        _ufwActive = state.Enabled && (family != FirewallAddressFamily.IPv6 || new UfwCompatibilityConfiguration().IsIPv6Enabled(state));
-        Declare("INPUT", _ufwActive ? FormatPolicy(state.DefaultIncomingPolicy) : "ACCEPT");
-        Declare("FORWARD", _ufwActive ? FormatPolicy(state.DefaultRoutedPolicy) : "ACCEPT");
-        Declare("OUTPUT", _ufwActive ? FormatPolicy(state.DefaultOutgoingPolicy) : "ACCEPT");
-        foreach (string suffix in new[] { "input", "output", "forward" })
+        bool ipv6Available = family != FirewallAddressFamily.IPv6 || new UfwCompatibilityConfiguration().IsIPv6Enabled(state);
+        _ufwActive = state.Enabled && ipv6Available;
+        _ipv6Blocked = state.Enabled && family == FirewallAddressFamily.IPv6 && !ipv6Available;
+        Declare("INPUT", _ipv6Blocked ? "DROP" : _ufwActive ? FormatPolicy(state.DefaultIncomingPolicy) : "ACCEPT");
+        Declare("FORWARD", _ipv6Blocked ? "DROP" : _ufwActive ? FormatPolicy(state.DefaultRoutedPolicy) : "ACCEPT");
+        Declare("OUTPUT", _ipv6Blocked ? "DROP" : _ufwActive ? FormatPolicy(state.DefaultOutgoingPolicy) : "ACCEPT");
+        if (!_ufwActive)
         {
-            Declare("ufw-before-" + suffix, "-");
-            Declare("ufw-user-" + suffix, "-");
-            Declare("ufw-after-" + suffix, "-");
+            return;
         }
-        foreach (string chain in new[] { "ufw-user-limit", "ufw-user-limit-accept", "ufw-user-logging-input", "ufw-user-logging-output" })
+
+        string prefix = MockChainNames.Prefix(family);
+        // UFW's primary chains are created before its secondary rule/utility chains.
+        foreach (string suffix in new[] { "before-logging", "before", "after", "after-logging", "reject", "track" })
         {
-            Declare(chain, "-");
+            foreach (string direction in new[] { "input", "output", "forward" })
+            {
+                // No FORWARD tracking chain is installed by UFW 0.36.2.
+                if (suffix == "track" && direction == "forward")
+                {
+                    continue;
+                }
+                Declare(prefix + suffix + "-" + direction, "-");
+            }
+        }
+        foreach (string name in new[] { "logging-deny", "logging-allow", "skip-to-policy-input", "skip-to-policy-output", "skip-to-policy-forward" })
+        {
+            Declare(prefix + name, "-");
+        }
+        if (family == FirewallAddressFamily.IPv4)
+        {
+            Declare(prefix + "not-local", "-");
+        }
+        foreach (string name in new[] { "user-input", "user-output", "user-forward", "user-logging-input", "user-logging-output", "user-logging-forward", "user-limit", "user-limit-accept" })
+        {
+            Declare(prefix + name, "-");
         }
     }
 
     public void Add(UfwMockState state, FirewallAddressFamily family)
     {
+        string prefix = MockChainNames.Prefix(family);
+        if (_ipv6Blocked)
+        {
+            Append("-A INPUT -i lo -j ACCEPT");
+            Append("-A OUTPUT -o lo -j ACCEPT");
+        }
+        if (_ufwActive)
+        {
+            foreach (string direction in new[] { "input", "output", "forward" })
+            {
+                string root = direction.ToUpperInvariant();
+                foreach (string stage in new[] { "before-logging", "before", "after", "after-logging", "reject" })
+                {
+                    Append($"-A {root} -j {prefix}{stage}-{direction}");
+                }
+                if (direction != "forward")
+                {
+                    Append($"-A {root} -j {prefix}track-{direction}");
+                }
+            }
+
+            MockUfwDefaultRules.AddBefore(family, prefix, Append);
+        }
+
         LoadFixtures(family, before: true);
         if (_ufwActive)
         {
-            foreach (string suffix in new[] { "input", "output", "forward" })
+            // The user chain is reached from the end of the before chain, not
+            // directly from INPUT, OUTPUT, or FORWARD.
+            foreach (string direction in new[] { "input", "output", "forward" })
             {
-                string root = suffix.ToUpperInvariant();
-                Append("-A " + root + " -j ufw-before-" + suffix);
-                Append("-A " + root + " -j ufw-user-" + suffix);
-                Append("-A " + root + " -j ufw-after-" + suffix);
+                Append($"-A {prefix}before-{direction} -j {prefix}user-{direction}");
             }
             foreach (UfwMockRule rule in state.Rules.Where(rule => rule.Specification.AddressFamily == family))
             {
@@ -50,18 +97,17 @@ internal sealed class MockFilterTable
                     Append(declaration);
                 }
             }
-            Append("-A ufw-user-limit -j REJECT");
-            Append("-A ufw-user-limit-accept -j ACCEPT");
+            MockUfwDefaultRules.AddAfter(family, prefix, Append);
+            Append($"-A {prefix}user-limit -j REJECT");
+            Append($"-A {prefix}user-limit-accept -j ACCEPT");
+            Append($"-A {prefix}skip-to-policy-input -j {FormatSkipTarget(state.DefaultIncomingPolicy)}");
+            Append($"-A {prefix}skip-to-policy-output -j {FormatSkipTarget(state.DefaultOutgoingPolicy)}");
+            Append($"-A {prefix}skip-to-policy-forward -j {FormatSkipTarget(state.DefaultRoutedPolicy)}");
+            AppendRejectDefault(prefix + "reject-input", state.DefaultIncomingPolicy);
+            AppendRejectDefault(prefix + "reject-output", state.DefaultOutgoingPolicy);
+            AppendRejectDefault(prefix + "reject-forward", state.DefaultRoutedPolicy);
         }
         LoadFixtures(family, before: false);
-        // Netfilter's builtin chain policy cannot be REJECT. UFW realizes this
-        // default by leaving a final terminal reject before the DROP fallback.
-        if (_ufwActive)
-        {
-            AppendRejectDefault("INPUT", state.DefaultIncomingPolicy);
-            AppendRejectDefault("OUTPUT", state.DefaultOutgoingPolicy);
-            AppendRejectDefault("FORWARD", state.DefaultRoutedPolicy);
-        }
     }
 
     private void AppendRejectDefault(string chain, string policy)
@@ -71,6 +117,14 @@ internal sealed class MockFilterTable
             Append("-A " + chain + " -j REJECT");
         }
     }
+
+    private static string FormatSkipTarget(string policy) => policy switch
+    {
+        "allow" => "ACCEPT",
+        "deny" => "DROP",
+        "reject" => "REJECT",
+        _ => throw new FormatException($"Unknown default UFW policy '{policy}'."),
+    };
 
     public string Format()
     {

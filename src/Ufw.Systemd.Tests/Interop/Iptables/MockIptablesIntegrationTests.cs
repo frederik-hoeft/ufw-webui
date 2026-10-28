@@ -103,6 +103,94 @@ public sealed class MockIptablesIntegrationTests
     }
 
     [TestMethod]
+    public async Task EnabledUfwInstallsFamilySpecificChainTopologyAndStockRulesAsync()
+    {
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+        foreach (FirewallAddressFamily family in new[] { FirewallAddressFamily.IPv4, FirewallAddressFamily.IPv6 })
+        {
+            (int code, string output, string errors) = InvokeSave(family, "-t", "filter");
+            Assert.AreEqual(0, code, errors);
+            Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(output, family, out RawFilterTable? table));
+            string prefix = family == FirewallAddressFamily.IPv4 ? "ufw-" : "ufw6-";
+            Assert.IsFalse(table.Chains.Any(chain => chain.Name.StartsWith(family == FirewallAddressFamily.IPv4 ? "ufw6-" : "ufw-", StringComparison.Ordinal)));
+
+            foreach (string direction in new[] { "input", "output", "forward" })
+            {
+                RawFilterChain builtin = table.Chains.Single(chain => chain.Name == direction.ToUpperInvariant());
+                string[] expected =
+                [
+                    prefix + "before-logging-" + direction,
+                    prefix + "before-" + direction,
+                    prefix + "after-" + direction,
+                    prefix + "after-logging-" + direction,
+                    prefix + "reject-" + direction,
+                    .. direction == "forward" ? [] : new[] { prefix + "track-" + direction },
+                ];
+                CollectionAssert.AreEqual(expected, builtin.Rules.Select(static rule => rule.Target.Name).ToArray());
+                RawFilterChain before = table.Chains.Single(chain => chain.Name == prefix + "before-" + direction);
+                Assert.AreEqual(prefix + "user-" + direction, before.Rules[^1].Target.Name);
+            }
+
+            RawFilterChain beforeInput = table.Chains.Single(chain => chain.Name == prefix + "before-input");
+            Assert.IsTrue(beforeInput.Rules.Any(static rule => rule.SourceLine?.Contains("-i lo -j ACCEPT", StringComparison.Ordinal) == true));
+            Assert.IsTrue(beforeInput.Rules.Any(static rule => rule.SourceLine?.Contains("--ctstate RELATED,ESTABLISHED", StringComparison.Ordinal) == true));
+            Assert.IsTrue(beforeInput.Rules.Any(static rule => rule.SourceLine?.Contains("--ctstate INVALID", StringComparison.Ordinal) == true));
+            Assert.IsTrue(table.Chains.Single(chain => chain.Name == prefix + "after-input").Rules.Any(static rule => rule.SourceLine?.Contains("--dport 137", StringComparison.Ordinal) == true));
+            Assert.IsTrue(table.Chains.Any(chain => chain.Name == prefix + "skip-to-policy-input"));
+            Assert.IsTrue(table.Chains.Any(chain => chain.Name == prefix + "logging-deny"));
+            Assert.IsTrue(beforeInput.Rules.Any(rule => rule.Target.Name == prefix + "user-input"));
+            Assert.AreEqual(family == FirewallAddressFamily.IPv4, table.Chains.Any(chain => chain.Name == prefix + "not-local"));
+            if (family == FirewallAddressFamily.IPv4)
+            {
+                Assert.IsTrue(beforeInput.Rules.Any(rule => rule.Target.Name == prefix + "not-local"));
+                Assert.IsTrue(beforeInput.Rules.Any(static rule => rule.SourceLine?.Contains("--icmp-type echo-request", StringComparison.Ordinal) == true));
+            }
+            else
+            {
+                Assert.IsTrue(beforeInput.Rules.Any(static rule => rule.SourceLine?.Contains("--rt-type 0", StringComparison.Ordinal) == true));
+                Assert.IsTrue(beforeInput.Rules.Any(static rule => rule.SourceLine?.Contains("--icmpv6-type 130", StringComparison.Ordinal) == true));
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task RejectDefaultIsInstalledInRejectChainAndNotBuiltinAsync()
+    {
+        Assert.AreEqual(0, (await InvokeUfwAsync("default", "reject", "incoming")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+        foreach (FirewallAddressFamily family in new[] { FirewallAddressFamily.IPv4, FirewallAddressFamily.IPv6 })
+        {
+            (int code, string output, string errors) = InvokeSave(family, "-t", "filter");
+            Assert.AreEqual(0, code, errors);
+            Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(output, family, out RawFilterTable? table));
+            string prefix = family == FirewallAddressFamily.IPv4 ? "ufw-" : "ufw6-";
+            RawFilterChain input = table.Chains.Single(static chain => chain.Name == "INPUT");
+            Assert.AreEqual(FilterChainPolicy.Drop, input.Policy);
+            Assert.IsFalse(input.Rules.Any(static rule => rule.Target.Name == "REJECT"));
+            Assert.AreEqual("REJECT", table.Chains.Single(chain => chain.Name == prefix + "reject-input").Rules.Single().Target.Name);
+            Assert.AreEqual("REJECT", table.Chains.Single(chain => chain.Name == prefix + "skip-to-policy-input").Rules.Single().Target.Name);
+        }
+    }
+
+    [TestMethod]
+    public async Task Ipv6LimitAndLoggingRulesUseIpv6TargetsAsync()
+    {
+        Assert.AreEqual(0, (await InvokeUfwAsync("limit", "2222/tcp")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("allow", "out", "log", "53/udp")).ExitCode);
+        Assert.AreEqual(0, (await InvokeUfwAsync("--force", "enable")).ExitCode);
+
+        (int code, string output, string errors) = InvokeSave(FirewallAddressFamily.IPv6, "-t", "filter");
+        Assert.AreEqual(0, code, errors);
+        Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(output, FirewallAddressFamily.IPv6, out RawFilterTable? table));
+        RawFilterChain input = table.Chains.Single(static chain => chain.Name == "ufw6-user-input");
+        RawFilterChain outputChain = table.Chains.Single(static chain => chain.Name == "ufw6-user-output");
+        Assert.IsTrue(input.Rules.Any(static rule => rule.Target.Name == "ufw6-user-limit"));
+        Assert.IsTrue(input.Rules.Any(static rule => rule.Target.Name == "ufw6-user-limit-accept"));
+        Assert.IsTrue(outputChain.Rules.Any(static rule => rule.Target.Name == "ufw6-user-logging-output"));
+        Assert.IsFalse(output.Contains("-j ufw-user-", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task GeneratedFilesAndPhysicalRulesParseForBothFamiliesAsync()
     {
         Assert.AreEqual(0, (await InvokeUfwAsync("allow", "in", "from", "any", "to", "any", "port", "22", "proto", "tcp", "comment", "ssh")).ExitCode);
@@ -125,7 +213,10 @@ public sealed class MockIptablesIntegrationTests
             (int code, string save, string stderr) = InvokeSave(family, "-t", "filter");
             Assert.AreEqual(0, code, stderr);
             Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, family, out RawFilterTable? table));
-            Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(await File.ReadAllTextAsync(Path.Combine(_directory, file)), family, out IReadOnlyList<UfwUserRuleTranslation>? translations));
+            string translationText = await File.ReadAllTextAsync(Path.Combine(_directory, file));
+            string prefixForFamily = family == FirewallAddressFamily.IPv4 ? "ufw-" : "ufw6-";
+            Assert.Contains(":" + prefixForFamily + "user-input - [0:0]", translationText);
+            Assert.IsTrue(UfwUserRulesGrammar.Instance.TryParse(translationText, family, out IReadOnlyList<UfwUserRuleTranslation>? translations));
             Assert.AreEqual(family == FirewallAddressFamily.IPv4 ? 2 : 1, translations.Count);
             IReadOnlyList<UfwUserRuleTranslation> linked = UfwManagedRuleLinker.Link(translations, observed, family);
             Assert.AreEqual(translations.Count, linked.Count, "UFW's independent numbered output must link every mock translation.");
@@ -137,8 +228,12 @@ public sealed class MockIptablesIntegrationTests
             Assert.AreEqual(FilterEnrichmentStatus.Complete, familyState.Enrichment.Status);
             Assert.AreEqual(linked.Sum(static translation => translation.IptablesRules.Count), familyState.ManagedRuleAttributions.Count);
             Assert.IsTrue(translations.All(static translation => translation.RuleId is not null && translation.IptablesRules.Count > 0));
-            Assert.AreEqual(translations.Sum(static translation => translation.IptablesRules.Count), table.Chains.Where(static chain => chain.Name.StartsWith("ufw-user-", StringComparison.Ordinal) && chain.Name is not "ufw-user-limit" and not "ufw-user-limit-accept").Sum(static chain => chain.Rules.Count));
-            Assert.IsTrue(table.Chains.Single(static chain => chain.Name == "INPUT").Rules.Any(static rule => rule.Target.Name == "ufw-user-input"));
+            string prefix = family == FirewallAddressFamily.IPv4 ? "ufw-" : "ufw6-";
+            string[] userChains = [prefix + "user-input", prefix + "user-output", prefix + "user-forward"];
+            int physicalUserRuleCount = table.Chains.Where(chain => userChains.Contains(chain.Name)).Sum(static chain => chain.Rules.Count);
+            Assert.AreEqual(translations.Sum(static translation => translation.IptablesRules.Count), physicalUserRuleCount);
+            Assert.IsTrue(table.Chains.Single(chain => chain.Name == prefix + "before-input").Rules.Any(rule => rule.Target.Name == prefix + "user-input"));
+            Assert.IsFalse(table.Chains.Single(static chain => chain.Name == "INPUT").Rules.Any(rule => rule.Target.Name == prefix + "user-input"));
         }
     }
 
@@ -196,7 +291,7 @@ public sealed class MockIptablesIntegrationTests
         Assert.AreEqual(0, code, stderr);
         Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
         Assert.AreEqual(1, table.Chains.Single(static chain => chain.Name == "external-chain").Rules.Count);
-        Assert.IsTrue(table.Chains.Single(static chain => chain.Name == "ufw-before-input").Rules.Single().Target.IsChainReference);
+        Assert.IsTrue(table.Chains.Single(static chain => chain.Name == "ufw-before-input").Rules.Any(static rule => rule.Target.Name == "external-chain" && rule.Target.IsChainReference));
         Assert.HasCount(1, table.Chains.Single(static chain => chain.Name == "ufw-user-input").Rules);
         Assert.IsFalse((await File.ReadAllTextAsync(Path.Combine(_directory, "user.rules"))).Contains("external-chain", StringComparison.Ordinal));
         Assert.IsFalse(InvokeSave(FirewallAddressFamily.IPv6, "-t", "filter").StdOut.Contains("external-chain", StringComparison.Ordinal));
@@ -233,14 +328,18 @@ public sealed class MockIptablesIntegrationTests
         (int code, string save, _) = InvokeSave(FirewallAddressFamily.IPv6, "-t", "filter");
         Assert.AreEqual(0, code);
         Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv6, out RawFilterTable? inactiveV6));
-        Assert.HasCount(0, inactiveV6.Chains.Single(static chain => chain.Name == "ufw-user-input").Rules);
+        Assert.IsFalse(inactiveV6.Chains.Any(static chain => chain.Name == "ufw6-user-input"));
+        Assert.AreEqual(FilterChainPolicy.Drop, inactiveV6.Chains.Single(static chain => chain.Name == "INPUT").Policy);
+        Assert.AreEqual(FilterChainPolicy.Drop, inactiveV6.Chains.Single(static chain => chain.Name == "OUTPUT").Policy);
+        Assert.AreEqual(FilterChainPolicy.Drop, inactiveV6.Chains.Single(static chain => chain.Name == "FORWARD").Policy);
+        Assert.AreEqual("ACCEPT", inactiveV6.Chains.Single(static chain => chain.Name == "INPUT").Rules.Single().Target.Name);
         Assert.Contains("--dport 22", await File.ReadAllTextAsync(Path.Combine(_directory, "user6.rules")));
 
         await File.WriteAllTextAsync(defaults, "IPV6=yes\n");
         (code, save, _) = InvokeSave(FirewallAddressFamily.IPv6, "-t", "filter");
         Assert.AreEqual(0, code);
         Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv6, out RawFilterTable? enabledV6));
-        Assert.HasCount(1, enabledV6.Chains.Single(static chain => chain.Name == "ufw-user-input").Rules);
+        Assert.HasCount(1, enabledV6.Chains.Single(static chain => chain.Name == "ufw6-user-input").Rules);
     }
 
     [TestMethod]
@@ -250,7 +349,8 @@ public sealed class MockIptablesIntegrationTests
         (int code, string save, string stderr) = InvokeSave(FirewallAddressFamily.IPv4, "-t", "filter");
         Assert.AreEqual(0, code, stderr);
         Assert.IsTrue(IptablesSaveGrammar.Instance.TryParse(save, FirewallAddressFamily.IPv4, out RawFilterTable? table));
-        Assert.HasCount(0, table.Chains.Single(static chain => chain.Name == "ufw-user-input").Rules);
+        Assert.IsFalse(table.Chains.Any(static chain => chain.Name == "ufw-user-input"));
+        Assert.AreEqual(FilterChainPolicy.Accept, table.Chains.Single(static chain => chain.Name == "INPUT").Policy);
 
         string fixture = Path.Combine(_directory, "invalid.rules");
         await File.WriteAllTextAsync(fixture, "*filter\n:INPUT DROP [0:0]\n-A missing -j ACCEPT\nCOMMIT\n");

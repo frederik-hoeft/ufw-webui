@@ -64,9 +64,9 @@ internal static class MockRuleExpansion
         FirewallRuleSpecification specification = rule.Specification;
         string chain = specification.Direction switch
         {
-            FirewallDirection.In => "ufw-user-input",
-            FirewallDirection.Out => "ufw-user-output",
-            FirewallDirection.Forward => "ufw-user-forward",
+            FirewallDirection.In => MockChainNames.User(specification.AddressFamily, "input"),
+            FirewallDirection.Out => MockChainNames.User(specification.AddressFamily, "output"),
+            FirewallDirection.Forward => MockChainNames.User(specification.AddressFamily, "forward"),
             _ => throw new ArgumentOutOfRangeException(nameof(rule)),
         };
 
@@ -82,14 +82,19 @@ internal static class MockRuleExpansion
             if (specification.Action == FirewallAction.Limit)
             {
                 declarations.Add(prefix + " -m conntrack --ctstate NEW -m recent --set");
-                declarations.Add(prefix + " -m conntrack --ctstate NEW -m recent --update --seconds 30 --hitcount 6 -j ufw-user-limit");
-                declarations.Add(prefix + " -j ufw-user-limit-accept");
+                declarations.Add(prefix + " -m conntrack --ctstate NEW -m recent --update --seconds 30 --hitcount 6 -j " + MockChainNames.Prefix(specification.AddressFamily) + "user-limit");
+                declarations.Add(prefix + " -j " + MockChainNames.Prefix(specification.AddressFamily) + "user-limit-accept");
                 continue;
             }
 
             if (rule.Logging != UfwRuleLogging.None)
             {
-                string loggingChain = specification.Direction == FirewallDirection.Out ? "ufw-user-logging-output" : "ufw-user-logging-input";
+                string loggingChain = MockChainNames.Prefix(specification.AddressFamily) + (specification.Direction switch
+                {
+                    FirewallDirection.Out => "user-logging-output",
+                    FirewallDirection.Forward => "user-logging-forward",
+                    _ => "user-logging-input",
+                });
                 declarations.Add(prefix + " -j " + loggingChain);
             }
             string target = specification.Action switch
