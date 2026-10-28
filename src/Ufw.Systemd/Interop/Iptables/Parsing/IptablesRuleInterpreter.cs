@@ -1,4 +1,5 @@
-﻿using Ufw.Shared.Firewall;
+﻿using System.Runtime.InteropServices;
+using Ufw.Shared.Firewall;
 using Ufw.Shared.Firewall.SystemState;
 
 namespace Ufw.Systemd.Interop.Iptables.Parsing;
@@ -192,13 +193,16 @@ internal static class IptablesRuleInterpreter
         // UFW places application comment matches after the target in user.rules,
         // whereas iptables-save emits these matches before the target.
         // Recognize only this known match tail; leave other target arguments opaque.
-        while (index < tokens.Count)
+        ReadOnlySpan<IptablesToken> tokenSpan = tokens is List<IptablesToken> list
+            ? CollectionsMarshal.AsSpan(list)
+            : tokens.ToArray();
+        while (index < tokenSpan.Length)
         {
-            if (index + 3 < tokens.Count && tokens[index].Text == "-m"
-                && tokens[index + 1].Text == "comment" && tokens[index + 2].Text == "--comment"
-                && tokens[index + 3].Kind is IptablesTokenKind.BareWord or IptablesTokenKind.QuotedString)
+            if (tokenSpan[index..] is
+                [{ Text: "-m" }, { Text: "comment" }, { Text: "--comment" },
+                 { Kind: IptablesTokenKind.BareWord or IptablesTokenKind.QuotedString } comment, ..])
             {
-                clauses.Add(OpaqueClause("-m comment --comment " + tokens[index + 3].Format()));
+                clauses.Add(OpaqueClause("-m comment --comment " + comment.Format()));
                 index += 4;
                 continue;
             }
