@@ -14,6 +14,10 @@ is_global = true
 dotnet_diagnostic.CA1062.severity = suggestion
 # CA1515: Consider making public types internal
 dotnet_diagnostic.CA1515.severity = suggestion
+# CA1517: Prefer read-only Span/Memory parameters when the data is not modified (may change API contracts)
+dotnet_diagnostic.CA1517.severity = warning
+# CA1878: Prefer ReadOnlySpan properties over private static readonly constant arrays (may change API shape)
+dotnet_diagnostic.CA1878.severity = warning
 # CA1851: Possible multiple enumerations of IEnumerable collection
 dotnet_diagnostic.CA1851.severity = warning
 # IDE0079: Remove unnecessary suppression
@@ -138,6 +142,8 @@ dotnet_diagnostic.CA1512.severity = suggestion
 dotnet_diagnostic.CA1513.severity = suggestion
 # CA1514: Avoid redundant length argument
 dotnet_diagnostic.CA1514.severity = warning
+# CA1516: Prefer cross-platform intrinsics when equivalent platform-independent operations exist
+dotnet_diagnostic.CA1516.severity = warning
 
 ## Naming rules
 # CA1707: Identifiers should not contain underscores
@@ -216,8 +222,20 @@ dotnet_diagnostic.CA1868.severity = warning
 dotnet_diagnostic.CA1869.severity = warning
 # CA1870: Use a cached 'SearchValues' instance
 dotnet_diagnostic.CA1870.severity = warning
+# CA1871: Do not pass nullable structs to ArgumentNullException.ThrowIfNull (boxing)
+dotnet_diagnostic.CA1871.severity = warning
 # CA1872: Prefer 'Convert.ToHexString' and 'Convert.ToHexStringLower' over call chains based on 'BitConverter.ToString'
 dotnet_diagnostic.CA1872.severity = warning
+# CA1873: Avoid expensive logging argument evaluation when the log level is disabled
+dotnet_diagnostic.CA1873.severity = warning
+# CA1874: Prefer Regex.IsMatch over Regex.Match(...).Success
+dotnet_diagnostic.CA1874.severity = warning
+# CA1875: Prefer Regex.Count over Regex.Matches(...).Count
+dotnet_diagnostic.CA1875.severity = warning
+# CA1876: Avoid AsParallel() in foreach when the intended parallelism is lost
+dotnet_diagnostic.CA1876.severity = warning
+# CA1877: Collapse nested Path.Combine/Path.Join calls into a single call
+dotnet_diagnostic.CA1877.severity = warning
 
 ## SingleFile rules
 # IL3000/IL3001: Avoid accessing Assembly file path when publishing as a single file
@@ -255,6 +273,16 @@ dotnet_diagnostic.CA2019.severity = error
 dotnet_diagnostic.CA2021.severity = warning
 # CA2022: Avoid inexact read with Stream.Read
 dotnet_diagnostic.CA2022.severity = warning
+# CA2023: Invalid braces in logging message templates
+dotnet_diagnostic.CA2023.severity = warning
+# CA2024: Avoid StreamReader.EndOfStream checks that can block in async code
+dotnet_diagnostic.CA2024.severity = warning
+# CA2025: Do not dispose resources while unawaited tasks may still use them
+dotnet_diagnostic.CA2025.severity = warning
+# CA2026: Prefer JsonElement.Parse over JsonDocument.Parse(...).RootElement
+dotnet_diagnostic.CA2026.severity = warning
+# CA2027: Avoid non-cancelable Task.Delay in Task.WhenAny timeout patterns
+dotnet_diagnostic.CA2027.severity = warning
 
 ## Security rules
 # CA2100: Review SQL queries for security vulnerabilities
@@ -465,3 +493,10 @@ dotnet_diagnostic.SYSLIB1062.severity = error
 ## IDE rules
 # IDE0073: Require file header
 dotnet_diagnostic.IDE0073.severity = none
+# IDE0380: Remove unnecessary unsafe modifiers
+dotnet_diagnostic.IDE0380.severity = suggestion
+# IDE0390/IDE0391: Detect async methods without await (review exception semantics before fixing)
+dotnet_diagnostic.IDE0390.severity = suggestion
+dotnet_diagnostic.IDE0391.severity = suggestion
+# IDE0410: Prefer C# 15 labeled break/continue for nested-loop control flow
+dotnet_diagnostic.IDE0410.severity = warning
